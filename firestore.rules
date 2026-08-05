@@ -1,0 +1,113 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && (
+        (resource != null && (resource.data.userId == request.auth.uid || resource.data.user_id == request.auth.uid)) ||
+        (request.resource != null && (request.resource.data.userId == request.auth.uid || request.resource.data.user_id == request.auth.uid))
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // Per-User / Per-Store Documents & Subcollections (Recomendado)
+    // ------------------------------------------------------------------
+    match /profiles/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Subcoleções do perfil (caixa, estoque, precificação, metas, etc.)
+      match /{subcollection}/{docId} {
+        // Vitrine da Loja Online: leitura pública para catálogo de produtos
+        allow read: if subcollection == 'loja_products' || isOwner(userId);
+        
+        // Checkout da Loja Online: criação de pedidos por visitantes
+        allow create: if subcollection == 'loja_orders' || isOwner(userId);
+
+        // Todas as alterações e exclusões restritas ao dono da loja
+        allow write, update, delete: if isOwner(userId);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Top-Level Collections (Estrutura plana com userId ou user_id)
+    // ------------------------------------------------------------------
+    
+    // Usuários / Perfis
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Transações / Caixa Diário
+    match /transactions/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Estoque de Produtos
+    match /inventory_items/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Tabela de Precificação
+    match /pricings/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Cadastro de Clientes
+    match /customers/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Fiado & Cobranças
+    match /credits/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    match /credit_payments/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Retiradas de Pró-labore
+    match /prolabore_withdrawals/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Metas de Vendas
+    match /goals/{docId} {
+      allow read, write: if isDocOwner();
+    }
+
+    // Produtos da Loja Online (Vitrine pública)
+    match /products/{docId} {
+      allow read: if true; // Visitantes podem visualizar o catálogo
+      allow create, update, delete: if isDocOwner();
+    }
+
+    // Pedidos Recebidos na Loja Online
+    match /orders/{docId} {
+      allow create: if true; // Clientes da loja online podem fazer pedidos
+      allow read, update, delete: if isDocOwner();
+    }
+
+    // Cupons de Desconto
+    match /coupons/{docId} {
+      allow read: if true; // Leitura pública para validação de cupons
+      allow create, update, delete: if isDocOwner();
+    }
+
+    // Configuração e Aparência da Loja
+    match /loja_config/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isDocOwner();
+    }
+  }
+}

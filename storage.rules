@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Pastas de imagens de cada loja (ex: users/{userId}/products/...)
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true; // Imagens públicas para visualização no site e loja
+      allow write: if isOwner(userId); // Apenas o lojista pode fazer upload/deletar
+    }
+
+    // Pasta geral de produtos (ex: products/...)
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}
