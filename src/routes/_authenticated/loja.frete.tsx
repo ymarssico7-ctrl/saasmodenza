@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Package, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +15,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/frete")({
   head: () => ({
     meta: [
-      { title: "Frete & Entrega — Modaly" },
+      { title: "Frete & Entrega — Modenza" },
       {
         name: "description",
         content: "Configure as opções de entrega da sua loja online: retirada, entrega local e Correios.",
@@ -242,3 +242,4 @@ function FretePage() {
     </PlanGuard>
   );
 }
+

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, Instagram, MessageCircle, Plug, Zap } from "lucide-react";
 
 import { PageHeader } from "@/components/loja/page-header";
@@ -11,7 +11,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/integracoes")({
   head: () => ({
     meta: [
-      { title: "Integrações — Modaly" },
+      { title: "Integrações — Modenza" },
       {
         name: "description",
         content: "Conecte sua loja com WhatsApp, Instagram, Pix e ferramentas de marketing.",
@@ -183,3 +183,4 @@ function IntegracoesPage() {
     </PlanGuard>
   );
 }
+

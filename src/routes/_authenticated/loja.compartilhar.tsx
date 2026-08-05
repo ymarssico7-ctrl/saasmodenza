@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Instagram, Link2, QrCode, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,7 +14,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/compartilhar")({
   head: () => ({
     meta: [
-      { title: "Compartilhar a loja — Modaly" },
+      { title: "Compartilhar a loja — Modenza" },
       {
         name: "description",
         content: "Copie o link da vitrine, gere o QR Code e compartilhe peças individuais no WhatsApp.",
@@ -140,3 +140,4 @@ function CompartilharPage() {
     </PlanGuard>
   );
 }
+

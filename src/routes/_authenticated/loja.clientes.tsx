@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, Search, ShoppingBag, Star, Users } from "lucide-react";
 
@@ -14,7 +14,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes da Loja — Modaly" },
+      { title: "Clientes da Loja — Modenza" },
       {
         name: "description",
         content: "Visualize o histórico de compras, frequência e ticket médio das suas clientes.",
@@ -213,3 +213,4 @@ function ClientesLojaPage() {
     </PlanGuard>
   );
 }
+

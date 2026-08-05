@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/cupons")({
   head: () => ({
     meta: [
-      { title: "Cupons de desconto — Modaly" },
+      { title: "Cupons de desconto — Modenza" },
       {
         name: "description",
         content: "Crie cupons em percentual ou valor fixo, com validade e limite de uso.",
@@ -164,3 +164,4 @@ function CuponsPage() {
     </PlanGuard>
   );
 }
+

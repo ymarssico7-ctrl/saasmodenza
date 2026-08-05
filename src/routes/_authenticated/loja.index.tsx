@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Area,
   AreaChart,
@@ -24,7 +24,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/")({
   head: () => ({
     meta: [
-      { title: "Loja Online — Modaly" },
+      { title: "Loja Online — Modenza" },
       {
         name: "description",
         content:
@@ -261,3 +261,4 @@ function VisaoGeral() {
     </PlanGuard>
   );
 }
+

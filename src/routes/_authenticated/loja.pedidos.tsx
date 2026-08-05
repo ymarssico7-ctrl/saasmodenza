@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, MessageCircle, PackageSearch, Truck, X } from "lucide-react";
 import { toast } from "sonner";
@@ -44,7 +44,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
     meta: [
-      { title: "Pedidos da loja — Modaly" },
+      { title: "Pedidos da loja — Modenza" },
       {
         name: "description",
         content:
@@ -306,3 +306,4 @@ function PedidosPage() {
     </PlanGuard>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ImagePlus, Instagram, MessageCircle, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
     meta: [
-      { title: "Configuração da loja — Modaly" },
+      { title: "Configuração da loja — Modenza" },
       {
         name: "description",
         content: "Nome, logo, capa, cor principal, contatos e política de troca da vitrine.",
@@ -210,3 +210,4 @@ function Campo({
     </div>
   );
 }
+

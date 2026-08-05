@@ -1,4 +1,4 @@
-// Imagens de produtos — Unsplash CDN (substituir por assets reais em produção)
+﻿// Imagens de produtos — Unsplash CDN (substituir por assets reais em produção)
 const IMG = {
   blusa1:    "https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=600&q=80",
   calca:     "https://images.unsplash.com/photo-1594938298603-c8148e4e3b58?w=600&q=80",
@@ -13,7 +13,7 @@ const IMG = {
 export const loja = {
   nome: "Ateliê Manon",
   descricao: "Moda feminina autoral, peças selecionadas à mão em Belo Horizonte.",
-  subdominio: "atelie-manon.modaly.com.br",
+  subdominio: "atelie-manon.Modenza.com.br",
   dominioProprio: "",
   whatsapp: "(31) 99812-4477",
   instagram: "@ateliemanon",
@@ -401,3 +401,4 @@ export function dateTimeBR(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
+

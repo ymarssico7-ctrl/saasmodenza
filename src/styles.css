@@ -1,11 +1,11 @@
-@import "tailwindcss" source(none);
+﻿@import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Modaly — design system premium unificado (estilo Apple)
+ * Modenza — design system premium unificado (estilo Apple)
  * Base off-white quente, tinta grafite, destaque índigo profundo.
  * Todos os valores de cor em oklch e expostos como tokens semânticos.
  * Suporta ambos os módulos: Gestão do Negócio e Loja Online.
@@ -296,3 +296,4 @@
     outline-offset: 2px;
   }
 }
+

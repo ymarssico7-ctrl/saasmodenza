@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, EyeOff, Search, Sparkles, Star, Tag as TagIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/produtos")({
   head: () => ({
     meta: [
-      { title: "Vitrine — Modaly" },
+      { title: "Vitrine — Modenza" },
       {
         name: "description",
         content:
@@ -358,3 +358,4 @@ function ProdutosPage() {
     </PlanGuard>
   );
 }
+
