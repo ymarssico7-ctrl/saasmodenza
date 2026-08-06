@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Area,
   AreaChart,
@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { brl, brlCompact } from "@/lib/format";
 import { kpisLoja, loja, pedidos, produtos, totalPedido, vendasPorDia, dateTimeBR } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/")({
   head: () => ({
@@ -49,11 +48,6 @@ function VisaoGeral() {
   };
 
   return (
-    <PlanGuard
-      requires="digital"
-      featureName="Loja Online"
-      featureDescription="Venda pelo Instagram, WhatsApp e internet com uma vitrine profissional integrada à sua gestão. Disponível no Plano Digital."
-    >
       <div className="space-y-6">
         <PageHeader
           eyebrow="Loja online"
@@ -258,7 +252,6 @@ function VisaoGeral() {
           </div>
         </SectionCard>
       </div>
-    </PlanGuard>
   );
 }
 

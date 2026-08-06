@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, Search, ShoppingBag, Star, Users } from "lucide-react";
 
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
 import { pedidos, totalPedido } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/clientes")({
   head: () => ({
@@ -96,11 +95,6 @@ function ClientesLojaPage() {
       : 0;
 
   return (
-    <PlanGuard
-      requires="digital"
-      featureName="Clientes da Loja"
-      featureDescription="Veja quem são suas melhores clientes, histórico de compras e ticket médio. Disponível no Plano Digital."
-    >
       <div className="space-y-6">
         <PageHeader
           eyebrow="Relacionamento"
@@ -210,7 +204,6 @@ function ClientesLojaPage() {
           )}
         </SectionCard>
       </div>
-    </PlanGuard>
   );
 }
 

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, EyeOff, Search, Sparkles, Star, Tag as TagIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -21,7 +21,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
 import { dateBR, loja, produtos as produtosBase, type Produto } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/produtos")({
   head: () => ({
@@ -90,7 +89,6 @@ function ProdutosPage() {
   };
 
   return (
-    <PlanGuard requires="digital" featureName="Vitrine Online" featureDescription="Gerencie quais peças aparecem na sua loja online. Disponível no Plano Digital.">
       <div className="space-y-6">
         <PageHeader
           eyebrow="Vitrine"
@@ -355,7 +353,6 @@ function ProdutosPage() {
           </SheetContent>
         </Sheet>
       </div>
-    </PlanGuard>
   );
 }
 

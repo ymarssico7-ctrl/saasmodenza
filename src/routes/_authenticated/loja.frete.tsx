@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Package, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/frete")({
   head: () => ({
@@ -89,11 +88,6 @@ function FretePage() {
   }
 
   return (
-    <PlanGuard
-      requires="digital"
-      featureName="Frete & Entrega"
-      featureDescription="Configure as opções de entrega da sua loja online. Disponível no Plano Digital."
-    >
       <div className="space-y-6">
         <PageHeader
           eyebrow="Logística"
@@ -239,7 +233,6 @@ function FretePage() {
           </p>
         </div>
       </div>
-    </PlanGuard>
   );
 }
 

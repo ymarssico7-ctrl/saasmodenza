@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ImagePlus, Instagram, MessageCircle, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { loja } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
@@ -34,7 +33,6 @@ function ConfiguracaoPage() {
   const [mostrarEstoque, setMostrarEstoque] = useState(loja.mostrarEstoque);
 
   return (
-    <PlanGuard requires="digital" featureName="Configuração da Vitrine" featureDescription="Personalize a identidade da sua loja online. Disponível no Plano Digital.">
       <div className="space-y-6">
         <PageHeader
           eyebrow="Identidade"
@@ -187,7 +185,6 @@ function ConfiguracaoPage() {
           </div>
         </div>
       </div>
-    </PlanGuard>
   );
 }
 

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, MessageCircle, PackageSearch, Truck, X } from "lucide-react";
 import { toast } from "sonner";
@@ -39,7 +39,6 @@ import {
   dateTimeBR,
   dateBR,
 } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
@@ -96,7 +95,6 @@ function PedidosPage() {
   };
 
   return (
-    <PlanGuard requires="digital" featureName="Gestão de Pedidos" featureDescription="Gerencie os pedidos da sua loja online. Disponível no Plano Digital.">
       <div className="space-y-6">
         <PageHeader
           eyebrow="Loja online"
@@ -303,7 +301,6 @@ function PedidosPage() {
           ) : null}
         </Sheet>
       </div>
-    </PlanGuard>
   );
 }
 

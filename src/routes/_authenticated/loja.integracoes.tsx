@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, Instagram, MessageCircle, Plug, Zap } from "lucide-react";
 
 import { PageHeader } from "@/components/loja/page-header";
@@ -6,7 +6,6 @@ import { SectionCard } from "@/components/loja/section-card";
 import { PlanoBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/integracoes")({
   head: () => ({
@@ -96,11 +95,6 @@ function IntegracoesPage() {
   );
 
   return (
-    <PlanGuard
-      requires="digital"
-      featureName="Integrações"
-      featureDescription="Conecte sua loja com ferramentas externas de comunicação e marketing. Disponível no Plano Digital."
-    >
       <div className="space-y-6">
         <PageHeader
           eyebrow="Conectividade"
@@ -180,7 +174,6 @@ function IntegracoesPage() {
           </div>
         </div>
       </div>
-    </PlanGuard>
   );
 }
 

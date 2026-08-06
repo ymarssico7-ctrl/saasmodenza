@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Instagram, Link2, QrCode, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
 import { loja, produtos } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/compartilhar")({
   head: () => ({
@@ -33,7 +32,6 @@ function CompartilharPage() {
   };
 
   return (
-    <PlanGuard requires="digital" featureName="Compartilhamento" featureDescription="Copie o link da sua vitrine e compartilhe peças individuais. Disponível no Plano Digital.">
       <div className="space-y-6">
         <PageHeader
           eyebrow="Divulgação"
@@ -137,7 +135,6 @@ function CompartilharPage() {
           </Button>
         </SectionCard>
       </div>
-    </PlanGuard>
   );
 }
 

@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   Area,
   AreaChart,
@@ -19,7 +19,6 @@ import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard } from "@/components/loja/section-card";
 import { brl, brlCompact } from "@/lib/format";
 import { kpisLoja, pedidos, produtos, totalPedido, vendasPorDia } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/relatorios")({
   head: () => ({
@@ -76,11 +75,6 @@ const taxaConversao = 3.8; // % mock
 
 function RelatoriosPage() {
   return (
-    <PlanGuard
-      requires="digital"
-      featureName="Relatórios da Loja"
-      featureDescription="Análise completa de desempenho da sua loja online com gráficos e métricas detalhadas. Disponível no Plano Digital."
-    >
       <div className="space-y-6">
         <PageHeader
           eyebrow="Análise"
@@ -318,7 +312,6 @@ function RelatoriosPage() {
           </div>
         </SectionCard>
       </div>
-    </PlanGuard>
   );
 }
 

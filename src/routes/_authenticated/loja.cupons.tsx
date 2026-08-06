@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { brl } from "@/lib/format";
 import { cupons as cuponsBase, dateBR, type Cupom } from "@/data/loja";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/cupons")({
   head: () => ({
@@ -35,7 +34,6 @@ function CuponsPage() {
   const [novo, setNovo] = useState(false);
 
   return (
-    <PlanGuard requires="crescimento" featureName="Cupons de Desconto" featureDescription="Crie campanhas de desconto sem alterar o preço base das peças. Disponível no Plano Crescimento.">
       <div className="space-y-6">
         <PageHeader
           eyebrow="Vendas"
@@ -161,7 +159,6 @@ function CuponsPage() {
           </SheetContent>
         </Sheet>
       </div>
-    </PlanGuard>
   );
 }
 
