@@ -8,6 +8,7 @@ import {
   BadgePercent,
   HandCoins,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   Package,
@@ -26,6 +27,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery } from "@/lib/db";
+import { useAccess } from "@/lib/useAccess";
 import { cn } from "@/lib/utils";
 
 // ─── Navigation config ─────────────────────────────────────────────────────────
@@ -70,9 +72,11 @@ const LOJA_MOBILE: NavItem[] = [LOJA_NAV[0]!, LOJA_NAV[1]!, LOJA_NAV[2]!, LOJA_N
 function ModeSwitcher({
   mode,
   onChange,
+  lojaLocked,
 }: {
   mode: "gestao" | "loja";
   onChange: (m: "gestao" | "loja") => void;
+  lojaLocked?: boolean;
 }) {
   return (
     <div className="relative mx-1 flex items-center rounded-2xl bg-surface-muted p-1">
@@ -101,7 +105,7 @@ function ModeSwitcher({
           mode === "loja" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
         )}
       >
-        <Store className="size-3.5" />
+        {lojaLocked ? <Lock className="size-3.5" /> : <Store className="size-3.5" />}
         <span className="hidden sm:inline">Loja Online</span>
         <span className="sm:hidden">Loja</span>
       </button>
@@ -117,10 +121,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { hasLoja, trialStatus } = useAccess(profile);
 
   // Derive active mode from pathname
   const isLojaRoute = pathname.startsWith("/loja");
   const [mode, setMode] = useState<"gestao" | "loja">(isLojaRoute ? "loja" : "gestao");
+
+  // Loja bloqueada se não tiver acesso e não for o caso de "não oferecido ainda"
+  const lojaLocked = !hasLoja && trialStatus !== "not_offered";
 
   const activeNav = mode === "gestao" ? GESTAO_NAV : LOJA_NAV;
   const activeMobileNav = mode === "gestao" ? GESTAO_MOBILE : LOJA_MOBILE;
@@ -137,6 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (m === "gestao") {
       void navigate({ to: "/painel" });
     } else {
+      // Navega para /loja — o guard da rota exibirá a tela correta
       void navigate({ to: "/loja" });
     }
     setOpen(false);
@@ -145,11 +154,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const storeName = profile?.store_name?.trim() || "Sua loja";
   const ownerName = profile?.owner_name?.trim() || "Bem-vinda";
   const planLabel =
-    profile?.plan === "crescimento"
-      ? "Crescimento"
-      : profile?.plan === "digital"
-        ? "Digital"
-        : "Lojista";
+    profile?.plan === "gestao_anual"
+      ? "Gestão Anual"
+      : profile?.plan === "crescimento"
+        ? "Crescimento"
+        : profile?.plan === "digital"
+          ? "Digital"
+          : "Lojista";
 
   return (
     <div className="min-h-screen bg-background">
@@ -162,7 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Mode Switcher */}
         <div className="mt-7">
-          <ModeSwitcher mode={mode} onChange={handleModeChange} />
+          <ModeSwitcher mode={mode} onChange={handleModeChange} lojaLocked={lojaLocked} />
         </div>
 
         {/* Nav links */}
@@ -208,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-          <ModeSwitcher mode={mode} onChange={handleModeChange} />
+          <ModeSwitcher mode={mode} onChange={handleModeChange} lojaLocked={lojaLocked} />
           <Button
             variant="ghost"
             size="icon"

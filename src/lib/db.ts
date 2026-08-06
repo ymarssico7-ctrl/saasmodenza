@@ -6,14 +6,34 @@ export const profileQuery = () =>
   queryOptions({
     queryKey: ["profile"],
     queryFn: async () => {
-      // TEMPORARY BYPASS
-      return {
-        id: "mock-id",
-        store_name: "Loja Demo",
-        owner_name: "Visitante",
-        plan: "crescimento",
-        onboarding_done: true
-      };
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      
+      if (!user) {
+        // Fallback para desenvolvimento local sem login ativo
+        return {
+          id: "mock-id",
+          store_name: "Loja Demo",
+          owner_name: "Visitante",
+          plan: "gestao_anual",
+          plan_expires_at: "2027-08-05",
+          onboarding_done: true,
+          store_trial_offered_at: null,
+          store_trial_accepted: null,
+          store_trial_expires_at: null,
+          store_subscription_active: false,
+          store_subscription_expires_at: null,
+        };
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      return data;
     },
   });
 
