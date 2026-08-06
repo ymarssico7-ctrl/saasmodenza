@@ -3,7 +3,7 @@ import { Clock, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId } from "@/lib/db";
+import { currentUserId, isAuthenticated } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -16,18 +16,25 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
 
   const subscribe = useMutation({
     mutationFn: async () => {
-      // Aqui no futuro: redirecionar para checkout de pagamento
-      // Por enquanto: simulação de assinatura
       const uid = await currentUserId();
+      const realUser = await isAuthenticated();
       const subExpires = new Date();
       subExpires.setMonth(subExpires.getMonth() + 1);
 
-      const { error } = await supabase.from("profiles").update({
+      if (realUser) {
+        const { error } = await supabase.from("profiles").update({
+          store_subscription_active: true,
+          store_subscription_expires_at: subExpires.toISOString(),
+        }).eq("id", uid);
+        if (error) throw new Error(error.message);
+      }
+
+      // Atualiza cache local independente de auth
+      queryClient.setQueryData(["profile"], (old: any) => ({
+        ...old,
         store_subscription_active: true,
         store_subscription_expires_at: subExpires.toISOString(),
-      }).eq("id", uid);
-
-      if (error) throw new Error(error.message);
+      }));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["profile"] });

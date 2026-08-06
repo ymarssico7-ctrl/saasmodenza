@@ -154,9 +154,14 @@ export const membersQuery = () =>
     },
   });
 
-export async function currentUserId() {
+export async function currentUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
-  const uid = data.user?.id;
-  if (!uid) throw new Error("Sessão expirada. Entre novamente.");
-  return uid;
+  // Retorna "mock-id" em modo demo/dev sem sessão ativa
+  return data.user?.id ?? "mock-id";
+}
+
+/** Retorna true se o usuário está autenticado de verdade no Supabase */
+export async function isAuthenticated(): Promise<boolean> {
+  const { data } = await supabase.auth.getUser();
+  return !!data.user?.id;
 }

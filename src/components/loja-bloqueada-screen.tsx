@@ -3,7 +3,7 @@ import { Lock, ShieldCheck, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId } from "@/lib/db";
+import { currentUserId, isAuthenticated } from "@/lib/db";
 
 type Props = {
   reason: "expired" | "declined" | "no_plan";
@@ -15,17 +15,26 @@ export function LojaBloqueadaScreen({ reason }: Props) {
   const subscribe = useMutation({
     mutationFn: async () => {
       const uid = await currentUserId();
+      const realUser = await isAuthenticated();
       const subExpires = new Date();
       subExpires.setMonth(subExpires.getMonth() + 1);
 
-      const { error } = await supabase.from("profiles").update({
+      if (realUser) {
+        const { error } = await supabase.from("profiles").update({
+          store_subscription_active: true,
+          store_subscription_expires_at: subExpires.toISOString(),
+          store_trial_accepted: true,
+        }).eq("id", uid);
+        if (error) throw new Error(error.message);
+      }
+
+      // Atualiza cache local independente de auth
+      queryClient.setQueryData(["profile"], (old: any) => ({
+        ...old,
         store_subscription_active: true,
         store_subscription_expires_at: subExpires.toISOString(),
-        // Reativa o trial como aceito caso tenha sido declined e agora assina
         store_trial_accepted: true,
-      }).eq("id", uid);
-
-      if (error) throw new Error(error.message);
+      }));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -56,7 +65,6 @@ export function LojaBloqueadaScreen({ reason }: Props) {
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-      {/* Ícone */}
       <div className="flex size-20 items-center justify-center rounded-3xl bg-surface-muted border border-border mb-6">
         <Lock className="size-9 text-muted-foreground" />
       </div>
@@ -66,13 +74,11 @@ export function LojaBloqueadaScreen({ reason }: Props) {
         {description}
       </p>
 
-      {/* Garantia de dados */}
       <div className="mt-5 flex items-center gap-2 text-xs text-success font-medium">
         <ShieldCheck className="size-4" />
         Seus dados estão salvos e protegidos
       </div>
 
-      {/* Preço e benefícios */}
       <div className="mt-8 w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-left">
         <div className="flex items-baseline gap-1.5">
           <span className="font-display text-3xl font-bold text-foreground">R$67</span>

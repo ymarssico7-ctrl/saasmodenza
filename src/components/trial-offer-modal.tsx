@@ -1,15 +1,22 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Gift, Store, X } from "lucide-react";
+import { Gift, Store } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId } from "@/lib/db";
+import { currentUserId, isAuthenticated } from "@/lib/db";
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
+
+// Calcula data de expiração do trial (30 dias a partir de agora)
+function getTrialExpiry(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString();
+}
 
 export function TrialOfferModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -17,20 +24,29 @@ export function TrialOfferModal({ open, onClose }: Props) {
 
   const acceptTrial = useMutation({
     mutationFn: async () => {
+      const trialExpires = getTrialExpiry();
       const uid = await currentUserId();
-      const trialExpires = new Date();
-      trialExpires.setDate(trialExpires.getDate() + 30);
+      const realUser = await isAuthenticated();
 
-      const { error } = await supabase.from("profiles").update({
+      if (realUser) {
+        // Usuário real → grava no Supabase
+        const { error } = await supabase.from("profiles").update({
+          store_trial_accepted: true,
+          store_trial_offered_at: new Date().toISOString(),
+          store_trial_expires_at: trialExpires,
+        }).eq("id", uid);
+        if (error) throw new Error(error.message);
+      }
+
+      // Modo demo OU após salvar no banco: atualiza o cache local imediatamente
+      queryClient.setQueryData(["profile"], (old: any) => ({
+        ...old,
         store_trial_accepted: true,
         store_trial_offered_at: new Date().toISOString(),
-        store_trial_expires_at: trialExpires.toISOString(),
-      }).eq("id", uid);
-
-      if (error) throw new Error(error.message);
+        store_trial_expires_at: trialExpires,
+      }));
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
       setDecided(true);
       toast.success("Sua loja online está ativa! Você tem 30 dias grátis. 🎉");
       setTimeout(onClose, 1800);
@@ -41,15 +57,27 @@ export function TrialOfferModal({ open, onClose }: Props) {
   const declineTrial = useMutation({
     mutationFn: async () => {
       const uid = await currentUserId();
-      const { error } = await supabase.from("profiles").update({
+      const realUser = await isAuthenticated();
+
+      if (realUser) {
+        // Usuário real → grava no Supabase
+        const { error } = await supabase.from("profiles").update({
+          store_trial_accepted: false,
+          store_trial_offered_at: new Date().toISOString(),
+        }).eq("id", uid);
+        if (error) throw new Error(error.message);
+      }
+
+      // Modo demo OU após salvar no banco: atualiza o cache local imediatamente
+      queryClient.setQueryData(["profile"], (old: any) => ({
+        ...old,
         store_trial_accepted: false,
         store_trial_offered_at: new Date().toISOString(),
-      }).eq("id", uid);
-      if (error) throw new Error(error.message);
+      }));
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
       onClose();
+      toast.info("Tudo bem! Você pode ativar a Loja Online quando quiser nas Configurações.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -59,7 +87,7 @@ export function TrialOfferModal({ open, onClose }: Props) {
   const isPending = acceptTrial.isPending || declineTrial.isPending;
 
   return (
-    // Backdrop escuro — não pode fechar clicando fora (decisão obrigatória)
+    // Backdrop — sem X para fechar (decisão obrigatória)
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="w-full max-w-md rounded-3xl bg-card border border-border shadow-lift p-8 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
 
