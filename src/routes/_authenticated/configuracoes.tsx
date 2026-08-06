@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, membersQuery, profileQuery } from "@/lib/db";
+import { currentUserId, isAuthenticated, membersQuery, profileQuery, updateDemoProfile } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -51,22 +51,34 @@ function Configuracoes() {
 
   const saveProfile = useMutation({
     mutationFn: async () => {
-      const uid = await currentUserId();
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          store_name: storeName.trim() || "Minha loja",
-          owner_name: ownerName.trim() || "Lojista",
-          city: city.trim() || null,
-          phone: phone.trim() || null,
-          prolabore_target: toNumber(target),
-        })
-        .eq("id", uid);
-      if (error) throw new Error(error.message);
+      const realUser = await isAuthenticated();
+      const patch = {
+        store_name: storeName.trim() || "Minha loja",
+        owner_name: ownerName.trim() || "Lojista",
+        city: city.trim() || null,
+        phone: phone.trim() || null,
+        prolabore_target: toNumber(target),
+      };
+
+      if (realUser) {
+        // Usuário real → salva no Supabase
+        const uid = await currentUserId();
+        const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
+        if (error) throw new Error(error.message);
+      } else {
+        // Modo demo → persiste no localStorage (sem chamar o banco)
+        updateDemoProfile(patch);
+      }
+
+      // Atualiza a interface imediatamente em ambos os casos
+      queryClient.setQueryData(["profile"], (old: any) => ({ ...old, ...patch }));
     },
     onSuccess: () => {
       toast.success("Dados atualizados");
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      // Apenas invalida se for usuário real — no demo o setQueryData já cuida
+      void isAuthenticated().then((real) => {
+        if (real) void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -74,6 +86,13 @@ function Configuracoes() {
   const addMember = useMutation({
     mutationFn: async () => {
       if (!memberName.trim()) throw new Error("Informe o nome");
+      const realUser = await isAuthenticated();
+
+      if (!realUser) {
+        // Modo demo → simula sucesso sem chamar o banco
+        return;
+      }
+
       const user_id = await currentUserId();
       const { error } = await supabase.from("store_members").insert({
         user_id,
@@ -94,6 +113,9 @@ function Configuracoes() {
 
   const removeMember = useMutation({
     mutationFn: async (id: string) => {
+      const realUser = await isAuthenticated();
+      if (!realUser) return; // Modo demo → simula sucesso
+
       const { error } = await supabase.from("store_members").delete().eq("id", id);
       if (error) throw new Error(error.message);
     },
