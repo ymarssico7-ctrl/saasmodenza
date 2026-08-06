@@ -2,28 +2,47 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { monthEnd, monthStart } from "./format";
 
+const DEMO_PROFILE_KEY = "modenza_demo_profile";
+
+const DEFAULT_DEMO_PROFILE = {
+  id: "mock-id",
+  store_name: "Loja Demo",
+  owner_name: "Visitante",
+  plan: "gestao_anual",
+  plan_expires_at: "2027-08-05",
+  onboarding_done: true,
+  store_trial_offered_at: null,
+  store_trial_accepted: null,
+  store_trial_expires_at: null,
+  store_subscription_active: false,
+  store_subscription_expires_at: null,
+};
+
+/**
+ * Atualiza campos do perfil demo no localStorage.
+ * Usado pelos componentes de mutação no modo sem login (demo/local).
+ */
+export function updateDemoProfile(patch: Record<string, unknown>) {
+  const current = localStorage.getItem(DEMO_PROFILE_KEY);
+  const base = current ? JSON.parse(current) : DEFAULT_DEMO_PROFILE;
+  const updated = { ...base, ...patch };
+  localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify(updated));
+  return updated;
+}
+
 export const profileQuery = () =>
   queryOptions({
     queryKey: ["profile"],
     queryFn: async () => {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-      
+
       if (!user) {
-        // Fallback para desenvolvimento local sem login ativo
-        return {
-          id: "mock-id",
-          store_name: "Loja Demo",
-          owner_name: "Visitante",
-          plan: "gestao_anual",
-          plan_expires_at: "2027-08-05",
-          onboarding_done: true,
-          store_trial_offered_at: null,
-          store_trial_accepted: null,
-          store_trial_expires_at: null,
-          store_subscription_active: false,
-          store_subscription_expires_at: null,
-        };
+        // Modo demo: lê do localStorage para preservar estado entre invalidações
+        const cached = localStorage.getItem(DEMO_PROFILE_KEY);
+        if (cached) return JSON.parse(cached);
+        localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify(DEFAULT_DEMO_PROFILE));
+        return DEFAULT_DEMO_PROFILE;
       }
 
       const { data, error } = await supabase

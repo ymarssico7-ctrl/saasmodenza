@@ -3,7 +3,7 @@ import { Lock, ShieldCheck, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, isAuthenticated } from "@/lib/db";
+import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
 
 type Props = {
   reason: "expired" | "declined" | "no_plan";
@@ -26,9 +26,16 @@ export function LojaBloqueadaScreen({ reason }: Props) {
           store_trial_accepted: true,
         }).eq("id", uid);
         if (error) throw new Error(error.message);
+      } else {
+        // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
+        updateDemoProfile({
+          store_subscription_active: true,
+          store_subscription_expires_at: subExpires.toISOString(),
+          store_trial_accepted: true,
+        });
       }
 
-      // Atualiza cache local independente de auth
+      // Atualiza cache React Query imediatamente (sem esperar refetch)
       queryClient.setQueryData(["profile"], (old: any) => ({
         ...old,
         store_subscription_active: true,
@@ -37,7 +44,8 @@ export function LojaBloqueadaScreen({ reason }: Props) {
       }));
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      // Não invalidar no modo demo — o setQueryData já garantiu a UI correta
+      // invalidateQueries causaria reset do estado caso não haja usuário logado
       toast.success("Loja reativada com sucesso! 🎉");
     },
     onError: (e: Error) => toast.error(e.message),

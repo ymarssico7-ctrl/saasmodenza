@@ -4,7 +4,7 @@ import { Gift, Store } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, isAuthenticated } from "@/lib/db";
+import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
 
 type Props = {
   open: boolean;
@@ -36,9 +36,16 @@ export function TrialOfferModal({ open, onClose }: Props) {
           store_trial_expires_at: trialExpires,
         }).eq("id", uid);
         if (error) throw new Error(error.message);
+      } else {
+        // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
+        updateDemoProfile({
+          store_trial_accepted: true,
+          store_trial_offered_at: new Date().toISOString(),
+          store_trial_expires_at: trialExpires,
+        });
       }
 
-      // Modo demo OU após salvar no banco: atualiza o cache local imediatamente
+      // Atualiza cache React Query imediatamente (sem esperar refetch)
       queryClient.setQueryData(["profile"], (old: any) => ({
         ...old,
         store_trial_accepted: true,
@@ -66,9 +73,15 @@ export function TrialOfferModal({ open, onClose }: Props) {
           store_trial_offered_at: new Date().toISOString(),
         }).eq("id", uid);
         if (error) throw new Error(error.message);
+      } else {
+        // Modo demo → persiste no localStorage
+        updateDemoProfile({
+          store_trial_accepted: false,
+          store_trial_offered_at: new Date().toISOString(),
+        });
       }
 
-      // Modo demo OU após salvar no banco: atualiza o cache local imediatamente
+      // Atualiza cache React Query imediatamente
       queryClient.setQueryData(["profile"], (old: any) => ({
         ...old,
         store_trial_accepted: false,
