@@ -25,6 +25,7 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedProlaboreRouteImport } from './routes/_authenticated/prolabore'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
+import { Route as VitrineStoreSlugRouteImport } from './routes/vitrine.$storeSlug'
 import { Route as AuthenticatedLojaIndexRouteImport } from './routes/_authenticated/loja.index'
 import { Route as AuthenticatedLojaClientesRouteImport } from './routes/_authenticated/loja.clientes'
 import { Route as AuthenticatedLojaCompartilharRouteImport } from './routes/_authenticated/loja.compartilhar'
@@ -117,6 +118,11 @@ const AuthenticatedRelatorioRoute = AuthenticatedRelatorioRouteImport.update({
   path: '/relatorio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const VitrineStoreSlugRoute = VitrineStoreSlugRouteImport.update({
+  id: '/vitrine/$storeSlug',
+  path: '/vitrine/$storeSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedLojaIndexRoute = AuthenticatedLojaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/prolabore': typeof AuthenticatedProlaboreRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
   '/loja/configuracao': typeof AuthenticatedLojaConfiguracaoRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/prolabore': typeof AuthenticatedProlaboreRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
   '/loja/configuracao': typeof AuthenticatedLojaConfiguracaoRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/prolabore': typeof AuthenticatedProlaboreRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
+  '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/_authenticated/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/_authenticated/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
   '/_authenticated/loja/configuracao': typeof AuthenticatedLojaConfiguracaoRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/precificacao'
     | '/prolabore'
     | '/relatorio'
+    | '/vitrine/$storeSlug'
     | '/loja/clientes'
     | '/loja/compartilhar'
     | '/loja/configuracao'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/precificacao'
     | '/prolabore'
     | '/relatorio'
+    | '/vitrine/$storeSlug'
     | '/loja/clientes'
     | '/loja/compartilhar'
     | '/loja/configuracao'
@@ -329,6 +340,7 @@ export interface FileRouteTypes {
     | '/_authenticated/precificacao'
     | '/_authenticated/prolabore'
     | '/_authenticated/relatorio'
+    | '/vitrine/$storeSlug'
     | '/_authenticated/loja/clientes'
     | '/_authenticated/loja/compartilhar'
     | '/_authenticated/loja/configuracao'
@@ -346,6 +358,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VitrineStoreSlugRoute: typeof VitrineStoreSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -461,6 +474,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/relatorio'
       preLoaderRoute: typeof AuthenticatedRelatorioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/vitrine/$storeSlug': {
+      id: '/vitrine/$storeSlug'
+      path: '/vitrine/$storeSlug'
+      fullPath: '/vitrine/$storeSlug'
+      preLoaderRoute: typeof VitrineStoreSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/loja/': {
       id: '/_authenticated/loja/'
@@ -602,6 +622,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  VitrineStoreSlugRoute: VitrineStoreSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
