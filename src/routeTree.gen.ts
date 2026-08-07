@@ -34,6 +34,7 @@ import { Route as AuthenticatedLojaCuponsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLojaFreteRouteImport } from './routes/_authenticated/loja.frete'
 import { Route as AuthenticatedLojaIntegracoesRouteImport } from './routes/_authenticated/loja.integracoes'
 import { Route as AuthenticatedLojaPedidosRouteImport } from './routes/_authenticated/loja.pedidos'
+import { Route as AuthenticatedLojaPersonalizarRouteImport } from './routes/_authenticated/loja.personalizar'
 import { Route as AuthenticatedLojaProdutosRouteImport } from './routes/_authenticated/loja.produtos'
 import { Route as AuthenticatedLojaRelatoriosRouteImport } from './routes/_authenticated/loja.relatorios'
 
@@ -168,6 +169,12 @@ const AuthenticatedLojaPedidosRoute =
     path: '/pedidos',
     getParentRoute: () => AuthenticatedLojaRoute,
   } as any)
+const AuthenticatedLojaPersonalizarRoute =
+  AuthenticatedLojaPersonalizarRouteImport.update({
+    id: '/personalizar',
+    path: '/personalizar',
+    getParentRoute: () => AuthenticatedLojaRoute,
+  } as any)
 const AuthenticatedLojaProdutosRoute =
   AuthenticatedLojaProdutosRouteImport.update({
     id: '/produtos',
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/loja/frete': typeof AuthenticatedLojaFreteRoute
   '/loja/integracoes': typeof AuthenticatedLojaIntegracoesRoute
   '/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
+  '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/loja/': typeof AuthenticatedLojaIndexRoute
@@ -232,6 +240,7 @@ export interface FileRoutesByTo {
   '/loja/frete': typeof AuthenticatedLojaFreteRoute
   '/loja/integracoes': typeof AuthenticatedLojaIntegracoesRoute
   '/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
+  '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/loja': typeof AuthenticatedLojaIndexRoute
@@ -262,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/loja/frete': typeof AuthenticatedLojaFreteRoute
   '/_authenticated/loja/integracoes': typeof AuthenticatedLojaIntegracoesRoute
   '/_authenticated/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
+  '/_authenticated/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/_authenticated/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/_authenticated/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/_authenticated/loja/': typeof AuthenticatedLojaIndexRoute
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/loja/frete'
     | '/loja/integracoes'
     | '/loja/pedidos'
+    | '/loja/personalizar'
     | '/loja/produtos'
     | '/loja/relatorios'
     | '/loja/'
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/loja/frete'
     | '/loja/integracoes'
     | '/loja/pedidos'
+    | '/loja/personalizar'
     | '/loja/produtos'
     | '/loja/relatorios'
     | '/loja'
@@ -348,6 +360,7 @@ export interface FileRouteTypes {
     | '/_authenticated/loja/frete'
     | '/_authenticated/loja/integracoes'
     | '/_authenticated/loja/pedidos'
+    | '/_authenticated/loja/personalizar'
     | '/_authenticated/loja/produtos'
     | '/_authenticated/loja/relatorios'
     | '/_authenticated/loja/'
@@ -538,6 +551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLojaPedidosRouteImport
       parentRoute: typeof AuthenticatedLojaRoute
     }
+    '/_authenticated/loja/personalizar': {
+      id: '/_authenticated/loja/personalizar'
+      path: '/personalizar'
+      fullPath: '/loja/personalizar'
+      preLoaderRoute: typeof AuthenticatedLojaPersonalizarRouteImport
+      parentRoute: typeof AuthenticatedLojaRoute
+    }
     '/_authenticated/loja/produtos': {
       id: '/_authenticated/loja/produtos'
       path: '/produtos'
@@ -563,6 +583,7 @@ interface AuthenticatedLojaRouteChildren {
   AuthenticatedLojaFreteRoute: typeof AuthenticatedLojaFreteRoute
   AuthenticatedLojaIntegracoesRoute: typeof AuthenticatedLojaIntegracoesRoute
   AuthenticatedLojaPedidosRoute: typeof AuthenticatedLojaPedidosRoute
+  AuthenticatedLojaPersonalizarRoute: typeof AuthenticatedLojaPersonalizarRoute
   AuthenticatedLojaProdutosRoute: typeof AuthenticatedLojaProdutosRoute
   AuthenticatedLojaRelatoriosRoute: typeof AuthenticatedLojaRelatoriosRoute
   AuthenticatedLojaIndexRoute: typeof AuthenticatedLojaIndexRoute
@@ -576,6 +597,7 @@ const AuthenticatedLojaRouteChildren: AuthenticatedLojaRouteChildren = {
   AuthenticatedLojaFreteRoute: AuthenticatedLojaFreteRoute,
   AuthenticatedLojaIntegracoesRoute: AuthenticatedLojaIntegracoesRoute,
   AuthenticatedLojaPedidosRoute: AuthenticatedLojaPedidosRoute,
+  AuthenticatedLojaPersonalizarRoute: AuthenticatedLojaPersonalizarRoute,
   AuthenticatedLojaProdutosRoute: AuthenticatedLojaProdutosRoute,
   AuthenticatedLojaRelatoriosRoute: AuthenticatedLojaRelatoriosRoute,
   AuthenticatedLojaIndexRoute: AuthenticatedLojaIndexRoute,
