@@ -5,8 +5,8 @@ import {
   useReducer,
   type ReactNode,
 } from "react";
-import type { Section, ThemeConfig, ThemeSettings, SectionType } from "./schema";
-import { ATELIER_MOD_THEME, loadTheme, SECTION_META } from "./defaults";
+import { SECTION_META, type Section, type ThemeConfig, type ThemeSettings, type SectionType } from "./schema";
+import { ATELIER_MOD_THEME, loadTheme } from "./defaults";
 import { nanoid } from "./nanoid";
 
 // ── State ─────────────────────────────────────────────────────────────────────
