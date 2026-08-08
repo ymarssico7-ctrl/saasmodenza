@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { loadTheme } from "@/lib/theme-engine/defaults";
-import { ThemeRenderer } from "@/components/theme/theme-renderer";
+import { AtelierModStore } from "@/components/theme/atelier-mod-store";
 
 export const Route = createFileRoute("/loja/preview")({
   head: () => ({
@@ -16,17 +15,10 @@ export const Route = createFileRoute("/loja/preview")({
 });
 
 /**
- * Full-screen, zero-UI live preview of the published theme.
- * Opened in a new browser tab from the Appearance page.
- * Lives outside _authenticated so the admin shell (sidebar/topbar)
- * is never rendered — the customer sees exactly what the merchant published.
+ * Full-screen, zero-UI live preview of the Atelier Mod store template.
+ * Lives outside _authenticated so the admin shell is never rendered.
+ * The customer sees exactly what the merchant published.
  */
 function PreviewPage() {
-  const theme = loadTheme();
-
-  return (
-    <div className="min-h-screen w-full bg-white">
-      <ThemeRenderer theme={theme} />
-    </div>
-  );
+  return <AtelierModStore />;
 }

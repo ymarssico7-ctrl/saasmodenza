@@ -1,4 +1,4 @@
-﻿@import "tailwindcss" source(none);
+@import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
@@ -294,6 +294,24 @@
   &:focus-visible {
     outline: 2px solid var(--color-ring);
     outline-offset: 2px;
+  }
+}
+
+/* ── Atelier Mod Template — container padrão da vitrine ─────────────────────── */
+.at-shell {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 96rem;
+  padding-inline: 1.25rem;
+}
+@media (min-width: 768px) {
+  .at-shell {
+    padding-inline: 2rem;
+  }
+}
+@media (min-width: 1280px) {
+  .at-shell {
+    padding-inline: 3rem;
   }
 }
 
