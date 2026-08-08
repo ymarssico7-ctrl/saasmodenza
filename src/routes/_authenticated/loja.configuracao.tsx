@@ -7,6 +7,7 @@ import {
   Instagram,
   MessageCircle,
   Paintbrush,
+  Sparkles,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,7 +21,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { loja } from "@/data/loja";
-import { loadTheme } from "@/lib/theme-engine/defaults";
+import {
+  ALL_TEMPLATES,
+  loadTheme,
+  saveTheme,
+  type TemplateEntry,
+} from "@/lib/theme-engine/defaults";
 
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
@@ -28,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/loja/configuracao")({
       { title: "Aparência da loja — Modaly" },
       {
         name: "description",
-        content: "Configure a identidade visual básica da sua vitrine online.",
+        content: "Personalize o visual da sua vitrine online com o editor arrasta-e-solta.",
       },
     ],
   }),
@@ -41,76 +47,139 @@ function AparenciaPage() {
   const [cor, setCor] = useState(loja.corPrincipal);
   const [mostrarEstoque, setMostrarEstoque] = useState(loja.mostrarEstoque);
 
+  // Determine currently active template name from saved theme
   const activeTheme = loadTheme();
+  const activeTemplateName =
+    ALL_TEMPLATES.find(
+      (t) => t.accentColor === activeTheme.settings.colorPrimary,
+    )?.name ?? "Atelier Mod";
+
+  function applyTemplate(entry: TemplateEntry) {
+    // Preserve the merchant's store name & tagline, swap the visual design
+    const merged = {
+      ...entry.theme,
+      settings: {
+        ...entry.theme.settings,
+        storeName: activeTheme.settings.storeName,
+        tagline: activeTheme.settings.tagline,
+      },
+    };
+    saveTheme(merged);
+    toast.success(`Template "${entry.name}" aplicado!`, {
+      description: "Clique em 'Personalizar Loja' para ajustar os detalhes.",
+    });
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
-        eyebrow="Design"
+        eyebrow="Design & Visual"
         title="Aparência"
-        description="Configure a identidade básica da sua vitrine."
+        description="Escolha um template, personalize cada detalhe e publique sua vitrine."
         actions={
           <Button
-            className="gradient-primary h-10 rounded-full shadow-glow"
-            onClick={() => toast.success("Configurações salvas")}
+            className="gradient-primary h-10 gap-2 rounded-full shadow-glow"
+            onClick={() => toast.success("Configurações de identidade salvas")}
           >
-            <Check className="mr-2 h-4 w-4" />
-            Salvar
+            <Check className="h-4 w-4" />
+            Salvar identidade
           </Button>
         }
       />
 
-      {/* ── Active Theme Banner ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-4">
-          {/* Color palette pills */}
-          <div className="flex gap-1.5">
+      {/* ── Active Theme Card ─────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/5 via-background to-primary/10 p-6">
+        {/* Background decorative blobs */}
+        <div
+          className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-10 blur-3xl"
+          style={{ background: activeTheme.settings.colorPrimary }}
+        />
+
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+          {/* Theme palette preview */}
+          <div className="flex shrink-0 gap-1.5">
             {[
               activeTheme.settings.colorBackground,
               activeTheme.settings.colorCanvas,
               activeTheme.settings.colorPrimary,
+              activeTheme.settings.colorForeground,
             ].map((c, i) => (
               <div
                 key={i}
-                className="h-9 w-9 rounded-xl border border-border shadow-sm"
+                className="h-12 w-12 rounded-xl border border-white/20 shadow-sm ring-1 ring-black/5"
                 style={{ backgroundColor: c }}
               />
             ))}
           </div>
-          <div>
-            <p className="text-sm font-semibold">Atelier Mod</p>
-            <p className="text-xs text-muted-foreground">
-              {activeTheme.settings.fontDisplay} · {activeTheme.sections.filter((s) => s.visible).length} seções ativas
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                <Sparkles className="h-3 w-3" />
+                Tema Ativo
+              </span>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">{activeTemplateName}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              <span className="font-medium" style={{ fontFamily: activeTheme.settings.fontDisplay }}>
+                {activeTheme.settings.fontDisplay}
+              </span>{" "}
+              + {activeTheme.settings.fontBody} ·{" "}
+              {activeTheme.sections.filter((s) => s.visible).length} seções ativas
             </p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl text-xs" asChild>
-            <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" />
-              Ver ao vivo
-            </a>
-          </Button>
-          <Button size="sm" className="gradient-primary h-9 gap-1.5 rounded-xl text-xs font-semibold shadow-glow" asChild>
-            <Link to="/loja/personalizar">
-              <Paintbrush className="h-3.5 w-3.5" />
-              Personalizar loja
-            </Link>
-          </Button>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <Button variant="outline" size="sm" className="h-10 gap-2 rounded-xl" asChild>
+              <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Ver ao vivo
+              </a>
+            </Button>
+            <Button
+              size="sm"
+              className="gradient-primary h-10 gap-2 rounded-xl font-semibold shadow-glow"
+              asChild
+            >
+              <Link to="/loja/personalizar">
+                <Paintbrush className="h-3.5 w-3.5" />
+                Personalizar Loja
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* ── Main grid ────────────────────────────────────────────────────────── */}
+      {/* ── Template Gallery ──────────────────────────────────────────────────── */}
+      <SectionCard
+        title="Galeria de Templates"
+        description="Escolha um visual para sua loja e personalize cada detalhe no editor."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {ALL_TEMPLATES.map((tmpl) => {
+            const isActive = tmpl.accentColor === activeTheme.settings.colorPrimary &&
+              tmpl.bgColor === activeTheme.settings.colorBackground;
+            return (
+              <TemplateCard
+                key={tmpl.id}
+                entry={tmpl}
+                isActive={isActive}
+                onApply={() => applyTemplate(tmpl)}
+              />
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      {/* ── Identity & Settings ───────────────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-4">
-          {/* Marca */}
-          <SectionCard title="Marca" description="Nome, logo e capa da vitrine.">
+          <SectionCard title="Identidade da marca" description="Nome, logo e capa da vitrine.">
             <div className="space-y-4">
               <Campo label="Nome da loja">
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} className="h-11 rounded-xl" />
               </Campo>
-              <Campo label="Descrição curta">
+              <Campo label="Descrição curta (aparece no topo da vitrine)">
                 <Textarea
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
@@ -122,17 +191,15 @@ function AparenciaPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   onClick={() => toast.success("Logo enviada")}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-6 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-6 text-xs text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-foreground"
                 >
-                  <Upload className="h-5 w-5" />
-                  Enviar logo (PNG ou JPG)
+                  <Upload className="h-5 w-5" /> Enviar logo (PNG ou JPG)
                 </button>
                 <button
                   onClick={() => toast.success("Banner enviado")}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-6 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-6 text-xs text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-foreground"
                 >
-                  <ImagePlus className="h-5 w-5" />
-                  Enviar foto de capa
+                  <ImagePlus className="h-5 w-5" /> Enviar foto de capa
                 </button>
               </div>
 
@@ -151,7 +218,6 @@ function AparenciaPage() {
             </div>
           </SectionCard>
 
-          {/* Endereço */}
           <SectionCard title="Endereço da loja" description="Subdomínio gerado automaticamente.">
             <div className="space-y-4">
               <Campo label="Link da loja">
@@ -163,7 +229,6 @@ function AparenciaPage() {
             </div>
           </SectionCard>
 
-          {/* Contato */}
           <SectionCard title="Contato e confiança" description="Aparece na vitrine para a cliente.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="WhatsApp">
@@ -181,7 +246,6 @@ function AparenciaPage() {
             </div>
           </SectionCard>
 
-          {/* Textos */}
           <SectionCard title="Textos da loja" description="Boas-vindas e política de troca.">
             <div className="space-y-4">
               <Campo label="Mensagem de boas-vindas">
@@ -203,7 +267,7 @@ function AparenciaPage() {
           </SectionCard>
         </div>
 
-        {/* ── Quick Preview sidebar ──────────────────────────────────────────── */}
+        {/* ── Live Preview Sidebar ────────────────────────────────────────────── */}
         <div className="lg:sticky lg:top-24 lg:self-start">
           <SectionCard title="Prévia rápida" description="Atualiza conforme você edita." bodyClassName="p-4">
             <div className="overflow-hidden rounded-2xl border border-border">
@@ -239,20 +303,6 @@ function AparenciaPage() {
                 </p>
               </div>
             </div>
-
-            {/* CTA to full editor */}
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                className="w-full gap-2 rounded-xl"
-                asChild
-              >
-                <Link to="/loja/personalizar">
-                  <Paintbrush className="h-4 w-4" />
-                  Abrir editor visual completo
-                </Link>
-              </Button>
-            </div>
           </SectionCard>
         </div>
       </div>
@@ -260,7 +310,112 @@ function AparenciaPage() {
   );
 }
 
-// ── Campo helper ──────────────────────────────────────────────────────────────
+// ── Template Card ─────────────────────────────────────────────────────────────
+function TemplateCard({
+  entry,
+  isActive,
+  onApply,
+}: {
+  entry: TemplateEntry;
+  isActive: boolean;
+  onApply: () => void;
+}) {
+  return (
+    <div
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 transition-all duration-200 hover:shadow-lift ${
+        isActive ? "border-primary shadow-glow" : "border-border hover:border-primary/40"
+      }`}
+    >
+      {/* Theme palette strip */}
+      <div
+        className="h-24 w-full transition-transform duration-300 group-hover:scale-105"
+        style={{
+          background: `linear-gradient(135deg, ${entry.bgColor} 0%, ${entry.accentColor}22 60%, ${entry.accentColor}55 100%)`,
+        }}
+      >
+        {/* Font preview */}
+        <div className="flex h-full flex-col items-start justify-end p-3">
+          <p
+            className="text-[10px] font-medium tracking-widest uppercase opacity-60"
+            style={{ color: entry.accentColor }}
+          >
+            Título
+          </p>
+          <p
+            className="text-base font-bold leading-tight"
+            style={{ color: entry.accentColor, fontFamily: entry.fontStyle }}
+          >
+            {entry.name}
+          </p>
+        </div>
+
+        {/* Color swatches */}
+        <div className="absolute bottom-3 right-3 flex gap-1">
+          {[entry.bgColor, entry.accentColor].map((c, i) => (
+            <div
+              key={i}
+              className="h-5 w-5 rounded-full border border-white/30 shadow-sm"
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">{entry.name}</p>
+            {isActive && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                <Check className="h-2.5 w-2.5" />
+                Ativo
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            {entry.description}
+          </p>
+        </div>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1">
+          {entry.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="mt-auto flex gap-2 pt-1">
+          {isActive ? (
+            <Button size="sm" className="gradient-primary h-8 w-full rounded-xl text-xs font-semibold gap-1.5" asChild>
+              <Link to="/loja/personalizar">
+                <Paintbrush className="h-3 w-3" />
+                Personalizar
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-full rounded-xl text-xs font-medium"
+              onClick={onApply}
+            >
+              Aplicar & Personalizar
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Field helper ──────────────────────────────────────────────────────────────
 function Campo({
   label,
   extra,

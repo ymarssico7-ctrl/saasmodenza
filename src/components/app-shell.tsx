@@ -12,7 +12,6 @@ import {
   LogOut,
   Menu,
   Package,
-  Paintbrush,
   Plug,
   Settings,
   Share2,
@@ -61,7 +60,6 @@ const LOJA_NAV: NavItem[] = [
   { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
   { to: "/loja/relatorios", label: "Relatórios", icon: BarChart3 },
   { to: "/loja/configuracao", label: "Aparência", icon: Settings },
-  { to: "/loja/personalizar", label: "Personalizar", icon: Paintbrush },
   { to: "/loja/compartilhar", label: "Compartilhar", icon: Share2 },
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
 ];
