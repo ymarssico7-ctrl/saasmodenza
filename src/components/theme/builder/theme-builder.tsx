@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import {
   ArrowLeft,
   Check,
+  ExternalLink,
   Monitor,
   Paintbrush,
   RotateCcw,
@@ -37,6 +38,8 @@ function BuilderInner() {
     });
   }, [theme, dispatch]);
 
+  const isMobile = previewMode === "mobile";
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* ── Top Bar ─────────────────────────────────────────────────────────── */}
@@ -56,12 +59,12 @@ function BuilderInner() {
           </p>
         </div>
 
-        {/* Preview toggle */}
+        {/* Preview mode toggle — centered */}
         <div className="mx-auto flex items-center gap-1 rounded-xl border border-border bg-secondary/40 p-1">
           <button
             onClick={() => dispatch({ type: "SET_PREVIEW", mode: "desktop" })}
             className={`flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all ${
-              previewMode === "desktop"
+              !isMobile
                 ? "bg-background shadow-sm text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -72,7 +75,7 @@ function BuilderInner() {
           <button
             onClick={() => dispatch({ type: "SET_PREVIEW", mode: "mobile" })}
             className={`flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all ${
-              previewMode === "mobile"
+              isMobile
                 ? "bg-background shadow-sm text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -83,6 +86,19 @@ function BuilderInner() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* "Ver ao vivo" — opens preview in new tab */}
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-9 gap-1.5 rounded-xl text-xs"
+          >
+            <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5" />
+              Ver ao vivo
+            </a>
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -95,6 +111,7 @@ function BuilderInner() {
             <RotateCcw className="h-3.5 w-3.5" />
             Redefinir
           </Button>
+
           <Button
             size="sm"
             onClick={handleSave}
@@ -154,14 +171,32 @@ function BuilderInner() {
           </ScrollArea>
         </aside>
 
-        {/* Preview Area */}
-        <main className="flex flex-1 flex-col items-center overflow-auto bg-secondary/20 p-4">
-          <div
-            className={`w-full overflow-hidden rounded-2xl border border-border bg-white shadow-lift transition-all duration-300 ${
-              previewMode === "mobile" ? "max-w-[390px]" : "max-w-none"
-            }`}
-            style={{ minHeight: "80vh" }}
-          >
+        {/* ── Preview Area ─────────────────────────────────────────────────── */}
+        {isMobile ? (
+          /* MOBILE: centralised "phone" frame */
+          <main className="flex flex-1 flex-col items-center justify-start overflow-auto bg-[#1c1c1e] py-8">
+            <div
+              className="relative overflow-hidden rounded-[2.5rem] shadow-2xl ring-4 ring-white/10 transition-all duration-300"
+              style={{ width: 390, minHeight: 700 }}
+            >
+              {/* Phone status bar decoration */}
+              <div className="absolute inset-x-0 top-0 z-10 flex h-8 items-center justify-center bg-black">
+                <div className="h-3.5 w-24 rounded-full bg-zinc-800" />
+              </div>
+              <div className="mt-8 overflow-y-auto bg-white" style={{ minHeight: 660 }}>
+                <ThemeRenderer
+                  theme={theme}
+                  highlightId={selectedSection?.id}
+                  onSectionClick={(id) =>
+                    dispatch({ type: "SELECT_SECTION", id })
+                  }
+                />
+              </div>
+            </div>
+          </main>
+        ) : (
+          /* DESKTOP: full-bleed, no padding, true edge-to-edge */
+          <main className="relative flex-1 overflow-auto bg-white">
             <ThemeRenderer
               theme={theme}
               highlightId={selectedSection?.id}
@@ -169,8 +204,8 @@ function BuilderInner() {
                 dispatch({ type: "SELECT_SECTION", id })
               }
             />
-          </div>
-        </main>
+          </main>
+        )}
       </div>
     </div>
   );
