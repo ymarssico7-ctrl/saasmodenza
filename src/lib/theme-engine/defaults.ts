@@ -18,7 +18,14 @@ export function saveTheme(theme: ThemeConfig): void {
 }
 
 // ── Font Google URLs ───────────────────────────────────────────────────────────
+// Inclui as fontes originais do Atelier Mod (Outfit + Figtree) como primeira opção.
 export const FONT_URLS: Record<string, string> = {
+  // Fontes originais do template Atelier Mod
+  Outfit:
+    "https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap",
+  Figtree:
+    "https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap",
+  // Fontes extras disponíveis para personalização
   "Playfair Display":
     "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap",
   "Cormorant Garamond":
@@ -38,104 +45,199 @@ export const FONT_URLS: Record<string, string> = {
     "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap",
 };
 
-// ── Default Theme (Atelier Mod) — original adaptado do Lovable ────────────────
+// ── Default Theme (Atelier Mod) ────────────────────────────────────────────────
+//
+// FONTE DA VERDADE: atelier-mod-template/
+//   ├── src/routes/index.tsx          — estrutura das seções e textos
+//   ├── src/components/store/site-header.tsx — nome, banner
+//   ├── src/components/store/site-footer.tsx — rodapé
+//   ├── src/styles.css                — cores oklch exatas
+//   └── src/data/products.ts         — produtos de demonstração
+//
+// REGRA: Todos os valores abaixo são LITERAIS dos arquivos originais acima.
+//        imageUrl: "" → o componente usa o asset local (hero.jpg, lookbook-1.jpg, etc.)
+//        Nunca usar URLs do Unsplash aqui.
+//
 export const ATELIER_MOD_THEME: ThemeConfig = {
   settings: {
-    storeName: "Minha Loja",
-    tagline: "Moda com personalidade",
-    freeShippingBanner: "Frete grátis acima de R$ 299",
+    // ── Identidade (site-header.tsx: "ATELIER MOD") ─────────────────────────
+    storeName: "ATELIER MOD",
+    tagline: "Moda atemporal em pequenos lotes",
+
+    // ── Banner (site-header.tsx line 32-34) ──────────────────────────────────
+    freeShippingBanner: "Frete grátis acima de R$ 599",
     freeShippingBannerEnabled: true,
-    colorBackground: "#FAFAF8",
-    colorForeground: "#1C1C1A",
-    colorPrimary: "#1C1C1A",
-    colorCanvas: "#F0EDE8",
-    colorBorder: "#E5E2DC",
-    fontDisplay: "Playfair Display",
-    fontBody: "Manrope",
+
+    // ── Cores (styles.css :root — valores oklch exatos) ────────────────────
+    // --background: oklch(0.963 0.008 85)
+    colorBackground: "oklch(0.963 0.008 85)",
+    // --foreground: oklch(0.155 0.002 60)
+    colorForeground: "oklch(0.155 0.002 60)",
+    // --primary: oklch(0.155 0.002 60)  (preto profundo = ink)
+    colorPrimary: "oklch(0.155 0.002 60)",
+    // --canvas: oklch(0.915 0.008 82)  (off-white levemente mais escuro)
+    colorCanvas: "oklch(0.915 0.008 82)",
+    // --border: oklch(0.862 0.008 82)
+    colorBorder: "oklch(0.862 0.008 82)",
+
+    // ── Tipografia (styles.css @theme inline) ──────────────────────────────
+    // --font-display: "Outfit"
+    // --font-sans:    "Figtree"
+    fontDisplay: "Outfit",
+    fontBody: "Figtree",
+
+    // ── Forma ──────────────────────────────────────────────────────────────
+    // --radius: 4px  (estilo editorializado — quase quadrado)
     borderRadius: "none",
   },
-  order: ["hero", "cat-bar", "grid-new", "split-1", "grid-ess", "features"],
+
+  order: ["hero", "cat-bar", "grid-new", "split-1", "grid-ess", "split-2", "features"],
+
   sections: [
+    // ── HERO (index.tsx lines 34-63) ────────────────────────────────────────
     {
       id: "hero",
       type: "hero",
       visible: true,
       settings: {
+        // index.tsx line 48-52:
+        //   <h1 className="display-xl mt-3 max-w-3xl text-background">
+        //     O essencial,<br />refeito à mão
+        //   </h1>
         heading: "O essencial,\nrefeito à mão",
-        subheading: "Coleção Nova",
+        // index.tsx line 45-47:
+        //   <p className="text-[11px] uppercase tracking-[0.2em] text-background/80">
+        //     Coleção Outono 26
+        //   </p>
+        subheading: "Coleção Outono 26",
+        // index.tsx line 54-59: "Ver a coleção"
         buttonText: "Ver a coleção",
-        imageUrl:
-          "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&q=80",
-        imageAlt: "Modelo com roupa editorial",
-        imagePosition: "center",
-        overlayOpacity: 40,
+        // imageUrl vazio → componente usa heroImg (hero.jpg) como fallback
+        imageUrl: "",
+        imageAlt:
+          "Modelo vestindo vestido de linho off-white com casaco de lã preto sobre o ombro",
+        // index.tsx line 40: object-[62%_center]
+        imagePosition: "62% center",
+        // index.tsx line 42: from-foreground/45
+        overlayOpacity: 45,
       },
     },
+
+    // ── BARRA DE CATEGORIAS (index.tsx lines 65-82) ─────────────────────────
     {
       id: "cat-bar",
       type: "category_bar",
       visible: true,
       settings: { enabled: true },
     },
+
+    // ── NOVIDADES — primeiro grid (index.tsx lines 84-104) ──────────────────
     {
       id: "grid-new",
       type: "product_grid",
       visible: true,
       settings: {
+        // index.tsx line 88: <p className="kicker">Chegou agora</p>
         kicker: "Chegou agora",
+        // index.tsx line 89: <h2 className="display-lg mt-2">Novidades</h2>
         title: "Novidades",
         source: "newest",
+        // index.tsx line 28: const novidades = PRODUCTS.slice(0, 6)
         count: 6,
-        columns: 3,
+        // index.tsx line 99: lg:grid-cols-6
+        columns: 6,
         showViewAll: true,
       },
     },
+
+    // ── LOOKBOOK SPLIT (index.tsx lines 106-136) ────────────────────────────
     {
       id: "split-1",
       type: "image_text_split",
       visible: true,
       settings: {
-        kicker: "Nossa história",
-        heading: "Feito com cuidado e intenção",
-        body: "Cada peça passa por um processo criterioso de escolha de materiais e produção responsável. Nossa coleção é pensada para durar mais de uma estação.",
-        buttonText: "Saiba mais",
-        imageUrl:
-          "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80",
-        imageAlt: "Editorial de moda",
+        // index.tsx line 118: <p className="kicker">Lookbook 01</p>
+        kicker: "Lookbook 01",
+        // index.tsx line 119-121:
+        //   <h2 className="display-lg mt-3 max-w-md">
+        //     Alfaiataria que respira
+        //   </h2>
+        heading: "Alfaiataria que respira",
+        // index.tsx line 122-125:
+        body: "Lã fria de gramatura média, ombro estruturado sem enchimento e pregas que caem retas. Uma silhueta desenhada para durar mais de uma estação.",
+        // index.tsx line 131: "Ver alfaiataria"
+        buttonText: "Ver alfaiataria",
+        // imageUrl vazio → componente usa lookbook1 (lookbook-1.jpg) como fallback
+        imageUrl: "",
+        imageAlt:
+          "Duas modelos em alfaiataria preta e creme sentadas em banco de gesso",
         imagePosition: "right",
+        // index.tsx line 107: <section className="bg-canvas">
         backgroundColor: "canvas",
       },
     },
+
+    // ── ESSENCIAIS — segundo grid (index.tsx lines 138-158) ─────────────────
     {
       id: "grid-ess",
       type: "product_grid",
       visible: true,
       settings: {
+        // index.tsx line 142: <p className="kicker">Seleção</p>
         kicker: "Seleção",
+        // index.tsx line 143: <h2 className="display-lg mt-2">Essenciais da casa</h2>
         title: "Essenciais da casa",
         source: "featured",
-        count: 4,
+        // index.tsx line 29: const essenciais = PRODUCTS.slice(6, 14) → 8 itens
+        count: 8,
+        // index.tsx line 153: md:grid-cols-4
         columns: 4,
         showViewAll: true,
       },
     },
+
+    // ── MATÉRIA-PRIMA split (index.tsx lines 160-194) ───────────────────────
+    {
+      id: "split-2",
+      type: "image_text_split",
+      visible: true,
+      settings: {
+        // index.tsx line 163: <p className="kicker">Matéria-prima</p>
+        kicker: "Matéria-prima",
+        // index.tsx line 164: <h2 className="display-lg mt-3 max-w-md">Poucos tecidos, bem escolhidos</h2>
+        heading: "Poucos tecidos, bem escolhidos",
+        body: "Cashmere de fio duplo fiado na Itália, linho lavado amaciado antes do corte e couro curtido a vegetal — sem cromo, que ganha pátina própria com o uso.",
+        buttonText: "Conhecer os materiais",
+        // imageUrl vazio → usa lookbook2 (lookbook-2.jpg) como fallback
+        imageUrl: "",
+        imageAlt:
+          "Detalhe de tricô de cashmere creme e cetim cinza sobre superfície de gesso",
+        imagePosition: "left",
+        backgroundColor: "background",
+      },
+    },
+
+    // ── SERVIÇOS (index.tsx lines 196-213) ──────────────────────────────────
     {
       id: "features",
       type: "features",
       visible: true,
       settings: {
         items: [
+          // index.tsx line 200-202:
           {
             title: "Frete grátis",
-            description: "Em pedidos acima de R$ 299 para todo o Brasil.",
+            description: "Em pedidos acima de R$ 599 para todo o Brasil.",
           },
+          // index.tsx line 203:
           {
             title: "Troca em 30 dias",
             description: "Primeira troca sem custo, com etiqueta pronta.",
           },
+          // index.tsx line 204:
           {
-            title: "Suporte por WhatsApp",
-            description: "Atendimento humano e ágil todos os dias.",
+            title: "Ajuste sob medida",
+            description: "Barra e cintura ajustadas no ateliê, sem taxa.",
           },
         ],
       },
@@ -144,8 +246,10 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
 };
 
 // ── Border Radius Map ─────────────────────────────────────────────────────────
+// Mapeado para o --radius do template:
+//   none → 4px (quase quadrado, estilo editorial do Atelier Mod)
 export const RADIUS_MAP: Record<string, string> = {
-  none: "0px",
+  none: "4px",
   sm: "4px",
   md: "8px",
   lg: "16px",

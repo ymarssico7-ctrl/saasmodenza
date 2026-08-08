@@ -168,20 +168,29 @@ export function AtelierModStore({ theme: themeProp, highlightId, onSectionClick 
   // Helpers para encontrar seções pelo tipo/id
   const hero     = sections.find((s) => s.type === "hero") as HeroSection | undefined;
   const gridNew  = sections.find((s) => s.id === "grid-new") as ProductGridSection | undefined;
-  const split    = sections.find((s) => s.type === "image_text_split") as ImageTextSplitSection | undefined;
+  const split1   = sections.find((s) => s.id === "split-1") as ImageTextSplitSection | undefined;
+  const split2   = sections.find((s) => s.id === "split-2") as ImageTextSplitSection | undefined;
   const gridEss  = sections.find((s) => s.id === "grid-ess") as ProductGridSection | undefined;
   const features = sections.find((s) => s.type === "features") as FeaturesSection | undefined;
 
-  const novidades = PRODUCTS.slice(0, gridNew?.settings.count ?? 6);
+  const novidades  = PRODUCTS.slice(0, gridNew?.settings.count ?? 6);
   const essenciais = PRODUCTS.slice(6, 6 + (gridEss?.settings.count ?? 8));
 
-  // Injeção dinâmica: variáveis CSS do Engine sobrescrevem os padrões do template
-  // (mantém Outfit+Figtree fixos — design do template — mas permite trocar cores)
+  // Injeta as variáveis CSS do Engine sobre o escopo .atelier-theme.
+  // CRÍTICO: Usar os mesmos nomes de variável que o styles.css original define
+  // para que as classes Tailwind com opacidade (ex: from-foreground/45) funcionem.
   const themeVars = {
-    "--background": settings.colorBackground,
-    "--foreground": settings.colorForeground,
-    "--canvas":     settings.colorCanvas,
-    "--border":     settings.colorBorder,
+    "--background":      settings.colorBackground,
+    "--foreground":      settings.colorForeground,
+    "--canvas":          settings.colorCanvas,
+    "--border":          settings.colorBorder,
+    "--primary":         settings.colorPrimary || settings.colorForeground,
+    "--primary-foreground": settings.colorBackground,
+    "--muted":           settings.colorCanvas,
+    "--muted-foreground": "oklch(0.475 0.008 70)",
+    "--card":            settings.colorBackground,
+    "--card-foreground": settings.colorForeground,
+    "--ink":             settings.colorForeground,
   } as React.CSSProperties;
 
   // Injetar fontes Outfit + Figtree uma única vez
@@ -284,33 +293,34 @@ export function AtelierModStore({ theme: themeProp, highlightId, onSectionClick 
           </SectionWrapper>
         )}
 
-        {/* ══ LOOKBOOK SPLIT — exato do index.tsx original (lines 106-136) ══ */}
-        {split?.visible !== false && (
-          <SectionWrapper id={split?.id} highlightId={highlightId} onSectionClick={onSectionClick}>
+        {/* ══ LOOKBOOK SPLIT (split-1) — index.tsx lines 106-136 ══ */}
+        {split1?.visible !== false && (
+          <SectionWrapper id={split1?.id} highlightId={highlightId} onSectionClick={onSectionClick}>
             <section className="bg-canvas">
               <div className="grid md:grid-cols-2">
+                {/* Imagem à esquerda — fallback para lookbook-1.jpg local */}
                 <img
-                  src={split?.settings.imageUrl || lookbook1}
-                  alt={split?.settings.imageAlt || "Duas modelos em alfaiataria preta e creme sentadas em banco de gesso"}
+                  src={split1?.settings.imageUrl || lookbook1}
+                  alt={split1?.settings.imageAlt || "Duas modelos em alfaiataria preta e creme sentadas em banco de gesso"}
                   width={1200}
                   height={1504}
                   loading="lazy"
                   className="aspect-[4/5] w-full object-cover md:aspect-auto md:h-full"
                 />
                 <div className="flex flex-col justify-center px-5 py-12 md:px-14 md:py-24">
-                  <p className="kicker">{split?.settings.kicker || "Lookbook 01"}</p>
+                  <p className="kicker">{split1?.settings.kicker || "Lookbook 01"}</p>
                   <h2 className="display-lg mt-3 max-w-md">
-                    {split?.settings.heading || "Alfaiataria que respira"}
+                    {split1?.settings.heading || "Alfaiataria que respira"}
                   </h2>
                   <p className="mt-5 max-w-md text-[0.9375rem] leading-relaxed text-muted-foreground">
-                    {split?.settings.body ||
+                    {split1?.settings.body ||
                       "Lã fria de gramatura média, ombro estruturado sem enchimento e pregas que caem retas. Uma silhueta desenhada para durar mais de uma estação."}
                   </p>
                   <a
                     href="#"
                     className="mt-8 inline-flex h-12 w-fit items-center gap-2 border border-foreground px-7 text-sm uppercase tracking-[0.14em] transition-colors hover:bg-foreground hover:text-background"
                   >
-                    {split?.settings.buttonText || "Ver alfaiataria"}
+                    {split1?.settings.buttonText || "Ver alfaiataria"}
                     <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
                   </a>
                 </div>
@@ -346,33 +356,38 @@ export function AtelierModStore({ theme: themeProp, highlightId, onSectionClick 
           </SectionWrapper>
         )}
 
-        {/* ══ MATÉRIA-PRIMA — exato do index.tsx original (lines 160-194) ══ */}
-        <section className="grid md:grid-cols-[1fr_1.2fr]">
-          <div className="order-2 flex flex-col justify-center px-5 py-12 md:order-1 md:px-14 md:py-24">
-            <p className="kicker">Matéria-prima</p>
-            <h2 className="display-lg mt-3 max-w-md">Poucos tecidos, bem escolhidos</h2>
-            <dl className="mt-8 max-w-md space-y-5 text-sm">
-              {[
-                { t: "Cashmere de fio duplo",    d: "Fiado na Itália, canelado largo que mantém a forma." },
-                { t: "Linho lavado",             d: "Amaciado antes do corte, amassa com elegância." },
-                { t: "Couro curtido a vegetal",  d: "Sem cromo, ganha pátina própria com o uso." },
-              ].map((item) => (
-                <div key={item.t} className="border-t border-border pt-4">
-                  <dt className="uppercase tracking-[0.1em]">{item.t}</dt>
-                  <dd className="mt-1 text-muted-foreground">{item.d}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <img
-            src={lookbook2}
-            alt="Detalhe de tricô de cashmere creme e cetim cinza sobre superfície de gesso"
-            width={1200}
-            height={912}
-            loading="lazy"
-            className="order-1 aspect-[4/3] w-full object-cover md:order-2 md:aspect-auto md:h-full"
-          />
-        </section>
+        {/* ══ MATÉRIA-PRIMA (split-2) — index.tsx lines 160-194 ══ */}
+        {(split2?.visible !== false) && (
+          <SectionWrapper id={split2?.id} highlightId={highlightId} onSectionClick={onSectionClick}>
+            <section className="grid md:grid-cols-[1fr_1.2fr]">
+              <div className="order-2 flex flex-col justify-center px-5 py-12 md:order-1 md:px-14 md:py-24">
+                <p className="kicker">{split2?.settings.kicker || "Matéria-prima"}</p>
+                <h2 className="display-lg mt-3 max-w-md">{split2?.settings.heading || "Poucos tecidos, bem escolhidos"}</h2>
+                <dl className="mt-8 max-w-md space-y-5 text-sm">
+                  {[
+                    { t: "Cashmere de fio duplo",   d: "Fiado na Itália, canelado largo que mantém a forma." },
+                    { t: "Linho lavado",            d: "Amaciado antes do corte, amassa com elegância." },
+                    { t: "Couro curtido a vegetal", d: "Sem cromo, ganha pátina própria com o uso." },
+                  ].map((item) => (
+                    <div key={item.t} className="border-t border-border pt-4">
+                      <dt className="uppercase tracking-[0.1em]">{item.t}</dt>
+                      <dd className="mt-1 text-muted-foreground">{item.d}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              {/* Imagem à direita — fallback para lookbook-2.jpg local */}
+              <img
+                src={split2?.settings.imageUrl || lookbook2}
+                alt={split2?.settings.imageAlt || "Detalhe de tricô de cashmere creme e cetim cinza sobre superfície de gesso"}
+                width={1200}
+                height={912}
+                loading="lazy"
+                className="order-1 aspect-[4/3] w-full object-cover md:order-2 md:aspect-auto md:h-full"
+              />
+            </section>
+          </SectionWrapper>
+        )}
 
         {/* ══ SERVIÇOS — exato do index.tsx original (lines 196-213) ══ */}
         {features?.visible !== false && (

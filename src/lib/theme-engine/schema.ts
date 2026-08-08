@@ -5,12 +5,13 @@
 
 export type BorderRadius = "none" | "sm" | "md" | "lg" | "full";
 export type FontDisplay =
+  | "Outfit"
   | "Playfair Display"
   | "Cormorant Garamond"
   | "Sora"
   | "DM Serif Display"
   | "Libre Baskerville";
-export type FontBody = "Manrope" | "Inter" | "DM Sans" | "Plus Jakarta Sans";
+export type FontBody = "Figtree" | "Manrope" | "Inter" | "DM Sans" | "Plus Jakarta Sans";
 export type ImagePosition = "left" | "right";
 export type BackgroundVariant = "background" | "canvas" | "foreground";
 
