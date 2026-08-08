@@ -10,6 +10,10 @@ import {
   MoreHorizontal,
   Paintbrush,
   Upload,
+  Phone,
+  MapPin,
+  Globe,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,28 +50,28 @@ function AparenciaPage() {
   const [mostrarEstoque, setMostrarEstoque] = useState(loja.mostrarEstoque);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Design & Visual"
         title="Aparência"
-        description="Personalize o layout da sua vitrine e ajuste as informações básicas da loja."
+        description="Personalize o layout e as configurações básicas da sua vitrine."
         actions={
           <Button
             className="gradient-primary h-10 gap-2 rounded-full shadow-glow"
-            onClick={() => toast.success("Configurações de identidade salvas")}
+            onClick={() => toast.success("Configurações salvas com sucesso!")}
           >
             <Check className="h-4 w-4" />
-            Salvar identidade
+            Salvar alterações
           </Button>
         }
       />
 
-      {/* ── Layout Ativo (Mockup estilo Nuvemshop) ─────────────────────────────── */}
+      {/* ── Layout Ativo — Banner Principal Full-Width ──────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
         {/* Mockup preview */}
-        <div className="relative select-none overflow-hidden bg-gradient-to-br from-stone-100 to-stone-200 p-6">
+        <div className="relative select-none overflow-hidden bg-gradient-to-br from-stone-100 to-stone-200 p-8">
           {/* Browser chrome */}
-          <div className="mx-auto max-w-xl overflow-hidden rounded-xl border border-stone-300/60 bg-white shadow-lift">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-stone-300/60 bg-white shadow-lift">
             {/* Browser bar */}
             <div className="flex h-8 items-center gap-2 border-b border-stone-200 bg-stone-50 px-3">
               <div className="flex gap-1.5">
@@ -75,7 +79,7 @@ function AparenciaPage() {
                 <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
                 <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
               </div>
-              <div className="mx-auto flex h-4 w-48 items-center rounded-full border border-stone-200 bg-white px-2">
+              <div className="mx-auto flex h-4 w-56 items-center rounded-full border border-stone-200 bg-white px-2">
                 <span className="truncate text-[9px] text-stone-400">
                   minhaloja.modaly.com.br
                 </span>
@@ -87,13 +91,13 @@ function AparenciaPage() {
               className="relative overflow-hidden"
               style={{ backgroundColor: activeTheme.settings.colorBackground }}
             >
-              {/* Store nav */}
+              {/* Nav */}
               <div
-                className="flex items-center justify-between border-b px-4 py-2"
+                className="flex items-center justify-between border-b px-5 py-2.5"
                 style={{ borderColor: activeTheme.settings.colorBorder }}
               >
                 <span
-                  className="text-[11px] font-bold"
+                  className="text-[12px] font-bold tracking-tight"
                   style={{
                     color: activeTheme.settings.colorForeground,
                     fontFamily: activeTheme.settings.fontDisplay,
@@ -102,29 +106,30 @@ function AparenciaPage() {
                   {activeTheme.settings.storeName}
                 </span>
                 <div
-                  className="flex gap-3 text-[9px]"
-                  style={{ color: activeTheme.settings.colorForeground + "99" }}
+                  className="flex gap-4 text-[9px]"
+                  style={{ color: activeTheme.settings.colorForeground + "80" }}
                 >
                   <span>Início</span>
                   <span>Produtos</span>
+                  <span>Sobre</span>
                   <span>Contato</span>
                 </div>
               </div>
 
               {/* Hero */}
               <div
-                className="relative flex h-28 items-center justify-center text-center"
+                className="relative flex h-32 items-center justify-center text-center"
                 style={{ backgroundColor: activeTheme.settings.colorCanvas }}
               >
                 <div>
                   <p
-                    className="mb-1 text-[9px] font-medium uppercase tracking-widest"
-                    style={{ color: activeTheme.settings.colorPrimary + "bb" }}
+                    className="mb-1.5 text-[9px] font-semibold uppercase tracking-widest"
+                    style={{ color: activeTheme.settings.colorPrimary + "cc" }}
                   >
                     Coleção Nova
                   </p>
                   <p
-                    className="text-base font-bold leading-tight"
+                    className="text-lg font-bold leading-tight"
                     style={{
                       color: activeTheme.settings.colorForeground,
                       fontFamily: activeTheme.settings.fontDisplay,
@@ -135,38 +140,34 @@ function AparenciaPage() {
                     refeito à mão
                   </p>
                   <div
-                    className="mt-2 inline-block rounded px-3 py-1 text-[9px] font-semibold text-white"
+                    className="mt-3 inline-block rounded-full px-4 py-1.5 text-[9px] font-semibold text-white"
                     style={{ backgroundColor: activeTheme.settings.colorPrimary }}
                   >
-                    Ver a coleção
+                    Ver a coleção →
                   </div>
                 </div>
               </div>
 
               {/* Product grid */}
-              <div className="grid grid-cols-3 gap-2 p-3">
-                {[1, 2, 3].map((i) => (
+              <div className="grid grid-cols-4 gap-2 p-4">
+                {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="overflow-hidden rounded"
+                    className="overflow-hidden rounded-lg"
                     style={{ backgroundColor: activeTheme.settings.colorCanvas }}
                   >
                     <div
-                      className="h-10 w-full"
+                      className="h-12 w-full"
                       style={{ backgroundColor: activeTheme.settings.colorBorder }}
                     />
-                    <div className="p-1">
+                    <div className="p-1.5">
                       <div
                         className="mb-1 h-1.5 w-10 rounded-full"
-                        style={{
-                          backgroundColor: activeTheme.settings.colorForeground + "40",
-                        }}
+                        style={{ backgroundColor: activeTheme.settings.colorForeground + "40" }}
                       />
                       <div
                         className="h-1.5 w-6 rounded-full"
-                        style={{
-                          backgroundColor: activeTheme.settings.colorPrimary + "60",
-                        }}
+                        style={{ backgroundColor: activeTheme.settings.colorPrimary + "70" }}
                       />
                     </div>
                   </div>
@@ -177,23 +178,40 @@ function AparenciaPage() {
         </div>
 
         {/* Card footer */}
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="text-base font-semibold">Atelier Mod</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-              <CheckCircle2 className="h-3 w-3" />
-              Layout atual
-            </span>
+            {/* Palette dots */}
+            <div className="flex gap-1.5">
+              {[
+                activeTheme.settings.colorBackground,
+                activeTheme.settings.colorCanvas,
+                activeTheme.settings.colorPrimary,
+                activeTheme.settings.colorForeground,
+              ].map((c, i) => (
+                <div
+                  key={i}
+                  className="h-5 w-5 rounded-full border border-border shadow-sm"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+            <div>
+              <span className="text-sm font-semibold">Atelier Mod</span>
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                <CheckCircle2 className="h-3 w-3" />
+                Layout atual
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl text-xs" asChild>
               <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5" />
                 Ver ao vivo
               </a>
             </Button>
             <Button
-              className="gradient-primary h-9 gap-1.5 rounded-xl font-semibold shadow-glow"
+              className="gradient-primary h-9 gap-1.5 rounded-xl text-sm font-semibold shadow-glow"
               size="sm"
               asChild
             >
@@ -209,10 +227,12 @@ function AparenciaPage() {
         </div>
       </div>
 
-      {/* ── Identity & Settings + Sidebar ─────────────────────────────────────── */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        {/* Left: Forms */}
+      {/* ── Grid de Configurações 2 Colunas ─────────────────────────────────────── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+
+        {/* ── Coluna Esquerda ─────────────────────────────────────────────────── */}
         <div className="space-y-4">
+
           {/* Identidade da marca */}
           <SectionCard
             title="Identidade da marca"
@@ -224,32 +244,34 @@ function AparenciaPage() {
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   className="h-11 rounded-xl"
+                  placeholder="Ex: Ateliê Manon"
                 />
               </Campo>
 
-              <Campo label="Descrição curta (aparece no topo da vitrine)">
+              <Campo label="Descrição curta">
                 <Textarea
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   rows={3}
-                  className="rounded-xl"
+                  className="rounded-xl resize-none"
+                  placeholder="Aparece no topo da vitrine…"
                 />
               </Campo>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
-                  onClick={() => toast.success("Logo enviada")}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-6 text-xs text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-foreground"
+                  onClick={() => toast.success("Selecione um arquivo de logo")}
+                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
                 >
-                  <Upload className="h-5 w-5" />
-                  Enviar logo (PNG ou JPG)
+                  <Upload className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-center">Enviar logo<br /><span className="text-[10px] opacity-70">PNG ou JPG</span></span>
                 </button>
                 <button
-                  onClick={() => toast.success("Banner enviado")}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-6 text-xs text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-foreground"
+                  onClick={() => toast.success("Selecione uma foto de capa")}
+                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
                 >
-                  <ImagePlus className="h-5 w-5" />
-                  Enviar foto de capa
+                  <ImagePlus className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-center">Enviar capa<br /><span className="text-[10px] opacity-70">PNG, JPG ou WEBP</span></span>
                 </button>
               </div>
 
@@ -265,127 +287,131 @@ function AparenciaPage() {
                   <Input
                     value={cor}
                     onChange={(e) => setCor(e.target.value)}
-                    className="h-11 max-w-[140px] rounded-xl"
+                    className="h-11 max-w-[140px] rounded-xl font-mono text-sm"
                   />
+                  <span className="text-xs text-muted-foreground">
+                    Usada nos botões e destaques da vitrine
+                  </span>
                 </div>
               </Campo>
             </div>
           </SectionCard>
 
-          {/* Endereço */}
+          {/* Endereço da loja */}
           <SectionCard
             title="Endereço da loja"
-            description="Subdomínio gerado automaticamente."
+            description="Link público onde seus clientes acessam a vitrine."
           >
             <div className="space-y-4">
               <Campo label="Link da loja">
-                <Input defaultValue={loja.subdominio} className="h-11 rounded-xl" />
+                <div className="relative">
+                  <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    defaultValue={loja.subdominio}
+                    className="h-11 rounded-xl pl-9"
+                  />
+                </div>
               </Campo>
-              <Campo label="Domínio próprio" extra={<PlanoBadge plan="crescimento" />}>
-                <Input placeholder="minhaloja.com.br" className="h-11 rounded-xl" />
+              <Campo
+                label="Domínio próprio"
+                extra={<PlanoBadge plan="crescimento" />}
+              >
+                <Input
+                  placeholder="minhaloja.com.br"
+                  className="h-11 rounded-xl"
+                  disabled
+                />
               </Campo>
             </div>
           </SectionCard>
+        </div>
 
-          {/* Contato */}
+        {/* ── Coluna Direita ──────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+
+          {/* Contato e confiança */}
           <SectionCard
             title="Contato e confiança"
             description="Aparece na vitrine para a cliente."
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="WhatsApp">
-                <Input defaultValue={loja.whatsapp} className="h-11 rounded-xl" />
+                <div className="relative">
+                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    defaultValue={loja.whatsapp}
+                    className="h-11 rounded-xl pl-9"
+                  />
+                </div>
               </Campo>
               <Campo label="Instagram">
-                <Input defaultValue={loja.instagram} className="h-11 rounded-xl" />
+                <div className="relative">
+                  <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    defaultValue={loja.instagram}
+                    className="h-11 rounded-xl pl-9"
+                  />
+                </div>
               </Campo>
               <Campo label="Cidade">
-                <Input defaultValue={loja.cidade} className="h-11 rounded-xl" />
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    defaultValue={loja.cidade}
+                    className="h-11 rounded-xl pl-9"
+                  />
+                </div>
               </Campo>
               <Campo label="Estado">
-                <Input defaultValue={loja.estado} className="h-11 rounded-xl" />
+                <Input
+                  defaultValue={loja.estado}
+                  className="h-11 rounded-xl"
+                />
               </Campo>
             </div>
           </SectionCard>
 
-          {/* Textos */}
+          {/* Textos da loja */}
           <SectionCard
             title="Textos da loja"
             description="Boas-vindas e política de troca."
           >
             <div className="space-y-4">
               <Campo label="Mensagem de boas-vindas">
-                <Textarea
-                  defaultValue={loja.boasVindas}
-                  rows={2}
-                  className="rounded-xl"
-                />
+                <div className="relative">
+                  <MessageCircle className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    defaultValue={loja.boasVindas}
+                    rows={2}
+                    className="rounded-xl pl-9 resize-none"
+                  />
+                </div>
               </Campo>
+
               <Campo label="Política de troca e devolução">
-                <Textarea
-                  defaultValue={loja.politicaTroca}
-                  rows={4}
-                  className="rounded-xl"
-                />
+                <div className="relative">
+                  <FileText className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    defaultValue={loja.politicaTroca}
+                    rows={4}
+                    className="rounded-xl pl-9 resize-none"
+                  />
+                </div>
               </Campo>
-              <div className="flex items-center justify-between rounded-2xl border border-border p-4">
-                <div className="min-w-0 pr-3">
-                  <p className="text-sm font-medium">Mostrar quantidade em estoque</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Quando desligado, a vitrine mostra apenas "disponível".
+
+              {/* Toggle de estoque */}
+              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Mostrar estoque disponível</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Quando desligado, a vitrine exibe apenas "Disponível" sem mostrar a quantidade.
                   </p>
                 </div>
                 <Switch
                   checked={mostrarEstoque}
                   onCheckedChange={setMostrarEstoque}
+                  className="shrink-0"
                 />
-              </div>
-            </div>
-          </SectionCard>
-        </div>
-
-        {/* Right: Sticky sidebar */}
-        <div className="lg:sticky lg:top-24 lg:self-start">
-          <SectionCard
-            title="Prévia rápida"
-            description="Atualiza conforme você edita."
-            bodyClassName="p-4"
-          >
-            <div className="overflow-hidden rounded-2xl border border-border">
-              <div
-                className="h-24 w-full"
-                style={{
-                  background: `linear-gradient(135deg, ${cor} 0%, ${cor}88 100%)`,
-                }}
-              />
-              <div className="-mt-8 px-4 pb-5">
-                <div
-                  className="grid h-16 w-16 place-items-center rounded-2xl border-4 border-card text-lg font-semibold text-white"
-                  style={{ backgroundColor: cor }}
-                >
-                  {nome.slice(0, 2).toUpperCase()}
-                </div>
-                <h3 className="mt-3 text-base font-semibold">{nome}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {descricao}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {loja.cidade} · {loja.estado}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
-                    style={{ backgroundColor: cor }}
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" /> Comprar pelo WhatsApp
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
-                    <Instagram className="h-3.5 w-3.5" /> {loja.instagram}
-                  </span>
-                </div>
-                <p className="mt-4 rounded-xl bg-secondary/60 p-3 text-xs leading-relaxed text-muted-foreground">
-                  {loja.boasVindas}
-                </p>
               </div>
             </div>
           </SectionCard>
