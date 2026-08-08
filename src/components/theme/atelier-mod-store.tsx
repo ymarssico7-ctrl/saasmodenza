@@ -1,164 +1,75 @@
+import { useEffect, useState } from "react";
+import { ArrowRight, Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import heroImg from "@/assets/store/hero.jpg";
-import { lookbook1, lookbook2, STORE_PRODUCTS, STORE_CATEGORIES, brl, type StoreProduct } from "@/data/store-products";
-import { ArrowRight } from "lucide-react";
+import {
+  lookbook1,
+  lookbook2,
+  STORE_PRODUCTS,
+  STORE_CATEGORIES,
+  brl,
+  type StoreProduct,
+} from "@/data/store-products";
 
-// ── Componente Principal da Vitrine (Atelier Mod fiel ao original) ─────────────
+// ── Dados de navegação secundária ─────────────────────────────────────────────
+const SECONDARY_NAV = [
+  { label: "Lookbook", href: "#" },
+  { label: "Atendimento", href: "#" },
+  { label: "Trocas", href: "#" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AtelierModStore — vitrine fiel ao template original do Lovable
+// Usa o CSS class .atelier-theme para variáveis e utilitários isolados.
+// ══════════════════════════════════════════════════════════════════════════════
 export function AtelierModStore() {
   const novidades = STORE_PRODUCTS.slice(0, 6);
-  const essenciais = STORE_PRODUCTS.slice(6, 10);
+  const essenciais = STORE_PRODUCTS.slice(6, 14);
 
   return (
-    <div className="atelier-store min-h-screen bg-[--at-bg] text-[--at-fg]" style={{
-      "--at-bg": "#F5F4F0",
-      "--at-fg": "#1C1A16",
-      "--at-canvas": "#ECEAE4",
-      "--at-border": "#DEDAD2",
-      "--at-muted": "#7A7672",
-      fontFamily: "'Figtree', 'Outfit', ui-sans-serif, system-ui, sans-serif",
-    } as React.CSSProperties}>
+    <div className="atelier-theme min-h-screen">
+      <AtelierHeader />
 
-      {/* ── Announcement Bar ── */}
-      <div style={{
-        background: "var(--at-fg)",
-        color: "var(--at-bg)",
-        padding: "8px 16px",
-        textAlign: "center",
-        fontSize: "11px",
-        textTransform: "uppercase",
-        letterSpacing: "0.16em",
-      }}>
-        Frete grátis acima de R$ 599
-      </div>
-
-      {/* ── Header ── */}
-      <header style={{
-        borderBottom: "1px solid var(--at-border)",
-        background: "rgba(245,244,240,0.88)",
-        backdropFilter: "blur(12px)",
-        position: "sticky",
-        top: 0,
-        zIndex: 40,
-      }}>
-        <div className="at-shell" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: "64px", gap: "16px" }}>
-          <nav style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            {STORE_CATEGORIES.slice(0, 4).map((c) => (
-              <a
-                key={c.slug}
-                href="#"
-                style={{
-                  fontSize: "13px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: "var(--at-fg)",
-                  textDecoration: "none",
-                }}
-              >
-                {c.label}
-              </a>
-            ))}
-          </nav>
-          <div style={{ textAlign: "center" }}>
-            <a href="#" style={{
-              fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif",
-              fontSize: "17px",
-              letterSpacing: "-0.03em",
-              color: "var(--at-fg)",
-              textDecoration: "none",
-            }}>
-              ATELIER MOD
-            </a>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-            <a href="#" style={{ width: 44, height: 44, display: "grid", placeItems: "center", color: "var(--at-fg)", textDecoration: "none", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em" }}>🔍</a>
-            <a href="#" style={{ width: 44, height: 44, display: "grid", placeItems: "center", color: "var(--at-fg)", textDecoration: "none", fontSize: "18px" }}>🛍</a>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Hero ── */}
-      <section style={{ position: "relative" }}>
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative">
         <img
           src={heroImg}
           alt="Modelo vestindo vestido de linho off-white com casaco de lã preto sobre o ombro"
-          style={{
-            width: "100%",
-            height: "86svh",
-            objectFit: "cover",
-            objectPosition: "62% center",
-            display: "block",
-          }}
+          width={1600}
+          height={1200}
+          className="h-[78svh] w-full object-cover object-[62%_center] md:h-[86svh] md:object-center"
         />
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background: "linear-gradient(to top, rgba(28,26,22,0.45) 0%, rgba(28,26,22,0.05) 50%, transparent 100%)",
-        }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}>
-          <div className="at-shell" style={{ paddingBottom: "64px" }}>
-            <p style={{
-              fontSize: "11px",
-              textTransform: "uppercase",
-              letterSpacing: "0.2em",
-              color: "rgba(245,244,240,0.8)",
-              margin: 0,
-            }}>
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 via-foreground/5 to-transparent md:bg-gradient-to-r md:from-foreground/35 md:via-transparent md:to-transparent" />
+        <div className="absolute inset-x-0 bottom-0">
+          <div className="shell pb-8 md:pb-16">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-background/80">
               Coleção Outono 26
             </p>
-            <h1 style={{
-              fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif",
-              fontWeight: 300,
-              fontSize: "clamp(2.5rem, 11vw, 7rem)",
-              lineHeight: 0.94,
-              letterSpacing: "-0.045em",
-              color: "#F5F4F0",
-              marginTop: "12px",
-              marginBottom: "28px",
-            }}>
-              O essencial,<br />refeito à mão
+            <h1 className="display-xl mt-3 max-w-3xl text-background">
+              O essencial,
+              <br />
+              refeito à mão
             </h1>
-            <a
-              href="#"
-              style={{
-                display: "inline-block",
-                height: "52px",
-                lineHeight: "52px",
-                padding: "0 32px",
-                background: "#F5F4F0",
-                color: "#1C1A16",
-                fontSize: "13px",
-                textTransform: "uppercase",
-                letterSpacing: "0.14em",
-                textDecoration: "none",
-              }}
-            >
-              Ver a coleção
-            </a>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <a
+                href="#"
+                className="inline-block h-13 bg-background px-8 text-center text-sm uppercase tracking-[0.14em] leading-[3.25rem] text-foreground transition-opacity hover:opacity-90"
+              >
+                Ver a coleção
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Barra de Categorias ── */}
-      <section style={{ borderBottom: "1px solid var(--at-border)", padding: "24px 0" }}>
-        <div className="at-shell">
-          <ul style={{ display: "flex", gap: "8px", overflowX: "auto", listStyle: "none", margin: 0, padding: 0 }}>
+      {/* ── Categorias ───────────────────────────────────────────────────── */}
+      <section className="border-b border-border py-6">
+        <div className="shell">
+          <ul className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
             {STORE_CATEGORIES.map((c) => (
-              <li key={c.slug} style={{ flexShrink: 0 }}>
+              <li key={c.slug} className="shrink-0">
                 <a
                   href="#"
-                  style={{
-                    display: "inline-flex",
-                    height: "40px",
-                    alignItems: "center",
-                    padding: "0 16px",
-                    border: "1px solid var(--at-border)",
-                    fontSize: "13px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    color: "var(--at-fg)",
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    transition: "border-color 0.2s",
-                  }}
+                  className="flex h-10 items-center border border-border px-4 text-[13px] uppercase tracking-[0.1em] transition-colors hover:border-foreground"
                 >
                   {c.label}
                 </a>
@@ -168,209 +79,407 @@ export function AtelierModStore() {
         </div>
       </section>
 
-      {/* ── Novidades ── */}
-      <section className="at-shell" style={{ paddingTop: "80px", paddingBottom: "80px" }}>
-        <header style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "flex-end", gap: "16px", marginBottom: "32px" }}>
-          <div>
-            <p style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--at-muted)", margin: 0 }}>Chegou agora</p>
-            <h2 style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif", fontWeight: 300, fontSize: "clamp(1.875rem, 6vw, 3.5rem)", lineHeight: 1, letterSpacing: "-0.04em", margin: "8px 0 0 0" }}>Novidades</h2>
+      {/* ── Novidades ────────────────────────────────────────────────────── */}
+      <section className="shell py-14 md:py-20">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+          <div className="min-w-0">
+            <p className="kicker">Chegou agora</p>
+            <h2 className="display-lg mt-2">Novidades</h2>
           </div>
-          <a href="#" style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--at-fg)", textDecoration: "none", paddingBottom: "4px" }}>
+          <a
+            href="#"
+            className="link-underline shrink-0 pb-1 text-[13px] uppercase tracking-[0.12em]"
+          >
             Ver tudo
           </a>
         </header>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px 12px" }}>
+        <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 md:gap-x-5 lg:grid-cols-6">
           {novidades.map((p, i) => (
-            <StoreProductCard key={p.id} product={p} priority={i < 2} />
+            <AtelierProductCard key={p.id} product={p} priority={i < 2} />
           ))}
         </div>
       </section>
 
-      {/* ── Lookbook Split 01 ── */}
-      <section style={{ background: "var(--at-canvas)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+      {/* ── Lookbook split ───────────────────────────────────────────────── */}
+      <section className="bg-canvas">
+        <div className="grid md:grid-cols-2">
           <img
             src={lookbook1}
-            alt="Duas modelos em alfaiataria preta e creme"
-            style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", display: "block" }}
+            alt="Duas modelos em alfaiataria preta e creme sentadas em banco de gesso"
+            width={1200}
+            height={1504}
+            loading="lazy"
+            className="aspect-[4/5] w-full object-cover md:aspect-auto md:h-full"
           />
-          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "64px 56px" }}>
-            <p style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--at-muted)", margin: "0 0 12px 0" }}>Lookbook 01</p>
-            <h2 style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif", fontWeight: 300, fontSize: "clamp(1.875rem, 4vw, 3rem)", lineHeight: 1, letterSpacing: "-0.04em", margin: "0 0 20px 0", maxWidth: "400px" }}>
-              Alfaiataria que respira
-            </h2>
-            <p style={{ fontSize: "15px", lineHeight: 1.7, color: "var(--at-muted)", maxWidth: "400px", margin: "0 0 32px 0" }}>
-              Lã fria de gramatura média, ombro estruturado sem enchimento e pregas que caem retas. Uma silhueta desenhada para durar mais de uma estação.
+          <div className="flex flex-col justify-center px-5 py-12 md:px-14 md:py-24">
+            <p className="kicker">Lookbook 01</p>
+            <h2 className="display-lg mt-3 max-w-md">Alfaiataria que respira</h2>
+            <p className="mt-5 max-w-md text-[0.9375rem] leading-relaxed text-muted-foreground">
+              Lã fria de gramatura média, ombro estruturado sem enchimento e
+              pregas que caem retas. Uma silhueta desenhada para durar mais de
+              uma estação.
             </p>
             <a
               href="#"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                height: "48px",
-                padding: "0 28px",
-                border: "1px solid var(--at-fg)",
-                fontSize: "13px",
-                textTransform: "uppercase",
-                letterSpacing: "0.14em",
-                color: "var(--at-fg)",
-                textDecoration: "none",
-                width: "fit-content",
-                transition: "background 0.2s, color 0.2s",
-              }}
+              className="mt-8 inline-flex h-12 w-fit items-center gap-2 border border-foreground px-7 text-sm uppercase tracking-[0.14em] transition-colors hover:bg-foreground hover:text-background"
             >
               Ver alfaiataria
-              <ArrowRight size={16} strokeWidth={1.5} />
+              <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
             </a>
           </div>
         </div>
       </section>
 
-      {/* ── Essenciais ── */}
-      <section className="at-shell" style={{ paddingTop: "80px", paddingBottom: "80px" }}>
-        <header style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "flex-end", gap: "16px", marginBottom: "32px" }}>
-          <div>
-            <p style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--at-muted)", margin: 0 }}>Seleção</p>
-            <h2 style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif", fontWeight: 300, fontSize: "clamp(1.875rem, 6vw, 3.5rem)", lineHeight: 1, letterSpacing: "-0.04em", margin: "8px 0 0 0" }}>Essenciais da casa</h2>
+      {/* ── Essenciais ───────────────────────────────────────────────────── */}
+      <section className="shell py-14 md:py-20">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+          <div className="min-w-0">
+            <p className="kicker">Seleção</p>
+            <h2 className="display-lg mt-2">Essenciais da casa</h2>
           </div>
-          <a href="#" style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--at-fg)", textDecoration: "none", paddingBottom: "4px" }}>
+          <a
+            href="#"
+            className="link-underline shrink-0 pb-1 text-[13px] uppercase tracking-[0.12em]"
+          >
             Ver tudo
           </a>
         </header>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px 20px" }}>
+        <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4 md:gap-x-5">
           {essenciais.map((p) => (
-            <StoreProductCard key={p.id} product={p} />
+            <AtelierProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>
 
-      {/* ── Matéria-Prima ── */}
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr" }}>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "64px 56px", order: 1 }}>
-          <p style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--at-muted)", margin: "0 0 12px 0" }}>Matéria-prima</p>
-          <h2 style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif", fontWeight: 300, fontSize: "clamp(1.875rem, 4vw, 3rem)", lineHeight: 1, letterSpacing: "-0.04em", margin: "0 0 32px 0", maxWidth: "400px" }}>
-            Poucos tecidos, bem escolhidos
-          </h2>
-          <dl style={{ maxWidth: "400px", margin: 0, padding: 0 }}>
+      {/* ── Matéria-prima ────────────────────────────────────────────────── */}
+      <section className="grid md:grid-cols-[1fr_1.2fr]">
+        <div className="order-2 flex flex-col justify-center px-5 py-12 md:order-1 md:px-14 md:py-24">
+          <p className="kicker">Matéria-prima</p>
+          <h2 className="display-lg mt-3 max-w-md">Poucos tecidos, bem escolhidos</h2>
+          <dl className="mt-8 max-w-md space-y-5 text-sm">
             {[
-              { t: "Cashmere de fio duplo", d: "Fiado na Itália, canelado largo que mantém a forma." },
-              { t: "Linho lavado", d: "Amaciado antes do corte, amassa com elegância." },
-              { t: "Couro curtido a vegetal", d: "Sem cromo, ganha pátina própria com o uso." },
+              {
+                t: "Cashmere de fio duplo",
+                d: "Fiado na Itália, canelado largo que mantém a forma.",
+              },
+              {
+                t: "Linho lavado",
+                d: "Amaciado antes do corte, amassa com elegância.",
+              },
+              {
+                t: "Couro curtido a vegetal",
+                d: "Sem cromo, ganha pátina própria com o uso.",
+              },
             ].map((item) => (
-              <div key={item.t} style={{ borderTop: "1px solid var(--at-border)", paddingTop: "16px", marginTop: "16px" }}>
-                <dt style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.1em" }}>{item.t}</dt>
-                <dd style={{ fontSize: "14px", color: "var(--at-muted)", marginTop: "4px", marginLeft: 0 }}>{item.d}</dd>
+              <div key={item.t} className="border-t border-border pt-4">
+                <dt className="uppercase tracking-[0.1em]">{item.t}</dt>
+                <dd className="mt-1 text-muted-foreground">{item.d}</dd>
               </div>
             ))}
           </dl>
         </div>
         <img
           src={lookbook2}
-          alt="Detalhe de tricô de cashmere creme e cetim cinza"
-          style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block", order: 2 }}
+          alt="Detalhe de tricô de cashmere creme e cetim cinza sobre superfície de gesso"
+          width={1200}
+          height={912}
+          loading="lazy"
+          className="order-1 aspect-[4/3] w-full object-cover md:order-2 md:aspect-auto md:h-full"
         />
       </section>
 
-      {/* ── Serviços ── */}
-      <section className="at-shell" style={{ paddingTop: "56px", paddingBottom: "56px" }}>
-        <ul style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", borderTop: "1px solid var(--at-border)", paddingTop: "40px", listStyle: "none", margin: 0, padding: "40px 0 0 0" }}>
+      {/* ── Serviços ─────────────────────────────────────────────────────── */}
+      <section className="shell py-14 md:py-20">
+        <ul className="grid gap-8 border-t border-border pt-10 sm:grid-cols-3">
           {[
             { t: "Frete grátis", d: "Em pedidos acima de R$ 599 para todo o Brasil." },
             { t: "Troca em 30 dias", d: "Primeira troca sem custo, com etiqueta pronta." },
             { t: "Ajuste sob medida", d: "Barra e cintura ajustadas no ateliê, sem taxa." },
           ].map((s) => (
             <li key={s.t}>
-              <h3 style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 8px 0" }}>{s.t}</h3>
-              <p style={{ fontSize: "14px", lineHeight: 1.6, color: "var(--at-muted)", margin: 0 }}>{s.d}</p>
+              <h3 className="text-sm uppercase tracking-[0.12em]">{s.t}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.d}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* ── Footer ── */}
-      <footer style={{ borderTop: "1px solid var(--at-border)", marginTop: "40px" }}>
-        <div className="at-shell" style={{ paddingTop: "56px", paddingBottom: "56px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: "48px" }}>
-            <div style={{ maxWidth: "400px" }}>
-              <a href="#" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif", fontSize: "20px", letterSpacing: "-0.04em", color: "var(--at-fg)", textDecoration: "none" }}>
-                ATELIER MOD
-              </a>
-              <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--at-muted)", marginTop: "16px" }}>
-                Peças de guarda-roupa desenhadas em São Paulo e produzidas em pequenos lotes por ateliês parceiros.
-              </p>
-            </div>
-            <nav>
-              <h2 style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--at-muted)", margin: "0 0 16px 0" }}>Loja</h2>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
-                {STORE_CATEGORIES.slice(0, 5).map((c) => (
-                  <li key={c.slug}><a href="#" style={{ fontSize: "14px", color: "var(--at-muted)", textDecoration: "none" }}>{c.label}</a></li>
-                ))}
-              </ul>
-            </nav>
-            <nav>
-              <h2 style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--at-muted)", margin: "0 0 16px 0" }}>Atendimento</h2>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
-                {["Sobre", "Contato", "FAQ", "Trocas e devoluções"].map((l) => (
-                  <li key={l}><a href="#" style={{ fontSize: "14px", color: "var(--at-muted)", textDecoration: "none" }}>{l}</a></li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-          <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: "1px solid var(--at-border)", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--at-muted)" }}>
-            <p style={{ margin: 0 }}>© {new Date().getFullYear()} Atelier Mod. Template de demonstração.</p>
-            <p style={{ margin: 0 }}>Frete grátis acima de R$ 599 · Troca em até 30 dias</p>
-          </div>
-        </div>
-      </footer>
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <AtelierFooter />
     </div>
   );
 }
 
-// ── Product Card interno (independente do ShopContext para o preview) ───────────
-function StoreProductCard({ product, priority = false }: { product: StoreProduct; priority?: boolean }) {
+// ══════════════════════════════════════════════════════════════════════════════
+// Header — com announcement bar, sticky glassmorphism e menu mobile
+// ══════════════════════════════════════════════════════════════════════════════
+function AtelierHeader() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Trava scroll do body quando menu mobile está aberto
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  return (
+    <>
+      {/* Announcement bar */}
+      <div className="bg-foreground px-4 py-2 text-center text-[11px] uppercase tracking-[0.16em] text-background">
+        Frete grátis acima de R$ 599
+      </div>
+
+      {/* Header principal sticky */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="shell grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 md:h-16">
+          {/* Lado esquerdo — hamburger mobile + nav desktop */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Abrir menu"
+              className="grid h-11 w-11 place-items-center lg:hidden"
+            >
+              <Menu className="h-5 w-5" strokeWidth={1.4} />
+            </button>
+            <nav className="hidden items-center gap-6 lg:flex" aria-label="Categorias">
+              {STORE_CATEGORIES.slice(0, 5).map((c) => (
+                <a
+                  key={c.slug}
+                  href="#"
+                  className="link-underline text-[13px] uppercase tracking-[0.1em]"
+                >
+                  {c.label}
+                </a>
+              ))}
+            </nav>
+          </div>
+
+          {/* Centro — logo */}
+          <div className="min-w-0 text-center">
+            <a href="#" className="font-display text-[1.0625rem] tracking-[-0.03em] md:text-xl">
+              ATELIER MOD
+            </a>
+          </div>
+
+          {/* Lado direito — ícones */}
+          <div className="flex items-center justify-end">
+            <a href="#" aria-label="Buscar produtos" className="grid h-11 w-11 place-items-center">
+              <Search className="h-[18px] w-[18px]" strokeWidth={1.4} />
+            </a>
+            <a
+              href="#"
+              aria-label="Favoritos"
+              className="relative hidden h-11 w-11 place-items-center sm:grid"
+            >
+              <Heart className="h-[18px] w-[18px]" strokeWidth={1.4} />
+            </a>
+            <a href="#" aria-label="Minha conta" className="hidden h-11 w-11 place-items-center sm:grid">
+              <User className="h-[18px] w-[18px]" strokeWidth={1.4} />
+            </a>
+            <a href="#" aria-label="Sacola" className="relative grid h-11 w-11 place-items-center">
+              <ShoppingBag className="h-[18px] w-[18px]" strokeWidth={1.4} />
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* Menu mobile full-screen — slide-in */}
+      <div
+        className={`fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 lg:hidden ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-hidden={!menuOpen}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <span className="kicker">Menu</span>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Fechar menu"
+            className="grid h-11 w-11 place-items-center"
+          >
+            <X className="h-5 w-5" strokeWidth={1.4} />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-5 py-6" aria-label="Navegação principal">
+          <ul className="space-y-1">
+            <li>
+              <a
+                href="#"
+                className="flex h-12 items-center font-display text-[1.75rem] tracking-[-0.04em]"
+              >
+                Todos os produtos
+              </a>
+            </li>
+            {STORE_CATEGORIES.map((c) => (
+              <li key={c.slug}>
+                <a
+                  href="#"
+                  className="flex h-12 items-center font-display text-[1.75rem] tracking-[-0.04em] text-muted-foreground"
+                >
+                  {c.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          <ul className="mt-8 space-y-1 border-t border-border pt-6 text-sm">
+            {SECONDARY_NAV.map((s) => (
+              <li key={s.href}>
+                <a href={s.href} className="flex h-11 items-center">
+                  {s.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a href="#" className="flex h-11 items-center">
+                Minha conta
+              </a>
+            </li>
+            <li>
+              <a href="#" className="flex h-11 items-center">
+                Favoritos
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Product Card — efeito hover troca imagem frente → costas (group)
+// ══════════════════════════════════════════════════════════════════════════════
+function AtelierProductCard({
+  product,
+  priority = false,
+}: {
+  product: StoreProduct;
+  priority?: boolean;
+}) {
   const front = product.images[0] ?? "";
   const back = product.images[1] ?? front;
 
   return (
-    <article style={{ position: "relative" }}>
-      <a href="#" style={{ display: "block", textDecoration: "none", color: "inherit" }}>
-        <div style={{ position: "relative", overflow: "hidden", background: "var(--at-canvas)", aspectRatio: "3/4" }}>
+    <article className="group relative">
+      <a href="#" className="block" aria-label={product.name}>
+        {/* Imagem com hover swap */}
+        <div className="relative overflow-hidden bg-canvas">
+          {/* Imagem frente */}
           <img
             src={front}
             alt={product.name}
+            width={900}
+            height={1200}
             loading={priority ? "eager" : "lazy"}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            className="at-img-front aspect-[3/4] w-full object-cover transition-opacity duration-500"
           />
+          {/* Imagem costas (aparece no hover via CSS .atelier-theme) */}
+          <img
+            src={back}
+            alt=""
+            aria-hidden="true"
+            width={900}
+            height={1200}
+            loading="lazy"
+            className="at-img-back absolute inset-0 aspect-[3/4] w-full scale-[1.02] object-cover opacity-0 transition-all duration-700"
+          />
+          {/* Badge */}
           {product.badge && (
-            <span style={{
-              position: "absolute",
-              left: "12px",
-              top: "12px",
-              background: "rgba(245,244,240,0.92)",
-              padding: "4px 8px",
-              fontSize: "10px",
-              fontWeight: 500,
-              textTransform: "uppercase",
-              letterSpacing: "0.16em",
-              backdropFilter: "blur(4px)",
-            }}>
+            <span className="absolute left-3 top-3 bg-background/90 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-foreground backdrop-blur">
               {product.badge}
             </span>
           )}
         </div>
-        <div style={{ marginTop: "12px", display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
-          <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: "15px", fontWeight: 400, margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</h3>
+
+        {/* Info */}
+        <div className="mt-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-[0.9375rem] font-normal leading-snug">
+              {product.name}
+            </h3>
           </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <p style={{ fontSize: "15px", margin: 0, fontVariantNumeric: "tabular-nums" }}>{brl(product.price)}</p>
+          <div className="shrink-0 text-right">
+            <p className="text-[0.9375rem] tabular-nums">{brl(product.price)}</p>
             {product.compareAt && (
-              <p style={{ fontSize: "12px", color: "var(--at-muted)", textDecoration: "line-through", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{brl(product.compareAt)}</p>
+              <p className="text-xs text-muted-foreground line-through tabular-nums">
+                {brl(product.compareAt)}
+              </p>
             )}
           </div>
         </div>
       </a>
+
+      {/* Botão de favorito flutuante */}
+      <button
+        type="button"
+        aria-label="Adicionar aos favoritos"
+        className="absolute right-2 top-2 grid h-11 w-11 place-items-center text-foreground transition-opacity"
+      >
+        <Heart className="h-[18px] w-[18px]" strokeWidth={1.3} />
+      </button>
     </article>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Footer — grid responsivo 3 colunas → 1 coluna no mobile
+// ══════════════════════════════════════════════════════════════════════════════
+function AtelierFooter() {
+  return (
+    <footer className="border-t border-border mt-10">
+      <div className="shell py-14 md:py-20">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr]">
+          {/* Marca */}
+          <div>
+            <a href="#" className="font-display text-xl tracking-[-0.04em]">
+              ATELIER MOD
+            </a>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
+              Peças de guarda-roupa desenhadas em São Paulo e produzidas em
+              pequenos lotes por ateliês parceiros.
+            </p>
+          </div>
+
+          {/* Loja */}
+          <nav aria-label="Loja">
+            <h2 className="kicker mb-4">Loja</h2>
+            <ul className="space-y-2.5">
+              {STORE_CATEGORIES.slice(0, 6).map((c) => (
+                <li key={c.slug}>
+                  <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    {c.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Atendimento */}
+          <nav aria-label="Atendimento">
+            <h2 className="kicker mb-4">Atendimento</h2>
+            <ul className="space-y-2.5">
+              {["Sobre", "Contato", "FAQ", "Trocas e devoluções"].map((l) => (
+                <li key={l}>
+                  <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    {l}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+
+        <div className="mt-12 flex flex-col gap-2 border-t border-border pt-8 text-xs text-muted-foreground sm:flex-row sm:justify-between">
+          <p>© {new Date().getFullYear()} Atelier Mod. Template de demonstração.</p>
+          <p>Frete grátis acima de R$ 599 · Troca em até 30 dias</p>
+        </div>
+      </div>
+    </footer>
   );
 }
