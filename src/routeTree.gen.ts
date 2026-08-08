@@ -25,6 +25,7 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authenticated/precificacao'
 import { Route as AuthenticatedProlaboreRouteImport } from './routes/_authenticated/prolabore'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
+import { Route as LojaPreviewRouteImport } from './routes/loja.preview'
 import { Route as VitrineStoreSlugRouteImport } from './routes/vitrine.$storeSlug'
 import { Route as AuthenticatedLojaIndexRouteImport } from './routes/_authenticated/loja.index'
 import { Route as AuthenticatedLojaClientesRouteImport } from './routes/_authenticated/loja.clientes'
@@ -35,7 +36,6 @@ import { Route as AuthenticatedLojaFreteRouteImport } from './routes/_authentica
 import { Route as AuthenticatedLojaIntegracoesRouteImport } from './routes/_authenticated/loja.integracoes'
 import { Route as AuthenticatedLojaPedidosRouteImport } from './routes/_authenticated/loja.pedidos'
 import { Route as AuthenticatedLojaPersonalizarRouteImport } from './routes/_authenticated/loja.personalizar'
-import { Route as AuthenticatedLojaPreviewRouteImport } from './routes/_authenticated/loja.preview'
 import { Route as AuthenticatedLojaProdutosRouteImport } from './routes/_authenticated/loja.produtos'
 import { Route as AuthenticatedLojaRelatoriosRouteImport } from './routes/_authenticated/loja.relatorios'
 
@@ -120,6 +120,11 @@ const AuthenticatedRelatorioRoute = AuthenticatedRelatorioRouteImport.update({
   path: '/relatorio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const LojaPreviewRoute = LojaPreviewRouteImport.update({
+  id: '/loja/preview',
+  path: '/loja/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VitrineStoreSlugRoute = VitrineStoreSlugRouteImport.update({
   id: '/vitrine/$storeSlug',
   path: '/vitrine/$storeSlug',
@@ -176,12 +181,6 @@ const AuthenticatedLojaPersonalizarRoute =
     path: '/personalizar',
     getParentRoute: () => AuthenticatedLojaRoute,
   } as any)
-const AuthenticatedLojaPreviewRoute =
-  AuthenticatedLojaPreviewRouteImport.update({
-    id: '/preview',
-    path: '/preview',
-    getParentRoute: () => AuthenticatedLojaRoute,
-  } as any)
 const AuthenticatedLojaProdutosRoute =
   AuthenticatedLojaProdutosRouteImport.update({
     id: '/produtos',
@@ -211,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/prolabore': typeof AuthenticatedProlaboreRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/loja/preview': typeof LojaPreviewRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
@@ -220,7 +220,6 @@ export interface FileRoutesByFullPath {
   '/loja/integracoes': typeof AuthenticatedLojaIntegracoesRoute
   '/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
   '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
-  '/loja/preview': typeof AuthenticatedLojaPreviewRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/loja/': typeof AuthenticatedLojaIndexRoute
@@ -240,6 +239,7 @@ export interface FileRoutesByTo {
   '/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/prolabore': typeof AuthenticatedProlaboreRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
+  '/loja/preview': typeof LojaPreviewRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
@@ -249,7 +249,6 @@ export interface FileRoutesByTo {
   '/loja/integracoes': typeof AuthenticatedLojaIntegracoesRoute
   '/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
   '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
-  '/loja/preview': typeof AuthenticatedLojaPreviewRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/loja': typeof AuthenticatedLojaIndexRoute
@@ -272,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/precificacao': typeof AuthenticatedPrecificacaoRoute
   '/_authenticated/prolabore': typeof AuthenticatedProlaboreRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
+  '/loja/preview': typeof LojaPreviewRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/_authenticated/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/_authenticated/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
@@ -281,7 +281,6 @@ export interface FileRoutesById {
   '/_authenticated/loja/integracoes': typeof AuthenticatedLojaIntegracoesRoute
   '/_authenticated/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
   '/_authenticated/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
-  '/_authenticated/loja/preview': typeof AuthenticatedLojaPreviewRoute
   '/_authenticated/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/_authenticated/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/_authenticated/loja/': typeof AuthenticatedLojaIndexRoute
@@ -304,6 +303,7 @@ export interface FileRouteTypes {
     | '/precificacao'
     | '/prolabore'
     | '/relatorio'
+    | '/loja/preview'
     | '/vitrine/$storeSlug'
     | '/loja/clientes'
     | '/loja/compartilhar'
@@ -313,7 +313,6 @@ export interface FileRouteTypes {
     | '/loja/integracoes'
     | '/loja/pedidos'
     | '/loja/personalizar'
-    | '/loja/preview'
     | '/loja/produtos'
     | '/loja/relatorios'
     | '/loja/'
@@ -333,6 +332,7 @@ export interface FileRouteTypes {
     | '/precificacao'
     | '/prolabore'
     | '/relatorio'
+    | '/loja/preview'
     | '/vitrine/$storeSlug'
     | '/loja/clientes'
     | '/loja/compartilhar'
@@ -342,7 +342,6 @@ export interface FileRouteTypes {
     | '/loja/integracoes'
     | '/loja/pedidos'
     | '/loja/personalizar'
-    | '/loja/preview'
     | '/loja/produtos'
     | '/loja/relatorios'
     | '/loja'
@@ -364,6 +363,7 @@ export interface FileRouteTypes {
     | '/_authenticated/precificacao'
     | '/_authenticated/prolabore'
     | '/_authenticated/relatorio'
+    | '/loja/preview'
     | '/vitrine/$storeSlug'
     | '/_authenticated/loja/clientes'
     | '/_authenticated/loja/compartilhar'
@@ -373,7 +373,6 @@ export interface FileRouteTypes {
     | '/_authenticated/loja/integracoes'
     | '/_authenticated/loja/pedidos'
     | '/_authenticated/loja/personalizar'
-    | '/_authenticated/loja/preview'
     | '/_authenticated/loja/produtos'
     | '/_authenticated/loja/relatorios'
     | '/_authenticated/loja/'
@@ -384,6 +383,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  LojaPreviewRoute: typeof LojaPreviewRoute
   VitrineStoreSlugRoute: typeof VitrineStoreSlugRoute
 }
 
@@ -501,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatorioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/loja/preview': {
+      id: '/loja/preview'
+      path: '/loja/preview'
+      fullPath: '/loja/preview'
+      preLoaderRoute: typeof LojaPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vitrine/$storeSlug': {
       id: '/vitrine/$storeSlug'
       path: '/vitrine/$storeSlug'
@@ -571,13 +578,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLojaPersonalizarRouteImport
       parentRoute: typeof AuthenticatedLojaRoute
     }
-    '/_authenticated/loja/preview': {
-      id: '/_authenticated/loja/preview'
-      path: '/preview'
-      fullPath: '/loja/preview'
-      preLoaderRoute: typeof AuthenticatedLojaPreviewRouteImport
-      parentRoute: typeof AuthenticatedLojaRoute
-    }
     '/_authenticated/loja/produtos': {
       id: '/_authenticated/loja/produtos'
       path: '/produtos'
@@ -604,7 +604,6 @@ interface AuthenticatedLojaRouteChildren {
   AuthenticatedLojaIntegracoesRoute: typeof AuthenticatedLojaIntegracoesRoute
   AuthenticatedLojaPedidosRoute: typeof AuthenticatedLojaPedidosRoute
   AuthenticatedLojaPersonalizarRoute: typeof AuthenticatedLojaPersonalizarRoute
-  AuthenticatedLojaPreviewRoute: typeof AuthenticatedLojaPreviewRoute
   AuthenticatedLojaProdutosRoute: typeof AuthenticatedLojaProdutosRoute
   AuthenticatedLojaRelatoriosRoute: typeof AuthenticatedLojaRelatoriosRoute
   AuthenticatedLojaIndexRoute: typeof AuthenticatedLojaIndexRoute
@@ -619,7 +618,6 @@ const AuthenticatedLojaRouteChildren: AuthenticatedLojaRouteChildren = {
   AuthenticatedLojaIntegracoesRoute: AuthenticatedLojaIntegracoesRoute,
   AuthenticatedLojaPedidosRoute: AuthenticatedLojaPedidosRoute,
   AuthenticatedLojaPersonalizarRoute: AuthenticatedLojaPersonalizarRoute,
-  AuthenticatedLojaPreviewRoute: AuthenticatedLojaPreviewRoute,
   AuthenticatedLojaProdutosRoute: AuthenticatedLojaProdutosRoute,
   AuthenticatedLojaRelatoriosRoute: AuthenticatedLojaRelatoriosRoute,
   AuthenticatedLojaIndexRoute: AuthenticatedLojaIndexRoute,
@@ -666,6 +664,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  LojaPreviewRoute: LojaPreviewRoute,
   VitrineStoreSlugRoute: VitrineStoreSlugRoute,
 }
 export const routeTree = rootRouteImport

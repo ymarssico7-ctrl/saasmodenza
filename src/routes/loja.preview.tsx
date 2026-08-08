@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { loadTheme } from "@/lib/theme-engine/defaults";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 
-export const Route = createFileRoute("/_authenticated/loja/preview")({
+export const Route = createFileRoute("/loja/preview")({
   head: () => ({
     meta: [
       { title: "Preview da Loja — Modaly" },
@@ -17,11 +17,11 @@ export const Route = createFileRoute("/_authenticated/loja/preview")({
 
 /**
  * Full-screen, zero-UI live preview of the published theme.
- * Opened in a new browser tab from the Theme Builder.
+ * Opened in a new browser tab from the Appearance page.
+ * Lives outside _authenticated so the admin shell (sidebar/topbar)
+ * is never rendered — the customer sees exactly what the merchant published.
  */
 function PreviewPage() {
-  // Always reads from the persisted (localStorage) theme so what you see here
-  // is exactly what the customer will see after the merchant clicks "Publicar".
   const theme = loadTheme();
 
   return (
