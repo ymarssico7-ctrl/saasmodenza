@@ -154,7 +154,7 @@ function BuilderInner() {
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-3">
+            <div className="p-3 pr-4 overflow-x-hidden">
               {activeTab === "sections" && (
                 <div className="space-y-4">
                   <SectionList />
