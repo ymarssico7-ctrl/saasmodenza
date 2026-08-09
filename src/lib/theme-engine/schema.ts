@@ -8,6 +8,7 @@ export type FontDisplay =
   | "Outfit"
   | "Playfair Display"
   | "Cormorant Garamond"
+  | "Jost"
   | "Sora"
   | "DM Serif Display"
   | "Libre Baskerville";
@@ -17,6 +18,8 @@ export type BackgroundVariant = "background" | "canvas" | "foreground";
 
 // ── Global Settings ───────────────────────────────────────────────────────────
 export interface ThemeSettings {
+  /** Qual template de loja renderizar. Padrão: "template-02" */
+  templateId?: "template-01" | "template-02";
   storeName: string;
   tagline: string;
   freeShippingBanner: string;

@@ -10,7 +10,7 @@ export function loadTheme(): ThemeConfig {
   } catch {
     // ignore parse errors
   }
-  return TEMPLATE_01_THEME;
+  return TEMPLATE_02_THEME;
 }
 
 export function saveTheme(theme: ThemeConfig): void {
@@ -278,4 +278,30 @@ export const RADIUS_MAP: Record<string, string> = {
   md: "8px",
   lg: "16px",
   full: "9999px",
+};
+
+// ── Template 02 — "Atelie Minimalist" ────────────────────────────────────────
+// FONTE DA VERDADE: c:\Users\yande\Downloads\Modaly 2.0\atelie-loja\src\styles.css
+// REGRA: Todos os valores abaixo são LITERAIS do arquivo original acima.
+export const TEMPLATE_02_THEME: ThemeConfig = {
+  settings: {
+    templateId: "template-02",
+    storeName: "Atelie",
+    tagline: "Moda atemporal em pequenos lotes",
+    freeShippingBanner: "Frete grátis acima de R$ 500 · Trocas em 30 dias",
+    freeShippingBannerEnabled: true,
+    // Cores — idênticas ao :root do atelie-loja/src/styles.css
+    colorBackground: "oklch(0.962 0.006 85)",
+    colorForeground: "oklch(0.155 0 0)",
+    colorPrimary: "oklch(0.155 0 0)",
+    colorCanvas: "oklch(0.914 0.009 85)",
+    colorBorder: "oklch(0.874 0.009 85)",
+    // Tipografia — Outfit (display) + Figtree (sans)
+    fontDisplay: "Outfit",
+    fontBody: "Figtree",
+    // Border radius mínimo — estilo editorial
+    borderRadius: "none",
+  },
+  order: [],
+  sections: [],
 };

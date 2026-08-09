@@ -1,5 +1,6 @@
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 import { Template01Store } from "./templates/template-01-store";
+import { Template02Store } from "./templates/template-02-store";
 
 interface Props {
   theme: ThemeConfig;
@@ -8,14 +9,28 @@ interface Props {
 }
 
 /**
- * ThemeRenderer — seleciona e renderiza o template correto.
- * Atualmente suporta: Template 01 ("Atelier Nove").
- * Novos templates serão adicionados aqui conforme forem integrados.
+ * ThemeRenderer — seleciona e renderiza o template correto com base em
+ * theme.settings.templateId. Padrão: "template-02" (Atelie Minimalist).
+ *
+ * Templates disponíveis:
+ *   - "template-01" → Atelier Nove   (Cormorant Garamond + Jost, paleta off-white)
+ *   - "template-02" → Atelie Minimalist (Outfit + Figtree, editorial ultralimpo)
  */
 export function ThemeRenderer({ theme, highlightId, onSectionClick }: Props) {
-  // Futuramente: switch(theme.settings.templateId) para múltiplos templates
+  const templateId = theme.settings.templateId ?? "template-02";
+
+  if (templateId === "template-01") {
+    return (
+      <Template01Store
+        theme={theme}
+        highlightId={highlightId}
+        onSectionClick={onSectionClick}
+      />
+    );
+  }
+
   return (
-    <Template01Store
+    <Template02Store
       theme={theme}
       highlightId={highlightId}
       onSectionClick={onSectionClick}
