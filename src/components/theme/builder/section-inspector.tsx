@@ -2,6 +2,7 @@ import { useBuilder } from "@/lib/theme-engine/context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Plus, Trash2 } from "lucide-react";
 import { ImageUploadField } from "./image-upload-field";
 import type {
   HeroSettings,
@@ -282,13 +283,37 @@ function FeaturesInspector({
     patch({ items });
   };
 
+  const deleteItem = (idx: number) => {
+    patch({ items: settings.items.filter((_, i) => i !== idx) });
+  };
+
+  const addItem = () => {
+    patch({
+      items: [
+        ...settings.items,
+        { title: "Novo benefício", description: "Descrição do benefício." },
+      ],
+    });
+  };
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {settings.items.map((item, i) => (
         <div key={i} className="space-y-2 rounded-xl border border-border p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Item {i + 1}
-          </p>
+          {/* Header do item com botão de excluir */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Item {i + 1}
+            </p>
+            <button
+              type="button"
+              onClick={() => deleteItem(i)}
+              title="Excluir item"
+              className="grid h-6 w-6 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <Field label="Título">
             <Input value={item.title} onChange={(e) => update(i, "title", e.target.value)} className="h-9" />
           </Field>
@@ -300,6 +325,16 @@ function FeaturesInspector({
           />
         </div>
       ))}
+
+      {/* Botão para adicionar novo item */}
+      <button
+        type="button"
+        onClick={addItem}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Adicionar item
+      </button>
     </div>
   );
 }
@@ -353,5 +388,21 @@ export function SectionInspector({ section }: { section: Section }) {
     }
   })();
 
-  return <div className="mt-1">{inner}</div>;
+  return (
+    <div className="mt-1 space-y-4">
+      {/* ── Botão de excluir a seção inteira ─────────────────────────────────── */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "DELETE_SECTION", id: section.id })}
+          className="flex items-center gap-1.5 rounded-xl border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Excluir seção
+        </button>
+      </div>
+
+      {inner}
+    </div>
+  );
 }

@@ -5,8 +5,10 @@ import {
   ExternalLink,
   Monitor,
   Paintbrush,
+  Redo2,
   RotateCcw,
   Smartphone,
+  Undo2,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -26,6 +28,8 @@ function BuilderInner() {
     activeTab,
     previewMode,
     isDirty,
+    canUndo,
+    canRedo,
     dispatch,
   } = useBuilder();
 
@@ -85,6 +89,26 @@ function BuilderInner() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* ── Undo / Redo ─────────────────────────────────────────────── */}
+          <div className="flex items-center gap-0.5 rounded-xl border border-border bg-secondary/40 p-1">
+            <button
+              onClick={() => dispatch({ type: "UNDO" })}
+              disabled={!canUndo}
+              title="Desfazer (Ctrl+Z)"
+              className="grid h-7 w-7 place-items-center rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground hover:enabled:bg-background hover:enabled:text-foreground hover:enabled:shadow-sm"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => dispatch({ type: "REDO" })}
+              disabled={!canRedo}
+              title="Refazer (Ctrl+Y)"
+              className="grid h-7 w-7 place-items-center rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground hover:enabled:bg-background hover:enabled:text-foreground hover:enabled:shadow-sm"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
           {/* "Ver ao vivo" — opens preview in new tab */}
           <Button
             variant="outline"
@@ -171,7 +195,7 @@ function BuilderInner() {
 
         </aside>
 
-        {/* ── Preview Area ─────────────────────────────────────────────────── */}
+        {/* ── Preview Area ─────────────────────────────────────────────── */}
         {isMobile ? (
           /* MOBILE: centralised "phone" frame */
           <main className="flex flex-1 flex-col items-center justify-start overflow-auto bg-[#1c1c1e] py-8">

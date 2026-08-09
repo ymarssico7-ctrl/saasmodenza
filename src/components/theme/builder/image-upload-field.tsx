@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Upload } from "lucide-react";
+import { Trash2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -92,6 +92,11 @@ export function ImageUploadField({
     }
   };
 
+  const handleRemove = () => {
+    onChange("");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -174,15 +179,24 @@ export function ImageUploadField({
         <p className="text-[10px] leading-relaxed text-muted-foreground">{hint}</p>
       )}
 
-      {/* ── Preview ──────────────────────────────────────────────────────────── */}
+      {/* ── Preview com botão de remover ─────────────────────────────────────── */}
       {value && (
-        <div className="overflow-hidden rounded-xl border border-border">
+        <div className="relative overflow-hidden rounded-xl border border-border">
           <img
             src={value}
             alt="Preview"
             className="w-full object-cover"
             style={{ height: previewHeight }}
           />
+          {/* Botão de excluir imagem sobreposto no canto superior direito */}
+          <button
+            type="button"
+            onClick={handleRemove}
+            title="Remover imagem"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-destructive hover:scale-110"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
     </div>

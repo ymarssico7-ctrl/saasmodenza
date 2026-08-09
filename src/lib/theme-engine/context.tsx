@@ -12,6 +12,8 @@ import { nanoid } from "./nanoid";
 // ── State ─────────────────────────────────────────────────────────────────────
 export interface BuilderState {
   theme: ThemeConfig;
+  past: ThemeConfig[];    // histórico para UNDO
+  future: ThemeConfig[];  // histórico para REDO
   selectedSectionId: string | null;
   activeTab: "sections" | "global";
   previewMode: "desktop" | "mobile";
@@ -29,8 +31,27 @@ type Action =
   | { type: "TOGGLE_VISIBLE"; id: string }
   | { type: "DELETE_SECTION"; id: string }
   | { type: "ADD_SECTION"; sectionType: SectionType }
+  | { type: "UNDO" }
+  | { type: "REDO" }
   | { type: "SAVE" }
   | { type: "RESET" };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+
+/** Aplica uma mudança ao estado guardando o snapshot atual em `past`. */
+function withHistory(
+  state: BuilderState,
+  newTheme: ThemeConfig,
+): BuilderState {
+  return {
+    ...state,
+    past: [...state.past.slice(-MAX_HISTORY), state.theme],
+    future: [],
+    theme: newTheme,
+    isDirty: true,
+  };
+}
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
 function reducer(state: BuilderState, action: Action): BuilderState {
@@ -49,14 +70,10 @@ function reducer(state: BuilderState, action: Action): BuilderState {
       };
 
     case "UPDATE_SETTINGS":
-      return {
-        ...state,
-        isDirty: true,
-        theme: {
-          ...state.theme,
-          settings: { ...state.theme.settings, ...action.patch },
-        },
-      };
+      return withHistory(state, {
+        ...state.theme,
+        settings: { ...state.theme.settings, ...action.patch },
+      });
 
     case "UPDATE_SECTION": {
       const sections = state.theme.sections.map((s) => {
@@ -66,21 +83,17 @@ function reducer(state: BuilderState, action: Action): BuilderState {
           settings: { ...s.settings, ...action.patch },
         } as Section;
       });
-      return { ...state, isDirty: true, theme: { ...state.theme, sections } };
+      return withHistory(state, { ...state.theme, sections });
     }
 
     case "REORDER":
-      return {
-        ...state,
-        isDirty: true,
-        theme: { ...state.theme, order: action.order },
-      };
+      return withHistory(state, { ...state.theme, order: action.order });
 
     case "TOGGLE_VISIBLE": {
       const sections = state.theme.sections.map((s) =>
         s.id === action.id ? { ...s, visible: !s.visible } : s,
       );
-      return { ...state, isDirty: true, theme: { ...state.theme, sections } };
+      return withHistory(state, { ...state.theme, sections });
     }
 
     case "DELETE_SECTION": {
@@ -91,10 +104,8 @@ function reducer(state: BuilderState, action: Action): BuilderState {
           ? null
           : state.selectedSectionId;
       return {
-        ...state,
-        isDirty: true,
+        ...withHistory(state, { ...state.theme, sections, order }),
         selectedSectionId,
-        theme: { ...state.theme, sections, order },
       };
     }
 
@@ -102,15 +113,40 @@ function reducer(state: BuilderState, action: Action): BuilderState {
       const meta = SECTION_META.find((m) => m.type === action.sectionType);
       if (!meta) return state;
       const newSection = createDefaultSection(action.sectionType);
+      const newTheme: ThemeConfig = {
+        ...state.theme,
+        sections: [...state.theme.sections, newSection],
+        order: [...state.theme.order, newSection.id],
+      };
+      return {
+        ...withHistory(state, newTheme),
+        selectedSectionId: newSection.id,
+      };
+    }
+
+    case "UNDO": {
+      if (state.past.length === 0) return state;
+      const previous = state.past[state.past.length - 1]!;
+      const newPast = state.past.slice(0, -1);
       return {
         ...state,
+        theme: previous,
+        past: newPast,
+        future: [state.theme, ...state.future.slice(0, MAX_HISTORY - 1)],
+        isDirty: newPast.length > 0 || state.isDirty,
+      };
+    }
+
+    case "REDO": {
+      if (state.future.length === 0) return state;
+      const next = state.future[0]!;
+      const newFuture = state.future.slice(1);
+      return {
+        ...state,
+        theme: next,
+        past: [...state.past.slice(-MAX_HISTORY), state.theme],
+        future: newFuture,
         isDirty: true,
-        selectedSectionId: newSection.id,
-        theme: {
-          ...state.theme,
-          sections: [...state.theme.sections, newSection],
-          order: [...state.theme.order, newSection.id],
-        },
       };
     }
 
@@ -203,6 +239,8 @@ function createDefaultSection(type: SectionType): Section {
 // ── Context ───────────────────────────────────────────────────────────────────
 const initialState: BuilderState = {
   theme: loadTheme(),
+  past: [],
+  future: [],
   selectedSectionId: null,
   activeTab: "sections",
   previewMode: "desktop",
@@ -212,6 +250,8 @@ const initialState: BuilderState = {
 type ContextValue = BuilderState & {
   dispatch: React.Dispatch<Action>;
   selectedSection: Section | null;
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 const BuilderContext = createContext<ContextValue | null>(null);
@@ -222,8 +262,11 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   const selectedSection =
     state.theme.sections.find((s) => s.id === state.selectedSectionId) ?? null;
 
+  const canUndo = state.past.length > 0;
+  const canRedo = state.future.length > 0;
+
   return (
-    <BuilderContext.Provider value={{ ...state, dispatch, selectedSection }}>
+    <BuilderContext.Provider value={{ ...state, dispatch, selectedSection, canUndo, canRedo }}>
       {children}
     </BuilderContext.Provider>
   );
