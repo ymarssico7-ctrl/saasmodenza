@@ -64,18 +64,21 @@ function PreviewFramePage() {
   };
 
   return (
-    // Remove estilos do admin (margin, padding, scrollbar do body)
+    // Remove estilos do admin. overflowX vai no html/body para não quebrar position:sticky.
     <div
       style={{
         margin: 0,
         padding: 0,
         minHeight: "100vh",
-        overflowX: "hidden",
       }}
     >
       <style>{`
-        html, body { margin: 0 !important; padding: 0 !important; }
-        /* Oculta scrollbar nativa do iframe para visual limpo */
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow-x: hidden; /* bloqueia scroll horizontal sem afetar sticky */
+        }
+        /* Scrollbar fina para visual limpo no mobile preview */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
