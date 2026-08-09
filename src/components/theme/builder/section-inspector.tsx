@@ -150,7 +150,7 @@ function HeroInspector({
           max={90}
           step={5}
           value={[settings.overlayOpacity]}
-          onValueChange={([v]) => patch({ overlayOpacity: v })}
+          onValueChange={(vals) => patch({ overlayOpacity: vals[0] ?? 0 })}
         />
       </Field>
     </div>

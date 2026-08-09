@@ -320,7 +320,7 @@ function AnnouncementBar({ text }: { text: string }) {
 }
 
 // ── Navbar (idêntico ao navbar.tsx original) ──────────────────────────────────
-function Navbar({ storeName }: { storeName: string }) {
+function Navbar({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   const { count, open } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -364,7 +364,11 @@ function Navbar({ storeName }: { storeName: string }) {
           href="#"
           className="justify-self-center font-display text-lg font-semibold uppercase tracking-[0.42em] text-foreground sm:text-xl"
         >
-          {storeName}
+          {logoUrl ? (
+            <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain" />
+          ) : (
+            storeName
+          )}
         </a>
 
         <div className="flex items-center justify-end gap-4 sm:gap-5">
@@ -826,14 +830,12 @@ export function Template02Store({ theme }: Template02StoreProps = {}) {
 
   // Injeta fonte customizada do Engine (caso o usuário troque no painel)
   useEffect(() => {
-    if (settings?.fontDisplay && FONT_URLS[settings.fontDisplay]) {
-      const url = FONT_URLS[settings.fontDisplay];
-      if (!document.querySelector(`link[href="${url}"]`)) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = url;
-        document.head.appendChild(link);
-      }
+    const url = settings?.fontDisplay ? FONT_URLS[settings.fontDisplay] : undefined;
+    if (url && !document.querySelector(`link[href="${url}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = url;
+      document.head.appendChild(link);
     }
   }, [settings?.fontDisplay]);
 
@@ -872,8 +874,16 @@ export function Template02Store({ theme }: Template02StoreProps = {}) {
   const [sortBy, setSortBy] = useState("destaque");
 
   const storeName = settings?.storeName || "Atelie";
+  const logoUrl = settings?.logoUrl;
   const bannerText = settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · Trocas em 30 dias";
   const showBanner = settings?.freeShippingBannerEnabled !== false;
+
+  // ── Extrai dados das seções do Engine ──────────────────────────────────────
+  const sections = theme?.sections ?? [];
+  const heroSec = sections.find((s) => s.type === "hero") as (typeof sections[0] & { type: "hero" }) | undefined;
+  const gridSec = sections.find((s) => s.type === "product_grid") as (typeof sections[0] & { type: "product_grid" }) | undefined;
+  const splitSec = sections.find((s) => s.type === "image_text_split") as (typeof sections[0] & { type: "image_text_split" }) | undefined;
+  const featuresSec = sections.find((s) => s.type === "features") as (typeof sections[0] & { type: "features" }) | undefined;
 
   const categorias = [
     { value: "todos", label: "Todos" },
@@ -902,43 +912,49 @@ export function Template02Store({ theme }: Template02StoreProps = {}) {
       {/* .t02-theme isola os tokens de cor deste template do painel admin */}
       <div className="t02-theme min-h-screen bg-background text-foreground" style={themeVars}>
         {showBanner && <AnnouncementBar text={bannerText} />}
-        <Navbar storeName={storeName} />
+        <Navbar storeName={storeName} {...(logoUrl ? { logoUrl } : {})} />
         <CartDrawer />
         {quickAdd && (
           <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />
         )}
 
         <main>
-          {/* ── HERO (idêntico ao index.tsx lines 43-71) ── */}
-          <section className="relative">
-            <img
-              src={heroImg}
-              alt="Modelo com casaco de alfaiataria cru em galeria minimalista"
-              width={1920}
-              height={1200}
-              className="h-[78vh] min-h-[520px] w-full object-cover"
-            />
-            <div className="absolute inset-0 flex items-end">
-              <div className="mx-auto w-full max-w-[1500px] px-5 pb-14 lg:px-10 lg:pb-20">
-                <div className="max-w-xl">
-                  <p className="font-display text-[11px] uppercase tracking-[0.28em] text-foreground/70">
-                    Coleção Inverno 26
-                  </p>
-                  <h1 className="mt-5 font-display text-4xl font-medium leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl lg:text-7xl">
-                    Silêncio,
-                    <br />
-                    estrutura, tempo.
-                  </h1>
-                  <a
-                    href="#vitrine"
-                    className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60"
-                  >
-                    Ver a coleção
-                  </a>
+          {/* ── HERO — vinculado ao ThemeEngine ── */}
+          {(!heroSec || heroSec.visible !== false) && (
+            <section className="relative">
+              <img
+                src={heroSec?.settings?.imageUrl || heroImg}
+                alt={heroSec?.settings?.imageAlt || "Modelo com casaco de alfaiataria cru em galeria minimalista"}
+                width={1920}
+                height={1200}
+                style={heroSec?.settings?.imagePosition ? { objectPosition: heroSec.settings.imagePosition } : undefined}
+                className="h-[78vh] min-h-[520px] w-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-end">
+                <div className="mx-auto w-full max-w-[1500px] px-5 pb-14 lg:px-10 lg:pb-20">
+                  <div className="max-w-xl">
+                    <p className="font-display text-[11px] uppercase tracking-[0.28em] text-foreground/70">
+                      {heroSec?.settings?.subheading || "Coleção Inverno 26"}
+                    </p>
+                    <h1 className="mt-5 font-display text-4xl font-medium leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl lg:text-7xl">
+                      {heroSec?.settings?.heading
+                        ? heroSec.settings.heading.split("\n").map((line, i, arr) => (
+                            <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                          ))
+                        : (<>Silêncio,<br />estrutura, tempo.</>)
+                      }
+                    </h1>
+                    <a
+                      href="#vitrine"
+                      className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60"
+                    >
+                      {heroSec?.settings?.buttonText || "Ver a coleção"}
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* ── CATEGORIAS (idêntico ao index.tsx lines 73-96) ── */}
           <section className="mx-auto max-w-[1500px] px-5 py-16 lg:px-10 lg:py-24">
@@ -971,33 +987,45 @@ export function Template02Store({ theme }: Template02StoreProps = {}) {
             </div>
           </section>
 
-          {/* ── NOVIDADES (idêntico ao index.tsx lines 98-115) ── */}
-          <section className="mx-auto max-w-[1500px] px-5 pb-16 lg:px-10 lg:pb-24">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 border-b border-border pb-5">
-              <h2 className="min-w-0 font-display text-2xl font-medium tracking-[-0.02em] text-foreground sm:text-3xl">
-                Novidades
-              </h2>
-              <button
-                type="button"
-                onClick={() => setActiveCategory("todos")}
-                className="shrink-0 font-display text-[11px] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Ver tudo
-              </button>
-            </div>
-            <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-4 lg:gap-x-6">
-              {novidades.map((p) => (
-                <ProductCard key={p.slug} product={p} onQuickAdd={setQuickAdd} />
-              ))}
-            </div>
-          </section>
+          {/* ── NOVIDADES — vinculado ao ThemeEngine ── */}
+          {(!gridSec || gridSec.visible !== false) && (
+            <section className="mx-auto max-w-[1500px] px-5 pb-16 lg:px-10 lg:pb-24">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 border-b border-border pb-5">
+                <div>
+                  {gridSec?.settings?.kicker && (
+                    <p className="font-display text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-1">
+                      {gridSec.settings.kicker}
+                    </p>
+                  )}
+                  <h2 className="min-w-0 font-display text-2xl font-medium tracking-[-0.02em] text-foreground sm:text-3xl">
+                    {gridSec?.settings?.title || "Novidades"}
+                  </h2>
+                </div>
+                {gridSec?.settings?.showViewAll !== false && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategory("todos")}
+                    className="shrink-0 font-display text-[11px] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Ver tudo
+                  </button>
+                )}
+              </div>
+              <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-4 lg:gap-x-6">
+                {novidades.slice(0, gridSec?.settings?.count ?? 4).map((p) => (
+                  <ProductCard key={p.slug} product={p} onQuickAdd={setQuickAdd} />
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* ── LOOKBOOK SPLIT (idêntico ao index.tsx lines 117-147) ── */}
+          {/* ── LOOKBOOK SPLIT — vinculado ao ThemeEngine ── */}
+          {(!splitSec || splitSec.visible !== false) && (
           <section className="border-y border-border bg-secondary/50">
             <div className="mx-auto grid max-w-[1500px] items-center gap-10 px-5 py-16 lg:grid-cols-2 lg:gap-20 lg:px-10 lg:py-24">
               <img
-                src={lookbookImg}
-                alt="Dois modelos com looks em preto e creme sentados em banco de pedra"
+                src={splitSec?.settings?.imageUrl || lookbookImg}
+                alt={splitSec?.settings?.imageAlt || "Dois modelos com looks em preto e creme sentados em banco de pedra"}
                 width={1408}
                 height={1600}
                 loading="lazy"
@@ -1005,25 +1033,24 @@ export function Template02Store({ theme }: Template02StoreProps = {}) {
               />
               <div className="max-w-md">
                 <p className="font-display text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
-                  Lookbook
+                  {splitSec?.settings?.kicker || "Lookbook"}
                 </p>
                 <h2 className="mt-5 font-display text-3xl font-medium leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
-                  Um guarda-roupa que não pede licença.
+                  {splitSec?.settings?.heading || "Um guarda-roupa que não pede licença."}
                 </h2>
                 <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-                  Modelagens amplas, tecidos naturais e uma paleta reduzida ao
-                  essencial. Cada peça é produzida em lotes pequenos, com
-                  acabamento feito à mão no nosso ateliê em São Paulo.
+                  {splitSec?.settings?.body || "Modelagens amplas, tecidos naturais e uma paleta reduzida ao essencial. Cada peça é produzida em lotes pequenos, com acabamento feito à mão no nosso ateliê em São Paulo."}
                 </p>
                 <a
                   href="#"
                   className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60"
                 >
-                  Conhecer o ateliê
+                  {splitSec?.settings?.buttonText || "Conhecer o ateliê"}
                 </a>
               </div>
             </div>
           </section>
+          )}
 
           {/* ── VITRINE COMPLETA (idêntica ao loja.tsx) ── */}
           <section id="vitrine" className="mx-auto max-w-[1500px] px-5 py-12 lg:px-10 lg:py-16">
@@ -1118,25 +1145,27 @@ export function Template02Store({ theme }: Template02StoreProps = {}) {
             </div>
           </section>
 
-          {/* ── FEATURES (idêntico ao index.tsx lines 149-175) ── */}
+          {/* ── FEATURES — vinculado ao ThemeEngine ── */}
+          {(!featuresSec || featuresSec.visible !== false) && (
           <section className="mx-auto max-w-[1500px] px-5 py-16 lg:px-10 lg:py-20">
             <div className="grid gap-10 sm:grid-cols-3">
-              {[
-                { title: "Trocas em 30 dias", text: "Primeira troca sem custo em todo o Brasil." },
-                { title: "Envio em 24h", text: "Pedidos até 14h saem no mesmo dia útil." },
-                { title: "Atendimento humano", text: "Consultoria de estilo por WhatsApp, de seg. a sáb." },
-              ].map((item) => (
+              {(featuresSec?.settings?.items ?? [
+                { title: "Trocas em 30 dias", description: "Primeira troca sem custo em todo o Brasil." },
+                { title: "Envio em 24h", description: "Pedidos até 14h saem no mesmo dia útil." },
+                { title: "Atendimento humano", description: "Consultoria de estilo por WhatsApp, de seg. a sáb." },
+              ]).map((item) => (
                 <div key={item.title}>
                   <h2 className="font-display text-[11px] uppercase tracking-[0.2em] text-foreground">
                     {item.title}
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {item.text}
+                    {item.description}
                   </p>
                 </div>
               ))}
             </div>
           </section>
+          )}
         </main>
 
         <Footer storeName={storeName} />

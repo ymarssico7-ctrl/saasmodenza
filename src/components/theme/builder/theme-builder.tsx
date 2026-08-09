@@ -186,7 +186,7 @@ function BuilderInner() {
               <div className="mt-8 overflow-y-auto bg-white" style={{ minHeight: 660 }}>
                 <ThemeRenderer
                   theme={theme}
-                  highlightId={selectedSection?.id}
+                  highlightId={selectedSection?.id ?? null}
                   onSectionClick={(id) =>
                     dispatch({ type: "SELECT_SECTION", id })
                   }
@@ -199,7 +199,7 @@ function BuilderInner() {
           <main className="relative flex-1 overflow-auto bg-white">
             <ThemeRenderer
               theme={theme}
-              highlightId={selectedSection?.id}
+              highlightId={selectedSection?.id ?? null}
               onSectionClick={(id) =>
                 dispatch({ type: "SELECT_SECTION", id })
               }

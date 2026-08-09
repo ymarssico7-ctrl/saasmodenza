@@ -15,6 +15,13 @@ export function loadTheme(): ThemeConfig {
 
 export function saveTheme(theme: ThemeConfig): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(theme));
+  // Notifica outras abas e componentes que escutam o evento (ex: /loja/preview)
+  try {
+    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+    window.dispatchEvent(new CustomEvent("theme-changed", { detail: theme }));
+  } catch {
+    // SSR / Node: ignorar
+  }
 }
 
 // ── Font Google URLs ───────────────────────────────────────────────────────────
@@ -263,7 +270,7 @@ export const TEMPLATE_01_THEME: ThemeConfig = {
     colorBorder: "oklch(0.9 0.012 82)",
     // Tipografia — Cormorant Garamond (serif) + Jost (sans)
     fontDisplay: "Cormorant Garamond",
-    fontBody: "Jost",
+    fontBody: "Manrope",
     // Border radius mínimo — estilo editorial
     borderRadius: "none",
   },

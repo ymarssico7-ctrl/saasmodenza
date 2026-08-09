@@ -114,6 +114,37 @@ export function GlobalSettings() {
         <Field label="Tagline">
           <Input value={s.tagline} onChange={(e) => patch({ tagline: e.target.value })} className="h-9" />
         </Field>
+
+        {/* Logo */}
+        <Field label="Logotipo (URL)">
+          <Input
+            value={s.logoUrl ?? ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val) {
+                patch({ logoUrl: val });
+              } else {
+                // Remove logoUrl sem passar undefined explícito
+                const { logoUrl: _removed, ...rest } = s;
+                dispatch({ type: "UPDATE_SETTINGS", patch: rest });
+              }
+            }}
+            placeholder="https://sua-loja.com/logo.png"
+            className="h-9 text-sm"
+          />
+          {s.logoUrl && (
+            <div className="mt-2 flex items-center gap-3 rounded-xl border border-border bg-secondary p-2">
+              <img
+                src={s.logoUrl}
+                alt="Preview do logotipo"
+                className="h-8 max-w-[120px] object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <span className="text-xs text-muted-foreground">Preview do logo</span>
+            </div>
+          )}
+        </Field>
+
         <div className="space-y-2 rounded-xl border border-border p-3">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -23,8 +23,8 @@ export function ThemeRenderer({ theme, highlightId, onSectionClick }: Props) {
     return (
       <Template01Store
         theme={theme}
-        highlightId={highlightId}
-        onSectionClick={onSectionClick}
+        highlightId={highlightId ?? null}
+        {...(onSectionClick ? { onSectionClick } : {})}
       />
     );
   }
@@ -32,8 +32,8 @@ export function ThemeRenderer({ theme, highlightId, onSectionClick }: Props) {
   return (
     <Template02Store
       theme={theme}
-      highlightId={highlightId}
-      onSectionClick={onSectionClick}
+      highlightId={highlightId ?? null}
+      {...(onSectionClick ? { onSectionClick } : {})}
     />
   );
 }

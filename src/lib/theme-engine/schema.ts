@@ -22,6 +22,8 @@ export interface ThemeSettings {
   templateId?: "template-01" | "template-02";
   storeName: string;
   tagline: string;
+  /** URL do logotipo da loja. Se vazio, exibe storeName como texto. */
+  logoUrl?: string;
   freeShippingBanner: string;
   freeShippingBannerEnabled: boolean;
   // Colors

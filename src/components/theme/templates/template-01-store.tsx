@@ -316,14 +316,12 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
 
   // Injeta fonte customizada do Engine (caso o usuário troque no painel)
   useEffect(() => {
-    if (settings?.fontDisplay && FONT_URLS[settings.fontDisplay]) {
-      const url = FONT_URLS[settings.fontDisplay];
-      if (!document.querySelector(`link[href="${url}"]`)) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = url;
-        document.head.appendChild(link);
-      }
+    const url = settings?.fontDisplay ? FONT_URLS[settings.fontDisplay] : undefined;
+    if (url && !document.querySelector(`link[href="${url}"]`)) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = url;
+      document.head.appendChild(link);
     }
   }, [settings?.fontDisplay]);
 
@@ -411,8 +409,15 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
 
   // Nome da loja e textos do Theme Engine (com fallback para os originais)
   const storeName = settings?.storeName || "Nove";
+  const logoUrl = settings?.logoUrl;
   const freeShippingText =
     settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";
+
+  // ── Extrai dados das seções do Engine ──────────────────────────────────────
+  const sections = theme?.sections ?? [];
+  const heroSec = sections.find((s) => s.type === "hero") as (typeof sections[0] & { type: "hero" }) | undefined;
+  const featuresSec = sections.find((s) => s.type === "features") as (typeof sections[0] & { type: "features" }) | undefined;
+  const splitSec = sections.find((s) => s.type === "image_text_split") as (typeof sections[0] & { type: "image_text_split" }) | undefined;
 
   return (
     // .t01-theme isola o design system deste template do painel admin
@@ -500,7 +505,11 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
           </button>
 
           <a href="#" className="font-serif text-2xl tracking-[0.3em] uppercase lg:text-center">
-            {storeName}
+            {logoUrl ? (
+              <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain" />
+            ) : (
+              storeName
+            )}
           </a>
 
           <div className="flex flex-1 items-center justify-end gap-5">
@@ -530,13 +539,15 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
       </header>
 
       <main>
-        {/* ── HERO (idêntico ao original lines 231-272) ── */}
+        {/* ── HERO — vinculado ao ThemeEngine ── */}
+        {(!heroSec || heroSec.visible !== false) && (
         <section className="relative">
           <img
-            src={heroImg}
-            alt="Modelo com sobretudo de lã marfim em galeria minimalista"
+            src={heroSec?.settings?.imageUrl || heroImg}
+            alt={heroSec?.settings?.imageAlt || "Modelo com sobretudo de lã marfim em galeria minimalista"}
             width={1920}
             height={1280}
+            style={heroSec?.settings?.imagePosition ? { objectPosition: heroSec.settings.imagePosition } : undefined}
             className="h-[78vh] min-h-[520px] w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/25 to-transparent" />
@@ -544,23 +555,22 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
             <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
               <div className="max-w-xl">
                 <p className="text-[11px] uppercase tracking-[0.32em] text-foreground/70">
-                  Inverno 26
+                  {heroSec?.settings?.subheading || "Inverno 26"}
                 </p>
                 <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-foreground sm:text-6xl lg:text-7xl">
-                  A elegância que
-                  <br />
-                  não pede licença
+                  {heroSec?.settings?.heading
+                    ? heroSec.settings.heading.split("\n").map((line, i, arr) => (
+                        <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                      ))
+                    : (<>A elegância que<br />não pede licença</>)
+                  }
                 </h1>
-                <p className="mt-6 max-w-md text-sm leading-relaxed text-foreground/70">
-                  Alfaiataria precisa, malhas de fio nobre e couro curtido lentamente. Edições
-                  limitadas, feitas para durar décadas.
-                </p>
                 <div className="mt-10 flex flex-wrap gap-4">
                   <a
                     href="#vitrine"
                     className="group inline-flex items-center gap-3 bg-foreground px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-all duration-500 hover:bg-foreground/85"
                   >
-                    Ver a coleção
+                    {heroSec?.settings?.buttonText || "Ver a coleção"}
                     <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
                   </a>
                   <a
@@ -574,16 +584,20 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
             </div>
           </div>
         </section>
+        )}
 
-        {/* ── CONFIANÇA (idêntico ao original lines 274-289) ── */}
+        {/* ── DIFERENCIAIS — vinculado ao ThemeEngine ── */}
         <section aria-label="Vantagens" className="border-b border-border">
           <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px px-6 py-10 lg:grid-cols-4 lg:px-10">
-            {[
-              ["Frete cortesia", "Acima de R$ 800 para todo o Brasil"],
-              ["Troca simples", "30 dias, sem custo e sem burocracia"],
-              ["Pagamento seguro", "Até 6x sem juros ou Pix com 5% off"],
-              ["Atendimento pessoal", "Consultoria de estilo por WhatsApp"],
-            ].map(([titulo, texto]) => (
+            {(featuresSec?.settings?.items
+              ? featuresSec.settings.items.map((item) => ({ titulo: item.title, texto: item.description }))
+              : [
+                  { titulo: "Frete cortêsia", texto: "Acima de R$ 800 para todo o Brasil" },
+                  { titulo: "Troca simples", texto: "30 dias, sem custo e sem burocracia" },
+                  { titulo: "Pagamento seguro", texto: "Até 6x sem juros ou Pix com 5% off" },
+                  { titulo: "Atendimento pessoal", texto: "Consultoria de estilo por WhatsApp" },
+                ]
+            ).map(({ titulo, texto }) => (
               <div key={titulo} className="px-2 py-4">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-foreground">{titulo}</p>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{texto}</p>
