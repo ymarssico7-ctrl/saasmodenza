@@ -38,6 +38,7 @@ import { Route as AuthenticatedLojaPedidosRouteImport } from './routes/_authenti
 import { Route as AuthenticatedLojaPersonalizarRouteImport } from './routes/_authenticated/loja.personalizar'
 import { Route as AuthenticatedLojaProdutosRouteImport } from './routes/_authenticated/loja.produtos'
 import { Route as AuthenticatedLojaRelatoriosRouteImport } from './routes/_authenticated/loja.relatorios'
+import { Route as AuthenticatedLojaTemplatesRouteImport } from './routes/_authenticated/loja.templates'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -193,6 +194,12 @@ const AuthenticatedLojaRelatoriosRoute =
     path: '/relatorios',
     getParentRoute: () => AuthenticatedLojaRoute,
   } as any)
+const AuthenticatedLojaTemplatesRoute =
+  AuthenticatedLojaTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedLojaRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
+  '/loja/templates': typeof AuthenticatedLojaTemplatesRoute
   '/loja/': typeof AuthenticatedLojaIndexRoute
 }
 export interface FileRoutesByTo {
@@ -251,6 +259,7 @@ export interface FileRoutesByTo {
   '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
+  '/loja/templates': typeof AuthenticatedLojaTemplatesRoute
   '/loja': typeof AuthenticatedLojaIndexRoute
 }
 export interface FileRoutesById {
@@ -283,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/_authenticated/loja/produtos': typeof AuthenticatedLojaProdutosRoute
   '/_authenticated/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
+  '/_authenticated/loja/templates': typeof AuthenticatedLojaTemplatesRoute
   '/_authenticated/loja/': typeof AuthenticatedLojaIndexRoute
 }
 export interface FileRouteTypes {
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/loja/personalizar'
     | '/loja/produtos'
     | '/loja/relatorios'
+    | '/loja/templates'
     | '/loja/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/loja/personalizar'
     | '/loja/produtos'
     | '/loja/relatorios'
+    | '/loja/templates'
     | '/loja'
   id:
     | '__root__'
@@ -375,6 +387,7 @@ export interface FileRouteTypes {
     | '/_authenticated/loja/personalizar'
     | '/_authenticated/loja/produtos'
     | '/_authenticated/loja/relatorios'
+    | '/_authenticated/loja/templates'
     | '/_authenticated/loja/'
   fileRoutesById: FileRoutesById
 }
@@ -592,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLojaRelatoriosRouteImport
       parentRoute: typeof AuthenticatedLojaRoute
     }
+    '/_authenticated/loja/templates': {
+      id: '/_authenticated/loja/templates'
+      path: '/templates'
+      fullPath: '/loja/templates'
+      preLoaderRoute: typeof AuthenticatedLojaTemplatesRouteImport
+      parentRoute: typeof AuthenticatedLojaRoute
+    }
   }
 }
 
@@ -606,6 +626,7 @@ interface AuthenticatedLojaRouteChildren {
   AuthenticatedLojaPersonalizarRoute: typeof AuthenticatedLojaPersonalizarRoute
   AuthenticatedLojaProdutosRoute: typeof AuthenticatedLojaProdutosRoute
   AuthenticatedLojaRelatoriosRoute: typeof AuthenticatedLojaRelatoriosRoute
+  AuthenticatedLojaTemplatesRoute: typeof AuthenticatedLojaTemplatesRoute
   AuthenticatedLojaIndexRoute: typeof AuthenticatedLojaIndexRoute
 }
 
@@ -620,6 +641,7 @@ const AuthenticatedLojaRouteChildren: AuthenticatedLojaRouteChildren = {
   AuthenticatedLojaPersonalizarRoute: AuthenticatedLojaPersonalizarRoute,
   AuthenticatedLojaProdutosRoute: AuthenticatedLojaProdutosRoute,
   AuthenticatedLojaRelatoriosRoute: AuthenticatedLojaRelatoriosRoute,
+  AuthenticatedLojaTemplatesRoute: AuthenticatedLojaTemplatesRoute,
   AuthenticatedLojaIndexRoute: AuthenticatedLojaIndexRoute,
 }
 
