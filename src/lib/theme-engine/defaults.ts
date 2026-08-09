@@ -10,7 +10,7 @@ export function loadTheme(): ThemeConfig {
   } catch {
     // ignore parse errors
   }
-  return ATELIER_MOD_THEME;
+  return TEMPLATE_01_THEME;
 }
 
 export function saveTheme(theme: ThemeConfig): void {
@@ -18,18 +18,19 @@ export function saveTheme(theme: ThemeConfig): void {
 }
 
 // ── Font Google URLs ───────────────────────────────────────────────────────────
-// Inclui as fontes originais do Atelier Mod (Outfit + Figtree) como primeira opção.
 export const FONT_URLS: Record<string, string> = {
-  // Fontes originais do template Atelier Mod
+  // Fontes do Template 01 (Atelier Nove)
+  "Cormorant Garamond":
+    "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap",
+  Jost:
+    "https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap",
+  // Fontes extras disponíveis para personalização
   Outfit:
     "https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap",
   Figtree:
     "https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap",
-  // Fontes extras disponíveis para personalização
   "Playfair Display":
     "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap",
-  "Cormorant Garamond":
-    "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&display=swap",
   Sora: "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap",
   "DM Serif Display":
     "https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap",
@@ -245,11 +246,34 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
   ],
 };
 
+// ── Template 01 — "Atelier Nove" ─────────────────────────────────────────────
+// FONTE DA VERDADE: c:\Users\yande\Downloads\Modaly 2.0\template 01\src\styles.css
+// REGRA: Todos os valores abaixo são LITERAIS do arquivo original acima.
+export const TEMPLATE_01_THEME: ThemeConfig = {
+  settings: {
+    storeName: "Nove",
+    tagline: "Moda atemporal em edições limitadas",
+    freeShippingBanner: "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias",
+    freeShippingBannerEnabled: true,
+    // Cores — idênticas ao :root do template 01/src/styles.css
+    colorBackground: "oklch(0.98 0.006 85)",
+    colorForeground: "oklch(0.28 0.008 60)",
+    colorPrimary: "oklch(0.28 0.008 60)",
+    colorCanvas: "oklch(0.945 0.012 82)",
+    colorBorder: "oklch(0.9 0.012 82)",
+    // Tipografia — Cormorant Garamond (serif) + Jost (sans)
+    fontDisplay: "Cormorant Garamond",
+    fontBody: "Jost",
+    // Border radius mínimo — estilo editorial
+    borderRadius: "none",
+  },
+  order: [],
+  sections: [],
+};
+
 // ── Border Radius Map ─────────────────────────────────────────────────────────
-// Mapeado para o --radius do template:
-//   none → 4px (quase quadrado, estilo editorial do Atelier Mod)
 export const RADIUS_MAP: Record<string, string> = {
-  none: "4px",
+  none: "2px",
   sm: "4px",
   md: "8px",
   lg: "16px",
