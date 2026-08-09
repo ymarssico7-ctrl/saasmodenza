@@ -170,16 +170,22 @@ function BuilderInner() {
 
       {/* ── Main Layout ─────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* ── Left Sidebar — collapses smoothly ─────────────────────────────── */}
+        {/*
+          Left Sidebar:
+          - Mobile mode + sidebar open → 50% da tela (Split View)
+          - Desktop mode + sidebar open → 320px fixo
+          - Sidebar fechada → 0px (colapsada)
+          Todas as transições são suaves via CSS transition.
+        */}
         <aside
           className="flex shrink-0 flex-col border-r border-border bg-card overflow-hidden"
           style={{
-            width: isSidebarOpen ? 320 : 0,
-            transition: "width 280ms cubic-bezier(0.4, 0, 0.2, 1)",
+            width: !isSidebarOpen ? 0 : isMobile ? "50%" : 320,
+            transition: "width 300ms cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          {/* Tabs */}
-          <div className="flex border-b border-border" style={{ minWidth: 320 }}>
+          {/* Tabs — minWidth garante que o conteúdo não quebre durante a animação */}
+          <div className="flex border-b border-border" style={{ minWidth: isMobile ? undefined : 320 }}>
             <button
               onClick={() => dispatch({ type: "SET_TAB", tab: "sections" })}
               className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
@@ -203,7 +209,7 @@ function BuilderInner() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3" style={{ minWidth: 320 }}>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
             {activeTab === "sections" && (
               <div className="space-y-4">
                 <SectionList />
