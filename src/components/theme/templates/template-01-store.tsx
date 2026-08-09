@@ -724,28 +724,33 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
         {/* ── DEPOIMENTOS (idêntico ao original lines 406-421) ── */}
         <section className="border-y border-border">
           <div className="mx-auto grid max-w-[1400px] gap-12 px-6 py-20 md:grid-cols-3 lg:px-10">
-            {[
-              [
-                ""O caimento é de outro nível. Comprei o casaco no inverno passado e continua impecável."",
-                "Marina L., São Paulo",
-              ],
-              [
-                ""Atendimento impecável, embalagem linda e entrega antes do prazo."",
-                "Rafael T., Curitiba",
-              ],
-              [
-                ""Poucas peças, todas certas. Meu guarda-roupa ficou mais leve e mais bonito."",
-                "Ana P., Belo Horizonte",
-              ],
-            ].map(([texto, autor]) => (
-              <figure key={autor}>
-                <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
-                <blockquote className="mt-5 font-serif text-xl leading-relaxed">{texto}</blockquote>
-                <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                  {autor}
-                </figcaption>
-              </figure>
-            ))}
+            <figure>
+              <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
+              <blockquote className="mt-5 font-serif text-xl leading-relaxed">
+                &ldquo;O caimento é de outro nível. Comprei o casaco no inverno passado e continua impecável.&rdquo;
+              </blockquote>
+              <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                Marina L., São Paulo
+              </figcaption>
+            </figure>
+            <figure>
+              <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
+              <blockquote className="mt-5 font-serif text-xl leading-relaxed">
+                &ldquo;Atendimento impecável, embalagem linda e entrega antes do prazo.&rdquo;
+              </blockquote>
+              <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                Rafael T., Curitiba
+              </figcaption>
+            </figure>
+            <figure>
+              <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
+              <blockquote className="mt-5 font-serif text-xl leading-relaxed">
+                &ldquo;Poucas peças, todas certas. Meu guarda-roupa ficou mais leve e mais bonito.&rdquo;
+              </blockquote>
+              <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                Ana P., Belo Horizonte
+              </figcaption>
+            </figure>
           </div>
         </section>
 
