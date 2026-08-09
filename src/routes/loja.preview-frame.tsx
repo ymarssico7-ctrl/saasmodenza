@@ -76,7 +76,7 @@ function PreviewFramePage() {
         html, body {
           margin: 0 !important;
           padding: 0 !important;
-          overflow-x: hidden; /* bloqueia scroll horizontal sem afetar sticky */
+          overflow-x: clip; /* clip (NÃO hidden) bloqueia scroll horizontal SEM criar scroll-container, preservando position:sticky */
         }
         /* Scrollbar fina para visual limpo no mobile preview */
         ::-webkit-scrollbar { width: 4px; }
