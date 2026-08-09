@@ -18,6 +18,7 @@ export interface BuilderState {
   activeTab: "sections" | "global";
   previewMode: "desktop" | "mobile";
   isDirty: boolean;
+  isSidebarOpen: boolean; // controla visibilidade do painel lateral de edição
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -34,7 +35,8 @@ type Action =
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "SAVE" }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "TOGGLE_SIDEBAR" };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MAX_HISTORY = 50;
@@ -61,6 +63,9 @@ function reducer(state: BuilderState, action: Action): BuilderState {
 
     case "SET_PREVIEW":
       return { ...state, previewMode: action.mode };
+
+    case "TOGGLE_SIDEBAR":
+      return { ...state, isSidebarOpen: !state.isSidebarOpen };
 
     case "SELECT_SECTION":
       return {
@@ -245,6 +250,7 @@ const initialState: BuilderState = {
   activeTab: "sections",
   previewMode: "desktop",
   isDirty: false,
+  isSidebarOpen: true,
 };
 
 type ContextValue = BuilderState & {

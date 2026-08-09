@@ -3,8 +3,12 @@ import {
   ArrowLeft,
   Check,
   ExternalLink,
+  Minus,
   Monitor,
   Paintbrush,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
   Redo2,
   RotateCcw,
   Smartphone,
@@ -31,6 +35,7 @@ function BuilderInner() {
     isDirty,
     canUndo,
     canRedo,
+    isSidebarOpen,
     dispatch,
   } = useBuilder();
 
@@ -52,6 +57,21 @@ function BuilderInner() {
           <Link to="/loja/configuracao">
             <ArrowLeft className="h-4 w-4" />
           </Link>
+        </Button>
+
+        {/* ── Sidebar toggle button ───────────────────────────────────────── */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+          title={isSidebarOpen ? "Ocultar painel (Ctrl+\\)" : "Mostrar painel (Ctrl+\\)"}
+          className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+        >
+          {isSidebarOpen ? (
+            <PanelLeftClose className="h-4 w-4" />
+          ) : (
+            <PanelLeftOpen className="h-4 w-4" />
+          )}
         </Button>
 
         <div className="min-w-0">
@@ -150,10 +170,16 @@ function BuilderInner() {
 
       {/* ── Main Layout ─────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="flex w-80 shrink-0 flex-col border-r border-border bg-card">
+        {/* ── Left Sidebar — collapses smoothly ─────────────────────────────── */}
+        <aside
+          className="flex shrink-0 flex-col border-r border-border bg-card overflow-hidden"
+          style={{
+            width: isSidebarOpen ? 320 : 0,
+            transition: "width 280ms cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
           {/* Tabs */}
-          <div className="flex border-b border-border">
+          <div className="flex border-b border-border" style={{ minWidth: 320 }}>
             <button
               onClick={() => dispatch({ type: "SET_TAB", tab: "sections" })}
               className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-wider transition-colors ${
@@ -177,7 +203,7 @@ function BuilderInner() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3" style={{ minWidth: 320 }}>
             {activeTab === "sections" && (
               <div className="space-y-4">
                 <SectionList />
@@ -193,7 +219,6 @@ function BuilderInner() {
             )}
             {activeTab === "global" && <GlobalSettings />}
           </div>
-
         </aside>
 
         {/* ── Preview Area ─────────────────────────────────────────────── */}
@@ -206,6 +231,8 @@ function BuilderInner() {
             onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
             onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
             onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+            onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+            isSidebarOpen={isSidebarOpen}
           />
         ) : (
           /* DESKTOP: full-bleed, no padding, true edge-to-edge */
