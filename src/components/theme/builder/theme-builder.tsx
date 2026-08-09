@@ -11,7 +11,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { BuilderProvider, useBuilder } from "@/lib/theme-engine/context";
 import { saveTheme } from "@/lib/theme-engine/defaults";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
@@ -127,7 +126,7 @@ function BuilderInner() {
       {/* ── Main Layout ─────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-card">
+        <aside className="flex w-80 shrink-0 flex-col border-r border-border bg-card">
           {/* Tabs */}
           <div className="flex border-b border-border">
             <button
@@ -153,24 +152,22 @@ function BuilderInner() {
             </button>
           </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-3 pr-4 overflow-x-hidden">
-              {activeTab === "sections" && (
-                <div className="space-y-4">
-                  <SectionList />
-                  {selectedSection && (
-                    <div className="rounded-2xl border border-border bg-background p-3">
-                      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                        Editar Seção
-                      </p>
-                      <SectionInspector section={selectedSection} />
-                    </div>
-                  )}
-                </div>
-              )}
-              {activeTab === "global" && <GlobalSettings />}
-            </div>
-          </ScrollArea>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+            {activeTab === "sections" && (
+              <div className="space-y-4">
+                <SectionList />
+                {selectedSection && (
+                  <div className="rounded-2xl border border-border bg-background p-3">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Editar Seção
+                    </p>
+                    <SectionInspector section={selectedSection} />
+                  </div>
+                )}
+              </div>
+            )}
+            {activeTab === "global" && <GlobalSettings />}
+          </div>
 
         </aside>
 
