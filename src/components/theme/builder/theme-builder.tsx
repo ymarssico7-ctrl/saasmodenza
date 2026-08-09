@@ -190,6 +190,12 @@ function BuilderInner() {
                   onSectionClick={(id) =>
                     dispatch({ type: "SELECT_SECTION", id })
                   }
+                  onToggleSection={(id) =>
+                    dispatch({ type: "TOGGLE_VISIBLE", id })
+                  }
+                  onDeleteSection={(id) =>
+                    dispatch({ type: "DELETE_SECTION", id })
+                  }
                 />
               </div>
             </div>
@@ -202,6 +208,12 @@ function BuilderInner() {
               highlightId={selectedSection?.id ?? null}
               onSectionClick={(id) =>
                 dispatch({ type: "SELECT_SECTION", id })
+              }
+              onToggleSection={(id) =>
+                dispatch({ type: "TOGGLE_VISIBLE", id })
+              }
+              onDeleteSection={(id) =>
+                dispatch({ type: "DELETE_SECTION", id })
               }
             />
           </main>

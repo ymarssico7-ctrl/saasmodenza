@@ -24,7 +24,7 @@ export function LojaBloqueadaScreen({ reason }: Props) {
           store_subscription_active: true,
           store_subscription_expires_at: subExpires.toISOString(),
           store_trial_accepted: true,
-        }).eq("id", uid);
+        } as any).eq("id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries

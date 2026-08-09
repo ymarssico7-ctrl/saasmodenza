@@ -25,7 +25,7 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
         const { error } = await supabase.from("profiles").update({
           store_subscription_active: true,
           store_subscription_expires_at: subExpires.toISOString(),
-        }).eq("id", uid);
+        } as any).eq("id", uid);
         if (error) throw new Error(error.message);
       }
 

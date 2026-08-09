@@ -6,6 +6,8 @@ interface Props {
   theme: ThemeConfig;
   highlightId?: string | null;
   onSectionClick?: (id: string) => void;
+  onToggleSection?: (id: string) => void;
+  onDeleteSection?: (id: string) => void;
 }
 
 /**
@@ -16,15 +18,27 @@ interface Props {
  *   - "template-01" → Atelier Nove   (Cormorant Garamond + Jost, paleta off-white)
  *   - "template-02" → Atelie Minimalist (Outfit + Figtree, editorial ultralimpo)
  */
-export function ThemeRenderer({ theme, highlightId, onSectionClick }: Props) {
+export function ThemeRenderer({
+  theme,
+  highlightId,
+  onSectionClick,
+  onToggleSection,
+  onDeleteSection,
+}: Props) {
   const templateId = theme.settings.templateId ?? "template-02";
+
+  const interactiveProps = {
+    ...(onSectionClick ? { onSectionClick } : {}),
+    ...(onToggleSection ? { onToggleSection } : {}),
+    ...(onDeleteSection ? { onDeleteSection } : {}),
+  };
 
   if (templateId === "template-01") {
     return (
       <Template01Store
         theme={theme}
         highlightId={highlightId ?? null}
-        {...(onSectionClick ? { onSectionClick } : {})}
+        {...interactiveProps}
       />
     );
   }
@@ -33,7 +47,7 @@ export function ThemeRenderer({ theme, highlightId, onSectionClick }: Props) {
     <Template02Store
       theme={theme}
       highlightId={highlightId ?? null}
-      {...(onSectionClick ? { onSectionClick } : {})}
+      {...interactiveProps}
     />
   );
 }

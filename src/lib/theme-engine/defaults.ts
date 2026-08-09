@@ -274,8 +274,36 @@ export const TEMPLATE_01_THEME: ThemeConfig = {
     // Border radius mínimo — estilo editorial
     borderRadius: "none",
   },
-  order: [],
-  sections: [],
+  order: ["t01-hero", "t01-features"],
+  sections: [
+    {
+      id: "t01-hero",
+      type: "hero",
+      visible: true,
+      settings: {
+        heading: "A elegância que\nnão pede licença",
+        subheading: "Inverno 26",
+        buttonText: "Ver a coleção",
+        imageUrl: "",
+        imageAlt: "Modelo com sobretudo de lã marfim em galeria minimalista",
+        imagePosition: "center",
+        overlayOpacity: 30,
+      },
+    },
+    {
+      id: "t01-features",
+      type: "features",
+      visible: true,
+      settings: {
+        items: [
+          { title: "Frete cortesia", description: "Acima de R$ 800 para todo o Brasil" },
+          { title: "Troca simples", description: "30 dias, sem custo e sem burocracia" },
+          { title: "Pagamento seguro", description: "Até 6x sem juros ou Pix com 5% off" },
+          { title: "Atendimento pessoal", description: "Consultoria de estilo por WhatsApp" },
+        ],
+      },
+    },
+  ],
 };
 
 // ── Border Radius Map ─────────────────────────────────────────────────────────
@@ -309,6 +337,61 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
     // Border radius mínimo — estilo editorial
     borderRadius: "none",
   },
-  order: [],
-  sections: [],
+  order: ["t02-hero", "t02-grid", "t02-split", "t02-features"],
+  sections: [
+    {
+      id: "t02-hero",
+      type: "hero",
+      visible: true,
+      settings: {
+        heading: "Silêncio,\nestrutura, tempo.",
+        subheading: "Coleção Inverno 26",
+        buttonText: "Ver a coleção",
+        imageUrl: "",
+        imageAlt: "Modelo com casaco de alfaiataria cru em galeria minimalista",
+        imagePosition: "center",
+        overlayOpacity: 20,
+      },
+    },
+    {
+      id: "t02-grid",
+      type: "product_grid",
+      visible: true,
+      settings: {
+        kicker: "Chegou agora",
+        title: "Novidades",
+        source: "newest",
+        count: 4,
+        columns: 4,
+        showViewAll: true,
+      },
+    },
+    {
+      id: "t02-split",
+      type: "image_text_split",
+      visible: true,
+      settings: {
+        kicker: "Lookbook",
+        heading: "Um guarda-roupa que não pede licença.",
+        body: "Modelagens amplas, tecidos naturais e uma paleta reduzida ao essencial.",
+        buttonText: "Conhecer o ateliê",
+        imageUrl: "",
+        imageAlt: "Dois modelos com looks em preto e creme",
+        imagePosition: "left",
+        backgroundColor: "canvas",
+      },
+    },
+    {
+      id: "t02-features",
+      type: "features",
+      visible: true,
+      settings: {
+        items: [
+          { title: "Trocas em 30 dias", description: "Primeira troca sem custo em todo o Brasil." },
+          { title: "Envio em 24h", description: "Pedidos até 14h saem no mesmo dia útil." },
+          { title: "Atendimento humano", description: "Consultoria de estilo por WhatsApp, de seg. a sáb." },
+        ],
+      },
+    },
+  ],
 };

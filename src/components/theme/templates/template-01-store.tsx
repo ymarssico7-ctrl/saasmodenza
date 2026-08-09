@@ -289,10 +289,10 @@ type CartItem = { product: Product; tamanho: string; qtd: number };
 // ── Props do componente ───────────────────────────────────────────────────────
 interface Template01StoreProps {
   theme?: ThemeConfig;
-  /** Seção selecionada no builder (contorno azul) — reservado para uso futuro */
   highlightId?: string | null;
-  /** Callback ao clicar em seção no builder — reservado para uso futuro */
   onSectionClick?: (id: string) => void;
+  onToggleSection?: (id: string) => void;
+  onDeleteSection?: (id: string) => void;
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -1161,3 +1161,4 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
     </div>
   );
 }
+

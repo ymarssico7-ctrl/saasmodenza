@@ -34,7 +34,7 @@ export function TrialOfferModal({ open, onClose }: Props) {
           store_trial_accepted: true,
           store_trial_offered_at: new Date().toISOString(),
           store_trial_expires_at: trialExpires,
-        }).eq("id", uid);
+        } as any).eq("id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
@@ -71,7 +71,7 @@ export function TrialOfferModal({ open, onClose }: Props) {
         const { error } = await supabase.from("profiles").update({
           store_trial_accepted: false,
           store_trial_offered_at: new Date().toISOString(),
-        }).eq("id", uid);
+        } as any).eq("id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage
