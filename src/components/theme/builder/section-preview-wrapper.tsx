@@ -8,7 +8,7 @@ const SECTION_LABELS: Record<string, string> = {
   product_grid: "Grade de Produtos",
   image_text_split: "Imagem & Texto",
   features: "Diferenciais",
-  announcement: "Faixa de Anúncio",
+  announcement: "Faixa de AnÃºncio",
 };
 
 interface SectionPreviewWrapperProps {
@@ -86,6 +86,7 @@ export function SectionPreviewWrapper({
               onClick={(e) => e.stopPropagation()}
             >
               <button
+                type="button"
                 title={section.visible ? "Ocultar" : "Mostrar"}
                 onClick={onToggleVisible}
                 style={{
@@ -106,7 +107,8 @@ export function SectionPreviewWrapper({
                 )}
               </button>
               <button
-                title="Excluir seção"
+                type="button"
+                title="Excluir seÃ§Ã£o"
                 onClick={onDelete}
                 style={{
                   background: "rgba(255,255,255,0.2)",

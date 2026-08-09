@@ -12,9 +12,10 @@
  *   - Assets locais importados de src/assets/template-01/
  *   - Escopo CSS isolado em .t01-theme (não afeta o painel admin)
  */
-import { useEffect, useRef, useState } from "react";
-import type { ThemeConfig } from "@/lib/theme-engine/schema";
+import { useEffect, useRef, useState, useMemo } from "react";
+import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
+import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
 
 // ── Assets locais (idênticos ao template original) ────────────────────────────
 import heroImg from "@/assets/template-01/hero.jpg";
@@ -296,7 +297,13 @@ interface Template01StoreProps {
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export function Template01Store({ theme }: Template01StoreProps = {}) {
+export function Template01Store({
+  theme,
+  highlightId,
+  onSectionClick,
+  onToggleSection,
+  onDeleteSection,
+}: Template01StoreProps = {}) {
   const settings = theme?.settings;
 
   // Injeta as fontes originais (Cormorant Garamond + Jost) uma única vez
@@ -413,11 +420,254 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
   const freeShippingText =
     settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";
 
-  // ── Extrai dados das seções do Engine ──────────────────────────────────────
-  const sections = theme?.sections ?? [];
-  const heroSec = sections.find((s) => s.type === "hero") as (typeof sections[0] & { type: "hero" }) | undefined;
-  const featuresSec = sections.find((s) => s.type === "features") as (typeof sections[0] & { type: "features" }) | undefined;
-  const splitSec = sections.find((s) => s.type === "image_text_split") as (typeof sections[0] & { type: "image_text_split" }) | undefined;
+  // ── Helpers de seção ────────────────────────────────────────────────────────
+  const isEditing = typeof onSectionClick === "function";
+
+  function SectionWrap({ section, children }: { section: Section; children: React.ReactNode }) {
+    return (
+      <SectionPreviewWrapper
+        section={section}
+        isSelected={highlightId === section.id}
+        isEditing={isEditing}
+        onSelect={() => onSectionClick?.(section.id)}
+        onToggleVisible={() => onToggleSection?.(section.id)}
+        onDelete={() => onDeleteSection?.(section.id)}
+      >
+        {children}
+      </SectionPreviewWrapper>
+    );
+  }
+
+  // ── Render de seção pelo tipo ────────────────────────────────────────────────
+  function renderSection(section: Section): React.ReactNode {
+    if (section.visible === false) return null;
+
+    switch (section.type) {
+      case "announcement": {
+        const s = section as AnnouncementSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <div className="relative bg-foreground px-4 py-2.5 text-center text-[11px] uppercase tracking-[0.22em] text-background">
+              {s.settings.text}
+            </div>
+          </SectionWrap>
+        );
+      }
+      case "hero": {
+        const s = section as HeroSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="relative">
+              <img
+                src={s.settings.imageUrl || heroImg}
+                alt={s.settings.imageAlt || "Hero"}
+                width={1920}
+                height={1280}
+                style={s.settings.imagePosition ? { objectPosition: s.settings.imagePosition } : undefined}
+                className="h-[78vh] min-h-[520px] w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/25 to-transparent" />
+              <div className="absolute inset-0 flex items-center">
+                <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
+                  <div className="max-w-xl">
+                    <p className="text-[11px] uppercase tracking-[0.32em] text-foreground/70">
+                      {s.settings.subheading}
+                    </p>
+                    <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-foreground sm:text-6xl lg:text-7xl">
+                      {s.settings.heading
+                        ? s.settings.heading.split("\n").map((line, i, arr) => (
+                            <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                          ))
+                        : (<>A elegância que<br />não pede licença</>)
+                      }
+                    </h1>
+                    <div className="mt-10 flex flex-wrap gap-4">
+                      <a
+                        href="#vitrine"
+                        className="group inline-flex items-center gap-3 bg-foreground px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-all duration-500 hover:bg-foreground/85"
+                      >
+                        {s.settings.buttonText || "Ver a coleção"}
+                        <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "features": {
+        const s = section as FeaturesSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section aria-label="Vantagens" className="border-b border-border">
+              <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px px-6 py-10 lg:grid-cols-4 lg:px-10">
+                {s.settings.items.map((item) => (
+                  <div key={item.title} className="px-2 py-4">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-foreground">{item.title}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "category_bar": {
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
+              <div className="grid gap-6 md:grid-cols-3">
+                {[
+                  { img: catWomenImg, nome: "Feminino", texto: "Silhuetas fluidas" },
+                  { img: catMenImg, nome: "Masculino", texto: "Alfaiataria suave" },
+                  { img: catAccessoriesImg, nome: "Acessórios", texto: "Couro e ouro" },
+                ].map((cat) => (
+                  <a key={cat.nome} href="#vitrine" className="group relative block overflow-hidden">
+                    <img
+                      src={cat.img}
+                      alt={`Categoria ${cat.nome}`}
+                      width={900}
+                      height={1200}
+                      loading="lazy"
+                      className="h-[460px] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.05]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 to-transparent opacity-70 transition-opacity duration-500 group-hover:opacity-90" />
+                    <div className="absolute bottom-0 left-0 p-8">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-background/80">
+                        {cat.texto}
+                      </p>
+                      <h2 className="mt-2 font-serif text-3xl text-background">{cat.nome}</h2>
+                      <span className="mt-3 block h-px w-0 bg-background transition-all duration-700 group-hover:w-20" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "product_grid": {
+        const s = section as ProductGridSection;
+        const products =
+          s.settings.source === "newest"
+            ? PRODUCTS.slice(0, s.settings.count)
+            : PRODUCTS.slice(0, s.settings.count);
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section id="vitrine" className="mx-auto max-w-[1400px] px-6 pb-24 lg:px-10">
+              <div className="mb-12 flex flex-wrap items-end justify-between gap-6 border-b border-border pb-6">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                    {s.settings.kicker || "Acabou de chegar"}
+                  </p>
+                  <h2 className="mt-3 font-serif text-4xl">{s.settings.title || "Novidades da estação"}</h2>
+                </div>
+                {s.settings.showViewAll !== false && (
+                  <a
+                    href="#vitrine"
+                    className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
+                  >
+                    Ver tudo
+                    <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+                  </a>
+                )}
+              </div>
+
+              <div className={`grid grid-cols-2 gap-x-6 gap-y-14 lg:grid-cols-${Math.min(s.settings.columns, 4)}`}>
+                {products.map((p) => (
+                  <ProductCard key={p.id} product={p} onQuickAdd={abrirQuickAdd} />
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "image_text_split": {
+        const s = section as ImageTextSplitSection;
+        const isLeft = s.settings.imagePosition === "left";
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section id="editorial" className="border-y border-border bg-secondary">
+              <div className="mx-auto grid max-w-[1400px] items-center gap-12 px-6 py-24 lg:grid-cols-2 lg:px-10">
+                {isLeft ? (
+                  <>
+                    <img
+                      src={s.settings.imageUrl || editorialImg}
+                      alt={s.settings.imageAlt || ""}
+                      width={1400}
+                      height={1000}
+                      loading="lazy"
+                      className="h-[520px] w-full object-cover"
+                    />
+                    <div className="max-w-lg lg:pl-10">
+                      {s.settings.kicker && (
+                        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                          {s.settings.kicker}
+                        </p>
+                      )}
+                      <h2 className="mt-4 font-serif text-4xl leading-tight">
+                        {s.settings.heading}
+                      </h2>
+                      <p className="mt-6 text-sm leading-loose text-muted-foreground">
+                        {s.settings.body}
+                      </p>
+                      <a
+                        href="#vitrine"
+                        className="mt-10 inline-flex items-center border border-foreground/25 px-9 py-4 text-[11px] uppercase tracking-[0.24em] transition-all duration-500 hover:border-foreground hover:bg-foreground hover:text-background"
+                      >
+                        {s.settings.buttonText}
+                      </a>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="max-w-lg lg:pr-10">
+                      {s.settings.kicker && (
+                        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                          {s.settings.kicker}
+                        </p>
+                      )}
+                      <h2 className="mt-4 font-serif text-4xl leading-tight">
+                        {s.settings.heading}
+                      </h2>
+                      <p className="mt-6 text-sm leading-loose text-muted-foreground">
+                        {s.settings.body}
+                      </p>
+                      <a
+                        href="#vitrine"
+                        className="mt-10 inline-flex items-center border border-foreground/25 px-9 py-4 text-[11px] uppercase tracking-[0.24em] transition-all duration-500 hover:border-foreground hover:bg-foreground hover:text-background"
+                      >
+                        {s.settings.buttonText}
+                      </a>
+                    </div>
+                    <img
+                      src={s.settings.imageUrl || editorialImg}
+                      alt={s.settings.imageAlt || ""}
+                      width={1400}
+                      height={1000}
+                      loading="lazy"
+                      className="h-[520px] w-full object-cover"
+                    />
+                  </>
+                )}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      default:
+        return null;
+    }
+  }
+
+  // ── Sections dinâmicas (baseadas em theme.order) ─────────────────────────────
+  const dynamicSections = (theme?.order ?? []).map((id) => {
+    const section = theme?.sections.find((s) => s.id === id);
+    if (!section) return null;
+    return renderSection(section);
+  });
 
   return (
     // .t01-theme isola o design system deste template do painel admin
@@ -539,160 +789,8 @@ export function Template01Store({ theme }: Template01StoreProps = {}) {
       </header>
 
       <main>
-        {/* ── HERO — vinculado ao ThemeEngine ── */}
-        {(!heroSec || heroSec.visible !== false) && (
-        <section className="relative">
-          <img
-            src={heroSec?.settings?.imageUrl || heroImg}
-            alt={heroSec?.settings?.imageAlt || "Modelo com sobretudo de lã marfim em galeria minimalista"}
-            width={1920}
-            height={1280}
-            style={heroSec?.settings?.imagePosition ? { objectPosition: heroSec.settings.imagePosition } : undefined}
-            className="h-[78vh] min-h-[520px] w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/25 to-transparent" />
-          <div className="absolute inset-0 flex items-center">
-            <div className="mx-auto w-full max-w-[1400px] px-6 lg:px-10">
-              <div className="max-w-xl">
-                <p className="text-[11px] uppercase tracking-[0.32em] text-foreground/70">
-                  {heroSec?.settings?.subheading || "Inverno 26"}
-                </p>
-                <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-foreground sm:text-6xl lg:text-7xl">
-                  {heroSec?.settings?.heading
-                    ? heroSec.settings.heading.split("\n").map((line, i, arr) => (
-                        <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                      ))
-                    : (<>A elegância que<br />não pede licença</>)
-                  }
-                </h1>
-                <div className="mt-10 flex flex-wrap gap-4">
-                  <a
-                    href="#vitrine"
-                    className="group inline-flex items-center gap-3 bg-foreground px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-all duration-500 hover:bg-foreground/85"
-                  >
-                    {heroSec?.settings?.buttonText || "Ver a coleção"}
-                    <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
-                  </a>
-                  <a
-                    href="#editorial"
-                    className="inline-flex items-center border border-foreground/30 px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-foreground transition-all duration-500 hover:border-foreground hover:bg-foreground/5"
-                  >
-                    O atelier
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        )}
-
-        {/* ── DIFERENCIAIS — vinculado ao ThemeEngine ── */}
-        <section aria-label="Vantagens" className="border-b border-border">
-          <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px px-6 py-10 lg:grid-cols-4 lg:px-10">
-            {(featuresSec?.settings?.items
-              ? featuresSec.settings.items.map((item) => ({ titulo: item.title, texto: item.description }))
-              : [
-                  { titulo: "Frete cortêsia", texto: "Acima de R$ 800 para todo o Brasil" },
-                  { titulo: "Troca simples", texto: "30 dias, sem custo e sem burocracia" },
-                  { titulo: "Pagamento seguro", texto: "Até 6x sem juros ou Pix com 5% off" },
-                  { titulo: "Atendimento pessoal", texto: "Consultoria de estilo por WhatsApp" },
-                ]
-            ).map(({ titulo, texto }) => (
-              <div key={titulo} className="px-2 py-4">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-foreground">{titulo}</p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{texto}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── CATEGORIAS (idêntico ao original lines 291-317) ── */}
-        <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              { img: catWomenImg, nome: "Feminino", texto: "Silhuetas fluidas" },
-              { img: catMenImg, nome: "Masculino", texto: "Alfaiataria suave" },
-              { img: catAccessoriesImg, nome: "Acessórios", texto: "Couro e ouro" },
-            ].map((cat) => (
-              <a key={cat.nome} href="#vitrine" className="group relative block overflow-hidden">
-                <img
-                  src={cat.img}
-                  alt={`Categoria ${cat.nome}`}
-                  width={900}
-                  height={1200}
-                  loading="lazy"
-                  className="h-[460px] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.05]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 to-transparent opacity-70 transition-opacity duration-500 group-hover:opacity-90" />
-                <div className="absolute bottom-0 left-0 p-8">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-background/80">
-                    {cat.texto}
-                  </p>
-                  <h2 className="mt-2 font-serif text-3xl text-background">{cat.nome}</h2>
-                  <span className="mt-3 block h-px w-0 bg-background transition-all duration-700 group-hover:w-20" />
-                </div>
-              </a>
-            ))}
-          </div>
-        </section>
-
-        {/* ── VITRINE (idêntico ao original lines 319-340) ── */}
-        <section id="vitrine" className="mx-auto max-w-[1400px] px-6 pb-24 lg:px-10">
-          <div className="mb-12 flex flex-wrap items-end justify-between gap-6 border-b border-border pb-6">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Acabou de chegar
-              </p>
-              <h2 className="mt-3 font-serif text-4xl">Novidades da estação</h2>
-            </div>
-            <a
-              href="#vitrine"
-              className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
-            >
-              Ver tudo
-              <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
-            </a>
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-6 gap-y-14 lg:grid-cols-4">
-            {PRODUCTS.map((p) => (
-              <ProductCard key={p.id} product={p} onQuickAdd={abrirQuickAdd} />
-            ))}
-          </div>
-        </section>
-
-        {/* ── EDITORIAL (idêntico ao original lines 342-368) ── */}
-        <section id="editorial" className="border-y border-border bg-secondary">
-          <div className="mx-auto grid max-w-[1400px] items-center gap-12 px-6 py-24 lg:grid-cols-2 lg:px-10">
-            <img
-              src={editorialImg}
-              alt="Ajuste manual de peça de cashmere em manequim no atelier"
-              width={1400}
-              height={1000}
-              loading="lazy"
-              className="h-[520px] w-full object-cover"
-            />
-            <div className="max-w-lg lg:pl-10">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                O atelier
-              </p>
-              <h2 className="mt-4 font-serif text-4xl leading-tight">
-                Feito devagar, para durar muito
-              </h2>
-              <p className="mt-6 text-sm leading-loose text-muted-foreground">
-                Cada peça nasce de um molde próprio e passa por sete pares de mãos antes de chegar
-                até você. Trabalhamos com lãs italianas, sedas naturais e couro de curtume vegetal
-                — em produções pequenas, sem pressa e sem excesso.
-              </p>
-              <a
-                href="#vitrine"
-                className="mt-10 inline-flex items-center border border-foreground/25 px-9 py-4 text-[11px] uppercase tracking-[0.24em] transition-all duration-500 hover:border-foreground hover:bg-foreground hover:text-background"
-              >
-                Conhecer a produção
-              </a>
-            </div>
-          </div>
-        </section>
+          {/* ── SEÇÕES DINÂMICAS ── */}
+          {dynamicSections}
 
         {/* ── CARROSSEL (idêntico ao original lines 370-404) ── */}
         <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
