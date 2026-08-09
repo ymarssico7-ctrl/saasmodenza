@@ -26,6 +26,7 @@ import { Route as AuthenticatedPrecificacaoRouteImport } from './routes/_authent
 import { Route as AuthenticatedProlaboreRouteImport } from './routes/_authenticated/prolabore'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
 import { Route as LojaPreviewRouteImport } from './routes/loja.preview'
+import { Route as LojaPreviewFrameRouteImport } from './routes/loja.preview-frame'
 import { Route as VitrineStoreSlugRouteImport } from './routes/vitrine.$storeSlug'
 import { Route as AuthenticatedLojaIndexRouteImport } from './routes/_authenticated/loja.index'
 import { Route as AuthenticatedLojaClientesRouteImport } from './routes/_authenticated/loja.clientes'
@@ -126,6 +127,11 @@ const LojaPreviewRoute = LojaPreviewRouteImport.update({
   path: '/loja/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LojaPreviewFrameRoute = LojaPreviewFrameRouteImport.update({
+  id: '/loja/preview-frame',
+  path: '/loja/preview-frame',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VitrineStoreSlugRoute = VitrineStoreSlugRouteImport.update({
   id: '/vitrine/$storeSlug',
   path: '/vitrine/$storeSlug',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/prolabore': typeof AuthenticatedProlaboreRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
   '/loja/preview': typeof LojaPreviewRoute
+  '/loja/preview-frame': typeof LojaPreviewFrameRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/prolabore': typeof AuthenticatedProlaboreRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
   '/loja/preview': typeof LojaPreviewRoute
+  '/loja/preview-frame': typeof LojaPreviewFrameRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_authenticated/prolabore': typeof AuthenticatedProlaboreRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
   '/loja/preview': typeof LojaPreviewRoute
+  '/loja/preview-frame': typeof LojaPreviewFrameRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
   '/_authenticated/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/_authenticated/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/prolabore'
     | '/relatorio'
     | '/loja/preview'
+    | '/loja/preview-frame'
     | '/vitrine/$storeSlug'
     | '/loja/clientes'
     | '/loja/compartilhar'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/prolabore'
     | '/relatorio'
     | '/loja/preview'
+    | '/loja/preview-frame'
     | '/vitrine/$storeSlug'
     | '/loja/clientes'
     | '/loja/compartilhar'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/_authenticated/prolabore'
     | '/_authenticated/relatorio'
     | '/loja/preview'
+    | '/loja/preview-frame'
     | '/vitrine/$storeSlug'
     | '/_authenticated/loja/clientes'
     | '/_authenticated/loja/compartilhar'
@@ -397,6 +409,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   LojaPreviewRoute: typeof LojaPreviewRoute
+  LojaPreviewFrameRoute: typeof LojaPreviewFrameRoute
   VitrineStoreSlugRoute: typeof VitrineStoreSlugRoute
 }
 
@@ -519,6 +532,13 @@ declare module '@tanstack/react-router' {
       path: '/loja/preview'
       fullPath: '/loja/preview'
       preLoaderRoute: typeof LojaPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja/preview-frame': {
+      id: '/loja/preview-frame'
+      path: '/loja/preview-frame'
+      fullPath: '/loja/preview-frame'
+      preLoaderRoute: typeof LojaPreviewFrameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vitrine/$storeSlug': {
@@ -687,6 +707,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   LojaPreviewRoute: LojaPreviewRoute,
+  LojaPreviewFrameRoute: LojaPreviewFrameRoute,
   VitrineStoreSlugRoute: VitrineStoreSlugRoute,
 }
 export const routeTree = rootRouteImport

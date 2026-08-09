@@ -1,7 +1,7 @@
 import {
   createContext,
-  useCallback,
   useContext,
+  useEffect,
   useReducer,
   type ReactNode,
 } from "react";
@@ -264,6 +264,28 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
 
   const canUndo = state.past.length > 0;
   const canRedo = state.future.length > 0;
+
+  // Transmite atualizações de tema para o iframe de preview mobile em tempo real
+  useEffect(() => {
+    try {
+      const ch = new BroadcastChannel("modaly_theme_preview");
+      ch.postMessage({ type: "THEME_UPDATE", payload: state.theme });
+      ch.close();
+    } catch {
+      // BroadcastChannel nao disponivel (SSR / Node)
+    }
+  }, [state.theme]);
+
+  // Transmite seção selecionada (highlight) para o iframe
+  useEffect(() => {
+    try {
+      const ch = new BroadcastChannel("modaly_theme_preview");
+      ch.postMessage({ type: "SELECT_SECTION", payload: state.selectedSectionId });
+      ch.close();
+    } catch {
+      // silencioso
+    }
+  }, [state.selectedSectionId]);
 
   return (
     <BuilderContext.Provider value={{ ...state, dispatch, selectedSection, canUndo, canRedo }}>

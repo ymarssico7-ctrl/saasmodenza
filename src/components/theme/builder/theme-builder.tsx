@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { BuilderProvider, useBuilder } from "@/lib/theme-engine/context";
 import { saveTheme } from "@/lib/theme-engine/defaults";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
+import { MobilePreviewFrame } from "./mobile-preview-frame";
 import { SectionList } from "./section-list";
 import { SectionInspector } from "./section-inspector";
 import { GlobalSettings } from "./global-settings";
@@ -197,33 +198,15 @@ function BuilderInner() {
 
         {/* ── Preview Area ─────────────────────────────────────────────── */}
         {isMobile ? (
-          /* MOBILE: centralised "phone" frame */
-          <main className="flex flex-1 flex-col items-center justify-start overflow-auto bg-[#1c1c1e] py-8">
-            <div
-              className="relative overflow-hidden rounded-[2.5rem] shadow-2xl ring-4 ring-white/10 transition-all duration-300"
-              style={{ width: 390, minHeight: 700 }}
-            >
-              {/* Phone status bar decoration */}
-              <div className="absolute inset-x-0 top-0 z-10 flex h-8 items-center justify-center bg-black">
-                <div className="h-3.5 w-24 rounded-full bg-zinc-800" />
-              </div>
-              <div className="mt-8 overflow-y-auto bg-white" style={{ minHeight: 660 }}>
-                <ThemeRenderer
-                  theme={theme}
-                  highlightId={selectedSection?.id ?? null}
-                  onSectionClick={(id) =>
-                    dispatch({ type: "SELECT_SECTION", id })
-                  }
-                  onToggleSection={(id) =>
-                    dispatch({ type: "TOGGLE_VISIBLE", id })
-                  }
-                  onDeleteSection={(id) =>
-                    dispatch({ type: "DELETE_SECTION", id })
-                  }
-                />
-              </div>
-            </div>
-          </main>
+          /* MOBILE: iframe real com largura 390px para que as media queries
+             do Tailwind respondam corretamente ao viewport do celular. */
+          <MobilePreviewFrame
+            theme={theme}
+            highlightId={selectedSection?.id ?? null}
+            onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
+            onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
+            onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+          />
         ) : (
           /* DESKTOP: full-bleed, no padding, true edge-to-edge */
           <main className="relative flex-1 overflow-auto bg-white">
