@@ -2,6 +2,7 @@ import { useBuilder } from "@/lib/theme-engine/context";
 import { ensureFontLoaded } from "@/lib/theme-engine/defaults";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ImageUploadField } from "./image-upload-field";
 import { Switch } from "@/components/ui/switch";
 import type { ThemeSettings, FontDisplay, FontBody, BorderRadius } from "@/lib/theme-engine/schema";
 
@@ -276,33 +277,15 @@ export function GlobalSettings() {
         </Field>
 
         {/* Logo */}
-        <Field label="Logotipo (URL)">
-          <Input
-            value={s.logoUrl ?? ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val) {
-                patch({ logoUrl: val });
-              } else {
-                const { logoUrl: _removed, ...rest } = s;
-                dispatch({ type: "UPDATE_SETTINGS", patch: rest });
-              }
-            }}
-            placeholder="https://sua-loja.com/logo.png"
-            className="h-9 text-sm"
-          />
-          {s.logoUrl && (
-            <div className="mt-2 flex items-center gap-3 rounded-xl border border-border bg-secondary p-2">
-              <img
-                src={s.logoUrl}
-                alt="Preview do logotipo"
-                className="h-8 max-w-[120px] object-contain"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-              <span className="text-xs text-muted-foreground">Preview do logo</span>
-            </div>
-          )}
-        </Field>
+        <ImageUploadField
+          label="Logotipo"
+          hint="📐 Recomendado: 400 × 150 px — Fundo transparente (PNG ou WebP). O logo é exibido no cabeçalho da loja."
+          value={s.logoUrl ?? ""}
+          onChange={(v) => patch({ logoUrl: v || undefined })}
+          maxWidth={800}
+          maxHeight={300}
+          previewHeight={64}
+        />
 
         <div className="space-y-2 rounded-xl border border-border p-3">
           <div className="flex items-center justify-between">

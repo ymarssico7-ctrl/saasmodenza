@@ -153,22 +153,25 @@ function BuilderInner() {
             </button>
           </div>
 
-          <ScrollArea className="flex-1 px-3 py-3">
-            {activeTab === "sections" && (
-              <div className="space-y-4">
-                <SectionList />
-                {selectedSection && (
-                  <div className="rounded-2xl border border-border bg-background p-3">
-                    <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      Editar Seção
-                    </p>
-                    <SectionInspector section={selectedSection} />
-                  </div>
-                )}
-              </div>
-            )}
-            {activeTab === "global" && <GlobalSettings />}
+          <ScrollArea className="flex-1">
+            <div className="p-3">
+              {activeTab === "sections" && (
+                <div className="space-y-4">
+                  <SectionList />
+                  {selectedSection && (
+                    <div className="rounded-2xl border border-border bg-background p-3">
+                      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        Editar Seção
+                      </p>
+                      <SectionInspector section={selectedSection} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeTab === "global" && <GlobalSettings />}
+            </div>
           </ScrollArea>
+
         </aside>
 
         {/* ── Preview Area ─────────────────────────────────────────────────── */}

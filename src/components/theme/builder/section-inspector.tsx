@@ -2,6 +2,7 @@ import { useBuilder } from "@/lib/theme-engine/context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { ImageUploadField } from "./image-upload-field";
 import type {
   HeroSettings,
   ProductGridSettings,
@@ -131,19 +132,18 @@ function HeroInspector({
           className="h-9"
         />
       </Field>
-      <Field label="URL da Imagem">
-        <Input
-          value={settings.imageUrl}
-          onChange={(e) => patch({ imageUrl: e.target.value })}
-          className="h-9 text-xs"
-          placeholder="https://..."
-        />
-      </Field>
-      {settings.imageUrl && (
-        <div className="overflow-hidden rounded-xl border border-border">
-          <img src={settings.imageUrl} alt="" className="h-28 w-full object-cover" />
-        </div>
-      )}
+
+      {/* ── Upload de Imagem com compressão automática ─────────────────────── */}
+      <ImageUploadField
+        label="Imagem do Banner"
+        hint="📐 Tamanho recomendado: 1920 × 800 px — Landscape (paisagem). JPEG ou WebP. Imagens serão comprimidas automaticamente."
+        value={settings.imageUrl}
+        onChange={(v) => patch({ imageUrl: v })}
+        maxWidth={1920}
+        maxHeight={800}
+        previewHeight={112}
+      />
+
       <Field label={`Opacidade do Overlay — ${settings.overlayOpacity}%`}>
         <Slider
           min={0}
@@ -232,19 +232,18 @@ function ImageTextSplitInspector({
       <Field label="Texto do Botão">
         <Input value={settings.buttonText} onChange={(e) => patch({ buttonText: e.target.value })} className="h-9" />
       </Field>
-      <Field label="URL da Imagem">
-        <Input
-          value={settings.imageUrl}
-          onChange={(e) => patch({ imageUrl: e.target.value })}
-          className="h-9 text-xs"
-          placeholder="https://..."
-        />
-      </Field>
-      {settings.imageUrl && (
-        <div className="overflow-hidden rounded-xl border border-border">
-          <img src={settings.imageUrl} alt="" className="h-24 w-full object-cover" />
-        </div>
-      )}
+
+      {/* ── Upload de Imagem com compressão automática ─────────────────────── */}
+      <ImageUploadField
+        label="Imagem da Seção"
+        hint="📐 Recomendado: 800 × 800 px (quadrado) ou 800 × 1000 px (retrato). JPEG ou PNG."
+        value={settings.imageUrl}
+        onChange={(v) => patch({ imageUrl: v })}
+        maxWidth={1000}
+        maxHeight={1000}
+        previewHeight={96}
+      />
+
       <SelectField
         label="Posição da Imagem"
         value={settings.imagePosition}
