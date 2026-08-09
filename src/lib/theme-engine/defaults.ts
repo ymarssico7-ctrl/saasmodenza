@@ -24,6 +24,23 @@ export function saveTheme(theme: ThemeConfig): void {
   }
 }
 
+/**
+ * Injeta dinamicamente a tag <link> do Google Fonts no <head> do documento
+ * para a fonte solicitada. Idempotente: não duplica links já existentes.
+ */
+export function ensureFontLoaded(fontName: string): void {
+  if (typeof document === "undefined") return;
+  const id = `gfont-${fontName.replace(/\s+/g, "-").toLowerCase()}`;
+  if (document.getElementById(id)) return;
+  const url = FONT_URLS[fontName];
+  if (!url) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = url;
+  document.head.appendChild(link);
+}
+
 // ── Font Google URLs ───────────────────────────────────────────────────────────
 export const FONT_URLS: Record<string, string> = {
   // Fontes do Template 01 (Atelier Nove)

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Eye, EyeOff, MousePointerClick, Trash2 } from "lucide-react";
 import type { Section } from "@/lib/theme-engine/schema";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -32,6 +32,7 @@ export function SectionPreviewWrapper({
 }: SectionPreviewWrapperProps) {
   const [isHovered, setIsHovered] = useState(false);
   const label = SECTION_LABELS[section.type] ?? section.type;
+  const isActive = isSelected || isHovered;
 
   if (!isEditing) return <>{children}</>;
 
@@ -43,6 +44,7 @@ export function SectionPreviewWrapper({
       onClick={onSelect}
       style={{ cursor: "pointer" }}
     >
+      {/* ── Borda de Seleção ────────────────────────────────────────────────── */}
       <div
         style={{
           position: "absolute",
@@ -50,16 +52,20 @@ export function SectionPreviewWrapper({
           zIndex: 20,
           pointerEvents: "none",
           border: isSelected
-            ? "2px solid #3b82f6"
+            ? "2px solid #6366f1"
             : isHovered
-              ? "2px solid rgba(59,130,246,0.55)"
+              ? "2px solid rgba(99,102,241,0.5)"
               : "2px solid transparent",
-          transition: "border-color 150ms ease",
+          boxShadow: isSelected
+            ? "inset 0 0 0 1px rgba(99,102,241,0.15)"
+            : "none",
+          transition: "border-color 180ms ease, box-shadow 180ms ease",
           borderRadius: 2,
         }}
       />
 
-      {(isSelected || isHovered) && (
+      {/* ── Badge Flutuante (hover ou selecionado) ──────────────────────────── */}
+      {isActive && (
         <div
           style={{
             position: "absolute",
@@ -68,67 +74,112 @@ export function SectionPreviewWrapper({
             zIndex: 30,
             display: "flex",
             alignItems: "center",
-            gap: 4,
-            background: isSelected ? "#3b82f6" : "rgba(59,130,246,0.85)",
+            gap: 6,
+            // glassmorphism
+            background: isSelected
+              ? "rgba(99, 102, 241, 0.92)"
+              : "rgba(99, 102, 241, 0.75)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
             color: "#fff",
             fontSize: 11,
             fontWeight: 600,
-            letterSpacing: "0.04em",
-            padding: "3px 8px",
+            letterSpacing: "0.03em",
+            padding: "4px 10px 4px 7px",
             userSelect: "none",
+            borderRadius: "0 0 8px 0",
+            boxShadow: "0 2px 12px rgba(99,102,241,0.35)",
             pointerEvents: isSelected ? "auto" : "none",
           }}
         >
-          {String.fromCodePoint(0x270F)} {label}
+          {/* Ícone */}
+          <MousePointerClick style={{ width: 12, height: 12, opacity: 0.85 }} />
+
+          {/* Label da seção */}
+          <span>{label}</span>
+
+          {/* Botões de ação — só quando selecionado */}
           {isSelected && (
             <span
-              style={{ display: "flex", gap: 2, marginLeft: 6 }}
+              style={{ display: "flex", gap: 3, marginLeft: 4 }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Toggle visibilidade */}
               <button
                 type="button"
-                title={section.visible ? "Ocultar" : "Mostrar"}
+                title={section.visible ? "Ocultar seção" : "Mostrar seção"}
                 onClick={onToggleVisible}
                 style={{
                   background: "rgba(255,255,255,0.2)",
-                  border: "none",
-                  borderRadius: 3,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: 5,
                   color: "#fff",
-                  padding: "2px 4px",
+                  padding: "3px 5px",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
+                  gap: 3,
+                  fontSize: 10,
+                  fontWeight: 500,
+                  transition: "background 120ms",
                 }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,255,255,0.32)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,255,255,0.2)")
+                }
               >
                 {section.visible ? (
                   <Eye style={{ width: 12, height: 12 }} />
                 ) : (
                   <EyeOff style={{ width: 12, height: 12 }} />
                 )}
+                <span>{section.visible ? "Ocultar" : "Mostrar"}</span>
               </button>
+
+              {/* Deletar seção */}
               <button
                 type="button"
                 title="Excluir seção"
                 onClick={onDelete}
                 style={{
-                  background: "rgba(255,255,255,0.2)",
-                  border: "none",
-                  borderRadius: 3,
+                  background: "rgba(255,255,255,0.15)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: 5,
                   color: "#fff",
-                  padding: "2px 4px",
+                  padding: "3px 5px",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
+                  gap: 3,
+                  fontSize: 10,
+                  fontWeight: 500,
+                  transition: "background 120ms",
                 }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(239, 68, 68, 0.5)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,255,255,0.15)")
+                }
               >
                 <Trash2 style={{ width: 12, height: 12 }} />
+                <span>Excluir</span>
               </button>
             </span>
           )}
         </div>
       )}
 
-      {children}
+      {/* ── Conteúdo da Seção ────────────────────────────────────────────────── */}
+      <div style={{ opacity: !section.visible ? 0.45 : 1, transition: "opacity 200ms" }}>
+        {children}
+      </div>
     </div>
   );
 }
