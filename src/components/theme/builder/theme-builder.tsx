@@ -7,6 +7,7 @@ import {
   Minus,
   Monitor,
   Paintbrush,
+  PanelLeftClose,
   PanelLeftOpen,
   Plus,
   Redo2,
@@ -143,151 +144,155 @@ function BuilderInner() {
             </Button>
           </div>
 
-          {/* ── Linha 2 Unificada: Histórico | Switch | Zoom(Mobile) | Reset | Ocultar
-              ─────────────────────────────────────────────────────────────────────
-              Toda a lógica de edição e visualização fica aqui.
-              Canvas = 100% livre, sem nenhuma barra flutuante sobreposta.      */}
-          <div className="flex items-center gap-1 px-3 pb-2.5">
+          {/* ════ Linha 2: Premium Modular Toolbar ══════════════════════════════════
+              Layout: [Grupo A: Histórico] | [Grupo B: Viewport] | [Grupo C: Zoom*] ··· [Grupo D: Ações]
+              * Grupo C só aparece no modo Mobile.
+              Switch de viewport = ícone apenas (68px) → sem texto que encavala.
+              ════════════════════════════════════════════════════════════════════ */}
+          <div className="flex items-center gap-1.5 px-3 pb-3">
 
-            {/* Desfazer */}
-            <button
-              onClick={() => dispatch({ type: "UNDO" })}
-              disabled={!canUndo}
-              title="Desfazer (Ctrl+Z)"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:enabled:bg-secondary hover:enabled:text-foreground"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-            </button>
+            {/* ── Grupo A: Histórico ───────────────────────────────────────────── */}
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => dispatch({ type: "UNDO" })}
+                disabled={!canUndo}
+                title="Desfazer (Ctrl+Z)"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-25 hover:enabled:bg-muted hover:enabled:text-foreground"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => dispatch({ type: "REDO" })}
+                disabled={!canRedo}
+                title="Refazer (Ctrl+Y)"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-25 hover:enabled:bg-muted hover:enabled:text-foreground"
+              >
+                <Redo2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
 
-            {/* Refazer */}
-            <button
-              onClick={() => dispatch({ type: "REDO" })}
-              disabled={!canRedo}
-              title="Refazer (Ctrl+Y)"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:enabled:bg-secondary hover:enabled:text-foreground"
-            >
-              <Redo2 className="h-3.5 w-3.5" />
-            </button>
+            {/* Divisor A|B */}
+            <div className="h-4 w-px shrink-0 bg-border" />
 
-            <div className="mx-1 h-4 w-px shrink-0 bg-border" />
-
-            {/* ── Segmented Switch Desktop | Mobile ─────────────────────────────
-                Largura normalizada (w-[110px]) para não esticar em 50% mobile,
-                liberando espaço para os demais controles na mesma linha. */}
+            {/* ── Grupo B: Viewport Switch (ícone apenas, 68px) ────────────────── */}
             <div
               className="flex shrink-0 items-center gap-0.5 rounded-xl p-[3px]"
-              style={{ background: "var(--color-muted)", width: 110 }}
+              style={{ background: "var(--color-muted)", width: 68 }}
             >
+              {/* Desktop */}
               <button
                 onClick={() => dispatch({ type: "SET_PREVIEW", mode: "desktop" })}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold transition-all ${
+                title="Visualização Desktop"
+                className={`grid h-[22px] w-[28px] flex-1 place-items-center rounded-lg transition-all duration-150 ${
                   !isMobile
                     ? "bg-background text-foreground shadow-soft"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Monitor className="h-2.5 w-2.5" />
-                Desktop
+                <Monitor className="h-3.5 w-3.5" />
               </button>
+              {/* Mobile */}
               <button
                 onClick={() => dispatch({ type: "SET_PREVIEW", mode: "mobile" })}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold transition-all ${
+                title="Visualização Mobile"
+                className={`grid h-[22px] w-[28px] flex-1 place-items-center rounded-lg transition-all duration-150 ${
                   isMobile
                     ? "bg-background text-foreground shadow-soft"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Smartphone className="h-2.5 w-2.5" />
-                Mobile
+                <Smartphone className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            {/* ── Controles de Zoom — exibidos apenas no modo Mobile ────────────
-                Integrados na barra do sidebar: [−] [75%] [+] [⤢]
-                Ao clicar no percentual, volta para "Auto". */}
+            {/* ── Grupo C: Zoom (só aparece no modo Mobile) ────────────────────── */}
             {isMobile && (
               <>
-                <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+                {/* Divisor B|C */}
+                <div className="h-4 w-px shrink-0 bg-border" />
 
-                {/* Diminuir zoom */}
-                <button
-                  onClick={zoomOut}
-                  title="Diminuir zoom"
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
+                <div className="flex items-center gap-0.5">
+                  {/* Diminuir */}
+                  <button
+                    onClick={zoomOut}
+                    title="Diminuir zoom"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
 
-                {/* Indicador % — clica para voltar ao Auto */}
-                <button
-                  onClick={resetZoom}
-                  title="Ajustar à tela (Auto)"
-                  className="h-7 shrink-0 rounded-lg px-1.5 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  style={{
-                    minWidth: 44,
-                    color: zoomMode === "auto" ? "var(--color-primary)" : undefined,
-                  }}
-                >
-                  {zoomMode === "auto" ? `A·${scalePercent}%` : `${scalePercent}%`}
-                </button>
+                  {/* Indicador — clica para Auto */}
+                  <button
+                    onClick={resetZoom}
+                    title={zoomMode === "auto" ? "Auto-fit ativo" : "Voltar para Auto-fit"}
+                    className="h-7 shrink-0 rounded-lg px-1.5 font-mono text-[10px] font-semibold transition-all duration-150 hover:bg-muted"
+                    style={{
+                      minWidth: 40,
+                      color: zoomMode === "auto"
+                        ? "var(--color-primary)"
+                        : "var(--color-muted-foreground)",
+                    }}
+                  >
+                    {zoomMode === "auto" ? `A ${scalePercent}%` : `${scalePercent}%`}
+                  </button>
 
-                {/* Aumentar zoom */}
-                <button
-                  onClick={zoomIn}
-                  title="Aumentar zoom"
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
+                  {/* Aumentar */}
+                  <button
+                    onClick={zoomIn}
+                    title="Aumentar zoom"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
 
-                {/* 100% real */}
-                <button
-                  onClick={() => zoomMode === 1 ? resetZoom() : setZoomMode(1)}
-                  title={zoomMode === 1 ? "Voltar para Auto" : "Tamanho real (100%)"}
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  style={{ color: zoomMode === 1 ? "var(--color-primary)" : undefined }}
-                >
-                  <Maximize2 className="h-3 w-3" />
-                </button>
+                  {/* 100% real */}
+                  <button
+                    onClick={() => zoomMode === 1 ? resetZoom() : setZoomMode(1)}
+                    title={zoomMode === 1 ? "Voltar para Auto" : "Tamanho real (100%)"}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-all duration-150 hover:bg-muted"
+                    style={{
+                      color: zoomMode === 1
+                        ? "var(--color-primary)"
+                        : "var(--color-muted-foreground)",
+                    }}
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                  </button>
+                </div>
               </>
             )}
 
-            {/* Espaçador flexível empurra os últimos botões para a direita */}
+            {/* Espaçador — empurra Grupo D para a extrema direita */}
             <div className="flex-1" />
 
-            {/* Redefinir — com confirmação de segurança */}
-            <button
-              onClick={() => {
-                const ok = window.confirm(
-                  "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas."
-                );
-                if (ok) {
-                  dispatch({ type: "RESET" });
-                  toast.info("Tema redefinido para o padrão.");
-                }
-              }}
-              title="Redefinir tema"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-
-            {/* Ocultar sidebar */}
-            <button
-              onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
-              title="Ocultar painel"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <svg
-                width="14" height="14" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            {/* ── Grupo D: Ações Globais ────────────────────────────────────────── */}
+            <div className="flex items-center gap-0.5">
+              {/* Redefinir — hover vermelho sutil, com confirmação */}
+              <button
+                onClick={() => {
+                  const ok = window.confirm(
+                    "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas."
+                  );
+                  if (ok) {
+                    dispatch({ type: "RESET" });
+                    toast.info("Tema redefinido para o padrão.");
+                  }
+                }}
+                title="Redefinir tema"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-destructive/10 hover:text-destructive"
               >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                <polyline points="15 8 11 12 15 16" />
-              </svg>
-            </button>
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+
+              {/* Ocultar painel */}
+              <button
+                onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+                title="Ocultar painel"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground"
+              >
+                <PanelLeftClose className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
