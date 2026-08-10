@@ -2,92 +2,82 @@
  * MobilePreviewFrame — componente que encapsula o iframe do preview mobile.
  *
  * Responsabilidades:
- *   1. Renderizar um frame de "celular" visual (borda, notch, botões laterais).
+ *   1. Renderizar a moldura de "celular" (borda, notch, botões laterais).
  *   2. Carregar /loja/preview-frame em um iframe para que as media queries
  *      do Tailwind leiam corretamente a largura de 390px.
- *   3. AUTO-SCALING: Calcular dinamicamente a escala para que o celular
- *      sempre caiba na tela sem scroll externo, via ResizeObserver.
- *   4. ZOOM MANUAL: Controles de zoom (Auto, 100%, +, -) na barra inferior.
- *   5. Propagar mudanças de `theme` e `highlightId` para o iframe em tempo
+ *   3. AUTO-SCALING: ResizeObserver calcula dinamicamente a escala ideal
+ *      e notifica o pai via onAutoScaleChange (estado de zoom fica no pai).
+ *   4. Propagar mudanças de `theme` e `highlightId` para o iframe em tempo
  *      real via BroadcastChannel (sem reload).
- *   6. Escutar eventos de interação vindos do iframe e repassar ao builder
+ *   5. Escutar eventos de interação vindos do iframe e repassar ao builder
  *      via callbacks (onSectionClick, onToggleSection, onDeleteSection).
+ *
+ * NOTA: Os controles de zoom (−, %, +) foram movidos para o Sidebar do
+ * ThemeBuilder para unificar toda a barra de ferramentas em um único lugar.
  */
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Maximize2, Minus, Plus, PanelLeftOpen } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
 const CHANNEL_NAME = "modaly_theme_preview";
 // Dimensões reais do iPhone 14 Pro — mantidas fixas para breakpoints corretos
 const FRAME_W = 390;
 const FRAME_H = 844;
-// Padding vertical de respiro (topo + base)
-const VERTICAL_PADDING = 56;
-// Altura da barra de controles de zoom abaixo do celular
-const ZOOM_BAR_H = 44;
+// Respiro mínimo: apenas 16px em cada borda para o celular respirar
+const VERTICAL_PADDING = 32;
+const HORIZONTAL_PADDING = 24;
 
 interface MobilePreviewFrameProps {
   theme: ThemeConfig;
   highlightId?: string | null;
   isSidebarOpen?: boolean;
+  // Zoom controlado pelo pai (ThemeBuilder / sidebar)
+  zoomMode: "auto" | number;
+  autoScale: number;
+  onAutoScaleChange: (scale: number) => void;
   onSectionClick?: (id: string) => void;
   onToggleSection?: (id: string) => void;
   onDeleteSection?: (id: string) => void;
   onOpenSidebar?: () => void;
 }
 
+const PHONE_TOTAL_H = FRAME_H + 48; // moldura completa do iPhone
+
 export function MobilePreviewFrame({
   theme,
   highlightId,
-  isSidebarOpen = true,
+  zoomMode,
+  autoScale,
+  onAutoScaleChange,
   onSectionClick,
   onToggleSection,
   onDeleteSection,
-  onOpenSidebar,
 }: MobilePreviewFrameProps) {
   const channelRef = useRef<BroadcastChannel | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLElement>(null);
 
-  // "auto" = auto-fit; número = escala manual (0.5 … 1)
-  const [zoomMode, setZoomMode] = useState<"auto" | number>("auto");
-  const [autoScale, setAutoScale] = useState(1);
-
   const effectiveScale = zoomMode === "auto" ? autoScale : zoomMode;
-  const PHONE_TOTAL_H = FRAME_H + 48; // moldura completa
 
-  // ── Auto-Scaling: observa o container e recalcula ──────────────────────────
+  // ── Auto-Scaling: observa o container e notifica o pai ────────────────────
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const recalculate = () => {
-      const availableH = container.clientHeight - VERTICAL_PADDING - ZOOM_BAR_H;
-      const availableW = container.clientWidth - 32; // respiro lateral
+      const availableH = container.clientHeight - VERTICAL_PADDING;
+      const availableW = container.clientWidth - HORIZONTAL_PADDING;
       const scaleByH = availableH / PHONE_TOTAL_H;
       const scaleByW = availableW / (FRAME_W + 24);
       const newScale = Math.min(1, scaleByH, scaleByW);
-      setAutoScale(newScale);
+      onAutoScaleChange(newScale);
     };
 
     recalculate();
     const observer = new ResizeObserver(recalculate);
     observer.observe(container);
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Controles de Zoom ──────────────────────────────────────────────────────
-  const zoomIn = useCallback(() => {
-    const base = zoomMode === "auto" ? autoScale : zoomMode;
-    setZoomMode(Math.min(1, parseFloat((base + 0.05).toFixed(2))));
-  }, [zoomMode, autoScale]);
-
-  const zoomOut = useCallback(() => {
-    const base = zoomMode === "auto" ? autoScale : zoomMode;
-    setZoomMode(Math.max(0.3, parseFloat((base - 0.05).toFixed(2))));
-  }, [zoomMode, autoScale]);
-
-  const resetToAuto = useCallback(() => setZoomMode("auto"), []);
 
   // ── Canal de comunicação com o iframe ─────────────────────────────────────
   useEffect(() => {
@@ -121,52 +111,13 @@ export function MobilePreviewFrame({
     });
   }, [highlightId]);
 
-  const scalePercent = Math.round(effectiveScale * 100);
-
   return (
+    // Container preenche 100% da área disponível — sem padding extra no topo
     <main
       ref={containerRef}
       className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-[#111114]"
       style={{ minHeight: 0 }}
     >
-      {/* ── Botão flutuante para reabrir o painel quando oculto ────────────── */}
-      {!isSidebarOpen && (
-        <button
-          onClick={onOpenSidebar}
-          title="Mostrar painel de edição"
-          style={{
-            position: "absolute",
-            top: 16,
-            left: 16,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 10,
-            color: "rgba(255,255,255,0.6)",
-            fontSize: 11,
-            fontWeight: 500,
-            padding: "6px 10px",
-            cursor: "pointer",
-            backdropFilter: "blur(8px)",
-            transition: "background 150ms",
-          }}
-          onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.background =
-              "rgba(255,255,255,0.15)")
-          }
-          onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.background =
-              "rgba(255,255,255,0.08)")
-          }
-        >
-          <PanelLeftOpen style={{ width: 14, height: 14 }} />
-          Painel
-        </button>
-      )}
-
       {/* ── Wrapper escalável ─────────────────────────────────────────────── */}
       <div
         style={{
@@ -246,98 +197,6 @@ export function MobilePreviewFrame({
           </div>
         </div>
       </div>
-
-      {/* ── Barra de controles de zoom ─────────────────────────────────────── */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 12,
-          padding: "4px 6px",
-          backdropFilter: "blur(12px)",
-          zIndex: 40,
-        }}
-      >
-        {/* Botão − */}
-        <button
-          onClick={zoomOut}
-          title="Diminuir zoom"
-          style={zoomBtnStyle}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.15)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
-        >
-          <Minus style={{ width: 12, height: 12 }} />
-        </button>
-
-        {/* Indicador percentual — clica para voltar ao Auto */}
-        <button
-          onClick={resetToAuto}
-          title="Ajustar à tela (Auto)"
-          style={{
-            ...zoomBtnStyle,
-            minWidth: 56,
-            fontFamily: "monospace",
-            fontSize: 11,
-            letterSpacing: "0.04em",
-            color: zoomMode === "auto" ? "rgba(99,102,241,0.9)" : "rgba(255,255,255,0.7)",
-          }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
-        >
-          {zoomMode === "auto" ? `Auto · ${scalePercent}%` : `${scalePercent}%`}
-        </button>
-
-        {/* Botão + */}
-        <button
-          onClick={zoomIn}
-          title="Aumentar zoom"
-          style={zoomBtnStyle}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.15)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
-        >
-          <Plus style={{ width: 12, height: 12 }} />
-        </button>
-
-        {/* Divisor */}
-        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
-
-        {/* Botão Fit / 100% real */}
-        <button
-          onClick={() => {
-            if (zoomMode === 1) resetToAuto();
-            else setZoomMode(1);
-          }}
-          title={zoomMode === 1 ? "Voltar para Auto" : "100% — Tamanho real"}
-          style={{
-            ...zoomBtnStyle,
-            color: zoomMode === 1 ? "rgba(99,102,241,0.9)" : "rgba(255,255,255,0.5)",
-          }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
-        >
-          <Maximize2 style={{ width: 12, height: 12 }} />
-        </button>
-      </div>
     </main>
   );
 }
-
-// ── Estilo base dos botões da barra de zoom ───────────────────────────────────
-const zoomBtnStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 4,
-  background: "transparent",
-  border: "none",
-  borderRadius: 7,
-  color: "rgba(255,255,255,0.55)",
-  padding: "5px 7px",
-  cursor: "pointer",
-  transition: "background 120ms, color 120ms",
-};
