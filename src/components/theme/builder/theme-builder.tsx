@@ -47,14 +47,19 @@ function BuilderInner() {
 
   const isMobile = previewMode === "mobile";
 
+  // Cores adaptadas ao modo (dark para Mobile, light para Desktop)
+  const pillBg = isMobile ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const pillBorder = isMobile ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.10)";
+  const dividerColor = isMobile ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
+  const iconColor = isMobile ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
+
   return (
     // Layout raiz: full-screen, sem header, layout horizontal
     <div className="fixed inset-0 z-[9999] flex overflow-hidden bg-background">
 
       {/* ════════════════════════════════════════════════════════════════════
-          LEFT SIDEBAR — Colapsa via CSS width transition
-          No modo Mobile: largura = 50%
-          No modo Desktop: largura = 320px (ou 0 se fechado)
+          LEFT SIDEBAR — colapsa via CSS width transition
+          Mobile mode: 50% | Desktop mode: 320px | Fechado: 0px
           ════════════════════════════════════════════════════════════════════ */}
       <aside
         className="flex shrink-0 flex-col border-r border-border bg-card overflow-hidden"
@@ -65,10 +70,7 @@ function BuilderInner() {
         }}
       >
         {/* ── Cabeçalho do Sidebar ─────────────────────────────────────────── */}
-        <div
-          className="shrink-0 border-b border-border bg-card"
-          style={{ minWidth: isMobile ? undefined : 320 }}
-        >
+        <div className="shrink-0 border-b border-border bg-card">
           {/* Linha 1: Voltar + Info da loja + Publicar */}
           <div className="flex items-center gap-2 px-3 pt-3 pb-2">
             <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-xl shrink-0">
@@ -86,7 +88,6 @@ function BuilderInner() {
               </p>
             </div>
 
-            {/* Botão Publicar — posição de destaque no sidebar */}
             <Button
               size="sm"
               onClick={handleSave}
@@ -98,9 +99,8 @@ function BuilderInner() {
             </Button>
           </div>
 
-          {/* Linha 2: Undo/Redo + Ver ao vivo + Redefinir */}
+          {/* Linha 2: Undo / Redo / Ver ao vivo / Redefinir */}
           <div className="flex items-center gap-1 px-3 pb-2.5">
-            {/* Undo */}
             <button
               onClick={() => dispatch({ type: "UNDO" })}
               disabled={!canUndo}
@@ -109,7 +109,6 @@ function BuilderInner() {
             >
               <Undo2 className="h-3.5 w-3.5" />
             </button>
-            {/* Redo */}
             <button
               onClick={() => dispatch({ type: "REDO" })}
               disabled={!canRedo}
@@ -121,7 +120,6 @@ function BuilderInner() {
 
             <div className="mx-1 h-4 w-px bg-border shrink-0" />
 
-            {/* Ver ao vivo */}
             <Button
               variant="ghost"
               size="sm"
@@ -134,7 +132,6 @@ function BuilderInner() {
               </a>
             </Button>
 
-            {/* Redefinir */}
             <Button
               variant="ghost"
               size="sm"
@@ -151,10 +148,7 @@ function BuilderInner() {
         </div>
 
         {/* ── Tabs (Seções | Estilo Global) ─────────────────────────────────── */}
-        <div
-          className="flex shrink-0 border-b border-border"
-          style={{ minWidth: isMobile ? undefined : 320 }}
-        >
+        <div className="flex shrink-0 border-b border-border">
           <button
             onClick={() => dispatch({ type: "SET_TAB", tab: "sections" })}
             className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
@@ -178,7 +172,7 @@ function BuilderInner() {
           </button>
         </div>
 
-        {/* ── Conteúdo scrollável do sidebar ────────────────────────────────── */}
+        {/* ── Conteúdo scrollável ────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
           {activeTab === "sections" && (
             <div className="space-y-4">
@@ -198,112 +192,130 @@ function BuilderInner() {
       </aside>
 
       {/* ════════════════════════════════════════════════════════════════════
-          CANVAS DE PREVIEW — ocupa 100% da altura disponível
+          CANVAS DE PREVIEW
+          Estrutura:
+            1. Faixa Top-Offset de 44px → pill de controles (Desktop/Mobile/Toggle)
+            2. Preview → ThemeRenderer (desktop) ou MobilePreviewFrame (mobile)
+          A pill é PARTE DO FLUXO — nunca sobrep\u00f5e o conteúdo do site.
           ════════════════════════════════════════════════════════════════════ */}
-      <div className="relative flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
 
-        {/* ── Pill flutuante: Toggle Desktop / Mobile + Sidebar ─────────────── */}
+        {/* ── Faixa de 44px com os controles de visualização ──────────────────
+            Desktop: fundo branco (blend com o site) + controles em cinza escuro
+            Mobile: fundo escuro (blend com o frame do phone) + controles brancos
+            Transição suave ao trocar de modo. */}
         <div
+          className="flex h-11 shrink-0 items-center justify-center"
           style={{
-            position: "absolute",
-            top: 16,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            background: "rgba(0,0,0,0.55)",
-            backdropFilter: "blur(16px) saturate(180%)",
-            WebkitBackdropFilter: "blur(16px) saturate(180%)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 14,
-            padding: 4,
+            background: isMobile ? "#111114" : "#ffffff",
+            borderBottom: isMobile
+              ? "1px solid rgba(255,255,255,0.06)"
+              : "1px solid rgba(0,0,0,0.07)",
+            transition: "background 300ms ease",
           }}
         >
-          {/* Botão Sidebar toggle */}
-          <button
-            onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
-            title={isSidebarOpen ? "Ocultar painel" : "Mostrar painel"}
+          {/* Pill de controles */}
+          <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              width: 32,
-              height: 28,
-              borderRadius: 9,
-              background: "transparent",
-              border: "none",
-              color: "rgba(255,255,255,0.55)",
-              cursor: "pointer",
-              transition: "background 150ms, color 150ms",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)";
-              (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.9)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-              (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)";
+              gap: 2,
+              background: pillBg,
+              border: pillBorder,
+              borderRadius: 14,
+              padding: 4,
             }}
           >
-            {isSidebarOpen
-              ? <PanelLeftClose style={{ width: 14, height: 14 }} />
-              : <PanelLeftOpen style={{ width: 14, height: 14 }} />
-            }
-          </button>
+            {/* Toggle Sidebar */}
+            <button
+              onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+              title={isSidebarOpen ? "Ocultar painel" : "Mostrar painel"}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 28,
+                borderRadius: 9,
+                background: "transparent",
+                border: "none",
+                color: iconColor,
+                cursor: "pointer",
+                transition: "background 150ms, color 150ms",
+              }}
+              onMouseEnter={(e) => {
+                const b = e.currentTarget as HTMLButtonElement;
+                b.style.background = isMobile ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+                b.style.color = isMobile ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.8)";
+              }}
+              onMouseLeave={(e) => {
+                const b = e.currentTarget as HTMLButtonElement;
+                b.style.background = "transparent";
+                b.style.color = iconColor;
+              }}
+            >
+              {isSidebarOpen
+                ? <PanelLeftClose style={{ width: 14, height: 14 }} />
+                : <PanelLeftOpen style={{ width: 14, height: 14 }} />
+              }
+            </button>
 
-          {/* Divisor */}
-          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", margin: "0 2px" }} />
+            {/* Divisor */}
+            <div style={{ width: 1, height: 16, background: dividerColor, margin: "0 2px" }} />
 
-          {/* Desktop */}
-          <button
-            onClick={() => dispatch({ type: "SET_PREVIEW", mode: "desktop" })}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 28,
-              padding: "0 10px",
-              borderRadius: 9,
-              border: "none",
-              background: !isMobile ? "rgba(255,255,255,0.18)" : "transparent",
-              color: !isMobile ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.45)",
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "background 150ms, color 150ms",
-            }}
-          >
-            <Monitor style={{ width: 13, height: 13 }} />
-            Desktop
-          </button>
+            {/* Desktop */}
+            <button
+              onClick={() => dispatch({ type: "SET_PREVIEW", mode: "desktop" })}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                height: 28,
+                padding: "0 10px",
+                borderRadius: 9,
+                border: "none",
+                background: !isMobile
+                  ? (isMobile ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.09)")
+                  : "transparent",
+                color: !isMobile
+                  ? (isMobile ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.80)")
+                  : (isMobile ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"),
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "background 150ms, color 150ms",
+              }}
+            >
+              <Monitor style={{ width: 13, height: 13 }} />
+              Desktop
+            </button>
 
-          {/* Mobile */}
-          <button
-            onClick={() => dispatch({ type: "SET_PREVIEW", mode: "mobile" })}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 28,
-              padding: "0 10px",
-              borderRadius: 9,
-              border: "none",
-              background: isMobile ? "rgba(255,255,255,0.18)" : "transparent",
-              color: isMobile ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.45)",
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "background 150ms, color 150ms",
-            }}
-          >
-            <Smartphone style={{ width: 13, height: 13 }} />
-            Mobile
-          </button>
+            {/* Mobile */}
+            <button
+              onClick={() => dispatch({ type: "SET_PREVIEW", mode: "mobile" })}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                height: 28,
+                padding: "0 10px",
+                borderRadius: 9,
+                border: "none",
+                background: isMobile ? "rgba(255,255,255,0.18)" : "transparent",
+                color: isMobile ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.35)",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "background 150ms, color 150ms",
+              }}
+            >
+              <Smartphone style={{ width: 13, height: 13 }} />
+              Mobile
+            </button>
+          </div>
         </div>
 
-        {/* ── Área de Preview Propriamente ──────────────────────────────────── */}
+        {/* ── Preview — começa estritamente ABAIXO da faixa de 44px ─────────── */}
         {isMobile ? (
           <MobilePreviewFrame
             theme={theme}
