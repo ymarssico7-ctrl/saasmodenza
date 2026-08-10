@@ -201,7 +201,7 @@ export function GlobalSettings() {
           label="Logotipo"
           hint="📐 Recomendado: 400 × 150 px — Fundo transparente (PNG ou WebP). O logo é exibido no cabeçalho da loja."
           value={s.logoUrl ?? ""}
-          onChange={(v) => patch({ logoUrl: v || undefined })}
+          onChange={(v) => patch(v ? { logoUrl: v } : { logoUrl: undefined } as Record<string, unknown> as Partial<typeof s>)}
           maxWidth={800}
           maxHeight={300}
           previewHeight={64}
@@ -350,6 +350,106 @@ export function GlobalSettings() {
           <RotateCcw className="h-3.5 w-3.5" />
           Redefinir Tema
         </button>
+      </div>
+
+      {/* ── Checkout & Contato ─────────────────────────────────────────────── */}
+      <div className="border-t border-border pt-5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Checkout &amp; Contato
+        </p>
+
+        {/* Checkout Mode */}
+        <div className="space-y-1.5 mb-4">
+          <label className="text-xs font-medium text-muted-foreground">Modo de Checkout</label>
+          <div
+            className="flex shrink-0 items-center gap-0.5 rounded-xl p-[3px] w-full"
+            style={{ background: "var(--color-muted)" }}
+          >
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "UPDATE_SETTINGS", patch: { checkoutMode: "whatsapp" } })}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
+                (s.checkoutMode ?? "whatsapp") === "whatsapp"
+                  ? "bg-background text-foreground shadow-soft"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              📱 WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "UPDATE_SETTINGS", patch: { checkoutMode: "site" } })}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
+                s.checkoutMode === "site"
+                  ? "bg-background text-foreground shadow-soft"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              💳 Checkout no site
+            </button>
+          </div>
+        </div>
+
+        {/* WhatsApp number — only shown in whatsapp mode */}
+        {(s.checkoutMode ?? "whatsapp") === "whatsapp" && (
+          <div className="space-y-1.5 mb-4">
+            <label className="text-xs font-medium text-muted-foreground">Número do WhatsApp</label>
+            <input
+              type="tel"
+              value={s.storeWhatsApp ?? ""}
+              onChange={(e) => dispatch({ type: "UPDATE_SETTINGS", patch: { storeWhatsApp: e.target.value } })}
+              placeholder="(31) 99812-4477"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        )}
+
+        {/* Store Description */}
+        <div className="space-y-1.5 mb-4">
+          <label className="text-xs font-medium text-muted-foreground">Descrição da loja (rodapé)</label>
+          <textarea
+            value={s.storeDescription ?? ""}
+            onChange={(e) => dispatch({ type: "UPDATE_SETTINGS", patch: { storeDescription: e.target.value } })}
+            placeholder="Peças atemporais feitas em pequenos lotes…"
+            rows={2}
+            className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
+        {/* Política de Troca */}
+        <div className="space-y-1.5 mb-4">
+          <label className="text-xs font-medium text-muted-foreground">Política de troca</label>
+          <textarea
+            value={s.politicaTroca ?? ""}
+            onChange={(e) => dispatch({ type: "UPDATE_SETTINGS", patch: { politicaTroca: e.target.value } })}
+            placeholder="Trocas em até 7 dias…"
+            rows={3}
+            className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
+        {/* Mostrar estoque */}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3">
+          <div>
+            <p className="text-xs font-semibold">Mostrar estoque disponível</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Exibe quantidade disponível nos cards de produto.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={s.mostrarEstoque ?? false}
+            onClick={() => dispatch({ type: "UPDATE_SETTINGS", patch: { mostrarEstoque: !(s.mostrarEstoque ?? false) } })}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+              s.mostrarEstoque ? "bg-primary" : "bg-muted-foreground/30"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                s.mostrarEstoque ? "translate-x-4" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

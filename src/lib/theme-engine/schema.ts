@@ -26,6 +26,32 @@ export interface ThemeSettings {
   logoUrl?: string;
   freeShippingBanner: string;
   freeShippingBannerEnabled: boolean;
+  /**
+   * Como o botão "Finalizar compra" se comporta na vitrine.
+   * "whatsapp" → abre link wa.me com pedido formatado (padrão).
+   * "site"     → checkout direto no site (Pix, Cartão, etc.).
+   */
+  checkoutMode?: "whatsapp" | "site";
+  /**
+   * Número de WhatsApp da loja (usado quando checkoutMode = "whatsapp").
+   * Aceita "(31) 99812-4477" ou "5531998124477" — normalizado automaticamente.
+   */
+  storeWhatsApp?: string;
+  /**
+   * Descrição curta exibida no rodapé e página Sobre.
+   * Ex: "Moda feminina autoral, peças selecionadas à mão em BH."
+   */
+  storeDescription?: string;
+  /**
+   * Política de troca exibida na página de produto.
+   * Ex: "Trocas em até 7 dias corridos após o recebimento."
+   */
+  politicaTroca?: string;
+  /**
+   * Quando true exibe a quantidade em estoque nos cards/produto.
+   * Quando false exibe apenas "Disponível / Esgotado".
+   */
+  mostrarEstoque?: boolean;
   // Colors
   colorBackground: string;
   colorForeground: string;

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLink, Instagram, MessageCircle, Plug, Zap } from "lucide-react";
+import { CreditCard, ExternalLink, Instagram, MessageCircle, Plug, ShieldCheck, Zap } from "lucide-react";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard } from "@/components/loja/section-card";

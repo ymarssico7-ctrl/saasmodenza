@@ -1,12 +1,25 @@
-import type { ThemeConfig } from "./schema";
+import type { ThemeConfig, ThemeSettings } from "./schema";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "modaly_theme_config";
 
+const SETTINGS_DEFAULTS: Partial<ThemeSettings> = {
+  checkoutMode: "whatsapp",
+  storeWhatsApp: "(31) 99812-4477",
+  storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+  politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+  mostrarEstoque: false,
+};
+
 export function loadTheme(): ThemeConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ThemeConfig;
+    if (raw) {
+      const parsed = JSON.parse(raw) as ThemeConfig;
+      // Merge default values for any new fields missing from older saved themes
+      parsed.settings = { ...SETTINGS_DEFAULTS, ...parsed.settings };
+      return parsed;
+    }
   } catch {
     // ignore parse errors
   }
@@ -92,6 +105,11 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
     // ── Banner (site-header.tsx line 32-34) ──────────────────────────────────
     freeShippingBanner: "Frete grátis acima de R$ 599",
     freeShippingBannerEnabled: true,
+    checkoutMode: "whatsapp",
+    storeWhatsApp: "(31) 99812-4477",
+    storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+    mostrarEstoque: false,
 
     // ── Cores (styles.css :root — valores oklch exatos) ────────────────────
     // --background: oklch(0.963 0.008 85)
@@ -279,6 +297,11 @@ export const TEMPLATE_01_THEME: ThemeConfig = {
     tagline: "Moda atemporal em edições limitadas",
     freeShippingBanner: "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias",
     freeShippingBannerEnabled: true,
+    checkoutMode: "whatsapp",
+    storeWhatsApp: "(31) 99812-4477",
+    storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+    mostrarEstoque: false,
     // Cores — idênticas ao :root do template 01/src/styles.css
     colorBackground: "oklch(0.98 0.006 85)",
     colorForeground: "oklch(0.28 0.008 60)",
@@ -342,6 +365,11 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
     tagline: "Moda atemporal em pequenos lotes",
     freeShippingBanner: "Frete grátis acima de R$ 500 · Trocas em 30 dias",
     freeShippingBannerEnabled: true,
+    checkoutMode: "whatsapp",
+    storeWhatsApp: "(31) 99812-4477",
+    storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+    mostrarEstoque: false,
     // Cores — idênticas ao :root do atelie-loja/src/styles.css
     colorBackground: "oklch(0.962 0.006 85)",
     colorForeground: "oklch(0.155 0 0)",

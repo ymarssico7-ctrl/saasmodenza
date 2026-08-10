@@ -16,6 +16,8 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
+import { produtos as lojaProducts, loja } from "@/data/loja";
+import { openWhatsAppCheckout } from "@/lib/whatsapp";
 
 // ── Assets locais (idênticos ao template original) ────────────────────────────
 import heroImg from "@/assets/template-01/hero.jpg";
@@ -34,7 +36,7 @@ import p6 from "@/assets/template-01/p6.jpg";
 import d1 from "@/assets/template-01/detail-1.jpg";
 import d2 from "@/assets/template-01/detail-2.jpg";
 
-// ── Tipos de produto (idênticos ao data/products.ts original) ─────────────────
+// ── Tipos de produto (adaptado para o catálogo real) ─────────────────────────
 type Product = {
   id: string;
   nome: string;
@@ -47,6 +49,7 @@ type Product = {
   tamanhos: string[];
   badge?: string;
   avaliacao: number;
+  estoque: number;
 };
 
 const formatBRL = (valor: number) =>
@@ -56,98 +59,38 @@ const formatBRL = (valor: number) =>
     minimumFractionDigits: 0,
   });
 
-// ── Dados de produtos (idênticos ao data/products.ts original) ────────────────
-const PRODUCTS: Product[] = [
-  {
-    id: "casaco-alba",
-    nome: "Casaco Alba em Lã Dupla",
-    categoria: "Casacos",
-    preco: 2890,
-    imagem: p1,
-    imagemHover: d1,
-    cores: [
-      { nome: "Marfim", hex: "#efe8dc" },
-      { nome: "Grafite", hex: "#3b3b3b" },
-    ],
-    tamanhos: ["PP", "P", "M", "G"],
-    badge: "Novo",
+/** Returns true if a product's promotion is currently active */
+function isPromocaoAtiva(p: { promocaoInicio?: string; promocaoFim?: string }): boolean {
+  if (!p.promocaoInicio || !p.promocaoFim) return false;
+  const now = Date.now();
+  return now >= new Date(p.promocaoInicio).getTime() && now <= new Date(p.promocaoFim).getTime();
+}
+
+/** Adapter: maps loja Produto to the template's internal Product shape */
+function adaptProduto(p: (typeof lojaProducts)[0]): Product {
+  const emPromocao = isPromocaoAtiva(p);
+  const badge = p.estoque === 0 ? "Esgotado" : (emPromocao ? "Últimas peças" : (p.destaque ? "Novo" : undefined));
+  return {
+    id: p.id,
+    nome: p.nome,
+    categoria: p.categoria,
+    preco: emPromocao && p.precoPromocional ? p.precoPromocional : p.preco,
+    ...(emPromocao && p.precoPromocional ? { precoAntigo: p.preco } : {}),
+    imagem: p.imagem,
+    imagemHover: p.imagem, // template-01 has hover image; fall back to same image for real products
+    cores: p.cores.map((c) => ({ nome: c, hex: "#888888" })),
+    tamanhos: p.tamanhos,
+    ...(badge !== undefined ? { badge } : {}),
     avaliacao: 5,
-  },
-  {
-    id: "alfaiataria-vienna",
-    nome: "Calça Vienna Alfaiataria",
-    categoria: "Alfaiataria",
-    preco: 1190,
-    precoAntigo: 1490,
-    imagem: p2,
-    imagemHover: d1,
-    cores: [
-      { nome: "Camel", hex: "#b8804f" },
-      { nome: "Preto", hex: "#1c1c1c" },
-    ],
-    tamanhos: ["36", "38", "40", "42"],
-    badge: "Últimas peças",
-    avaliacao: 4,
-  },
-  {
-    id: "camisa-luce",
-    nome: "Camisa Luce em Popeline",
-    categoria: "Camisaria",
-    preco: 790,
-    imagem: p3,
-    imagemHover: d1,
-    cores: [
-      { nome: "Branco", hex: "#f7f5f1" },
-      { nome: "Areia", hex: "#d9c9b2" },
-    ],
-    tamanhos: ["PP", "P", "M", "G", "GG"],
-    avaliacao: 5,
-  },
-  {
-    id: "vestido-noir",
-    nome: "Vestido Noir em Seda",
-    categoria: "Vestidos",
-    preco: 2190,
-    imagem: p4,
-    imagemHover: d2,
-    cores: [
-      { nome: "Preto", hex: "#141414" },
-      { nome: "Bordô", hex: "#5b2530" },
-    ],
-    tamanhos: ["P", "M", "G"],
-    badge: "Novo",
-    avaliacao: 5,
-  },
-  {
-    id: "bolsa-mila",
-    nome: "Bolsa Mila Couro Nappa",
-    categoria: "Acessórios",
-    preco: 1690,
-    precoAntigo: 1990,
-    imagem: p5,
-    imagemHover: d1,
-    cores: [
-      { nome: "Taupe", hex: "#c79c73" },
-      { nome: "Preto", hex: "#1c1c1c" },
-    ],
-    tamanhos: ["Único"],
-    avaliacao: 4,
-  },
-  {
-    id: "tricot-ondine",
-    nome: "Tricot Ondine Merino",
-    categoria: "Malharia",
-    preco: 990,
-    imagem: p6,
-    imagemHover: d1,
-    cores: [
-      { nome: "Cinza", hex: "#7c7c7c" },
-      { nome: "Creme", hex: "#e6ded0" },
-    ],
-    tamanhos: ["P", "M", "G"],
-    avaliacao: 5,
-  },
-];
+    estoque: p.estoque,
+  };
+}
+
+/** All active products from the real catalogue */
+const PRODUCTS: Product[] = lojaProducts.filter((p) => p.ativo).map(adaptProduto);
+
+/** Unique categories derived from real products */
+const PRODUCT_CATEGORIES = Array.from(new Set(lojaProducts.filter((p) => p.ativo).map((p) => p.categoria)));
 
 // ── Navegação original ─────────────────────────────────────────────────────────
 const NAV = [
@@ -947,7 +890,7 @@ export function Template01Store({
             <div className="lg:col-span-1">
               <p className="font-serif text-2xl uppercase tracking-[0.3em]">{storeName}</p>
               <p className="mt-5 max-w-xs text-xs leading-loose text-muted-foreground">
-                Atelier de moda atemporal. Rua Oscar Freire 900, São Paulo.
+                {settings?.storeDescription ?? loja.descricao}
               </p>
             </div>
             {[
@@ -1067,7 +1010,7 @@ export function Template01Store({
               className="mt-4 w-full border-b border-border bg-transparent py-4 font-serif text-2xl transition-colors duration-300 placeholder:text-muted-foreground/60 focus:border-foreground focus:outline-none"
             />
             <div className="mt-8 flex flex-wrap gap-3">
-              {["Casacos", "Alfaiataria", "Seda", "Bolsas", "Tricô"].map((t) => (
+              {PRODUCT_CATEGORIES.map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -1171,9 +1114,30 @@ export function Template01Store({
             <button
               type="button"
               disabled={cart.length === 0}
+              onClick={() => {
+                const whatsapp = settings?.storeWhatsApp ?? loja.whatsapp;
+                if (whatsapp) {
+                  openWhatsAppCheckout(
+                    whatsapp,
+                    settings?.storeName ?? loja.nome,
+                    cart.map((i) => ({
+                      id: i.product.id,
+                      nome: i.product.nome,
+                      imagem: i.product.imagem,
+                      preco: i.product.preco,
+                      tamanho: i.tamanho,
+                      cor: i.product.cores[0]?.nome ?? "",
+                      quantidade: i.qtd,
+                    })),
+                    subtotal
+                  );
+                } else {
+                  alert("Configure o WhatsApp da loja nas Configurações para receber pedidos.");
+                }
+              }}
               className="mt-6 w-full bg-foreground py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-opacity duration-300 hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Finalizar compra
+              Finalizar compra via WhatsApp
             </button>
           </div>
         </aside>

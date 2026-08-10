@@ -18,6 +18,8 @@ import { useEffect, useRef, useState, useMemo, createContext, useContext } from 
 import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
+import { produtos as lojaProducts, loja } from "@/data/loja";
+import { openWhatsAppCheckout } from "@/lib/whatsapp";
 
 // ── Assets locais (14 imagens, idênticas ao template original) ────────────────
 import heroImg from "@/assets/template-02/hero.jpg";
@@ -35,154 +37,73 @@ import p6 from "@/assets/template-02/p6.jpg";
 import p7 from "@/assets/template-02/p7.jpg";
 import p8 from "@/assets/template-02/p8.jpg";
 
-// ── Tipos e dados (idênticos ao lib/catalog.ts original) ─────────────────────
-type Category = "feminino" | "masculino" | "acessorios";
-type ProductTag = "Novo" | "Esgotado" | "Últimas peças";
-
+// ── Adapter: Produto (loja.ts) → Product (template internal type) ────────────
 type Product = {
   slug: string;
   name: string;
   price: number;
   compareAt?: number;
-  category: Category;
+  category: string;
   categoryLabel: string;
   image: string;
   colors: { name: string; hex: string }[];
   sizes: string[];
-  tag?: ProductTag;
+  tag?: "Novo" | "Esgotado" | "Últimas peças";
   description: string;
   composition: string;
   isNew?: boolean;
+  estoque: number;
+  precoOculto?: boolean;
+  mostrarEstoque?: boolean;
 };
 
 const formatPrice = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const PRODUCTS: Product[] = [
-  {
-    slug: "casaco-alfaiataria-cru",
-    name: "Casaco Alfaiataria Cru",
-    price: 1290,
-    category: "feminino",
-    categoryLabel: "Feminino",
-    image: p1,
-    colors: [
-      { name: "Cru", hex: "#e8e4dd" },
-      { name: "Preto", hex: "#0d0d0d" },
-    ],
-    sizes: ["PP", "P", "M", "G", "GG"],
-    tag: "Novo",
-    isNew: true,
-    description: "Casaco de lã com caimento oversized e ombro estruturado.",
-    composition: "80% lã virgem, 20% poliamida. Forro em cupro.",
-  },
-  {
-    slug: "vestido-slip-seda",
-    name: "Vestido Slip de Seda",
-    price: 890,
-    compareAt: 1090,
-    category: "feminino",
-    categoryLabel: "Feminino",
-    image: p2,
-    colors: [
-      { name: "Preto", hex: "#0d0d0d" },
-      { name: "Areia", hex: "#c9b99a" },
-    ],
-    sizes: ["PP", "P", "M", "G"],
-    tag: "Últimas peças",
-    description: "Vestido midi em seda lavada com alças finas e fenda lateral.",
-    composition: "100% seda. Lavagem a seco.",
-  },
-  {
-    slug: "trico-gola-alta-cashmere",
-    name: "Tricô Gola Alta Cashmere",
-    price: 740,
-    category: "feminino",
-    categoryLabel: "Feminino",
-    image: p3,
-    colors: [
-      { name: "Off-white", hex: "#f5f3ee" },
-      { name: "Grafite", hex: "#2d2d2d" },
-    ],
-    sizes: ["PP", "P", "M", "G"],
-    isNew: true,
-    tag: "Novo",
-    description: "Tricô canelado em cashmere puro, gola alta.",
-    composition: "100% cashmere. Lavar à mão em água fria.",
-  },
-  {
-    slug: "calca-pantalona-preta",
-    name: "Calça Pantalona Preta",
-    price: 620,
-    category: "feminino",
-    categoryLabel: "Feminino",
-    image: p4,
-    colors: [
-      { name: "Preto", hex: "#0d0d0d" },
-      { name: "Grafite", hex: "#2d2d2d" },
-    ],
-    sizes: ["36", "38", "40", "42", "44"],
-    description: "Alfaiataria de cintura alta com perna ampla.",
-    composition: "62% viscose, 36% poliéster, 2% elastano.",
-  },
-  {
-    slug: "camisa-poplin-branca",
-    name: "Camisa Poplin Branca",
-    price: 480,
-    category: "masculino",
-    categoryLabel: "Masculino",
-    image: p5,
-    colors: [
-      { name: "Branco", hex: "#ffffff" },
-      { name: "Areia", hex: "#e8e4dd" },
-    ],
-    sizes: ["P", "M", "G", "GG"],
-    isNew: true,
-    tag: "Novo",
-    description: "Camisa oversized em popeline de algodão egípcio.",
-    composition: "100% algodão egípcio.",
-  },
-  {
-    slug: "bolsa-couro-estruturada",
-    name: "Bolsa Couro Estruturada",
-    price: 1450,
-    category: "acessorios",
-    categoryLabel: "Acessórios",
-    image: p6,
-    colors: [{ name: "Preto", hex: "#0d0d0d" }],
-    sizes: ["Único"],
-    description: "Bolsa de ombro em couro italiano de grão fino.",
-    composition: "Couro bovino italiano. Forro em algodão.",
-  },
-  {
-    slug: "mocassim-couro",
-    name: "Mocassim de Couro",
-    price: 980,
-    category: "acessorios",
-    categoryLabel: "Acessórios",
-    image: p7,
-    colors: [{ name: "Preto", hex: "#0d0d0d" }],
-    sizes: ["35", "36", "37", "38", "39", "40", "41", "42"],
-    tag: "Esgotado",
-    description: "Mocassim de bico levemente quadrado.",
-    composition: "Couro polido. Solado de borracha.",
-  },
-  {
-    slug: "blazer-la-grafite",
-    name: "Blazer Lã Grafite",
-    price: 1180,
-    category: "masculino",
-    categoryLabel: "Masculino",
-    image: p8,
-    colors: [
-      { name: "Grafite", hex: "#2d2d2d" },
-      { name: "Preto", hex: "#0d0d0d" },
-    ],
-    sizes: ["46", "48", "50", "52"],
-    description: "Blazer de dois botões em lã fria, ombro natural.",
-    composition: "96% lã, 4% elastano.",
-  },
-];
+/** Normalizes special characters for category keys */
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "-");
+}
+
+/** Returns true if the product has an active promotion right now */
+function isPromocaoAtiva(p: { promocaoInicio?: string; promocaoFim?: string }): boolean {
+  if (!p.promocaoInicio || !p.promocaoFim) return false;
+  const now = Date.now();
+  return now >= new Date(p.promocaoInicio).getTime() && now <= new Date(p.promocaoFim).getTime();
+}
+
+/** Adapter: maps loja Produto to the template's internal Product shape */
+function adaptProduto(p: (typeof lojaProducts)[0]): Product {
+  const emPromocao = isPromocaoAtiva(p);
+  const tag = p.estoque === 0 ? ("Esgotado" as const) : (emPromocao ? ("Últimas peças" as const) : (p.destaque ? ("Novo" as const) : undefined));
+  return {
+    slug: p.id,
+    name: p.nome,
+    price: emPromocao && p.precoPromocional ? p.precoPromocional : p.preco,
+    ...(emPromocao && p.precoPromocional ? { compareAt: p.preco } : {}),
+    category: slugify(p.categoria),
+    categoryLabel: p.categoria,
+    image: p.imagem,
+    colors: p.cores.map((c) => ({ name: c, hex: "#888888" })),
+    sizes: p.tamanhos,
+    ...(tag !== undefined ? { tag } : {}),
+    description: "",
+    composition: "",
+    isNew: p.destaque,
+    estoque: p.estoque,
+    ...(p.precoOculto ? { precoOculto: p.precoOculto } : {}),
+  };
+}
+
+/** All active products from the real store catalogue, adapted */
+const PRODUCTS: Product[] = lojaProducts.filter((p) => p.ativo).map(adaptProduto);
+
+/** Unique categories derived from real products */
+const PRODUCT_CATEGORIES = Array.from(new Set(lojaProducts.filter((p) => p.ativo).map((p) => p.categoria)));
 
 // ── Ícones SVG (idênticos ao icons.tsx original) ──────────────────────────────
 type IconProps = { className?: string };
@@ -503,7 +424,7 @@ function ProductCard({
 }
 
 // ── CartDrawer (idêntico ao cart-drawer.tsx original) ─────────────────────────
-function CartDrawer() {
+function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: string } }) {
   const { isOpen, close, items, subtotal, remove, setQuantity } = useCart();
   return (
     <div
@@ -610,9 +531,30 @@ function CartDrawer() {
           <button
             type="button"
             disabled={items.length === 0}
+            onClick={() => {
+              const whatsapp = storeMeta.whatsApp;
+              if (whatsapp) {
+                openWhatsAppCheckout(
+                  whatsapp,
+                  storeMeta.name,
+                  items.map((i) => ({
+                    id: i.id,
+                    nome: i.name,
+                    imagem: i.image,
+                    preco: i.price,
+                    tamanho: i.size,
+                    cor: i.color,
+                    quantidade: i.quantity,
+                  })),
+                  subtotal
+                );
+              } else {
+                alert("Configure o WhatsApp da loja nas Configurações para receber pedidos.");
+              }
+            }}
             className="mt-5 w-full bg-primary py-4 font-display text-[11px] uppercase tracking-[0.24em] text-primary-foreground transition-opacity hover:opacity-85 disabled:opacity-40"
           >
-            Finalizar compra
+            Finalizar compra via WhatsApp
           </button>
         </div>
       </aside>
@@ -735,7 +677,7 @@ function QuickAddModal({
 }
 
 // ── Footer (idêntico ao footer.tsx original) ──────────────────────────────────
-function Footer({ storeName }: { storeName: string }) {
+function Footer({ storeName, storeDescription }: { storeName: string; storeDescription?: string }) {
   const columns = [
     { title: "Loja", links: ["Feminino", "Masculino", "Acessórios", "Novidades"] },
     { title: "Ajuda", links: ["Entrega", "Trocas e devoluções", "Guia de medidas", "Contato"] },
@@ -751,8 +693,7 @@ function Footer({ storeName }: { storeName: string }) {
               {storeName}
             </p>
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-              Peças atemporais feitas em pequenos lotes, com tecidos naturais e
-              alfaiataria cuidadosa. São Paulo, Brasil.
+              {storeDescription || "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa."}
             </p>
             <form
               className="mt-8 flex items-center border-b border-foreground pb-2"
@@ -890,14 +831,15 @@ export function Template02Store({
   // ── Extrai dados das seções do Engine (mantido para compatibilidade de ref) ──
   const sections = theme?.sections ?? [];
 
-  const categorias = [
+  // Dynamic categories derived from real product catalogue
+  const categorias = useMemo(() => [
     { value: "todos", label: "Todos" },
-    { value: "feminino", label: "Feminino" },
-    { value: "masculino", label: "Masculino" },
-    { value: "acessorios", label: "Acessórios" },
-  ];
-  const tamanhos = ["PP", "P", "M", "G", "GG", "36", "38", "40", "42", "Único"];
-  const novidades = PRODUCTS.slice(0, 4);
+    ...PRODUCT_CATEGORIES.map((cat) => ({ value: slugify(cat), label: cat })),
+  ], []);
+  const tamanhos = useMemo(() =>
+    Array.from(new Set(PRODUCTS.flatMap((p) => p.sizes))).sort(),
+  []);
+  const novidades = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
 
   const filteredProducts = useMemo(() => {
     let list = [...PRODUCTS];
@@ -908,7 +850,7 @@ export function Template02Store({
     if (sortBy === "menor") list.sort((a, b) => a.price - b.price);
     if (sortBy === "maior") list.sort((a, b) => b.price - a.price);
     if (sortBy === "novidades")
-      list.sort((a, b) => Number(Boolean(b.isNew)) - Number(Boolean(a.isNew)));
+      list.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
     return list;
   }, [activeCategory, activeSize, sortBy]);
 
@@ -1022,9 +964,9 @@ export function Template02Store({
         const s = section as ProductGridSection;
         const products =
           s.settings.source === "newest"
-            ? novidades
+            ? PRODUCTS.filter((p) => p.isNew).slice(0, s.settings.count)
             : s.settings.source === "featured"
-              ? PRODUCTS.filter((p) => !p.isNew)
+              ? PRODUCTS.filter((p) => p.estoque > 0)
               : PRODUCTS;
         return (
           <SectionWrap key={section.id} section={section}>
@@ -1170,7 +1112,7 @@ export function Template02Store({
           <AnnouncementBar text={bannerText} />
         )}
         <Navbar storeName={storeName} {...(logoUrl ? { logoUrl } : {})} />
-        <CartDrawer />
+        <CartDrawer storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? loja.whatsapp }} />
         {quickAdd && (
           <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />
         )}
@@ -1273,7 +1215,7 @@ export function Template02Store({
           </section>
         </main>
 
-        <Footer storeName={storeName} />
+        <Footer storeName={storeName} storeDescription={settings?.storeDescription ?? loja.descricao} />
       </div>
     </CartProvider>
   );
