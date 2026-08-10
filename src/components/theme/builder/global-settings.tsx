@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageUploadField } from "./image-upload-field";
 import { Switch } from "@/components/ui/switch";
+import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import type { ThemeSettings, FontDisplay, FontBody, BorderRadius } from "@/lib/theme-engine/schema";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -319,6 +321,35 @@ export function GlobalSettings() {
             />
           ))}
         </div>
+      </div>
+
+      {/* ── Redefinir Tema — Ação destrutiva no rodapé (com confirmação) ─────
+          Localização intencional: dentro das configurações globais, não no
+          header do editor. O usuário precisa navegar até aqui para acionar,
+          evitando resets acidentais. Um clique pede confirmação. */}
+      <div className="mt-6 rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
+        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-destructive/70">
+          Zona de Risco
+        </p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Redefinir o tema restaura todas as configurações para o padrão original.
+          Esta ação não pode ser desfeita.
+        </p>
+        <button
+          onClick={() => {
+            const confirmed = window.confirm(
+              "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas."
+            );
+            if (confirmed) {
+              dispatch({ type: "RESET" });
+              toast.info("Tema redefinido para o padrão.");
+            }
+          }}
+          className="flex items-center gap-1.5 rounded-xl border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Redefinir Tema
+        </button>
       </div>
     </div>
   );

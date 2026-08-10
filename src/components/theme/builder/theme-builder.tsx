@@ -5,10 +5,8 @@ import {
   ExternalLink,
   Monitor,
   Paintbrush,
-  PanelLeftClose,
   PanelLeftOpen,
   Redo2,
-  RotateCcw,
   Smartphone,
   Undo2,
 } from "lucide-react";
@@ -23,7 +21,7 @@ import { SectionList } from "./section-list";
 import { SectionInspector } from "./section-inspector";
 import { GlobalSettings } from "./global-settings";
 
-// ── Inner builder (needs access to context) ───────────────────────────────────
+// ── Inner builder ─────────────────────────────────────────────────────────────
 function BuilderInner() {
   const {
     theme,
@@ -47,47 +45,74 @@ function BuilderInner() {
 
   const isMobile = previewMode === "mobile";
 
-  // Cores adaptadas ao modo (dark para Mobile, light para Desktop)
-  const pillBg = isMobile ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const pillBorder = isMobile ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.10)";
-  const dividerColor = isMobile ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
-  const iconColor = isMobile ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
-
   return (
-    // Layout raiz: full-screen, sem header, layout horizontal
     <div className="fixed inset-0 z-[9999] flex overflow-hidden bg-background">
 
       {/* ════════════════════════════════════════════════════════════════════
-          LEFT SIDEBAR — colapsa via CSS width transition
-          Mobile mode: 50% | Desktop mode: 320px | Fechado: 0px
+          COLLAPSED SIDEBAR STRIP — visible when sidebar is closed
+          A narrow 40px vertical strip with just the toggle icon.
+          Part of the layout flow (not absolute) → never covers the preview.
+          ════════════════════════════════════════════════════════════════════ */}
+      {!isSidebarOpen && (
+        <div
+          className="flex shrink-0 flex-col items-center border-r border-border bg-card pt-3"
+          style={{ width: 40 }}
+        >
+          <button
+            onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+            title="Mostrar painel de edição"
+            className="grid h-8 w-8 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          FULL SIDEBAR — collapses to 0px via width transition
           ════════════════════════════════════════════════════════════════════ */}
       <aside
         className="flex shrink-0 flex-col border-r border-border bg-card overflow-hidden"
         style={{
-          width: !isSidebarOpen ? 0 : isMobile ? "50%" : 320,
+          width: isSidebarOpen ? (isMobile ? "50%" : 320) : 0,
           transition: "width 300ms cubic-bezier(0.4, 0, 0.2, 1)",
           minHeight: 0,
         }}
       >
-        {/* ── Cabeçalho do Sidebar ─────────────────────────────────────────── */}
-        <div className="shrink-0 border-b border-border bg-card">
-          {/* Linha 1: Voltar + Info da loja + Publicar */}
-          <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-            <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-xl shrink-0">
+        {/* ── Cabeçalho — Linha 1: Voltar + Título + Publicar ─────────────────
+            Layout: [← Voltar | Personalizar / Ateliê] [VerAoVivo] [Publicar]
+            Mantém os elementos de navegação e publicação num só espaço limpo. */}
+        <div className="shrink-0 border-b border-border bg-card" style={{ minWidth: isMobile ? 0 : 320 }}>
+
+          {/* Linha 1 */}
+          <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+            {/* Voltar */}
+            <Button variant="ghost" size="icon" asChild className="h-8 w-8 shrink-0 rounded-xl">
               <Link to="/loja/configuracao">
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
 
+            {/* Título */}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold leading-tight">
-                Personalizar Loja
-              </p>
+              <p className="truncate text-sm font-semibold leading-tight">Personalizar Loja</p>
               <p className="truncate text-[11px] text-muted-foreground leading-tight">
                 {theme.settings.storeName}
               </p>
             </div>
 
+            {/* Ver ao vivo — ícone compacto */}
+            <a
+              href="/loja/preview"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Ver ao vivo"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+
+            {/* Publicar */}
             <Button
               size="sm"
               onClick={handleSave}
@@ -99,56 +124,87 @@ function BuilderInner() {
             </Button>
           </div>
 
-          {/* Linha 2: Undo / Redo / Ver ao vivo / Redefinir */}
+          {/* ── Linha 2: Undo/Redo | Alternador Desktop / Mobile ─────────────────
+              Reorganização genial: histórico à esquerda, viewport à direita.
+              Toda a lógica de troca de visualização vive aqui — canvas 100% livre. */}
           <div className="flex items-center gap-1 px-3 pb-2.5">
+            {/* Undo */}
             <button
               onClick={() => dispatch({ type: "UNDO" })}
               disabled={!canUndo}
               title="Desfazer (Ctrl+Z)"
-              className="grid h-7 w-7 place-items-center rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground hover:enabled:bg-secondary hover:enabled:text-foreground"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:enabled:bg-secondary hover:enabled:text-foreground"
             >
               <Undo2 className="h-3.5 w-3.5" />
             </button>
+
+            {/* Redo */}
             <button
               onClick={() => dispatch({ type: "REDO" })}
               disabled={!canRedo}
               title="Refazer (Ctrl+Y)"
-              className="grid h-7 w-7 place-items-center rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground hover:enabled:bg-secondary hover:enabled:text-foreground"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:enabled:bg-secondary hover:enabled:text-foreground"
             >
               <Redo2 className="h-3.5 w-3.5" />
             </button>
 
-            <div className="mx-1 h-4 w-px bg-border shrink-0" />
+            {/* Divisor vertical */}
+            <div className="mx-1.5 h-4 w-px shrink-0 bg-border" />
 
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="h-7 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
+            {/* ── Segmented Switch: Desktop | Mobile ──────────────────────────── */}
+            <div
+              className="flex items-center gap-0.5 rounded-xl p-1"
+              style={{ background: "var(--color-muted)", flex: 1 }}
             >
-              <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3" />
-                Ver ao vivo
-              </a>
-            </Button>
+              {/* Desktop */}
+              <button
+                onClick={() => dispatch({ type: "SET_PREVIEW", mode: "desktop" })}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                  !isMobile
+                    ? "bg-background text-foreground shadow-soft"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Monitor className="h-3 w-3" />
+                Desktop
+              </button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                dispatch({ type: "RESET" });
-                toast.info("Tema redefinido para o padrão.");
-              }}
-              className="h-7 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
+              {/* Mobile */}
+              <button
+                onClick={() => dispatch({ type: "SET_PREVIEW", mode: "mobile" })}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                  isMobile
+                    ? "bg-background text-foreground shadow-soft"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Smartphone className="h-3 w-3" />
+                Mobile
+              </button>
+            </div>
+
+            {/* Botão de colapsar sidebar */}
+            <button
+              onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+              title="Ocultar painel"
+              className="ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              <RotateCcw className="h-3 w-3" />
-              Redefinir
-            </Button>
+              {/* Icon: panel left close (represented by PanelLeftOpen rotated) */}
+              <svg
+                width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <polyline points="15 8 11 12 15 16"/>
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* ── Tabs (Seções | Estilo Global) ─────────────────────────────────── */}
-        <div className="flex shrink-0 border-b border-border">
+        {/* ── Tabs: Seções | Estilo Global ──────────────────────────────────── */}
+        <div className="flex shrink-0 border-b border-border" style={{ minWidth: isMobile ? 0 : 320 }}>
           <button
             onClick={() => dispatch({ type: "SET_TAB", tab: "sections" })}
             className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
@@ -192,157 +248,36 @@ function BuilderInner() {
       </aside>
 
       {/* ════════════════════════════════════════════════════════════════════
-          CANVAS DE PREVIEW
-          Estrutura:
-            1. Faixa Top-Offset de 44px → pill de controles (Desktop/Mobile/Toggle)
-            2. Preview → ThemeRenderer (desktop) ou MobilePreviewFrame (mobile)
-          A pill é PARTE DO FLUXO — nunca sobrep\u00f5e o conteúdo do site.
+          CANVAS DE PREVIEW — 100% da altura disponível, zero barras fixas
+          O seletor Desktop/Mobile foi movido para o Sidebar.
+          Nenhum elemento sobreposto sobre o conteúdo da loja.
           ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-
-        {/* ── Faixa de 44px com os controles de visualização ──────────────────
-            Desktop: fundo branco (blend com o site) + controles em cinza escuro
-            Mobile: fundo escuro (blend com o frame do phone) + controles brancos
-            Transição suave ao trocar de modo. */}
-        <div
-          className="flex h-11 shrink-0 items-center justify-center"
-          style={{
-            background: isMobile ? "#111114" : "#ffffff",
-            borderBottom: isMobile
-              ? "1px solid rgba(255,255,255,0.06)"
-              : "1px solid rgba(0,0,0,0.07)",
-            transition: "background 300ms ease",
-          }}
-        >
-          {/* Pill de controles */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              background: pillBg,
-              border: pillBorder,
-              borderRadius: 14,
-              padding: 4,
-            }}
-          >
-            {/* Toggle Sidebar */}
-            <button
-              onClick={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
-              title={isSidebarOpen ? "Ocultar painel" : "Mostrar painel"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 32,
-                height: 28,
-                borderRadius: 9,
-                background: "transparent",
-                border: "none",
-                color: iconColor,
-                cursor: "pointer",
-                transition: "background 150ms, color 150ms",
-              }}
-              onMouseEnter={(e) => {
-                const b = e.currentTarget as HTMLButtonElement;
-                b.style.background = isMobile ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
-                b.style.color = isMobile ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.8)";
-              }}
-              onMouseLeave={(e) => {
-                const b = e.currentTarget as HTMLButtonElement;
-                b.style.background = "transparent";
-                b.style.color = iconColor;
-              }}
-            >
-              {isSidebarOpen
-                ? <PanelLeftClose style={{ width: 14, height: 14 }} />
-                : <PanelLeftOpen style={{ width: 14, height: 14 }} />
-              }
-            </button>
-
-            {/* Divisor */}
-            <div style={{ width: 1, height: 16, background: dividerColor, margin: "0 2px" }} />
-
-            {/* Desktop */}
-            <button
-              onClick={() => dispatch({ type: "SET_PREVIEW", mode: "desktop" })}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                height: 28,
-                padding: "0 10px",
-                borderRadius: 9,
-                border: "none",
-                background: !isMobile
-                  ? (isMobile ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.09)")
-                  : "transparent",
-                color: !isMobile
-                  ? (isMobile ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.80)")
-                  : (isMobile ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"),
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "background 150ms, color 150ms",
-              }}
-            >
-              <Monitor style={{ width: 13, height: 13 }} />
-              Desktop
-            </button>
-
-            {/* Mobile */}
-            <button
-              onClick={() => dispatch({ type: "SET_PREVIEW", mode: "mobile" })}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                height: 28,
-                padding: "0 10px",
-                borderRadius: 9,
-                border: "none",
-                background: isMobile ? "rgba(255,255,255,0.18)" : "transparent",
-                color: isMobile ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.35)",
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "background 150ms, color 150ms",
-              }}
-            >
-              <Smartphone style={{ width: 13, height: 13 }} />
-              Mobile
-            </button>
-          </div>
-        </div>
-
-        {/* ── Preview — começa estritamente ABAIXO da faixa de 44px ─────────── */}
-        {isMobile ? (
-          <MobilePreviewFrame
+      {isMobile ? (
+        <MobilePreviewFrame
+          theme={theme}
+          highlightId={selectedSection?.id ?? null}
+          isSidebarOpen={isSidebarOpen}
+          onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
+          onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
+          onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+          onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
+        />
+      ) : (
+        <main className="relative flex-1 overflow-auto bg-white">
+          <ThemeRenderer
             theme={theme}
             highlightId={selectedSection?.id ?? null}
-            isSidebarOpen={isSidebarOpen}
             onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
             onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
             onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
-            onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
           />
-        ) : (
-          <main className="relative flex-1 overflow-auto bg-white">
-            <ThemeRenderer
-              theme={theme}
-              highlightId={selectedSection?.id ?? null}
-              onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
-              onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
-              onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
-            />
-          </main>
-        )}
-      </div>
+        </main>
+      )}
     </div>
   );
 }
 
-// ── Public Export (wraps in Provider) ────────────────────────────────────────
+// ── Public Export ─────────────────────────────────────────────────────────────
 export function ThemeBuilder() {
   return (
     <BuilderProvider>
