@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentUserId, inventoryQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf } from "@/lib/finance";
+import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -62,25 +63,38 @@ function Estoque() {
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome da peça");
       const user_id = await currentUserId();
-      const { error } = await supabase.from("inventory_items").insert({
-        user_id,
-        name: name.trim(),
-        category,
-        color: color.trim() || null,
-        supplier: supplier.trim() || null,
-        cost_price: toNumber(cost),
-        sale_price: toNumber(price),
-        sizes,
-      });
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .insert({
+          user_id,
+          name: name.trim(),
+          category,
+          color: color.trim() || null,
+          supplier: supplier.trim() || null,
+          cost_price: toNumber(cost),
+          sale_price: toNumber(price),
+          sizes,
+        })
+        .select("id")
+        .single();
       if (error) throw new Error(error.message);
+      return data?.id as string | undefined;
     },
-    onSuccess: () => {
+    onSuccess: (newId) => {
       toast.success("Peça adicionada ao estoque");
       setName("");
       setColor("");
       setCost("");
       setPrice("");
       setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+      // Auto-publicar na vitrine se a flag estiver ativa
+      if (newId && getAutoPublish()) {
+        patchShowcaseConfig(newId, { ativo: true });
+        toast.info("Peça publicada automaticamente na vitrine", {
+          description: "Você pode ajustar a visibilidade em Loja → Produtos.",
+          duration: 4000,
+        });
+      }
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
     onError: (e: Error) => toast.error(e.message),

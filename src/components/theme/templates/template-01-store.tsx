@@ -16,8 +16,14 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
-import { produtos as lojaProducts, loja } from "@/data/loja";
+import { useQuery } from "@tanstack/react-query";
+import { loja } from "@/data/loja";
+import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
+import {
+  mergeInventoryWithShowcase,
+  type ShowcaseProduct,
+} from "@/lib/showcase-store";
 
 // ── Assets locais (idênticos ao template original) ────────────────────────────
 import heroImg from "@/assets/template-01/hero.jpg";
@@ -59,38 +65,35 @@ const formatBRL = (valor: number) =>
     minimumFractionDigits: 0,
   });
 
-/** Returns true if a product's promotion is currently active */
-function isPromocaoAtiva(p: { promocaoInicio?: string; promocaoFim?: string }): boolean {
-  if (!p.promocaoInicio || !p.promocaoFim) return false;
-  const now = Date.now();
-  return now >= new Date(p.promocaoInicio).getTime() && now <= new Date(p.promocaoFim).getTime();
-}
-
-/** Adapter: maps loja Produto to the template's internal Product shape */
-function adaptProduto(p: (typeof lojaProducts)[0]): Product {
-  const emPromocao = isPromocaoAtiva(p);
-  const badge = p.estoque === 0 ? "Esgotado" : (emPromocao ? "Últimas peças" : (p.destaque ? "Novo" : undefined));
+/** Adapter: maps a ShowcaseProduct (inventory + showcase config merged) to the template's internal Product */
+function adaptShowcaseProduct(p: ShowcaseProduct): Product {
+  const badge =
+    p.totalEstoque === 0
+      ? "Esgotado"
+      : p.emPromocao
+        ? "Promoção"
+        : p.showcase.destaque
+          ? "Novidade"
+          : undefined;
+  const sizesObj = (p.sizes ?? {}) as Record<string, number>;
+  const tamanhos = Object.entries(sizesObj)
+    .filter(([, qty]) => qty > 0)
+    .map(([size]) => size);
   return {
     id: p.id,
-    nome: p.nome,
-    categoria: p.categoria,
-    preco: emPromocao && p.precoPromocional ? p.precoPromocional : p.preco,
-    ...(emPromocao && p.precoPromocional ? { precoAntigo: p.preco } : {}),
-    imagem: p.imagem,
-    imagemHover: p.imagem, // template-01 has hover image; fall back to same image for real products
-    cores: p.cores.map((c) => ({ nome: c, hex: "#888888" })),
-    tamanhos: p.tamanhos,
+    nome: p.name,
+    categoria: p.category,
+    preco: p.precoEfetivo,
+    ...(p.emPromocao && p.showcase.precoPromocional ? { precoAntigo: p.sale_price } : {}),
+    imagem: p.photo_url ?? `https://placehold.co/400x520/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
+    imagemHover: p.photo_url ?? `https://placehold.co/400x520/f0f0f0/888?text=${encodeURIComponent(p.name)}`,
+    cores: p.color ? [{ nome: p.color, hex: "#888888" }] : [],
+    tamanhos: tamanhos.length > 0 ? tamanhos : ["Único"],
     ...(badge !== undefined ? { badge } : {}),
     avaliacao: 5,
-    estoque: p.estoque,
+    estoque: p.totalEstoque,
   };
 }
-
-/** All active products from the real catalogue */
-const PRODUCTS: Product[] = lojaProducts.filter((p) => p.ativo).map(adaptProduto);
-
-/** Unique categories derived from real products */
-const PRODUCT_CATEGORIES = Array.from(new Set(lojaProducts.filter((p) => p.ativo).map((p) => p.categoria)));
 
 // ── Navegação original ─────────────────────────────────────────────────────────
 const NAV = [

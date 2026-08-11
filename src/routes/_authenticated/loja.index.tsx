@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Area,
   AreaChart,
@@ -8,9 +10,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Copy, MessageCircle, Receipt, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import { ArrowUpRight, Copy, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import { inventoryQuery } from "@/lib/db";
+import { hasAnyActiveProduct, bulkActivateAll } from "@/lib/showcase-store";
 import { PageHeader } from "@/components/loja/page-header";
 import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
@@ -47,8 +51,73 @@ function VisaoGeral() {
     toast.success("Link da loja copiado", { description: "Cole no Instagram, WhatsApp ou TikTok." });
   };
 
+  // ── Onboarding Aha! Moment ─────────────────────────────────────────────────
+  const { data: inventoryItems = [] } = useQuery(inventoryQuery());
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Show banner only if there are inventory items but none active in the showcase
+    if (inventoryItems.length > 0 && !hasAnyActiveProduct()) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
+  }, [inventoryItems]);
+
+  const ativarTodasNaVitrine = () => {
+    bulkActivateAll(inventoryItems.map((i) => i.id));
+    setShowOnboarding(false);
+    toast.success(
+      `${inventoryItems.length} ${inventoryItems.length === 1 ? "peça publicada" : "peças publicadas"} na vitrine! 🚀`,
+      { description: "Acesse \"Produtos\" para personalizar a ordem e destaques." },
+    );
+  };
+
   return (
       <div className="space-y-6">
+        {/* ── ONBOARDING: AHA MOMENT BANNER ─────────────────────────────── */}
+        {showOnboarding && (
+          <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary-soft via-primary-soft/60 to-transparent p-6 shadow-glow">
+            <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-primary/10 blur-2xl" />
+            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
+                  <Rocket className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">
+                    Sua loja está pronta para decolar! 🚀
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Encontramos{" "}
+                    <span className="font-semibold text-foreground">
+                      {inventoryItems.length} {inventoryItems.length === 1 ? "peça" : "peças"}
+                    </span>{" "}
+                    no seu estoque de gestão. Publique tudo na vitrine com um clique.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full text-xs"
+                  onClick={() => setShowOnboarding(false)}
+                >
+                  Agora não
+                </Button>
+                <Button
+                  size="sm"
+                  className="gradient-primary rounded-full text-xs shadow-glow"
+                  onClick={ativarTodasNaVitrine}
+                >
+                  Publicar na Vitrine
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <PageHeader
           eyebrow="Loja online"
           title={`Bom te ver, ${(loja.nome.split(" ")[0] ?? loja.nome)}`}
