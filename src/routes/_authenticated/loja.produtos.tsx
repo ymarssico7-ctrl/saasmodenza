@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, EyeOff, Search, Sparkles, Star, Tag as TagIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, Camera, EyeOff, Plus, Search, Sparkles, Star, Tag as TagIcon, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
@@ -79,6 +79,11 @@ function ProdutosPage() {
   const [promocaoInicio, setPromocaoInicio] = useState("");
   const [promocaoFim, setPromocaoFim] = useState("");
 
+  // Estado do modal de Fotos da Vitrine
+  const [vitrineFotosId, setVitrineFotosId] = useState<string | null>(null);
+  const [vitrineFotosTemp, setVitrineFotosTemp] = useState<string[]>([]);
+  const [novaFotoUrl, setNovaFotoUrl] = useState("");
+
   // ── Derived ───────────────────────────────────────────────────────
   const categoriasDisponiveis = useMemo(() => {
     const vals = Array.from(new Set(rawItems.map((i) => i.category)));
@@ -143,6 +148,45 @@ function ProdutosPage() {
     });
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
   };
+
+  // Abre o modal de fotos para o produto selecionado
+  const abrirFotos = (p: ShowcaseProduct) => {
+    setVitrineFotosId(p.id);
+    setVitrineFotosTemp([...p.vitrineFotos]);
+    setNovaFotoUrl("");
+  };
+
+  const adicionarFoto = () => {
+    const url = novaFotoUrl.trim();
+    if (!url) return;
+    // Evita duplicatas
+    if (vitrineFotosTemp.includes(url)) {
+      toast.error("Essa URL já foi adicionada.");
+      return;
+    }
+    setVitrineFotosTemp((prev) => [...prev, url]);
+    setNovaFotoUrl("");
+  };
+
+  const removerFoto = (url: string) => {
+    setVitrineFotosTemp((prev) => prev.filter((f) => f !== url));
+  };
+
+  const salvarFotosVitrine = () => {
+    if (!vitrineFotosId) return;
+    const produto = produtos.find((p) => p.id === vitrineFotosId);
+    patchShowcaseConfig(vitrineFotosId, { vitrineFotos: vitrineFotosTemp });
+    setShowcaseVersion((v) => v + 1);
+    setVitrineFotosId(null);
+    toast.success("Fotos da vitrine salvas!", {
+      description:
+        vitrineFotosTemp.length === 0
+          ? `${produto?.name ?? "Produto"} voltou a usar a foto do estoque.`
+          : `${vitrineFotosTemp.length} foto${vitrineFotosTemp.length > 1 ? "s" : ""} premium adicionada${vitrineFotosTemp.length > 1 ? "s" : ""} para ${produto?.name ?? "o produto"}.`,
+    });
+  };
+
+  const emFotosProduto = produtos.find((p) => p.id === vitrineFotosId) ?? null;
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -244,20 +288,42 @@ function ProdutosPage() {
                   key={p.id}
                   className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-4 px-4 py-4 transition-colors duration-200 hover:bg-secondary/40 sm:px-5"
                 >
-                  {p.photo_url ? (
-                    <img
-                      src={p.photo_url}
-                      alt={p.name}
-                      loading="lazy"
-                      width={640}
-                      height={800}
-                      className="h-20 w-16 shrink-0 rounded-xl object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary text-2xl">
-                      👗
+                  {/* Thumbnail: prefere foto da vitrine, fallback para foto do estoque */}
+                  <button
+                    type="button"
+                    title="Gerenciar fotos da vitrine"
+                    onClick={() => abrirFotos(p)}
+                    className="group/thumb relative shrink-0 cursor-pointer"
+                  >
+                    {p.fotoEfetiva ? (
+                      <img
+                        src={p.fotoEfetiva}
+                        alt={p.name}
+                        loading="lazy"
+                        width={640}
+                        height={800}
+                        className="h-20 w-16 rounded-xl object-cover transition-opacity group-hover/thumb:opacity-80"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary text-2xl transition-colors group-hover/thumb:bg-secondary/60">
+                        👗
+                      </div>
+                    )}
+                    {/* Badge: indica se a foto é da vitrine (premium) ou do estoque (básica) */}
+                    {p.vitrineFotos.length > 0 ? (
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow">
+                        {p.vitrineFotos.length}
+                      </span>
+                    ) : (
+                      <span className="absolute -bottom-1 left-0 right-0 mx-auto w-fit rounded-full bg-muted px-1.5 py-0.5 text-[8px] font-medium text-muted-foreground shadow">
+                        Básica
+                      </span>
+                    )}
+                    {/* Overlay: ícone de câmera no hover */}
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-foreground/0 transition-colors group-hover/thumb:bg-foreground/30">
+                      <Camera className="h-4 w-4 text-white opacity-0 transition-opacity group-hover/thumb:opacity-100" />
                     </div>
-                  )}
+                  </button>
 
                   <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                     <div className="min-w-0">
@@ -331,6 +397,36 @@ function ProdutosPage() {
                       >
                         <Star className={cn("h-4 w-4", p.showcase.destaque && "fill-current")} />
                       </Button>
+                        {/* Promoção */}
+                       <Button
+                         variant="outline"
+                         className="h-9 rounded-full text-xs"
+                         onClick={() => {
+                           setPromocaoId(p.id);
+                           setPromocaoPreco(
+                             p.showcase.precoPromocional
+                               ? String(p.showcase.precoPromocional)
+                               : "",
+                           );
+                           setPromocaoInicio(p.showcase.promocaoInicio ?? "");
+                           setPromocaoFim(p.showcase.promocaoFim ?? "");
+                         }}
+                       >
+                         <TagIcon className="mr-1.5 h-3.5 w-3.5" /> Promoção
+                       </Button>
+
+                       {/* Fotos da Vitrine */}
+                       <Button
+                         variant="outline"
+                         className={cn(
+                           "h-9 rounded-full text-xs",
+                           p.vitrineFotos.length > 0 && "border-primary/40 text-primary",
+                         )}
+                         onClick={() => abrirFotos(p)}
+                       >
+                         <Camera className="mr-1.5 h-3.5 w-3.5" />
+                         {p.vitrineFotos.length > 0 ? `${p.vitrineFotos.length} foto${p.vitrineFotos.length > 1 ? "s" : ""}` : "Fotos"}
+                       </Button>
 
                       {/* Ocultar preço */}
                       <Button
@@ -346,23 +442,6 @@ function ProdutosPage() {
                         <EyeOff className="h-4 w-4" />
                       </Button>
 
-                      {/* Promoção */}
-                      <Button
-                        variant="outline"
-                        className="h-9 rounded-full text-xs"
-                        onClick={() => {
-                          setPromocaoId(p.id);
-                          setPromocaoPreco(
-                            p.showcase.precoPromocional
-                              ? String(p.showcase.precoPromocional)
-                              : "",
-                          );
-                          setPromocaoInicio(p.showcase.promocaoInicio ?? "");
-                          setPromocaoFim(p.showcase.promocaoFim ?? "");
-                        }}
-                      >
-                        <TagIcon className="mr-1.5 h-3.5 w-3.5" /> Promoção
-                      </Button>
 
                       {/* Toggle visível */}
                       <div className="ml-1 flex items-center gap-2">
@@ -406,9 +485,9 @@ function ProdutosPage() {
                   }}
                 >
                   <div className="flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 p-3">
-                    {emPromocaoProduto.photo_url ? (
+                    {emPromocaoProduto.fotoEfetiva ? (
                       <img
-                        src={emPromocaoProduto.photo_url}
+                        src={emPromocaoProduto.fotoEfetiva}
                         alt={emPromocaoProduto.name}
                         loading="lazy"
                         width={640}
@@ -465,6 +544,145 @@ function ProdutosPage() {
                     Salvar promoção
                   </Button>
                 </form>
+              </>
+            ) : null}
+          </SheetContent>
+        </Sheet>
+
+        {/* Sheet de Fotos da Vitrine */}
+        <Sheet
+          open={vitrineFotosId !== null}
+          onOpenChange={(o) => !o && setVitrineFotosId(null)}
+        >
+          <SheetContent className="w-full sm:max-w-lg">
+            {emFotosProduto ? (
+              <>
+                <SheetHeader className="text-left">
+                  <SheetTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-primary" />
+                    Fotos da Vitrine
+                  </SheetTitle>
+                  <SheetDescription>
+                    Adicione fotos profissionais que serão exibidas <strong>exclusivamente na loja online</strong>. A foto do estoque continua intacta.
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="flex flex-col gap-5 px-4 pb-8">
+                  {/* Preview da foto atual do estoque */}
+                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-secondary/40 p-3">
+                    {emFotosProduto.photo_url ? (
+                      <img
+                        src={emFotosProduto.photo_url}
+                        alt={emFotosProduto.name}
+                        loading="lazy"
+                        width={640}
+                        height={800}
+                        className="h-14 w-11 rounded-lg object-cover opacity-60"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-11 items-center justify-center rounded-lg bg-secondary text-xl opacity-60">
+                        👗
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{emFotosProduto.name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {emFotosProduto.photo_url ? "Foto básica do estoque (será substituída abaixo)" : "Sem foto no estoque"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Galeria de fotos premium */}
+                  {vitrineFotosTemp.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fotos da Vitrine ({vitrineFotosTemp.length})</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {vitrineFotosTemp.map((url, i) => (
+                          <div key={url} className="group relative">
+                            <img
+                              src={url}
+                              alt={`Foto ${i + 1}`}
+                              loading="lazy"
+                              className="aspect-[3/4] w-full rounded-xl object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://placehold.co/120x160/f5f5f5/999?text=Erro`;
+                              }}
+                            />
+                            {i === 0 && (
+                              <span className="absolute left-1 top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+                                Capa
+                              </span>
+                            )}
+                            {i === 1 && (
+                              <span className="absolute left-1 top-1 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-medium text-foreground">
+                                Hover
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removerFoto(url)}
+                              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 shadow transition-opacity group-hover:opacity-100"
+                              aria-label="Remover foto"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        A 1ª foto é a capa. A 2ª aparece no hover (passa o mouse por cima) nos templates que suportam.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Input de nova URL */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Adicionar foto por URL</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={novaFotoUrl}
+                        onChange={(e) => setNovaFotoUrl(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarFoto())}
+                        placeholder="https://exemplo.com/foto.jpg"
+                        className="h-11 flex-1 rounded-xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-11 rounded-xl"
+                        onClick={adicionarFoto}
+                        disabled={!novaFotoUrl.trim()}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Cole a URL de uma foto hospedada online. Recomendamos fotos com fundo limpo, boa iluminação e proporção 3:4 (ex: 600x800px).
+                    </p>
+                  </div>
+
+                  {/* Ações */}
+                  <div className="flex gap-2 pt-2">
+                    {vitrineFotosTemp.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-xl text-xs text-destructive hover:text-destructive"
+                        onClick={() => setVitrineFotosTemp([])}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remover todas
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      className="gradient-primary flex-1 rounded-xl shadow-glow"
+                      onClick={salvarFotosVitrine}
+                    >
+                      Salvar fotos
+                    </Button>
+                  </div>
+                </div>
               </>
             ) : null}
           </SheetContent>

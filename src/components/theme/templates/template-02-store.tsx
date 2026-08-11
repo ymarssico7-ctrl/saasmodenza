@@ -98,7 +98,7 @@ function adaptShowcaseProduct(p: ShowcaseProduct): Product {
     category: slugify(p.category),
     categoryLabel: p.category,
     image:
-      p.photo_url ??
+      p.fotoEfetiva ??
       `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
     colors: p.color ? [{ name: p.color, hex: "#888888" }] : [],
     sizes: sizes.length > 0 ? sizes : ["Único"],

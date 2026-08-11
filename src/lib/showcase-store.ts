@@ -36,6 +36,12 @@ export type ShowcaseItemConfig = {
   ordem: number;
   /** Timestamp da última atualização. */
   updatedAt: string;
+  /**
+   * Galeria de fotos premium exclusiva da vitrine.
+   * Se preenchida, substitui a foto básica do estoque nos templates da loja.
+   * Primeira foto = capa; segunda foto = hover (se o template suportar).
+   */
+  vitrineFotos?: string[];
 };
 
 export type ShowcaseConfigMap = Record<string, ShowcaseItemConfig>;
@@ -195,6 +201,16 @@ export type ShowcaseProduct = InventoryItem & {
   precoEfetivo: number;
   /** Se há promoção ativa agora */
   emPromocao: boolean;
+  /**
+   * Foto efetiva a usar nos templates.
+   * Prioridade: vitrineFotos[0] > photo_url (foto básica do estoque) > null.
+   */
+  fotoEfetiva: string | null;
+  /**
+   * Galeria completa de fotos da vitrine (para carrosséis e hover).
+   * Vazia se nenhuma foto premium foi cadastrada.
+   */
+  vitrineFotos: string[];
 };
 
 /** Verifica se a promoção do produto está ativa no momento atual */
@@ -227,12 +243,18 @@ export function mergeWithShowcase(item: InventoryItem): ShowcaseProduct {
   const precoEfetivo =
     emPromocao && showcase.precoPromocional ? showcase.precoPromocional : item.sale_price;
 
+  // Galeria premium da vitrine (sobrescreve a foto básica do estoque)
+  const vitrineFotos = showcase.vitrineFotos ?? [];
+  const fotoEfetiva = vitrineFotos[0] ?? item.photo_url;
+
   return {
     ...item,
     showcase,
     totalEstoque,
     precoEfetivo,
     emPromocao,
+    fotoEfetiva,
+    vitrineFotos,
   };
 }
 

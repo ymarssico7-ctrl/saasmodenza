@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Copy, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import { ArrowUpRight, Camera, Copy, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { inventoryQuery } from "@/lib/db";
@@ -95,6 +95,14 @@ function VisaoGeral() {
                     </span>{" "}
                     no seu estoque de gestão. Publique tudo na vitrine com um clique.
                   </p>
+                  {/* Dica de fotografia */}
+                  <div className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-3 py-2">
+                    <Camera className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <span className="font-semibold">Dica de ouro:</span> Boas fotos vendem mais. Após publicar, acesse{" "}
+                      <span className="font-semibold">Produtos na Loja</span> para subir fotos profissionais — com boa luz e fundo limpo — para cada peça.
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
