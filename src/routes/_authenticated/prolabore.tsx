@@ -11,10 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, prolaboreQuery, profileQuery, transactionsQuery } from "@/lib/db";
+import { prolaboreQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber, todayISO } from "@/lib/format";
 import { sumBy, type Transaction } from "@/lib/finance";
+import { useStore } from "@/lib/store-context";
+import { insertProlabore, deleteProlabore } from "@/lib/mutations";
+import { supabase } from "@/integrations/supabase/client";
+import { currentUserId } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/prolabore")({
   head: () => ({
@@ -34,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/prolabore")({
 
 function Prolabore() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: withdrawals = [] } = useQuery(prolaboreQuery());
   const { data: all = [] } = useQuery(transactionsQuery());
@@ -56,21 +60,7 @@ function Prolabore() {
     mutationFn: async () => {
       const value = toNumber(amount);
       if (value <= 0) throw new Error("Informe um valor maior que zero");
-      const user_id = await currentUserId();
-      const { error } = await supabase
-        .from("prolabore_withdrawals")
-        .insert({ user_id, month, amount: value });
-      if (error) throw new Error(error.message);
-      const { error: txError } = await supabase.from("transactions").insert({
-        user_id,
-        kind: "saida",
-        description: "Pró-labore",
-        amount: value,
-        category: "prolabore",
-        payment_method: "pix",
-        occurred_on: todayISO(),
-      });
-      if (txError) throw new Error(txError.message);
+      return insertProlabore(storeId, month, value);
     },
     onSuccess: () => {
       toast.success("Retirada registrada e lançada no caixa");
@@ -82,10 +72,7 @@ function Prolabore() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("prolabore_withdrawals").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteProlabore(storeId, id),
     onSuccess: () => {
       toast.success("Retirada excluída");
       void queryClient.invalidateQueries({ queryKey: ["prolabore"] });

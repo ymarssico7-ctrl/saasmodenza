@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, goalsQuery, transactionsQuery } from "@/lib/db";
+import { goalsQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber } from "@/lib/format";
 import { projectMonth, sumBy, type Transaction } from "@/lib/finance";
+import { useStore } from "@/lib/store-context";
+import { upsertGoal, deleteGoal } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/metas")({
 
 function Metas() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: goals = [] } = useQuery(goalsQuery());
   const { data: all = [] } = useQuery(transactionsQuery());
   const txs = all as unknown as Transaction[];
@@ -56,17 +58,7 @@ function Metas() {
     mutationFn: async () => {
       const value = toNumber(target);
       if (value <= 0) throw new Error("Informe uma meta válida");
-      const user_id = await currentUserId();
-      if (currentGoal) {
-        const { error } = await supabase
-          .from("goals")
-          .update({ target_amount: value })
-          .eq("id", currentGoal.id);
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await supabase.from("goals").insert({ user_id, month, target_amount: value });
-        if (error) throw new Error(error.message);
-      }
+      return upsertGoal(storeId, month, value);
     },
     onSuccess: () => {
       toast.success("Meta salva");
@@ -77,10 +69,7 @@ function Metas() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("goals").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteGoal(storeId, id),
     onSuccess: () => {
       toast.success("Meta excluída");
       void queryClient.invalidateQueries({ queryKey: ["goals"] });

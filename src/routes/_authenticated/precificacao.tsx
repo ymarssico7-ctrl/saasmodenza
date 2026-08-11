@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, pricingsQuery } from "@/lib/db";
+import { pricingsQuery } from "@/lib/db";
 import { brl, pct, toNumber } from "@/lib/format";
 import { computePricing } from "@/lib/finance";
+import { useStore } from "@/lib/store-context";
+import { insertPricing, deletePricing } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
 
 function Precificacao() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
   const [name, setName] = useState("");
@@ -57,9 +59,7 @@ function Precificacao() {
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Dê um nome para a peça");
       if (input.wholesale_cost <= 0) throw new Error("Informe o custo de atacado");
-      const user_id = await currentUserId();
-      const { error } = await supabase.from("pricings").insert({ user_id, name: name.trim(), ...input });
-      if (error) throw new Error(error.message);
+      return insertPricing({ storeId, name: name.trim(), ...input });
     },
     onSuccess: () => {
       toast.success("Precificação salva");
@@ -70,10 +70,7 @@ function Precificacao() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("pricings").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deletePricing(storeId, id),
     onSuccess: () => {
       toast.success("Precificação excluída");
       void queryClient.invalidateQueries({ queryKey: ["pricings"] });

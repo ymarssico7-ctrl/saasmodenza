@@ -18,10 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { creditsQuery, currentUserId, customersQuery } from "@/lib/db";
+import { creditsQuery, customersQuery } from "@/lib/db";
 import { brl, formatDate, todayISO, toNumber } from "@/lib/format";
 import { CREDIT_STATUS_LABEL, creditStatus } from "@/lib/finance";
+import { useStore } from "@/lib/store-context";
+import { insertCredit, deleteCredit, insertTransaction } from "@/lib/mutations";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/fiado")({
   head: () => ({
@@ -51,6 +53,7 @@ type CreditRow = {
 
 function Fiado() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: customers = [] } = useQuery(customersQuery());
   const { data: rawCredits = [] } = useQuery(creditsQuery());
   const credits = rawCredits as unknown as CreditRow[];
@@ -84,16 +87,14 @@ function Fiado() {
       if (!customerId) throw new Error("Escolha um cliente");
       if (!description.trim()) throw new Error("Descreva a compra");
       if (value <= 0) throw new Error("Informe um valor maior que zero");
-      const user_id = await currentUserId();
-      const { error } = await supabase.from("credits").insert({
-        user_id,
+      return insertCredit({
+        storeId,
         customer_id: customerId,
         description: description.trim(),
         amount: value,
         purchase_date: purchase,
         due_date: due,
       });
-      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       toast.success("Fiado registrado");
@@ -109,18 +110,20 @@ function Fiado() {
       if (value <= 0) throw new Error("Informe o valor recebido");
       const remaining = Number(credit.amount) - Number(credit.paid_amount);
       if (value > remaining + 0.005) throw new Error("Valor maior que o saldo devedor");
-      const user_id = await currentUserId();
+      // credit_payments insert
       const { error } = await supabase
         .from("credit_payments")
-        .insert({ user_id, credit_id: credit.id, amount: value, paid_on: todayISO() });
+        .insert({ store_id: storeId, user_id: storeId, credit_id: credit.id, amount: value, paid_on: todayISO() });
       if (error) throw new Error(error.message);
+      // update paid_amount
       const { error: updateError } = await supabase
         .from("credits")
         .update({ paid_amount: Number(credit.paid_amount) + value })
         .eq("id", credit.id);
       if (updateError) throw new Error(updateError.message);
-      const { error: txError } = await supabase.from("transactions").insert({
-        user_id,
+      // register as a cash transaction
+      await insertTransaction({
+        storeId,
         kind: "entrada",
         description: `Recebimento fiado — ${credit.customers?.name ?? "cliente"}`,
         amount: value,
@@ -128,7 +131,6 @@ function Fiado() {
         payment_method: "fiado",
         occurred_on: todayISO(),
       });
-      if (txError) throw new Error(txError.message);
     },
     onSuccess: () => {
       toast.success("Pagamento registrado e lançado no caixa");
@@ -140,10 +142,7 @@ function Fiado() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("credits").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteCredit(storeId, id),
     onSuccess: () => {
       toast.success("Fiado excluído");
       void queryClient.invalidateQueries({ queryKey: ["credits"] });

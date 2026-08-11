@@ -9,9 +9,10 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { creditsQuery, currentUserId, customersQuery } from "@/lib/db";
+import { creditsQuery, customersQuery } from "@/lib/db";
 import { brl } from "@/lib/format";
+import { useStore } from "@/lib/store-context";
+import { insertCustomer, deleteCustomer } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 
 function Clientes() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: customers = [] } = useQuery(customersQuery());
   const { data: credits = [] } = useQuery(creditsQuery());
   const [name, setName] = useState("");
@@ -43,11 +45,7 @@ function Clientes() {
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome do cliente");
-      const user_id = await currentUserId();
-      const { error } = await supabase
-        .from("customers")
-        .insert({ user_id, name: name.trim(), phone: phone.trim() || null });
-      if (error) throw new Error(error.message);
+      return insertCustomer(storeId, name.trim(), phone.trim() || null);
     },
     onSuccess: () => {
       toast.success("Cliente cadastrado");
@@ -59,10 +57,7 @@ function Clientes() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("customers").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteCustomer(storeId, id),
     onSuccess: () => {
       toast.success("Cliente excluído");
       void queryClient.invalidateQueries({ queryKey: ["customers"] });

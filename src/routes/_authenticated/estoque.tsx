@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, inventoryQuery } from "@/lib/db";
+import { inventoryQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf } from "@/lib/finance";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
+import { useStore } from "@/lib/store-context";
+import { insertInventoryItem, deleteInventoryItem } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -34,6 +35,7 @@ type Sizes = Record<string, number>;
 
 function Estoque() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: items = [] } = useQuery(inventoryQuery());
 
   const [name, setName] = useState("");
@@ -62,23 +64,16 @@ function Estoque() {
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome da peça");
-      const user_id = await currentUserId();
-      const { data, error } = await supabase
-        .from("inventory_items")
-        .insert({
-          user_id,
-          name: name.trim(),
-          category,
-          color: color.trim() || null,
-          supplier: supplier.trim() || null,
-          cost_price: toNumber(cost),
-          sale_price: toNumber(price),
-          sizes,
-        })
-        .select("id")
-        .single();
-      if (error) throw new Error(error.message);
-      return data?.id as string | undefined;
+      return insertInventoryItem({
+        storeId,
+        name: name.trim(),
+        category,
+        color: color.trim() || null,
+        supplier: supplier.trim() || null,
+        cost_price: toNumber(cost),
+        sale_price: toNumber(price),
+        sizes,
+      });
     },
     onSuccess: (newId) => {
       toast.success("Peça adicionada ao estoque");
@@ -101,10 +96,7 @@ function Estoque() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inventory_items").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteInventoryItem(storeId, id),
     onSuccess: () => {
       toast.success("Peça removida");
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });

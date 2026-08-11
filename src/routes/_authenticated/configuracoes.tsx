@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, isAuthenticated, membersQuery, profileQuery, updateDemoProfile } from "@/lib/db";
+import { isAuthenticated, membersQuery, profileQuery, updateDemoProfile, currentUserId } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
+import { useStore } from "@/lib/store-context";
+import { insertMember, deleteMember } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -28,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 function Configuracoes() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { storeId, isDemoMode } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
 
@@ -86,21 +89,7 @@ function Configuracoes() {
   const addMember = useMutation({
     mutationFn: async () => {
       if (!memberName.trim()) throw new Error("Informe o nome");
-      const realUser = await isAuthenticated();
-
-      if (!realUser) {
-        // Modo demo → simula sucesso sem chamar o banco
-        return;
-      }
-
-      const user_id = await currentUserId();
-      const { error } = await supabase.from("store_members").insert({
-        user_id,
-        name: memberName.trim(),
-        email: memberEmail.trim() || null,
-        role: memberRole,
-      });
-      if (error) throw new Error(error.message);
+      return insertMember(storeId, memberName.trim(), memberEmail.trim() || null, memberRole);
     },
     onSuccess: () => {
       toast.success("Membro adicionado");
@@ -112,13 +101,7 @@ function Configuracoes() {
   });
 
   const removeMember = useMutation({
-    mutationFn: async (id: string) => {
-      const realUser = await isAuthenticated();
-      if (!realUser) return; // Modo demo → simula sucesso
-
-      const { error } = await supabase.from("store_members").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteMember(storeId, id),
     onSuccess: () => {
       toast.success("Membro removido");
       void queryClient.invalidateQueries({ queryKey: ["members"] });

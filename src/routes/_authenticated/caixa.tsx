@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, transactionsQuery } from "@/lib/db";
+import { transactionsQuery } from "@/lib/db";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
   ENTRY_CATEGORIES,
@@ -30,6 +29,8 @@ import {
   sumBy,
   type Transaction,
 } from "@/lib/finance";
+import { useStore } from "@/lib/store-context";
+import { insertTransaction, deleteTransaction } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
@@ -48,6 +49,7 @@ export const Route = createFileRoute("/_authenticated/caixa")({
 
 function Caixa() {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
   const { data: all = [] } = useQuery(transactionsQuery());
   const txs = all as unknown as Transaction[];
 
@@ -77,9 +79,8 @@ function Caixa() {
       const value = toNumber(amount);
       if (!description.trim()) throw new Error("Descreva o lançamento");
       if (value <= 0) throw new Error("Informe um valor maior que zero");
-      const user_id = await currentUserId();
-      const { error } = await supabase.from("transactions").insert({
-        user_id,
+      return insertTransaction({
+        storeId,
         kind,
         description: description.trim(),
         amount: value,
@@ -87,7 +88,6 @@ function Caixa() {
         payment_method: method,
         occurred_on: date,
       });
-      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       toast.success("Lançamento registrado");
@@ -99,10 +99,7 @@ function Caixa() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("transactions").delete().eq("id", id);
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async (id: string) => deleteTransaction(storeId, id),
     onSuccess: () => {
       toast.success("Lançamento excluído");
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });

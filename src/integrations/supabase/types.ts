@@ -29,6 +29,7 @@ export type Database = {
           credit_id: string
           id?: string
           paid_on?: string
+          store_id?: string
           user_id: string
         }
         Update: {
@@ -37,6 +38,7 @@ export type Database = {
           credit_id?: string
           id?: string
           paid_on?: string
+          store_id?: string
           user_id?: string
         }
         Relationships: [
@@ -71,6 +73,7 @@ export type Database = {
           id?: string
           paid_amount?: number
           purchase_date?: string
+          store_id?: string
           updated_at?: string
           user_id: string
         }
@@ -83,6 +86,7 @@ export type Database = {
           id?: string
           paid_amount?: number
           purchase_date?: string
+          store_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -110,6 +114,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          store_id?: string
           updated_at?: string
           user_id: string
         }
@@ -118,6 +123,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          store_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -128,6 +134,7 @@ export type Database = {
           created_at: string
           id: string
           month: string
+          store_id: string | null
           target_amount: number
           updated_at: string
           user_id: string
@@ -136,6 +143,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
+          store_id?: string
           target_amount?: number
           updated_at?: string
           user_id: string
@@ -144,6 +152,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          store_id?: string
           target_amount?: number
           updated_at?: string
           user_id?: string
@@ -177,6 +186,7 @@ export type Database = {
           sale_price?: number
           sizes?: Json
           sold_this_month?: number
+          store_id?: string
           supplier?: string | null
           updated_at?: string
           user_id: string
@@ -192,6 +202,7 @@ export type Database = {
           sale_price?: number
           sizes?: Json
           sold_this_month?: number
+          store_id?: string
           supplier?: string | null
           updated_at?: string
           user_id?: string
@@ -220,6 +231,7 @@ export type Database = {
           name: string
           other_costs?: number
           packaging_cost?: number
+          store_id?: string
           tax_pct?: number
           updated_at?: string
           user_id: string
@@ -233,6 +245,7 @@ export type Database = {
           name?: string
           other_costs?: number
           packaging_cost?: number
+          store_id?: string
           tax_pct?: number
           updated_at?: string
           user_id?: string
@@ -298,6 +311,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
+          store_id?: string
           user_id: string
         }
         Update: {
@@ -305,6 +319,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          store_id?: string
           user_id?: string
         }
         Relationships: []
@@ -324,6 +339,7 @@ export type Database = {
           id?: string
           name: string
           role?: string
+          store_id?: string
           user_id: string
         }
         Update: {
@@ -332,7 +348,74 @@ export type Database = {
           id?: string
           name?: string
           role?: string
+          store_id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          city: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          onboarding_done: boolean
+          owner_id: string
+          phone: string | null
+          plan: string
+          plan_expires_at: string | null
+          plan_renewal_date: string | null
+          prolabore_target: number
+          slug: string | null
+          store_subscription_active: boolean
+          store_subscription_expires_at: string | null
+          store_trial_accepted: boolean | null
+          store_trial_expires_at: string | null
+          store_trial_offered_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          onboarding_done?: boolean
+          owner_id: string
+          phone?: string | null
+          plan?: string
+          plan_expires_at?: string | null
+          plan_renewal_date?: string | null
+          prolabore_target?: number
+          slug?: string | null
+          store_subscription_active?: boolean
+          store_subscription_expires_at?: string | null
+          store_trial_accepted?: boolean | null
+          store_trial_expires_at?: string | null
+          store_trial_offered_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          onboarding_done?: boolean
+          owner_id?: string
+          phone?: string | null
+          plan?: string
+          plan_expires_at?: string | null
+          plan_renewal_date?: string | null
+          prolabore_target?: number
+          slug?: string | null
+          store_subscription_active?: boolean
+          store_subscription_expires_at?: string | null
+          store_trial_accepted?: boolean | null
+          store_trial_expires_at?: string | null
+          store_trial_offered_at?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -358,6 +441,7 @@ export type Database = {
           kind: string
           occurred_on?: string
           payment_method: string
+          store_id?: string
           updated_at?: string
           user_id: string
         }
@@ -370,6 +454,7 @@ export type Database = {
           kind?: string
           occurred_on?: string
           payment_method?: string
+          store_id?: string
           updated_at?: string
           user_id?: string
         }
