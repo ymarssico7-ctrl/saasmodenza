@@ -4,24 +4,27 @@ import { Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { profileQuery } from "@/lib/db";
 
-type Plan = "lojista" | "digital" | "crescimento";
+type Plan = "lojista" | "digital" | "crescimento" | "gestao_anual";
 
 const planRank: Record<Plan, number> = {
   lojista: 0,
   digital: 1,
   crescimento: 2,
+  gestao_anual: 2, // Equivalente ao plano de maior acesso
 };
 
 const planNames: Record<Plan, string> = {
   lojista: "Plano Lojista",
   digital: "Plano Digital",
   crescimento: "Plano Crescimento",
+  gestao_anual: "Plano Gestão Anual",
 };
 
 const planPrices: Record<Plan, string> = {
   lojista: "R$ 127/ano",
   digital: "R$ 97/mês",
   crescimento: "R$ 147/mês",
+  gestao_anual: "R$ 127/ano",
 };
 
 export function PlanGuard({
