@@ -18,8 +18,14 @@ import { useEffect, useRef, useState, useMemo, createContext, useContext } from 
 import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
-import { produtos as lojaProducts, loja } from "@/data/loja";
+import { useQuery } from "@tanstack/react-query";
+import { loja } from "@/data/loja";
+import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
+import {
+  mergeInventoryWithShowcase,
+  type ShowcaseProduct,
+} from "@/lib/showcase-store";
 
 // ── Assets locais (14 imagens, idênticas ao template original) ────────────────
 import heroImg from "@/assets/template-02/hero.jpg";
@@ -69,41 +75,41 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]/g, "-");
 }
 
-/** Returns true if the product has an active promotion right now */
-function isPromocaoAtiva(p: { promocaoInicio?: string; promocaoFim?: string }): boolean {
-  if (!p.promocaoInicio || !p.promocaoFim) return false;
-  const now = Date.now();
-  return now >= new Date(p.promocaoInicio).getTime() && now <= new Date(p.promocaoFim).getTime();
-}
 
-/** Adapter: maps loja Produto to the template's internal Product shape */
-function adaptProduto(p: (typeof lojaProducts)[0]): Product {
-  const emPromocao = isPromocaoAtiva(p);
-  const tag = p.estoque === 0 ? ("Esgotado" as const) : (emPromocao ? ("Últimas peças" as const) : (p.destaque ? ("Novo" as const) : undefined));
+/** Adapter: maps a ShowcaseProduct to the template's internal Product shape */
+function adaptShowcaseProduct(p: ShowcaseProduct): Product {
+  const tag =
+    p.totalEstoque === 0
+      ? ("Esgotado" as const)
+      : p.emPromocao
+        ? ("Últimas peças" as const)
+        : p.showcase.destaque
+          ? ("Novo" as const)
+          : undefined;
+  const sizesObj = (p.sizes ?? {}) as Record<string, number>;
+  const sizes = Object.entries(sizesObj)
+    .filter(([, qty]) => qty > 0)
+    .map(([size]) => size);
   return {
     slug: p.id,
-    name: p.nome,
-    price: emPromocao && p.precoPromocional ? p.precoPromocional : p.preco,
-    ...(emPromocao && p.precoPromocional ? { compareAt: p.preco } : {}),
-    category: slugify(p.categoria),
-    categoryLabel: p.categoria,
-    image: p.imagem,
-    colors: p.cores.map((c) => ({ name: c, hex: "#888888" })),
-    sizes: p.tamanhos,
+    name: p.name,
+    price: p.precoEfetivo,
+    ...(p.emPromocao && p.showcase.precoPromocional ? { compareAt: p.sale_price } : {}),
+    category: slugify(p.category),
+    categoryLabel: p.category,
+    image:
+      p.photo_url ??
+      `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
+    colors: p.color ? [{ name: p.color, hex: "#888888" }] : [],
+    sizes: sizes.length > 0 ? sizes : ["Único"],
     ...(tag !== undefined ? { tag } : {}),
     description: "",
     composition: "",
-    isNew: p.destaque,
-    estoque: p.estoque,
-    ...(p.precoOculto ? { precoOculto: p.precoOculto } : {}),
+    isNew: p.showcase.destaque,
+    estoque: p.totalEstoque,
+    ...(p.showcase.precoOculto ? { precoOculto: true } : {}),
   };
 }
-
-/** All active products from the real store catalogue, adapted */
-const PRODUCTS: Product[] = lojaProducts.filter((p) => p.ativo).map(adaptProduto);
-
-/** Unique categories derived from real products */
-const PRODUCT_CATEGORIES = Array.from(new Set(lojaProducts.filter((p) => p.ativo).map((p) => p.categoria)));
 
 // ── Ícones SVG (idênticos ao icons.tsx original) ──────────────────────────────
 type IconProps = { className?: string };
@@ -765,6 +771,23 @@ export function Template02Store({
   onDeleteSection,
 }: Template02StoreProps = {}) {
   const settings = theme?.settings;
+
+  // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const allShowcaseProducts = useMemo(
+    () => mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
+    [rawInventory],
+  );
+  /** Apenas produtos ativos na vitrine */
+  const PRODUCTS = useMemo(
+    () => allShowcaseProducts.filter((p) => p.showcase.ativo).map(adaptShowcaseProduct),
+    [allShowcaseProducts],
+  );
+  /** Categorias únicas derivadas dos produtos ativos */
+  const PRODUCT_CATEGORIES = useMemo(
+    () => Array.from(new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category))),
+    [allShowcaseProducts],
+  );
 
   // Injeta fonte Outfit + Figtree (fontes originais do template)
   useEffect(() => {

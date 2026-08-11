@@ -130,10 +130,11 @@ function ProdutosPage() {
 
   const salvarPromocao = () => {
     if (!promocaoId) return;
+    const preco = parseFloat(promocaoPreco.replace(",", "."));
     patchShowcaseConfig(promocaoId, {
-      precoPromocional: parseFloat(promocaoPreco.replace(",", ".")) || undefined,
-      promocaoInicio: promocaoInicio || undefined,
-      promocaoFim: promocaoFim || undefined,
+      ...(Number.isFinite(preco) ? { precoPromocional: preco } : {}),
+      ...(promocaoInicio ? { promocaoInicio } : {}),
+      ...(promocaoFim ? { promocaoFim } : {}),
     });
     setShowcaseVersion((v) => v + 1);
     setPromocaoId(null);

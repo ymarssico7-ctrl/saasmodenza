@@ -252,6 +252,23 @@ export function Template01Store({
 }: Template01StoreProps = {}) {
   const settings = theme?.settings;
 
+  // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const allShowcaseProducts = useMemo(
+    () => mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
+    [rawInventory],
+  );
+  /** Apenas produtos ativos na vitrine */
+  const PRODUCTS = useMemo(
+    () => allShowcaseProducts.filter((p) => p.showcase.ativo).map(adaptShowcaseProduct),
+    [allShowcaseProducts],
+  );
+  /** Categorias únicas derivadas dos produtos ativos */
+  const PRODUCT_CATEGORIES = useMemo(
+    () => Array.from(new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category))),
+    [allShowcaseProducts],
+  );
+
   // Injeta as fontes originais (Cormorant Garamond + Jost) uma única vez
   useEffect(() => {
     const urls = [
