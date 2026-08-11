@@ -5,7 +5,7 @@ import { monthEnd, monthStart } from "./format";
 const DEMO_PROFILE_KEY = "modenza_demo_profile";
 
 const DEFAULT_DEMO_PROFILE = {
-  id: "mock-id",
+  id: "00000000-0000-0000-0000-000000000000",
   store_name: "Loja Demo",
   owner_name: "Visitante",
   plan: "gestao_anual",
@@ -175,8 +175,8 @@ export const membersQuery = () =>
 
 export async function currentUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
-  // Retorna "mock-id" em modo demo/dev sem sessão ativa
-  return data.user?.id ?? "mock-id";
+  // Retorna um UUID zerado em modo demo/dev sem sessão ativa
+  return data.user?.id ?? "00000000-0000-0000-0000-000000000000";
 }
 
 /** Retorna true se o usuário está autenticado de verdade no Supabase */
