@@ -18,32 +18,34 @@ function LojaLayout() {
   const { hasLoja, trialStatus, daysLeftInTrial, isTrialUrgent, isShouldShowTrialModal } = useAccess(profile);
   const [modalDismissed, setModalDismissed] = useState(false);
 
-  // Exibe o modal de trial de 30 dias quando o usuário acessa a Loja pela primeira vez
-  // sem ter decidido ainda — de forma contextual e não intrusiva no login
-  const showTrialModal = isShouldShowTrialModal && !modalDismissed;
+  // Se trial ainda não foi oferecido: mostrar modal de oferta SOBRE tela bloqueada.
+  // O <Outlet /> (painel da loja) NUNCA é renderizado sem acesso confirmado.
+  if (isShouldShowTrialModal && !modalDismissed) {
+    return (
+      <>
+        <LojaBloqueadaScreen reason="no_plan" />
+        <TrialOfferModal
+          open={true}
+          onClose={() => setModalDismissed(true)}
+        />
+      </>
+    );
+  }
 
-  // Bloqueia acesso se não tiver permissão E o trial já foi decidido (declined/expired)
-  if (!hasLoja && !showTrialModal) {
+  // Bloqueio total para quem não tem acesso e já tomou decisão
+  if (!hasLoja) {
     if (trialStatus === "declined") {
       return <LojaBloqueadaScreen reason="declined" />;
     }
     if (trialStatus === "expired") {
       return <LojaBloqueadaScreen reason="expired" />;
     }
-    // Qualquer outro estado sem acesso
     return <LojaBloqueadaScreen reason="no_plan" />;
   }
 
+  // Acesso confirmado (trial ativo ou assinante) → renderiza o painel completo
   return (
     <div>
-      {/* Modal de ativação do Trial — aparece apenas quando usuário ainda não decidiu */}
-      {showTrialModal && (
-        <TrialOfferModal
-          open={showTrialModal}
-          onClose={() => setModalDismissed(true)}
-        />
-      )}
-
       {/* Banner de countdown — aparece apenas durante o trial ativo */}
       {trialStatus === "active" && daysLeftInTrial !== null && (
         <TrialBanner daysLeft={daysLeftInTrial} isUrgent={isTrialUrgent} />

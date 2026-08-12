@@ -13,16 +13,14 @@ import {
 import { ArrowUpRight, Camera, Copy, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-import { inventoryQuery } from "@/lib/db";
+import { inventoryQuery, profileQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
 import { hasAnyActiveProduct, bulkActivateAll } from "@/lib/showcase-store";
 import { PageHeader } from "@/components/loja/page-header";
 import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
-import { StatusBadge, Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { brl, brlCompact } from "@/lib/format";
-import { kpisLoja, loja, pedidos, produtos, totalPedido, vendasPorDia, dateTimeBR } from "@/data/loja";
 
 export const Route = createFileRoute("/_authenticated/loja/")({
   head: () => ({
@@ -38,18 +36,32 @@ export const Route = createFileRoute("/_authenticated/loja/")({
   component: VisaoGeral,
 });
 
-const variacao = (atual: number, anterior: number) => ((atual - anterior) / anterior) * 100;
 
 function VisaoGeral() {
-  const ultimos = pedidos.slice(0, 5);
-  const totalOrigem = kpisLoja.origem.reduce((a, o) => a + o.valor, 0);
-  const esgotados = produtos.filter((p) => p.estoque === 0).length;
-  const ultimasUnidades = produtos.filter((p) => p.estoque > 0 && p.estoque < 3).length;
+  // ── Dados reais do banco ─────────────────────────────────────────────────
+  const { data: profile } = useQuery(profileQuery());
+  const { store } = useStore();
+
+  // Nome real do dono para saudação personalizada
+  const primeiroNome = (
+    profile?.owner_name ||
+    store?.name ||
+    "Lojista"
+  ).split(" ")[0] ?? "Lojista";
+
+  // Subdomínio real da loja
+  const subdominio = store?.slug
+    ? `${store.slug}.modenza.com.br`
+    : `minhaloja.modenza.com.br`;
 
   const copiarLink = () => {
-    void navigator.clipboard?.writeText(`https://${loja.subdominio}`);
+    void navigator.clipboard?.writeText(`https://${subdominio}`);
     toast.success("Link da loja copiado", { description: "Cole no Instagram, WhatsApp ou TikTok." });
   };
+
+  // KPIs zerados para nova loja (dados reais serão integrados em próxima iteração)
+  const esgotados = 0;
+  const ultimasUnidades = 0;
 
   // ── Onboarding Aha! Moment ─────────────────────────────────────────────────
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
@@ -128,8 +140,8 @@ function VisaoGeral() {
 
         <PageHeader
           eyebrow="Loja online"
-          title={`Bom te ver, ${(loja.nome.split(" ")[0] ?? loja.nome)}`}
-          description={`Sua vitrine está no ar em ${loja.subdominio}. Tudo que você cadastra no estoque aparece aqui automaticamente.`}
+          title={`Bom te ver, ${primeiroNome}`}
+          description={`Sua vitrine está no ar em ${subdominio}. Tudo que você cadastra no estoque aparece aqui automaticamente.`}
           actions={
             <>
               <Button
@@ -152,33 +164,30 @@ function VisaoGeral() {
           <KpiCard
             accent
             label="Vendas no mês"
-            value={kpisLoja.vendasMes}
+            value={0}
             format={brl}
-            delta={variacao(kpisLoja.vendasMes, kpisLoja.vendasMesAnterior)}
-            hint="vs. julho"
+            hint="Nenhuma venda ainda"
             icon={<Wallet className="h-4 w-4" />}
           />
           <KpiCard
             label="Pedidos recebidos"
-            value={kpisLoja.pedidos}
+            value={0}
             format={(n) => Math.round(n).toString()}
-            delta={variacao(kpisLoja.pedidos, kpisLoja.pedidosMesAnterior)}
-            hint="vs. julho"
+            hint="Nenhum pedido ainda"
             icon={<ShoppingBag className="h-4 w-4" />}
           />
           <KpiCard
             label="Ticket médio"
-            value={kpisLoja.ticketMedio}
+            value={0}
             format={brl}
-            delta={variacao(kpisLoja.ticketMedio, kpisLoja.ticketMedioAnterior)}
-            hint="vs. julho"
+            hint="—"
             icon={<Receipt className="h-4 w-4" />}
           />
           <KpiCard
             label="Peça mais vendida"
-            value={kpisLoja.produtoTopVendas}
-            format={(n) => `${Math.round(n)} un.`}
-            hint={kpisLoja.produtoTop}
+            value={0}
+            format={() => "—"}
+            hint="Nenhum item vendido"
             icon={<Sparkles className="h-4 w-4" />}
           />
         </div>
@@ -192,7 +201,7 @@ function VisaoGeral() {
           >
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={vendasPorDia} margin={{ left: 8, right: 8, top: 4, bottom: 0 }}>
+                <AreaChart data={[]} margin={{ left: 8, right: 8, top: 4, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fillVendas" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
@@ -238,18 +247,8 @@ function VisaoGeral() {
 
           <div className="space-y-4">
             <SectionCard title="Origem dos pedidos" description="Como suas clientes estão comprando.">
-              <div className="space-y-4">
-                {kpisLoja.origem.map((o) => (
-                  <div key={o.nome}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{o.nome}</span>
-                      <span className="num-display text-muted-foreground">
-                        {o.valor} · {Math.round((o.valor / totalOrigem) * 100)}%
-                      </span>
-                    </div>
-                    <Progress value={(o.valor / totalOrigem) * 100} className="mt-2 h-2" />
-                  </div>
-                ))}
+              <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+                Nenhum pedido registrado ainda.
               </div>
             </SectionCard>
 
@@ -257,11 +256,11 @@ function VisaoGeral() {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between rounded-xl bg-warning-soft px-3 py-2.5">
                   <span className="text-muted-foreground">Últimas unidades</span>
-                  <Tag tone="warning">{ultimasUnidades} peças</Tag>
+                  <span className="num-display font-semibold">{ultimasUnidades} peças</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-danger-soft px-3 py-2.5">
                   <span className="text-muted-foreground">Esgotadas na vitrine</span>
-                  <Tag tone="danger">{esgotados} peças</Tag>
+                  <span className="num-display font-semibold">{esgotados} peças</span>
                 </div>
                 <Button asChild variant="ghost" className="h-9 w-full rounded-xl text-xs">
                   <Link to="/loja/produtos">
@@ -283,30 +282,11 @@ function VisaoGeral() {
           }
           bodyClassName="p-0"
         >
-          <ul className="divide-y divide-border/70">
-            {ultimos.map((p) => (
-              <li
-                key={p.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition-colors duration-200 hover:bg-secondary/50"
-              >
-                <div className="min-w-0">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span className="num-display text-sm font-semibold">{p.numero}</span>
-                    <StatusBadge status={p.status} />
-                    <Tag tone={p.origem === "WhatsApp" ? "success" : "primary"}>{p.origem}</Tag>
-                  </div>
-                  <p className="mt-1 truncate text-sm text-muted-foreground">
-                    {p.cliente} · {p.itens.length} {p.itens.length === 1 ? "item" : "itens"} ·{" "}
-                    {dateTimeBR(p.criadoEm)}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="num-display text-sm font-semibold">{brl(totalPedido(p))}</p>
-                  <p className="text-xs text-muted-foreground">{p.pagamento}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+            <ShoppingBag className="h-8 w-8 opacity-30" />
+            <p>Nenhum pedido recebido ainda.</p>
+            <p className="text-xs">Seus pedidos da loja online aparecerão aqui.</p>
+          </div>
         </SectionCard>
 
         <SectionCard title="Conectado com a gestão" description="Nada de cadastro em dobro.">
