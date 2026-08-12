@@ -84,10 +84,10 @@ function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" className="rounded-full text-sm">
-              <Link to="/painel">Entrar</Link>
+              <Link to="/auth">Entrar</Link>
             </Button>
             <Button asChild className="rounded-full text-sm font-semibold">
-              <Link to="/painel">Começar agora</Link>
+              <Link to="/auth">Começar agora</Link>
             </Button>
           </div>
         </div>
@@ -107,7 +107,7 @@ function Landing() {
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="h-13 rounded-full px-7 text-sm font-semibold">
-              <Link to="/painel">
+              <Link to="/auth">
                 Entrar no painel <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -182,7 +182,7 @@ function Landing() {
           </ol>
           <div className="mt-12 flex flex-wrap items-center gap-4">
             <Button asChild size="lg" className="h-13 rounded-full px-7 text-sm font-semibold">
-              <Link to="/painel">
+              <Link to="/auth">
                 Acessar plataforma <ArrowRight className="size-4" />
               </Link>
             </Button>
