@@ -83,20 +83,39 @@ function Onboarding() {
     setLoading(true);
     try {
       const uid = await currentUserId();
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          store_name: storeName.trim() || "Minha loja",
-          owner_name: ownerName.trim() || "Lojista",
-          city: city.trim() || null,
-          phone: phone.trim() || null,
-          prolabore_target: toNumber(target),
-          onboarding_done: true,
-        })
-        .eq("id", uid);
-      if (error) throw new Error(error.message);
-      await queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast.success("Tudo pronto! Bem-vinda à Modé.");
+
+      const profilePatch = {
+        store_name: storeName.trim() || "Minha loja",
+        owner_name: ownerName.trim() || "Lojista",
+        city: city.trim() || null,
+        phone: phone.trim() || null,
+        prolabore_target: toNumber(target),
+        onboarding_done: true,
+      };
+
+      const storePatch = {
+        name: storeName.trim() || "Minha loja",
+        city: city.trim() || null,
+        phone: phone.trim() || null,
+        prolabore_target: toNumber(target),
+      };
+
+      // Atualiza profiles e stores simultaneamente
+      const [profileRes, storeRes] = await Promise.all([
+        supabase.from("profiles").update(profilePatch).eq("id", uid),
+        supabase.from("stores").update(storePatch).eq("owner_id", uid),
+      ]);
+
+      if (profileRes.error) throw new Error(profileRes.error.message);
+      if (storeRes.error) throw new Error(storeRes.error.message);
+
+      // Invalida ambas as queries para sincronizar sidebar e header
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["profile"] }),
+        queryClient.invalidateQueries({ queryKey: ["active_store"] }),
+      ]);
+
+      toast.success("Tudo pronto! Bem-vinda à Modé. 🎉");
       navigate({ to: "/painel" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
