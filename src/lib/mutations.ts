@@ -330,3 +330,27 @@ export async function deleteMember(storeId: string, id: string) {
   const { error } = await supabase.from("store_members").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+// ============================================================
+// STORES (Lojas)
+// ============================================================
+export type StorePatch = {
+  name?: string;
+  slug?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  logo_url?: string | null;
+};
+
+export async function updateStoreDetails(storeId: string, patch: StorePatch) {
+  if (isDemoStore(storeId)) {
+    localUpdate("stores", storeId, patch);
+    return;
+  }
+  const { error } = await supabase
+    .from("stores")
+    .update(patch)
+    .eq("id", storeId);
+  if (error) throw new Error(error.message);
+}
+

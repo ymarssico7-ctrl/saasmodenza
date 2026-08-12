@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Check,
@@ -16,6 +16,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard } from "@/components/loja/section-card";
@@ -25,8 +26,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { loja } from "@/data/loja";
 import { loadTheme } from "@/lib/theme-engine/defaults";
+import { useStore } from "@/lib/store-context";
+import { getVitrineSettings, saveVitrineSettings } from "@/lib/vitrine-settings";
+import { updateStoreDetails } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
@@ -42,12 +45,68 @@ export const Route = createFileRoute("/_authenticated/loja/configuracao")({
 });
 
 function AparenciaPage() {
+  const { store, storeId } = useStore();
+  const queryClient = useQueryClient();
   const activeTheme = loadTheme();
 
-  const [nome, setNome] = useState(loja.nome);
-  const [descricao, setDescricao] = useState(loja.descricao);
-  const [cor, setCor] = useState(loja.corPrincipal);
-  const [mostrarEstoque, setMostrarEstoque] = useState(loja.mostrarEstoque);
+  // Campos que vêm do banco (tabela `stores`)
+  const [nome, setNome] = useState(store?.name ?? "");
+  const [whatsapp, setWhatsapp] = useState(store?.phone ?? "");
+  const [cidade, setCidade] = useState(store?.city ?? "");
+
+  // Campos que ficam no localStorage isolado por loja
+  const vitrineSettings = getVitrineSettings(storeId);
+  const [descricao, setDescricao] = useState(vitrineSettings.descricao);
+  const [cor, setCor] = useState(vitrineSettings.corPrincipal);
+  const [instagram, setInstagram] = useState(vitrineSettings.instagram);
+  const [estado, setEstado] = useState(vitrineSettings.estado);
+  const [boasVindas, setBoasVindas] = useState(vitrineSettings.boasVindas);
+  const [politicaTroca, setPoliticaTroca] = useState(vitrineSettings.politicaTroca);
+  const [mostrarEstoque, setMostrarEstoque] = useState(vitrineSettings.mostrarEstoque);
+  const [salvando, setSalvando] = useState(false);
+
+  // Sincroniza se o store mudar (ex: após refetch)
+  useEffect(() => {
+    if (store?.name && !nome) setNome(store.name);
+    if (store?.phone && !whatsapp) setWhatsapp(store.phone ?? "");
+    if (store?.city && !cidade) setCidade(store.city ?? "");
+  }, [store]);
+
+  const salvar = async () => {
+    setSalvando(true);
+    try {
+      // 1) Persiste Nome, Cidade e Telefone no banco (tabela stores)
+      await updateStoreDetails(storeId, {
+        ...(nome.trim() ? { name: nome.trim() } : {}),
+        ...(cidade.trim() ? { city: cidade.trim() } : {}),
+        ...(whatsapp.trim() ? { phone: whatsapp.trim() } : {}),
+      });
+
+      // 2) Persiste as configs de estilo no localStorage isolado por loja
+      saveVitrineSettings(storeId, {
+        descricao,
+        corPrincipal: cor,
+        boasVindas,
+        politicaTroca,
+        mostrarEstoque,
+        instagram,
+        estado,
+      });
+
+      // 3) Invalida o cache do store para o AppShell/header exibir o nome novo
+      await queryClient.invalidateQueries({ queryKey: ["active_store"] });
+
+      toast.success("Configurações salvas com sucesso!", {
+        description: `Loja "${nome}" atualizada.`,
+      });
+    } catch (err) {
+      toast.error("Erro ao salvar configurações", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -58,10 +117,11 @@ function AparenciaPage() {
         actions={
           <Button
             className="gradient-primary h-10 gap-2 rounded-full shadow-glow"
-            onClick={() => toast.success("Configurações salvas com sucesso!")}
+            onClick={salvar}
+            disabled={salvando}
           >
             <Check className="h-4 w-4" />
-            Salvar alterações
+            {salvando ? "Salvando…" : "Salvar alterações"}
           </Button>
         }
       />
@@ -81,7 +141,7 @@ function AparenciaPage() {
               </div>
               <div className="mx-auto flex h-4 w-56 items-center rounded-full border border-stone-200 bg-white px-2">
                 <span className="truncate text-[9px] text-stone-400">
-                  minhaloja.modaly.com.br
+                  modenza.com.br/vitrine/{store?.slug ?? "sua-loja"}
                 </span>
               </div>
             </div>
@@ -103,7 +163,7 @@ function AparenciaPage() {
                     fontFamily: activeTheme.settings.fontDisplay,
                   }}
                 >
-                  {activeTheme.settings.storeName}
+                  {nome || store?.name || activeTheme.settings.storeName}
                 </span>
                 <div
                   className="flex gap-4 text-[9px]"
@@ -124,7 +184,7 @@ function AparenciaPage() {
                 <div>
                   <p
                     className="mb-1.5 text-[9px] font-semibold uppercase tracking-widest"
-                    style={{ color: activeTheme.settings.colorPrimary + "cc" }}
+                    style={{ color: cor || activeTheme.settings.colorPrimary + "cc" }}
                   >
                     Coleção Nova
                   </p>
@@ -141,7 +201,7 @@ function AparenciaPage() {
                   </p>
                   <div
                     className="mt-3 inline-block rounded-full px-4 py-1.5 text-[9px] font-semibold text-white"
-                    style={{ backgroundColor: activeTheme.settings.colorPrimary }}
+                    style={{ backgroundColor: cor || activeTheme.settings.colorPrimary }}
                   >
                     Ver a coleção →
                   </div>
@@ -167,7 +227,7 @@ function AparenciaPage() {
                       />
                       <div
                         className="h-1.5 w-6 rounded-full"
-                        style={{ backgroundColor: activeTheme.settings.colorPrimary + "70" }}
+                        style={{ backgroundColor: (cor || activeTheme.settings.colorPrimary) + "70" }}
                       />
                     </div>
                   </div>
@@ -185,7 +245,7 @@ function AparenciaPage() {
               {[
                 activeTheme.settings.colorBackground,
                 activeTheme.settings.colorCanvas,
-                activeTheme.settings.colorPrimary,
+                cor || activeTheme.settings.colorPrimary,
                 activeTheme.settings.colorForeground,
               ].map((c, i) => (
                 <div
@@ -244,7 +304,7 @@ function AparenciaPage() {
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   className="h-11 rounded-xl"
-                  placeholder="Ex: Ateliê Manon"
+                  placeholder="Ex: Minha Boutique"
                 />
               </Campo>
 
@@ -307,8 +367,9 @@ function AparenciaPage() {
                 <div className="relative">
                   <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    defaultValue={loja.subdominio}
-                    className="h-11 rounded-xl pl-9"
+                    readOnly
+                    value={`modenza.com.br/vitrine/${store?.slug ?? storeId}`}
+                    className="h-11 rounded-xl pl-9 text-muted-foreground"
                   />
                 </div>
               </Campo>
@@ -339,8 +400,10 @@ function AparenciaPage() {
                 <div className="relative">
                   <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    defaultValue={loja.whatsapp}
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
                     className="h-11 rounded-xl pl-9"
+                    placeholder="(11) 99999-9999"
                   />
                 </div>
               </Campo>
@@ -348,8 +411,10 @@ function AparenciaPage() {
                 <div className="relative">
                   <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    defaultValue={loja.instagram}
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
                     className="h-11 rounded-xl pl-9"
+                    placeholder="@sualoja"
                   />
                 </div>
               </Campo>
@@ -357,15 +422,20 @@ function AparenciaPage() {
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    defaultValue={loja.cidade}
+                    value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
                     className="h-11 rounded-xl pl-9"
+                    placeholder="Sua cidade"
                   />
                 </div>
               </Campo>
               <Campo label="Estado">
                 <Input
-                  defaultValue={loja.estado}
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value)}
                   className="h-11 rounded-xl"
+                  placeholder="UF"
+                  maxLength={2}
                 />
               </Campo>
             </div>
@@ -381,9 +451,11 @@ function AparenciaPage() {
                 <div className="relative">
                   <MessageCircle className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Textarea
-                    defaultValue={loja.boasVindas}
+                    value={boasVindas}
+                    onChange={(e) => setBoasVindas(e.target.value)}
                     rows={2}
                     className="rounded-xl pl-9 resize-none"
+                    placeholder="Oi! Que bom te ver por aqui…"
                   />
                 </div>
               </Campo>
@@ -392,9 +464,11 @@ function AparenciaPage() {
                 <div className="relative">
                   <FileText className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Textarea
-                    defaultValue={loja.politicaTroca}
+                    value={politicaTroca}
+                    onChange={(e) => setPoliticaTroca(e.target.value)}
                     rows={4}
                     className="rounded-xl pl-9 resize-none"
+                    placeholder="Trocas em até 7 dias…"
                   />
                 </div>
               </Campo>

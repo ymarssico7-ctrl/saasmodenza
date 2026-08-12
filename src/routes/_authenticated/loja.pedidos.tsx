@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, MessageCircle, PackageSearch, Truck, X } from "lucide-react";
 import { toast } from "sonner";
@@ -26,12 +26,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
+import { useStore } from "@/lib/store-context";
 import {
   fluxoStatus,
-  pedidos as pedidosBase,
   statusPedidoLabel,
   totalPedido,
   type Pedido,
@@ -60,11 +59,38 @@ const filtros: { valor: StatusPedido | "todos"; label: string }[] = [
   { valor: "cancelado", label: "Cancelado" },
 ];
 
+function pedidosKey(storeId: string) {
+  return `modaly_orders_${storeId}`;
+}
+
 function PedidosPage() {
-  const [lista, setLista] = useState<Pedido[]>(pedidosBase);
+  const { storeId, store } = useStore();
+  const [lista, setLista] = useState<Pedido[]>([]);
   const [filtro, setFiltro] = useState<StatusPedido | "todos">("todos");
   const [data, setData] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
+
+  // Carrega pedidos isolados por loja do localStorage
+  useEffect(() => {
+    if (!storeId) return;
+    try {
+      const stored = localStorage.getItem(pedidosKey(storeId));
+      if (stored) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setLista(JSON.parse(stored) as any as Pedido[]);
+      } else {
+        setLista([]);
+      }
+    } catch {
+      setLista([]);
+    }
+  }, [storeId]);
+
+  // Persiste mudanças no localStorage
+  const persistir = (novaLista: Pedido[]) => {
+    setLista(novaLista);
+    localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
+  };
 
   const visiveis = useMemo(
     () =>
@@ -82,14 +108,16 @@ function PedidosPage() {
     const atual = fluxoStatus.indexOf(pedido.status as typeof fluxoStatus[number]);
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
     const proximo = fluxoStatus[atual + 1]!;
-    setLista((prev) => prev.map((p) => (p.id === pedido.id ? { ...p, status: proximo } : p)));
+    const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
+    persistir(novaLista);
     toast.success(`Status atualizado para "${statusPedidoLabel[proximo]}"`, {
       description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
     });
   };
 
   const cancelar = (id: string) => {
-    setLista((prev) => prev.map((p) => (p.id === id ? { ...p, status: "cancelado" } : p)));
+    const novaLista = lista.map((p) => (p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p));
+    persistir(novaLista);
     setAberto(null);
     toast.error("Pedido cancelado e estoque estornado.");
   };
@@ -129,8 +157,12 @@ function PedidosPage() {
           {visiveis.length === 0 ? (
             <EmptyState
               icon={<PackageSearch className="h-7 w-7" />}
-              title="Nenhum pedido encontrado"
-              description="Tente outro filtro de status ou data para ver os pedidos."
+              title={lista.length === 0 ? "Nenhum pedido ainda" : "Nenhum pedido encontrado"}
+              description={
+                lista.length === 0
+                  ? "Quando suas clientes fizerem pedidos pela vitrine, eles aparecerão aqui."
+                  : "Tente outro filtro de status ou data para ver os pedidos."
+              }
             />
           ) : (
             <ul className="divide-y divide-border/70">
@@ -253,7 +285,7 @@ function PedidosPage() {
                         setAberto(null);
                       }}
                     >
-                      Marcar como “{statusPedidoLabel[fluxoStatus[fluxoStatus.indexOf(pedidoAberto.status as typeof fluxoStatus[number]) + 1] ?? pedidoAberto.status]}”
+                      Marcar como "{statusPedidoLabel[fluxoStatus[fluxoStatus.indexOf(pedidoAberto.status as typeof fluxoStatus[number]) + 1] ?? pedidoAberto.status]}"
                     </Button>
                   ) : null}
 
@@ -261,7 +293,8 @@ function PedidosPage() {
                     variant="outline"
                     className="h-11 rounded-full"
                     onClick={() => {
-                      const msg = `Olá ${pedidoAberto.cliente}! Aqui é do Ateliê Manon. Seu pedido ${pedidoAberto.numero} está ${statusPedidoLabel[pedidoAberto.status].toLowerCase()}. Qualquer dúvida estou aqui!`;
+                      const nomeLoja = store?.name ?? "nossa loja";
+                      const msg = `Olá ${pedidoAberto.cliente}! Aqui é ${nomeLoja}. Seu pedido ${pedidoAberto.numero} está ${statusPedidoLabel[pedidoAberto.status].toLowerCase()}. Qualquer dúvida estou aqui!`;
                       window.open(`https://wa.me/${pedidoAberto.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
                     }}
                   >
@@ -303,4 +336,3 @@ function PedidosPage() {
       </div>
   );
 }
-
