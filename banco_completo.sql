@@ -135,6 +135,8 @@ END $$;
 
 
 -- ── 5. Função de Permissão Multi-Tenant (`has_store_access`) ───────
+DROP FUNCTION IF EXISTS public.has_store_access(UUID) CASCADE;
+
 CREATE OR REPLACE FUNCTION public.has_store_access(p_store_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$

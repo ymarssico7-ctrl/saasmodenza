@@ -55,7 +55,7 @@ function Configuracoes() {
   const saveProfile = useMutation({
     mutationFn: async () => {
       const realUser = await isAuthenticated();
-      const patch = {
+      const profilePatch = {
         store_name: storeName.trim() || "Minha loja",
         owner_name: ownerName.trim() || "Lojista",
         city: city.trim() || null,
@@ -63,24 +63,44 @@ function Configuracoes() {
         prolabore_target: toNumber(target),
       };
 
+      // Patch de campos espelhados na tabela `stores` (multi-tenant)
+      const storePatch = {
+        name: storeName.trim() || "Minha loja",
+        city: city.trim() || null,
+        phone: phone.trim() || null,
+        prolabore_target: toNumber(target),
+      };
+
       if (realUser) {
-        // Usuário real → salva no Supabase
+        // Usuário real → atualiza profiles e stores simultaneamente
         const uid = await currentUserId();
-        const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
-        if (error) throw new Error(error.message);
+
+        const [profileRes, storeRes] = await Promise.all([
+          supabase.from("profiles").update(profilePatch).eq("id", uid),
+          supabase.from("stores").update(storePatch).eq("owner_id", uid),
+        ]);
+
+        if (profileRes.error) throw new Error(profileRes.error.message);
+        if (storeRes.error) throw new Error(storeRes.error.message);
       } else {
         // Modo demo → persiste no localStorage (sem chamar o banco)
-        updateDemoProfile(patch);
+        updateDemoProfile(profilePatch);
       }
 
       // Atualiza a interface imediatamente em ambos os casos
-      queryClient.setQueryData(["profile"], (old: any) => ({ ...old, ...patch }));
+      queryClient.setQueryData(["profile"], (old: any) => ({ ...old, ...profilePatch }));
+      queryClient.setQueryData(["active_store"], (old: any) =>
+        old ? { ...old, ...storePatch } : old,
+      );
     },
     onSuccess: () => {
       toast.success("Dados atualizados");
-      // Apenas invalida se for usuário real — no demo o setQueryData já cuida
+      // Invalida ambas as queries para garantir sincronia total com o banco
       void isAuthenticated().then((real) => {
-        if (real) void queryClient.invalidateQueries({ queryKey: ["profile"] });
+        if (real) {
+          void queryClient.invalidateQueries({ queryKey: ["profile"] });
+          void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+        }
       });
     },
     onError: (e: Error) => toast.error(e.message),
