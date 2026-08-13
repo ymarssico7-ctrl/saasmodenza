@@ -17,9 +17,15 @@ import {
   Truck,
   Shield,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { CartProvider, useCart, type CartItem } from "@/lib/cart";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
-import { loja, produtos as mockProdutos } from "@/data/loja";
+import {
+  mergeInventoryWithShowcase,
+  loadShowcaseConfigs,
+  type ShowcaseProduct,
+} from "@/lib/showcase-store";
 
 // ─── Route ───────────────────────────────────────────────────────
 export const Route = createFileRoute("/vitrine/$storeSlug")({
@@ -32,31 +38,21 @@ export const Route = createFileRoute("/vitrine/$storeSlug")({
   component: VitrineRoot,
 });
 
-// Dados da loja (futuramente virão do Supabase via loader)
-const STORE = {
-  nome: loja.nome,
-  descricao: loja.descricao,
-  corPrincipal: loja.corPrincipal,
-  whatsapp: loja.whatsapp,
-  instagram: loja.instagram,
-  cidade: loja.cidade,
-  estado: loja.estado,
-  boasVindas: loja.boasVindas,
-  politicaTroca: loja.politicaTroca,
-  template: "boutique" as "boutique" | "streetwear",
+// ─── Tipos internos ───────────────────────────────────────────────
+type StoreData = {
+  id: string;
+  name: string;
+  phone: string | null;
+  city: string | null;
+  owner_id: string;
 };
 
-const CATEGORIAS = ["Tudo", "Blusas", "Calças", "Vestidos", "Saias", "Acessórios"] as const;
-
+// ─── Utilitários ──────────────────────────────────────────────────
 function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function isPromocaoAtiva(inicio?: string, fim?: string) {
-  if (!inicio || !fim) return false;
-  const now = Date.now();
-  return now >= new Date(inicio).getTime() && now <= new Date(fim).getTime();
-}
+const CATEGORIAS_PADRAO = ["Tudo"] as const;
 
 // ─── Root (wraps CartProvider) ────────────────────────────────────
 function VitrineRoot() {
@@ -69,26 +65,97 @@ function VitrineRoot() {
 
 // ─── Main Layout ─────────────────────────────────────────────────
 function VitrineLayout() {
+  const { storeSlug } = Route.useParams();
   const [cartOpen, setCartOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<(typeof mockProdutos)[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ShowcaseProduct | null>(null);
   const [busca, setBusca] = useState("");
-  const [categoria, setCategoria] = useState<(typeof CATEGORIAS)[number]>("Tudo");
+  const [categoria, setCategoria] = useState("Tudo");
   const cart = useCart();
+
+  // ── Busca a loja pelo slug no Supabase ────────────────────────
+  const { data: store, isLoading: storeLoading } = useQuery<StoreData | null>({
+    queryKey: ["vitrine-store", storeSlug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stores")
+        .select("id, name, phone, city, owner_id")
+        .eq("slug", storeSlug)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // ── Busca o inventário da loja ────────────────────────────────
+  const { data: inventoryItems = [], isLoading: inventoryLoading } = useQuery({
+    queryKey: ["vitrine-inventory", store?.owner_id],
+    queryFn: async () => {
+      if (!store?.owner_id) return [];
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .eq("user_id", store.owner_id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!store?.owner_id,
+  });
+
+  // ── Mescla inventário com configs de vitrine (localStorage) ──
+  const allProducts: ShowcaseProduct[] = useMemo(() => {
+    if (!inventoryItems.length) return [];
+    return mergeInventoryWithShowcase(inventoryItems as Parameters<typeof mergeInventoryWithShowcase>[0]);
+  }, [inventoryItems]);
+
+  // ── Filtros dinâmicos ─────────────────────────────────────────
+  const categorias = useMemo(() => {
+    const unique = Array.from(new Set(allProducts.filter((p) => p.showcase.ativo).map((p) => p.category))).sort();
+    return ["Tudo", ...unique];
+  }, [allProducts]);
 
   const produtos = useMemo(
     () =>
-      mockProdutos.filter(
+      allProducts.filter(
         (p) =>
-          p.ativo &&
-          (categoria === "Tudo" || p.categoria === categoria) &&
-          p.nome.toLowerCase().includes(busca.toLowerCase()),
+          p.showcase.ativo &&
+          (categoria === "Tudo" || p.category === categoria) &&
+          p.name.toLowerCase().includes(busca.toLowerCase()),
       ),
-    [busca, categoria],
+    [allProducts, busca, categoria],
   );
 
-  const destaques = mockProdutos.filter((p) => p.ativo && p.destaque);
+  const destaques = allProducts.filter((p) => p.showcase.ativo && p.showcase.destaque);
 
-  const cor = STORE.corPrincipal;
+  const cor = "#3A3AF0"; // cor padrão — futuramente virá do perfil da loja via Supabase
+  const storeName = store?.name ?? storeSlug;
+  const storeCity = store?.city ?? "";
+  const storeWhatsapp = store?.phone ?? "";
+
+  const isLoading = storeLoading || inventoryLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8]">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600" />
+          <p className="text-sm text-gray-500">Carregando vitrine...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!store) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8]">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-gray-700">Vitrine não encontrada</p>
+          <p className="mt-1 text-sm text-gray-400">
+            O link <strong>{storeSlug}</strong> não corresponde a nenhuma loja cadastrada.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] font-sans antialiased">
@@ -104,28 +171,32 @@ function VitrineLayout() {
               className="flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-sm"
               style={{ backgroundColor: cor }}
             >
-              {STORE.nome.slice(0, 2).toUpperCase()}
+              {storeName.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="text-[15px] font-semibold leading-none text-gray-900">{STORE.nome}</p>
-              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500">
-                <MapPin className="h-3 w-3" />
-                {STORE.cidade}, {STORE.estado}
-              </p>
+              <p className="text-[15px] font-semibold leading-none text-gray-900">{storeName}</p>
+              {storeCity && (
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gray-500">
+                  <MapPin className="h-3 w-3" />
+                  {storeCity}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Ações */}
           <div className="flex items-center gap-2">
-            <a
-              href={`https://wa.me/55${STORE.whatsapp.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 sm:flex"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              WhatsApp
-            </a>
+            {storeWhatsapp && (
+              <a
+                href={`https://wa.me/55${storeWhatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 sm:flex"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
+              </a>
+            )}
 
             <button
               id="cart-open-btn"
@@ -161,12 +232,11 @@ function VitrineLayout() {
               style={{ color: cor }}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              Nova coleção disponível
+              Coleção disponível
             </p>
             <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-gray-900 md:text-5xl">
-              {STORE.nome}
+              {storeName}
             </h1>
-            <p className="mt-3 text-base text-gray-600 leading-relaxed">{STORE.descricao}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href="#catalogo"
@@ -176,15 +246,17 @@ function VitrineLayout() {
                 Ver coleção
                 <ChevronRight className="ml-1 h-4 w-4" />
               </a>
-              <a
-                href={`https://instagram.com/${STORE.instagram.replace("@", "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                <Instagram className="h-4 w-4" />
-                {STORE.instagram}
-              </a>
+              {storeWhatsapp && (
+                <a
+                  href={`https://wa.me/55${storeWhatsapp.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -203,8 +275,11 @@ function VitrineLayout() {
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
             {destaques.map((p) => {
-              const temPromocao = isPromocaoAtiva(p.promocaoInicio, p.promocaoFim);
-              const precoFinal = temPromocao && p.precoPromocional ? p.precoPromocional : p.preco;
+              const precoFinal = p.precoEfetivo;
+              const temPromocao = p.emPromocao;
+              const foto =
+                p.fotoEfetiva ??
+                `https://placehold.co/400x400/f5f5f5/999?text=${encodeURIComponent(p.name)}`;
               return (
                 <button
                   key={p.id}
@@ -213,8 +288,8 @@ function VitrineLayout() {
                 >
                   <div className="relative h-52 w-full overflow-hidden bg-gray-100">
                     <img
-                      src={p.imagem}
-                      alt={p.nome}
+                      src={foto}
+                      alt={p.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     {temPromocao && (
@@ -225,15 +300,15 @@ function VitrineLayout() {
                   </div>
                   <div className="p-3 text-left">
                     <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">
-                      {p.nome}
+                      {p.name}
                     </p>
                     <div className="mt-1 flex items-baseline gap-1.5">
                       <span className="text-sm font-bold" style={{ color: cor }}>
                         {brl(precoFinal)}
                       </span>
-                      {temPromocao && p.precoPromocional && (
+                      {temPromocao && p.showcase.precoPromocional && (
                         <span className="text-[11px] text-gray-400 line-through">
-                          {brl(p.preco)}
+                          {brl(p.sale_price)}
                         </span>
                       )}
                     </div>
@@ -266,7 +341,7 @@ function VitrineLayout() {
 
         {/* Categorias */}
         <div className="mb-6 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {CATEGORIAS.map((cat) => (
+          {categorias.map((cat) => (
             <button
               key={cat}
               onClick={() => setCategoria(cat)}
@@ -291,9 +366,12 @@ function VitrineLayout() {
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {produtos.map((p) => {
-              const temPromocao = isPromocaoAtiva(p.promocaoInicio, p.promocaoFim);
-              const precoFinal = temPromocao && p.precoPromocional ? p.precoPromocional : p.preco;
-              const semEstoque = p.estoque === 0;
+              const precoFinal = p.precoEfetivo;
+              const temPromocao = p.emPromocao;
+              const semEstoque = p.totalEstoque === 0;
+              const foto =
+                p.fotoEfetiva ??
+                `https://placehold.co/400x400/f5f5f5/999?text=${encodeURIComponent(p.name)}`;
               return (
                 <button
                   key={p.id}
@@ -306,8 +384,8 @@ function VitrineLayout() {
                 >
                   <div className="relative overflow-hidden bg-gray-100 aspect-square">
                     <img
-                      src={p.imagem}
-                      alt={p.nome}
+                      src={foto}
+                      alt={p.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     {semEstoque && (
@@ -322,7 +400,7 @@ function VitrineLayout() {
                         PROMO
                       </span>
                     )}
-                    {!temPromocao && p.destaque && !semEstoque && (
+                    {!temPromocao && p.showcase.destaque && !semEstoque && (
                       <span
                         className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
                         style={{ backgroundColor: cor }}
@@ -333,20 +411,20 @@ function VitrineLayout() {
                   </div>
                   <div className="p-3">
                     <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">
-                      {p.nome}
+                      {p.name}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-gray-400">{p.categoria}</p>
+                    <p className="mt-0.5 text-[11px] text-gray-400">{p.category}</p>
                     <div className="mt-2 flex items-baseline gap-1.5">
-                      {p.precoOculto ? (
+                      {p.showcase.precoOculto ? (
                         <span className="text-xs text-gray-400">Consulte preço</span>
                       ) : (
                         <>
                           <span className="text-sm font-bold" style={{ color: cor }}>
                             {brl(precoFinal)}
                           </span>
-                          {temPromocao && p.precoPromocional && (
+                          {temPromocao && p.showcase.precoPromocional && (
                             <span className="text-[11px] text-gray-400 line-through">
-                              {brl(p.preco)}
+                              {brl(p.sale_price)}
                             </span>
                           )}
                         </>
@@ -364,16 +442,18 @@ function VitrineLayout() {
       <section className="border-t border-gray-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <div className="grid gap-6 sm:grid-cols-3">
-            <InfoCard
-              icon={<MessageCircle className="h-5 w-5" />}
-              title="Atendimento"
-              text={`Chame no WhatsApp: ${STORE.whatsapp}`}
-              cor={cor}
-            />
+            {storeWhatsapp && (
+              <InfoCard
+                icon={<MessageCircle className="h-5 w-5" />}
+                title="Atendimento"
+                text={`Chame no WhatsApp: ${storeWhatsapp}`}
+                cor={cor}
+              />
+            )}
             <InfoCard
               icon={<RefreshCw className="h-5 w-5" />}
               title="Política de troca"
-              text={STORE.politicaTroca}
+              text="Entre em contato com a loja para verificar a política de trocas."
               cor={cor}
             />
             <InfoCard
@@ -384,11 +464,10 @@ function VitrineLayout() {
             />
           </div>
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-400">
-            <p>{STORE.boasVindas}</p>
             <p className="mt-3">
               Vitrine criada com{" "}
               <a href="/" className="font-semibold text-gray-600 hover:underline">
-                Modenza
+                Modaly
               </a>{" "}
               · Sistema de gestão para lojas de moda
             </p>
@@ -401,7 +480,7 @@ function VitrineLayout() {
         <ProductModal
           product={selectedProduct}
           cor={cor}
-          storeName={STORE.nome}
+          storeName={storeName}
           onClose={() => setSelectedProduct(null)}
           onCartOpen={() => setCartOpen(true)}
         />
@@ -412,8 +491,8 @@ function VitrineLayout() {
         open={cartOpen}
         onClose={() => setCartOpen(false)}
         cor={cor}
-        storeName={STORE.nome}
-        whatsapp={STORE.whatsapp}
+        storeName={storeName}
+        whatsapp={storeWhatsapp}
       />
     </div>
   );
@@ -427,26 +506,33 @@ function ProductModal({
   onClose,
   onCartOpen,
 }: {
-  product: (typeof mockProdutos)[0];
+  product: ShowcaseProduct;
   cor: string;
   storeName: string;
   onClose: () => void;
   onCartOpen: () => void;
 }) {
   const { add } = useCart();
-  const [tamanho, setTamanho] = useState(product.tamanhos[0] ?? "Único");
-  const [cor2, setCor2] = useState(product.cores[0] ?? "");
+  const sizesObj = (product.sizes ?? {}) as Record<string, number>;
+  const tamanhos = Object.entries(sizesObj)
+    .filter(([, qty]) => qty > 0)
+    .map(([size]) => size);
+
+  const [tamanho, setTamanho] = useState(tamanhos[0] ?? "Único");
+  const [cor2, setCor2] = useState(product.color ?? "");
   const [added, setAdded] = useState(false);
 
-  const temPromocao = isPromocaoAtiva(product.promocaoInicio, product.promocaoFim);
-  const precoFinal =
-    temPromocao && product.precoPromocional ? product.precoPromocional : product.preco;
+  const precoFinal = product.precoEfetivo;
+  const temPromocao = product.emPromocao;
+  const foto =
+    product.fotoEfetiva ??
+    `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(product.name)}`;
 
   function handleAdd() {
     const item: CartItem = {
       id: product.id,
-      nome: product.nome,
-      imagem: product.imagem,
+      nome: product.name,
+      imagem: foto,
       preco: precoFinal,
       tamanho,
       cor: cor2,
@@ -482,7 +568,7 @@ function ProductModal({
 
         {/* Imagem */}
         <div className="relative h-72 w-full overflow-hidden bg-gray-100 sm:h-80">
-          <img src={product.imagem} alt={product.nome} className="h-full w-full object-cover" />
+          <img src={foto} alt={product.name} className="h-full w-full object-cover" />
           {temPromocao && (
             <span className="absolute left-4 top-4 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
               PROMOÇÃO
@@ -494,20 +580,20 @@ function ProductModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                {product.categoria}
+                {product.category}
               </p>
-              <h2 className="mt-1 font-display text-xl font-bold text-gray-900">{product.nome}</h2>
+              <h2 className="mt-1 font-display text-xl font-bold text-gray-900">{product.name}</h2>
             </div>
             <div className="text-right">
-              {product.precoOculto ? (
+              {product.showcase.precoOculto ? (
                 <p className="text-sm text-gray-400">Consulte preço</p>
               ) : (
                 <>
                   <p className="text-2xl font-bold" style={{ color: cor }}>
                     {brl(precoFinal)}
                   </p>
-                  {temPromocao && product.precoPromocional && (
-                    <p className="text-sm text-gray-400 line-through">{brl(product.preco)}</p>
+                  {temPromocao && product.showcase.precoPromocional && (
+                    <p className="text-sm text-gray-400 line-through">{brl(product.sale_price)}</p>
                   )}
                 </>
               )}
@@ -515,13 +601,13 @@ function ProductModal({
           </div>
 
           {/* Tamanhos */}
-          {product.tamanhos.length > 0 && product.tamanhos[0] !== "Único" && (
+          {tamanhos.length > 0 && tamanhos[0] !== "Único" && (
             <div className="mt-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Tamanho
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.tamanhos.map((t) => (
+                {tamanhos.map((t) => (
                   <button
                     key={t}
                     onClick={() => setTamanho(t)}
@@ -539,48 +625,39 @@ function ProductModal({
             </div>
           )}
 
-          {/* Cores */}
-          {product.cores.length > 0 && (
+          {/* Cor */}
+          {product.color && (
             <div className="mt-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Cor — <span className="font-semibold text-gray-900">{cor2}</span>
               </p>
-              <div className="flex flex-wrap gap-2">
-                {product.cores.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCor2(c)}
-                    className="rounded-xl border px-3 py-1.5 text-sm font-medium transition-all"
-                    style={
-                      cor2 === c
-                        ? { borderColor: cor, backgroundColor: `${cor}15`, color: cor }
-                        : { borderColor: "#e5e7eb", color: "#374151" }
-                    }
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => setCor2(product.color!)}
+                className="rounded-xl border px-3 py-1.5 text-sm font-medium transition-all"
+                style={{ borderColor: cor, backgroundColor: `${cor}15`, color: cor }}
+              >
+                {product.color}
+              </button>
             </div>
           )}
 
           {/* Estoque */}
           <p className="mt-4 text-xs text-gray-400">
-            {product.estoque > 0
-              ? `${product.estoque} unidade${product.estoque !== 1 ? "s" : ""} disponíve${product.estoque !== 1 ? "is" : "l"}`
+            {product.totalEstoque > 0
+              ? `${product.totalEstoque} unidade${product.totalEstoque !== 1 ? "s" : ""} disponíve${product.totalEstoque !== 1 ? "is" : "l"}`
               : "Sem estoque"}
           </p>
 
           <button
             id="add-to-cart-btn"
             onClick={handleAdd}
-            disabled={product.estoque === 0 || added}
+            disabled={product.totalEstoque === 0 || added}
             className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-60 hover:opacity-90"
             style={{ backgroundColor: cor }}
           >
             {added ? (
               <>✓ Adicionado ao carrinho!</>
-            ) : product.estoque === 0 ? (
+            ) : product.totalEstoque === 0 ? (
               "Sem estoque"
             ) : (
               <>
@@ -738,7 +815,8 @@ function CartDrawer({
             <button
               id="whatsapp-checkout-btn"
               onClick={handleCheckout}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90"
+              disabled={!whatsapp}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "#25D366" }}
             >
               <MessageCircle className="h-4 w-4" />

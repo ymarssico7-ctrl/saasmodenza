@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Package, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+
+const FRETE_STORAGE_KEY = "modaly_frete_config";
+
+type FreteConfig = {
+  cep: string;
+  endereco: string;
+  opcoes: OpcaoEntrega[];
+  freteGratisMinimoAtivo: boolean;
+  freteGratisMinimo: string;
+};
 
 export const Route = createFileRoute("/_authenticated/loja/frete")({
   head: () => ({
@@ -69,18 +79,45 @@ const opcoesIniciais: OpcaoEntrega[] = [
 
 function FretePage() {
   const [opcoes, setOpcoes] = useState<OpcaoEntrega[]>(opcoesIniciais);
-  const [cep, setCep] = useState("30112-000");
-  const [enderecoLoja, setEnderecoLoja] = useState(
-    "Rua Antônio de Albuquerque, 156 — Savassi, Belo Horizonte/MG",
-  );
+  const [cep, setCep] = useState("");
+  const [enderecoLoja, setEnderecoLoja] = useState("");
   const [freteGratisMinimoAtivo, setFreteGratisMinimoAtivo] = useState(false);
-  const [freteGratisMinimo, setFreteGratisMinimo] = useState("250");
+  const [freteGratisMinimo, setFreteGratisMinimo] = useState("");
+
+  // Carrega configurações salvas ao montar
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FRETE_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<FreteConfig>;
+      if (saved.cep) setCep(saved.cep);
+      if (saved.endereco) setEnderecoLoja(saved.endereco);
+      if (saved.opcoes) setOpcoes(saved.opcoes);
+      if (saved.freteGratisMinimoAtivo !== undefined)
+        setFreteGratisMinimoAtivo(saved.freteGratisMinimoAtivo);
+      if (saved.freteGratisMinimo) setFreteGratisMinimo(saved.freteGratisMinimo);
+    } catch {
+      // localStorage indisponível ou corrompido — iniciar vazio
+    }
+  }, []);
 
   function toggleOpcao(id: string) {
     setOpcoes((prev) => prev.map((o) => (o.id === id ? { ...o, ativa: !o.ativa } : o)));
   }
 
   function salvar() {
+    try {
+      const config: FreteConfig = {
+        cep,
+        endereco: enderecoLoja,
+        opcoes,
+        freteGratisMinimoAtivo,
+        freteGratisMinimo,
+      };
+      localStorage.setItem(FRETE_STORAGE_KEY, JSON.stringify(config));
+    } catch {
+      // ignore
+    }
     toast.success("Configurações de frete salvas!", {
       description: "As opções de entrega já estão visíveis na vitrine.",
     });

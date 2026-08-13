@@ -1,17 +1,20 @@
 import type { ProductGridSettings, ThemeSettings } from "@/lib/theme-engine/schema";
-import { produtos, type Produto } from "@/data/loja";
+import type { ShowcaseProduct } from "@/lib/showcase-store";
 import { brl } from "@/lib/format";
 
 interface Props {
   settings: ProductGridSettings;
   theme: ThemeSettings;
+  products?: ShowcaseProduct[];
 }
 
-function getProducts(settings: ProductGridSettings): Produto[] {
-  let pool = [...produtos].filter((p) => p.ativo);
-  if (settings.source === "featured") pool = pool.filter((p) => p.destaque);
+function getProducts(settings: ProductGridSettings, all: ShowcaseProduct[]): ShowcaseProduct[] {
+  let pool = all.filter((p) => p.showcase.ativo);
+  if (settings.source === "featured") pool = pool.filter((p) => p.showcase.destaque);
   if (settings.source === "newest")
-    pool = pool.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
+    pool = pool.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
   return pool.slice(0, settings.count);
 }
 
@@ -22,8 +25,8 @@ const COL_CLASS: Record<number, string> = {
   6: "grid-cols-2 md:grid-cols-3 lg:grid-cols-6",
 };
 
-export function ProductGridSection({ settings, theme }: Props) {
-  const items = getProducts(settings);
+export function ProductGridSection({ settings, theme, products = [] }: Props) {
+  const items = getProducts(settings, products);
 
   return (
     <section
@@ -84,15 +87,18 @@ export function ProductGridSection({ settings, theme }: Props) {
   );
 }
 
-function ProductThemeCard({ product, theme }: { product: Produto; theme: ThemeSettings }) {
-  const hasPromo = product.precoPromocional != null;
+function ProductThemeCard({ product, theme }: { product: ShowcaseProduct; theme: ThemeSettings }) {
+  const hasPromo = product.emPromocao && product.showcase.precoPromocional != null;
+  const foto =
+    product.fotoEfetiva ??
+    `https://placehold.co/400x520/f5f5f5/999?text=${encodeURIComponent(product.name)}`;
 
   return (
     <article className="group cursor-pointer">
       <div className="relative overflow-hidden" style={{ background: theme.colorCanvas }}>
         <img
-          src={product.imagem}
-          alt={product.nome}
+          src={foto}
+          alt={product.name}
           className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {hasPromo && (
@@ -107,7 +113,7 @@ function ProductThemeCard({ product, theme }: { product: Produto; theme: ThemeSe
             Promoção
           </span>
         )}
-        {product.estoque === 0 && (
+        {product.totalEstoque === 0 && (
           <div
             className="absolute inset-0 flex items-center justify-center text-xs uppercase tracking-[0.15em]"
             style={{ background: `${theme.colorForeground}40`, color: theme.colorBackground }}
@@ -119,18 +125,18 @@ function ProductThemeCard({ product, theme }: { product: Produto; theme: ThemeSe
 
       <div className="mt-3">
         <h3 className="truncate text-[0.9rem]" style={{ color: theme.colorForeground }}>
-          {product.nome}
+          {product.name}
         </h3>
         <p className="mt-1 text-xs" style={{ color: `${theme.colorForeground}70` }}>
-          {product.categoria}
+          {product.category}
         </p>
         <div className="mt-1.5 flex items-baseline gap-2">
           <span className="text-[0.9rem]" style={{ color: theme.colorForeground }}>
-            {brl(hasPromo ? (product.precoPromocional ?? product.preco) : product.preco)}
+            {brl(product.precoEfetivo)}
           </span>
           {hasPromo && (
             <span className="text-xs line-through" style={{ color: `${theme.colorForeground}55` }}>
-              {brl(product.preco)}
+              {brl(product.sale_price)}
             </span>
           )}
         </div>

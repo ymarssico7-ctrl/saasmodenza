@@ -16,10 +16,10 @@ export type VitrineSettings = {
 };
 
 const DEFAULT_SETTINGS: VitrineSettings = {
-  descricao: "Moda feminina autoral, peças selecionadas à mão.",
+  descricao: "",
   corPrincipal: "#3A3AF0",
-  boasVindas: "Oi! Que bom te ver por aqui. Qualquer dúvida, me chama no WhatsApp 💜",
-  politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+  boasVindas: "",
+  politicaTroca: "",
   mostrarEstoque: false,
   instagram: "",
   estado: "",

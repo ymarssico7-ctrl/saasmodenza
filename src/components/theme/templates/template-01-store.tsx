@@ -25,7 +25,6 @@ import type {
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
 import { useQuery } from "@tanstack/react-query";
-import { loja } from "@/data/loja";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
@@ -960,7 +959,7 @@ export function Template01Store({
             <div className="lg:col-span-1">
               <p className="font-serif text-2xl uppercase tracking-[0.3em]">{storeName}</p>
               <p className="mt-5 max-w-xs text-xs leading-loose text-muted-foreground">
-                {settings?.storeDescription ?? loja.descricao}
+                {settings?.storeDescription ?? ""}
               </p>
             </div>
             {[
@@ -1176,11 +1175,11 @@ export function Template01Store({
               type="button"
               disabled={cart.length === 0}
               onClick={() => {
-                const whatsapp = settings?.storeWhatsApp ?? loja.whatsapp;
+                const whatsapp = settings?.storeWhatsApp ?? "";
                 if (whatsapp) {
                   openWhatsAppCheckout(
                     whatsapp,
-                    settings?.storeName ?? loja.nome,
+                    settings?.storeName ?? "",
                     cart.map((i) => ({
                       id: i.product.id,
                       nome: i.product.nome,

@@ -5,9 +5,8 @@ const STORAGE_KEY = "modaly_theme_config";
 
 const SETTINGS_DEFAULTS: Partial<ThemeSettings> = {
   checkoutMode: "whatsapp",
-  storeWhatsApp: "(31) 99812-4477",
-  storeDescription:
-    "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+  storeWhatsApp: "",
+  storeDescription: "",
   politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
   mostrarEstoque: false,
 };

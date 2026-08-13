@@ -1,16 +1,17 @@
 import type { CategoryBarSettings, ThemeSettings } from "@/lib/theme-engine/schema";
-import { produtos } from "@/data/loja";
-
-// Derive unique categories from product data
-const CATEGORIES = Array.from(new Set(produtos.map((p) => p.categoria))).sort();
+import type { ShowcaseProduct } from "@/lib/showcase-store";
 
 interface Props {
   settings: CategoryBarSettings;
   theme: ThemeSettings;
+  products?: ShowcaseProduct[];
 }
 
-export function CategoryBarSection({ settings, theme }: Props) {
+export function CategoryBarSection({ settings, theme, products = [] }: Props) {
   if (!settings.enabled) return null;
+
+  // Derive unique categories from real inventory data
+  const categories = Array.from(new Set(products.map((p) => p.category))).sort();
 
   return (
     <section
@@ -32,7 +33,7 @@ export function CategoryBarSection({ settings, theme }: Props) {
               Todos
             </span>
           </li>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <li key={cat} className="shrink-0">
               <span
                 className="flex h-9 items-center px-4 text-[12px] uppercase tracking-[0.1em] border transition-colors cursor-pointer"

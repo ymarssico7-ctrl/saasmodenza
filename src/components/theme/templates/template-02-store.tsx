@@ -27,7 +27,6 @@ import type {
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
 import { useQuery } from "@tanstack/react-query";
-import { loja } from "@/data/loja";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
@@ -1179,7 +1178,7 @@ export function Template02Store({
           ) && <AnnouncementBar text={bannerText} />}
         <Navbar storeName={storeName} {...(logoUrl ? { logoUrl } : {})} />
         <CartDrawer
-          storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? loja.whatsapp }}
+          storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? "" }}
         />
         {quickAdd && <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />}
 
@@ -1282,7 +1281,7 @@ export function Template02Store({
 
         <Footer
           storeName={storeName}
-          storeDescription={settings?.storeDescription ?? loja.descricao}
+          storeDescription={settings?.storeDescription ?? ""}
         />
       </div>
     </CartProvider>
