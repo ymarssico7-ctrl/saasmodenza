@@ -4,6 +4,7 @@ import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
+import { useStore } from "@/lib/store-context";
 import {
   TEMPLATES_REGISTRY,
   CATEGORY_LABELS,
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/loja/templates")({
 const CATEGORIES: TemplateCategory[] = ["todos", "minimalista", "editorial", "luxo", "boutique"];
 
 function GaleriaTemplatesPage() {
+  const { store } = useStore();
   const activeTheme = loadTheme();
   const activeTemplateId = activeTheme.settings.templateId ?? "template-02";
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>("todos");
@@ -37,12 +39,17 @@ function GaleriaTemplatesPage() {
 
   function applyTemplate(entry: TemplateEntry) {
     const current = loadTheme();
+    // Prioridade do nome: 1) nome já personalizado no tema, 2) nome real da loja no banco
+    const resolvedName =
+      (current.settings.storeName && current.settings.storeName.trim())
+        ? current.settings.storeName
+        : store.name || "";
     const updated = {
       ...current,
       settings: {
         ...current.settings,
         templateId: entry.id,
-        storeName: current.settings.storeName || entry.defaults.storeName,
+        storeName: resolvedName,
         colorBackground: entry.defaults.colorBackground,
         colorForeground: entry.defaults.colorForeground,
         colorPrimary: entry.defaults.colorPrimary,

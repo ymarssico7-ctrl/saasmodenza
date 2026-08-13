@@ -6,6 +6,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { currentUserId } from "@/lib/db";
 import { toNumber } from "@/lib/format";
+import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,6 +131,19 @@ function Onboarding() {
         queryClient.invalidateQueries({ queryKey: ["profile"] }),
         queryClient.invalidateQueries({ queryKey: ["active_store"] }),
       ]);
+
+      // Escreve o nome da loja no Theme Engine para que os templates
+      // exibam imediatamente o nome real — sem precisar editar manualmente.
+      const savedTheme = loadTheme();
+      const realName = storeName.trim() || "Minha loja";
+      saveTheme({
+        ...savedTheme,
+        settings: {
+          ...savedTheme.settings,
+          storeName: realName,
+          storeWhatsApp: phone.trim() || savedTheme.settings.storeWhatsApp || "",
+        },
+      });
 
       toast.success("Tudo pronto! Bem-vinda à Modé. 🎉");
       navigate({ to: "/painel" });

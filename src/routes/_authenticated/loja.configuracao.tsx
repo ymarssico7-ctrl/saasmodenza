@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { loadTheme } from "@/lib/theme-engine/defaults";
+import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
 import { getVitrineSettings, saveVitrineSettings } from "@/lib/vitrine-settings";
 import { updateStoreDetails } from "@/lib/mutations";
@@ -93,7 +93,18 @@ function AparenciaPage() {
         estado,
       });
 
-      // 3) Invalida o cache do store para o AppShell/header exibir o nome novo
+      // 3) Sincroniza nome e WhatsApp no Theme Engine (assim os templates ficam atualizados)
+      const currentTheme = loadTheme();
+      saveTheme({
+        ...currentTheme,
+        settings: {
+          ...currentTheme.settings,
+          storeName: nome.trim() || currentTheme.settings.storeName,
+          storeWhatsApp: whatsapp.trim() || currentTheme.settings.storeWhatsApp || "",
+        },
+      });
+
+      // 4) Invalida o cache do store para o AppShell/header exibir o nome novo
       await queryClient.invalidateQueries({ queryKey: ["active_store"] });
 
       toast.success("Configurações salvas com sucesso!", {

@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
+import { useStore } from "@/lib/store-context";
 
 // ── Assets locais (idênticos ao template original) ────────────────────────────
 import heroImg from "@/assets/template-01/hero.jpg";
@@ -396,8 +397,10 @@ export function Template01Store({
     trilha.current?.scrollBy({ left: dir * 360, behavior: "smooth" });
   };
 
-  // Nome da loja e textos do Theme Engine (com fallback para os originais)
-  const storeName = settings?.storeName || "Nove";
+  // Nome da loja: 1) definido pelo usuário no builder, 2) nome real do banco de dados
+  const { store: activeStore } = useStore();
+  const storeName =
+    (settings?.storeName && settings.storeName.trim()) ? settings.storeName : (activeStore.name || "");
   const logoUrl = settings?.logoUrl;
   const freeShippingText =
     settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";

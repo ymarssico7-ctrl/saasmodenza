@@ -92,16 +92,13 @@ export const FONT_URLS: Record<string, string> = {
 export const ATELIER_MOD_THEME: ThemeConfig = {
   settings: {
     // ── Identidade (site-header.tsx: "ATELIER MOD") ─────────────────────────
-    storeName: "ATELIER MOD",
+    storeName: "",
     tagline: "Moda atemporal em pequenos lotes",
-
-    // ── Banner (site-header.tsx line 32-34) ──────────────────────────────────
     freeShippingBanner: "Frete grátis acima de R$ 599",
     freeShippingBannerEnabled: true,
     checkoutMode: "whatsapp",
-    storeWhatsApp: "(31) 99812-4477",
-    storeDescription:
-      "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    storeWhatsApp: "",
+    storeDescription: "",
     politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
     mostrarEstoque: false,
 
@@ -284,14 +281,13 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
 // REGRA: Todos os valores abaixo são LITERAIS do arquivo original acima.
 export const TEMPLATE_01_THEME: ThemeConfig = {
   settings: {
-    storeName: "Nove",
+    storeName: "",
     tagline: "Moda atemporal em edições limitadas",
     freeShippingBanner: "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias",
     freeShippingBannerEnabled: true,
     checkoutMode: "whatsapp",
-    storeWhatsApp: "(31) 99812-4477",
-    storeDescription:
-      "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    storeWhatsApp: "",
+    storeDescription: "",
     politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
     mostrarEstoque: false,
     // Cores — idênticas ao :root do template 01/src/styles.css
@@ -353,14 +349,13 @@ export const RADIUS_MAP: Record<string, string> = {
 export const TEMPLATE_02_THEME: ThemeConfig = {
   settings: {
     templateId: "template-02",
-    storeName: "Atelie",
+    storeName: "",
     tagline: "Moda atemporal em pequenos lotes",
     freeShippingBanner: "Frete grátis acima de R$ 500 · Trocas em 30 dias",
     freeShippingBannerEnabled: true,
     checkoutMode: "whatsapp",
-    storeWhatsApp: "(31) 99812-4477",
-    storeDescription:
-      "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    storeWhatsApp: "",
+    storeDescription: "",
     politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
     mostrarEstoque: false,
     // Cores — idênticas ao :root do atelie-loja/src/styles.css

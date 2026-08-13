@@ -30,6 +30,7 @@ import { useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
+import { useStore } from "@/lib/store-context";
 
 // ── Assets locais (14 imagens, idênticas ao template original) ────────────────
 import heroImg from "@/assets/template-02/hero.jpg";
@@ -858,7 +859,10 @@ export function Template02Store({
   const [activeSize, setActiveSize] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("destaque");
 
-  const storeName = settings?.storeName || "Atelie";
+  // Nome da loja: 1) definido pelo usuário no builder, 2) nome real do banco de dados
+  const { store: activeStore } = useStore();
+  const storeName =
+    (settings?.storeName && settings.storeName.trim()) ? settings.storeName : (activeStore.name || "");
   const logoUrl = settings?.logoUrl;
   const bannerText =
     settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · Trocas em 30 dias";

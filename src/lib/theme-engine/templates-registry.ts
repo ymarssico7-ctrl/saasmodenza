@@ -85,7 +85,7 @@ export const TEMPLATES_REGISTRY: TemplateEntry[] = [
       body: "Figtree",
     },
     defaults: {
-      storeName: "Atelie",
+      storeName: "",
       freeShippingBanner: "Frete grátis acima de R$ 500 · Trocas em 30 dias",
       colorBackground: "oklch(0.962 0.006 85)",
       colorForeground: "oklch(0.155 0 0)",
@@ -121,7 +121,7 @@ export const TEMPLATES_REGISTRY: TemplateEntry[] = [
       body: "Jost",
     },
     defaults: {
-      storeName: "Atelier Nove",
+      storeName: "",
       freeShippingBanner: "Envio grátis acima de R$ 500 · Trocas em 30 dias",
       colorBackground: "oklch(0.975 0.008 75)",
       colorForeground: "oklch(0.2 0.005 285)",
