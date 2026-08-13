@@ -29,7 +29,10 @@ export function HeroSection({ settings, theme }: Props) {
         {settings.subheading && (
           <p
             className="text-[11px] uppercase tracking-[0.22em]"
-            style={{ color: `${theme.colorBackground}cc`, fontFamily: `'${theme.fontBody}', sans-serif` }}
+            style={{
+              color: `${theme.colorBackground}cc`,
+              fontFamily: `'${theme.fontBody}', sans-serif`,
+            }}
           >
             {settings.subheading}
           </p>

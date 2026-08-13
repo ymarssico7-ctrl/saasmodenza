@@ -9,12 +9,7 @@
  */
 
 export type TemplateCategory =
-  | "todos"
-  | "minimalista"
-  | "luxo"
-  | "editorial"
-  | "streetwear"
-  | "boutique";
+  "todos" | "minimalista" | "luxo" | "editorial" | "streetwear" | "boutique";
 
 export interface TemplateEntry {
   /** Deve ser idêntico ao `settings.templateId` no ThemeConfig */
@@ -159,11 +154,9 @@ export function getTemplateById(id: string): TemplateEntry | undefined {
   return TEMPLATES_REGISTRY.find((t) => t.id === id);
 }
 
-export function getTemplatesByCategory(
-  category: TemplateCategory,
-): TemplateEntry[] {
+export function getTemplatesByCategory(category: TemplateCategory): TemplateEntry[] {
   if (category === "todos") return [...TEMPLATES_REGISTRY].sort((a, b) => a.order - b.order);
-  return TEMPLATES_REGISTRY.filter((t) =>
-    t.categories.includes(category),
-  ).sort((a, b) => a.order - b.order);
+  return TEMPLATES_REGISTRY.filter((t) => t.categories.includes(category)).sort(
+    (a, b) => a.order - b.order,
+  );
 }

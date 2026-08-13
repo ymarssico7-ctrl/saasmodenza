@@ -53,9 +53,7 @@ export function PlanGuard({
         </div>
       </div>
 
-      <h2 className="mt-6 text-xl font-semibold">
-        {featureName ?? "Recurso exclusivo"}
-      </h2>
+      <h2 className="mt-6 text-xl font-semibold">{featureName ?? "Recurso exclusivo"}</h2>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
         {featureDescription ??
           `Este recurso está disponível no ${planNames[requires]}. Faça o upgrade para desbloquear.`}

@@ -134,8 +134,17 @@ export function hasAnyActiveProduct(): boolean {
 export function bulkActivateAll(itemIds: string[]): void {
   const map = loadShowcaseConfigs();
   itemIds.forEach((id, index) => {
-    const current = map[id] ?? { ...SHOWCASE_ITEM_DEFAULTS, ordem: index, updatedAt: new Date().toISOString() };
-    map[id] = { ...current, ativo: true, ordem: current.ordem, updatedAt: new Date().toISOString() };
+    const current = map[id] ?? {
+      ...SHOWCASE_ITEM_DEFAULTS,
+      ordem: index,
+      updatedAt: new Date().toISOString(),
+    };
+    map[id] = {
+      ...current,
+      ativo: true,
+      ordem: current.ordem,
+      updatedAt: new Date().toISOString(),
+    };
   });
   saveShowcaseConfigs(map);
 }
@@ -263,7 +272,5 @@ export function mergeWithShowcase(item: InventoryItem): ShowcaseProduct {
  * ordenados pela posição definida na vitrine.
  */
 export function mergeInventoryWithShowcase(items: InventoryItem[]): ShowcaseProduct[] {
-  return items
-    .map(mergeWithShowcase)
-    .sort((a, b) => a.showcase.ordem - b.showcase.ordem);
+  return items.map(mergeWithShowcase).sort((a, b) => a.showcase.ordem - b.showcase.ordem);
 }

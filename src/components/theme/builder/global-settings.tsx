@@ -168,8 +168,7 @@ export function GlobalSettings() {
   const { theme, dispatch } = useBuilder();
   const s = theme.settings;
 
-  const patch = (p: Partial<ThemeSettings>) =>
-    dispatch({ type: "UPDATE_SETTINGS", patch: p });
+  const patch = (p: Partial<ThemeSettings>) => dispatch({ type: "UPDATE_SETTINGS", patch: p });
 
   const handleFontDisplayChange = (v: string) => {
     ensureFontLoaded(v);
@@ -183,17 +182,24 @@ export function GlobalSettings() {
 
   return (
     <div className="space-y-7">
-
       {/* ── Identidade ────────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Identidade
         </p>
         <Field label="Nome da Loja">
-          <Input value={s.storeName} onChange={(e) => patch({ storeName: e.target.value })} className="h-9" />
+          <Input
+            value={s.storeName}
+            onChange={(e) => patch({ storeName: e.target.value })}
+            className="h-9"
+          />
         </Field>
         <Field label="Tagline">
-          <Input value={s.tagline} onChange={(e) => patch({ tagline: e.target.value })} className="h-9" />
+          <Input
+            value={s.tagline}
+            onChange={(e) => patch({ tagline: e.target.value })}
+            className="h-9"
+          />
         </Field>
 
         {/* Logo */}
@@ -201,7 +207,13 @@ export function GlobalSettings() {
           label="Logotipo"
           hint="📐 Recomendado: 400 × 150 px — Fundo transparente (PNG ou WebP). O logo é exibido no cabeçalho da loja."
           value={s.logoUrl ?? ""}
-          onChange={(v) => patch(v ? { logoUrl: v } : { logoUrl: undefined } as Record<string, unknown> as Partial<typeof s>)}
+          onChange={(v) =>
+            patch(
+              v
+                ? { logoUrl: v }
+                : ({ logoUrl: undefined } as Record<string, unknown> as Partial<typeof s>),
+            )
+          }
           maxWidth={800}
           maxHeight={300}
           previewHeight={64}
@@ -251,11 +263,31 @@ export function GlobalSettings() {
         </div>
 
         <div className="space-y-4">
-          <ColorField label="Fundo Principal" value={s.colorBackground} onChange={(v) => patch({ colorBackground: v })} />
-          <ColorField label="Texto / Primeiro Plano" value={s.colorForeground} onChange={(v) => patch({ colorForeground: v })} />
-          <ColorField label="Cor de Destaque" value={s.colorPrimary} onChange={(v) => patch({ colorPrimary: v })} />
-          <ColorField label="Fundo Canvas (Secundário)" value={s.colorCanvas} onChange={(v) => patch({ colorCanvas: v })} />
-          <ColorField label="Bordas" value={s.colorBorder} onChange={(v) => patch({ colorBorder: v })} />
+          <ColorField
+            label="Fundo Principal"
+            value={s.colorBackground}
+            onChange={(v) => patch({ colorBackground: v })}
+          />
+          <ColorField
+            label="Texto / Primeiro Plano"
+            value={s.colorForeground}
+            onChange={(v) => patch({ colorForeground: v })}
+          />
+          <ColorField
+            label="Cor de Destaque"
+            value={s.colorPrimary}
+            onChange={(v) => patch({ colorPrimary: v })}
+          />
+          <ColorField
+            label="Fundo Canvas (Secundário)"
+            value={s.colorCanvas}
+            onChange={(v) => patch({ colorCanvas: v })}
+          />
+          <ColorField
+            label="Bordas"
+            value={s.colorBorder}
+            onChange={(v) => patch({ colorBorder: v })}
+          />
         </div>
       </div>
 
@@ -316,7 +348,9 @@ export function GlobalSettings() {
               }`}
               style={{
                 background: s.colorPrimary,
-                borderRadius: { none: "0", sm: "4px", md: "8px", lg: "16px", full: "9999px" }[r.value],
+                borderRadius: { none: "0", sm: "4px", md: "8px", lg: "16px", full: "9999px" }[
+                  r.value
+                ],
               }}
             />
           ))}
@@ -332,13 +366,13 @@ export function GlobalSettings() {
           Zona de Risco
         </p>
         <p className="mb-3 text-xs text-muted-foreground">
-          Redefinir o tema restaura todas as configurações para o padrão original.
-          Esta ação não pode ser desfeita.
+          Redefinir o tema restaura todas as configurações para o padrão original. Esta ação não
+          pode ser desfeita.
         </p>
         <button
           onClick={() => {
             const confirmed = window.confirm(
-              "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas."
+              "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas.",
             );
             if (confirmed) {
               dispatch({ type: "RESET" });
@@ -367,7 +401,9 @@ export function GlobalSettings() {
           >
             <button
               type="button"
-              onClick={() => dispatch({ type: "UPDATE_SETTINGS", patch: { checkoutMode: "whatsapp" } })}
+              onClick={() =>
+                dispatch({ type: "UPDATE_SETTINGS", patch: { checkoutMode: "whatsapp" } })
+              }
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
                 (s.checkoutMode ?? "whatsapp") === "whatsapp"
                   ? "bg-background text-foreground shadow-soft"
@@ -397,7 +433,9 @@ export function GlobalSettings() {
             <input
               type="tel"
               value={s.storeWhatsApp ?? ""}
-              onChange={(e) => dispatch({ type: "UPDATE_SETTINGS", patch: { storeWhatsApp: e.target.value } })}
+              onChange={(e) =>
+                dispatch({ type: "UPDATE_SETTINGS", patch: { storeWhatsApp: e.target.value } })
+              }
               placeholder="(31) 99812-4477"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
@@ -406,10 +444,14 @@ export function GlobalSettings() {
 
         {/* Store Description */}
         <div className="space-y-1.5 mb-4">
-          <label className="text-xs font-medium text-muted-foreground">Descrição da loja (rodapé)</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Descrição da loja (rodapé)
+          </label>
           <textarea
             value={s.storeDescription ?? ""}
-            onChange={(e) => dispatch({ type: "UPDATE_SETTINGS", patch: { storeDescription: e.target.value } })}
+            onChange={(e) =>
+              dispatch({ type: "UPDATE_SETTINGS", patch: { storeDescription: e.target.value } })
+            }
             placeholder="Peças atemporais feitas em pequenos lotes…"
             rows={2}
             className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -421,7 +463,9 @@ export function GlobalSettings() {
           <label className="text-xs font-medium text-muted-foreground">Política de troca</label>
           <textarea
             value={s.politicaTroca ?? ""}
-            onChange={(e) => dispatch({ type: "UPDATE_SETTINGS", patch: { politicaTroca: e.target.value } })}
+            onChange={(e) =>
+              dispatch({ type: "UPDATE_SETTINGS", patch: { politicaTroca: e.target.value } })
+            }
             placeholder="Trocas em até 7 dias…"
             rows={3}
             className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -432,13 +476,20 @@ export function GlobalSettings() {
         <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3">
           <div>
             <p className="text-xs font-semibold">Mostrar estoque disponível</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Exibe quantidade disponível nos cards de produto.</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Exibe quantidade disponível nos cards de produto.
+            </p>
           </div>
           <button
             type="button"
             role="switch"
             aria-checked={s.mostrarEstoque ?? false}
-            onClick={() => dispatch({ type: "UPDATE_SETTINGS", patch: { mostrarEstoque: !(s.mostrarEstoque ?? false) } })}
+            onClick={() =>
+              dispatch({
+                type: "UPDATE_SETTINGS",
+                patch: { mostrarEstoque: !(s.mostrarEstoque ?? false) },
+              })
+            }
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
               s.mostrarEstoque ? "bg-primary" : "bg-muted-foreground/30"
             }`}

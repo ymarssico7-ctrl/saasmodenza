@@ -1,19 +1,19 @@
+import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useReducer,
-  type ReactNode,
-} from "react";
-import { SECTION_META, type Section, type ThemeConfig, type ThemeSettings, type SectionType } from "./schema";
+  SECTION_META,
+  type Section,
+  type ThemeConfig,
+  type ThemeSettings,
+  type SectionType,
+} from "./schema";
 import { ATELIER_MOD_THEME, loadTheme } from "./defaults";
 import { nanoid } from "./nanoid";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 export interface BuilderState {
   theme: ThemeConfig;
-  past: ThemeConfig[];    // histórico para UNDO
-  future: ThemeConfig[];  // histórico para REDO
+  past: ThemeConfig[]; // histórico para UNDO
+  future: ThemeConfig[]; // histórico para REDO
   selectedSectionId: string | null;
   activeTab: "sections" | "global";
   previewMode: "desktop" | "mobile";
@@ -42,10 +42,7 @@ type Action =
 const MAX_HISTORY = 50;
 
 /** Aplica uma mudança ao estado guardando o snapshot atual em `past`. */
-function withHistory(
-  state: BuilderState,
-  newTheme: ThemeConfig,
-): BuilderState {
+function withHistory(state: BuilderState, newTheme: ThemeConfig): BuilderState {
   return {
     ...state,
     past: [...state.past.slice(-MAX_HISTORY), state.theme],
@@ -105,9 +102,7 @@ function reducer(state: BuilderState, action: Action): BuilderState {
       const sections = state.theme.sections.filter((s) => s.id !== action.id);
       const order = state.theme.order.filter((id) => id !== action.id);
       const selectedSectionId =
-        state.selectedSectionId === action.id
-          ? null
-          : state.selectedSectionId;
+        state.selectedSectionId === action.id ? null : state.selectedSectionId;
       return {
         ...withHistory(state, { ...state.theme, sections, order }),
         selectedSectionId,
@@ -178,8 +173,7 @@ function createDefaultSection(type: SectionType): Section {
           heading: "Novo Banner",
           subheading: "Subtítulo",
           buttonText: "Ver mais",
-          imageUrl:
-            "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&q=80",
+          imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&q=80",
           imageAlt: "Banner",
           imagePosition: "center",
           overlayOpacity: 40,
@@ -211,8 +205,7 @@ function createDefaultSection(type: SectionType): Section {
           heading: "Título da seção",
           body: "Texto descritivo da seção.",
           buttonText: "Saiba mais",
-          imageUrl:
-            "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80",
+          imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80",
           imageAlt: "Imagem",
           imagePosition: "right",
           backgroundColor: "canvas",

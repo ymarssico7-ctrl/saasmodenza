@@ -13,17 +13,22 @@
  *   - Escopo CSS isolado em .t01-theme (não afeta o painel admin)
  */
 import { useEffect, useRef, useState, useMemo } from "react";
-import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
+import type {
+  ThemeConfig,
+  Section,
+  HeroSection,
+  ProductGridSection,
+  ImageTextSplitSection,
+  FeaturesSection,
+  AnnouncementSection,
+} from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
 import { useQuery } from "@tanstack/react-query";
 import { loja } from "@/data/loja";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
-import {
-  mergeInventoryWithShowcase,
-  type ShowcaseProduct,
-} from "@/lib/showcase-store";
+import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
 
 // ── Assets locais (idênticos ao template original) ────────────────────────────
 import heroImg from "@/assets/template-01/hero.jpg";
@@ -85,8 +90,12 @@ function adaptShowcaseProduct(p: ShowcaseProduct): Product {
     categoria: p.category,
     preco: p.precoEfetivo,
     ...(p.emPromocao && p.showcase.precoPromocional ? { precoAntigo: p.sale_price } : {}),
-    imagem: p.fotoEfetiva ?? `https://placehold.co/400x520/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
-    imagemHover: p.vitrineFotos[1] ?? p.fotoEfetiva ?? `https://placehold.co/400x520/f0f0f0/888?text=${encodeURIComponent(p.name)}`,
+    imagem:
+      p.fotoEfetiva ?? `https://placehold.co/400x520/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
+    imagemHover:
+      p.vitrineFotos[1] ??
+      p.fotoEfetiva ??
+      `https://placehold.co/400x520/f0f0f0/888?text=${encodeURIComponent(p.name)}`,
     cores: p.color ? [{ nome: p.color, hex: "#888888" }] : [],
     tamanhos: tamanhos.length > 0 ? tamanhos : ["Único"],
     ...(badge !== undefined ? { badge } : {}),
@@ -100,8 +109,14 @@ const NAV = [
   {
     label: "Feminino",
     colunas: [
-      { titulo: "Vestuário", itens: ["Casacos", "Alfaiataria", "Vestidos", "Camisaria", "Malharia"] },
-      { titulo: "Coleções", itens: ["Inverno 26", "Essenciais", "Edição Limitada", "Últimas peças"] },
+      {
+        titulo: "Vestuário",
+        itens: ["Casacos", "Alfaiataria", "Vestidos", "Camisaria", "Malharia"],
+      },
+      {
+        titulo: "Coleções",
+        itens: ["Inverno 26", "Essenciais", "Edição Limitada", "Últimas peças"],
+      },
     ],
   },
   {
@@ -191,7 +206,10 @@ function ProductCard({
           {product.categoria}
         </p>
         <h3 className="mt-2 font-serif text-lg leading-snug text-foreground">
-          <a href="#produto" className="transition-colors duration-300 hover:text-accent-foreground">
+          <a
+            href="#produto"
+            className="transition-colors duration-300 hover:text-accent-foreground"
+          >
             {product.nome}
           </a>
         </h3>
@@ -255,7 +273,8 @@ export function Template01Store({
   // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
   const allShowcaseProducts = useMemo(
-    () => mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
+    () =>
+      mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
     [rawInventory],
   );
   /** Apenas produtos ativos na vitrine */
@@ -265,7 +284,10 @@ export function Template01Store({
   );
   /** Categorias únicas derivadas dos produtos ativos */
   const PRODUCT_CATEGORIES = useMemo(
-    () => Array.from(new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category))),
+    () =>
+      Array.from(
+        new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category)),
+      ),
     [allShowcaseProducts],
   );
 
@@ -358,9 +380,7 @@ export function Template01Store({
   const adicionar = () => {
     if (!quickAdd || !tamanhoSel) return;
     setCart((atual) => {
-      const idx = atual.findIndex(
-        (i) => i.product.id === quickAdd.id && i.tamanho === tamanhoSel
-      );
+      const idx = atual.findIndex((i) => i.product.id === quickAdd.id && i.tamanho === tamanhoSel);
       const existente = idx >= 0 ? atual[idx] : undefined;
       if (existente) {
         const copia = [...atual];
@@ -426,7 +446,11 @@ export function Template01Store({
                 alt={s.settings.imageAlt || "Hero"}
                 width={1920}
                 height={1280}
-                style={s.settings.imagePosition ? { objectPosition: s.settings.imagePosition } : undefined}
+                style={
+                  s.settings.imagePosition
+                    ? { objectPosition: s.settings.imagePosition }
+                    : undefined
+                }
                 className="h-[78vh] min-h-[520px] w-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/25 to-transparent" />
@@ -437,12 +461,20 @@ export function Template01Store({
                       {s.settings.subheading}
                     </p>
                     <h1 className="mt-6 font-serif text-5xl leading-[1.05] text-foreground sm:text-6xl lg:text-7xl">
-                      {s.settings.heading
-                        ? s.settings.heading.split("\n").map((line, i, arr) => (
-                            <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                          ))
-                        : (<>A elegância que<br />não pede licença</>)
-                      }
+                      {s.settings.heading ? (
+                        s.settings.heading.split("\n").map((line, i, arr) => (
+                          <span key={i}>
+                            {line}
+                            {i < arr.length - 1 && <br />}
+                          </span>
+                        ))
+                      ) : (
+                        <>
+                          A elegância que
+                          <br />
+                          não pede licença
+                        </>
+                      )}
                     </h1>
                     <div className="mt-10 flex flex-wrap gap-4">
                       <a
@@ -450,7 +482,9 @@ export function Template01Store({
                         className="group inline-flex items-center gap-3 bg-foreground px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-all duration-500 hover:bg-foreground/85"
                       >
                         {s.settings.buttonText || "Ver a coleção"}
-                        <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+                        <span className="transition-transform duration-500 group-hover:translate-x-1">
+                          →
+                        </span>
                       </a>
                     </div>
                   </div>
@@ -468,8 +502,12 @@ export function Template01Store({
               <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px px-6 py-10 lg:grid-cols-4 lg:px-10">
                 {s.settings.items.map((item) => (
                   <div key={item.title} className="px-2 py-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-foreground">{item.title}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-foreground">
+                      {item.title}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      {item.description}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -487,7 +525,11 @@ export function Template01Store({
                   { img: catMenImg, nome: "Masculino", texto: "Alfaiataria suave" },
                   { img: catAccessoriesImg, nome: "Acessórios", texto: "Couro e ouro" },
                 ].map((cat) => (
-                  <a key={cat.nome} href="#vitrine" className="group relative block overflow-hidden">
+                  <a
+                    key={cat.nome}
+                    href="#vitrine"
+                    className="group relative block overflow-hidden"
+                  >
                     <img
                       src={cat.img}
                       alt={`Categoria ${cat.nome}`}
@@ -525,7 +567,9 @@ export function Template01Store({
                   <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                     {s.settings.kicker || "Acabou de chegar"}
                   </p>
-                  <h2 className="mt-3 font-serif text-4xl">{s.settings.title || "Novidades da estação"}</h2>
+                  <h2 className="mt-3 font-serif text-4xl">
+                    {s.settings.title || "Novidades da estação"}
+                  </h2>
                 </div>
                 {s.settings.showViewAll !== false && (
                   <a
@@ -533,12 +577,16 @@ export function Template01Store({
                     className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
                   >
                     Ver tudo
-                    <span className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+                    <span className="transition-transform duration-500 group-hover:translate-x-1">
+                      →
+                    </span>
                   </a>
                 )}
               </div>
 
-              <div className={`grid grid-cols-2 gap-x-6 gap-y-14 lg:grid-cols-${Math.min(s.settings.columns, 4)}`}>
+              <div
+                className={`grid grid-cols-2 gap-x-6 gap-y-14 lg:grid-cols-${Math.min(s.settings.columns, 4)}`}
+              >
                 {products.map((p) => (
                   <ProductCard key={p.id} product={p} onQuickAdd={abrirQuickAdd} />
                 ))}
@@ -752,8 +800,8 @@ export function Template01Store({
       </header>
 
       <main>
-          {/* ── SEÇÕES DINÂMICAS ── */}
-          {dynamicSections}
+        {/* ── SEÇÕES DINÂMICAS ── */}
+        {dynamicSections}
 
         {/* ── CARROSSEL (idêntico ao original lines 370-404) ── */}
         <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
@@ -802,7 +850,8 @@ export function Template01Store({
             <figure>
               <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
               <blockquote className="mt-5 font-serif text-xl leading-relaxed">
-                &ldquo;O caimento é de outro nível. Comprei o casaco no inverno passado e continua impecável.&rdquo;
+                &ldquo;O caimento é de outro nível. Comprei o casaco no inverno passado e continua
+                impecável.&rdquo;
               </blockquote>
               <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                 Marina L., São Paulo
@@ -820,7 +869,8 @@ export function Template01Store({
             <figure>
               <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
               <blockquote className="mt-5 font-serif text-xl leading-relaxed">
-                &ldquo;Poucas peças, todas certas. Meu guarda-roupa ficou mais leve e mais bonito.&rdquo;
+                &ldquo;Poucas peças, todas certas. Meu guarda-roupa ficou mais leve e mais
+                bonito.&rdquo;
               </blockquote>
               <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                 Ana P., Belo Horizonte
@@ -853,7 +903,7 @@ export function Template01Store({
                     Ver look
                   </span>
                 </a>
-              )
+              ),
             )}
           </div>
         </section>
@@ -914,9 +964,18 @@ export function Template01Store({
               </p>
             </div>
             {[
-              { titulo: "Loja", itens: ["Novidades", "Feminino", "Masculino", "Acessórios", "Últimas peças"] },
-              { titulo: "Ajuda", itens: ["Entrega", "Trocas e devoluções", "Guia de tamanhos", "Rastrear pedido"] },
-              { titulo: "Sobre", itens: ["O atelier", "Sustentabilidade", "Lojas físicas", "Carreiras"] },
+              {
+                titulo: "Loja",
+                itens: ["Novidades", "Feminino", "Masculino", "Acessórios", "Últimas peças"],
+              },
+              {
+                titulo: "Ajuda",
+                itens: ["Entrega", "Trocas e devoluções", "Guia de tamanhos", "Rastrear pedido"],
+              },
+              {
+                titulo: "Sobre",
+                itens: ["O atelier", "Sustentabilidade", "Lojas físicas", "Carreiras"],
+              },
               { titulo: "Legal", itens: ["Privacidade", "Termos de uso", "Cookies"] },
             ].map((col) => (
               <div key={col.titulo}>
@@ -976,11 +1035,7 @@ export function Template01Store({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-6">
           <span className="font-serif text-xl uppercase tracking-[0.3em]">{storeName}</span>
-          <button
-            type="button"
-            aria-label="Fechar menu"
-            onClick={() => setMenuAberto(false)}
-          >
+          <button type="button" aria-label="Fechar menu" onClick={() => setMenuAberto(false)}>
             ✕
           </button>
         </div>
@@ -1059,14 +1114,8 @@ export function Template01Store({
           }`}
         >
           <div className="flex items-center justify-between border-b border-border px-6 py-6">
-            <p className="text-[11px] uppercase tracking-[0.24em]">
-              Sua sacola ({totalItens})
-            </p>
-            <button
-              type="button"
-              aria-label="Fechar sacola"
-              onClick={() => setSacolaAberta(false)}
-            >
+            <p className="text-[11px] uppercase tracking-[0.24em]">Sua sacola ({totalItens})</p>
+            <button type="button" aria-label="Fechar sacola" onClick={() => setSacolaAberta(false)}>
               ✕
             </button>
           </div>
@@ -1079,10 +1128,7 @@ export function Template01Store({
             ) : (
               <ul className="space-y-6">
                 {cart.map((item) => (
-                  <li
-                    key={`${item.product.id}-${item.tamanho}`}
-                    className="flex gap-4"
-                  >
+                  <li key={`${item.product.id}-${item.tamanho}`} className="flex gap-4">
                     <img
                       src={item.product.imagem}
                       alt={item.product.nome}
@@ -1096,20 +1142,15 @@ export function Template01Store({
                       <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                         Tam. {item.tamanho} · {item.qtd} un.
                       </p>
-                      <p className="mt-2 text-sm">
-                        {formatBRL(item.product.preco * item.qtd)}
-                      </p>
+                      <p className="mt-2 text-sm">{formatBRL(item.product.preco * item.qtd)}</p>
                       <button
                         type="button"
                         onClick={() =>
                           setCart((c) =>
                             c.filter(
                               (x) =>
-                                !(
-                                  x.product.id === item.product.id &&
-                                  x.tamanho === item.tamanho
-                                )
-                            )
+                                !(x.product.id === item.product.id && x.tamanho === item.tamanho),
+                            ),
                           )
                         }
                         className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
@@ -1149,7 +1190,7 @@ export function Template01Store({
                       cor: i.product.cores[0]?.nome ?? "",
                       quantidade: i.qtd,
                     })),
-                    subtotal
+                    subtotal,
                   );
                 } else {
                   alert("Configure o WhatsApp da loja nas Configurações para receber pedidos.");
@@ -1243,4 +1284,3 @@ export function Template01Store({
     </div>
   );
 }
-

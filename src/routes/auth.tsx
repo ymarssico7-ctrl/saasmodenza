@@ -154,7 +154,8 @@ function AuthPage() {
               </Button>
 
               <div className="my-7 flex items-center gap-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
+                <span className="h-px flex-1 bg-border" /> ou{" "}
+                <span className="h-px flex-1 bg-border" />
               </div>
 
               <Tabs defaultValue="signin">
@@ -250,7 +251,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function SubmitButton({ loading, children }: { loading: boolean; children: React.ReactNode }) {
   return (
-    <Button type="submit" disabled={loading} className="h-12 w-full rounded-full text-sm font-semibold">
+    <Button
+      type="submit"
+      disabled={loading}
+      className="h-12 w-full rounded-full text-sm font-semibold"
+    >
       {loading ? <Loader2 className="size-4 animate-spin" /> : null}
       {children}
       {!loading ? <ArrowRight className="size-4" /> : null}

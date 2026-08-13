@@ -165,9 +165,7 @@ export function ImageUploadField({
                 <span className="text-[11px] font-medium text-muted-foreground">
                   Clique para selecionar
                 </span>
-                <span className="text-[10px] text-muted-foreground/60">
-                  JPEG · PNG · WebP
-                </span>
+                <span className="text-[10px] text-muted-foreground/60">JPEG · PNG · WebP</span>
               </>
             )}
           </label>
@@ -175,9 +173,7 @@ export function ImageUploadField({
       )}
 
       {/* ── Dica de medidas ──────────────────────────────────────────────────── */}
-      {hint && (
-        <p className="text-[10px] leading-relaxed text-muted-foreground">{hint}</p>
-      )}
+      {hint && <p className="text-[10px] leading-relaxed text-muted-foreground">{hint}</p>}
 
       {/* ── Preview com botão de remover ─────────────────────────────────────── */}
       {value && (

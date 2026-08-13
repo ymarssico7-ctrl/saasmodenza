@@ -8,9 +8,21 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { isAuthenticated, membersQuery, profileQuery, updateDemoProfile, currentUserId } from "@/lib/db";
+import {
+  isAuthenticated,
+  membersQuery,
+  profileQuery,
+  updateDemoProfile,
+  currentUserId,
+} from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { insertMember, deleteMember } from "@/lib/mutations";
@@ -19,7 +31,10 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
       { title: "Configurações da loja — Modé" },
-      { name: "description", content: "Ajuste os dados da loja, sua retirada mensal e a equipe com acesso." },
+      {
+        name: "description",
+        content: "Ajuste os dados da loja, sua retirada mensal e a equipe com acesso.",
+      },
       { property: "og:title", content: "Configurações da loja — Modé" },
       { property: "og:description", content: "Dados da loja, pró-labore e equipe." },
     ],
@@ -154,10 +169,18 @@ function Configuracoes() {
             <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
           </Field>
           <Field label="Cidade">
-            <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo, SP" />
+            <Input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="São Paulo, SP"
+            />
           </Field>
           <Field label="WhatsApp">
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-0000"
+            />
           </Field>
           <Field label="Pró-labore mensal (R$)">
             <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
@@ -179,10 +202,18 @@ function Configuracoes() {
         </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <Field label="Nome">
-            <Input value={memberName} onChange={(e) => setMemberName(e.target.value)} placeholder="Júlia" />
+            <Input
+              value={memberName}
+              onChange={(e) => setMemberName(e.target.value)}
+              placeholder="Júlia"
+            />
           </Field>
           <Field label="E-mail (opcional)">
-            <Input value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)} placeholder="julia@loja.com" />
+            <Input
+              value={memberEmail}
+              onChange={(e) => setMemberEmail(e.target.value)}
+              placeholder="julia@loja.com"
+            />
           </Field>
           <Field label="Função">
             <Select value={memberRole} onValueChange={setMemberRole}>
@@ -226,7 +257,11 @@ function Configuracoes() {
                   onConfirm={() => removeMember.mutate(m.id)}
                   description={`${m.name} será removido da equipe.`}
                   trigger={
-                    <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-full text-muted-foreground"
+                    >
                       <Trash2 className="size-4" />
                     </Button>
                   }
@@ -240,12 +275,19 @@ function Configuracoes() {
       <section className="panel p-6 sm:p-7">
         <h2 className="text-base font-semibold">Plano</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Plano atual: <span className="font-semibold capitalize text-foreground">{profile?.plan ?? "essencial"}</span>
+          Plano atual:{" "}
+          <span className="font-semibold capitalize text-foreground">
+            {profile?.plan ?? "essencial"}
+          </span>
           {profile?.prolabore_target
             ? ` · retirada planejada de ${brl(Number(profile.prolabore_target))} por mês`
             : ""}
         </p>
-        <Button variant="ghost" className="mt-6 rounded-full text-destructive" onClick={() => void signOut()}>
+        <Button
+          variant="ghost"
+          className="mt-6 rounded-full text-destructive"
+          onClick={() => void signOut()}
+        >
           <LogOut className="size-4" /> Sair da conta
         </Button>
       </section>

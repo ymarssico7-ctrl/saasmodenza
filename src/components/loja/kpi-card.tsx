@@ -61,7 +61,9 @@ export function KpiCard({
           <span
             className={cn(
               "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
-              accent ? "bg-primary-foreground/15 text-primary-foreground" : "bg-primary-soft text-accent-foreground",
+              accent
+                ? "bg-primary-foreground/15 text-primary-foreground"
+                : "bg-primary-soft text-accent-foreground",
             )}
           >
             {icon}
@@ -83,12 +85,21 @@ export function KpiCard({
                   : "bg-danger-soft text-danger",
             )}
           >
-            {positivo ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {positivo ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
             {`${positivo ? "+" : ""}${delta.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
           </span>
         ) : null}
         {hint ? (
-          <span className={cn("text-xs", accent ? "text-primary-foreground/75" : "text-muted-foreground")}>
+          <span
+            className={cn(
+              "text-xs",
+              accent ? "text-primary-foreground/75" : "text-muted-foreground",
+            )}
+          >
             {hint}
           </span>
         ) : null}

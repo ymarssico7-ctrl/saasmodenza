@@ -30,11 +30,14 @@ export function TrialOfferModal({ open, onClose }: Props) {
 
       if (realUser) {
         // Usuário real → grava no Supabase
-        const { error } = await supabase.from("profiles").update({
-          store_trial_accepted: true,
-          store_trial_offered_at: new Date().toISOString(),
-          store_trial_expires_at: trialExpires,
-        } as any).eq("id", uid);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            store_trial_accepted: true,
+            store_trial_offered_at: new Date().toISOString(),
+            store_trial_expires_at: trialExpires,
+          } as any)
+          .eq("id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
@@ -68,10 +71,13 @@ export function TrialOfferModal({ open, onClose }: Props) {
 
       if (realUser) {
         // Usuário real → grava no Supabase
-        const { error } = await supabase.from("profiles").update({
-          store_trial_accepted: false,
-          store_trial_offered_at: new Date().toISOString(),
-        } as any).eq("id", uid);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            store_trial_accepted: false,
+            store_trial_offered_at: new Date().toISOString(),
+          } as any)
+          .eq("id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage
@@ -103,7 +109,6 @@ export function TrialOfferModal({ open, onClose }: Props) {
     // Backdrop — sem X para fechar (decisão obrigatória)
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="w-full max-w-md rounded-3xl bg-card border border-border shadow-lift p-8 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
-
         {/* Ícone */}
         <div className="flex size-16 items-center justify-center rounded-2xl bg-primary-soft mb-6">
           <Gift className="size-8 text-primary" />
@@ -114,9 +119,10 @@ export function TrialOfferModal({ open, onClose }: Props) {
           Presente especial para você
         </h2>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-xs">
-          Como assinante do plano <span className="font-semibold text-foreground">Gestão Anual</span>, você ganhou{" "}
-          <span className="font-semibold text-primary">30 dias grátis</span> da Loja Online integrada.{" "}
-          <strong>Sem cartão de crédito.</strong>
+          Como assinante do plano{" "}
+          <span className="font-semibold text-foreground">Gestão Anual</span>, você ganhou{" "}
+          <span className="font-semibold text-primary">30 dias grátis</span> da Loja Online
+          integrada. <strong>Sem cartão de crédito.</strong>
         </p>
 
         {/* O que está incluso */}
@@ -128,7 +134,9 @@ export function TrialOfferModal({ open, onClose }: Props) {
             "Integrado ao seu painel de gestão",
           ].map((item) => (
             <li key={item} className="flex items-center gap-2 text-muted-foreground">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-success-soft text-success text-xs font-bold">✓</span>
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-success-soft text-success text-xs font-bold">
+                ✓
+              </span>
               {item}
             </li>
           ))}

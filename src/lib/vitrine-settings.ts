@@ -40,7 +40,9 @@ export function saveVitrineSettings(storeId: string, settings: VitrineSettings):
   if (typeof localStorage === "undefined" || !storeId) return;
   localStorage.setItem(`modaly_vitrine_settings_${storeId}`, JSON.stringify(settings));
   try {
-    window.dispatchEvent(new CustomEvent("vitrine-settings-changed", { detail: { storeId, settings } }));
+    window.dispatchEvent(
+      new CustomEvent("vitrine-settings-changed", { detail: { storeId, settings } }),
+    );
   } catch {
     // SSR / Node: ignore
   }

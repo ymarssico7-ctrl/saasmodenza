@@ -29,7 +29,10 @@ export const Route = createFileRoute("/_authenticated/prolabore")({
           "Separe o dinheiro da loja do seu dinheiro pessoal com o controle de pró-labore mensal.",
       },
       { property: "og:title", content: "Pró-labore da lojista — Modé" },
-      { property: "og:description", content: "Defina sua retirada mensal e acompanhe o quanto já retirou." },
+      {
+        property: "og:description",
+        content: "Defina sua retirada mensal e acompanhe o quanto já retirou.",
+      },
     ],
   }),
   component: Prolabore,
@@ -108,8 +111,17 @@ function Prolabore() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Retirado no mês" value={brl(withdrawn)} icon={<HandCoins className="size-4" />} tone="primary" />
-        <StatCard label="Meta de retirada" value={brl(goal)} hint={goal > 0 ? `${pct(progress)} concluído` : "Defina abaixo"} />
+        <StatCard
+          label="Retirado no mês"
+          value={brl(withdrawn)}
+          icon={<HandCoins className="size-4" />}
+          tone="primary"
+        />
+        <StatCard
+          label="Meta de retirada"
+          value={brl(goal)}
+          hint={goal > 0 ? `${pct(progress)} concluído` : "Defina abaixo"}
+        />
         <StatCard
           label="Disponível para retirar"
           value={brl(available)}
@@ -138,7 +150,12 @@ function Prolabore() {
           </p>
           <div className="mt-6 space-y-2">
             <Label className="text-xs font-semibold text-muted-foreground">Valor (R$)</Label>
-            <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="1.500,00" />
+            <Input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="1.500,00"
+            />
           </div>
           <Button
             className="mt-6 h-11 rounded-full px-6 font-semibold"
@@ -197,7 +214,11 @@ function Prolabore() {
                     onConfirm={() => remove.mutate(w.id)}
                     description="A retirada será removida do histórico."
                     trigger={
-                      <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-full text-muted-foreground"
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     }

@@ -22,10 +22,13 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
       subExpires.setMonth(subExpires.getMonth() + 1);
 
       if (realUser) {
-        const { error } = await supabase.from("profiles").update({
-          store_subscription_active: true,
-          store_subscription_expires_at: subExpires.toISOString(),
-        } as any).eq("id", uid);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            store_subscription_active: true,
+            store_subscription_expires_at: subExpires.toISOString(),
+          } as any)
+          .eq("id", uid);
         if (error) throw new Error(error.message);
       }
 
@@ -51,18 +54,23 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
         "flex items-center justify-between gap-4 rounded-2xl px-5 py-3.5 text-sm font-medium mb-6 border transition-colors",
         isUrgent
           ? "bg-warning-soft border-warning/40 text-warning-foreground"
-          : "bg-primary-soft border-primary/20 text-accent-foreground"
+          : "bg-primary-soft border-primary/20 text-accent-foreground",
       )}
     >
       <div className="flex items-center gap-2.5">
         <Clock className={cn("size-4 shrink-0", isUrgent ? "text-warning" : "text-primary")} />
         <span>
           {daysLeft === 0 ? (
-            <><strong>Hoje é o último dia</strong> do seu período gratuito da Loja Online.</>
+            <>
+              <strong>Hoje é o último dia</strong> do seu período gratuito da Loja Online.
+            </>
           ) : (
-            <>Seu período gratuito termina em{" "}
-              <strong>{daysLeft} {dayLabel}</strong>.{" "}
-              {isUrgent ? "Não perca seus dados!" : ""}
+            <>
+              Seu período gratuito termina em{" "}
+              <strong>
+                {daysLeft} {dayLabel}
+              </strong>
+              . {isUrgent ? "Não perca seus dados!" : ""}
             </>
           )}
         </span>

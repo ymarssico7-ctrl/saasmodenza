@@ -56,13 +56,7 @@ export function Tag({
   );
 }
 
-export function PlanoBadge({
-  plan,
-  className,
-}: {
-  plan?: string;
-  className?: string;
-}) {
+export function PlanoBadge({ plan, className }: { plan?: string; className?: string }) {
   const labels: Record<string, string> = {
     lojista: "Lojista",
     digital: "Digital",

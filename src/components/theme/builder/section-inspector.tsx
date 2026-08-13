@@ -224,14 +224,31 @@ function ImageTextSplitInspector({
   return (
     <div className="space-y-4">
       <Field label="Kicker">
-        <Input value={settings.kicker} onChange={(e) => patch({ kicker: e.target.value })} className="h-9" />
+        <Input
+          value={settings.kicker}
+          onChange={(e) => patch({ kicker: e.target.value })}
+          className="h-9"
+        />
       </Field>
       <Field label="Título">
-        <Input value={settings.heading} onChange={(e) => patch({ heading: e.target.value })} className="h-9" />
+        <Input
+          value={settings.heading}
+          onChange={(e) => patch({ heading: e.target.value })}
+          className="h-9"
+        />
       </Field>
-      <TextareaField label="Texto" value={settings.body} onChange={(v) => patch({ body: v })} rows={3} />
+      <TextareaField
+        label="Texto"
+        value={settings.body}
+        onChange={(v) => patch({ body: v })}
+        rows={3}
+      />
       <Field label="Texto do Botão">
-        <Input value={settings.buttonText} onChange={(e) => patch({ buttonText: e.target.value })} className="h-9" />
+        <Input
+          value={settings.buttonText}
+          onChange={(e) => patch({ buttonText: e.target.value })}
+          className="h-9"
+        />
       </Field>
 
       {/* ── Upload de Imagem com compressão automática ─────────────────────── */}
@@ -277,9 +294,7 @@ function FeaturesInspector({
   patch: (p: Partial<FeaturesSettings>) => void;
 }) {
   const update = (idx: number, field: "title" | "description", value: string) => {
-    const items = settings.items.map((item, i) =>
-      i === idx ? { ...item, [field]: value } : item,
-    );
+    const items = settings.items.map((item, i) => (i === idx ? { ...item, [field]: value } : item));
     patch({ items });
   };
 
@@ -315,7 +330,11 @@ function FeaturesInspector({
             </button>
           </div>
           <Field label="Título">
-            <Input value={item.title} onChange={(e) => update(i, "title", e.target.value)} className="h-9" />
+            <Input
+              value={item.title}
+              onChange={(e) => update(i, "title", e.target.value)}
+              className="h-9"
+            />
           </Field>
           <TextareaField
             label="Descrição"
@@ -350,9 +369,17 @@ function AnnouncementInspector({
   return (
     <div className="space-y-4">
       <Field label="Texto do Anúncio">
-        <Input value={settings.text} onChange={(e) => patch({ text: e.target.value })} className="h-9" />
+        <Input
+          value={settings.text}
+          onChange={(e) => patch({ text: e.target.value })}
+          className="h-9"
+        />
       </Field>
-      <ColorField label="Cor de Fundo" value={settings.backgroundColor} onChange={(v) => patch({ backgroundColor: v })} />
+      <ColorField
+        label="Cor de Fundo"
+        value={settings.backgroundColor}
+        onChange={(v) => patch({ backgroundColor: v })}
+      />
     </div>
   );
 }
@@ -362,8 +389,7 @@ export function SectionInspector({ section }: { section: Section }) {
   const { dispatch } = useBuilder();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const patch = (p: any) =>
-    dispatch({ type: "UPDATE_SECTION", id: section.id, patch: p });
+  const patch = (p: any) => dispatch({ type: "UPDATE_SECTION", id: section.id, patch: p });
 
   const inner = (() => {
     switch (section.type) {

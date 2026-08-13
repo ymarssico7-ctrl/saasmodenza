@@ -15,7 +15,8 @@ export const Route = createFileRoute("/_authenticated/loja")({
 
 function LojaLayout() {
   const { data: profile } = useQuery(profileQuery());
-  const { hasLoja, trialStatus, daysLeftInTrial, isTrialUrgent, isShouldShowTrialModal } = useAccess(profile);
+  const { hasLoja, trialStatus, daysLeftInTrial, isTrialUrgent, isShouldShowTrialModal } =
+    useAccess(profile);
   const [modalDismissed, setModalDismissed] = useState(false);
 
   // Se trial ainda não foi oferecido: mostrar modal de oferta SOBRE tela bloqueada.
@@ -24,10 +25,7 @@ function LojaLayout() {
     return (
       <>
         <LojaBloqueadaScreen reason="no_plan" />
-        <TrialOfferModal
-          open={true}
-          onClose={() => setModalDismissed(true)}
-        />
+        <TrialOfferModal open={true} onClose={() => setModalDismissed(true)} />
       </>
     );
   }

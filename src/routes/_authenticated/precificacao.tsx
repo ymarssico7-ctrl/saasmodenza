@@ -26,7 +26,10 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
           "Calcule o preço de venda das suas peças considerando atacado, frete, embalagem, imposto e margem.",
       },
       { property: "og:title", content: "Precificação com margem real — Modé" },
-      { property: "og:description", content: "Descubra o preço mínimo e o preço ideal de cada peça." },
+      {
+        property: "og:description",
+        content: "Descubra o preço mínimo e o preço ideal de cada peça.",
+      },
     ],
   }),
   component: Precificacao,
@@ -91,19 +94,43 @@ function Precificacao() {
           <h2 className="text-base font-semibold">Custos da peça</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Field label="Nome da peça" className="sm:col-span-2">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Vestido midi linho" />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Vestido midi linho"
+              />
             </Field>
             <Field label="Custo de atacado (R$)">
-              <Input inputMode="decimal" value={wholesale} onChange={(e) => setWholesale(e.target.value)} placeholder="59,90" />
+              <Input
+                inputMode="decimal"
+                value={wholesale}
+                onChange={(e) => setWholesale(e.target.value)}
+                placeholder="59,90"
+              />
             </Field>
             <Field label="Frete rateado (R$)">
-              <Input inputMode="decimal" value={freight} onChange={(e) => setFreight(e.target.value)} placeholder="6,00" />
+              <Input
+                inputMode="decimal"
+                value={freight}
+                onChange={(e) => setFreight(e.target.value)}
+                placeholder="6,00"
+              />
             </Field>
             <Field label="Embalagem (R$)">
-              <Input inputMode="decimal" value={packaging} onChange={(e) => setPackaging(e.target.value)} placeholder="3,50" />
+              <Input
+                inputMode="decimal"
+                value={packaging}
+                onChange={(e) => setPackaging(e.target.value)}
+                placeholder="3,50"
+              />
             </Field>
             <Field label="Outros custos (R$)">
-              <Input inputMode="decimal" value={other} onChange={(e) => setOther(e.target.value)} placeholder="2,00" />
+              <Input
+                inputMode="decimal"
+                value={other}
+                onChange={(e) => setOther(e.target.value)}
+                placeholder="2,00"
+              />
             </Field>
           </div>
 
@@ -142,7 +169,8 @@ function Precificacao() {
               {brl(result.suggestedPrice)}
             </p>
             <p className="mt-3 text-xs text-primary-foreground/70">
-              Lucro de {brl(result.profit)} por peça · margem de {pct(result.marginOnPrice)} sobre a venda
+              Lucro de {brl(result.profit)} por peça · margem de {pct(result.marginOnPrice)} sobre a
+              venda
             </p>
           </div>
 
@@ -153,8 +181,8 @@ function Precificacao() {
           </div>
 
           <p className="text-xs leading-relaxed text-primary-foreground/60">
-            Preço mínimo é o valor em que você não perde dinheiro. Abaixo dele, cada venda tira do seu
-            bolso.
+            Preço mínimo é o valor em que você não perde dinheiro. Abaixo dele, cada venda tira do
+            seu bolso.
           </p>
         </section>
       </div>
@@ -194,14 +222,22 @@ function Precificacao() {
                     <tr key={p.id}>
                       <td className="py-3.5 font-medium">{p.name}</td>
                       <td className="numeric py-3.5 text-muted-foreground">{brl(r.realCost)}</td>
-                      <td className="numeric py-3.5 text-muted-foreground">{pct(Number(p.margin_pct))}</td>
-                      <td className="numeric py-3.5 font-semibold text-primary">{brl(r.suggestedPrice)}</td>
+                      <td className="numeric py-3.5 text-muted-foreground">
+                        {pct(Number(p.margin_pct))}
+                      </td>
+                      <td className="numeric py-3.5 font-semibold text-primary">
+                        {brl(r.suggestedPrice)}
+                      </td>
                       <td className="py-3.5 text-right">
                         <ConfirmDelete
                           onConfirm={() => remove.mutate(p.id)}
                           description={`"${p.name}" será removida das suas precificações.`}
                           trigger={
-                            <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 rounded-full text-muted-foreground"
+                            >
                               <Trash2 className="size-4" />
                             </Button>
                           }

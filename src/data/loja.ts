@@ -1,13 +1,13 @@
 ﻿// Imagens de produtos — Unsplash CDN (substituir por assets reais em produção)
 const IMG = {
-  blusa1:    "https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=600&q=80",
-  calca:     "https://images.unsplash.com/photo-1594938298603-c8148e4e3b58?w=600&q=80",
-  vestido1:  "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&q=80",
-  saia:      "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=600&q=80",
-  bolsa:     "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600&q=80",
-  cardiga:   "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80",
-  vestido2:  "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=600&q=80",
-  blusa2:    "https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?w=600&q=80",
+  blusa1: "https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=600&q=80",
+  calca: "https://images.unsplash.com/photo-1594938298603-c8148e4e3b58?w=600&q=80",
+  vestido1: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&q=80",
+  saia: "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=600&q=80",
+  bolsa: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600&q=80",
+  cardiga: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80",
+  vestido2: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=600&q=80",
+  blusa2: "https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?w=600&q=80",
 };
 
 export const loja = {
@@ -175,12 +175,7 @@ export const produtos: Produto[] = [
 ];
 
 export type StatusPedido =
-  | "novo"
-  | "confirmado"
-  | "em_separacao"
-  | "enviado"
-  | "entregue"
-  | "cancelado";
+  "novo" | "confirmado" | "em_separacao" | "enviado" | "entregue" | "cancelado";
 
 export const statusPedidoLabel: Record<StatusPedido, string> = {
   novo: "Novo",
@@ -215,7 +210,14 @@ export type Pedido = {
   frete: number;
   desconto: number;
   cupom?: string;
-  itens: { produtoId: string; nome: string; tamanho: string; cor: string; qtd: number; preco: number }[];
+  itens: {
+    produtoId: string;
+    nome: string;
+    tamanho: string;
+    cor: string;
+    qtd: number;
+    preco: number;
+  }[];
 };
 
 export function totalPedido(p: Pedido): number {
@@ -239,8 +241,22 @@ export const pedidos: Pedido[] = [
     frete: 8,
     desconto: 0,
     itens: [
-      { produtoId: "p1", nome: "Blusa de seda Manon", tamanho: "M", cor: "Off-white", qtd: 1, preco: 189.9 },
-      { produtoId: "p2", nome: "Calça pantalona alfaiataria", tamanho: "38", cor: "Grafite", qtd: 1, preco: 219.9 },
+      {
+        produtoId: "p1",
+        nome: "Blusa de seda Manon",
+        tamanho: "M",
+        cor: "Off-white",
+        qtd: 1,
+        preco: 189.9,
+      },
+      {
+        produtoId: "p2",
+        nome: "Calça pantalona alfaiataria",
+        tamanho: "38",
+        cor: "Grafite",
+        qtd: 1,
+        preco: 219.9,
+      },
     ],
   },
   {
@@ -260,7 +276,14 @@ export const pedidos: Pedido[] = [
     desconto: 20,
     cupom: "PRIMEIRACOMPRA",
     itens: [
-      { produtoId: "p3", nome: "Vestido longo Índigo", tamanho: "P", cor: "Índigo", qtd: 1, preco: 349.9 },
+      {
+        produtoId: "p3",
+        nome: "Vestido longo Índigo",
+        tamanho: "P",
+        cor: "Índigo",
+        qtd: 1,
+        preco: 349.9,
+      },
     ],
   },
   {
@@ -278,7 +301,14 @@ export const pedidos: Pedido[] = [
     frete: 0,
     desconto: 0,
     itens: [
-      { produtoId: "p5", nome: "Bolsa couro Estrutura", tamanho: "Único", cor: "Terracota", qtd: 1, preco: 429.9 },
+      {
+        produtoId: "p5",
+        nome: "Bolsa couro Estrutura",
+        tamanho: "Único",
+        cor: "Terracota",
+        qtd: 1,
+        preco: 429.9,
+      },
     ],
   },
   {
@@ -297,7 +327,14 @@ export const pedidos: Pedido[] = [
     frete: 18.4,
     desconto: 0,
     itens: [
-      { produtoId: "p8", nome: "Blusa cropped canelada", tamanho: "P", cor: "Verde", qtd: 2, preco: 129.9 },
+      {
+        produtoId: "p8",
+        nome: "Blusa cropped canelada",
+        tamanho: "P",
+        cor: "Verde",
+        qtd: 2,
+        preco: 129.9,
+      },
     ],
   },
   {
@@ -316,8 +353,22 @@ export const pedidos: Pedido[] = [
     frete: 18.4,
     desconto: 0,
     itens: [
-      { produtoId: "p4", nome: "Saia midi plissada linho", tamanho: "M", cor: "Areia", qtd: 1, preco: 199.9 },
-      { produtoId: "p6", nome: "Cardigã tricot Ecru", tamanho: "G", cor: "Ecru", qtd: 1, preco: 279.9 },
+      {
+        produtoId: "p4",
+        nome: "Saia midi plissada linho",
+        tamanho: "M",
+        cor: "Areia",
+        qtd: 1,
+        preco: 199.9,
+      },
+      {
+        produtoId: "p6",
+        nome: "Cardigã tricot Ecru",
+        tamanho: "G",
+        cor: "Ecru",
+        qtd: 1,
+        preco: 279.9,
+      },
     ],
   },
 ];
@@ -399,6 +450,10 @@ export function dateBR(iso: string): string {
 
 export function dateTimeBR(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
-

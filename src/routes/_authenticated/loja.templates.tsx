@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  CheckCircle2,
-  ExternalLink,
-  Paintbrush,
-  Palette,
-  Sparkles,
-  Crown,
-} from "lucide-react";
+import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
@@ -33,13 +26,7 @@ export const Route = createFileRoute("/_authenticated/loja/templates")({
   component: GaleriaTemplatesPage,
 });
 
-const CATEGORIES: TemplateCategory[] = [
-  "todos",
-  "minimalista",
-  "editorial",
-  "luxo",
-  "boutique",
-];
+const CATEGORIES: TemplateCategory[] = ["todos", "minimalista", "editorial", "luxo", "boutique"];
 
 function GaleriaTemplatesPage() {
   const activeTheme = loadTheme();
@@ -91,7 +78,9 @@ function GaleriaTemplatesPage() {
             Galeria de Temas
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {totalTemplates} {totalTemplates === 1 ? "template disponível" : "templates disponíveis"} — escolha o visual perfeito para sua vitrine e aplique com 1 clique.
+            {totalTemplates}{" "}
+            {totalTemplates === 1 ? "template disponível" : "templates disponíveis"} — escolha o
+            visual perfeito para sua vitrine e aplique com 1 clique.
           </p>
         </div>
 
@@ -191,9 +180,7 @@ function TemplateCard({
   return (
     <article
       className={`group relative flex flex-col overflow-hidden rounded-3xl border bg-card shadow-soft transition-all duration-300 hover:shadow-lift ${
-        isActive
-          ? "border-primary ring-2 ring-primary/20"
-          : "border-border hover:border-primary/30"
+        isActive ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/30"
       }`}
     >
       {/* Badges */}
@@ -253,7 +240,11 @@ function TemplateCard({
             {/* Announcement bar */}
             <div
               className="px-3 py-1 text-center text-[7px] tracking-widest"
-              style={{ backgroundColor: palette.foreground, color: palette.background, fontFamily: typography.display }}
+              style={{
+                backgroundColor: palette.foreground,
+                color: palette.background,
+                fontFamily: typography.display,
+              }}
             >
               Frete grátis acima de R$ 500
             </div>
@@ -315,10 +306,7 @@ function TemplateCard({
                   className="overflow-hidden"
                   style={{ backgroundColor: palette.canvas }}
                 >
-                  <div
-                    className="h-10 w-full"
-                    style={{ backgroundColor: palette.border }}
-                  />
+                  <div className="h-10 w-full" style={{ backgroundColor: palette.border }} />
                   <div className="p-1">
                     <div
                       className="mb-1 h-1 w-8 rounded-full"
@@ -341,29 +329,25 @@ function TemplateCard({
         <div>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="font-display text-base font-semibold text-foreground">
-                {entry.name}
-              </h3>
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">
-                {entry.tagline}
-              </p>
+              <h3 className="font-display text-base font-semibold text-foreground">{entry.name}</h3>
+              <p className="mt-0.5 text-xs font-medium text-muted-foreground">{entry.tagline}</p>
             </div>
             {/* Paleta */}
             <div className="flex shrink-0 gap-1">
-              {Object.values(palette).slice(0, 4).map((color, i) => (
-                <div
-                  key={i}
-                  title={color}
-                  className="h-5 w-5 rounded-full border border-border shadow-sm"
-                  style={{ backgroundColor: color }}
-                />
-              ))}
+              {Object.values(palette)
+                .slice(0, 4)
+                .map((color, i) => (
+                  <div
+                    key={i}
+                    title={color}
+                    className="h-5 w-5 rounded-full border border-border shadow-sm"
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
             </div>
           </div>
 
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            {entry.description}
-          </p>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{entry.description}</p>
         </div>
 
         {/* Typography & Tags */}
@@ -448,9 +432,7 @@ function ComingSoonCard() {
         <Sparkles className="h-6 w-6 text-muted-foreground" />
       </div>
       <div>
-        <p className="font-display text-sm font-semibold text-foreground">
-          Mais temas em breve
-        </p>
+        <p className="font-display text-sm font-semibold text-foreground">Mais temas em breve</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           Novos templates são adicionados com atualizações do Modaly. Fique de olho!
         </p>

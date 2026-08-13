@@ -20,7 +20,10 @@ export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({
     meta: [
       { title: "Metas mensais — Modé" },
-      { name: "description", content: "Defina a meta de faturamento do mês e acompanhe o progresso da sua loja." },
+      {
+        name: "description",
+        content: "Defina a meta de faturamento do mês e acompanhe o progresso da sua loja.",
+      },
       { property: "og:title", content: "Metas mensais — Modé" },
       { property: "og:description", content: "Meta, progresso e projeção de fechamento do mês." },
     ],
@@ -118,10 +121,19 @@ function Metas() {
       </section>
 
       <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">{currentGoal ? "Atualizar meta" : "Definir meta do mês"}</h2>
+        <h2 className="text-base font-semibold">
+          {currentGoal ? "Atualizar meta" : "Definir meta do mês"}
+        </h2>
         <div className="mt-6 max-w-xs space-y-2">
-          <Label className="text-xs font-semibold text-muted-foreground">Faturamento desejado (R$)</Label>
-          <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="25.000,00" />
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Faturamento desejado (R$)
+          </Label>
+          <Input
+            inputMode="decimal"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            placeholder="25.000,00"
+          />
         </div>
         <Button
           className="mt-6 h-11 rounded-full px-6 font-semibold"
@@ -145,7 +157,10 @@ function Metas() {
           <ul className="mt-5 divide-y divide-border">
             {goals.map((g) => {
               const achieved = revenueOf(g.month);
-              const p = Number(g.target_amount) > 0 ? Math.min((achieved / Number(g.target_amount)) * 100, 100) : 0;
+              const p =
+                Number(g.target_amount) > 0
+                  ? Math.min((achieved / Number(g.target_amount)) * 100, 100)
+                  : 0;
               return (
                 <li key={g.id} className="py-4">
                   <div className="flex items-center justify-between gap-4">
@@ -159,7 +174,11 @@ function Metas() {
                       onConfirm={() => remove.mutate(g.id)}
                       description="A meta será removida do histórico."
                       trigger={
-                        <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 rounded-full text-muted-foreground"
+                        >
                           <Trash2 className="size-4" />
                         </Button>
                       }

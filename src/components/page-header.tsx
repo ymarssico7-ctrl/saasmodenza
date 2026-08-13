@@ -16,10 +16,7 @@ export function PageHeader({
 }) {
   return (
     <header
-      className={cn(
-        "flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between",
-        className,
-      )}
+      className={cn("flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between", className)}
     >
       <div className="space-y-2">
         {eyebrow ? (

@@ -58,14 +58,9 @@ function SortableSectionItem({ id }: { id: string }) {
   const { theme, selectedSectionId, dispatch } = useBuilder();
   const section = theme.sections.find((s) => s.id === id);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -82,13 +77,9 @@ function SortableSectionItem({ id }: { id: string }) {
       ref={setNodeRef}
       style={style}
       className={`group flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer ${
-        isSelected
-          ? "bg-primary text-primary-foreground shadow-glow"
-          : "hover:bg-secondary/60"
+        isSelected ? "bg-primary text-primary-foreground shadow-glow" : "hover:bg-secondary/60"
       } ${!section.visible ? "opacity-50" : ""}`}
-      onClick={() =>
-        dispatch({ type: "SELECT_SECTION", id: isSelected ? null : section.id })
-      }
+      onClick={() => dispatch({ type: "SELECT_SECTION", id: isSelected ? null : section.id })}
     >
       {/* Drag handle */}
       <button
@@ -134,7 +125,9 @@ function SortableSectionItem({ id }: { id: string }) {
         </button>
       </div>
 
-      <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isSelected ? "rotate-90" : ""}`} />
+      <ChevronRight
+        className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isSelected ? "rotate-90" : ""}`}
+      />
     </div>
   );
 }
@@ -152,14 +145,10 @@ function AddSectionPanel() {
         {SECTION_META.map((meta) => (
           <button
             key={meta.type}
-            onClick={() =>
-              dispatch({ type: "ADD_SECTION", sectionType: meta.type as SectionType })
-            }
+            onClick={() => dispatch({ type: "ADD_SECTION", sectionType: meta.type as SectionType })}
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-secondary/60"
           >
-            <span className="text-muted-foreground">
-              {SECTION_ICONS[meta.type]}
-            </span>
+            <span className="text-muted-foreground">{SECTION_ICONS[meta.type]}</span>
             <div className="min-w-0">
               <p className="font-medium leading-tight">{meta.label}</p>
               <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
@@ -202,11 +191,7 @@ export function SectionList() {
 
   return (
     <div className="flex flex-col gap-1 overflow-hidden">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={theme.order} strategy={verticalListSortingStrategy}>
           {theme.order.map((id) => (
             <SortableSectionItem key={id} id={id} />

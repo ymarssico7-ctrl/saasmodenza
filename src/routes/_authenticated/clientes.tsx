@@ -79,11 +79,21 @@ function Clientes() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-xs font-semibold text-muted-foreground">Nome</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Maria Oliveira" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Maria Oliveira"
+            />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-muted-foreground">WhatsApp (opcional)</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 98888-0000" />
+            <Label className="text-xs font-semibold text-muted-foreground">
+              WhatsApp (opcional)
+            </Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 98888-0000"
+            />
           </div>
         </div>
         <Button
@@ -116,7 +126,9 @@ function Clientes() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{c.name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{c.phone || "Sem telefone"}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {c.phone || "Sem telefone"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -134,7 +146,11 @@ function Clientes() {
                       onConfirm={() => remove.mutate(c.id)}
                       description="O cliente e seus fiados serão removidos."
                       trigger={
-                        <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 rounded-full text-muted-foreground"
+                        >
                           <Trash2 className="size-4" />
                         </Button>
                       }

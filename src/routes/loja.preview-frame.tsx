@@ -20,9 +20,7 @@ const CHANNEL_NAME = "modaly_theme_preview";
 
 export const Route = createFileRoute("/loja/preview-frame")({
   head: () => ({
-    meta: [
-      { title: "Mobile Preview — Modaly Builder" },
-    ],
+    meta: [{ title: "Mobile Preview — Modaly Builder" }],
   }),
   component: PreviewFramePage,
 });

@@ -1,7 +1,19 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Camera, EyeOff, Plus, Search, Sparkles, Star, Tag as TagIcon, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Camera,
+  EyeOff,
+  Plus,
+  Search,
+  Sparkles,
+  Star,
+  Tag as TagIcon,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
@@ -346,7 +358,8 @@ function ProdutosPage() {
                       <p className="mt-1 text-xs text-muted-foreground">
                         {labelOf(INVENTORY_CATEGORIES, p.category)}
                         {p.color ? ` · ${p.color}` : ""}
-                        {" · estoque "}{p.totalEstoque}
+                        {" · estoque "}
+                        {p.totalEstoque}
                       </p>
                       <p className="num-display mt-1.5 text-sm font-semibold">
                         {p.emPromocao && p.showcase.precoPromocional ? (
@@ -393,40 +406,43 @@ function ProdutosPage() {
                         size="icon"
                         onClick={() => alternar(p.id, "destaque")}
                         aria-label="Marcar como destaque"
-                        className={cn("h-9 w-9 rounded-full", p.showcase.destaque && "text-warning")}
+                        className={cn(
+                          "h-9 w-9 rounded-full",
+                          p.showcase.destaque && "text-warning",
+                        )}
                       >
                         <Star className={cn("h-4 w-4", p.showcase.destaque && "fill-current")} />
                       </Button>
-                        {/* Promoção */}
-                       <Button
-                         variant="outline"
-                         className="h-9 rounded-full text-xs"
-                         onClick={() => {
-                           setPromocaoId(p.id);
-                           setPromocaoPreco(
-                             p.showcase.precoPromocional
-                               ? String(p.showcase.precoPromocional)
-                               : "",
-                           );
-                           setPromocaoInicio(p.showcase.promocaoInicio ?? "");
-                           setPromocaoFim(p.showcase.promocaoFim ?? "");
-                         }}
-                       >
-                         <TagIcon className="mr-1.5 h-3.5 w-3.5" /> Promoção
-                       </Button>
+                      {/* Promoção */}
+                      <Button
+                        variant="outline"
+                        className="h-9 rounded-full text-xs"
+                        onClick={() => {
+                          setPromocaoId(p.id);
+                          setPromocaoPreco(
+                            p.showcase.precoPromocional ? String(p.showcase.precoPromocional) : "",
+                          );
+                          setPromocaoInicio(p.showcase.promocaoInicio ?? "");
+                          setPromocaoFim(p.showcase.promocaoFim ?? "");
+                        }}
+                      >
+                        <TagIcon className="mr-1.5 h-3.5 w-3.5" /> Promoção
+                      </Button>
 
-                       {/* Fotos da Vitrine */}
-                       <Button
-                         variant="outline"
-                         className={cn(
-                           "h-9 rounded-full text-xs",
-                           p.vitrineFotos.length > 0 && "border-primary/40 text-primary",
-                         )}
-                         onClick={() => abrirFotos(p)}
-                       >
-                         <Camera className="mr-1.5 h-3.5 w-3.5" />
-                         {p.vitrineFotos.length > 0 ? `${p.vitrineFotos.length} foto${p.vitrineFotos.length > 1 ? "s" : ""}` : "Fotos"}
-                       </Button>
+                      {/* Fotos da Vitrine */}
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-9 rounded-full text-xs",
+                          p.vitrineFotos.length > 0 && "border-primary/40 text-primary",
+                        )}
+                        onClick={() => abrirFotos(p)}
+                      >
+                        <Camera className="mr-1.5 h-3.5 w-3.5" />
+                        {p.vitrineFotos.length > 0
+                          ? `${p.vitrineFotos.length} foto${p.vitrineFotos.length > 1 ? "s" : ""}`
+                          : "Fotos"}
+                      </Button>
 
                       {/* Ocultar preço */}
                       <Button
@@ -441,7 +457,6 @@ function ProdutosPage() {
                       >
                         <EyeOff className="h-4 w-4" />
                       </Button>
-
 
                       {/* Toggle visível */}
                       <div className="ml-1 flex items-center gap-2">
@@ -462,18 +477,15 @@ function ProdutosPage() {
         </SectionCard>
 
         {/* Sheet de Promoção */}
-        <Sheet
-          open={emPromocaoProduto !== null}
-          onOpenChange={(o) => !o && setPromocaoId(null)}
-        >
+        <Sheet open={emPromocaoProduto !== null} onOpenChange={(o) => !o && setPromocaoId(null)}>
           <SheetContent className="w-full sm:max-w-md">
             {emPromocaoProduto ? (
               <>
                 <SheetHeader className="text-left">
                   <SheetTitle>Criar promoção</SheetTitle>
                   <SheetDescription>
-                    O preço base do estoque continua intacto. A vitrine mostra o valor
-                    promocional com o original riscado.
+                    O preço base do estoque continua intacto. A vitrine mostra o valor promocional
+                    com o original riscado.
                   </SheetDescription>
                 </SheetHeader>
 
@@ -550,10 +562,7 @@ function ProdutosPage() {
         </Sheet>
 
         {/* Sheet de Fotos da Vitrine */}
-        <Sheet
-          open={vitrineFotosId !== null}
-          onOpenChange={(o) => !o && setVitrineFotosId(null)}
-        >
+        <Sheet open={vitrineFotosId !== null} onOpenChange={(o) => !o && setVitrineFotosId(null)}>
           <SheetContent className="w-full sm:max-w-lg">
             {emFotosProduto ? (
               <>
@@ -563,7 +572,9 @@ function ProdutosPage() {
                     Fotos da Vitrine
                   </SheetTitle>
                   <SheetDescription>
-                    Adicione fotos profissionais que serão exibidas <strong>exclusivamente na loja online</strong>. A foto do estoque continua intacta.
+                    Adicione fotos profissionais que serão exibidas{" "}
+                    <strong>exclusivamente na loja online</strong>. A foto do estoque continua
+                    intacta.
                   </SheetDescription>
                 </SheetHeader>
 
@@ -587,7 +598,9 @@ function ProdutosPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{emFotosProduto.name}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {emFotosProduto.photo_url ? "Foto básica do estoque (será substituída abaixo)" : "Sem foto no estoque"}
+                        {emFotosProduto.photo_url
+                          ? "Foto básica do estoque (será substituída abaixo)"
+                          : "Sem foto no estoque"}
                       </p>
                     </div>
                   </div>
@@ -595,7 +608,9 @@ function ProdutosPage() {
                   {/* Galeria de fotos premium */}
                   {vitrineFotosTemp.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Fotos da Vitrine ({vitrineFotosTemp.length})</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Fotos da Vitrine ({vitrineFotosTemp.length})
+                      </p>
                       <div className="grid grid-cols-3 gap-2">
                         {vitrineFotosTemp.map((url, i) => (
                           <div key={url} className="group relative">
@@ -605,7 +620,8 @@ function ProdutosPage() {
                               loading="lazy"
                               className="aspect-[3/4] w-full rounded-xl object-cover"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = `https://placehold.co/120x160/f5f5f5/999?text=Erro`;
+                                (e.target as HTMLImageElement).src =
+                                  `https://placehold.co/120x160/f5f5f5/999?text=Erro`;
                               }}
                             />
                             {i === 0 && (
@@ -630,20 +646,25 @@ function ProdutosPage() {
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        A 1ª foto é a capa. A 2ª aparece no hover (passa o mouse por cima) nos templates que suportam.
+                        A 1ª foto é a capa. A 2ª aparece no hover (passa o mouse por cima) nos
+                        templates que suportam.
                       </p>
                     </div>
                   )}
 
                   {/* Input de nova URL */}
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Adicionar foto por URL</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      Adicionar foto por URL
+                    </Label>
                     <div className="flex gap-2">
                       <Input
                         type="url"
                         value={novaFotoUrl}
                         onChange={(e) => setNovaFotoUrl(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarFoto())}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && (e.preventDefault(), adicionarFoto())
+                        }
                         placeholder="https://exemplo.com/foto.jpg"
                         className="h-11 flex-1 rounded-xl"
                       />
@@ -658,7 +679,8 @@ function ProdutosPage() {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Cole a URL de uma foto hospedada online. Recomendamos fotos com fundo limpo, boa iluminação e proporção 3:4 (ex: 600x800px).
+                      Cole a URL de uma foto hospedada online. Recomendamos fotos com fundo limpo,
+                      boa iluminação e proporção 3:4 (ex: 600x800px).
                     </p>
                   </div>
 

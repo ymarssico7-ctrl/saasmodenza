@@ -1,5 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, ExternalLink, Instagram, MessageCircle, Plug, ShieldCheck, Zap } from "lucide-react";
+import {
+  CreditCard,
+  ExternalLink,
+  Instagram,
+  MessageCircle,
+  Plug,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard } from "@/components/loja/section-card";
@@ -45,7 +53,8 @@ const integracoesData: Integracao[] = [
   {
     id: "stripe",
     nome: "Stripe Payments",
-    descricao: "Receba via Cartão de Crédito, Apple Pay e Google Pay diretamente no checkout da vitrine.",
+    descricao:
+      "Receba via Cartão de Crédito, Apple Pay e Google Pay diretamente no checkout da vitrine.",
     categoria: "Pagamentos",
     conectado: true,
     plano: "digital",
@@ -55,7 +64,8 @@ const integracoesData: Integracao[] = [
   {
     id: "kiwify",
     nome: "Kiwify Checkout",
-    descricao: "Integração nativa com checkout de alta conversão, Pix automático e aprovação imediata.",
+    descricao:
+      "Integração nativa com checkout de alta conversão, Pix automático e aprovação imediata.",
     categoria: "Pagamentos",
     conectado: false,
     plano: "digital",
@@ -105,95 +115,86 @@ const integracoesData: Integracao[] = [
 ];
 
 function IntegracoesPage() {
-  const porCategoria = integracoesData.reduce<Record<string, Integracao[]>>(
-    (acc, item) => {
-      if (!acc[item.categoria]) acc[item.categoria] = [];
-      acc[item.categoria]!.push(item);
-      return acc;
-    },
-    {},
-  );
+  const porCategoria = integracoesData.reduce<Record<string, Integracao[]>>((acc, item) => {
+    if (!acc[item.categoria]) acc[item.categoria] = [];
+    acc[item.categoria]!.push(item);
+    return acc;
+  }, {});
 
   return (
-      <div className="space-y-6">
-        <PageHeader
-          eyebrow="Conectividade"
-          title="Integrações"
-          description="Conecte sua loja com as ferramentas que você já usa. Cada integração ativa enriquece a experiência das suas clientes."
-        />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Conectividade"
+        title="Integrações"
+        description="Conecte sua loja com as ferramentas que você já usa. Cada integração ativa enriquece a experiência das suas clientes."
+      />
 
-        {Object.entries(porCategoria).map(([categoria, items]) => (
-          <SectionCard
-            key={categoria}
-            title={categoria}
-            description={`${items.length} ${items.length === 1 ? "integração" : "integrações"} disponíveis.`}
-          >
-            <div className="divide-y divide-border/70">
-              {items.map((integ) => {
-                const Icon = integ.icon;
-                const precisaCrescimento = integ.plano === "crescimento";
-                return (
-                  <div
-                    key={integ.id}
-                    className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div
-                        className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${integ.cor}`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold">{integ.nome}</p>
-                          {precisaCrescimento && (
-                            <PlanoBadge plan="crescimento" />
-                          )}
-                          {integ.conectado && (
-                            <span className="rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
-                              Conectado
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                          {integ.descricao}
-                        </p>
-                      </div>
+      {Object.entries(porCategoria).map(([categoria, items]) => (
+        <SectionCard
+          key={categoria}
+          title={categoria}
+          description={`${items.length} ${items.length === 1 ? "integração" : "integrações"} disponíveis.`}
+        >
+          <div className="divide-y divide-border/70">
+            {items.map((integ) => {
+              const Icon = integ.icon;
+              const precisaCrescimento = integ.plano === "crescimento";
+              return (
+                <div
+                  key={integ.id}
+                  className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div
+                      className={`mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${integ.cor}`}
+                    >
+                      <Icon className="h-5 w-5" />
                     </div>
-                    {precisaCrescimento ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 shrink-0 rounded-full text-xs"
-                        disabled
-                      >
-                        <Plug className="mr-1.5 h-3 w-3" />
-                        Upgrade
-                      </Button>
-                    ) : (
-                      <Switch
-                        checked={integ.conectado}
-                        className="shrink-0"
-                      />
-                    )}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">{integ.nome}</p>
+                        {precisaCrescimento && <PlanoBadge plan="crescimento" />}
+                        {integ.conectado && (
+                          <span className="rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
+                            Conectado
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                        {integ.descricao}
+                      </p>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </SectionCard>
-        ))}
-
-        {/* Mais em breve */}
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-border/70 px-5 py-4">
-          <span className="text-2xl">🔌</span>
-          <div>
-            <p className="text-sm font-semibold">Mais integrações em breve</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Shopee, Mercado Livre, Stripe, Yampi e mais. Fale com a gente para priorizar.
-            </p>
+                  {precisaCrescimento ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0 rounded-full text-xs"
+                      disabled
+                    >
+                      <Plug className="mr-1.5 h-3 w-3" />
+                      Upgrade
+                    </Button>
+                  ) : (
+                    <Switch checked={integ.conectado} className="shrink-0" />
+                  )}
+                </div>
+              );
+            })}
           </div>
+        </SectionCard>
+      ))}
+
+      {/* Mais em breve */}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-border/70 px-5 py-4">
+        <span className="text-2xl">🔌</span>
+        <div>
+          <p className="text-sm font-semibold">Mais integrações em breve</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Shopee, Mercado Livre, Stripe, Yampi e mais. Fale com a gente para priorizar.
+          </p>
         </div>
       </div>
+    </div>
   );
 }
-

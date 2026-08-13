@@ -137,16 +137,27 @@ export function MobilePreviewFrame({
             style={{
               width: FRAME_W + 24,
               height: PHONE_TOTAL_H,
-              boxShadow:
-                "0 0 0 2px #3a3a3c, 0 0 0 4px #1c1c1e, 0 40px 80px -20px rgba(0,0,0,0.8)",
+              boxShadow: "0 0 0 2px #3a3a3c, 0 0 0 4px #1c1c1e, 0 40px 80px -20px rgba(0,0,0,0.8)",
             }}
           >
             {/* Botões laterais esquerdos */}
-            <div className="absolute -left-[5px] rounded-l-sm bg-zinc-700" style={{ top: 100, width: 5, height: 32 }} />
-            <div className="absolute -left-[5px] rounded-l-sm bg-zinc-700" style={{ top: 145, width: 5, height: 56 }} />
-            <div className="absolute -left-[5px] rounded-l-sm bg-zinc-700" style={{ top: 215, width: 5, height: 56 }} />
+            <div
+              className="absolute -left-[5px] rounded-l-sm bg-zinc-700"
+              style={{ top: 100, width: 5, height: 32 }}
+            />
+            <div
+              className="absolute -left-[5px] rounded-l-sm bg-zinc-700"
+              style={{ top: 145, width: 5, height: 56 }}
+            />
+            <div
+              className="absolute -left-[5px] rounded-l-sm bg-zinc-700"
+              style={{ top: 215, width: 5, height: 56 }}
+            />
             {/* Botão lateral direito */}
-            <div className="absolute -right-[5px] rounded-r-sm bg-zinc-700" style={{ top: 155, width: 5, height: 80 }} />
+            <div
+              className="absolute -right-[5px] rounded-r-sm bg-zinc-700"
+              style={{ top: 155, width: 5, height: 80 }}
+            />
 
             {/* Tela — borda interna preta */}
             <div className="absolute inset-[10px] overflow-hidden rounded-[2.4rem] bg-black">
@@ -167,9 +178,15 @@ export function MobilePreviewFrame({
                     <rect x="13.5" y="0" width="2" height="12" rx="0.5" opacity="0.3" />
                   </svg>
                   <svg viewBox="0 0 16 12" className="h-3 w-3 fill-white">
-                    <path d="M8 2 C5 2, 2.5 4, 2.5 6.5 C2.5 8 3.5 9.5 5 10 L8 12 L11 10 C12.5 9.5 13.5 8 13.5 6.5 C13.5 4 11 2 8 2Z" opacity="0.4"/>
-                    <path d="M8 3.5 C6 3.5, 4.5 5, 4.5 6.5 C4.5 7.5 5 8.5 6.5 9 L8 10.5 L9.5 9 C11 8.5 11.5 7.5 11.5 6.5 C11.5 5 10 3.5 8 3.5Z" opacity="0.7"/>
-                    <circle cx="8" cy="6.5" r="2"/>
+                    <path
+                      d="M8 2 C5 2, 2.5 4, 2.5 6.5 C2.5 8 3.5 9.5 5 10 L8 12 L11 10 C12.5 9.5 13.5 8 13.5 6.5 C13.5 4 11 2 8 2Z"
+                      opacity="0.4"
+                    />
+                    <path
+                      d="M8 3.5 C6 3.5, 4.5 5, 4.5 6.5 C4.5 7.5 5 8.5 6.5 9 L8 10.5 L9.5 9 C11 8.5 11.5 7.5 11.5 6.5 C11.5 5 10 3.5 8 3.5Z"
+                      opacity="0.7"
+                    />
+                    <circle cx="8" cy="6.5" r="2" />
                   </svg>
                   <div className="flex items-center gap-0.5">
                     <div className="h-2.5 w-6 rounded-sm border border-white/60 p-px">

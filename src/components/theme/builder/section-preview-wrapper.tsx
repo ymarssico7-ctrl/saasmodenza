@@ -56,9 +56,7 @@ export function SectionPreviewWrapper({
             : isHovered
               ? "2px solid rgba(99,102,241,0.5)"
               : "2px solid transparent",
-          boxShadow: isSelected
-            ? "inset 0 0 0 1px rgba(99,102,241,0.15)"
-            : "none",
+          boxShadow: isSelected ? "inset 0 0 0 1px rgba(99,102,241,0.15)" : "none",
           transition: "border-color 180ms ease, box-shadow 180ms ease",
           borderRadius: 2,
         }}
@@ -76,9 +74,7 @@ export function SectionPreviewWrapper({
             alignItems: "center",
             gap: 6,
             // glassmorphism
-            background: isSelected
-              ? "rgba(99, 102, 241, 0.92)"
-              : "rgba(99, 102, 241, 0.75)",
+            background: isSelected ? "rgba(99, 102, 241, 0.92)" : "rgba(99, 102, 241, 0.75)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
             color: "#fff",

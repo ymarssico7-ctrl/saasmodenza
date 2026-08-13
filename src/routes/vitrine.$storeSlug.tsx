@@ -81,9 +81,9 @@ function VitrineLayout() {
         (p) =>
           p.ativo &&
           (categoria === "Tudo" || p.categoria === categoria) &&
-          p.nome.toLowerCase().includes(busca.toLowerCase())
+          p.nome.toLowerCase().includes(busca.toLowerCase()),
       ),
-    [busca, categoria]
+    [busca, categoria],
   );
 
   const destaques = mockProdutos.filter((p) => p.ativo && p.destaque);
@@ -156,16 +156,17 @@ function VitrineLayout() {
       >
         <div className="mx-auto max-w-6xl px-4">
           <div className="max-w-xl">
-            <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-current/20 px-3 py-1 text-xs font-semibold" style={{ color: cor }}>
+            <p
+              className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-current/20 px-3 py-1 text-xs font-semibold"
+              style={{ color: cor }}
+            >
               <Sparkles className="h-3.5 w-3.5" />
               Nova coleção disponível
             </p>
             <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-gray-900 md:text-5xl">
               {STORE.nome}
             </h1>
-            <p className="mt-3 text-base text-gray-600 leading-relaxed">
-              {STORE.descricao}
-            </p>
+            <p className="mt-3 text-base text-gray-600 leading-relaxed">{STORE.descricao}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href="#catalogo"
@@ -223,11 +224,17 @@ function VitrineLayout() {
                     )}
                   </div>
                   <div className="p-3 text-left">
-                    <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">{p.nome}</p>
+                    <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">
+                      {p.nome}
+                    </p>
                     <div className="mt-1 flex items-baseline gap-1.5">
-                      <span className="text-sm font-bold" style={{ color: cor }}>{brl(precoFinal)}</span>
+                      <span className="text-sm font-bold" style={{ color: cor }}>
+                        {brl(precoFinal)}
+                      </span>
                       {temPromocao && p.precoPromocional && (
-                        <span className="text-[11px] text-gray-400 line-through">{brl(p.preco)}</span>
+                        <span className="text-[11px] text-gray-400 line-through">
+                          {brl(p.preco)}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -292,7 +299,9 @@ function VitrineLayout() {
                   key={p.id}
                   onClick={() => !semEstoque && setSelectedProduct(p)}
                   className={`group relative overflow-hidden rounded-3xl border border-white bg-white shadow-sm text-left transition-all ${
-                    semEstoque ? "cursor-not-allowed opacity-60" : "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                    semEstoque
+                      ? "cursor-not-allowed opacity-60"
+                      : "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                   }`}
                 >
                   <div className="relative overflow-hidden bg-gray-100 aspect-square">
@@ -323,16 +332,22 @@ function VitrineLayout() {
                     )}
                   </div>
                   <div className="p-3">
-                    <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">{p.nome}</p>
+                    <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">
+                      {p.nome}
+                    </p>
                     <p className="mt-0.5 text-[11px] text-gray-400">{p.categoria}</p>
                     <div className="mt-2 flex items-baseline gap-1.5">
                       {p.precoOculto ? (
                         <span className="text-xs text-gray-400">Consulte preço</span>
                       ) : (
                         <>
-                          <span className="text-sm font-bold" style={{ color: cor }}>{brl(precoFinal)}</span>
+                          <span className="text-sm font-bold" style={{ color: cor }}>
+                            {brl(precoFinal)}
+                          </span>
                           {temPromocao && p.precoPromocional && (
-                            <span className="text-[11px] text-gray-400 line-through">{brl(p.preco)}</span>
+                            <span className="text-[11px] text-gray-400 line-through">
+                              {brl(p.preco)}
+                            </span>
                           )}
                         </>
                       )}
@@ -349,14 +364,27 @@ function VitrineLayout() {
       <section className="border-t border-gray-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <div className="grid gap-6 sm:grid-cols-3">
-            <InfoCard icon={<MessageCircle className="h-5 w-5" />} title="Atendimento" text={`Chame no WhatsApp: ${STORE.whatsapp}`} cor={cor} />
-            <InfoCard icon={<RefreshCw className="h-5 w-5" />} title="Política de troca" text={STORE.politicaTroca} cor={cor} />
-            <InfoCard icon={<Shield className="h-5 w-5" />} title="Compra segura" text="Seus dados são protegidos. Pagamento combinado direto com a loja." cor={cor} />
+            <InfoCard
+              icon={<MessageCircle className="h-5 w-5" />}
+              title="Atendimento"
+              text={`Chame no WhatsApp: ${STORE.whatsapp}`}
+              cor={cor}
+            />
+            <InfoCard
+              icon={<RefreshCw className="h-5 w-5" />}
+              title="Política de troca"
+              text={STORE.politicaTroca}
+              cor={cor}
+            />
+            <InfoCard
+              icon={<Shield className="h-5 w-5" />}
+              title="Compra segura"
+              text="Seus dados são protegidos. Pagamento combinado direto com a loja."
+              cor={cor}
+            />
           </div>
           <div className="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-400">
-            <p>
-              {STORE.boasVindas}
-            </p>
+            <p>{STORE.boasVindas}</p>
             <p className="mt-3">
               Vitrine criada com{" "}
               <a href="/" className="font-semibold text-gray-600 hover:underline">
@@ -411,7 +439,8 @@ function ProductModal({
   const [added, setAdded] = useState(false);
 
   const temPromocao = isPromocaoAtiva(product.promocaoInicio, product.promocaoFim);
-  const precoFinal = temPromocao && product.precoPromocional ? product.precoPromocional : product.preco;
+  const precoFinal =
+    temPromocao && product.precoPromocional ? product.precoPromocional : product.preco;
 
   function handleAdd() {
     const item: CartItem = {
@@ -464,7 +493,9 @@ function ProductModal({
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">{product.categoria}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                {product.categoria}
+              </p>
               <h2 className="mt-1 font-display text-xl font-bold text-gray-900">{product.nome}</h2>
             </div>
             <div className="text-right">
@@ -472,7 +503,9 @@ function ProductModal({
                 <p className="text-sm text-gray-400">Consulte preço</p>
               ) : (
                 <>
-                  <p className="text-2xl font-bold" style={{ color: cor }}>{brl(precoFinal)}</p>
+                  <p className="text-2xl font-bold" style={{ color: cor }}>
+                    {brl(precoFinal)}
+                  </p>
                   {temPromocao && product.precoPromocional && (
                     <p className="text-sm text-gray-400 line-through">{brl(product.preco)}</p>
                   )}
@@ -484,7 +517,9 @@ function ProductModal({
           {/* Tamanhos */}
           {product.tamanhos.length > 0 && product.tamanhos[0] !== "Único" && (
             <div className="mt-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Tamanho</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Tamanho
+              </p>
               <div className="flex flex-wrap gap-2">
                 {product.tamanhos.map((t) => (
                   <button
@@ -586,10 +621,7 @@ function CartDrawer({
     <>
       {/* Overlay */}
       {open && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       )}
 
       {/* Drawer */}
@@ -602,7 +634,9 @@ function CartDrawer({
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
             <h2 className="font-display text-lg font-bold text-gray-900">Seu carrinho</h2>
-            <p className="text-xs text-gray-400">{totalItems} {totalItems === 1 ? "item" : "itens"}</p>
+            <p className="text-xs text-gray-400">
+              {totalItems} {totalItems === 1 ? "item" : "itens"}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -644,15 +678,21 @@ function CartDrawer({
                   />
                   <div className="flex flex-1 flex-col justify-between min-w-0">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{item.nome}</p>
+                      <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
+                        {item.nome}
+                      </p>
                       {(item.tamanho !== "Único" || item.cor) && (
                         <p className="mt-0.5 text-xs text-gray-400">
-                          {[item.tamanho !== "Único" ? item.tamanho : "", item.cor].filter(Boolean).join(" · ")}
+                          {[item.tamanho !== "Único" ? item.tamanho : "", item.cor]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold" style={{ color: cor }}>{brl(item.preco * item.quantidade)}</p>
+                      <p className="text-sm font-bold" style={{ color: cor }}>
+                        {brl(item.preco * item.quantidade)}
+                      </p>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => {
@@ -664,9 +704,15 @@ function CartDrawer({
                           }}
                           className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100"
                         >
-                          {item.quantidade === 1 ? <X className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                          {item.quantidade === 1 ? (
+                            <X className="h-3 w-3" />
+                          ) : (
+                            <Minus className="h-3 w-3" />
+                          )}
                         </button>
-                        <span className="w-6 text-center text-sm font-semibold">{item.quantidade}</span>
+                        <span className="w-6 text-center text-sm font-semibold">
+                          {item.quantidade}
+                        </span>
                         <button
                           onClick={() => increment(item.id, item.tamanho, item.cor)}
                           className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100"
@@ -709,7 +755,17 @@ function CartDrawer({
 }
 
 // ─── Info Card ────────────────────────────────────────────────────
-function InfoCard({ icon, title, text, cor }: { icon: React.ReactNode; title: string; text: string; cor: string }) {
+function InfoCard({
+  icon,
+  title,
+  text,
+  cor,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  cor: string;
+}) {
   return (
     <div className="flex gap-3">
       <div

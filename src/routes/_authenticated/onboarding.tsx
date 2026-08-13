@@ -41,10 +41,18 @@ function Onboarding() {
       fields: (
         <>
           <FieldRow label="Nome da loja">
-            <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Modé Boutique" />
+            <Input
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              placeholder="Modé Boutique"
+            />
           </FieldRow>
           <FieldRow label="Cidade">
-            <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo, SP" />
+            <Input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="São Paulo, SP"
+            />
           </FieldRow>
         </>
       ),
@@ -55,10 +63,18 @@ function Onboarding() {
       fields: (
         <>
           <FieldRow label="Seu nome">
-            <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Ana Souza" />
+            <Input
+              value={ownerName}
+              onChange={(e) => setOwnerName(e.target.value)}
+              placeholder="Ana Souza"
+            />
           </FieldRow>
           <FieldRow label="WhatsApp (opcional)">
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-0000" />
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-0000"
+            />
           </FieldRow>
         </>
       ),
@@ -159,7 +175,10 @@ function Onboarding() {
               Voltar
             </Button>
             {step < steps.length - 1 ? (
-              <Button className="h-11 rounded-full px-6 font-semibold" onClick={() => setStep((s) => s + 1)}>
+              <Button
+                className="h-11 rounded-full px-6 font-semibold"
+                onClick={() => setStep((s) => s + 1)}
+              >
                 Continuar <ArrowRight className="size-4" />
               </Button>
             ) : (

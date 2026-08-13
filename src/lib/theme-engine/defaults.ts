@@ -6,7 +6,8 @@ const STORAGE_KEY = "modaly_theme_config";
 const SETTINGS_DEFAULTS: Partial<ThemeSettings> = {
   checkoutMode: "whatsapp",
   storeWhatsApp: "(31) 99812-4477",
-  storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+  storeDescription:
+    "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
   politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
   mostrarEstoque: false,
 };
@@ -59,26 +60,19 @@ export const FONT_URLS: Record<string, string> = {
   // Fontes do Template 01 (Atelier Nove)
   "Cormorant Garamond":
     "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap",
-  Jost:
-    "https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap",
+  Jost: "https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap",
   // Fontes extras disponíveis para personalização
-  Outfit:
-    "https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap",
-  Figtree:
-    "https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap",
+  Outfit: "https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap",
+  Figtree: "https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap",
   "Playfair Display":
     "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap",
   Sora: "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap",
-  "DM Serif Display":
-    "https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap",
+  "DM Serif Display": "https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap",
   "Libre Baskerville":
     "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap",
-  Manrope:
-    "https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap",
-  Inter:
-    "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
-  "DM Sans":
-    "https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap",
+  Manrope: "https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap",
+  Inter: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap",
+  "DM Sans": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap",
   "Plus Jakarta Sans":
     "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap",
 };
@@ -107,7 +101,8 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
     freeShippingBannerEnabled: true,
     checkoutMode: "whatsapp",
     storeWhatsApp: "(31) 99812-4477",
-    storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    storeDescription:
+      "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
     politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
     mostrarEstoque: false,
 
@@ -157,8 +152,7 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
         buttonText: "Ver a coleção",
         // imageUrl vazio → componente usa heroImg (hero.jpg) como fallback
         imageUrl: "",
-        imageAlt:
-          "Modelo vestindo vestido de linho off-white com casaco de lã preto sobre o ombro",
+        imageAlt: "Modelo vestindo vestido de linho off-white com casaco de lã preto sobre o ombro",
         // index.tsx line 40: object-[62%_center]
         imagePosition: "62% center",
         // index.tsx line 42: from-foreground/45
@@ -212,8 +206,7 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
         buttonText: "Ver alfaiataria",
         // imageUrl vazio → componente usa lookbook1 (lookbook-1.jpg) como fallback
         imageUrl: "",
-        imageAlt:
-          "Duas modelos em alfaiataria preta e creme sentadas em banco de gesso",
+        imageAlt: "Duas modelos em alfaiataria preta e creme sentadas em banco de gesso",
         imagePosition: "right",
         // index.tsx line 107: <section className="bg-canvas">
         backgroundColor: "canvas",
@@ -253,8 +246,7 @@ export const ATELIER_MOD_THEME: ThemeConfig = {
         buttonText: "Conhecer os materiais",
         // imageUrl vazio → usa lookbook2 (lookbook-2.jpg) como fallback
         imageUrl: "",
-        imageAlt:
-          "Detalhe de tricô de cashmere creme e cetim cinza sobre superfície de gesso",
+        imageAlt: "Detalhe de tricô de cashmere creme e cetim cinza sobre superfície de gesso",
         imagePosition: "left",
         backgroundColor: "background",
       },
@@ -299,7 +291,8 @@ export const TEMPLATE_01_THEME: ThemeConfig = {
     freeShippingBannerEnabled: true,
     checkoutMode: "whatsapp",
     storeWhatsApp: "(31) 99812-4477",
-    storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    storeDescription:
+      "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
     politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
     mostrarEstoque: false,
     // Cores — idênticas ao :root do template 01/src/styles.css
@@ -367,7 +360,8 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
     freeShippingBannerEnabled: true,
     checkoutMode: "whatsapp",
     storeWhatsApp: "(31) 99812-4477",
-    storeDescription: "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
+    storeDescription:
+      "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa.",
     politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
     mostrarEstoque: false,
     // Cores — idênticas ao :root do atelie-loja/src/styles.css
@@ -434,7 +428,10 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
         items: [
           { title: "Trocas em 30 dias", description: "Primeira troca sem custo em todo o Brasil." },
           { title: "Envio em 24h", description: "Pedidos até 14h saem no mesmo dia útil." },
-          { title: "Atendimento humano", description: "Consultoria de estilo por WhatsApp, de seg. a sáb." },
+          {
+            title: "Atendimento humano",
+            description: "Consultoria de estilo por WhatsApp, de seg. a sáb.",
+          },
         ],
       },
     },

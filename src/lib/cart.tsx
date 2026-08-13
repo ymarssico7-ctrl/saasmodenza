@@ -27,15 +27,13 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "ADD": {
       const k = key(action.item.id, action.item.tamanho, action.item.cor);
-      const existing = state.items.find(
-        (i) => key(i.id, i.tamanho, i.cor) === k
-      );
+      const existing = state.items.find((i) => key(i.id, i.tamanho, i.cor) === k);
       if (existing) {
         return {
           items: state.items.map((i) =>
             key(i.id, i.tamanho, i.cor) === k
               ? { ...i, quantidade: i.quantidade + action.item.quantidade }
-              : i
+              : i,
           ),
         };
       }
@@ -44,7 +42,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "REMOVE":
       return {
         items: state.items.filter(
-          (i) => key(i.id, i.tamanho, i.cor) !== key(action.id, action.tamanho, action.cor)
+          (i) => key(i.id, i.tamanho, i.cor) !== key(action.id, action.tamanho, action.cor),
         ),
       };
     case "INCREMENT":
@@ -52,7 +50,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         items: state.items.map((i) =>
           key(i.id, i.tamanho, i.cor) === key(action.id, action.tamanho, action.cor)
             ? { ...i, quantidade: i.quantidade + 1 }
-            : i
+            : i,
         ),
       };
     case "DECREMENT":
@@ -60,7 +58,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         items: state.items.map((i) =>
           key(i.id, i.tamanho, i.cor) === key(action.id, action.tamanho, action.cor)
             ? { ...i, quantidade: Math.max(1, i.quantidade - 1) }
-            : i
+            : i,
         ),
       };
     case "CLEAR":

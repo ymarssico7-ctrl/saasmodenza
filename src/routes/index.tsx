@@ -169,9 +169,21 @@ function Landing() {
           </h2>
           <ol className="mt-12 grid gap-8 sm:grid-cols-3">
             {[
-              { n: "01", t: "Configure sua loja", d: "Nome, cidade e a retirada mensal que você quer fazer." },
-              { n: "02", t: "Lance o dia", d: "Vendas e despesas em segundos, no celular ou no computador." },
-              { n: "03", t: "Decida com dados", d: "Preço certo, meta clara e fiado sob controle." },
+              {
+                n: "01",
+                t: "Configure sua loja",
+                d: "Nome, cidade e a retirada mensal que você quer fazer.",
+              },
+              {
+                n: "02",
+                t: "Lance o dia",
+                d: "Vendas e despesas em segundos, no celular ou no computador.",
+              },
+              {
+                n: "03",
+                t: "Decida com dados",
+                d: "Preço certo, meta clara e fiado sob controle.",
+              },
             ].map((s) => (
               <li key={s.n}>
                 <p className="numeric text-sm font-semibold text-primary">{s.n}</p>

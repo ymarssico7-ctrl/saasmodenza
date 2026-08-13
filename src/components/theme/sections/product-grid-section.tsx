@@ -11,10 +11,7 @@ function getProducts(settings: ProductGridSettings): Produto[] {
   let pool = [...produtos].filter((p) => p.ativo);
   if (settings.source === "featured") pool = pool.filter((p) => p.destaque);
   if (settings.source === "newest")
-    pool = pool.sort(
-      (a, b) =>
-        new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime(),
-    );
+    pool = pool.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
   return pool.slice(0, settings.count);
 }
 
@@ -66,7 +63,9 @@ export function ProductGridSection({ settings, theme }: Props) {
         </div>
 
         {/* Product Grid */}
-        <div className={`mt-8 grid gap-x-4 gap-y-8 ${COL_CLASS[settings.columns] ?? "grid-cols-2 md:grid-cols-4"}`}>
+        <div
+          className={`mt-8 grid gap-x-4 gap-y-8 ${COL_CLASS[settings.columns] ?? "grid-cols-2 md:grid-cols-4"}`}
+        >
           {items.length === 0 ? (
             <p
               className="col-span-full py-12 text-center text-sm"
@@ -90,10 +89,7 @@ function ProductThemeCard({ product, theme }: { product: Produto; theme: ThemeSe
 
   return (
     <article className="group cursor-pointer">
-      <div
-        className="relative overflow-hidden"
-        style={{ background: theme.colorCanvas }}
-      >
+      <div className="relative overflow-hidden" style={{ background: theme.colorCanvas }}>
         <img
           src={product.imagem}
           alt={product.nome}
@@ -122,10 +118,7 @@ function ProductThemeCard({ product, theme }: { product: Produto; theme: ThemeSe
       </div>
 
       <div className="mt-3">
-        <h3
-          className="truncate text-[0.9rem]"
-          style={{ color: theme.colorForeground }}
-        >
+        <h3 className="truncate text-[0.9rem]" style={{ color: theme.colorForeground }}>
           {product.nome}
         </h3>
         <p className="mt-1 text-xs" style={{ color: `${theme.colorForeground}70` }}>
@@ -136,10 +129,7 @@ function ProductThemeCard({ product, theme }: { product: Produto; theme: ThemeSe
             {brl(hasPromo ? (product.precoPromocional ?? product.preco) : product.preco)}
           </span>
           {hasPromo && (
-            <span
-              className="text-xs line-through"
-              style={{ color: `${theme.colorForeground}55` }}
-            >
+            <span className="text-xs line-through" style={{ color: `${theme.colorForeground}55` }}>
               {brl(product.preco)}
             </span>
           )}

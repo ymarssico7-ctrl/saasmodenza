@@ -16,4 +16,3 @@ function PreviewPage() {
   const theme = loadTheme();
   return <ThemeRenderer theme={theme} />;
 }
-

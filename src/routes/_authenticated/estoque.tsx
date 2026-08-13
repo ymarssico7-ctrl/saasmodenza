@@ -11,7 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { inventoryQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf } from "@/lib/finance";
@@ -23,9 +29,15 @@ export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
     meta: [
       { title: "Estoque por grade — Modé" },
-      { name: "description", content: "Controle peças, tamanhos, custo e preço de venda do estoque da sua loja." },
+      {
+        name: "description",
+        content: "Controle peças, tamanhos, custo e preço de venda do estoque da sua loja.",
+      },
       { property: "og:title", content: "Estoque por grade — Modé" },
-      { property: "og:description", content: "Peças e tamanhos organizados, com valor total em estoque." },
+      {
+        property: "og:description",
+        content: "Peças e tamanhos organizados, com valor total em estoque.",
+      },
     ],
   }),
   component: Estoque,
@@ -113,7 +125,12 @@ function Estoque() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Peças em estoque" value={String(totalUnits)} icon={<Boxes className="size-4" />} tone="primary" />
+        <StatCard
+          label="Peças em estoque"
+          value={String(totalUnits)}
+          icon={<Boxes className="size-4" />}
+          tone="primary"
+        />
         <StatCard label="Valor investido" value={brl(stockValue)} />
         <StatCard label="Potencial de venda" value={brl(potential)} tone="positive" />
       </div>
@@ -122,7 +139,11 @@ function Estoque() {
         <h2 className="text-base font-semibold">Nova peça</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Nome">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Vestido midi linho" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Vestido midi linho"
+            />
           </Field>
           <Field label="Categoria">
             <Select value={category} onValueChange={setCategory}>
@@ -139,16 +160,34 @@ function Estoque() {
             </Select>
           </Field>
           <Field label="Cor">
-            <Input value={color} onChange={(e) => setColor(e.target.value)} placeholder="Off-white" />
+            <Input
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              placeholder="Off-white"
+            />
           </Field>
           <Field label="Fornecedor">
-            <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Bras Moda" />
+            <Input
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+              placeholder="Bras Moda"
+            />
           </Field>
           <Field label="Custo (R$)">
-            <Input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="59,90" />
+            <Input
+              inputMode="decimal"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              placeholder="59,90"
+            />
           </Field>
           <Field label="Preço de venda (R$)">
-            <Input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="169,90" />
+            <Input
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="169,90"
+            />
           </Field>
         </div>
 
@@ -162,7 +201,12 @@ function Estoque() {
                   className="mt-1.5 text-center"
                   inputMode="numeric"
                   value={String(sizes[s] ?? 0)}
-                  onChange={(e) => setSizes((p) => ({ ...p, [s]: Math.max(0, Math.round(toNumber(e.target.value))) }))}
+                  onChange={(e) =>
+                    setSizes((p) => ({
+                      ...p,
+                      [s]: Math.max(0, Math.round(toNumber(e.target.value))),
+                    }))
+                  }
                 />
               </div>
             ))}
@@ -204,7 +248,11 @@ function Estoque() {
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {SIZE_GRID.map((size) => (
-                          <Badge key={size} variant="outline" className="rounded-full text-[10px] font-semibold">
+                          <Badge
+                            key={size}
+                            variant="outline"
+                            className="rounded-full text-[10px] font-semibold"
+                          >
                             {size} · {Number(s[size] ?? 0)}
                           </Badge>
                         ))}
@@ -212,7 +260,9 @@ function Estoque() {
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="text-right">
-                        <p className="numeric text-sm font-semibold text-primary">{brl(Number(i.sale_price))}</p>
+                        <p className="numeric text-sm font-semibold text-primary">
+                          {brl(Number(i.sale_price))}
+                        </p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
                           custo {brl(Number(i.cost_price))} · {units} un.
                         </p>
@@ -221,7 +271,11 @@ function Estoque() {
                         onConfirm={() => remove.mutate(i.id)}
                         description={`"${i.name}" será removida do estoque.`}
                         trigger={
-                          <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-full text-muted-foreground"
+                          >
                             <Trash2 className="size-4" />
                           </Button>
                         }

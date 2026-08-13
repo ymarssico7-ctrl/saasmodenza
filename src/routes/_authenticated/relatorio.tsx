@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { transactionsQuery } from "@/lib/db";
@@ -11,9 +22,15 @@ export const Route = createFileRoute("/_authenticated/relatorio")({
   head: () => ({
     meta: [
       { title: "Relatório financeiro — Modé" },
-      { name: "description", content: "Compare meses, veja onde o dinheiro sai e acompanhe a margem da loja." },
+      {
+        name: "description",
+        content: "Compare meses, veja onde o dinheiro sai e acompanhe a margem da loja.",
+      },
       { property: "og:title", content: "Relatório financeiro — Modé" },
-      { property: "og:description", content: "Faturamento, despesas por categoria e margem mês a mês." },
+      {
+        property: "og:description",
+        content: "Faturamento, despesas por categoria e margem mês a mês.",
+      },
     ],
   }),
   component: Relatorio,
@@ -84,13 +101,33 @@ function Relatorio() {
             <BarChart data={bars} margin={{ left: -18, right: 6, top: 6 }}>
               <CartesianGrid stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="mes" tickLine={false} axisLine={false} fontSize={11} />
-              <YAxis tickFormatter={(v) => brlCompact(Number(v))} tickLine={false} axisLine={false} fontSize={11} width={78} />
+              <YAxis
+                tickFormatter={(v) => brlCompact(Number(v))}
+                tickLine={false}
+                axisLine={false}
+                fontSize={11}
+                width={78}
+              />
               <Tooltip
                 formatter={(v: number | string) => brl(Number(v))}
-                contentStyle={{ borderRadius: 16, border: "1px solid var(--color-border)", fontSize: 12 }}
+                contentStyle={{
+                  borderRadius: 16,
+                  border: "1px solid var(--color-border)",
+                  fontSize: 12,
+                }}
               />
-              <Bar dataKey="entradas" fill="var(--color-primary)" radius={[8, 8, 0, 0]} maxBarSize={26} />
-              <Bar dataKey="saidas" fill="var(--color-border)" radius={[8, 8, 0, 0]} maxBarSize={26} />
+              <Bar
+                dataKey="entradas"
+                fill="var(--color-primary)"
+                radius={[8, 8, 0, 0]}
+                maxBarSize={26}
+              />
+              <Bar
+                dataKey="saidas"
+                fill="var(--color-border)"
+                radius={[8, 8, 0, 0]}
+                maxBarSize={26}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -99,18 +136,30 @@ function Relatorio() {
       <section className="panel p-6 sm:p-7">
         <h2 className="text-base font-semibold">Despesas por categoria</h2>
         {byCategory.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">Nenhuma despesa registrada neste mês.</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Nenhuma despesa registrada neste mês.
+          </p>
         ) : (
           <div className="mt-4 grid items-center gap-6 sm:grid-cols-[260px_1fr]">
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={byCategory} dataKey="value" nameKey="name" innerRadius={54} outerRadius={86} paddingAngle={3}>
+                  <Pie
+                    data={byCategory}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={54}
+                    outerRadius={86}
+                    paddingAngle={3}
+                  >
                     {byCategory.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number | string) => brl(Number(v))} contentStyle={{ borderRadius: 16, fontSize: 12 }} />
+                  <Tooltip
+                    formatter={(v: number | string) => brl(Number(v))}
+                    contentStyle={{ borderRadius: 16, fontSize: 12 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -118,7 +167,10 @@ function Relatorio() {
               {byCategory.map((c, i) => (
                 <li key={c.name} className="flex items-center justify-between gap-4 text-sm">
                   <span className="flex items-center gap-2">
-                    <span className="size-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ background: COLORS[i % COLORS.length] }}
+                    />
                     {c.name}
                   </span>
                   <span className="numeric font-semibold">{brl(c.value)}</span>

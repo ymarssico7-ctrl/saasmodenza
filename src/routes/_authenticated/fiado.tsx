@@ -34,7 +34,10 @@ export const Route = createFileRoute("/_authenticated/fiado")({
         content: "Acompanhe quem deve, quanto deve e quando vence cada fiado da sua loja.",
       },
       { property: "og:title", content: "Controle de fiado — Modé" },
-      { property: "og:description", content: "Fiado organizado, com pagamentos parciais e alertas de atraso." },
+      {
+        property: "og:description",
+        content: "Fiado organizado, com pagamentos parciais e alertas de atraso.",
+      },
     ],
   }),
   component: Fiado,
@@ -113,7 +116,13 @@ function Fiado() {
       // credit_payments insert
       const { error } = await supabase
         .from("credit_payments")
-        .insert({ store_id: storeId, user_id: storeId, credit_id: credit.id, amount: value, paid_on: todayISO() });
+        .insert({
+          store_id: storeId,
+          user_id: storeId,
+          credit_id: credit.id,
+          amount: value,
+          paid_on: todayISO(),
+        });
       if (error) throw new Error(error.message);
       // update paid_amount
       const { error: updateError } = await supabase
@@ -159,14 +168,24 @@ function Fiado() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total em aberto" value={brl(openTotal)} tone="primary" icon={<Users className="size-4" />} />
+        <StatCard
+          label="Total em aberto"
+          value={brl(openTotal)}
+          tone="primary"
+          icon={<Users className="size-4" />}
+        />
         <StatCard
           label="Vencido"
           value={brl(overdueTotal)}
           tone={overdueTotal > 0 ? "negative" : "default"}
           icon={<AlertTriangle className="size-4" />}
         />
-        <StatCard label="Já recebido" value={brl(receivedTotal)} tone="positive" icon={<CheckCircle2 className="size-4" />} />
+        <StatCard
+          label="Já recebido"
+          value={brl(receivedTotal)}
+          tone="positive"
+          icon={<CheckCircle2 className="size-4" />}
+        />
       </div>
 
       <section className="panel p-6 sm:p-7">
@@ -193,10 +212,19 @@ function Fiado() {
                 </Select>
               </Field>
               <Field label="Descrição da compra">
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="2 blusas + saia" />
+                <Input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="2 blusas + saia"
+                />
               </Field>
               <Field label="Valor (R$)">
-                <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="240,00" />
+                <Input
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="240,00"
+                />
               </Field>
               <Field label="Data da compra">
                 <Input type="date" value={purchase} onChange={(e) => setPurchase(e.target.value)} />
@@ -234,11 +262,17 @@ function Fiado() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold">{c.customers?.name ?? "Cliente"}</p>
+                        <p className="truncate text-sm font-semibold">
+                          {c.customers?.name ?? "Cliente"}
+                        </p>
                         <Badge
                           className="rounded-full text-[10px] font-semibold"
                           variant={
-                            c.status === "pago" ? "secondary" : c.status === "vencido" ? "destructive" : "outline"
+                            c.status === "pago"
+                              ? "secondary"
+                              : c.status === "vencido"
+                                ? "destructive"
+                                : "outline"
                           }
                         >
                           {CREDIT_STATUS_LABEL[c.status]}
@@ -287,7 +321,11 @@ function Fiado() {
                         onConfirm={() => remove.mutate(c.id)}
                         description="O fiado e seu histórico de pagamentos serão removidos."
                         trigger={
-                          <Button variant="ghost" size="icon" className="size-10 rounded-full text-muted-foreground">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-10 rounded-full text-muted-foreground"
+                          >
                             <Trash2 className="size-4" />
                           </Button>
                         }

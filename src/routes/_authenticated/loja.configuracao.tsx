@@ -227,7 +227,9 @@ function AparenciaPage() {
                       />
                       <div
                         className="h-1.5 w-6 rounded-full"
-                        style={{ backgroundColor: (cor || activeTheme.settings.colorPrimary) + "70" }}
+                        style={{
+                          backgroundColor: (cor || activeTheme.settings.colorPrimary) + "70",
+                        }}
                       />
                     </div>
                   </div>
@@ -289,15 +291,10 @@ function AparenciaPage() {
 
       {/* ── Grid de Configurações 2 Colunas ─────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-
         {/* ── Coluna Esquerda ─────────────────────────────────────────────────── */}
         <div className="space-y-4">
-
           {/* Identidade da marca */}
-          <SectionCard
-            title="Identidade da marca"
-            description="Nome, logo e capa da vitrine."
-          >
+          <SectionCard title="Identidade da marca" description="Nome, logo e capa da vitrine.">
             <div className="space-y-4">
               <Campo label="Nome da loja">
                 <Input
@@ -324,14 +321,22 @@ function AparenciaPage() {
                   className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
                 >
                   <Upload className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-center">Enviar logo<br /><span className="text-[10px] opacity-70">PNG ou JPG</span></span>
+                  <span className="text-center">
+                    Enviar logo
+                    <br />
+                    <span className="text-[10px] opacity-70">PNG ou JPG</span>
+                  </span>
                 </button>
                 <button
                   onClick={() => toast.success("Selecione uma foto de capa")}
                   className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
                 >
                   <ImagePlus className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-center">Enviar capa<br /><span className="text-[10px] opacity-70">PNG, JPG ou WEBP</span></span>
+                  <span className="text-center">
+                    Enviar capa
+                    <br />
+                    <span className="text-[10px] opacity-70">PNG, JPG ou WEBP</span>
+                  </span>
                 </button>
               </div>
 
@@ -373,15 +378,8 @@ function AparenciaPage() {
                   />
                 </div>
               </Campo>
-              <Campo
-                label="Domínio próprio"
-                extra={<PlanoBadge plan="crescimento" />}
-              >
-                <Input
-                  placeholder="minhaloja.com.br"
-                  className="h-11 rounded-xl"
-                  disabled
-                />
+              <Campo label="Domínio próprio" extra={<PlanoBadge plan="crescimento" />}>
+                <Input placeholder="minhaloja.com.br" className="h-11 rounded-xl" disabled />
               </Campo>
             </div>
           </SectionCard>
@@ -389,12 +387,8 @@ function AparenciaPage() {
 
         {/* ── Coluna Direita ──────────────────────────────────────────────────── */}
         <div className="space-y-4">
-
           {/* Contato e confiança */}
-          <SectionCard
-            title="Contato e confiança"
-            description="Aparece na vitrine para a cliente."
-          >
+          <SectionCard title="Contato e confiança" description="Aparece na vitrine para a cliente.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="WhatsApp">
                 <div className="relative">
@@ -442,10 +436,7 @@ function AparenciaPage() {
           </SectionCard>
 
           {/* Textos da loja */}
-          <SectionCard
-            title="Textos da loja"
-            description="Boas-vindas e política de troca."
-          >
+          <SectionCard title="Textos da loja" description="Boas-vindas e política de troca.">
             <div className="space-y-4">
               <Campo label="Mensagem de boas-vindas">
                 <div className="relative">

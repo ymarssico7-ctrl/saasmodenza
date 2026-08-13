@@ -48,14 +48,19 @@ function localInsert(table: string, row: AnyRecord): AnyRecord {
 
 function localDelete(table: string, id: string) {
   const rows = localGet(table);
-  localSet(table, rows.filter((r) => r["id"] !== id));
+  localSet(
+    table,
+    rows.filter((r) => r["id"] !== id),
+  );
 }
 
 function localUpdate(table: string, id: string, patch: AnyRecord) {
   const rows = localGet(table);
   localSet(
     table,
-    rows.map((r) => (r["id"] === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r)),
+    rows.map((r) =>
+      r["id"] === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r,
+    ),
   );
 }
 
@@ -162,7 +167,10 @@ export async function insertTransaction(input: TransactionInsert) {
 }
 
 export async function deleteTransaction(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("transactions", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("transactions", id);
+    return;
+  }
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -172,7 +180,12 @@ export async function deleteTransaction(storeId: string, id: string) {
 // ============================================================
 export async function insertCustomer(storeId: string, name: string, phone?: string | null) {
   if (isDemoStore(storeId)) {
-    return localInsert("customers", { store_id: storeId, user_id: storeId, name, phone: phone ?? null });
+    return localInsert("customers", {
+      store_id: storeId,
+      user_id: storeId,
+      name,
+      phone: phone ?? null,
+    });
   }
   const { data, error } = await supabase
     .from("customers")
@@ -184,7 +197,10 @@ export async function insertCustomer(storeId: string, name: string, phone?: stri
 }
 
 export async function deleteCustomer(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("customers", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("customers", id);
+    return;
+  }
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -203,11 +219,25 @@ export type CreditInsert = {
 
 export async function insertCredit(input: CreditInsert) {
   if (isDemoStore(input.storeId)) {
-    return localInsert("credits", { store_id: input.storeId, user_id: input.storeId, ...input, paid_amount: 0 });
+    return localInsert("credits", {
+      store_id: input.storeId,
+      user_id: input.storeId,
+      ...input,
+      paid_amount: 0,
+    });
   }
   const { data, error } = await supabase
     .from("credits")
-    .insert({ store_id: input.storeId, user_id: input.storeId, customer_id: input.customer_id, description: input.description, amount: input.amount, purchase_date: input.purchase_date, due_date: input.due_date, paid_amount: 0 })
+    .insert({
+      store_id: input.storeId,
+      user_id: input.storeId,
+      customer_id: input.customer_id,
+      description: input.description,
+      amount: input.amount,
+      purchase_date: input.purchase_date,
+      due_date: input.due_date,
+      paid_amount: 0,
+    })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -215,7 +245,10 @@ export async function insertCredit(input: CreditInsert) {
 }
 
 export async function deleteCredit(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("credits", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("credits", id);
+    return;
+  }
   const { error } = await supabase.from("credits").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -236,20 +269,38 @@ export type PricingInsert = {
 
 export async function insertPricing(input: PricingInsert) {
   if (isDemoStore(input.storeId)) {
-    return localInsert("pricings", { store_id: input.storeId, user_id: input.storeId, name: input.name, wholesale_cost: input.wholesale_cost, freight_cost: input.freight_cost, packaging_cost: input.packaging_cost, other_costs: input.other_costs, margin_pct: input.margin_pct, tax_pct: input.tax_pct });
+    return localInsert("pricings", {
+      store_id: input.storeId,
+      user_id: input.storeId,
+      name: input.name,
+      wholesale_cost: input.wholesale_cost,
+      freight_cost: input.freight_cost,
+      packaging_cost: input.packaging_cost,
+      other_costs: input.other_costs,
+      margin_pct: input.margin_pct,
+      tax_pct: input.tax_pct,
+    });
   }
   const { error } = await supabase.from("pricings").insert({
-    store_id: input.storeId, user_id: input.storeId, name: input.name,
-    wholesale_cost: input.wholesale_cost, freight_cost: input.freight_cost,
-    packaging_cost: input.packaging_cost, other_costs: input.other_costs,
-    margin_pct: input.margin_pct, tax_pct: input.tax_pct,
+    store_id: input.storeId,
+    user_id: input.storeId,
+    name: input.name,
+    wholesale_cost: input.wholesale_cost,
+    freight_cost: input.freight_cost,
+    packaging_cost: input.packaging_cost,
+    other_costs: input.other_costs,
+    margin_pct: input.margin_pct,
+    tax_pct: input.tax_pct,
   });
   if (error) throw new Error(error.message);
   return;
 }
 
 export async function deletePricing(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("pricings", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("pricings", id);
+    return;
+  }
   const { error } = await supabase.from("pricings").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -278,13 +329,18 @@ export async function upsertGoal(storeId: string, month: string, target_amount: 
     const { error } = await supabase.from("goals").update({ target_amount }).eq("id", existing.id);
     if (error) throw new Error(error.message);
   } else {
-    const { error } = await supabase.from("goals").insert({ store_id: storeId, user_id: storeId, month, target_amount });
+    const { error } = await supabase
+      .from("goals")
+      .insert({ store_id: storeId, user_id: storeId, month, target_amount });
     if (error) throw new Error(error.message);
   }
 }
 
 export async function deleteGoal(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("goals", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("goals", id);
+    return;
+  }
   const { error } = await supabase.from("goals").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -296,19 +352,44 @@ export async function insertProlabore(storeId: string, month: string, amount: nu
   if (isDemoStore(storeId)) {
     localInsert("prolabore_withdrawals", { store_id: storeId, user_id: storeId, month, amount });
     // Also add to transactions demo
-    localInsert("transactions", { store_id: storeId, user_id: storeId, kind: "saida", description: "Pró-labore", amount, category: "prolabore", payment_method: "transferencia", occurred_on: todayISO() });
+    localInsert("transactions", {
+      store_id: storeId,
+      user_id: storeId,
+      kind: "saida",
+      description: "Pró-labore",
+      amount,
+      category: "prolabore",
+      payment_method: "transferencia",
+      occurred_on: todayISO(),
+    });
     return;
   }
 
-  const { error } = await supabase.from("prolabore_withdrawals").insert({ store_id: storeId, user_id: storeId, month, amount });
+  const { error } = await supabase
+    .from("prolabore_withdrawals")
+    .insert({ store_id: storeId, user_id: storeId, month, amount });
   if (error) throw new Error(error.message);
 
-  const { error: txErr } = await supabase.from("transactions").insert({ store_id: storeId, user_id: storeId, kind: "saida", description: "Pró-labore", amount, category: "prolabore", payment_method: "transferencia", occurred_on: todayISO() });
+  const { error: txErr } = await supabase
+    .from("transactions")
+    .insert({
+      store_id: storeId,
+      user_id: storeId,
+      kind: "saida",
+      description: "Pró-labore",
+      amount,
+      category: "prolabore",
+      payment_method: "transferencia",
+      occurred_on: todayISO(),
+    });
   if (txErr) throw new Error(txErr.message);
 }
 
 export async function deleteProlabore(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("prolabore_withdrawals", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("prolabore_withdrawals", id);
+    return;
+  }
   const { error } = await supabase.from("prolabore_withdrawals").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -316,17 +397,39 @@ export async function deleteProlabore(storeId: string, id: string) {
 // ============================================================
 // STORE MEMBERS (Equipe)
 // ============================================================
-export async function insertMember(storeId: string, name: string, email?: string | null, role?: string) {
+export async function insertMember(
+  storeId: string,
+  name: string,
+  email?: string | null,
+  role?: string,
+) {
   if (isDemoStore(storeId)) {
-    localInsert("store_members", { store_id: storeId, user_id: storeId, name, email: email ?? null, role: role ?? "vendedora" });
+    localInsert("store_members", {
+      store_id: storeId,
+      user_id: storeId,
+      name,
+      email: email ?? null,
+      role: role ?? "vendedora",
+    });
     return;
   }
-  const { error } = await supabase.from("store_members").insert({ store_id: storeId, user_id: storeId, name, email: email ?? null, role: role ?? "vendedora" });
+  const { error } = await supabase
+    .from("store_members")
+    .insert({
+      store_id: storeId,
+      user_id: storeId,
+      name,
+      email: email ?? null,
+      role: role ?? "vendedora",
+    });
   if (error) throw new Error(error.message);
 }
 
 export async function deleteMember(storeId: string, id: string) {
-  if (isDemoStore(storeId)) { localDelete("store_members", id); return; }
+  if (isDemoStore(storeId)) {
+    localDelete("store_members", id);
+    return;
+  }
   const { error } = await supabase.from("store_members").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -347,10 +450,6 @@ export async function updateStoreDetails(storeId: string, patch: StorePatch) {
     localUpdate("stores", storeId, patch);
     return;
   }
-  const { error } = await supabase
-    .from("stores")
-    .update(patch)
-    .eq("id", storeId);
+  const { error } = await supabase.from("stores").update(patch).eq("id", storeId);
   if (error) throw new Error(error.message);
 }
-

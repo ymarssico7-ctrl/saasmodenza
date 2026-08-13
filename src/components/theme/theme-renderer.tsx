@@ -35,20 +35,9 @@ export function ThemeRenderer({
 
   if (templateId === "template-01") {
     return (
-      <Template01Store
-        theme={theme}
-        highlightId={highlightId ?? null}
-        {...interactiveProps}
-      />
+      <Template01Store theme={theme} highlightId={highlightId ?? null} {...interactiveProps} />
     );
   }
 
-  return (
-    <Template02Store
-      theme={theme}
-      highlightId={highlightId ?? null}
-      {...interactiveProps}
-    />
-  );
+  return <Template02Store theme={theme} highlightId={highlightId ?? null} {...interactiveProps} />;
 }
-

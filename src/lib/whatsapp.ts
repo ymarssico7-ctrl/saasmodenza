@@ -8,11 +8,7 @@ function brl(v: number) {
  * Formata os itens do carrinho em uma mensagem pronta para o WhatsApp.
  * Remove espaços extras e garante encoding correto na URL.
  */
-export function formatWhatsAppMessage(
-  storeName: string,
-  items: CartItem[],
-  total: number
-): string {
+export function formatWhatsAppMessage(storeName: string, items: CartItem[], total: number): string {
   const linhas = items.map((item) => {
     const variante = [item.tamanho, item.cor].filter(Boolean).join(" · ");
     return `• ${item.nome}${variante ? ` (${variante})` : ""} × ${item.quantidade} — ${brl(item.preco * item.quantidade)}`;
@@ -42,7 +38,7 @@ export function openWhatsAppCheckout(
   whatsapp: string,
   storeName: string,
   items: CartItem[],
-  total: number
+  total: number,
 ) {
   // Remove tudo que não é número
   const digits = whatsapp.replace(/\D/g, "");

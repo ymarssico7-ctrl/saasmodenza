@@ -66,8 +66,20 @@ const LOJA_NAV: NavItem[] = [
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
 ];
 
-const GESTAO_MOBILE: NavItem[] = [GESTAO_NAV[0]!, GESTAO_NAV[1]!, GESTAO_NAV[4]!, GESTAO_NAV[5]!, GESTAO_NAV[9]!];
-const LOJA_MOBILE: NavItem[] = [LOJA_NAV[0]!, LOJA_NAV[1]!, LOJA_NAV[2]!, LOJA_NAV[6]!, LOJA_NAV[7]!];
+const GESTAO_MOBILE: NavItem[] = [
+  GESTAO_NAV[0]!,
+  GESTAO_NAV[1]!,
+  GESTAO_NAV[4]!,
+  GESTAO_NAV[5]!,
+  GESTAO_NAV[9]!,
+];
+const LOJA_MOBILE: NavItem[] = [
+  LOJA_NAV[0]!,
+  LOJA_NAV[1]!,
+  LOJA_NAV[2]!,
+  LOJA_NAV[6]!,
+  LOJA_NAV[7]!,
+];
 
 // ─── Mode Switcher ────────────────────────────────────────────────────────────
 
@@ -93,7 +105,9 @@ function ModeSwitcher({
         onClick={() => onChange("gestao")}
         className={cn(
           "relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-semibold transition-colors duration-200",
-          mode === "gestao" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+          mode === "gestao"
+            ? "text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         <LayoutDashboard className="size-3.5" />
@@ -104,7 +118,9 @@ function ModeSwitcher({
         onClick={() => onChange("loja")}
         className={cn(
           "relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-semibold transition-colors duration-200",
-          mode === "loja" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+          mode === "loja"
+            ? "text-primary-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         {lojaLocked ? <Lock className="size-3.5" /> : <Store className="size-3.5" />}

@@ -116,8 +116,18 @@ function Caixa() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Entradas do mês" value={brl(revenue)} tone="positive" icon={<ArrowUpRight className="size-4" />} />
-        <StatCard label="Saídas do mês" value={brl(expenses)} tone="negative" icon={<ArrowDownRight className="size-4" />} />
+        <StatCard
+          label="Entradas do mês"
+          value={brl(revenue)}
+          tone="positive"
+          icon={<ArrowUpRight className="size-4" />}
+        />
+        <StatCard
+          label="Saídas do mês"
+          value={brl(expenses)}
+          tone="negative"
+          icon={<ArrowDownRight className="size-4" />}
+        />
         <StatCard
           label="Saldo de hoje"
           value={brl(todayBalance)}
@@ -208,7 +218,9 @@ function Caixa() {
       </section>
 
       <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Lançamentos de {monthLabel(month).toLowerCase()}</h2>
+        <h2 className="text-base font-semibold">
+          Lançamentos de {monthLabel(month).toLowerCase()}
+        </h2>
         {monthTxs.length === 0 ? (
           <EmptyState
             className="mt-6"
@@ -224,12 +236,17 @@ function Caixa() {
                   <p className="truncate text-sm font-medium">{t.description}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <Badge variant="secondary" className="rounded-full text-[10px] font-medium">
-                      {labelOf(t.kind === "entrada" ? ENTRY_CATEGORIES : EXIT_CATEGORIES, t.category)}
+                      {labelOf(
+                        t.kind === "entrada" ? ENTRY_CATEGORIES : EXIT_CATEGORIES,
+                        t.category,
+                      )}
                     </Badge>
                     <Badge variant="outline" className="rounded-full text-[10px] font-medium">
                       {labelOf(PAYMENT_METHODS, t.payment_method)}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">{formatDate(t.occurred_on)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(t.occurred_on)}
+                    </span>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -245,7 +262,11 @@ function Caixa() {
                     onConfirm={() => remove.mutate(t.id)}
                     description="O lançamento será removido do seu caixa."
                     trigger={
-                      <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-full text-muted-foreground"
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     }

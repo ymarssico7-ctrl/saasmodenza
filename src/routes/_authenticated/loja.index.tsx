@@ -10,7 +10,17 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Camera, Copy, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import {
+  ArrowUpRight,
+  Camera,
+  Copy,
+  MessageCircle,
+  Receipt,
+  Rocket,
+  ShoppingBag,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { inventoryQuery, profileQuery } from "@/lib/db";
@@ -36,27 +46,22 @@ export const Route = createFileRoute("/_authenticated/loja/")({
   component: VisaoGeral,
 });
 
-
 function VisaoGeral() {
   // ── Dados reais do banco ─────────────────────────────────────────────────
   const { data: profile } = useQuery(profileQuery());
   const { store } = useStore();
 
   // Nome real do dono para saudação personalizada
-  const primeiroNome = (
-    profile?.owner_name ||
-    store?.name ||
-    "Lojista"
-  ).split(" ")[0] ?? "Lojista";
+  const primeiroNome = (profile?.owner_name || store?.name || "Lojista").split(" ")[0] ?? "Lojista";
 
   // Subdomínio real da loja
-  const subdominio = store?.slug
-    ? `${store.slug}.modenza.com.br`
-    : `minhaloja.modenza.com.br`;
+  const subdominio = store?.slug ? `${store.slug}.modenza.com.br` : `minhaloja.modenza.com.br`;
 
   const copiarLink = () => {
     void navigator.clipboard?.writeText(`https://${subdominio}`);
-    toast.success("Link da loja copiado", { description: "Cole no Instagram, WhatsApp ou TikTok." });
+    toast.success("Link da loja copiado", {
+      description: "Cole no Instagram, WhatsApp ou TikTok.",
+    });
   };
 
   // KPIs zerados para nova loja (dados reais serão integrados em próxima iteração)
@@ -81,234 +86,232 @@ function VisaoGeral() {
     setShowOnboarding(false);
     toast.success(
       `${inventoryItems.length} ${inventoryItems.length === 1 ? "peça publicada" : "peças publicadas"} na vitrine! 🚀`,
-      { description: "Acesse \"Produtos\" para personalizar a ordem e destaques." },
+      { description: 'Acesse "Produtos" para personalizar a ordem e destaques.' },
     );
   };
 
   return (
-      <div className="space-y-6">
-        {/* ── ONBOARDING: AHA MOMENT BANNER ─────────────────────────────── */}
-        {showOnboarding && (
-          <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary-soft via-primary-soft/60 to-transparent p-6 shadow-glow">
-            <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-primary/10 blur-2xl" />
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
-                  <Rocket className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">
-                    Sua loja está pronta para decolar! 🚀
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Encontramos{" "}
-                    <span className="font-semibold text-foreground">
-                      {inventoryItems.length} {inventoryItems.length === 1 ? "peça" : "peças"}
-                    </span>{" "}
-                    no seu estoque de gestão. Publique tudo na vitrine com um clique.
-                  </p>
-                  {/* Dica de fotografia */}
-                  <div className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-3 py-2">
-                    <Camera className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                    <p className="text-xs text-amber-700 dark:text-amber-400">
-                      <span className="font-semibold">Dica de ouro:</span> Boas fotos vendem mais. Após publicar, acesse{" "}
-                      <span className="font-semibold">Produtos na Loja</span> para subir fotos profissionais — com boa luz e fundo limpo — para cada peça.
-                    </p>
-                  </div>
-                </div>
+    <div className="space-y-6">
+      {/* ── ONBOARDING: AHA MOMENT BANNER ─────────────────────────────── */}
+      {showOnboarding && (
+        <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary-soft via-primary-soft/60 to-transparent p-6 shadow-glow">
+          <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-primary/10 blur-2xl" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
+                <Rocket className="h-6 w-6" />
               </div>
-              <div className="flex shrink-0 gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full text-xs"
-                  onClick={() => setShowOnboarding(false)}
-                >
-                  Agora não
-                </Button>
-                <Button
-                  size="sm"
-                  className="gradient-primary rounded-full text-xs shadow-glow"
-                  onClick={ativarTodasNaVitrine}
-                >
-                  Publicar na Vitrine
-                </Button>
+              <div>
+                <p className="text-sm font-semibold">Sua loja está pronta para decolar! 🚀</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Encontramos{" "}
+                  <span className="font-semibold text-foreground">
+                    {inventoryItems.length} {inventoryItems.length === 1 ? "peça" : "peças"}
+                  </span>{" "}
+                  no seu estoque de gestão. Publique tudo na vitrine com um clique.
+                </p>
+                {/* Dica de fotografia */}
+                <div className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-3 py-2">
+                  <Camera className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <span className="font-semibold">Dica de ouro:</span> Boas fotos vendem mais.
+                    Após publicar, acesse <span className="font-semibold">Produtos na Loja</span>{" "}
+                    para subir fotos profissionais — com boa luz e fundo limpo — para cada peça.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        <PageHeader
-          eyebrow="Loja online"
-          title={`Bom te ver, ${primeiroNome}`}
-          description={`Sua vitrine está no ar em ${subdominio}. Tudo que você cadastra no estoque aparece aqui automaticamente.`}
-          actions={
-            <>
+            <div className="flex shrink-0 gap-2">
               <Button
-                variant="outline"
-                onClick={copiarLink}
-                className="h-10 rounded-full border-border bg-card text-sm"
+                variant="ghost"
+                size="sm"
+                className="rounded-full text-xs"
+                onClick={() => setShowOnboarding(false)}
               >
-                <Copy className="mr-2 h-4 w-4" /> Copiar link
+                Agora não
               </Button>
-              <Button asChild className="gradient-primary h-10 rounded-full text-sm shadow-glow">
-                <Link to="/loja/produtos">
-                  <Sparkles className="mr-2 h-4 w-4" /> Gerenciar vitrine
-                </Link>
+              <Button
+                size="sm"
+                className="gradient-primary rounded-full text-xs shadow-glow"
+                onClick={ativarTodasNaVitrine}
+              >
+                Publicar na Vitrine
               </Button>
-            </>
-          }
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard
-            accent
-            label="Vendas no mês"
-            value={0}
-            format={brl}
-            hint="Nenhuma venda ainda"
-            icon={<Wallet className="h-4 w-4" />}
-          />
-          <KpiCard
-            label="Pedidos recebidos"
-            value={0}
-            format={(n) => Math.round(n).toString()}
-            hint="Nenhum pedido ainda"
-            icon={<ShoppingBag className="h-4 w-4" />}
-          />
-          <KpiCard
-            label="Ticket médio"
-            value={0}
-            format={brl}
-            hint="—"
-            icon={<Receipt className="h-4 w-4" />}
-          />
-          <KpiCard
-            label="Peça mais vendida"
-            value={0}
-            format={() => "—"}
-            hint="Nenhum item vendido"
-            icon={<Sparkles className="h-4 w-4" />}
-          />
+            </div>
+          </div>
         </div>
+      )}
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <SectionCard
-            className="lg:col-span-2"
-            title="Vendas dos últimos 8 dias"
-            description="Valores confirmados que já entraram no caixa da gestão."
-            bodyClassName="px-2 pb-4 pt-5 sm:px-4"
-          >
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[]} margin={{ left: 8, right: 8, top: 4, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="fillVendas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="var(--color-border)" />
-                  <XAxis
-                    dataKey="dia"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={56}
-                    tickFormatter={(v: number) => brlCompact(v)}
-                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                  />
-                  <Tooltip
-                    formatter={(v) => brl(Number(v))}
-                    contentStyle={{
-                      borderRadius: 16,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-popover)",
-                      color: "var(--color-popover-foreground)",
-                      boxShadow: "var(--shadow-lifted)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="vendas"
-                    stroke="var(--color-chart-1)"
-                    strokeWidth={2.5}
-                    fill="url(#fillVendas)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+      <PageHeader
+        eyebrow="Loja online"
+        title={`Bom te ver, ${primeiroNome}`}
+        description={`Sua vitrine está no ar em ${subdominio}. Tudo que você cadastra no estoque aparece aqui automaticamente.`}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={copiarLink}
+              className="h-10 rounded-full border-border bg-card text-sm"
+            >
+              <Copy className="mr-2 h-4 w-4" /> Copiar link
+            </Button>
+            <Button asChild className="gradient-primary h-10 rounded-full text-sm shadow-glow">
+              <Link to="/loja/produtos">
+                <Sparkles className="mr-2 h-4 w-4" /> Gerenciar vitrine
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          accent
+          label="Vendas no mês"
+          value={0}
+          format={brl}
+          hint="Nenhuma venda ainda"
+          icon={<Wallet className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Pedidos recebidos"
+          value={0}
+          format={(n) => Math.round(n).toString()}
+          hint="Nenhum pedido ainda"
+          icon={<ShoppingBag className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Ticket médio"
+          value={0}
+          format={brl}
+          hint="—"
+          icon={<Receipt className="h-4 w-4" />}
+        />
+        <KpiCard
+          label="Peça mais vendida"
+          value={0}
+          format={() => "—"}
+          hint="Nenhum item vendido"
+          icon={<Sparkles className="h-4 w-4" />}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SectionCard
+          className="lg:col-span-2"
+          title="Vendas dos últimos 8 dias"
+          description="Valores confirmados que já entraram no caixa da gestão."
+          bodyClassName="px-2 pb-4 pt-5 sm:px-4"
+        >
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={[]} margin={{ left: 8, right: 8, top: 4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="fillVendas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--color-border)" />
+                <XAxis
+                  dataKey="dia"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={56}
+                  tickFormatter={(v: number) => brlCompact(v)}
+                  tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
+                />
+                <Tooltip
+                  formatter={(v) => brl(Number(v))}
+                  contentStyle={{
+                    borderRadius: 16,
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-popover)",
+                    color: "var(--color-popover-foreground)",
+                    boxShadow: "var(--shadow-lifted)",
+                    fontSize: 12,
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="vendas"
+                  stroke="var(--color-chart-1)"
+                  strokeWidth={2.5}
+                  fill="url(#fillVendas)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </SectionCard>
+
+        <div className="space-y-4">
+          <SectionCard title="Origem dos pedidos" description="Como suas clientes estão comprando.">
+            <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+              Nenhum pedido registrado ainda.
             </div>
           </SectionCard>
 
-          <div className="space-y-4">
-            <SectionCard title="Origem dos pedidos" description="Como suas clientes estão comprando.">
-              <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
-                Nenhum pedido registrado ainda.
+          <SectionCard title="Atenção no estoque" description="Reflete direto na vitrine.">
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between rounded-xl bg-warning-soft px-3 py-2.5">
+                <span className="text-muted-foreground">Últimas unidades</span>
+                <span className="num-display font-semibold">{ultimasUnidades} peças</span>
               </div>
-            </SectionCard>
-
-            <SectionCard title="Atenção no estoque" description="Reflete direto na vitrine.">
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-xl bg-warning-soft px-3 py-2.5">
-                  <span className="text-muted-foreground">Últimas unidades</span>
-                  <span className="num-display font-semibold">{ultimasUnidades} peças</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-danger-soft px-3 py-2.5">
-                  <span className="text-muted-foreground">Esgotadas na vitrine</span>
-                  <span className="num-display font-semibold">{esgotados} peças</span>
-                </div>
-                <Button asChild variant="ghost" className="h-9 w-full rounded-xl text-xs">
-                  <Link to="/loja/produtos">
-                    Revisar produtos <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-                  </Link>
-                </Button>
+              <div className="flex items-center justify-between rounded-xl bg-danger-soft px-3 py-2.5">
+                <span className="text-muted-foreground">Esgotadas na vitrine</span>
+                <span className="num-display font-semibold">{esgotados} peças</span>
               </div>
-            </SectionCard>
-          </div>
+              <Button asChild variant="ghost" className="h-9 w-full rounded-xl text-xs">
+                <Link to="/loja/produtos">
+                  Revisar produtos <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
+          </SectionCard>
         </div>
-
-        <SectionCard
-          title="Últimos pedidos"
-          description="Pedido aceito baixa do estoque e registra entrada no caixa automaticamente."
-          actions={
-            <Button asChild variant="ghost" className="h-9 rounded-full text-xs">
-              <Link to="/loja/pedidos">Ver todos</Link>
-            </Button>
-          }
-          bodyClassName="p-0"
-        >
-          <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-            <ShoppingBag className="h-8 w-8 opacity-30" />
-            <p>Nenhum pedido recebido ainda.</p>
-            <p className="text-xs">Seus pedidos da loja online aparecerão aqui.</p>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Conectado com a gestão" description="Nada de cadastro em dobro.">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              { t: "Peça cadastrada no estoque", d: "Publica na vitrine automaticamente." },
-              { t: "Venda confirmada", d: "Baixa o estoque na hora." },
-              { t: "Pedido aceito", d: "Registra entrada no caixa." },
-              { t: "Estoque zerado", d: 'Vira \u201cEsgotado\u201d na vitrine.' },
-            ].map((item) => (
-              <div key={item.t} className="rounded-2xl border border-border bg-secondary/40 p-4">
-                <p className="text-sm font-semibold">{item.t}</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.d}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-primary-soft px-4 py-3 text-xs text-accent-foreground">
-            <MessageCircle className="h-4 w-4 shrink-0" />
-            Clientes recebem atualização de status por WhatsApp sem você digitar nada.
-          </div>
-        </SectionCard>
       </div>
+
+      <SectionCard
+        title="Últimos pedidos"
+        description="Pedido aceito baixa do estoque e registra entrada no caixa automaticamente."
+        actions={
+          <Button asChild variant="ghost" className="h-9 rounded-full text-xs">
+            <Link to="/loja/pedidos">Ver todos</Link>
+          </Button>
+        }
+        bodyClassName="p-0"
+      >
+        <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+          <ShoppingBag className="h-8 w-8 opacity-30" />
+          <p>Nenhum pedido recebido ainda.</p>
+          <p className="text-xs">Seus pedidos da loja online aparecerão aqui.</p>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Conectado com a gestão" description="Nada de cadastro em dobro.">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { t: "Peça cadastrada no estoque", d: "Publica na vitrine automaticamente." },
+            { t: "Venda confirmada", d: "Baixa o estoque na hora." },
+            { t: "Pedido aceito", d: "Registra entrada no caixa." },
+            { t: "Estoque zerado", d: "Vira \u201cEsgotado\u201d na vitrine." },
+          ].map((item) => (
+            <div key={item.t} className="rounded-2xl border border-border bg-secondary/40 p-4">
+              <p className="text-sm font-semibold">{item.t}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.d}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-primary-soft px-4 py-3 text-xs text-accent-foreground">
+          <MessageCircle className="h-4 w-4 shrink-0" />
+          Clientes recebem atualização de status por WhatsApp sem você digitar nada.
+        </div>
+      </SectionCard>
+    </div>
   );
 }
-

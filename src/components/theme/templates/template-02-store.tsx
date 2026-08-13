@@ -15,17 +15,22 @@
  *   - Dados variáveis injetados pelo ThemeEngine (storeName, banner, cores, fontes)
  */
 import { useEffect, useRef, useState, useMemo, createContext, useContext } from "react";
-import type { ThemeConfig, Section, HeroSection, ProductGridSection, ImageTextSplitSection, FeaturesSection, AnnouncementSection } from "@/lib/theme-engine/schema";
+import type {
+  ThemeConfig,
+  Section,
+  HeroSection,
+  ProductGridSection,
+  ImageTextSplitSection,
+  FeaturesSection,
+  AnnouncementSection,
+} from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
 import { useQuery } from "@tanstack/react-query";
 import { loja } from "@/data/loja";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
-import {
-  mergeInventoryWithShowcase,
-  type ShowcaseProduct,
-} from "@/lib/showcase-store";
+import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
 
 // ── Assets locais (14 imagens, idênticas ao template original) ────────────────
 import heroImg from "@/assets/template-02/hero.jpg";
@@ -75,7 +80,6 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]/g, "-");
 }
 
-
 /** Adapter: maps a ShowcaseProduct to the template's internal Product shape */
 function adaptShowcaseProduct(p: ShowcaseProduct): Product {
   const tag =
@@ -98,8 +102,7 @@ function adaptShowcaseProduct(p: ShowcaseProduct): Product {
     category: slugify(p.category),
     categoryLabel: p.category,
     image:
-      p.fotoEfetiva ??
-      `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
+      p.fotoEfetiva ?? `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(p.name)}`,
     colors: p.color ? [{ name: p.color, hex: "#888888" }] : [],
     sizes: sizes.length > 0 ? sizes : ["Único"],
     ...(tag !== undefined ? { tag } : {}),
@@ -123,25 +126,56 @@ const svgBase = {
   "aria-hidden": true,
 };
 function MenuIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><path d="M3 6h18M3 12h18M3 18h18" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
+  );
 }
 function SearchIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
 }
 function UserIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" />
+    </svg>
+  );
 }
 function BagIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><path d="M6 7h12l1 13H5L6 7Z" /><path d="M9 7V5.5a3 3 0 0 1 6 0V7" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <path d="M6 7h12l1 13H5L6 7Z" />
+      <path d="M9 7V5.5a3 3 0 0 1 6 0V7" />
+    </svg>
+  );
 }
 function CloseIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><path d="M6 6l12 12M18 6L6 18" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
 }
 function MinusIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><path d="M5 12h14" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <path d="M5 12h14" />
+    </svg>
+  );
 }
 function PlusIcon({ className }: IconProps) {
-  return <svg {...svgBase} className={className}><path d="M12 5v14M5 12h14" /></svg>;
+  return (
+    <svg {...svgBase} className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
 }
 
 // ── Cart Context (idêntico ao context/cart.tsx original) ──────────────────────
@@ -186,9 +220,7 @@ function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === id);
       if (existing) {
-        return prev.map((i) =>
-          i.id === id ? { ...i, quantity: i.quantity + 1 } : i
-        );
+        return prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i));
       }
       return [
         ...prev,
@@ -207,14 +239,11 @@ function CartProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
   };
 
-  const remove = (id: string) =>
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const remove = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
 
   const setQuantity = (id: string, qty: number) => {
     if (qty <= 0) return remove(id);
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i))
-    );
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i)));
   };
 
   return (
@@ -269,11 +298,7 @@ function Navbar({ storeName, logoUrl }: { storeName: string; logoUrl?: string })
           onClick={() => setMobileOpen((v) => !v)}
           className="-ml-1 p-1 text-foreground lg:hidden"
         >
-          {mobileOpen ? (
-            <CloseIcon className="h-5 w-5" />
-          ) : (
-            <MenuIcon className="h-5 w-5" />
-          )}
+          {mobileOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
         </button>
 
         <nav className="hidden min-w-0 items-center gap-7 lg:flex">
@@ -399,9 +424,7 @@ function ProductCard({
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-display text-sm text-foreground">
-            {formatPrice(product.price)}
-          </p>
+          <p className="font-display text-sm text-foreground">{formatPrice(product.price)}</p>
           {product.compareAt && (
             <p className="text-xs text-muted-foreground line-through">
               {formatPrice(product.compareAt)}
@@ -476,9 +499,7 @@ function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: strin
                   />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-3">
-                      <h3 className="min-w-0 font-display text-sm text-foreground">
-                        {item.name}
-                      </h3>
+                      <h3 className="min-w-0 font-display text-sm text-foreground">{item.name}</h3>
                       <button
                         type="button"
                         onClick={() => remove(item.id)}
@@ -527,9 +548,7 @@ function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: strin
         <div className="border-t border-border px-6 py-6">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Subtotal</span>
-            <span className="font-display text-base text-foreground">
-              {formatPrice(subtotal)}
-            </span>
+            <span className="font-display text-base text-foreground">{formatPrice(subtotal)}</span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Frete e impostos calculados no checkout.
@@ -552,7 +571,7 @@ function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: strin
                     cor: i.color,
                     quantidade: i.quantity,
                   })),
-                  subtotal
+                  subtotal,
                 );
               } else {
                 alert("Configure o WhatsApp da loja nas Configurações para receber pedidos.");
@@ -569,13 +588,7 @@ function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: strin
 }
 
 // ── QuickAdd Modal ────────────────────────────────────────────────────────────
-function QuickAddModal({
-  product,
-  onClose,
-}: {
-  product: Product | null;
-  onClose: () => void;
-}) {
+function QuickAddModal({ product, onClose }: { product: Product | null; onClose: () => void }) {
   const { add } = useCart();
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -591,10 +604,7 @@ function QuickAddModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div
-        className="absolute inset-0 bg-foreground/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg bg-background p-8">
         <div className="flex gap-6">
           <img
@@ -618,9 +628,7 @@ function QuickAddModal({
           </div>
         </div>
 
-        <p className="mt-6 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-          Cor
-        </p>
+        <p className="mt-6 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Cor</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {product.colors.map((c) => (
             <button
@@ -629,9 +637,7 @@ function QuickAddModal({
               onClick={() => setSelectedColor(c.name)}
               title={c.name}
               className={`h-5 w-5 rounded-full border-2 transition-all ${
-                selectedColor === c.name
-                  ? "border-foreground"
-                  : "border-border"
+                selectedColor === c.name ? "border-foreground" : "border-border"
               }`}
               style={{ backgroundColor: c.hex }}
             />
@@ -699,7 +705,8 @@ function Footer({ storeName, storeDescription }: { storeName: string; storeDescr
               {storeName}
             </p>
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-              {storeDescription || "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa."}
+              {storeDescription ||
+                "Peças atemporais feitas em pequenos lotes, com tecidos naturais e alfaiataria cuidadosa."}
             </p>
             <form
               className="mt-8 flex items-center border-b border-foreground pb-2"
@@ -745,7 +752,9 @@ function Footer({ storeName, storeDescription }: { storeName: string; storeDescr
         </div>
 
         <div className="mt-16 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} {storeName}. Todos os direitos reservados.</span>
+          <span>
+            © {new Date().getFullYear()} {storeName}. Todos os direitos reservados.
+          </span>
           <span>Pagamento seguro · Pix, boleto e cartão</span>
         </div>
       </div>
@@ -775,7 +784,8 @@ export function Template02Store({
   // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
   const allShowcaseProducts = useMemo(
-    () => mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
+    () =>
+      mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
     [rawInventory],
   );
   /** Apenas produtos ativos na vitrine */
@@ -785,7 +795,10 @@ export function Template02Store({
   );
   /** Categorias únicas derivadas dos produtos ativos */
   const PRODUCT_CATEGORIES = useMemo(
-    () => Array.from(new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category))),
+    () =>
+      Array.from(
+        new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category)),
+      ),
     [allShowcaseProducts],
   );
 
@@ -848,20 +861,22 @@ export function Template02Store({
 
   const storeName = settings?.storeName || "Atelie";
   const logoUrl = settings?.logoUrl;
-  const bannerText = settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · Trocas em 30 dias";
+  const bannerText =
+    settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · Trocas em 30 dias";
   const showBanner = settings?.freeShippingBannerEnabled !== false;
 
   // ── Extrai dados das seções do Engine (mantido para compatibilidade de ref) ──
   const sections = theme?.sections ?? [];
 
   // Dynamic categories derived from real product catalogue
-  const categorias = useMemo(() => [
-    { value: "todos", label: "Todos" },
-    ...PRODUCT_CATEGORIES.map((cat) => ({ value: slugify(cat), label: cat })),
-  ], []);
-  const tamanhos = useMemo(() =>
-    Array.from(new Set(PRODUCTS.flatMap((p) => p.sizes))).sort(),
-  []);
+  const categorias = useMemo(
+    () => [
+      { value: "todos", label: "Todos" },
+      ...PRODUCT_CATEGORIES.map((cat) => ({ value: slugify(cat), label: cat })),
+    ],
+    [],
+  );
+  const tamanhos = useMemo(() => Array.from(new Set(PRODUCTS.flatMap((p) => p.sizes))).sort(), []);
   const novidades = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
 
   const filteredProducts = useMemo(() => {
@@ -872,8 +887,7 @@ export function Template02Store({
     if (activeSize) list = list.filter((p) => p.sizes.includes(activeSize));
     if (sortBy === "menor") list.sort((a, b) => a.price - b.price);
     if (sortBy === "maior") list.sort((a, b) => b.price - a.price);
-    if (sortBy === "novidades")
-      list.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+    if (sortBy === "novidades") list.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
     return list;
   }, [activeCategory, activeSize, sortBy]);
 
@@ -918,7 +932,11 @@ export function Template02Store({
                 alt={s.settings.imageAlt || "Hero"}
                 width={1920}
                 height={1200}
-                style={s.settings.imagePosition ? { objectPosition: s.settings.imagePosition } : undefined}
+                style={
+                  s.settings.imagePosition
+                    ? { objectPosition: s.settings.imagePosition }
+                    : undefined
+                }
                 className="h-[78vh] min-h-[520px] w-full object-cover"
               />
               <div className="absolute inset-0 flex items-end">
@@ -928,12 +946,20 @@ export function Template02Store({
                       {s.settings.subheading}
                     </p>
                     <h1 className="mt-5 font-display text-4xl font-medium leading-[0.98] tracking-[-0.03em] text-foreground sm:text-6xl lg:text-7xl">
-                      {s.settings.heading
-                        ? s.settings.heading.split("\n").map((line, i, arr) => (
-                            <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                          ))
-                        : (<>Silêncio,<br />estrutura, tempo.</>)
-                      }
+                      {s.settings.heading ? (
+                        s.settings.heading.split("\n").map((line, i, arr) => (
+                          <span key={i}>
+                            {line}
+                            {i < arr.length - 1 && <br />}
+                          </span>
+                        ))
+                      ) : (
+                        <>
+                          Silêncio,
+                          <br />
+                          estrutura, tempo.
+                        </>
+                      )}
                     </h1>
                     <a
                       href="#vitrine"
@@ -1015,7 +1041,9 @@ export function Template02Store({
                   </button>
                 )}
               </div>
-              <div className={`mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-${Math.min(s.settings.columns, 4)} lg:gap-x-6`}>
+              <div
+                className={`mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-${Math.min(s.settings.columns, 4)} lg:gap-x-6`}
+              >
                 {products.slice(0, s.settings.count).map((p) => (
                   <ProductCard key={p.slug} product={p} onQuickAdd={setQuickAdd} />
                 ))}
@@ -1031,7 +1059,11 @@ export function Template02Store({
           <SectionWrap key={section.id} section={section}>
             <section
               className="border-y border-border"
-              style={s.settings.backgroundColor === "canvas" ? { background: "var(--color-canvas, var(--tw-color-secondary))" } : undefined}
+              style={
+                s.settings.backgroundColor === "canvas"
+                  ? { background: "var(--color-canvas, var(--tw-color-secondary))" }
+                  : undefined
+              }
             >
               <div
                 className="mx-auto grid max-w-[1500px] items-center gap-10 px-5 py-16 lg:gap-20 lg:px-10 lg:py-24"
@@ -1056,8 +1088,13 @@ export function Template02Store({
                       <h2 className="mt-5 font-display text-3xl font-medium leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
                         {s.settings.heading}
                       </h2>
-                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{s.settings.body}</p>
-                      <a href="#" className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60">
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                        {s.settings.body}
+                      </p>
+                      <a
+                        href="#"
+                        className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60"
+                      >
                         {s.settings.buttonText}
                       </a>
                     </div>
@@ -1073,8 +1110,13 @@ export function Template02Store({
                       <h2 className="mt-5 font-display text-3xl font-medium leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
                         {s.settings.heading}
                       </h2>
-                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{s.settings.body}</p>
-                      <a href="#" className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60">
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                        {s.settings.body}
+                      </p>
+                      <a
+                        href="#"
+                        className="mt-8 inline-block border-b border-foreground pb-1 font-display text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity hover:opacity-60"
+                      >
                         {s.settings.buttonText}
                       </a>
                     </div>
@@ -1131,14 +1173,15 @@ export function Template02Store({
       {/* .t02-theme isola os tokens de cor deste template do painel admin */}
       <div className="t02-theme min-h-screen bg-background text-foreground" style={themeVars}>
         {/* AnnouncementBar no topo (fora do loop pois é sticky) — apenas se NÃO estiver no order */}
-        {showBanner && !(theme?.order ?? []).some((id) => theme?.sections.find((s) => s.id === id)?.type === "announcement") && (
-          <AnnouncementBar text={bannerText} />
-        )}
+        {showBanner &&
+          !(theme?.order ?? []).some(
+            (id) => theme?.sections.find((s) => s.id === id)?.type === "announcement",
+          ) && <AnnouncementBar text={bannerText} />}
         <Navbar storeName={storeName} {...(logoUrl ? { logoUrl } : {})} />
-        <CartDrawer storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? loja.whatsapp }} />
-        {quickAdd && (
-          <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />
-        )}
+        <CartDrawer
+          storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? loja.whatsapp }}
+        />
+        {quickAdd && <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />}
 
         <main>
           {/* ── SEÇÕES DINÂMICAS — iteradas por theme.order ── */}
@@ -1204,8 +1247,7 @@ export function Template02Store({
               <div>
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-4">
                   <p className="min-w-0 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    {filteredProducts.length}{" "}
-                    {filteredProducts.length === 1 ? "peça" : "peças"}
+                    {filteredProducts.length} {filteredProducts.length === 1 ? "peça" : "peças"}
                   </p>
                   <label className="flex shrink-0 items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     Ordenar
@@ -1238,7 +1280,10 @@ export function Template02Store({
           </section>
         </main>
 
-        <Footer storeName={storeName} storeDescription={settings?.storeDescription ?? loja.descricao} />
+        <Footer
+          storeName={storeName}
+          storeDescription={settings?.storeDescription ?? loja.descricao}
+        />
       </div>
     </CartProvider>
   );

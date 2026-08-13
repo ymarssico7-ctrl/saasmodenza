@@ -74,7 +74,11 @@ function Painel() {
   const goalProgress = goalTarget > 0 ? Math.min((revenue / goalTarget) * 100, 100) : 0;
 
   const openCredits = credits.filter(
-    (c) => creditStatus({ amount: Number(c.amount), paid_amount: Number(c.paid_amount), due_date: c.due_date }, today) !== "pago",
+    (c) =>
+      creditStatus(
+        { amount: Number(c.amount), paid_amount: Number(c.paid_amount), due_date: c.due_date },
+        today,
+      ) !== "pago",
   );
   const openCreditTotal = openCredits.reduce(
     (acc, c) => acc + (Number(c.amount) - Number(c.paid_amount)),
@@ -273,9 +277,21 @@ function Painel() {
         <section className="panel p-6">
           <h2 className="text-sm font-semibold">Atalhos</h2>
           <div className="mt-4 grid gap-2">
-            <Shortcut to="/precificacao" icon={<Calculator className="size-4" />} label="Precificar peça" />
-            <Shortcut to="/prolabore" icon={<HandCoins className="size-4" />} label="Registrar pró-labore" />
-            <Shortcut to="/relatorio" icon={<TrendingUp className="size-4" />} label="Ver relatório" />
+            <Shortcut
+              to="/precificacao"
+              icon={<Calculator className="size-4" />}
+              label="Precificar peça"
+            />
+            <Shortcut
+              to="/prolabore"
+              icon={<HandCoins className="size-4" />}
+              label="Registrar pró-labore"
+            />
+            <Shortcut
+              to="/relatorio"
+              icon={<TrendingUp className="size-4" />}
+              label="Ver relatório"
+            />
           </div>
         </section>
       </div>

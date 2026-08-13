@@ -73,7 +73,6 @@ function BuilderInner() {
 
   return (
     <div className="fixed inset-0 z-[9999] flex overflow-hidden bg-background">
-
       {/* ════════════════════════════════════════════════════════════════════
           COLLAPSED STRIP — strip de 40px quando o sidebar está fechado
           Faz parte do layout (não absolute) → nunca sobrepõe o preview.
@@ -105,8 +104,10 @@ function BuilderInner() {
           minHeight: 0,
         }}
       >
-        <div className="shrink-0 border-b border-border bg-card" style={{ minWidth: isMobile ? 0 : 320 }}>
-
+        <div
+          className="shrink-0 border-b border-border bg-card"
+          style={{ minWidth: isMobile ? 0 : 320 }}
+        >
           {/* ── Linha 1: Voltar + Título + Ver ao vivo (ícone) + Publicar ─────── */}
           <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
             <Button variant="ghost" size="icon" asChild className="h-8 w-8 shrink-0 rounded-xl">
@@ -150,7 +151,6 @@ function BuilderInner() {
               Switch de viewport = ícone apenas (68px) → sem texto que encavala.
               ════════════════════════════════════════════════════════════════════ */}
           <div className="flex items-center gap-1.5 px-3 pb-3">
-
             {/* ── Grupo A: Histórico ───────────────────────────────────────────── */}
             <div className="flex items-center gap-0.5">
               <button
@@ -228,9 +228,10 @@ function BuilderInner() {
                     className="h-7 shrink-0 rounded-lg px-1.5 font-mono text-[10px] font-semibold transition-all duration-150 hover:bg-muted"
                     style={{
                       minWidth: 40,
-                      color: zoomMode === "auto"
-                        ? "var(--color-primary)"
-                        : "var(--color-muted-foreground)",
+                      color:
+                        zoomMode === "auto"
+                          ? "var(--color-primary)"
+                          : "var(--color-muted-foreground)",
                     }}
                   >
                     {zoomMode === "auto" ? `A ${scalePercent}%` : `${scalePercent}%`}
@@ -247,13 +248,12 @@ function BuilderInner() {
 
                   {/* 100% real */}
                   <button
-                    onClick={() => zoomMode === 1 ? resetZoom() : setZoomMode(1)}
+                    onClick={() => (zoomMode === 1 ? resetZoom() : setZoomMode(1))}
                     title={zoomMode === 1 ? "Voltar para Auto" : "Tamanho real (100%)"}
                     className="grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-all duration-150 hover:bg-muted"
                     style={{
-                      color: zoomMode === 1
-                        ? "var(--color-primary)"
-                        : "var(--color-muted-foreground)",
+                      color:
+                        zoomMode === 1 ? "var(--color-primary)" : "var(--color-muted-foreground)",
                     }}
                   >
                     <Maximize2 className="h-3 w-3" />
@@ -271,7 +271,7 @@ function BuilderInner() {
               <button
                 onClick={() => {
                   const ok = window.confirm(
-                    "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas."
+                    "Tem certeza que deseja redefinir o tema?\nTodas as personalizações serão perdidas.",
                   );
                   if (ok) {
                     dispatch({ type: "RESET" });
@@ -297,7 +297,10 @@ function BuilderInner() {
         </div>
 
         {/* ── Tabs: Seções | Estilo Global ──────────────────────────────────── */}
-        <div className="flex shrink-0 border-b border-border" style={{ minWidth: isMobile ? 0 : 320 }}>
+        <div
+          className="flex shrink-0 border-b border-border"
+          style={{ minWidth: isMobile ? 0 : 320 }}
+        >
           <button
             onClick={() => dispatch({ type: "SET_TAB", tab: "sections" })}
             className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${

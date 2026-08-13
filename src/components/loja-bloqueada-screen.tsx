@@ -20,11 +20,14 @@ export function LojaBloqueadaScreen({ reason }: Props) {
       subExpires.setMonth(subExpires.getMonth() + 1);
 
       if (realUser) {
-        const { error } = await supabase.from("profiles").update({
-          store_subscription_active: true,
-          store_subscription_expires_at: subExpires.toISOString(),
-          store_trial_accepted: true,
-        } as any).eq("id", uid);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            store_subscription_active: true,
+            store_subscription_expires_at: subExpires.toISOString(),
+            store_trial_accepted: true,
+          } as any)
+          .eq("id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
@@ -78,9 +81,7 @@ export function LojaBloqueadaScreen({ reason }: Props) {
       </div>
 
       <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
-      <p className="mt-3 max-w-sm text-sm text-muted-foreground leading-relaxed">
-        {description}
-      </p>
+      <p className="mt-3 max-w-sm text-sm text-muted-foreground leading-relaxed">{description}</p>
 
       <div className="mt-5 flex items-center gap-2 text-xs text-success font-medium">
         <ShieldCheck className="size-4" />
@@ -103,7 +104,9 @@ export function LojaBloqueadaScreen({ reason }: Props) {
             "Relatórios de vendas online",
           ].map((item) => (
             <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-success-soft text-success text-[10px] font-bold">✓</span>
+              <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-success-soft text-success text-[10px] font-bold">
+                ✓
+              </span>
               {item}
             </li>
           ))}
