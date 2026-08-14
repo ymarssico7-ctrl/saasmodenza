@@ -80,6 +80,18 @@ function CuponsPage() {
       toast.error("Informe um código para o cupom.");
       return;
     }
+    // Validação de data expirada: não permite criar cupom com validade no passado
+    if (novaValidade) {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const dataValidade = new Date(novaValidade + "T00:00:00");
+      if (dataValidade < hoje) {
+        toast.error("A validade não pode ser uma data passada.", {
+          description: "Escolha uma data igual ou posterior a hoje.",
+        });
+        return;
+      }
+    }
     const limiteNum = Number(novoLimite);
     const cupom: Cupom = {
       id: crypto.randomUUID(),
@@ -167,13 +179,17 @@ function CuponsPage() {
                 </div>
 
                 <div className="mt-4">
-                  {c.limite && uso >= 100 ? (
-                    <Tag tone="danger">Limite atingido</Tag>
-                  ) : c.ativo ? (
-                    <Tag tone="success">Ativo</Tag>
-                  ) : (
-                    <Tag>Pausado</Tag>
-                  )}
+                  {(() => {
+                    // Checa se o cupom já expirou pela data de validade
+                    const expirado =
+                      c.validade
+                        ? new Date(c.validade + "T23:59:59") < new Date()
+                        : false;
+                    if (expirado) return <Tag tone="danger">Expirado</Tag>;
+                    if (c.limite && uso >= 100) return <Tag tone="danger">Limite atingido</Tag>;
+                    if (c.ativo) return <Tag tone="success">Ativo</Tag>;
+                    return <Tag>Pausado</Tag>;
+                  })()}
                 </div>
               </div>
             );

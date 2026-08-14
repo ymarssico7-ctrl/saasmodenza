@@ -15,9 +15,7 @@ import { prolaboreQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber, todayISO } from "@/lib/format";
 import { sumBy, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
-import { insertProlabore, deleteProlabore } from "@/lib/mutations";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId } from "@/lib/db";
+import { insertProlabore, deleteProlabore, updateProlaboreTarget } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/prolabore")({
   head: () => ({
@@ -87,12 +85,7 @@ function Prolabore() {
     mutationFn: async () => {
       const value = toNumber(target);
       if (value <= 0) throw new Error("Informe uma meta válida");
-      const uid = await currentUserId();
-      const { error } = await supabase
-        .from("profiles")
-        .update({ prolabore_target: value })
-        .eq("id", uid);
-      if (error) throw new Error(error.message);
+      return updateProlaboreTarget(storeId, value);
     },
     onSuccess: () => {
       toast.success("Meta de retirada atualizada");

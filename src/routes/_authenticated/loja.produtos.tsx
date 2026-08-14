@@ -128,6 +128,8 @@ function ProdutosPage() {
         : "Preço oculto — cliente negocia pelo WhatsApp",
     };
     toast.success(mensagens[campo], { description: alvo.name });
+    // Invalida cache do inventário para que a vitrine pública reflita a mudança imediatamente
+    void queryClient.invalidateQueries({ queryKey: ["inventory"] });
   };
 
   const mover = (id: string, direcao: -1 | 1) => {
@@ -137,6 +139,7 @@ function ProdutosPage() {
     swapShowcaseOrder(id, visiveis[destino]!.id);
     setShowcaseVersion((v) => v + 1);
     toast.success("Ordem da vitrine atualizada");
+    void queryClient.invalidateQueries({ queryKey: ["inventory"] });
   };
 
   const handleToggleAutoPublicar = (v: boolean) => {
@@ -196,6 +199,7 @@ function ProdutosPage() {
           ? `${produto?.name ?? "Produto"} voltou a usar a foto do estoque.`
           : `${vitrineFotosTemp.length} foto${vitrineFotosTemp.length > 1 ? "s" : ""} premium adicionada${vitrineFotosTemp.length > 1 ? "s" : ""} para ${produto?.name ?? "o produto"}.`,
     });
+    void queryClient.invalidateQueries({ queryKey: ["inventory"] });
   };
 
   const emFotosProduto = produtos.find((p) => p.id === vitrineFotosId) ?? null;

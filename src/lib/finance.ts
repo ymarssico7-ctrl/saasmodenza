@@ -29,11 +29,16 @@ export function computePricing(input: PricingInput): PricingResult {
     num(input.packaging_cost) +
     num(input.other_costs);
 
+  // Imposto máximo limitado a 95% para evitar divisão por zero:
+  // se taxRate == 1, o denominador (1 - taxRate) seria 0 → Infinity.
   const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 95) / 100;
   const margin = Math.max(num(input.margin_pct), 0) / 100;
 
-  const minPrice = realCost / (1 - taxRate);
-  const suggestedPrice = (realCost * (1 + margin)) / (1 - taxRate);
+  // Garante que (1 - taxRate) nunca seja zero
+  const divisor = Math.max(1 - taxRate, 0.01);
+
+  const minPrice = realCost / divisor;
+  const suggestedPrice = (realCost * (1 + margin)) / divisor;
   const profit = suggestedPrice - realCost - suggestedPrice * taxRate;
 
   return {

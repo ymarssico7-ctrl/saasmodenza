@@ -453,3 +453,112 @@ export async function updateStoreDetails(storeId: string, patch: StorePatch) {
   const { error } = await supabase.from("stores").update(patch).eq("id", storeId);
   if (error) throw new Error(error.message);
 }
+
+// ============================================================
+// CREDIT PAYMENTS (Baixa de Fiado)
+// ============================================================
+export type CreditPaymentInput = {
+  storeId: string;
+  creditId: string;
+  amount: number;
+  currentPaidAmount: number;
+  customerName?: string | undefined;
+};
+
+/**
+ * Registra um pagamento parcial ou total de fiado.
+ * Em modo Demo: atualiza localStorage sem chamar Supabase.
+ * Em modo Real: insere em credit_payments e atualiza paid_amount em credits.
+ */
+export async function recordCreditPayment(input: CreditPaymentInput) {
+  const { storeId, creditId, amount, currentPaidAmount, customerName } = input;
+
+  if (isDemoStore(storeId)) {
+    localInsert("credit_payments", {
+      store_id: storeId,
+      user_id: storeId,
+      credit_id: creditId,
+      amount,
+      paid_on: todayISO(),
+    });
+    // Atualiza paid_amount no crédito em localStorage
+    localUpdate("credits", creditId, { paid_amount: currentPaidAmount + amount });
+    // Registra no caixa como entrada
+    localInsert("transactions", {
+      store_id: storeId,
+      user_id: storeId,
+      kind: "entrada",
+      description: `Recebimento fiado — ${customerName ?? "cliente"}`,
+      amount,
+      category: "venda_produto",
+      payment_method: "fiado",
+      occurred_on: todayISO(),
+    });
+    return;
+  }
+
+  // Modo Real: insere registro de pagamento
+  const { error: payErr } = await supabase
+    .from("credit_payments")
+    .insert({
+      store_id: storeId,
+      user_id: storeId,
+      credit_id: creditId,
+      amount,
+      paid_on: todayISO(),
+    });
+  if (payErr) throw new Error(payErr.message);
+
+  // Atualiza saldo quitado
+  const { error: updateErr } = await supabase
+    .from("credits")
+    .update({ paid_amount: currentPaidAmount + amount })
+    .eq("id", creditId);
+  if (updateErr) throw new Error(updateErr.message);
+
+  // Registra no caixa como entrada
+  await insertTransaction({
+    storeId,
+    kind: "entrada",
+    description: `Recebimento fiado — ${customerName ?? "cliente"}`,
+    amount,
+    category: "venda_produto",
+    payment_method: "fiado",
+    occurred_on: todayISO(),
+  });
+}
+
+// ============================================================
+// PRÓ-LABORE TARGET
+// ============================================================
+
+/**
+ * Atualiza a meta mensal de retirada do lojista.
+ * Em modo Demo: persiste em localStorage.
+ * Em modo Real: atualiza profiles.prolabore_target.
+ */
+export async function updateProlaboreTarget(storeId: string, target: number) {
+  if (isDemoStore(storeId)) {
+    // Em demo mode, armazena a meta no perfil demo no localStorage
+    const current = localStorage.getItem("modenza_demo_profile");
+    if (current) {
+      const parsed = JSON.parse(current) as AnyRecord;
+      localStorage.setItem(
+        "modenza_demo_profile",
+        JSON.stringify({ ...parsed, prolabore_target: target }),
+      );
+    }
+    return;
+  }
+
+  // Modo Real: atualiza profiles (onde a coluna prolabore_target existe)
+  const { data: authData } = await supabase.auth.getUser();
+  const uid = authData.user?.id;
+  if (!uid) throw new Error("Usuário não autenticado");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ prolabore_target: target })
+    .eq("id", uid);
+  if (error) throw new Error(error.message);
+}

@@ -22,8 +22,7 @@ import { creditsQuery, customersQuery } from "@/lib/db";
 import { brl, formatDate, todayISO, toNumber } from "@/lib/format";
 import { CREDIT_STATUS_LABEL, creditStatus } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
-import { insertCredit, deleteCredit, insertTransaction } from "@/lib/mutations";
-import { supabase } from "@/integrations/supabase/client";
+import { insertCredit, deleteCredit, recordCreditPayment } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/fiado")({
   head: () => ({
@@ -113,38 +112,19 @@ function Fiado() {
       if (value <= 0) throw new Error("Informe o valor recebido");
       const remaining = Number(credit.amount) - Number(credit.paid_amount);
       if (value > remaining + 0.005) throw new Error("Valor maior que o saldo devedor");
-      // credit_payments insert
-      const { error } = await supabase
-        .from("credit_payments")
-        .insert({
-          store_id: storeId,
-          user_id: storeId,
-          credit_id: credit.id,
-          amount: value,
-          paid_on: todayISO(),
-        });
-      if (error) throw new Error(error.message);
-      // update paid_amount
-      const { error: updateError } = await supabase
-        .from("credits")
-        .update({ paid_amount: Number(credit.paid_amount) + value })
-        .eq("id", credit.id);
-      if (updateError) throw new Error(updateError.message);
-      // register as a cash transaction
-      await insertTransaction({
+      return recordCreditPayment({
         storeId,
-        kind: "entrada",
-        description: `Recebimento fiado — ${credit.customers?.name ?? "cliente"}`,
+        creditId: credit.id,
         amount: value,
-        category: "venda_produto",
-        payment_method: "fiado",
-        occurred_on: todayISO(),
+        currentPaidAmount: Number(credit.paid_amount),
+        customerName: credit.customers?.name,
       });
     },
     onSuccess: () => {
       toast.success("Pagamento registrado e lançado no caixa");
       setPayments({});
       void queryClient.invalidateQueries({ queryKey: ["credits"] });
+      void queryClient.invalidateQueries({ queryKey: ["credit_payments"] });
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
     onError: (e: Error) => toast.error(e.message),
