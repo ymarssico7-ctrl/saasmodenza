@@ -285,6 +285,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.to}
               to={item.to}
+              preload="intent"
               className={cn(
                 "flex w-16 flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-medium transition-colors",
                 active ? "text-primary" : "text-muted-foreground",
@@ -316,6 +317,7 @@ function NavItem({
   return (
     <Link
       to={to}
+      preload="intent"
       onClick={onClick}
       className={cn(
         "flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200",

@@ -47,15 +47,18 @@ export const Route = createFileRoute("/_authenticated/loja/configuracao")({
 function AparenciaPage() {
   const { store, storeId } = useStore();
   const queryClient = useQueryClient();
-  const activeTheme = loadTheme();
 
   // Campos que vêm do banco (tabela `stores`)
   const [nome, setNome] = useState(store?.name ?? "");
   const [whatsapp, setWhatsapp] = useState(store?.phone ?? "");
   const [cidade, setCidade] = useState(store?.city ?? "");
 
+  // Leitura de localStorage feita UMA ÚNICA VEZ na montagem (lazy initializer).
+  // Evita JSON.parse e I/O síncrono a cada re-render da página.
+  const [vitrineSettings] = useState(() => getVitrineSettings(storeId));
+  const [activeTheme] = useState(() => loadTheme());
+
   // Campos que ficam no localStorage isolado por loja
-  const vitrineSettings = getVitrineSettings(storeId);
   const [descricao, setDescricao] = useState(vitrineSettings.descricao);
   const [cor, setCor] = useState(vitrineSettings.corPrincipal);
   const [instagram, setInstagram] = useState(vitrineSettings.instagram);

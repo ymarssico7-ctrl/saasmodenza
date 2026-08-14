@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
@@ -31,11 +31,13 @@ const CATEGORIES: TemplateCategory[] = ["todos", "minimalista", "editorial", "lu
 
 function GaleriaTemplatesPage() {
   const { store } = useStore();
-  const activeTheme = loadTheme();
+  // Leitura do tema ativo memorizada: localStorage só é lido na montagem
+  // da página, não a cada re-render (change de categoria, hover, etc.)
+  const activeTheme = useMemo(() => loadTheme(), []);
   const activeTemplateId = activeTheme.settings.templateId ?? "template-02";
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>("todos");
 
-  const templates = getTemplatesByCategory(activeCategory);
+  const templates = useMemo(() => getTemplatesByCategory(activeCategory), [activeCategory]);
 
   function applyTemplate(entry: TemplateEntry) {
     const current = loadTheme();

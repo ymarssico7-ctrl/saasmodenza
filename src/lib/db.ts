@@ -4,6 +4,11 @@ import { monthEnd, monthStart } from "./format";
 
 const DEMO_PROFILE_KEY = "modenza_demo_profile";
 
+// Cache padronizado: dados ficam "frescos" por 5 min, na memória por 30 min.
+// Isso elimina o delay/lag de refetch ao navegar entre ferramentas.
+const STALE_TIME = 1000 * 60 * 5;
+const GC_TIME = 1000 * 60 * 30;
+
 const DEFAULT_DEMO_PROFILE = {
   id: "00000000-0000-0000-0000-000000000000",
   store_name: "Loja Demo",
@@ -33,6 +38,8 @@ export function updateDemoProfile(patch: Record<string, unknown>) {
 export const profileQuery = () =>
   queryOptions({
     queryKey: ["profile"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
@@ -59,6 +66,8 @@ export const profileQuery = () =>
 export const transactionsQuery = (month?: string) =>
   queryOptions({
     queryKey: ["transactions", month ?? "all"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       let q = supabase.from("transactions").select("*").order("occurred_on", { ascending: false });
       if (month) {
@@ -75,6 +84,8 @@ export const transactionsQuery = (month?: string) =>
 export const pricingsQuery = () =>
   queryOptions({
     queryKey: ["pricings"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pricings")
@@ -88,6 +99,8 @@ export const pricingsQuery = () =>
 export const customersQuery = () =>
   queryOptions({
     queryKey: ["customers"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase.from("customers").select("*").order("name");
       if (error) throw new Error(error.message);
@@ -98,6 +111,8 @@ export const customersQuery = () =>
 export const creditsQuery = () =>
   queryOptions({
     queryKey: ["credits"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credits")
@@ -111,6 +126,8 @@ export const creditsQuery = () =>
 export const creditPaymentsQuery = () =>
   queryOptions({
     queryKey: ["credit_payments"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credit_payments")
@@ -124,6 +141,8 @@ export const creditPaymentsQuery = () =>
 export const inventoryQuery = () =>
   queryOptions({
     queryKey: ["inventory"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inventory_items")
@@ -137,6 +156,8 @@ export const inventoryQuery = () =>
 export const prolaboreQuery = () =>
   queryOptions({
     queryKey: ["prolabore"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prolabore_withdrawals")
@@ -150,6 +171,8 @@ export const prolaboreQuery = () =>
 export const goalsQuery = () =>
   queryOptions({
     queryKey: ["goals"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("goals")
@@ -163,6 +186,8 @@ export const goalsQuery = () =>
 export const membersQuery = () =>
   queryOptions({
     queryKey: ["members"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("store_members")
