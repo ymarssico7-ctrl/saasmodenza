@@ -26,6 +26,7 @@ import type {
 } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
@@ -277,7 +278,15 @@ function AnnouncementBar({ text }: { text: string }) {
 }
 
 // ── Navbar (idêntico ao navbar.tsx original) ──────────────────────────────────
-function Navbar({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
+function Navbar({
+  storeName,
+  logoUrl,
+  isStoreLoading,
+}: {
+  storeName: string;
+  logoUrl?: string;
+  isStoreLoading?: boolean;
+}) {
   const { count, open } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -319,8 +328,10 @@ function Navbar({ storeName, logoUrl }: { storeName: string; logoUrl?: string })
         >
           {logoUrl ? (
             <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain" />
+          ) : isStoreLoading ? (
+            <Skeleton className="h-6 w-32 rounded" />
           ) : (
-            storeName
+            storeName || "Sua loja"
           )}
         </a>
 
@@ -1180,7 +1191,11 @@ export function Template02Store({
           !(theme?.order ?? []).some(
             (id) => theme?.sections.find((s) => s.id === id)?.type === "announcement",
           ) && <AnnouncementBar text={bannerText} />}
-        <Navbar storeName={storeName} {...(logoUrl ? { logoUrl } : {})} />
+        <Navbar
+          storeName={storeName}
+          isStoreLoading={isStoreLoading}
+          {...(logoUrl ? { logoUrl } : {})}
+        />
         <CartDrawer
           storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? "" }}
         />

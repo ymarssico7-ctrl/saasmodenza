@@ -109,21 +109,24 @@ type StoreCtx = {
   store: Store;
   storeId: string;
   isDemoMode: boolean;
+  isLoading: boolean;
 };
 
 const StoreContext = createContext<StoreCtx>({
   store: DEMO_STORE,
   storeId: DEMO_STORE_ID,
   isDemoMode: true,
+  isLoading: true,
 });
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const { data: store = DEMO_STORE } = useQuery(storeQuery());
+  const { data: store = DEMO_STORE, isLoading } = useQuery(storeQuery());
 
   const value: StoreCtx = {
     store,
     storeId: store.id,
     isDemoMode: store.id === DEMO_STORE_ID,
+    isLoading,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

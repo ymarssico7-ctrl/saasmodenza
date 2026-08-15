@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery } from "@/lib/db";
 import { useAccess } from "@/lib/useAccess";
@@ -135,7 +136,7 @@ function ModeSwitcher({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { data: profile } = useQuery(profileQuery());
+  const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -214,13 +215,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Profile card */}
         <div className="mt-6 rounded-2xl bg-surface-muted p-4">
           <div className="flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{storeName}</p>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{ownerName}</p>
-            </div>
-            <span className="ml-2 shrink-0 rounded-full border border-primary/20 bg-primary-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">
-              {planLabel}
-            </span>
+            {isProfileLoading ? (
+              <div className="flex-1 space-y-1.5 min-w-0 pr-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ) : (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{storeName}</p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{ownerName}</p>
+              </div>
+            )}
+            {isProfileLoading ? (
+              <Skeleton className="h-4 w-14 rounded-full" />
+            ) : (
+              <span className="ml-2 shrink-0 rounded-full border border-primary/20 bg-primary-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">
+                {planLabel}
+              </span>
+            )}
           </div>
           <button
             onClick={() => void signOut()}

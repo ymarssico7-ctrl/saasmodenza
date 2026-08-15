@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { creditsQuery, goalsQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, formatDate, monthLabel, monthStart, pct, todayISO } from "@/lib/format";
 import { creditStatus, projectMonth, sumBy, variation, type Transaction } from "@/lib/finance";
@@ -44,8 +45,8 @@ export const Route = createFileRoute("/_authenticated/painel")({
 });
 
 function Painel() {
-  const { data: profile } = useQuery(profileQuery());
-  const { data: all = [] } = useQuery(transactionsQuery());
+  const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
+  const { data: all = [], isLoading: isTxsLoading } = useQuery(transactionsQuery());
   const { data: credits = [] } = useQuery(creditsQuery());
   const { data: goals = [] } = useQuery(goalsQuery());
 
@@ -97,6 +98,49 @@ function Painel() {
   });
 
   const recent = txs.slice(0, 6);
+
+  if (isProfileLoading || isTxsLoading) {
+    return (
+      <div className="space-y-10">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-10 w-52 sm:h-12" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="panel p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-9 w-9 rounded-full" />
+              </div>
+              <Skeleton className="h-9 w-28 mt-4" />
+              <Skeleton className="h-3.5 w-36 mt-2" />
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+          <div className="panel p-6 sm:p-7 space-y-4">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-[260px] w-full mt-6" />
+          </div>
+          <div className="space-y-4">
+            <div className="panel p-6 space-y-3">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <div className="panel p-6 space-y-3">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">

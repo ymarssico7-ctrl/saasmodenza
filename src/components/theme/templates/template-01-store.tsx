@@ -24,6 +24,7 @@ import type {
 } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
@@ -398,9 +399,13 @@ export function Template01Store({
   };
 
   // Nome da loja: 1) definido pelo usuário no builder, 2) nome real do banco de dados
-  const { store: activeStore } = useStore();
+  const { store: activeStore, isLoading: isStoreLoading } = useStore();
   const storeName =
-    (settings?.storeName && settings.storeName.trim()) ? settings.storeName : (activeStore.name || "");
+    (settings?.storeName && settings.storeName.trim())
+      ? settings.storeName
+      : isStoreLoading
+        ? ""
+        : (activeStore.name || "");
   const logoUrl = settings?.logoUrl;
   const freeShippingText =
     settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";
@@ -770,8 +775,10 @@ export function Template01Store({
           <a href="#" className="font-serif text-2xl tracking-[0.3em] uppercase lg:text-center">
             {logoUrl ? (
               <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain" />
+            ) : isStoreLoading ? (
+              <Skeleton className="h-6 w-32 rounded" />
             ) : (
-              storeName
+              storeName || "Sua loja"
             )}
           </a>
 
