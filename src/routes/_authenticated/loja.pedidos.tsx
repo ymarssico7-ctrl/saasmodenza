@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, MessageCircle, PackageSearch, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
+import { restoreOrderStock } from "@/lib/mutations";
 import {
   fluxoStatus,
   statusPedidoLabel,
@@ -65,6 +67,7 @@ function pedidosKey(storeId: string) {
 
 function PedidosPage() {
   const { storeId, store } = useStore();
+  const queryClient = useQueryClient();
   const [lista, setLista] = useState<Pedido[]>([]);
   const [filtro, setFiltro] = useState<StatusPedido | "todos">("todos");
   const [data, setData] = useState("");
@@ -118,11 +121,18 @@ function PedidosPage() {
   };
 
   const cancelar = (id: string) => {
+    const pedido = lista.find((p) => p.id === id);
     const novaLista = lista.map((p) =>
       p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p,
     );
     persistir(novaLista);
     setAberto(null);
+    // Devolve efetivamente as quantidades ao estoque de cada item cancelado
+    if (pedido?.itens?.length) {
+      void restoreOrderStock(storeId, pedido.itens).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      });
+    }
     toast.error("Pedido cancelado e estoque estornado.");
   };
 

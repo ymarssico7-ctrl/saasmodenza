@@ -1,0 +1,35 @@
+﻿import { useState, useEffect, useMemo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  ArrowUpRight,
+  Camera,
+  Copy,
+  MessageCircle,
+  Receipt,
+  Rocket,
+  ShoppingBag,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { inventoryQuery, profileQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
+import { hasAnyActiveProduct, bulkActivateAll } from "@/lib/showcase-store";
+import { PageHeader } from "@/components/loja/page-header";
+import { KpiCard } from "@/components/loja/kpi-card";
+import { SectionCard } from "@/components/loja/section-card";
+import { StatusBadge } from "@/components/loja/badges";
+import { Button } from "@/components/ui/button";
+import { brl, brlCompact } from "@/lib/format";
+import { totalPedido, type Pedido } from "@/data/loja";

@@ -130,6 +130,9 @@ function VitrineLayout() {
   const storeName = store?.name ?? storeSlug;
   const storeCity = store?.city ?? "";
   const storeWhatsapp = store?.phone ?? "";
+  // storeId usado para ler cupons e orders do localStorage.
+  // Fallback para storeSlug em preview demo (sem registro no banco).
+  const storeId = store?.id ?? storeSlug;
 
   const isLoading = storeLoading || inventoryLoading;
 
@@ -493,6 +496,7 @@ function VitrineLayout() {
         cor={cor}
         storeName={storeName}
         whatsapp={storeWhatsapp}
+        storeId={storeId}
       />
     </div>
   );
@@ -679,18 +683,75 @@ function CartDrawer({
   cor,
   storeName,
   whatsapp,
+  storeId,
 }: {
   open: boolean;
   onClose: () => void;
   cor: string;
   storeName: string;
   whatsapp: string;
+  storeId: string;
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
+  const [codigoCupom, setCodigoCupom] = React.useState("");
+  const [cupomAplicado, setCupomAplicado] = React.useState<{ codigo: string; desconto: number } | null>(null);
+  const [cupomErro, setCupomErro] = React.useState("");
+
+  const totalFinal = cupomAplicado ? Math.max(totalPrice - cupomAplicado.desconto, 0) : totalPrice;
+
+  const aplicarCupom = () => {
+    const codigo = codigoCupom.trim().toUpperCase();
+    if (!codigo) return;
+    try {
+      const raw = localStorage.getItem(`modaly_cupons_${storeId}`);
+      const lista = raw ? (JSON.parse(raw) as Array<{
+        id: string; codigo: string; tipo: "percentual" | "fixo"; valor: number;
+        usos: number; ativo: boolean; limite?: number; validade?: string;
+      }>) : [];
+      const cupom = lista.find((c) => c.codigo === codigo);
+      if (!cupom) { setCupomErro("Cupom nao encontrado."); return; }
+      if (!cupom.ativo) { setCupomErro("Este cupom esta inativo."); return; }
+      if (cupom.validade && new Date(cupom.validade + "T23:59:59") < new Date()) {
+        setCupomErro("Este cupom expirou."); return;
+      }
+      if (cupom.limite && cupom.usos >= cupom.limite) {
+        setCupomErro("Limite de uso deste cupom atingido."); return;
+      }
+      const desconto = cupom.tipo === "percentual"
+        ? (totalPrice * cupom.valor) / 100
+        : Math.min(cupom.valor, totalPrice);
+      setCupomAplicado({ codigo, desconto });
+      setCupomErro("");
+    } catch {
+      setCupomErro("Erro ao validar cupom.");
+    }
+  };
+
+  const removerCupom = () => {
+    setCupomAplicado(null);
+    setCodigoCupom("");
+    setCupomErro("");
+  };
 
   function handleCheckout() {
-    openWhatsAppCheckout(whatsapp, storeName, items, totalPrice);
+    // Incrementa o contador de uso do cupom
+    if (cupomAplicado) {
+      try {
+        const chave = `modaly_cupons_${storeId}`;
+        const raw = localStorage.getItem(chave);
+        if (raw) {
+          const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
+          const atualizado = lista.map((c) =>
+            c.codigo === cupomAplicado.codigo ? { ...c, usos: c.usos + 1 } : c,
+          );
+          localStorage.setItem(chave, JSON.stringify(atualizado));
+        }
+      } catch { /* silencia */ }
+    }
+    openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, cupomAplicado ?? undefined);
     clear();
+    setCupomAplicado(null);
+    setCodigoCupom("");
     onClose();
   }
 
@@ -808,9 +869,57 @@ function CartDrawer({
         {/* Footer */}
         {items.length > 0 && (
           <div className="border-t border-gray-100 px-5 py-5">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-xl font-bold text-gray-900">{brl(totalPrice)}</p>
+            {/* Campo de cupom */}
+            {!cupomAplicado ? (
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Cupom de desconto"
+                    value={codigoCupom}
+                    onChange={(e) => { setCodigoCupom(e.target.value.toUpperCase()); setCupomErro(""); }}
+                    className="h-9 flex-1 rounded-xl border border-gray-200 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-current focus:outline-none focus:ring-2 focus:ring-current/20 uppercase"
+                    style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties}
+                  />
+                  <button
+                    onClick={aplicarCupom}
+                    className="h-9 rounded-xl px-3 text-xs font-semibold text-white transition-all hover:opacity-90"
+                    style={{ backgroundColor: cor }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+                {cupomErro && <p className="mt-1 text-xs text-red-500">{cupomErro}</p>}
+              </div>
+            ) : (
+              <div className="mb-4 flex items-center justify-between rounded-xl bg-green-50 px-3 py-2">
+                <span className="text-xs font-semibold text-green-700">
+                  Cupom <span className="font-bold">{cupomAplicado.codigo}</span> aplicado
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-green-700">−{brl(cupomAplicado.desconto)}</span>
+                  <button onClick={removerCupom} className="text-gray-400 hover:text-gray-600">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Totais */}
+            <div className="mb-4 space-y-1">
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>Subtotal</span>
+                <span>{brl(totalPrice)}</span>
+              </div>
+              {cupomAplicado && (
+                <div className="flex items-center justify-between text-sm text-green-600">
+                  <span>Desconto</span>
+                  <span>−{brl(cupomAplicado.desconto)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-base font-bold text-gray-900">
+                <span>Total</span>
+                <span>{brl(totalFinal)}</span>
+              </div>
             </div>
             <button
               id="whatsapp-checkout-btn"
@@ -823,10 +932,11 @@ function CartDrawer({
               Finalizar pelo WhatsApp
             </button>
             <p className="mt-2 text-center text-[11px] text-gray-400">
-              Você será redirecionada para o WhatsApp da loja
+              Voce sera redirecionada para o WhatsApp da loja
             </p>
           </div>
         )}
+
       </div>
     </>
   );

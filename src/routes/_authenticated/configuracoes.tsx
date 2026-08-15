@@ -102,6 +102,21 @@ function Configuracoes() {
         updateDemoProfile(profilePatch);
       }
 
+      // Sincroniza o nome da loja no tema da vitrine (localStorage),
+      // garantindo que a vitrine pública reflita imediatamente o nome correto
+      // independente do modo (demo ou real).
+      try {
+        const themeKey = `modaly_theme_config_${storeId}`;
+        const raw = localStorage.getItem(themeKey);
+        const theme = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+        theme.nome = profilePatch.store_name;
+        theme.whatsapp = phone.trim() || theme.whatsapp || "";
+        theme.cidade = city.trim() || theme.cidade || "";
+        localStorage.setItem(themeKey, JSON.stringify(theme));
+      } catch {
+        // Silencia erros de JSON/quota — não é crítico
+      }
+
       // Atualiza a interface imediatamente em ambos os casos
       queryClient.setQueryData(["profile"], (old: any) => ({ ...old, ...profilePatch }));
       queryClient.setQueryData(["active_store"], (old: any) =>
@@ -120,6 +135,7 @@ function Configuracoes() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const addMember = useMutation({
     mutationFn: async () => {

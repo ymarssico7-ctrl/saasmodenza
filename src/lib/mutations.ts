@@ -562,3 +562,74 @@ export async function updateProlaboreTarget(storeId: string, target: number) {
     .eq("id", uid);
   if (error) throw new Error(error.message);
 }
+
+// ============================================================
+// ORDER STOCK RESTORE (Cancel Order)
+// ============================================================
+export type OrderItem = {
+  produtoId: string;
+  tamanho: string;
+  qtd: number;
+};
+
+/**
+ * Devolve as quantidades dos itens cancelados ao estoque (`inventory_items.sizes`).
+ * Funciona nos dois modos:
+ *   - Demo: atualiza o localStorage (`demo_inventory_items`).
+ *   - Real: lê cada item do Supabase, recalcula sizes e faz UPDATE.
+ */
+export async function restoreOrderStock(
+  storeId: string,
+  itens: OrderItem[],
+): Promise<void> {
+  if (!itens.length) return;
+
+  // Agrupa quantidades por produtoId
+  const byProduct: Record<string, Record<string, number>> = {};
+  for (const item of itens) {
+    if (!byProduct[item.produtoId]) byProduct[item.produtoId] = {};
+    byProduct[item.produtoId]![item.tamanho] =
+      (byProduct[item.produtoId]![item.tamanho] ?? 0) + item.qtd;
+  }
+
+  if (isDemoStore(storeId)) {
+    // Demo: atualiza o localStorage
+    for (const [produtoId, devolucao] of Object.entries(byProduct)) {
+      const rows = localGet("inventory_items") as Array<
+        AnyRecord & { id: string; sizes: Record<string, number> }
+      >;
+      const row = rows.find((r) => r.id === produtoId);
+      if (!row) continue;
+      const novoSizes: Record<string, number> = { ...(row.sizes ?? {}) };
+      for (const [tam, qtd] of Object.entries(devolucao)) {
+        novoSizes[tam] = (novoSizes[tam] ?? 0) + qtd;
+      }
+      localUpdate("inventory_items", produtoId, { sizes: novoSizes });
+    }
+    return;
+  }
+
+  // Real: busca, atualiza e persiste em paralelo
+  await Promise.all(
+    Object.entries(byProduct).map(async ([produtoId, devolucao]) => {
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("sizes")
+        .eq("id", produtoId)
+        .single();
+      if (error || !data) return;
+
+      const novoSizes: Record<string, number> = {
+        ...((data.sizes as Record<string, number>) ?? {}),
+      };
+      for (const [tam, qtd] of Object.entries(devolucao)) {
+        novoSizes[tam] = (novoSizes[tam] ?? 0) + qtd;
+      }
+
+      await supabase
+        .from("inventory_items")
+        .update({ sizes: novoSizes })
+        .eq("id", produtoId);
+    }),
+  );
+}
