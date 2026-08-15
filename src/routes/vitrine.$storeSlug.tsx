@@ -694,10 +694,24 @@ function CartDrawer({
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
   const [codigoCupom, setCodigoCupom] = React.useState("");
-  const [cupomAplicado, setCupomAplicado] = React.useState<{ codigo: string; desconto: number } | null>(null);
+  // Armazena as regras do cupom (tipo + valor), NÃO o desconto estático
+  const [cupomAplicado, setCupomAplicado] = React.useState<{
+    codigo: string;
+    tipo: "percentual" | "fixo";
+    valor: number;
+  } | null>(null);
   const [cupomErro, setCupomErro] = React.useState("");
 
-  const totalFinal = cupomAplicado ? Math.max(totalPrice - cupomAplicado.desconto, 0) : totalPrice;
+  // Recalcula dinamicamente sempre que o carrinho ou o cupom muda
+  const valorDesconto = React.useMemo(() => {
+    if (!cupomAplicado || totalPrice <= 0) return 0;
+    if (cupomAplicado.tipo === "percentual") {
+      return (totalPrice * cupomAplicado.valor) / 100;
+    }
+    return Math.min(cupomAplicado.valor, totalPrice);
+  }, [cupomAplicado, totalPrice]);
+
+  const totalFinal = Math.max(totalPrice - valorDesconto, 0);
 
   const aplicarCupom = () => {
     const codigo = codigoCupom.trim().toUpperCase();
@@ -709,18 +723,16 @@ function CartDrawer({
         usos: number; ativo: boolean; limite?: number; validade?: string;
       }>) : [];
       const cupom = lista.find((c) => c.codigo === codigo);
-      if (!cupom) { setCupomErro("Cupom nao encontrado."); return; }
-      if (!cupom.ativo) { setCupomErro("Este cupom esta inativo."); return; }
+      if (!cupom) { setCupomErro("Cupom não encontrado."); return; }
+      if (!cupom.ativo) { setCupomErro("Este cupom está inativo."); return; }
       if (cupom.validade && new Date(cupom.validade + "T23:59:59") < new Date()) {
         setCupomErro("Este cupom expirou."); return;
       }
       if (cupom.limite && cupom.usos >= cupom.limite) {
         setCupomErro("Limite de uso deste cupom atingido."); return;
       }
-      const desconto = cupom.tipo === "percentual"
-        ? (totalPrice * cupom.valor) / 100
-        : Math.min(cupom.valor, totalPrice);
-      setCupomAplicado({ codigo, desconto });
+      // Salva as regras — o desconto será calculado dinamicamente
+      setCupomAplicado({ codigo: cupom.codigo, tipo: cupom.tipo, valor: cupom.valor });
       setCupomErro("");
     } catch {
       setCupomErro("Erro ao validar cupom.");
@@ -748,7 +760,11 @@ function CartDrawer({
         }
       } catch { /* silencia */ }
     }
-    openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, cupomAplicado ?? undefined);
+    // Passa o valorDesconto computado dinamicamente (nunca estático)
+    const infoCupom = cupomAplicado
+      ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
+      : undefined;
+    openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, infoCupom);
     clear();
     setCupomAplicado(null);
     setCodigoCupom("");
@@ -897,7 +913,7 @@ function CartDrawer({
                   Cupom <span className="font-bold">{cupomAplicado.codigo}</span> aplicado
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-green-700">−{brl(cupomAplicado.desconto)}</span>
+                  <span className="text-xs font-bold text-green-700">−{brl(valorDesconto)}</span>
                   <button onClick={removerCupom} className="text-gray-400 hover:text-gray-600">
                     <X className="h-3 w-3" />
                   </button>
@@ -913,7 +929,7 @@ function CartDrawer({
               {cupomAplicado && (
                 <div className="flex items-center justify-between text-sm text-green-600">
                   <span>Desconto</span>
-                  <span>−{brl(cupomAplicado.desconto)}</span>
+                  <span>−{brl(valorDesconto)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-base font-bold text-gray-900">

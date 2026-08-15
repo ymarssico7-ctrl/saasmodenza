@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Tag as TagIcon } from "lucide-react";
+import { Plus, Tag as TagIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
@@ -74,10 +74,23 @@ function CuponsPage() {
     localStorage.setItem(cuponsKey(storeId), JSON.stringify(novaLista));
   };
 
+  const excluirCupom = (id: string, codigo: string) => {
+    persistir(lista.filter((x) => x.id !== id));
+    toast.success("Cupom removido", { description: `O cupom ${codigo} foi excluído.` });
+  };
+
   const criarCupom = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoCodigo.trim()) {
+    const codigoFormatado = novoCodigo.trim().toUpperCase();
+    if (!codigoFormatado) {
       toast.error("Informe um código para o cupom.");
+      return;
+    }
+    // Impede códigos duplicados
+    if (lista.some((c) => c.codigo === codigoFormatado)) {
+      toast.error("Já existe um cupom com este código.", {
+        description: "Escolha um código diferente.",
+      });
       return;
     }
     // Validação de data expirada: não permite criar cupom com validade no passado
@@ -95,7 +108,7 @@ function CuponsPage() {
     const limiteNum = Number(novoLimite);
     const cupom: Cupom = {
       id: crypto.randomUUID(),
-      codigo: novoCodigo.trim().toUpperCase(),
+      codigo: codigoFormatado,
       tipo: novoTipo,
       valor: Number(novoValor) || 10,
       usos: 0,
@@ -153,15 +166,24 @@ function CuponsPage() {
                         : `${brl(c.valor)} de desconto`}
                     </p>
                   </div>
-                  <Switch
-                    checked={c.ativo}
-                    onCheckedChange={(v) => {
-                      persistir(lista.map((x) => (x.id === c.id ? { ...x, ativo: v } : x)));
-                      toast.success(v ? "Cupom ativado" : "Cupom desativado", {
-                        description: c.codigo,
-                      });
-                    }}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={c.ativo}
+                      onCheckedChange={(v) => {
+                        persistir(lista.map((x) => (x.id === c.id ? { ...x, ativo: v } : x)));
+                        toast.success(v ? "Cupom ativado" : "Cupom desativado", {
+                          description: c.codigo,
+                        });
+                      }}
+                    />
+                    <button
+                      onClick={() => excluirCupom(c.id, c.codigo)}
+                      title="Excluir cupom"
+                      className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 space-y-1.5 text-xs text-muted-foreground">

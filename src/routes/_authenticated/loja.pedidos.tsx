@@ -100,7 +100,7 @@ function PedidosPage() {
       lista.filter(
         (p) =>
           (filtro === "todos" || p.status === filtro) &&
-          (data === "" || p.criadoEm.startsWith(data)),
+          (data === "" || p.criadoEm.slice(0, 10) === data),
       ),
     [lista, filtro, data],
   );

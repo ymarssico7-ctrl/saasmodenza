@@ -22,11 +22,8 @@ export function formatWhatsAppMessage(
   });
 
   const subtotal = items.reduce((acc, i) => acc + i.preco * i.quantidade, 0);
-
-  const linhasCupom: string[] = [];
-  if (cupom && cupom.desconto > 0) {
-    linhasCupom.push(``, `Cupom: ${cupom.codigo} (−${brl(cupom.desconto)})`);
-  }
+  // Garante que o desconto reportado nunca ultrapasse o subtotal real
+  const descontoLimitado = cupom ? Math.min(cupom.desconto, subtotal) : 0;
 
   const msg = [
     `Olá, ${storeName}! 👋`,
@@ -34,7 +31,7 @@ export function formatWhatsAppMessage(
     `Gostaria de fazer um pedido:`,
     ``,
     ...linhas,
-    ...(cupom ? [``, `Subtotal: ${brl(subtotal)}`, `Desconto (${cupom.codigo}): −${brl(cupom.desconto)}`] : []),
+    ...(cupom ? [``, `Subtotal: ${brl(subtotal)}`, `Desconto (${cupom.codigo}): −${brl(descontoLimitado)}`] : []),
     ``,
     `━━━━━━━━━━━━━━━`,
     `*Total: ${brl(total)}*`,
