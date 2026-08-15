@@ -14,10 +14,20 @@ export const Route = createFileRoute("/_authenticated/loja")({
 });
 
 function LojaLayout() {
-  const { data: profile } = useQuery(profileQuery());
+  const { data: profile, isLoading } = useQuery(profileQuery());
   const { hasLoja, trialStatus, daysLeftInTrial, isTrialUrgent, isShouldShowTrialModal } =
     useAccess(profile);
   const [modalDismissed, setModalDismissed] = useState(false);
+
+  // ── Guarda de carregamento: aguarda o perfil carregar antes de qualquer decisão
+  // Isso evita que a tela de bloqueio pisque brevemente para assinantes ativos.
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center py-24">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   // Se trial ainda não foi oferecido: mostrar modal de oferta SOBRE tela bloqueada.
   // O <Outlet /> (painel da loja) NUNCA é renderizado sem acesso confirmado.
