@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
@@ -87,10 +87,12 @@ const LOJA_MOBILE: NavItem[] = [
 function ModeSwitcher({
   mode,
   onChange,
+  onHover,
   lojaLocked,
 }: {
   mode: "gestao" | "loja";
   onChange: (m: "gestao" | "loja") => void;
+  onHover?: (m: "gestao" | "loja") => void;
   lojaLocked?: boolean;
 }) {
   return (
@@ -98,12 +100,14 @@ function ModeSwitcher({
       {/* Sliding indicator */}
       <div
         className={cn(
-          "absolute top-1 h-[calc(100%-8px)] w-[calc(50%-4px)] rounded-xl bg-primary shadow-soft transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          "absolute top-1 h-[calc(100%-8px)] w-[calc(50%-4px)] rounded-xl bg-primary shadow-soft transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
           mode === "gestao" ? "left-1" : "left-[calc(50%+3px)]",
         )}
       />
       <button
         onClick={() => onChange("gestao")}
+        onMouseEnter={() => onHover?.("gestao")}
+        onFocus={() => onHover?.("gestao")}
         className={cn(
           "relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-semibold transition-colors duration-200",
           mode === "gestao"
@@ -117,6 +121,8 @@ function ModeSwitcher({
       </button>
       <button
         onClick={() => onChange("loja")}
+        onMouseEnter={() => onHover?.("loja")}
+        onFocus={() => onHover?.("loja")}
         className={cn(
           "relative z-10 flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs font-semibold transition-colors duration-200",
           mode === "loja"
@@ -137,6 +143,7 @@ function ModeSwitcher({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
+  const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -145,6 +152,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Derive active mode from pathname
   const isLojaRoute = pathname.startsWith("/loja");
   const [mode, setMode] = useState<"gestao" | "loja">(isLojaRoute ? "loja" : "gestao");
+
+  useEffect(() => {
+    setMode(isLojaRoute ? "loja" : "gestao");
+  }, [isLojaRoute]);
 
   // Loja bloqueada se não tiver acesso e não for o caso de "não oferecido ainda"
   const lojaLocked = !hasLoja && trialStatus !== "not_offered";
@@ -170,6 +181,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setOpen(false);
   }
 
+  function handleHoverMode(m: "gestao" | "loja") {
+    const target = m === "gestao" ? "/painel" : "/loja";
+    void router.preloadRoute({ to: target });
+  }
+
   const storeName = profile?.store_name?.trim() || "Sua loja";
   const ownerName = profile?.owner_name?.trim() || "Bem-vinda";
   const planLabel =
@@ -192,7 +208,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Mode Switcher */}
         <div className="mt-7">
-          <ModeSwitcher mode={mode} onChange={handleModeChange} lojaLocked={lojaLocked} />
+          <ModeSwitcher mode={mode} onChange={handleModeChange} onHover={handleHoverMode} lojaLocked={lojaLocked} />
         </div>
 
         {/* Nav links */}
@@ -249,7 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
-          <ModeSwitcher mode={mode} onChange={handleModeChange} lojaLocked={lojaLocked} />
+          <ModeSwitcher mode={mode} onChange={handleModeChange} onHover={handleHoverMode} lojaLocked={lojaLocked} />
           <Button
             variant="ghost"
             size="icon"
