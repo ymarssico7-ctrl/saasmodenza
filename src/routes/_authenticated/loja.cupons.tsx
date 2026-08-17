@@ -205,7 +205,7 @@ function CuponsPage() {
                     // Checa se o cupom já expirou pela data de validade
                     const expirado =
                       c.validade
-                        ? new Date(c.validade + "T23:59:59") < new Date()
+                        ? new Date(`${c.validade.slice(0, 10)}T23:59:59.999`).getTime() < Date.now()
                         : false;
                     if (expirado) return <Tag tone="danger">Expirado</Tag>;
                     if (c.limite && uso >= 100) return <Tag tone="danger">Limite atingido</Tag>;

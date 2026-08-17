@@ -81,8 +81,31 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+const CART_STORAGE_KEY = "modaly_cart_items_v1";
+
+function loadInitialCartItems(): CartItem[] {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, { items: [] });
+  const [state, dispatch] = useReducer(cartReducer, null, () => ({
+    items: loadInitialCartItems(),
+  }));
+
+  // Sincroniza estado do carrinho no localStorage a cada alteração
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+    } catch {
+      // silenciar erros de cota/localStorage
+    }
+  }
 
   const totalItems = state.items.reduce((s, i) => s + i.quantidade, 0);
   const totalPrice = state.items.reduce((s, i) => s + i.preco * i.quantidade, 0);

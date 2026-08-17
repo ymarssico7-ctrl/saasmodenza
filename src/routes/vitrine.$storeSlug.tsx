@@ -189,17 +189,21 @@ function VitrineLayout() {
 
           {/* Ações */}
           <div className="flex items-center gap-2">
-            {storeWhatsapp && (
-              <a
-                href={`https://wa.me/55${storeWhatsapp.replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 sm:flex"
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-                WhatsApp
-              </a>
-            )}
+            {storeWhatsapp && (() => {
+              const digits = storeWhatsapp.replace(/\D/g, "");
+              const phone = digits.startsWith("55") ? digits : `55${digits}`;
+              return (
+                <a
+                  href={`https://wa.me/${phone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 sm:flex"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  WhatsApp
+                </a>
+              );
+            })()}
 
             <button
               id="cart-open-btn"
@@ -497,6 +501,7 @@ function VitrineLayout() {
         storeName={storeName}
         whatsapp={storeWhatsapp}
         storeId={storeId}
+        allProducts={allProducts}
       />
     </div>
   );
@@ -684,6 +689,7 @@ function CartDrawer({
   storeName,
   whatsapp,
   storeId,
+  allProducts = [],
 }: {
   open: boolean;
   onClose: () => void;
@@ -691,6 +697,7 @@ function CartDrawer({
   storeName: string;
   whatsapp: string;
   storeId: string;
+  allProducts?: ShowcaseProduct[];
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
   const [codigoCupom, setCodigoCupom] = useState("");
@@ -725,8 +732,11 @@ function CartDrawer({
       const cupom = lista.find((c) => c.codigo === codigo);
       if (!cupom) { setCupomErro("Cupom não encontrado."); return; }
       if (!cupom.ativo) { setCupomErro("Este cupom está inativo."); return; }
-      if (cupom.validade && new Date(cupom.validade + "T23:59:59") < new Date()) {
-        setCupomErro("Este cupom expirou."); return;
+      if (cupom.validade) {
+        const datePart = cupom.validade.slice(0, 10);
+        if (new Date(`${datePart}T23:59:59.999`).getTime() < Date.now()) {
+          setCupomErro("Este cupom expirou."); return;
+        }
       }
       if (cupom.limite && cupom.usos >= cupom.limite) {
         setCupomErro("Limite de uso deste cupom atingido."); return;
@@ -868,8 +878,18 @@ function CartDrawer({
                           {item.quantidade}
                         </span>
                         <button
-                          onClick={() => increment(item.id, item.tamanho, item.cor)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100"
+                          onClick={() => {
+                            const prod = allProducts.find((p) => p.id === item.id);
+                            const maxEstoque = prod ? prod.totalEstoque : 99;
+                            if (item.quantidade < maxEstoque) {
+                              increment(item.id, item.tamanho, item.cor);
+                            }
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                          disabled={(() => {
+                            const prod = allProducts.find((p) => p.id === item.id);
+                            return prod ? item.quantidade >= prod.totalEstoque : false;
+                          })()}
                         >
                           <Plus className="h-3 w-3" />
                         </button>

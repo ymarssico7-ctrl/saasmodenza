@@ -226,10 +226,12 @@ export type ShowcaseProduct = InventoryItem & {
 function isPromocaoAtiva(config: ShowcaseItemConfig): boolean {
   if (!config.promocaoInicio || !config.promocaoFim || !config.precoPromocional) return false;
   const now = Date.now();
-  return (
-    now >= new Date(config.promocaoInicio).getTime() &&
-    now <= new Date(config.promocaoFim).getTime()
-  );
+  const inicio = new Date(config.promocaoInicio).getTime();
+  const fimStr = config.promocaoFim.includes("T")
+    ? config.promocaoFim
+    : `${config.promocaoFim}T23:59:59.999`;
+  const fim = new Date(fimStr).getTime();
+  return now >= inicio && now <= fim;
 }
 
 /** Calcula o total em estoque de um item (soma todos os tamanhos) */
