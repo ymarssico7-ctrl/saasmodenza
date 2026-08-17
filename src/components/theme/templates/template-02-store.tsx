@@ -871,7 +871,7 @@ export function Template02Store({
   const [sortBy, setSortBy] = useState("destaque");
 
   // Nome da loja: 1) definido pelo usuário no builder, 2) nome real do banco de dados
-  const { store: activeStore } = useStore();
+  const { store: activeStore, isLoading: isStoreLoading } = useStore();
   const storeName =
     (settings?.storeName && settings.storeName.trim()) ? settings.storeName : (activeStore.name || "");
   const logoUrl = settings?.logoUrl;

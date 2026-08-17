@@ -693,17 +693,17 @@ function CartDrawer({
   storeId: string;
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
-  const [codigoCupom, setCodigoCupom] = React.useState("");
+  const [codigoCupom, setCodigoCupom] = useState("");
   // Armazena as regras do cupom (tipo + valor), NÃO o desconto estático
-  const [cupomAplicado, setCupomAplicado] = React.useState<{
+  const [cupomAplicado, setCupomAplicado] = useState<{
     codigo: string;
     tipo: "percentual" | "fixo";
     valor: number;
   } | null>(null);
-  const [cupomErro, setCupomErro] = React.useState("");
+  const [cupomErro, setCupomErro] = useState("");
 
   // Recalcula dinamicamente sempre que o carrinho ou o cupom muda
-  const valorDesconto = React.useMemo(() => {
+  const valorDesconto = useMemo(() => {
     if (!cupomAplicado || totalPrice <= 0) return 0;
     if (cupomAplicado.tipo === "percentual") {
       return (totalPrice * cupomAplicado.valor) / 100;

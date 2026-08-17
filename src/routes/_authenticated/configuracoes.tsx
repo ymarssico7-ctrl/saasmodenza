@@ -109,9 +109,9 @@ function Configuracoes() {
         const themeKey = `modaly_theme_config_${storeId}`;
         const raw = localStorage.getItem(themeKey);
         const theme = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-        theme.nome = profilePatch.store_name;
-        theme.whatsapp = phone.trim() || theme.whatsapp || "";
-        theme.cidade = city.trim() || theme.cidade || "";
+        theme['nome'] = profilePatch.store_name;
+        theme['whatsapp'] = phone.trim() || theme['whatsapp'] || "";
+        theme['cidade'] = city.trim() || theme['cidade'] || "";
         localStorage.setItem(themeKey, JSON.stringify(theme));
       } catch {
         // Silencia erros de JSON/quota — não é crítico
