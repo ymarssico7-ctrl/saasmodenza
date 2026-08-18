@@ -88,6 +88,7 @@ export type InventoryInsert = {
   cost_price: number;
   sale_price: number;
   sizes: Record<string, number>;
+  photo_url?: string | null;
 };
 
 export async function insertInventoryItem(input: InventoryInsert): Promise<string> {
@@ -102,7 +103,7 @@ export async function insertInventoryItem(input: InventoryInsert): Promise<strin
       cost_price: input.cost_price,
       sale_price: input.sale_price,
       sizes: input.sizes,
-      photo_url: null,
+      photo_url: input.photo_url ?? null,
       sold_this_month: 0,
     });
     return (row["id"] ?? "") as string;
@@ -121,6 +122,7 @@ export async function insertInventoryItem(input: InventoryInsert): Promise<strin
       cost_price: input.cost_price,
       sale_price: input.sale_price,
       sizes: input.sizes,
+      photo_url: input.photo_url ?? null,
     })
     .select("id")
     .single();

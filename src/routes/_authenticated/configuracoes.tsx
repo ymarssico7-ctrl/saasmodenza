@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { supabase } from "@/integrations/supabase/client";
 import {
   isAuthenticated,
@@ -54,6 +55,7 @@ function Configuracoes() {
   const [city, setCity] = useState("");
   const [phone, setPhone] = useState("");
   const [target, setTarget] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberRole, setMemberRole] = useState("vendedora");
@@ -65,6 +67,7 @@ function Configuracoes() {
     setCity(profile.city ?? "");
     setPhone(profile.phone ?? "");
     setTarget(String(profile.prolabore_target ?? ""));
+    setLogoUrl((profile as unknown as { logo_url?: string | null }).logo_url ?? "");
   }, [profile]);
 
   const saveProfile = useMutation({
@@ -76,6 +79,7 @@ function Configuracoes() {
         city: city.trim() || null,
         phone: phone.trim() || null,
         prolabore_target: toNumber(target),
+        logo_url: logoUrl.trim() || null,
       };
 
       // Patch de campos espelhados na tabela `stores` (multi-tenant)
@@ -202,6 +206,25 @@ function Configuracoes() {
             <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
           </Field>
         </div>
+
+        {/* ── Logo da loja ── */}
+        <div className="mt-6">
+          <Label className="text-xs font-semibold text-muted-foreground">Logo da loja (opcional)</Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Aparece no cabeçalho da sua vitrine online. Recomendado: fundo transparente, formato quadrado.
+          </p>
+          <div className="mt-3">
+            <ImageUploader
+              currentUrl={logoUrl || null}
+              bucket="store-logos"
+              folder="logos"
+              onUploaded={setLogoUrl}
+              placeholder="Clique para adicionar logo"
+              aspect="square"
+            />
+          </div>
+        </div>
+
         <Button
           className="mt-6 h-11 rounded-full px-6 font-semibold"
           disabled={saveProfile.isPending}

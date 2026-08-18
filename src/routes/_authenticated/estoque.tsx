@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { inventoryQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf } from "@/lib/finance";
@@ -57,6 +58,7 @@ function Estoque() {
   const [cost, setCost] = useState("");
   const [price, setPrice] = useState("");
   const [sizes, setSizes] = useState<Sizes>({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+  const [photoUrl, setPhotoUrl] = useState("");
 
   const totalUnits = items.reduce((acc, i) => {
     const s = (i.sizes ?? {}) as Sizes;
@@ -85,6 +87,7 @@ function Estoque() {
         cost_price: toNumber(cost),
         sale_price: toNumber(price),
         sizes,
+        photo_url: photoUrl || null,
       });
     },
     onSuccess: (newId) => {
@@ -93,6 +96,7 @@ function Estoque() {
       setColor("");
       setCost("");
       setPrice("");
+      setPhotoUrl("");
       setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
       // Auto-publicar na vitrine se a flag estiver ativa
       if (newId && getAutoPublish()) {
@@ -189,6 +193,23 @@ function Estoque() {
               placeholder="169,90"
             />
           </Field>
+        </div>
+
+        {/* ── Foto da peça ── */}
+        <div className="mt-6">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Foto da peça (opcional)
+          </Label>
+          <div className="mt-3">
+            <ImageUploader
+              currentUrl={photoUrl || null}
+              bucket="product-photos"
+              folder="inventory"
+              onUploaded={setPhotoUrl}
+              placeholder="Clique para adicionar foto"
+              aspect="portrait"
+            />
+          </div>
         </div>
 
         <div className="mt-6">

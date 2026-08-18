@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { transactionsQuery } from "@/lib/db";
+import { transactionsQuery, customersQuery } from "@/lib/db";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
   ENTRY_CATEGORIES,
@@ -30,7 +30,7 @@ import {
   type Transaction,
 } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
-import { insertTransaction, deleteTransaction } from "@/lib/mutations";
+import { insertTransaction, deleteTransaction, insertCredit } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
@@ -51,7 +51,11 @@ function Caixa() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
   const { data: all = [] } = useQuery(transactionsQuery());
+  const { data: rawCustomers = [] } = useQuery(customersQuery());
   const txs = all as unknown as Transaction[];
+
+  type Customer = { id: string; name: string; phone: string | null };
+  const customers = rawCustomers as unknown as Customer[];
 
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [description, setDescription] = useState("");
@@ -59,6 +63,11 @@ function Caixa() {
   const [category, setCategory] = useState("venda_produto");
   const [method, setMethod] = useState("pix");
   const [date, setDate] = useState(todayISO());
+  // Campos extras para Fiado
+  const [fiadoCustomerId, setFiadoCustomerId] = useState("");
+  const [fiadoDueDate, setFiadoDueDate] = useState(todayISO());
+
+  const isFiado = method === "fiado" && kind === "entrada";
 
   const categories = kind === "entrada" ? ENTRY_CATEGORIES : EXIT_CATEGORIES;
 
@@ -79,6 +88,34 @@ function Caixa() {
       const value = toNumber(amount);
       if (!description.trim()) throw new Error("Descreva o lançamento");
       if (value <= 0) throw new Error("Informe um valor maior que zero");
+
+      if (isFiado) {
+        // Validações extras para Fiado
+        if (!fiadoCustomerId) throw new Error("Selecione o cliente para registrar o fiado");
+
+        // 1. Registra a transação no caixa normalmente
+        await insertTransaction({
+          storeId,
+          kind,
+          description: description.trim(),
+          amount: value,
+          category,
+          payment_method: "fiado",
+          occurred_on: date,
+        });
+
+        // 2. Cria o crédito na aba Fiado
+        await insertCredit({
+          storeId,
+          customer_id: fiadoCustomerId,
+          description: description.trim(),
+          amount: value,
+          purchase_date: date,
+          due_date: fiadoDueDate,
+        });
+        return;
+      }
+
       return insertTransaction({
         storeId,
         kind,
@@ -90,10 +127,15 @@ function Caixa() {
       });
     },
     onSuccess: () => {
-      toast.success("Lançamento registrado");
+      toast.success(isFiado ? "Fiado registrado no caixa e na aba Fiado!" : "Lançamento registrado");
       setDescription("");
       setAmount("");
+      setFiadoCustomerId("");
+      setFiadoDueDate(todayISO());
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      if (isFiado) {
+        void queryClient.invalidateQueries({ queryKey: ["credits"] });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -207,6 +249,44 @@ function Caixa() {
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
         </div>
+
+        {/* ── Campos extras visíveis somente quando Fiado é selecionado ── */}
+        {isFiado && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-900/20">
+            <p className="mb-3 text-xs font-semibold text-amber-800 dark:text-amber-400">
+              📋 Dados do Fiado — será registrado automaticamente na aba Fiado
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Cliente">
+                <Select value={fiadoCustomerId} onValueChange={setFiadoCustomerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o cliente…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.length === 0 ? (
+                      <SelectItem value="_none" disabled>
+                        Nenhum cliente cadastrado
+                      </SelectItem>
+                    ) : (
+                      customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Vencimento do fiado">
+                <Input
+                  type="date"
+                  value={fiadoDueDate}
+                  onChange={(e) => setFiadoDueDate(e.target.value)}
+                />
+              </Field>
+            </div>
+          </div>
+        )}
 
         <Button
           className="mt-6 h-11 rounded-full px-6 font-semibold"
