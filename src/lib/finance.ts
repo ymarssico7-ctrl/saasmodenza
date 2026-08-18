@@ -91,6 +91,17 @@ export function variation(current: number, previous: number) {
   return ((current - previous) / previous) * 100;
 }
 
+/** Formata subtexto explicativo e preciso sobre a variação vs mês anterior. */
+export function formatVariationHint(current: number, previous: number): string {
+  if (previous <= 0) {
+    if (current > 0) return "Sem vendas no mês anterior";
+    return "Sem faturamento no período";
+  }
+  const v = ((current - previous) / previous) * 100;
+  const signal = v >= 0 ? "+" : "";
+  return `${signal}${v.toFixed(1)}% vs. mês anterior`;
+}
+
 export const ENTRY_CATEGORIES = [
   { value: "venda_produto", label: "Venda de produto" },
   { value: "outro", label: "Outro" },

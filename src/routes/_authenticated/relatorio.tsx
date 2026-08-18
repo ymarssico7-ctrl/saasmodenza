@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, monthLabel, monthLabelShort, monthStart, pct } from "@/lib/format";
-import { EXIT_CATEGORIES, labelOf, sumBy, variation, type Transaction } from "@/lib/finance";
+import { EXIT_CATEGORIES, formatVariationHint, labelOf, sumBy, variation, type Transaction } from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/relatorio")({
   head: () => ({
@@ -90,7 +90,7 @@ function Relatorio() {
         <StatCard
           label="Margem"
           value={revenue > 0 ? pct((profit / revenue) * 100) : "—"}
-          hint={`Faturamento ${variation(revenue, sumBy(previous, "entrada")) >= 0 ? "acima" : "abaixo"} do mês anterior`}
+          hint={formatVariationHint(revenue, sumBy(previous, "entrada"))}
         />
       </div>
 

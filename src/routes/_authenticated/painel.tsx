@@ -27,7 +27,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { creditsQuery, goalsQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, formatDate, monthLabel, monthStart, pct, todayISO } from "@/lib/format";
-import { creditStatus, projectMonth, sumBy, variation, type Transaction } from "@/lib/finance";
+import { creditStatus, formatVariationHint, projectMonth, sumBy, variation, type Transaction } from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -163,24 +163,38 @@ function Painel() {
           value={brl(revenue)}
           icon={<ArrowUpRight className="size-4" />}
           tone="primary"
-          hint={`${revVariation >= 0 ? "+" : ""}${pct(revVariation)} vs. mês anterior`}
+          hint={formatVariationHint(revenue, prevRevenue)}
         />
         <StatCard
           label="Despesas do mês"
           value={brl(expenses)}
           icon={<ArrowDownRight className="size-4" />}
-          hint={`${current.filter((t) => t.kind === "saida").length} saídas registradas`}
+          hint={
+            current.filter((t) => t.kind === "saida").length === 0
+              ? "Nenhuma saída registrada"
+              : `${current.filter((t) => t.kind === "saida").length} ${
+                  current.filter((t) => t.kind === "saida").length === 1
+                    ? "saída registrada"
+                    : "saídas registradas"
+                }`
+          }
         />
         <StatCard
           label="Lucro do mês"
           value={brl(profit)}
           tone={profit >= 0 ? "positive" : "negative"}
           icon={<Wallet className="size-4" />}
-          hint={revenue > 0 ? `Margem de ${pct((profit / revenue) * 100)}` : "Sem vendas ainda"}
+          hint={
+            revenue > 0
+              ? profit >= 0
+                ? `Margem líquida de ${pct((profit / revenue) * 100)}`
+                : `Prejuízo operacional de ${brl(Math.abs(profit))}`
+              : "Sem vendas ainda"
+          }
         />
         <StatCard
           label="Projeção de fechamento"
-          value={brlCompact(projection)}
+          value={brl(projection)}
           icon={<TrendingUp className="size-4" />}
           hint={`Baseado no ritmo dos ${now.getDate()} primeiros dias`}
         />
