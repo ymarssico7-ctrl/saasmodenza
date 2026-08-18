@@ -1,8 +1,24 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { monthEnd, monthStart } from "./format";
 
 const DEMO_PROFILE_KEY = "modenza_demo_profile";
+
+/** Lê itens do localStorage no formato usado pelo modo demo. */
+function localGet<T>(table: string): T[] {
+  try {
+    return JSON.parse(localStorage.getItem(`demo_${table}`) ?? "[]") as T[];
+  } catch {
+    return [];
+  }
+}
+
+/** Retorna true se há uma sessão ativa no Supabase. Evita chamadas RLS sem autenticação. */
+async function hasSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getUser();
+  return !!data.user?.id;
+}
 
 // Cache padronizado: dados ficam "frescos" por 5 min, na memória por 30 min.
 // Isso elimina o delay/lag de refetch ao navegar entre ferramentas.
@@ -69,6 +85,9 @@ export const transactionsQuery = (month?: string) =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      // Modo demo: retorna dados do localStorage sem chamar o Supabase (evita 403/RLS)
+      if (!(await hasSession())) return localGet<Tables<"transactions">>("transactions");
+
       let q = supabase.from("transactions").select("*").order("occurred_on", { ascending: false });
       if (month) {
         const [y, m] = month.split("-").map(Number);
@@ -87,6 +106,7 @@ export const pricingsQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"pricings">>("pricings");
       const { data, error } = await supabase
         .from("pricings")
         .select("*")
@@ -102,6 +122,7 @@ export const customersQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"customers">>("customers");
       const { data, error } = await supabase.from("customers").select("*").order("name");
       if (error) throw new Error(error.message);
       return data ?? [];
@@ -114,6 +135,7 @@ export const creditsQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"credits">>("credits");
       const { data, error } = await supabase
         .from("credits")
         .select("*, customers(id, name, phone)")
@@ -129,6 +151,7 @@ export const creditPaymentsQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"credit_payments">>("credit_payments");
       const { data, error } = await supabase
         .from("credit_payments")
         .select("*")
@@ -144,6 +167,7 @@ export const inventoryQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"inventory_items">>("inventory_items");
       const { data, error } = await supabase
         .from("inventory_items")
         .select("*")
@@ -159,6 +183,7 @@ export const prolaboreQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"prolabore_withdrawals">>("prolabore_withdrawals");
       const { data, error } = await supabase
         .from("prolabore_withdrawals")
         .select("*")
@@ -174,6 +199,7 @@ export const goalsQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"goals">>("goals");
       const { data, error } = await supabase
         .from("goals")
         .select("*")
@@ -189,6 +215,7 @@ export const membersQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
+      if (!(await hasSession())) return localGet<Tables<"store_members">>("store_members");
       const { data, error } = await supabase
         .from("store_members")
         .select("*")
