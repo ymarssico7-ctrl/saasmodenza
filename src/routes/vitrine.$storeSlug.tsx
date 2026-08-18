@@ -769,7 +769,7 @@ function CartDrawer({
   };
 
   function handleCheckout() {
-    // Incrementa o contador de uso do cupom
+    // ── 1) Incrementa uso do cupom ──────────────────────────────────
     if (cupomAplicado) {
       try {
         const chave = `modaly_cupons_${storeId}`;
@@ -783,7 +783,40 @@ function CartDrawer({
         }
       } catch { /* silencia */ }
     }
-    // Passa o valorDesconto computado dinamicamente (nunca estático)
+
+    // ── 2) Persiste o pedido no histórico da loja ───────────────────
+    try {
+      const chaveOrders = `modaly_orders_${storeId}`;
+      const existentes = JSON.parse(localStorage.getItem(chaveOrders) ?? "[]") as unknown[];
+      const numeroPedido = String(existentes.length + 1).padStart(4, "0");
+      const novoPedido = {
+        id: crypto.randomUUID(),
+        numero: `#${numeroPedido}`,
+        cliente: "Cliente Vitrine",
+        telefone: "",
+        cidade: "",
+        criadoEm: new Date().toISOString(),
+        status: "novo",
+        origem: "Checkout",
+        pagamento: "Pix",
+        entrega: "Retirada na loja",
+        endereco: "",
+        frete: 0,
+        desconto: cupomAplicado ? valorDesconto : 0,
+        cupom: cupomAplicado?.codigo ?? undefined,
+        itens: items.map((i) => ({
+          produtoId: i.id,
+          nome: i.nome,
+          tamanho: i.tamanho,
+          cor: i.cor,
+          qtd: i.quantidade,
+          preco: i.preco,
+        })),
+      };
+      localStorage.setItem(chaveOrders, JSON.stringify([novoPedido, ...existentes]));
+    } catch { /* silencia — nunca bloquear o checkout */ }
+
+    // ── 3) Abre WhatsApp e limpa estado ─────────────────────────────
     const infoCupom = cupomAplicado
       ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
       : undefined;

@@ -114,6 +114,7 @@ function AparenciaPage() {
 
       // 4) Invalida o cache do store para o AppShell/header exibir o nome novo
       await queryClient.invalidateQueries({ queryKey: ["active_store"] });
+      window.dispatchEvent(new Event("vitrine-settings-changed"));
 
       toast.success("Configurações salvas com sucesso!", {
         description: `Loja "${nome}" atualizada.`,

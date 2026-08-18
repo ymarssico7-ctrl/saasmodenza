@@ -215,9 +215,15 @@ export async function insertCustomer(storeId: string, name: string, phone?: stri
 
 export async function deleteCustomer(storeId: string, id: string) {
   if (isDemoStore(storeId)) {
+    // Remove fiados associados (cascade local)
+    const credits = localGet("credits");
+    localSet("credits", credits.filter((c) => c["customer_id"] !== id));
     localDelete("customers", id);
     return;
   }
+  // Em modo real: a tabela credits tem ON DELETE CASCADE via FK customer_id,
+  // mas removemos explicitamente para garantir compatibilidade.
+  await supabase.from("credits").delete().eq("customer_id", id);
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
@@ -408,11 +414,43 @@ export async function insertProlabore(storeId: string, month: string, amount: nu
 
 export async function deleteProlabore(storeId: string, id: string) {
   if (isDemoStore(storeId)) {
+    // 1) Busca o withdrawal antes de deletar (para obter o amount)
+    const withdrawals = localGet("prolabore_withdrawals");
+    const withdrawal = withdrawals.find((w) => w["id"] === id);
+    // 2) Remove o withdrawal
     localDelete("prolabore_withdrawals", id);
+    // 3) Remove a transação de Caixa associada (category=prolabore + mesmo amount)
+    if (withdrawal) {
+      const txs = localGet("transactions");
+      const toRemove = txs.find(
+        (t) =>
+          t["category"] === "prolabore" &&
+          t["description"] === "Pró-labore" &&
+          Number(t["amount"]) === Number(withdrawal["amount"]),
+      );
+      if (toRemove) localDelete("transactions", toRemove["id"] as string);
+    }
     return;
   }
+  // Modo real: remove withdrawal E a transação de caixa associada por amount+category
+  const { data: withdrawal } = await supabase
+    .from("prolabore_withdrawals")
+    .select("amount")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("prolabore_withdrawals").delete().eq("id", id);
   if (error) throw new Error(error.message);
+
+  // Remove a transação de caixa correspondente (mesmo amount, categoria prolabore)
+  if (withdrawal) {
+    await supabase
+      .from("transactions")
+      .delete()
+      .eq("category", "prolabore")
+      .eq("description", "Pró-labore")
+      .eq("amount", withdrawal.amount);
+  }
 }
 
 // ============================================================
