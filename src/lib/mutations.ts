@@ -17,6 +17,18 @@ import { todayISO } from "@/lib/format";
 
 const isDemoStore = (storeId: string) => storeId === DEMO_STORE.id;
 
+/**
+ * Retorna o UUID do usuário autenticado no Supabase.
+ * Usado para preencher `user_id` nas inserções, garantindo conformidade com as políticas RLS.
+ * NUNCA use storeId como user_id — RLS exige auth.uid() = user_id.
+ */
+async function getAuthUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) throw new Error("Usuário não autenticado. Faça login e tente novamente.");
+  return uid;
+}
+
 // ============================================================
 // LOCAL STORAGE HELPERS (Demo Mode)
 // ============================================================
@@ -96,11 +108,12 @@ export async function insertInventoryItem(input: InventoryInsert): Promise<strin
     return (row["id"] ?? "") as string;
   }
 
+  const userId = await getAuthUserId();
   const { data, error } = await supabase
     .from("inventory_items")
     .insert({
       store_id: input.storeId,
-      user_id: input.storeId, // kept for backward-compat until user_id column is dropped
+      user_id: userId,
       name: input.name,
       category: input.category,
       color: input.color ?? null,
@@ -153,9 +166,10 @@ export async function insertTransaction(input: TransactionInsert) {
     return;
   }
 
+  const userId = await getAuthUserId();
   const { error } = await supabase.from("transactions").insert({
     store_id: input.storeId,
-    user_id: input.storeId,
+    user_id: userId,
     kind: input.kind,
     description: input.description,
     amount: input.amount,
@@ -187,9 +201,10 @@ export async function insertCustomer(storeId: string, name: string, phone?: stri
       phone: phone ?? null,
     });
   }
+  const userId = await getAuthUserId();
   const { data, error } = await supabase
     .from("customers")
-    .insert({ store_id: storeId, user_id: storeId, name, phone: phone ?? null })
+    .insert({ store_id: storeId, user_id: userId, name, phone: phone ?? null })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -226,11 +241,12 @@ export async function insertCredit(input: CreditInsert) {
       paid_amount: 0,
     });
   }
+  const userId = await getAuthUserId();
   const { data, error } = await supabase
     .from("credits")
     .insert({
       store_id: input.storeId,
-      user_id: input.storeId,
+      user_id: userId,
       customer_id: input.customer_id,
       description: input.description,
       amount: input.amount,
@@ -281,9 +297,10 @@ export async function insertPricing(input: PricingInsert) {
       tax_pct: input.tax_pct,
     });
   }
+  const userId = await getAuthUserId();
   const { error } = await supabase.from("pricings").insert({
     store_id: input.storeId,
-    user_id: input.storeId,
+    user_id: userId,
     name: input.name,
     wholesale_cost: input.wholesale_cost,
     freight_cost: input.freight_cost,
@@ -329,9 +346,10 @@ export async function upsertGoal(storeId: string, month: string, target_amount: 
     const { error } = await supabase.from("goals").update({ target_amount }).eq("id", existing.id);
     if (error) throw new Error(error.message);
   } else {
+    const userId = await getAuthUserId();
     const { error } = await supabase
       .from("goals")
-      .insert({ store_id: storeId, user_id: storeId, month, target_amount });
+      .insert({ store_id: storeId, user_id: userId, month, target_amount });
     if (error) throw new Error(error.message);
   }
 }
@@ -365,16 +383,17 @@ export async function insertProlabore(storeId: string, month: string, amount: nu
     return;
   }
 
+  const userId = await getAuthUserId();
   const { error } = await supabase
     .from("prolabore_withdrawals")
-    .insert({ store_id: storeId, user_id: storeId, month, amount });
+    .insert({ store_id: storeId, user_id: userId, month, amount });
   if (error) throw new Error(error.message);
 
   const { error: txErr } = await supabase
     .from("transactions")
     .insert({
       store_id: storeId,
-      user_id: storeId,
+      user_id: userId,
       kind: "saida",
       description: "Pró-labore",
       amount,
@@ -413,11 +432,12 @@ export async function insertMember(
     });
     return;
   }
+  const userId = await getAuthUserId();
   const { error } = await supabase
     .from("store_members")
     .insert({
       store_id: storeId,
-      user_id: storeId,
+      user_id: userId,
       name,
       email: email ?? null,
       role: role ?? "vendedora",
@@ -498,11 +518,12 @@ export async function recordCreditPayment(input: CreditPaymentInput) {
   }
 
   // Modo Real: insere registro de pagamento
+  const userId = await getAuthUserId();
   const { error: payErr } = await supabase
     .from("credit_payments")
     .insert({
       store_id: storeId,
-      user_id: storeId,
+      user_id: userId,
       credit_id: creditId,
       amount,
       paid_on: todayISO(),
