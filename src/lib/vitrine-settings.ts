@@ -13,6 +13,8 @@ export type VitrineSettings = {
   mostrarEstoque: boolean;
   instagram: string;
   estado: string;
+  logoUrl?: string;
+  capaUrl?: string;
 };
 
 const DEFAULT_SETTINGS: VitrineSettings = {
@@ -23,6 +25,8 @@ const DEFAULT_SETTINGS: VitrineSettings = {
   mostrarEstoque: false,
   instagram: "",
   estado: "",
+  logoUrl: "",
+  capaUrl: "",
 };
 
 export function getVitrineSettings(storeId: string): VitrineSettings {

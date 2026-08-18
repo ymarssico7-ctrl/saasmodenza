@@ -26,6 +26,7 @@ import {
   loadShowcaseConfigs,
   type ShowcaseProduct,
 } from "@/lib/showcase-store";
+import { getVitrineSettings } from "@/lib/vitrine-settings";
 
 // ─── Route ───────────────────────────────────────────────────────
 export const Route = createFileRoute("/vitrine/$storeSlug")({
@@ -126,13 +127,14 @@ function VitrineLayout() {
 
   const destaques = allProducts.filter((p) => p.showcase.ativo && p.showcase.destaque);
 
-  const cor = "#3A3AF0"; // cor padrão — futuramente virá do perfil da loja via Supabase
-  const storeName = store?.name ?? storeSlug;
-  const storeCity = store?.city ?? "";
-  const storeWhatsapp = store?.phone ?? "";
   // storeId usado para ler cupons e orders do localStorage.
   // Fallback para storeSlug em preview demo (sem registro no banco).
   const storeId = store?.id ?? storeSlug;
+  const vitrineSettings = getVitrineSettings(storeId);
+  const cor = vitrineSettings.corPrincipal || "#3A3AF0";
+  const storeName = store?.name ?? storeSlug;
+  const storeCity = store?.city ?? "";
+  const storeWhatsapp = store?.phone ?? "";
 
   const isLoading = storeLoading || inventoryLoading;
 
@@ -170,12 +172,20 @@ function VitrineLayout() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           {/* Logo / Nome */}
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-sm"
-              style={{ backgroundColor: cor }}
-            >
-              {storeName.slice(0, 2).toUpperCase()}
-            </div>
+            {vitrineSettings.logoUrl ? (
+              <img
+                src={vitrineSettings.logoUrl}
+                alt={storeName}
+                className="h-10 w-10 rounded-2xl object-cover shadow-sm"
+              />
+            ) : (
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-sm"
+                style={{ backgroundColor: cor }}
+              >
+                {storeName.slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <div>
               <p className="text-[15px] font-semibold leading-none text-gray-900">{storeName}</p>
               {storeCity && (
@@ -229,7 +239,10 @@ function VitrineLayout() {
       <section
         className="relative overflow-hidden py-14 md:py-20"
         style={{
-          background: `linear-gradient(135deg, ${cor}18 0%, ${cor}06 60%, transparent 100%)`,
+          background: vitrineSettings.capaUrl
+            ? `linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.3)), url(${vitrineSettings.capaUrl}) center/cover no-repeat`
+            : `linear-gradient(135deg, ${cor}18 0%, ${cor}06 60%, transparent 100%)`,
+          color: vitrineSettings.capaUrl ? "#ffffff" : undefined,
         }}
       >
         <div className="mx-auto max-w-6xl px-4">

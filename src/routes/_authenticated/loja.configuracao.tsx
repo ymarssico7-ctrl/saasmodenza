@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
 import { getVitrineSettings, saveVitrineSettings } from "@/lib/vitrine-settings";
@@ -66,6 +67,8 @@ function AparenciaPage() {
   const [boasVindas, setBoasVindas] = useState(vitrineSettings.boasVindas);
   const [politicaTroca, setPoliticaTroca] = useState(vitrineSettings.politicaTroca);
   const [mostrarEstoque, setMostrarEstoque] = useState(vitrineSettings.mostrarEstoque);
+  const [logoUrl, setLogoUrl] = useState(vitrineSettings.logoUrl ?? "");
+  const [capaUrl, setCapaUrl] = useState(vitrineSettings.capaUrl ?? "");
   const [salvando, setSalvando] = useState(false);
 
   // Sincroniza se o store mudar (ex: após refetch)
@@ -94,6 +97,8 @@ function AparenciaPage() {
         mostrarEstoque,
         instagram,
         estado,
+        logoUrl,
+        capaUrl,
       });
 
       // 3) Sincroniza nome e WhatsApp no Theme Engine (assim os templates ficam atualizados)
@@ -330,28 +335,28 @@ function AparenciaPage() {
               </Campo>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  onClick={() => toast.success("Selecione um arquivo de logo")}
-                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
-                >
-                  <Upload className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-center">
-                    Enviar logo
-                    <br />
-                    <span className="text-[10px] opacity-70">PNG ou JPG</span>
-                  </span>
-                </button>
-                <button
-                  onClick={() => toast.success("Selecione uma foto de capa")}
-                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-input bg-secondary/40 px-4 py-5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-foreground"
-                >
-                  <ImagePlus className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-center">
-                    Enviar capa
-                    <br />
-                    <span className="text-[10px] opacity-70">PNG, JPG ou WEBP</span>
-                  </span>
-                </button>
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-input bg-secondary/40 p-4 text-xs text-muted-foreground">
+                  <span className="mb-2 font-medium text-foreground">Logo da vitrine</span>
+                  <ImageUploader
+                    currentUrl={logoUrl || null}
+                    bucket="store-logos"
+                    folder="brand"
+                    onUploaded={setLogoUrl}
+                    placeholder="Enviar logo (PNG ou JPG)"
+                    aspect="square"
+                  />
+                </div>
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-input bg-secondary/40 p-4 text-xs text-muted-foreground">
+                  <span className="mb-2 font-medium text-foreground">Capa da vitrine</span>
+                  <ImageUploader
+                    currentUrl={capaUrl || null}
+                    bucket="store-logos"
+                    folder="brand"
+                    onUploaded={setCapaUrl}
+                    placeholder="Enviar capa (PNG, JPG)"
+                    aspect="portrait"
+                  />
+                </div>
               </div>
 
               <Campo label="Cor principal da loja">
