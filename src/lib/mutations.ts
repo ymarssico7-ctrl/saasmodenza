@@ -694,3 +694,61 @@ export async function restoreOrderStock(
     }),
   );
 }
+
+/**
+ * Ajusta o estoque de um produto específico (+1 ou -1 unidade).
+ * Utilizado ao vincular uma venda ou compra no Caixa ao Estoque.
+ */
+export async function adjustInventoryStock(
+  storeId: string,
+  productId: string,
+  delta: number,
+): Promise<void> {
+  if (!productId || delta === 0) return;
+
+  if (isDemoStore(storeId)) {
+    const rows = localGet("inventory_items") as Array<
+      AnyRecord & { id: string; sizes: Record<string, number> }
+    >;
+    const row = rows.find((r) => r.id === productId);
+    if (!row) return;
+
+    const novoSizes: Record<string, number> = { ...(row.sizes ?? {}) };
+    if (delta < 0) {
+      const keys = Object.keys(novoSizes);
+      const targetKey = keys.find((k) => (novoSizes[k] ?? 0) > 0) ?? keys[0] ?? "Único";
+      novoSizes[targetKey] = Math.max((novoSizes[targetKey] ?? 0) + delta, 0);
+    } else {
+      const targetKey = Object.keys(novoSizes)[0] ?? "Único";
+      novoSizes[targetKey] = (novoSizes[targetKey] ?? 0) + delta;
+    }
+    localUpdate("inventory_items", productId, { sizes: novoSizes });
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("inventory_items")
+    .select("sizes")
+    .eq("id", productId)
+    .single();
+
+  if (error || !data) return;
+
+  const novoSizes: Record<string, number> = {
+    ...((data.sizes as Record<string, number>) ?? {}),
+  };
+
+  if (delta < 0) {
+    const keys = Object.keys(novoSizes);
+    const targetKey = keys.find((k) => (novoSizes[k] ?? 0) > 0) ?? keys[0] ?? "Único";
+    novoSizes[targetKey] = Math.max((novoSizes[targetKey] ?? 0) + delta, 0);
+  } else {
+    const targetKey = Object.keys(novoSizes)[0] ?? "Único";
+    novoSizes[targetKey] = (novoSizes[targetKey] ?? 0) + delta;
+  }
+
+  await supabase
+    .from("inventory_items")
+    .update({ sizes: novoSizes })
+    .eq("id", productId);
+}

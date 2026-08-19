@@ -8,7 +8,9 @@ import {
   CalendarDays,
   ChevronDown,
   Minus,
+  Package,
   Plus,
+  Sparkles,
   Trash2,
   Wallet,
   X,
@@ -20,6 +22,7 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -35,7 +38,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { transactionsQuery, customersQuery } from "@/lib/db";
+import { transactionsQuery, customersQuery, inventoryQuery } from "@/lib/db";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
   ENTRY_CATEGORIES,
@@ -53,7 +56,7 @@ import {
   type CustomOption,
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
-import { insertTransaction, deleteTransaction, insertCredit } from "@/lib/mutations";
+import { insertTransaction, deleteTransaction, insertCredit, adjustInventoryStock } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
@@ -136,10 +139,22 @@ function Caixa() {
   const { storeId } = useStore();
   const { data: all = [] } = useQuery(transactionsQuery());
   const { data: rawCustomers = [] } = useQuery(customersQuery());
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
   const txs = all as unknown as Transaction[];
 
   type Customer = { id: string; name: string; phone: string | null };
   const customers = rawCustomers as unknown as Customer[];
+
+  type InventoryItem = {
+    id: string;
+    name: string;
+    category: string;
+    selling_price: number;
+    cost_price: number | null;
+    image_url: string | null;
+    sizes: Record<string, number> | null;
+  };
+  const inventoryItems = rawInventory as unknown as InventoryItem[];
 
   // ── Opções personalizadas ─────────────────────────────────────────────────
   const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
@@ -155,6 +170,43 @@ function Caixa() {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("venda_produto");
   const [method, setMethod] = useState("pix");
+
+  // Conexão Inteligente com Estoque
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [deductStock, setDeductStock] = useState(true);
+  const [showProductPopover, setShowProductPopover] = useState(false);
+
+  const selectedProduct = useMemo(
+    () => inventoryItems.find((p) => p.id === selectedProductId) ?? null,
+    [inventoryItems, selectedProductId],
+  );
+
+  const matchingProducts = useMemo(() => {
+    if (!description.trim()) return inventoryItems.slice(0, 8);
+    const query = description.toLowerCase().trim();
+    return inventoryItems
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query),
+      )
+      .slice(0, 8);
+  }, [inventoryItems, description]);
+
+  const calcTotalStock = (item: InventoryItem) => {
+    const sizes = item.sizes ?? {};
+    return Object.values(sizes).reduce((acc, n) => acc + Number(n), 0);
+  };
+
+  const handleSelectProduct = (product: InventoryItem) => {
+    setSelectedProductId(product.id);
+    setDescription(product.name);
+    const priceToUse = kind === "entrada"
+      ? product.selling_price
+      : product.cost_price ?? product.selling_price;
+    if (priceToUse > 0) setAmount(String(priceToUse).replace(".", ","));
+    setShowProductPopover(false);
+  };
 
   // Data com atalhos: "hoje" | "ontem" | "custom"
   const [dateMode, setDateMode] = useState<"hoje" | "ontem" | "custom">("hoje");
@@ -226,6 +278,13 @@ function Caixa() {
       if (!description.trim()) throw new Error("Descreva o lançamento");
       if (value <= 0) throw new Error("Informe um valor maior que zero");
 
+      // Baixa/Acréscimo automático de estoque se vinculado a produto do estoque
+      if (selectedProductId && deductStock) {
+        const delta = kind === "entrada" ? -1 : 1;
+        await adjustInventoryStock(storeId, selectedProductId, delta);
+        void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      }
+
       if (isFiado) {
         if (!fiadoCustomerId) throw new Error("Selecione o cliente para registrar o fiado");
         await insertTransaction({
@@ -259,9 +318,19 @@ function Caixa() {
       });
     },
     onSuccess: () => {
-      toast.success(isFiado ? "Fiado registrado no caixa e na aba Fiado!" : "Lançamento registrado");
+      const msg = selectedProductId && deductStock
+        ? isFiado
+          ? "Fiado registrado e estoque atualizado!"
+          : `Lançamento registrado e estoque ${kind === "entrada" ? "atualizado (-1 un.)" : "atualizado (+1 un.)"}!`
+        : isFiado
+        ? "Fiado registrado no caixa e na aba Fiado!"
+        : "Lançamento registrado";
+
+      toast.success(msg);
       setDescription("");
       setAmount("");
+      setSelectedProductId(null);
+      setDeductStock(true);
       setFiadoCustomerId("");
       setFiadoDueDate(todayISO());
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -363,13 +432,90 @@ function Caixa() {
 
         {/* Grid de Campos */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Descrição" className="lg:col-span-2">
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={isEntrada ? "Venda vestido midi" : "Aluguel da loja"}
-              className="h-11 rounded-xl"
-            />
+          <Field label="Descrição" className="relative lg:col-span-2">
+            <div className="relative">
+              <Input
+                value={description}
+                onFocus={() => setShowProductPopover(true)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setSelectedProductId(null);
+                  setShowProductPopover(true);
+                }}
+                placeholder={isEntrada ? "Digite ou selecione uma peça do estoque…" : "Aluguel da loja ou peça do estoque"}
+                className="h-11 rounded-xl pr-9"
+              />
+              {selectedProduct ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProductId(null);
+                    setDescription("");
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : (
+                <Package className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+              )}
+            </div>
+
+            {/* Menu Dropdown de Produtos do Estoque */}
+            {showProductPopover && matchingProducts.length > 0 && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowProductPopover(false)}
+                />
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    📦 Produtos no Estoque ({matchingProducts.length})
+                  </div>
+                  {matchingProducts.map((p) => {
+                    const st = calcTotalStock(p);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleSelectProduct(p)}
+                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary-soft/50"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {p.image_url ? (
+                            <img
+                              src={p.image_url}
+                              alt={p.name}
+                              className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted-foreground">
+                              <Package className="h-4 w-4" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate font-medium leading-tight">{p.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{p.category}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-mono text-xs font-semibold text-foreground">
+                            {brl(isEntrada ? p.selling_price : p.cost_price ?? p.selling_price)}
+                          </p>
+                          <span
+                            className={`inline-block text-[10px] font-medium ${
+                              st > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                            }`}
+                          >
+                            {st > 0 ? `${st} un. em estoque` : "Sem estoque"}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </Field>
 
           <Field label="Valor (R$)">
@@ -479,6 +625,64 @@ function Caixa() {
             </div>
           </Field>
         </div>
+
+        {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
+        {selectedProduct && (
+          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary-soft/30 p-4 sm:flex-row sm:items-center sm:justify-between animate-in fade-in-50 slide-in-from-top-2">
+            <div className="flex items-center gap-3 min-w-0">
+              {selectedProduct.image_url ? (
+                <img
+                  src={selectedProduct.image_url}
+                  alt={selectedProduct.name}
+                  className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Package className="h-5 w-5" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-xs font-semibold text-foreground">
+                    {selectedProduct.name}
+                  </span>
+                  <Badge variant="outline" className="rounded-full text-[10px]">
+                    {calcTotalStock(selectedProduct)} un. em estoque
+                  </Badge>
+                </div>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Peça vinculada do Estoque da loja
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-t border-primary/10 pt-2 sm:border-t-0 sm:pt-0">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="deduct-stock-switch"
+                  checked={deductStock}
+                  onCheckedChange={setDeductStock}
+                />
+                <Label htmlFor="deduct-stock-switch" className="cursor-pointer text-xs font-medium">
+                  {isEntrada
+                    ? "Dar baixa no estoque (-1 un.)"
+                    : "Adicionar ao estoque (+1 un.)"}
+                </Label>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setSelectedProductId(null);
+                  setDescription("");
+                }}
+              >
+                Desvincular
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ── Seção Fiado ──────────────────────────────────────────────── */}
         {isFiado && (
