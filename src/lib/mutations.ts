@@ -752,3 +752,48 @@ export async function adjustInventoryStock(
     .update({ sizes: novoSizes })
     .eq("id", productId);
 }
+
+export type QuickInventoryInput = {
+  storeId: string;
+  name: string;
+  selling_price: number;
+  category: string;
+};
+
+/**
+ * Cadastra um produto no Estoque de forma ultra-rápida (1-clique no Caixa).
+ * Retorna o ID da nova peça cadastrada.
+ */
+export async function quickInsertInventoryItem(input: QuickInventoryInput): Promise<string> {
+  const itemData = {
+    store_id: input.storeId,
+    name: input.name.trim(),
+    category: input.category || "vestido",
+    sale_price: input.selling_price,
+    cost_price: 0,
+    sizes: { "Único": 1 },
+    photo_url: null,
+    color: null,
+    supplier: null,
+  };
+
+  if (isDemoStore(input.storeId)) {
+    const inserted = localInsert("inventory_items", {
+      ...itemData,
+      selling_price: input.selling_price,
+      image_url: null,
+      user_id: input.storeId,
+    });
+    return inserted["id"] as string;
+  }
+
+  const userId = await getAuthUserId();
+  const { data, error } = await supabase
+    .from("inventory_items")
+    .insert({ ...itemData, user_id: userId })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data.id;
+}

@@ -9,11 +9,14 @@ import {
   ChevronDown,
   Minus,
   Package,
+  Percent,
   Plus,
   Sparkles,
+  Tag,
   Trash2,
   Wallet,
   X,
+  Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -43,6 +46,7 @@ import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/l
 import {
   ENTRY_CATEGORIES,
   EXIT_CATEGORIES,
+  INVENTORY_CATEGORIES,
   PAYMENT_METHODS,
   labelOf,
   sumBy,
@@ -56,7 +60,13 @@ import {
   type CustomOption,
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
-import { insertTransaction, deleteTransaction, insertCredit, adjustInventoryStock } from "@/lib/mutations";
+import {
+  insertTransaction,
+  deleteTransaction,
+  insertCredit,
+  adjustInventoryStock,
+  quickInsertInventoryItem,
+} from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
@@ -80,7 +90,7 @@ function yesterdayISO() {
   return d.toISOString().slice(0, 10);
 }
 
-// ── Dialog de criação rápida ─────────────────────────────────────────────────
+// ── Dialog de criação rápida de opção ────────────────────────────────────────
 function QuickAddDialog({
   open,
   title,
@@ -133,7 +143,103 @@ function QuickAddDialog({
   );
 }
 
-// ── Componente principal ─────────────────────────────────────────────────────
+// ── Dialog de cadastro ultra-rápido de produto no estoque ───────────────────
+function QuickProductDialog({
+  open,
+  initialName,
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  initialName: string;
+  onConfirm: (data: { name: string; selling_price: number; category: string }) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("vestido");
+
+  useEffect(() => {
+    setName(initialName);
+  }, [initialName]);
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    const selling_price = toNumber(price);
+    onConfirm({ name: name.trim(), selling_price, category });
+    setName("");
+    setPrice("");
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Package className="h-5 w-5 text-primary" />
+            Cadastrar Produto no Estoque
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Nome do Produto</Label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Vestido Midi Canelado"
+              className="h-11 rounded-xl"
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">Preço de Venda (R$)</Label>
+              <Input
+                inputMode="decimal"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="189,90"
+                className="h-11 rounded-xl font-mono"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">Categoria</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-11 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INVENTORY_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            className="rounded-full font-semibold"
+            disabled={!name.trim()}
+            onClick={handleSubmit}
+          >
+            Salvar e Vincular ao Caixa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Componente principal Caixa ──────────────────────────────────────────────
 function Caixa() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -150,11 +256,21 @@ function Caixa() {
     name: string;
     category: string;
     selling_price: number;
+    sale_price?: number;
     cost_price: number | null;
     image_url: string | null;
+    photo_url?: string | null;
     sizes: Record<string, number> | null;
   };
-  const inventoryItems = rawInventory as unknown as InventoryItem[];
+
+  const inventoryItems = useMemo(() => {
+    const rawList = rawInventory as unknown as InventoryItem[];
+    return rawList.map((item) => ({
+      ...item,
+      selling_price: Number(item.selling_price ?? item.sale_price ?? 0),
+      image_url: item.image_url ?? item.photo_url ?? null,
+    }));
+  }, [rawInventory]);
 
   // ── Opções personalizadas ─────────────────────────────────────────────────
   const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
@@ -176,6 +292,29 @@ function Caixa() {
   const [deductStock, setDeductStock] = useState(true);
   const [showProductPopover, setShowProductPopover] = useState(false);
 
+  // Painel Sutil de Desconto / Promoção
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountType, setDiscountType] = useState<"flat" | "pct">("flat");
+  const [discountValue, setDiscountValue] = useState("");
+
+  // Data com atalhos: "hoje" | "ontem" | "custom"
+  const [dateMode, setDateMode] = useState<"hoje" | "ontem" | "custom">("hoje");
+  const [customDate, setCustomDate] = useState(todayISO());
+  const date = dateMode === "hoje" ? todayISO() : dateMode === "ontem" ? yesterdayISO() : customDate;
+
+  // Fiado
+  const [fiadoCustomerId, setFiadoCustomerId] = useState("");
+  const [fiadoDueDate, setFiadoDueDate] = useState(todayISO());
+
+  // Dialogs de criação rápida
+  const [addCatOpen, setAddCatOpen] = useState(false);
+  const [addPayOpen, setAddPayOpen] = useState(false);
+  const [quickProductOpen, setQuickProductOpen] = useState(false);
+
+  const isFiado = method === "fiado" && kind === "entrada";
+  const isEntrada = kind === "entrada";
+
+  // ── Produto Selecionado do Estoque ────────────────────────────────────────
   const selectedProduct = useMemo(
     () => inventoryItems.find((p) => p.id === selectedProductId) ?? null,
     [inventoryItems, selectedProductId],
@@ -198,30 +337,36 @@ function Caixa() {
     return Object.values(sizes).reduce((acc, n) => acc + Number(n), 0);
   };
 
+  // ── Puxar valor automático incondicional ao selecionar produto ────────────
   const handleSelectProduct = (product: InventoryItem) => {
     setSelectedProductId(product.id);
     setDescription(product.name);
-    const priceToUse = kind === "entrada"
+
+    const priceToUse = isEntrada
       ? product.selling_price
       : product.cost_price ?? product.selling_price;
-    if (priceToUse > 0) setAmount(String(priceToUse).replace(".", ","));
+
+    if (priceToUse > 0) {
+      setAmount(String(priceToUse).replace(".", ","));
+    } else {
+      setAmount("");
+    }
     setShowProductPopover(false);
   };
 
-  // Data com atalhos: "hoje" | "ontem" | "custom"
-  const [dateMode, setDateMode] = useState<"hoje" | "ontem" | "custom">("hoje");
-  const [customDate, setCustomDate] = useState(todayISO());
-  const date = dateMode === "hoje" ? todayISO() : dateMode === "ontem" ? yesterdayISO() : customDate;
+  // ── Cálculos de Desconto / Promoção ───────────────────────────────────────
+  const grossAmount = toNumber(amount);
+  const discountNum = toNumber(discountValue);
 
-  // Fiado
-  const [fiadoCustomerId, setFiadoCustomerId] = useState("");
-  const [fiadoDueDate, setFiadoDueDate] = useState(todayISO());
+  const calculatedDiscount = useMemo(() => {
+    if (grossAmount <= 0 || discountNum <= 0) return 0;
+    if (discountType === "pct") {
+      return (grossAmount * Math.min(discountNum, 100)) / 100;
+    }
+    return Math.min(discountNum, grossAmount);
+  }, [grossAmount, discountNum, discountType]);
 
-  // Dialogs de criação rápida
-  const [addCatOpen, setAddCatOpen] = useState(false);
-  const [addPayOpen, setAddPayOpen] = useState(false);
-
-  const isFiado = method === "fiado" && kind === "entrada";
+  const netAmount = Math.max(grossAmount - calculatedDiscount, 0);
 
   // ── Listas combinadas (padrão + custom) ──────────────────────────────────
   const baseEntryCategories = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
@@ -229,7 +374,7 @@ function Caixa() {
   const basePaymentMethods = PAYMENT_METHODS as readonly { value: string; label: string }[];
 
   const categories: { value: string; label: string }[] =
-    kind === "entrada"
+    isEntrada
       ? [...baseEntryCategories, ...customOpts.entryCategories]
       : [...baseExitCategories, ...customOpts.exitCategories];
 
@@ -243,12 +388,13 @@ function Caixa() {
     setKind(next);
     setCategory(next === "entrada" ? "venda_produto" : "compra_estoque");
     setMethod("pix");
+    setSelectedProductId(null);
   };
 
   // ── Handlers de criação rápida ────────────────────────────────────────────
   const handleAddCategory = (label: string) => {
     const opt: CustomOption =
-      kind === "entrada"
+      isEntrada
         ? addCustomEntry(storeId, label)
         : addCustomExit(storeId, label);
     setCategory(opt.value);
@@ -257,6 +403,34 @@ function Caixa() {
   const handleAddPayment = (label: string) => {
     const opt = addCustomPaymentMethod(storeId, label);
     setMethod(opt.value);
+  };
+
+  const handleQuickCreateProduct = async (data: {
+    name: string;
+    selling_price: number;
+    category: string;
+  }) => {
+    try {
+      const newId = await quickInsertInventoryItem({
+        storeId,
+        name: data.name,
+        selling_price: data.selling_price,
+        category: data.category,
+      });
+      toast.success(`Produto "${data.name}" cadastrado no estoque!`);
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+
+      // Auto-seleciona a nova peça criada no formulário do caixa
+      setSelectedProductId(newId);
+      setDescription(data.name);
+      if (data.selling_price > 0) {
+        setAmount(String(data.selling_price).replace(".", ","));
+      }
+      setDeductStock(true);
+      setShowProductPopover(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar produto");
+    }
   };
 
   // ── Totais ────────────────────────────────────────────────────────────────
@@ -274,13 +448,18 @@ function Caixa() {
   // ── Mutações ──────────────────────────────────────────────────────────────
   const create = useMutation({
     mutationFn: async () => {
-      const value = toNumber(amount);
       if (!description.trim()) throw new Error("Descreva o lançamento");
-      if (value <= 0) throw new Error("Informe um valor maior que zero");
+      if (netAmount <= 0) throw new Error("Informe um valor maior que zero");
+
+      // Monta a descrição final (acrescentando nota de desconto se houver)
+      let finalDescription = description.trim();
+      if (calculatedDiscount > 0) {
+        finalDescription += ` [Desconto: ${brl(calculatedDiscount)}]`;
+      }
 
       // Baixa/Acréscimo automático de estoque se vinculado a produto do estoque
       if (selectedProductId && deductStock) {
-        const delta = kind === "entrada" ? -1 : 1;
+        const delta = isEntrada ? -1 : 1;
         await adjustInventoryStock(storeId, selectedProductId, delta);
         void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       }
@@ -290,8 +469,8 @@ function Caixa() {
         await insertTransaction({
           storeId,
           kind,
-          description: description.trim(),
-          amount: value,
+          description: finalDescription,
+          amount: netAmount,
           category,
           payment_method: "fiado",
           occurred_on: date,
@@ -299,8 +478,8 @@ function Caixa() {
         await insertCredit({
           storeId,
           customer_id: fiadoCustomerId,
-          description: description.trim(),
-          amount: value,
+          description: finalDescription,
+          amount: netAmount,
           purchase_date: date,
           due_date: fiadoDueDate,
         });
@@ -310,8 +489,8 @@ function Caixa() {
       return insertTransaction({
         storeId,
         kind,
-        description: description.trim(),
-        amount: value,
+        description: finalDescription,
+        amount: netAmount,
         category,
         payment_method: method,
         occurred_on: date,
@@ -321,7 +500,7 @@ function Caixa() {
       const msg = selectedProductId && deductStock
         ? isFiado
           ? "Fiado registrado e estoque atualizado!"
-          : `Lançamento registrado e estoque ${kind === "entrada" ? "atualizado (-1 un.)" : "atualizado (+1 un.)"}!`
+          : `Lançamento registrado e estoque ${isEntrada ? "atualizado (-1 un.)" : "atualizado (+1 un.)"}!`
         : isFiado
         ? "Fiado registrado no caixa e na aba Fiado!"
         : "Lançamento registrado";
@@ -329,6 +508,8 @@ function Caixa() {
       toast.success(msg);
       setDescription("");
       setAmount("");
+      setShowDiscount(false);
+      setDiscountValue("");
       setSelectedProductId(null);
       setDeductStock(true);
       setFiadoCustomerId("");
@@ -348,7 +529,7 @@ function Caixa() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // ── Helpers de label ──────────────────────────────────────────────────────
+  // ── Helpers de label & foto de produto no extrato ─────────────────────────
   const resolveCategory = (t: Transaction) => {
     const allEntries = [...baseEntryCategories, ...customOpts.entryCategories];
     const allExits = [...baseExitCategories, ...customOpts.exitCategories];
@@ -362,8 +543,12 @@ function Caixa() {
       ?? labelOf(basePaymentMethods, t.payment_method);
   };
 
+  const resolveLinkedProduct = (t: Transaction) => {
+    const cleanDesc = t.description.replace(/\s*\[Desconto:.*\]/, "").trim().toLowerCase();
+    return inventoryItems.find((p) => p.name.toLowerCase() === cleanDesc) ?? null;
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
-  const isEntrada = kind === "entrada";
   const accentClass = isEntrada
     ? "text-emerald-600 dark:text-emerald-400"
     : "text-rose-600 dark:text-rose-400";
@@ -461,75 +646,117 @@ function Caixa() {
               )}
             </div>
 
-            {/* Menu Dropdown de Produtos do Estoque */}
-            {showProductPopover && matchingProducts.length > 0 && (
+            {/* Menu Dropdown de Produtos do Estoque com Ações Rápidas de Cadastro */}
+            {showProductPopover && (
               <>
                 <div
                   className="fixed inset-0 z-10"
                   onClick={() => setShowProductPopover(false)}
                 />
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    📦 Produtos no Estoque ({matchingProducts.length})
-                  </div>
-                  {matchingProducts.map((p) => {
-                    const st = calcTotalStock(p);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => handleSelectProduct(p)}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary-soft/50"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          {p.image_url ? (
-                            <img
-                              src={p.image_url}
-                              alt={p.name}
-                              className="h-9 w-9 shrink-0 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted-foreground">
-                              <Package className="h-4 w-4" />
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="truncate font-medium leading-tight">{p.name}</p>
-                            <p className="text-[11px] text-muted-foreground">{p.category}</p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-mono text-xs font-semibold text-foreground">
-                            {brl(isEntrada ? p.selling_price : p.cost_price ?? p.selling_price)}
-                          </p>
-                          <span
-                            className={`inline-block text-[10px] font-medium ${
-                              st > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
-                            }`}
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  {matchingProducts.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        📦 Produtos no Estoque ({matchingProducts.length})
+                      </div>
+                      {matchingProducts.map((p) => {
+                        const st = calcTotalStock(p);
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => handleSelectProduct(p)}
+                            className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary-soft/50"
                           >
-                            {st > 0 ? `${st} un. em estoque` : "Sem estoque"}
-                          </span>
-                        </div>
+                            <div className="flex items-center gap-3 min-w-0">
+                              {p.image_url ? (
+                                <img
+                                  src={p.image_url}
+                                  alt={p.name}
+                                  className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted-foreground">
+                                  <Package className="h-4 w-4" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate font-medium leading-tight">{p.name}</p>
+                                <p className="text-[11px] text-muted-foreground">{p.category}</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-mono text-xs font-semibold text-foreground">
+                                {brl(isEntrada ? p.selling_price : p.cost_price ?? p.selling_price)}
+                              </p>
+                              <span
+                                className={`inline-block text-[10px] font-medium ${
+                                  st > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                                }`}
+                              >
+                                {st > 0 ? `${st} un. em estoque` : "Sem estoque"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      <div className="my-1.5 h-px bg-border" />
+                    </>
+                  )}
+
+                  {/* Ações Inteligentes de 1-Clique na Busca */}
+                  {description.trim().length > 0 && (
+                    <div className="space-y-1 p-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProductPopover(false);
+                          setQuickProductOpen(true);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-left text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Cadastrar "{description.trim()}" no Estoque
                       </button>
-                    );
-                  })}
+                      <button
+                        type="button"
+                        onClick={() => setShowProductPopover(false)}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:bg-surface-muted transition-colors"
+                      >
+                        <Zap className="h-4 w-4" />
+                        Lançar venda rápida de "{description.trim()}" (sem cadastrar no estoque)
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </Field>
 
           <Field label="Valor (R$)">
-            <div className="relative">
-              <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold ${accentClass}`}>
-                {isEntrada ? "+" : "−"}
-              </span>
-              <Input
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="189,90"
-                className="h-11 rounded-xl pl-7 font-mono"
-              />
+            <div className="space-y-1.5">
+              <div className="relative">
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold ${accentClass}`}>
+                  {isEntrada ? "+" : "−"}
+                </span>
+                <Input
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="189,90"
+                  className="h-11 rounded-xl pl-7 font-mono"
+                />
+              </div>
+
+              {/* Botão sutil de Desconto / Promoção */}
+              <button
+                type="button"
+                onClick={() => setShowDiscount(!showDiscount)}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+              >
+                <Tag className="h-3 w-3" />
+                {showDiscount ? "Remover desconto / promoção" : "+ Aplicar desconto / promoção"}
+              </button>
             </div>
           </Field>
 
@@ -626,6 +853,80 @@ function Caixa() {
           </Field>
         </div>
 
+        {/* ── Painel Expansível Sutil de Desconto / Promoção ────────────────── */}
+        {showDiscount && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800/40 dark:bg-amber-950/20 animate-in fade-in-50 slide-in-from-top-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-amber-800 dark:text-amber-400">
+                🏷️ Desconto / Valor Promocional
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDiscount(false);
+                  setDiscountValue("");
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div>
+                <Label className="text-[11px] font-medium text-muted-foreground">Tipo de desconto</Label>
+                <div className="mt-1 flex rounded-xl border border-border bg-card p-1">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType("flat")}
+                    className={`flex-1 rounded-lg py-1 text-xs font-semibold transition-colors ${
+                      discountType === "flat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    R$ Reais
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType("pct")}
+                    className={`flex-1 rounded-lg py-1 text-xs font-semibold transition-colors ${
+                      discountType === "pct" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    % Porcentagem
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-[11px] font-medium text-muted-foreground">
+                  {discountType === "flat" ? "Desconto (R$)" : "Desconto (%)"}
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  placeholder={discountType === "flat" ? "20,00" : "15"}
+                  className="mt-1 h-9 rounded-xl font-mono text-xs"
+                />
+              </div>
+
+              <div className="flex flex-col justify-end">
+                <div className="rounded-xl border border-amber-300/40 bg-card p-2 text-right">
+                  <span className="text-[10px] text-muted-foreground">Valor final a lançar:</span>
+                  <p className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {brl(netAmount)}
+                  </p>
+                  {calculatedDiscount > 0 && (
+                    <span className="text-[10px] text-amber-700 dark:text-amber-400">
+                      Economia de {brl(calculatedDiscount)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
         {selectedProduct && (
           <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary-soft/30 p-4 sm:flex-row sm:items-center sm:justify-between animate-in fade-in-50 slide-in-from-top-2">
@@ -651,7 +952,7 @@ function Caixa() {
                   </Badge>
                 </div>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Peça vinculada do Estoque da loja
+                  Peça vinculada do Estoque da loja • Categoria: {selectedProduct.category}
                 </p>
               </div>
             </div>
@@ -748,47 +1049,68 @@ function Caixa() {
           />
         ) : (
           <ul className="mt-5 divide-y divide-border">
-            {monthTxs.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-4 py-4">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{t.description}</p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <Badge variant="secondary" className="rounded-full text-[10px] font-medium">
-                      {resolveCategory(t)}
-                    </Badge>
-                    <Badge variant="outline" className="rounded-full text-[10px] font-medium">
-                      {resolvePayment(t)}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(t.occurred_on)}
-                    </span>
+            {monthTxs.map((t) => {
+              const linkedProd = resolveLinkedProduct(t);
+              return (
+                <li key={t.id} className="flex items-center justify-between gap-4 py-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Imagem do Produto no Extrato */}
+                    {linkedProd?.image_url ? (
+                      <img
+                        src={linkedProd.image_url}
+                        alt={t.description}
+                        className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-muted-foreground">
+                        <Package className="h-5 w-5" />
+                      </div>
+                    )}
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{t.description}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <Badge variant="secondary" className="rounded-full text-[10px] font-medium">
+                          {resolveCategory(t)}
+                        </Badge>
+                        <Badge variant="outline" className="rounded-full text-[10px] font-medium">
+                          {resolvePayment(t)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(t.occurred_on)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <p
-                    className={`numeric text-sm font-semibold ${
-                      t.kind === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                    }`}
-                  >
-                    {t.kind === "entrada" ? "+" : "−"}
-                    {brl(Number(t.amount))}
-                  </p>
-                  <ConfirmDelete
-                    onConfirm={() => remove.mutate(t.id)}
-                    description="O lançamento será removido do seu caixa."
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-full text-muted-foreground"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    }
-                  />
-                </div>
-              </li>
-            ))}
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <p
+                      className={`numeric text-sm font-semibold ${
+                        t.kind === "entrada"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {t.kind === "entrada" ? "+" : "−"}
+                      {brl(Number(t.amount))}
+                    </p>
+                    <ConfirmDelete
+                      onConfirm={() => remove.mutate(t.id)}
+                      description="O lançamento será removido do seu caixa."
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 rounded-full text-muted-foreground"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      }
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -796,8 +1118,8 @@ function Caixa() {
       {/* ── Dialogs de criação rápida ─────────────────────────────────── */}
       <QuickAddDialog
         open={addCatOpen}
-        title={`Nova categoria de ${kind === "entrada" ? "entrada" : "saída"}`}
-        placeholder={kind === "entrada" ? "Ex: Comissão de vendedora" : "Ex: Sacolas & Embalagens"}
+        title={`Nova categoria de ${isEntrada ? "entrada" : "saída"}`}
+        placeholder={isEntrada ? "Ex: Comissão de vendedora" : "Ex: Sacolas & Embalagens"}
         onConfirm={handleAddCategory}
         onClose={() => setAddCatOpen(false)}
       />
@@ -807,6 +1129,12 @@ function Caixa() {
         placeholder="Ex: Link Mercado Pago, Stone, Vale-presente"
         onConfirm={handleAddPayment}
         onClose={() => setAddPayOpen(false)}
+      />
+      <QuickProductDialog
+        open={quickProductOpen}
+        initialName={description}
+        onConfirm={handleQuickCreateProduct}
+        onClose={() => setQuickProductOpen(false)}
       />
     </div>
   );
