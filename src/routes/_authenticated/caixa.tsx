@@ -412,36 +412,36 @@ function Caixa() {
     return "Ex: Material de escritório, manutenção, conta de luz…";
   }, [isEntrada, category]);
 
-  // ── Impacto Contábil Live Feedback (Apple Level) ──────────────────────────
+  // ── Impacto Contábil Live Feedback (Linguagem Humana & Simples Apple) ─────
   const managementImpact = useMemo(() => {
     if (isEntrada) {
       return {
-        icon: "📈",
-        title: "Receita Bruta",
-        desc: "Incrementa o Faturamento e o Saldo do Caixa da loja.",
+        icon: "💰",
+        title: "Venda / Entrada",
+        desc: "Soma no faturamento e aumenta o dinheiro no caixa da loja.",
         style: "border-emerald-200 bg-emerald-50/50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400",
       };
     }
     if (category === "compra_estoque") {
       return {
         icon: "📦",
-        title: "Compra de Estoque (CMV / Ativo)",
-        desc: "Aumenta o patrimônio em mercadoria disponível e reduz o Saldo do Caixa.",
+        title: "Novas Peças",
+        desc: "Investimento para trazer mais roupas e novidades para a loja.",
         style: "border-blue-200 bg-blue-50/50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/20 dark:text-blue-400",
       };
     }
     if (category === "prolabore") {
       return {
         icon: "👤",
-        title: "Retirada Pessoal (Pró-labore)",
-        desc: "Transfere valor para a sócia e reduz o saldo de meta mensal de pró-labore.",
+        title: "Seu Pagamento",
+        desc: "Retirada de dinheiro para o seu bolso como dona do negócio.",
         style: "border-purple-200 bg-purple-50/50 text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/20 dark:text-purple-400",
       };
     }
     return {
-      icon: "📉",
-      title: "Despesa Operacional Fixa",
-      desc: "Reduz diretamente o Lucro Líquido Operacional do Mês (DRE).",
+      icon: "💸",
+      title: "Custo da Loja",
+      desc: "Pagamento necessário para manter sua loja aberta e funcionando.",
       style: "border-rose-200 bg-rose-50/50 text-rose-800 dark:border-rose-800/40 dark:bg-rose-950/20 dark:text-rose-400",
     };
   }, [isEntrada, category]);
