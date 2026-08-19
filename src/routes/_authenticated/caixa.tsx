@@ -388,9 +388,11 @@ function Caixa() {
     setSelectedProductId(product.id);
     setDescription(product.name);
 
+    // Em Entrada: puxa Preço de Venda (selling_price)
+    // Em Saída: puxa Preço de Custo ao fornecedor (cost_price se > 0, senão selling_price)
     const priceToUse = isEntrada
       ? product.selling_price
-      : product.cost_price ?? product.selling_price;
+      : (product.cost_price && product.cost_price > 0 ? product.cost_price : product.selling_price);
 
     if (priceToUse > 0) {
       setAmount(String(priceToUse).replace(".", ","));
@@ -399,6 +401,50 @@ function Caixa() {
     }
     setShowProductPopover(false);
   };
+
+  // ── Placeholder Inteligente da Descrição ──────────────────────────────────
+  const descriptionPlaceholder = useMemo(() => {
+    if (isEntrada) return "Digite ou selecione uma peça do estoque…";
+    if (category === "compra_estoque") return "Ex: Lote de vestidos fornecedor Brás ou peça do estoque…";
+    if (category === "aluguel") return "Ex: Aluguel da loja referência deste mês…";
+    if (category === "prolabore") return "Ex: Retirada de pró-labore da sócia…";
+    if (category === "marketing") return "Ex: Parceria influenciadora / Anúncios Instagram…";
+    return "Ex: Material de escritório, manutenção, conta de luz…";
+  }, [isEntrada, category]);
+
+  // ── Impacto Contábil Live Feedback (Apple Level) ──────────────────────────
+  const managementImpact = useMemo(() => {
+    if (isEntrada) {
+      return {
+        icon: "📈",
+        title: "Receita Bruta",
+        desc: "Incrementa o Faturamento e o Saldo do Caixa da loja.",
+        style: "border-emerald-200 bg-emerald-50/50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400",
+      };
+    }
+    if (category === "compra_estoque") {
+      return {
+        icon: "📦",
+        title: "Compra de Estoque (CMV / Ativo)",
+        desc: "Aumenta o patrimônio em mercadoria disponível e reduz o Saldo do Caixa.",
+        style: "border-blue-200 bg-blue-50/50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/20 dark:text-blue-400",
+      };
+    }
+    if (category === "prolabore") {
+      return {
+        icon: "👤",
+        title: "Retirada Pessoal (Pró-labore)",
+        desc: "Transfere valor para a sócia e reduz o saldo de meta mensal de pró-labore.",
+        style: "border-purple-200 bg-purple-50/50 text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/20 dark:text-purple-400",
+      };
+    }
+    return {
+      icon: "📉",
+      title: "Despesa Operacional Fixa",
+      desc: "Reduz diretamente o Lucro Líquido Operacional do Mês (DRE).",
+      style: "border-rose-200 bg-rose-50/50 text-rose-800 dark:border-rose-800/40 dark:bg-rose-950/20 dark:text-rose-400",
+    };
+  }, [isEntrada, category]);
 
   // ── Cálculos de Desconto / Promoção ───────────────────────────────────────
   const grossAmount = toNumber(amount);
@@ -674,7 +720,7 @@ function Caixa() {
                   setSelectedProductId(null);
                   setShowProductPopover(true);
                 }}
-                placeholder={isEntrada ? "Digite ou selecione uma peça do estoque…" : "Aluguel da loja ou peça do estoque"}
+                placeholder={descriptionPlaceholder}
                 className="h-11 rounded-xl pr-9"
               />
               {selectedProduct ? (
@@ -840,7 +886,11 @@ function Caixa() {
                 className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
               >
                 <Tag className="h-3 w-3" />
-                {showDiscount ? "Remover desconto / promoção" : "+ Aplicar desconto / promoção"}
+                {showDiscount
+                  ? "Remover desconto"
+                  : isEntrada
+                  ? "+ Aplicar desconto / promoção"
+                  : "+ Desconto / abatimento obtido"}
               </button>
             </div>
           </Field>
@@ -943,7 +993,7 @@ function Caixa() {
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800/40 dark:bg-amber-950/20 animate-in fade-in-50 slide-in-from-top-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-amber-800 dark:text-amber-400">
-                🏷️ Desconto / Valor Promocional
+                {isEntrada ? "🏷️ Desconto / Valor Promocional" : "🏷️ Desconto / Abatimento Obtido do Fornecedor"}
               </span>
               <button
                 type="button"
@@ -1003,7 +1053,7 @@ function Caixa() {
                   </p>
                   {calculatedDiscount > 0 && (
                     <span className="text-[10px] text-amber-700 dark:text-amber-400">
-                      Economia de {brl(calculatedDiscount)}
+                      {isEntrada ? "Desconto ao cliente: " : "Abatimento obtido: "}{brl(calculatedDiscount)}
                     </span>
                   )}
                 </div>
@@ -1011,6 +1061,15 @@ function Caixa() {
             </div>
           </div>
         )}
+
+        {/* ── Micro-Card de Impacto na Gestão (Apple Live Feedback) ─────────── */}
+        <div className={`mt-4 flex items-center gap-3 rounded-2xl border p-3.5 transition-all ${managementImpact.style}`}>
+          <span className="text-lg">{managementImpact.icon}</span>
+          <div className="text-xs">
+            <span className="font-semibold">{managementImpact.title}: </span>
+            <span className="opacity-90">{managementImpact.desc}</span>
+          </div>
+        </div>
 
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
         {selectedProduct && (
