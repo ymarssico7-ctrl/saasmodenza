@@ -292,6 +292,9 @@ function Caixa() {
   const [deductStock, setDeductStock] = useState(true);
   const [showProductPopover, setShowProductPopover] = useState(false);
 
+  // Navegação por Teclado Desktop
+  const [highlightIndex, setHighlightIndex] = useState<number>(-1);
+
   // Painel Sutil de Desconto / Promoção
   const [showDiscount, setShowDiscount] = useState(false);
   const [discountType, setDiscountType] = useState<"flat" | "pct">("flat");
@@ -331,6 +334,49 @@ function Caixa() {
       )
       .slice(0, 8);
   }, [inventoryItems, description]);
+
+  const hasQuickActions = description.trim().length > 0;
+  const totalPopoverItems = matchingProducts.length + (hasQuickActions ? 2 : 0);
+
+  // Reset highlight ao mudar busca
+  useEffect(() => {
+    setHighlightIndex(-1);
+  }, [description]);
+
+  const handleKeyDownDescription = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showProductPopover) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        setShowProductPopover(true);
+        setHighlightIndex(0);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex((prev) => (prev < totalPopoverItems - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((prev) => (prev > 0 ? prev - 1 : totalPopoverItems - 1));
+    } else if (e.key === "Escape") {
+      setShowProductPopover(false);
+      setHighlightIndex(-1);
+    } else if (e.key === "Enter") {
+      if (highlightIndex >= 0 && highlightIndex < totalPopoverItems) {
+        e.preventDefault();
+        if (highlightIndex < matchingProducts.length) {
+          const product = matchingProducts[highlightIndex];
+          if (product) handleSelectProduct(product);
+        } else if (highlightIndex === matchingProducts.length) {
+          setShowProductPopover(false);
+          setQuickProductOpen(true);
+        } else if (highlightIndex === matchingProducts.length + 1) {
+          setShowProductPopover(false);
+        }
+      }
+    }
+  };
 
   const calcTotalStock = (item: InventoryItem) => {
     const sizes = item.sizes ?? {};
@@ -622,6 +668,7 @@ function Caixa() {
               <Input
                 value={description}
                 onFocus={() => setShowProductPopover(true)}
+                onKeyDown={handleKeyDownDescription}
                 onChange={(e) => {
                   setDescription(e.target.value);
                   setSelectedProductId(null);
@@ -659,14 +706,24 @@ function Caixa() {
                       <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         📦 Produtos no Estoque ({matchingProducts.length})
                       </div>
-                      {matchingProducts.map((p) => {
+                      {matchingProducts.map((p, idx) => {
                         const st = calcTotalStock(p);
+                        const isHighlighted = idx === highlightIndex;
                         return (
                           <button
                             key={p.id}
                             type="button"
+                            ref={(node) => {
+                              if (isHighlighted && node) {
+                                node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                              }
+                            }}
                             onClick={() => handleSelectProduct(p)}
-                            className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary-soft/50"
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                              isHighlighted
+                                ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
+                                : "hover:bg-primary-soft/50"
+                            }`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               {p.image_url ? (
@@ -707,25 +764,53 @@ function Caixa() {
                   {/* Ações Inteligentes de 1-Clique na Busca */}
                   {description.trim().length > 0 && (
                     <div className="space-y-1 p-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProductPopover(false);
-                          setQuickProductOpen(true);
-                        }}
-                        className="flex w-full items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-left text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Cadastrar "{description.trim()}" no Estoque
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowProductPopover(false)}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:bg-surface-muted transition-colors"
-                      >
-                        <Zap className="h-4 w-4" />
-                        Lançar venda rápida de "{description.trim()}" (sem cadastrar no estoque)
-                      </button>
+                      {(() => {
+                        const idxOpt1 = matchingProducts.length;
+                        const idxOpt2 = matchingProducts.length + 1;
+                        const isHigh1 = highlightIndex === idxOpt1;
+                        const isHigh2 = highlightIndex === idxOpt2;
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              ref={(node) => {
+                                if (isHigh1 && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
+                              onClick={() => {
+                                setShowProductPopover(false);
+                                setQuickProductOpen(true);
+                              }}
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all ${
+                                isHigh1
+                                  ? "bg-primary/20 ring-2 ring-primary"
+                                  : "bg-primary/10 hover:bg-primary/20"
+                              }`}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Cadastrar "{description.trim()}" no Estoque
+                            </button>
+                            <button
+                              type="button"
+                              ref={(node) => {
+                                if (isHigh2 && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
+                              onClick={() => setShowProductPopover(false)}
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-all ${
+                                isHigh2
+                                  ? "bg-surface-muted ring-2 ring-primary/40 text-foreground font-semibold"
+                                  : "hover:bg-surface-muted"
+                              }`}
+                            >
+                              <Zap className="h-4 w-4" />
+                              Lançar venda rápida de "{description.trim()}" (sem cadastrar no estoque)
+                            </button>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
