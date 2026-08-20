@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -310,232 +310,10 @@ function QuickProductDialog({
   );
 }
 
-// ── Dialog de Gerenciamento Organizado de Opções (Apple Level) ───────────────
-function ManageOptionsDialog({
-  open,
-  storeId,
-  initialTab = "entry",
-  onClose,
-}: {
-  open: boolean;
-  storeId: string;
-  initialTab?: "entry" | "exit" | "pay";
-  onClose: () => void;
-}) {
-  const [tab, setTab] = useState<"entry" | "exit" | "pay">(initialTab);
-  const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
-  const [editingValue, setEditingValue] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState("");
-  const [newLabel, setNewLabel] = useState("");
-
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab, open]);
-
-  const refresh = useCallback(() => {
-    setCustomOpts(getCustomOptions(storeId));
-  }, [storeId]);
-
-  useEffect(() => {
-    window.addEventListener("custom-options-changed", refresh);
-    return () => window.removeEventListener("custom-options-changed", refresh);
-  }, [refresh]);
-
-  const handleStartEdit = (value: string, label: string) => {
-    setEditingValue(value);
-    setEditLabel(label);
-  };
-
-  const handleSaveEdit = (kind: keyof CustomOptionsStore, value: string) => {
-    if (!editLabel.trim()) return;
-    updateCustomOption(storeId, kind, value, editLabel);
-    setEditingValue(null);
-    setEditLabel("");
-    toast.success("Opção atualizada");
-  };
-
-  const handleDelete = (kind: keyof CustomOptionsStore, value: string) => {
-    removeCustomOption(storeId, kind, value);
-    toast.success("Opção removida");
-  };
-
-  const handleAdd = (kind: keyof CustomOptionsStore) => {
-    if (!newLabel.trim()) return;
-    if (kind === "entryCategories") addCustomEntry(storeId, newLabel);
-    if (kind === "exitCategories") addCustomExit(storeId, newLabel);
-    if (kind === "paymentMethods") addCustomPaymentMethod(storeId, newLabel);
-    setNewLabel("");
-    toast.success("Nova opção adicionada");
-  };
-
-  const baseEntry = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
-  const baseExit = EXIT_CATEGORIES as readonly { value: string; label: string }[];
-  const basePay = PAYMENT_METHODS as readonly { value: string; label: string }[];
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md rounded-2xl p-6">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-            <Settings className="h-5 w-5 text-primary" />
-            Gerenciar Categorias e Pagamentos
-          </DialogTitle>
-        </DialogHeader>
-
-        {/* ── Segmented Tabs Apple Style ────────────────────────────────────── */}
-        <div className="flex rounded-xl bg-surface-muted p-1 gap-1 my-2">
-          <button
-            type="button"
-            onClick={() => setTab("entry")}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
-              tab === "entry" ? "bg-card text-emerald-600 shadow-sm dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Entradas
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("exit")}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
-              tab === "exit" ? "bg-card text-rose-600 shadow-sm dark:text-rose-400" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Saídas
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("pay")}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
-              tab === "pay" ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Pagamentos
-          </button>
-        </div>
-
-        {/* ── Formulário de adição rápida no topo ──────────────────────────── */}
-        <div className="flex gap-2 my-2">
-          <Input
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            placeholder={
-              tab === "entry"
-                ? "Nova categoria de entrada…"
-                : tab === "exit"
-                ? "Nova categoria de saída…"
-                : "Nova forma de pagamento…"
-            }
-            className="h-10 rounded-xl text-xs"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const k = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
-                handleAdd(k);
-              }
-            }}
-          />
-          <Button
-            size="sm"
-            className="h-10 rounded-xl px-4 text-xs font-semibold"
-            disabled={!newLabel.trim()}
-            onClick={() => {
-              const k = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
-              handleAdd(k);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Criar
-          </Button>
-        </div>
-
-        {/* ── Lista de Opções da Aba Ativa ──────────────────────────────────── */}
-        <div className="max-h-64 overflow-y-auto space-y-2 pr-1 my-2">
-          {/* Opções Padrão */}
-          {(tab === "entry" ? baseEntry : tab === "exit" ? baseExit : basePay).map((item) => (
-            <div
-              key={item.value}
-              className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-2.5 px-3 text-xs"
-            >
-              <span className="font-medium text-foreground">{item.label}</span>
-              <Badge variant="outline" className="rounded-full text-[10px] text-muted-foreground">
-                Padrão
-              </Badge>
-            </div>
-          ))}
-
-          {/* Opções Personalizadas */}
-          {(tab === "entry"
-            ? customOpts.entryCategories
-            : tab === "exit"
-            ? customOpts.exitCategories
-            : customOpts.paymentMethods
-          ).map((item) => {
-            const kindKey = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
-            const isEditing = editingValue === item.value;
-
-            return (
-              <div
-                key={item.value}
-                className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary-soft/20 p-2.5 px-3 text-xs"
-              >
-                {isEditing ? (
-                  <div className="flex flex-1 items-center gap-2 mr-2">
-                    <Input
-                      autoFocus
-                      value={editLabel}
-                      onChange={(e) => setEditLabel(e.target.value)}
-                      className="h-8 rounded-lg text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveEdit(kindKey, item.value);
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 rounded-lg px-3 text-xs"
-                      onClick={() => handleSaveEdit(kindKey, item.value)}
-                    >
-                      Salvar
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <span className="font-semibold text-primary">{item.label}</span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
-                        onClick={() => handleStartEdit(item.value, item.label)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                        onClick={() => handleDelete(kindKey, item.value)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <DialogFooter className="mt-2">
-          <Button variant="outline" className="w-full rounded-full font-semibold" onClick={onClose}>
-            Concluído
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ── Componente principal Caixa ──────────────────────────────────────────────
 function Caixa() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { storeId } = useStore();
   const { data: all = [] } = useQuery(transactionsQuery());
   const { data: rawCustomers = [] } = useQuery(customersQuery());
@@ -586,7 +364,7 @@ function Caixa() {
   const [deductStock, setDeductStock] = useState(true);
   const [showProductPopover, setShowProductPopover] = useState(false);
 
-  // Navegação por Teclado Desktop
+  // Navegação por Teclado Desktop (produto)
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
 
   // Painel Sutil de Desconto / Promoção
@@ -599,18 +377,70 @@ function Caixa() {
   const [customDate, setCustomDate] = useState(todayISO());
   const date = dateMode === "hoje" ? todayISO() : dateMode === "ontem" ? yesterdayISO() : customDate;
 
-  // Fiado & Cliente
+  // Fiado & Cliente ─────────────────────────────────────────────────────────
   const [fiadoCustomerId, setFiadoCustomerId] = useState("");
   const [fiadoDueDate, setFiadoDueDate] = useState(todayISO());
+  // Spotlight Autocomplete de Cliente
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerPopover, setShowCustomerPopover] = useState(false);
+  const [customerHighlight, setCustomerHighlight] = useState(-1);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const customerInputRef = useRef<HTMLInputElement>(null);
 
-  // Dialogs de criação rápida e gerenciamento
+  const selectedCustomer = useMemo(
+    () => customers.find((c) => c.id === selectedCustomerId) ?? null,
+    [customers, selectedCustomerId],
+  );
+
+  const matchingCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return customers.slice(0, 8);
+    const q = customerSearch.toLowerCase();
+    return customers
+      .filter((c) => c.name.toLowerCase().includes(q) || (c.phone ?? "").includes(q))
+      .slice(0, 8);
+  }, [customers, customerSearch]);
+
+  const handleSelectCustomer = (c: Customer) => {
+    setSelectedCustomerId(c.id);
+    setCustomerSearch("");
+    setShowCustomerPopover(false);
+    setCustomerHighlight(-1);
+    if (isFiado) setFiadoCustomerId(c.id);
+  };
+
+  const handleClearCustomer = () => {
+    setSelectedCustomerId("");
+    setFiadoCustomerId("");
+    setCustomerSearch("");
+    setShowCustomerPopover(false);
+  };
+
+  const handleKeyDownCustomer = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const total = matchingCustomers.length + 1; // +1 para "Cadastrar novo"
+    if (!showCustomerPopover) {
+      if (e.key === "ArrowDown") { setShowCustomerPopover(true); setCustomerHighlight(0); e.preventDefault(); }
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setCustomerHighlight((p) => (p < total - 1 ? p + 1 : 0)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setCustomerHighlight((p) => (p > 0 ? p - 1 : total - 1)); }
+    else if (e.key === "Escape") { setShowCustomerPopover(false); setCustomerHighlight(-1); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (customerHighlight >= 0 && customerHighlight < matchingCustomers.length) {
+        const c = matchingCustomers[customerHighlight];
+        if (c) handleSelectCustomer(c);
+      } else if (customerHighlight === matchingCustomers.length) {
+        setAddCustomerOpen(true);
+        setShowCustomerPopover(false);
+      }
+    }
+  };
+
+  // Dialogs de criação rápida
   const [addCatOpen, setAddCatOpen] = useState(false);
   const [addPayOpen, setAddPayOpen] = useState(false);
   const [quickProductOpen, setQuickProductOpen] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
-  const [manageTab, setManageTab] = useState<"entry" | "exit" | "pay">("entry");
 
   const isFiado = method === "fiado" && kind === "entrada";
   const isEntrada = kind === "entrada";
@@ -1232,15 +1062,14 @@ function Caixa() {
             </div>
           </Field>
 
-          {/* Categoria com "+ Nova categoria" e "⚙️ Gerenciar" */}
+          {/* Categoria com "+ Nova categoria" e "⚙️ Gerenciar nas Configurações" */}
           <Field label="Categoria">
             <Select
               value={category}
               onValueChange={(v) => {
                 if (v === "__add_new__") { setAddCatOpen(true); return; }
                 if (v === "__manage_cat__") {
-                  setManageTab(isEntrada ? "entry" : "exit");
-                  setManageOpen(true);
+                  void navigate({ to: "/configuracoes" });
                   return;
                 }
                 setCategory(v);
@@ -1262,21 +1091,20 @@ function Caixa() {
                 </SelectItem>
                 <SelectItem value="__manage_cat__" className="text-muted-foreground font-medium">
                   <Settings className="mr-1.5 inline h-3.5 w-3.5" />
-                  Gerenciar categorias…
+                  Gerenciar categorias em Configurações…
                 </SelectItem>
               </SelectContent>
             </Select>
           </Field>
 
-          {/* Forma de Pagamento com "+ Nova forma" e "⚙️ Gerenciar" */}
+          {/* Forma de Pagamento com "+ Nova forma" e "⚙️ Gerenciar nas Configurações" */}
           <Field label="Forma de pagamento">
             <Select
               value={method}
               onValueChange={(v) => {
                 if (v === "__add_pay__") { setAddPayOpen(true); return; }
                 if (v === "__manage_pay__") {
-                  setManageTab("pay");
-                  setManageOpen(true);
+                  void navigate({ to: "/configuracoes" });
                   return;
                 }
                 setMethod(v);
@@ -1298,50 +1126,108 @@ function Caixa() {
                 </SelectItem>
                 <SelectItem value="__manage_pay__" className="text-muted-foreground font-medium">
                   <Settings className="mr-1.5 inline h-3.5 w-3.5" />
-                  Gerenciar pagamentos…
+                  Gerenciar pagamentos em Configurações…
                 </SelectItem>
               </SelectContent>
             </Select>
           </Field>
 
-          {/* Cliente (Opcional em Vendas/Saídas, Obrigatório em Fiado) */}
-          <Field label={isFiado ? "Cliente (Obrigatório para Fiado)" : "Cliente (Opcional)"}>
-            <Select
-              value={(isFiado ? fiadoCustomerId : selectedCustomerId) || "__none__"}
-              onValueChange={(v) => {
-                if (v === "__none__") {
-                  setSelectedCustomerId("");
-                  if (isFiado) setFiadoCustomerId("");
-                  return;
+          {/* Cliente (Busca Spotlight / Autocomplete Apple Level) */}
+          <Field label={isFiado ? "Cliente (Obrigatório para Fiado)" : "Cliente (Opcional)"} className="relative">
+            <div className="relative">
+              <Input
+                ref={customerInputRef}
+                value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                onFocus={() => {
+                  if (!selectedCustomer) setShowCustomerPopover(true);
+                }}
+                onKeyDown={handleKeyDownCustomer}
+                onChange={(e) => {
+                  if (selectedCustomer) handleClearCustomer();
+                  setCustomerSearch(e.target.value);
+                  setShowCustomerPopover(true);
+                }}
+                placeholder={
+                  isEntrada
+                    ? "Digite o nome ou telefone da cliente…"
+                    : "Digite o nome ou telefone para estorno/devolução…"
                 }
-                if (v === "__add_customer__") {
-                  setAddCustomerOpen(true);
-                  return;
-                }
-                setSelectedCustomerId(v);
-                if (isFiado) setFiadoCustomerId(v);
-              }}
-            >
-              <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder={isEntrada ? "Selecione a cliente (opcional)…" : "Selecione a cliente (opcional)…"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__" className="text-muted-foreground font-medium">
-                  👤 Nenhum cliente (Venda balcão / Geral)
-                </SelectItem>
-                <div className="my-1 h-px bg-border" />
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    👤 {c.name} {c.phone ? `(${c.phone})` : ""}
-                  </SelectItem>
-                ))}
-                <div className="my-1 h-px bg-border" />
-                <SelectItem value="__add_customer__" className="text-primary font-medium">
-                  <Plus className="mr-1.5 inline h-3.5 w-3.5" />
-                  Novo cliente…
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                className="h-11 rounded-xl pr-9"
+              />
+              {selectedCustomer ? (
+                <button
+                  type="button"
+                  onClick={handleClearCustomer}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : (
+                <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+              )}
+            </div>
+
+            {/* Menu Dropdown Autocomplete de Clientes */}
+            {showCustomerPopover && !selectedCustomer && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowCustomerPopover(false)}
+                />
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  {matchingCustomers.length > 0 ? (
+                    <>
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        👤 Clientes Encontradas ({matchingCustomers.length})
+                      </div>
+                      {matchingCustomers.map((c, idx) => {
+                        const isHighlighted = idx === customerHighlight;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => handleSelectCustomer(c)}
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                              isHighlighted
+                                ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
+                                : "hover:bg-primary-soft/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                {c.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate font-medium leading-tight">{c.name}</p>
+                                {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      <div className="my-1.5 h-px bg-border" />
+                    </>
+                  ) : null}
+
+                  {/* Atalho Inteligente para Cadastrar Nova Cliente */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCustomerPopover(false);
+                      setAddCustomerOpen(true);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
+                      customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
+                    }`}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {customerSearch.trim()
+                      ? `Cadastrar "${customerSearch.trim()}" na base`
+                      : "Cadastrar nova cliente…"}
+                  </button>
+                </div>
+              </>
+            )}
           </Field>
 
           {/* Data com atalhos "Hoje" / "Ontem" / Outra data */}
@@ -1681,12 +1567,6 @@ function Caixa() {
         initialName={description}
         onConfirm={handleQuickCreateProduct}
         onClose={() => setQuickProductOpen(false)}
-      />
-      <ManageOptionsDialog
-        open={manageOpen}
-        storeId={storeId}
-        initialTab={manageTab}
-        onClose={() => setManageOpen(false)}
       />
     </div>
   );
