@@ -16,6 +16,7 @@ import {
   Sparkles,
   Tag,
   Trash2,
+  User,
   Wallet,
   X,
   Zap,
@@ -71,6 +72,7 @@ import {
   insertCredit,
   adjustInventoryStock,
   quickInsertInventoryItem,
+  insertCustomer,
 } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
@@ -93,6 +95,70 @@ function yesterdayISO() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0, 10);
+}
+
+// ── Dialog de Cadastro Rápido de Cliente (Apple Level) ─────────────────────
+function QuickCustomerDialog({
+  open,
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  onConfirm: (name: string, phone: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    await onConfirm(name, phone);
+    setName("");
+    setPhone("");
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm rounded-2xl p-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <User className="h-5 w-5 text-primary" />
+            Cadastrar Nova Cliente
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Nome da Cliente</Label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Ana Maria Silva"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">WhatsApp / Telefone (opcional)</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-8888"
+              className="h-11 rounded-xl font-mono"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button className="rounded-full font-semibold" disabled={!name.trim()} onClick={handleSubmit}>
+            Salvar e Selecionar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ── Dialog de criação rápida de opção ────────────────────────────────────────
@@ -533,9 +599,11 @@ function Caixa() {
   const [customDate, setCustomDate] = useState(todayISO());
   const date = dateMode === "hoje" ? todayISO() : dateMode === "ontem" ? yesterdayISO() : customDate;
 
-  // Fiado
+  // Fiado & Cliente
   const [fiadoCustomerId, setFiadoCustomerId] = useState("");
   const [fiadoDueDate, setFiadoDueDate] = useState(todayISO());
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
 
   // Dialogs de criação rápida e gerenciamento
   const [addCatOpen, setAddCatOpen] = useState(false);
@@ -755,6 +823,21 @@ function Caixa() {
     }
   };
 
+  const handleCreateCustomer = async (name: string, phone: string) => {
+    try {
+      const res = await insertCustomer(storeId, name, phone);
+      const newId = (res as { id?: string })?.id ?? "";
+      toast.success(`Cliente "${name}" cadastrada com sucesso!`);
+      void queryClient.invalidateQueries({ queryKey: ["customers"] });
+      if (newId) {
+        setSelectedCustomerId(newId);
+        if (isFiado) setFiadoCustomerId(newId);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao cadastrar cliente");
+    }
+  };
+
   // ── Totais ────────────────────────────────────────────────────────────────
   const month = monthStart(0);
   const monthTxs = useMemo(
@@ -773,8 +856,13 @@ function Caixa() {
       if (!description.trim()) throw new Error("Descreva o lançamento");
       if (netAmount <= 0) throw new Error("Informe um valor maior que zero");
 
-      // Monta a descrição final (acrescentando nota de desconto se houver)
+      // Monta a descrição final (acrescentando cliente e nota de desconto se houver)
       let finalDescription = description.trim();
+      const activeCustId = isFiado ? fiadoCustomerId : selectedCustomerId;
+      const linkedCustomer = customers.find((c) => c.id === activeCustId);
+      if (linkedCustomer && !finalDescription.toLowerCase().includes(linkedCustomer.name.toLowerCase())) {
+        finalDescription += ` [Cliente: ${linkedCustomer.name}]`;
+      }
       if (calculatedDiscount > 0) {
         finalDescription += ` [Desconto: ${brl(calculatedDiscount)}]`;
       }
@@ -833,6 +921,7 @@ function Caixa() {
       setShowDiscount(false);
       setDiscountValue("");
       setSelectedProductId(null);
+      setSelectedCustomerId("");
       setDeductStock(true);
       setFiadoCustomerId("");
       setFiadoDueDate(todayISO());
@@ -1197,6 +1286,46 @@ function Caixa() {
             </Select>
           </Field>
 
+          {/* Cliente (Opcional em Vendas/Saídas, Obrigatório em Fiado) */}
+          <Field label={isFiado ? "Cliente (Obrigatório para Fiado)" : "Cliente (Opcional)"}>
+            <Select
+              value={(isFiado ? fiadoCustomerId : selectedCustomerId) || "__none__"}
+              onValueChange={(v) => {
+                if (v === "__none__") {
+                  setSelectedCustomerId("");
+                  if (isFiado) setFiadoCustomerId("");
+                  return;
+                }
+                if (v === "__add_customer__") {
+                  setAddCustomerOpen(true);
+                  return;
+                }
+                setSelectedCustomerId(v);
+                if (isFiado) setFiadoCustomerId(v);
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder={isEntrada ? "Selecione a cliente (opcional)…" : "Selecione a cliente (opcional)…"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-muted-foreground font-medium">
+                  👤 Nenhum cliente (Venda balcão / Geral)
+                </SelectItem>
+                <div className="my-1 h-px bg-border" />
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    👤 {c.name} {c.phone ? `(${c.phone})` : ""}
+                  </SelectItem>
+                ))}
+                <div className="my-1 h-px bg-border" />
+                <SelectItem value="__add_customer__" className="text-primary font-medium">
+                  <Plus className="mr-1.5 inline h-3.5 w-3.5" />
+                  Novo cliente…
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
           {/* Data com atalhos "Hoje" / "Ontem" / Outra data */}
           <Field label="Data">
             <div className="space-y-2">
@@ -1508,6 +1637,11 @@ function Caixa() {
       </section>
 
       {/* ── Dialogs de criação rápida e gerenciamento ─────────────────── */}
+      <QuickCustomerDialog
+        open={addCustomerOpen}
+        onConfirm={handleCreateCustomer}
+        onClose={() => setAddCustomerOpen(false)}
+      />
       <QuickAddDialog
         open={addCatOpen}
         title={`Nova categoria de ${isEntrada ? "entrada" : "saída"}`}
