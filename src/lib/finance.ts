@@ -109,6 +109,8 @@ export const ENTRY_CATEGORIES = [
 
 export const EXIT_CATEGORIES = [
   { value: "compra_estoque", label: "Compra de estoque" },
+  { value: "estorno_devolucao", label: "Estorno / Devolução de cliente" },
+  { value: "perda_avaria", label: "Perda / Avaria / Prejuízo de estoque" },
   { value: "aluguel", label: "Aluguel" },
   { value: "frete", label: "Frete" },
   { value: "marketing", label: "Marketing" },

@@ -704,6 +704,8 @@ function Caixa() {
   const descriptionPlaceholder = useMemo(() => {
     if (isEntrada) return "Digite ou selecione uma peça do estoque…";
     if (category === "compra_estoque") return "Ex: Lote de vestidos fornecedor Brás ou peça do estoque…";
+    if (category === "estorno_devolucao") return "Ex: Devolução de vestido tamanho M por estorno Pix…";
+    if (category === "perda_avaria") return "Ex: Peça rasgada/manchada no provador ou furto…";
     if (category === "aluguel") return "Ex: Aluguel da loja referência deste mês…";
     if (category === "prolabore") return "Ex: Retirada de pró-labore da sócia…";
     if (category === "marketing") return "Ex: Parceria influenciadora / Anúncios Instagram…";
@@ -723,9 +725,25 @@ function Caixa() {
     if (category === "compra_estoque") {
       return {
         icon: "📦",
-        title: "Novas Peças",
+        title: "Novas Peças (Compra)",
         desc: "Investimento para trazer mais roupas e novidades para a loja.",
         style: "border-blue-200 bg-blue-50/50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/20 dark:text-blue-400",
+      };
+    }
+    if (category === "estorno_devolucao") {
+      return {
+        icon: "🔄",
+        title: "Estorno / Devolução de Cliente",
+        desc: "Devolve o valor à cliente e retorna a peça intacta ao estoque de venda (+1 un.).",
+        style: "border-amber-200 bg-amber-50/50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-400",
+      };
+    }
+    if (category === "perda_avaria") {
+      return {
+        icon: "⚠️",
+        title: "Perda / Avaria de Estoque",
+        desc: "Registra o prejuízo da peça danificada/furtada e dá baixa no estoque (-1 un.).",
+        style: "border-rose-200 bg-rose-50/50 text-rose-800 dark:border-rose-800/40 dark:bg-rose-950/20 dark:text-rose-400",
       };
     }
     if (category === "prolabore") {
@@ -869,7 +887,7 @@ function Caixa() {
 
       // Baixa/Acréscimo automático de estoque se vinculado a produto do estoque
       if (selectedProductId && deductStock) {
-        const delta = isEntrada ? -1 : 1;
+        const delta = isEntrada || category === "perda_avaria" ? -1 : 1;
         await adjustInventoryStock(storeId, selectedProductId, delta);
         void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       }
@@ -1488,6 +1506,8 @@ function Caixa() {
                 <Label htmlFor="deduct-stock-switch" className="cursor-pointer text-xs font-medium">
                   {isEntrada
                     ? "Dar baixa no estoque (-1 un.)"
+                    : category === "perda_avaria"
+                    ? "Dar baixa por perda/avaria no estoque (-1 un.)"
                     : "Adicionar ao estoque (+1 un.)"}
                 </Label>
               </div>
