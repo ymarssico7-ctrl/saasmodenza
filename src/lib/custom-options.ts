@@ -79,3 +79,15 @@ export function removeCustomOption(
   opts[kind] = opts[kind].filter((o) => o.value !== value);
   saveCustomOptions(storeId, opts);
 }
+
+export function updateCustomOption(
+  storeId: string,
+  kind: keyof CustomOptionsStore,
+  value: string,
+  newLabel: string,
+) {
+  const opts = getCustomOptions(storeId);
+  opts[kind] = opts[kind].map((o) => (o.value === value ? { ...o, label: newLabel.trim() } : o));
+  saveCustomOptions(storeId, opts);
+}
+export type { CustomOptionsStore };

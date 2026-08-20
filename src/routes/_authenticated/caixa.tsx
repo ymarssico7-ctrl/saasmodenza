@@ -9,8 +9,10 @@ import {
   ChevronDown,
   Minus,
   Package,
+  Pencil,
   Percent,
   Plus,
+  Settings,
   Sparkles,
   Tag,
   Trash2,
@@ -57,7 +59,10 @@ import {
   addCustomEntry,
   addCustomExit,
   addCustomPaymentMethod,
+  removeCustomOption,
+  updateCustomOption,
   type CustomOption,
+  type CustomOptionsStore,
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
 import {
@@ -239,6 +244,229 @@ function QuickProductDialog({
   );
 }
 
+// ── Dialog de Gerenciamento Organizado de Opções (Apple Level) ───────────────
+function ManageOptionsDialog({
+  open,
+  storeId,
+  initialTab = "entry",
+  onClose,
+}: {
+  open: boolean;
+  storeId: string;
+  initialTab?: "entry" | "exit" | "pay";
+  onClose: () => void;
+}) {
+  const [tab, setTab] = useState<"entry" | "exit" | "pay">(initialTab);
+  const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab, open]);
+
+  const refresh = useCallback(() => {
+    setCustomOpts(getCustomOptions(storeId));
+  }, [storeId]);
+
+  useEffect(() => {
+    window.addEventListener("custom-options-changed", refresh);
+    return () => window.removeEventListener("custom-options-changed", refresh);
+  }, [refresh]);
+
+  const handleStartEdit = (value: string, label: string) => {
+    setEditingValue(value);
+    setEditLabel(label);
+  };
+
+  const handleSaveEdit = (kind: keyof CustomOptionsStore, value: string) => {
+    if (!editLabel.trim()) return;
+    updateCustomOption(storeId, kind, value, editLabel);
+    setEditingValue(null);
+    setEditLabel("");
+    toast.success("Opção atualizada");
+  };
+
+  const handleDelete = (kind: keyof CustomOptionsStore, value: string) => {
+    removeCustomOption(storeId, kind, value);
+    toast.success("Opção removida");
+  };
+
+  const handleAdd = (kind: keyof CustomOptionsStore) => {
+    if (!newLabel.trim()) return;
+    if (kind === "entryCategories") addCustomEntry(storeId, newLabel);
+    if (kind === "exitCategories") addCustomExit(storeId, newLabel);
+    if (kind === "paymentMethods") addCustomPaymentMethod(storeId, newLabel);
+    setNewLabel("");
+    toast.success("Nova opção adicionada");
+  };
+
+  const baseEntry = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
+  const baseExit = EXIT_CATEGORIES as readonly { value: string; label: string }[];
+  const basePay = PAYMENT_METHODS as readonly { value: string; label: string }[];
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-2xl p-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <Settings className="h-5 w-5 text-primary" />
+            Gerenciar Categorias e Pagamentos
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* ── Segmented Tabs Apple Style ────────────────────────────────────── */}
+        <div className="flex rounded-xl bg-surface-muted p-1 gap-1 my-2">
+          <button
+            type="button"
+            onClick={() => setTab("entry")}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+              tab === "entry" ? "bg-card text-emerald-600 shadow-sm dark:text-emerald-400" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Entradas
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("exit")}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+              tab === "exit" ? "bg-card text-rose-600 shadow-sm dark:text-rose-400" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Saídas
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("pay")}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+              tab === "pay" ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Pagamentos
+          </button>
+        </div>
+
+        {/* ── Formulário de adição rápida no topo ──────────────────────────── */}
+        <div className="flex gap-2 my-2">
+          <Input
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            placeholder={
+              tab === "entry"
+                ? "Nova categoria de entrada…"
+                : tab === "exit"
+                ? "Nova categoria de saída…"
+                : "Nova forma de pagamento…"
+            }
+            className="h-10 rounded-xl text-xs"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const k = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
+                handleAdd(k);
+              }
+            }}
+          />
+          <Button
+            size="sm"
+            className="h-10 rounded-xl px-4 text-xs font-semibold"
+            disabled={!newLabel.trim()}
+            onClick={() => {
+              const k = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
+              handleAdd(k);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Criar
+          </Button>
+        </div>
+
+        {/* ── Lista de Opções da Aba Ativa ──────────────────────────────────── */}
+        <div className="max-h-64 overflow-y-auto space-y-2 pr-1 my-2">
+          {/* Opções Padrão */}
+          {(tab === "entry" ? baseEntry : tab === "exit" ? baseExit : basePay).map((item) => (
+            <div
+              key={item.value}
+              className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-2.5 px-3 text-xs"
+            >
+              <span className="font-medium text-foreground">{item.label}</span>
+              <Badge variant="outline" className="rounded-full text-[10px] text-muted-foreground">
+                Padrão
+              </Badge>
+            </div>
+          ))}
+
+          {/* Opções Personalizadas */}
+          {(tab === "entry"
+            ? customOpts.entryCategories
+            : tab === "exit"
+            ? customOpts.exitCategories
+            : customOpts.paymentMethods
+          ).map((item) => {
+            const kindKey = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
+            const isEditing = editingValue === item.value;
+
+            return (
+              <div
+                key={item.value}
+                className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary-soft/20 p-2.5 px-3 text-xs"
+              >
+                {isEditing ? (
+                  <div className="flex flex-1 items-center gap-2 mr-2">
+                    <Input
+                      autoFocus
+                      value={editLabel}
+                      onChange={(e) => setEditLabel(e.target.value)}
+                      className="h-8 rounded-lg text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveEdit(kindKey, item.value);
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 rounded-lg px-3 text-xs"
+                      onClick={() => handleSaveEdit(kindKey, item.value)}
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="font-semibold text-primary">{item.label}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                        onClick={() => handleStartEdit(item.value, item.label)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        onClick={() => handleDelete(kindKey, item.value)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <DialogFooter className="mt-2">
+          <Button variant="outline" className="w-full rounded-full font-semibold" onClick={onClose}>
+            Concluído
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Componente principal Caixa ──────────────────────────────────────────────
 function Caixa() {
   const queryClient = useQueryClient();
@@ -309,10 +537,12 @@ function Caixa() {
   const [fiadoCustomerId, setFiadoCustomerId] = useState("");
   const [fiadoDueDate, setFiadoDueDate] = useState(todayISO());
 
-  // Dialogs de criação rápida
+  // Dialogs de criação rápida e gerenciamento
   const [addCatOpen, setAddCatOpen] = useState(false);
   const [addPayOpen, setAddPayOpen] = useState(false);
   const [quickProductOpen, setQuickProductOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageTab, setManageTab] = useState<"entry" | "exit" | "pay">("entry");
 
   const isFiado = method === "fiado" && kind === "entrada";
   const isEntrada = kind === "entrada";
@@ -895,12 +1125,17 @@ function Caixa() {
             </div>
           </Field>
 
-          {/* Categoria com "+ Nova categoria" */}
+          {/* Categoria com "+ Nova categoria" e "⚙️ Gerenciar" */}
           <Field label="Categoria">
             <Select
               value={category}
               onValueChange={(v) => {
                 if (v === "__add_new__") { setAddCatOpen(true); return; }
+                if (v === "__manage_cat__") {
+                  setManageTab(isEntrada ? "entry" : "exit");
+                  setManageOpen(true);
+                  return;
+                }
                 setCategory(v);
               }}
             >
@@ -918,16 +1153,25 @@ function Caixa() {
                   <Plus className="mr-1.5 inline h-3.5 w-3.5" />
                   Nova categoria…
                 </SelectItem>
+                <SelectItem value="__manage_cat__" className="text-muted-foreground font-medium">
+                  <Settings className="mr-1.5 inline h-3.5 w-3.5" />
+                  Gerenciar categorias…
+                </SelectItem>
               </SelectContent>
             </Select>
           </Field>
 
-          {/* Forma de Pagamento com "+ Nova forma" */}
+          {/* Forma de Pagamento com "+ Nova forma" e "⚙️ Gerenciar" */}
           <Field label="Forma de pagamento">
             <Select
               value={method}
               onValueChange={(v) => {
                 if (v === "__add_pay__") { setAddPayOpen(true); return; }
+                if (v === "__manage_pay__") {
+                  setManageTab("pay");
+                  setManageOpen(true);
+                  return;
+                }
                 setMethod(v);
               }}
             >
@@ -944,6 +1188,10 @@ function Caixa() {
                 <SelectItem value="__add_pay__" className="text-primary font-medium">
                   <Plus className="mr-1.5 inline h-3.5 w-3.5" />
                   Nova forma de pagamento…
+                </SelectItem>
+                <SelectItem value="__manage_pay__" className="text-muted-foreground font-medium">
+                  <Settings className="mr-1.5 inline h-3.5 w-3.5" />
+                  Gerenciar pagamentos…
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -1259,7 +1507,7 @@ function Caixa() {
         )}
       </section>
 
-      {/* ── Dialogs de criação rápida ─────────────────────────────────── */}
+      {/* ── Dialogs de criação rápida e gerenciamento ─────────────────── */}
       <QuickAddDialog
         open={addCatOpen}
         title={`Nova categoria de ${isEntrada ? "entrada" : "saída"}`}
@@ -1279,6 +1527,12 @@ function Caixa() {
         initialName={description}
         onConfirm={handleQuickCreateProduct}
         onClose={() => setQuickProductOpen(false)}
+      />
+      <ManageOptionsDialog
+        open={manageOpen}
+        storeId={storeId}
+        initialTab={manageTab}
+        onClose={() => setManageOpen(false)}
       />
     </div>
   );
