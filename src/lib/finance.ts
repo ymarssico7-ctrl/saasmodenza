@@ -14,13 +14,22 @@ export type PricingResult = {
   minPrice: number;
   suggestedPrice: number;
   profit: number;
+  /** Margem real sobre o preço de venda (Gross Margin %). Ex: 30% significa que R$0,30 de cada R$1,00 vendido é lucro. */
   marginOnPrice: number;
+  /** Markup sobre o custo (%). Ex: 80% significa que o preço de venda é 80% maior que o custo total. */
+  markupOnCost: number;
 };
 
 /**
  * Custo real = atacado + frete rateado + embalagem + outros.
  * Preço mínimo = custo real ajustado pelo imposto (empata).
- * Preço sugerido = custo real + margem desejada, também ajustado pelo imposto.
+ * Preço sugerido = custo real × (1 + markup), também ajustado pelo imposto.
+ *
+ * ATENÇÃO FINANCEIRA:
+ *  - O slider "Margem desejada" aplica Markup sobre o custo (não Margem sobre a venda).
+ *  - `marginOnPrice` devolve a Margem Bruta Real sobre o preço de venda (Gross Margin).
+ *  - `markupOnCost` devolve o multiplicador de custo (ex: 80% = preço 80% acima do custo).
+ *  - As duas grandezas são sempre exibidas lado a lado para transparência.
  */
 export function computePricing(input: PricingInput): PricingResult {
   const realCost =
@@ -32,13 +41,13 @@ export function computePricing(input: PricingInput): PricingResult {
   // Imposto máximo limitado a 95% para evitar divisão por zero:
   // se taxRate == 1, o denominador (1 - taxRate) seria 0 → Infinity.
   const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 95) / 100;
-  const margin = Math.max(num(input.margin_pct), 0) / 100;
+  const markup = Math.max(num(input.margin_pct), 0) / 100;
 
   // Garante que (1 - taxRate) nunca seja zero
   const divisor = Math.max(1 - taxRate, 0.01);
 
   const minPrice = realCost / divisor;
-  const suggestedPrice = (realCost * (1 + margin)) / divisor;
+  const suggestedPrice = (realCost * (1 + markup)) / divisor;
   const profit = suggestedPrice - realCost - suggestedPrice * taxRate;
 
   return {
@@ -46,7 +55,10 @@ export function computePricing(input: PricingInput): PricingResult {
     minPrice,
     suggestedPrice,
     profit,
+    // Margem Bruta Real sobre a Venda (Gross Margin): quanto do preço final é lucro
     marginOnPrice: suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0,
+    // Markup sobre o Custo: quanto o preço sobe em relação ao custo total
+    markupOnCost: realCost > 0 ? (profit / realCost) * 100 : 0,
   };
 }
 
@@ -62,6 +74,40 @@ export type Transaction = {
 
 export function sumBy(items: Transaction[], kind: "entrada" | "saida") {
   return items.filter((t) => t.kind === kind).reduce((acc, t) => acc + num(t.amount), 0);
+}
+
+/**
+ * Categorias de saída que são DEDUÇÕES DA RECEITA BRUTA (devoluções de cliente),
+ * e NÃO despesas operacionais (OPEX). Devem ser separadas no DRE.
+ * Norma: CPC 00 / IFRS 15 — devoluções reduzem a receita, não aumentam o custo.
+ */
+export const REFUND_CATEGORIES = new Set(["estorno_devolucao"]);
+
+/**
+ * Soma saídas excluindo as categorias informadas.
+ * Usado no DRE para separar OPEX de deduções de receita.
+ */
+export function sumByExcluding(
+  items: Transaction[],
+  kind: "entrada" | "saida",
+  excludeCategories: Set<string>,
+): number {
+  return items
+    .filter((t) => t.kind === kind && !excludeCategories.has(t.category))
+    .reduce((acc, t) => acc + num(t.amount), 0);
+}
+
+/**
+ * Soma apenas as categorias informadas (ex: só estornos de clientes).
+ */
+export function sumByCategories(
+  items: Transaction[],
+  kind: "entrada" | "saida",
+  categories: Set<string>,
+): number {
+  return items
+    .filter((t) => t.kind === kind && categories.has(t.category))
+    .reduce((acc, t) => acc + num(t.amount), 0);
 }
 
 export type CreditStatus = "pago" | "a_vencer" | "vencido";

@@ -169,12 +169,33 @@ function Precificacao() {
               {brl(result.suggestedPrice)}
             </p>
             <p className="mt-3 text-xs text-primary-foreground/70">
-              Lucro de {brl(result.profit)} por peça · margem de {pct(result.marginOnPrice)} sobre a
-              venda
+              Lucro de {brl(result.profit)} por peça
             </p>
           </div>
 
-          <div className="mt-2 space-y-3 rounded-2xl bg-primary-foreground/10 p-5 text-sm">
+          {/* Dois indicadores distintos para clareza financeira */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-primary-foreground/10 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/50">
+                Markup sobre o Custo
+              </p>
+              <p className="numeric mt-1.5 text-xl font-bold">{pct(result.markupOnCost)}</p>
+              <p className="mt-1 text-[11px] text-primary-foreground/50">
+                Quanto o preço sobe acima do custo
+              </p>
+            </div>
+            <div className="rounded-xl bg-primary-foreground/20 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/50">
+                Margem Real s/ Venda
+              </p>
+              <p className="numeric mt-1.5 text-xl font-bold">{pct(result.marginOnPrice)}</p>
+              <p className="mt-1 text-[11px] text-primary-foreground/50">
+                % do preço que vira lucro real
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-2xl bg-primary-foreground/10 p-5 text-sm">
             <Row label="Custo real da peça" value={brl(result.realCost)} />
             <Row label="Preço mínimo (empata)" value={brl(result.minPrice)} />
             <Row label="Imposto estimado" value={brl(result.suggestedPrice * (tax / 100))} />

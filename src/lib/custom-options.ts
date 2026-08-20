@@ -3,7 +3,8 @@
  *
  * Gerencia categorias e formas de pagamento personalizadas por loja (storeId).
  * Persiste no localStorage isolado por loja e emite eventos para sincronização
- * em tempo real entre componentes da mesma aba.
+ * em tempo real entre componentes — tanto na mesma aba (CustomEvent) quanto
+ * em outras abas abertas do navegador (storage event nativo).
  */
 
 export type CustomOption = { value: string; label: string; custom: true };
@@ -37,9 +38,16 @@ export function getCustomOptions(storeId: string): CustomOptionsStore {
 
 function saveCustomOptions(storeId: string, data: CustomOptionsStore) {
   if (!storeId || typeof localStorage === "undefined") return;
-  localStorage.setItem(key(storeId), JSON.stringify(data));
+  const storageKey = key(storeId);
+  const serialized = JSON.stringify(data);
+  localStorage.setItem(storageKey, serialized);
   try {
+    // Notifica componentes na mesma aba (CustomEvent)
     window.dispatchEvent(new CustomEvent("custom-options-changed", { detail: { storeId } }));
+    // Notifica outras abas abertas no navegador (storage event nativo)
+    // O navegador só dispara "storage" em outras abas automaticamente.
+    // Para forçar o mesmo comportamento na aba atual de forma consistente,
+    // usamos o CustomEvent acima. Outras abas recebem o evento nativo.
   } catch { /* SSR/Node: ignore */ }
 }
 

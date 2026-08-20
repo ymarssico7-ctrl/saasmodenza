@@ -16,7 +16,16 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, monthLabel, monthLabelShort, monthStart, pct } from "@/lib/format";
-import { EXIT_CATEGORIES, formatVariationHint, labelOf, sumBy, variation, type Transaction } from "@/lib/finance";
+import {
+  EXIT_CATEGORIES,
+  REFUND_CATEGORIES,
+  formatVariationHint,
+  labelOf,
+  sumBy,
+  sumByCategories,
+  sumByExcluding,
+  type Transaction,
+} from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/relatorio")({
   head: () => ({
@@ -52,9 +61,19 @@ function Relatorio() {
 
   const current = inMonth(monthStart(0));
   const previous = inMonth(monthStart(-1));
-  const revenue = sumBy(current, "entrada");
-  const expenses = sumBy(current, "saida");
-  const profit = revenue - expenses;
+
+  // ─── DRE Contábil Correto (CPC 00 / IFRS 15) ────────────────────────────────
+  // 1. Receita Bruta: todas as entradas (vendas brutas)
+  const grossRevenue = sumBy(current, "entrada");
+  // 2. Deduções da Receita: estornos e devoluções de clientes (NÃO são despesas OPEX)
+  const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
+  // 3. Receita Líquida Real: o que a loja realmente reteve após devoluções
+  const netRevenue = grossRevenue - refunds;
+  // 4. Despesas Operacionais (OPEX): saídas que NÃO são devoluções (aluguel, frete, etc.)
+  const expenses = sumByExcluding(current, "saida", REFUND_CATEGORIES);
+  // 5. Lucro Líquido Real: resultado operacional da loja
+  const profit = netRevenue - expenses;
+  // ────────────────────────────────────────────────────────────────────────────
 
   const bars = Array.from({ length: 6 }, (_, i) => {
     const m = monthStart(-(5 - i));
@@ -62,13 +81,15 @@ function Relatorio() {
     return {
       mes: monthLabelShort(m),
       entradas: sumBy(items, "entrada"),
-      saidas: sumBy(items, "saida"),
+      // Gráfico mostra só despesas OPEX, não devoluções
+      saidas: sumByExcluding(items, "saida", REFUND_CATEGORIES),
     };
   });
 
   const byCategory = Object.entries(
     current
-      .filter((t) => t.kind === "saida")
+      // Pie de despesas exclui estornos (que são deduções de receita, não custos)
+      .filter((t) => t.kind === "saida" && !REFUND_CATEGORIES.has(t.category))
       .reduce<Record<string, number>>((acc, t) => {
         acc[t.category] = (acc[t.category] ?? 0) + Number(t.amount);
         return acc;
@@ -83,14 +104,25 @@ function Relatorio() {
         description="Onde o dinheiro entra, para onde ele vai e qual é a sua margem real."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Faturamento" value={brl(revenue)} tone="primary" />
-        <StatCard label="Despesas" value={brl(expenses)} />
-        <StatCard label="Lucro" value={brl(profit)} tone={profit >= 0 ? "positive" : "negative"} />
+      {/* DRE Simplificado — 5 camadas contábeis corretas */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Receita Bruta" value={brl(grossRevenue)} tone="primary" />
         <StatCard
-          label="Margem"
-          value={revenue > 0 ? pct((profit / revenue) * 100) : "—"}
-          hint={formatVariationHint(revenue, sumBy(previous, "entrada"))}
+          label="Estornos / Devoluções"
+          value={refunds > 0 ? `− ${brl(refunds)}` : brl(0)}
+          hint="Dedução da Receita Bruta"
+        />
+        <StatCard
+          label="Receita Líquida"
+          value={brl(netRevenue)}
+          hint={formatVariationHint(netRevenue, sumBy(previous, "entrada"))}
+        />
+        <StatCard label="Despesas Operacionais" value={brl(expenses)} />
+        <StatCard
+          label="Lucro Líquido Real"
+          value={brl(profit)}
+          tone={profit >= 0 ? "positive" : "negative"}
+          hint={netRevenue > 0 ? `Margem ${pct((profit / netRevenue) * 100)}` : "—"}
         />
       </div>
 
