@@ -717,7 +717,17 @@ function Caixa() {
 
       // Baixa/Acréscimo automático de estoque se vinculado a produto do estoque
       if (selectedProductId && deductStock) {
-        const delta = isEntrada || category === "perda_avaria" ? -1 : 1;
+        let delta = -1;
+        if (isEntrada) {
+          delta = -1; // Venda de produto: sai 1 un do estoque
+        } else if (category === "estorno_devolucao" || category === "compra_estoque") {
+          delta = 1; // Devolução de cliente ou nova compra: entra 1 un no estoque
+        } else if (category === "perda_avaria") {
+          delta = -1; // Peça avariada ou perdida: baixa 1 un do estoque
+        } else {
+          delta = -1; // Padrão para saídas com peça vinculada
+        }
+
         await adjustInventoryStock(storeId, selectedProductId, delta);
         void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       }
@@ -758,7 +768,7 @@ function Caixa() {
       const msg = selectedProductId && deductStock
         ? isFiado
           ? "Fiado registrado e estoque atualizado!"
-          : `Lançamento registrado e estoque ${isEntrada ? "atualizado (-1 un.)" : "atualizado (+1 un.)"}!`
+          : `Lançamento registrado e estoque ${category === "estorno_devolucao" || category === "compra_estoque" ? "atualizado (+1 un.)" : "atualizado (-1 un.)"}!`
         : isFiado
         ? "Fiado registrado no caixa e na aba Fiado!"
         : "Lançamento registrado";
@@ -784,6 +794,8 @@ function Caixa() {
     onSuccess: () => {
       toast.success("Lançamento excluído");
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["credits"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
