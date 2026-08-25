@@ -1,7 +1,8 @@
 import type { ThemeConfig, ThemeSettings } from "./schema";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
-const STORAGE_KEY = "modaly_theme_config";
+const STORAGE_KEY = "vestuli_theme_config";
+const LEGACY_STORAGE_KEY = "modaly_theme_config";
 
 const SETTINGS_DEFAULTS: Partial<ThemeSettings> = {
   checkoutMode: "whatsapp",
@@ -13,7 +14,7 @@ const SETTINGS_DEFAULTS: Partial<ThemeSettings> = {
 
 export function loadTheme(): ThemeConfig {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as ThemeConfig;
       // Merge default values for any new fields missing from older saved themes

@@ -19,13 +19,13 @@ import { insertPricing, deletePricing } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
     meta: [
-      { title: "Precificação com margem real — Modé" },
+      { title: "Precificação com margem real — Vestuli" },
       {
         name: "description",
         content:
           "Calcule o preço de venda das suas peças considerando atacado, frete, embalagem, imposto e margem.",
       },
-      { property: "og:title", content: "Precificação com margem real — Modé" },
+      { property: "og:title", content: "Precificação com margem real — Vestuli" },
       {
         property: "og:description",
         content: "Descubra o preço mínimo e o preço ideal de cada peça.",
@@ -86,7 +86,7 @@ function Precificacao() {
       <PageHeader
         eyebrow="Precificação"
         title="Quanto cobrar por essa peça?"
-        description="Some todos os custos, escolha a margem e a Modé calcula o preço mínimo e o preço ideal."
+        description="Some todos os custos, escolha a margem e o Vestuli calcula o preço mínimo e o preço ideal."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">

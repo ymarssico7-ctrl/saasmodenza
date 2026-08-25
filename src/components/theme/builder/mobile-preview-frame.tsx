@@ -18,7 +18,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
-const CHANNEL_NAME = "modaly_theme_preview";
+const CHANNEL_NAME = "vestuli_theme_preview";
 // Dimensões reais do iPhone 14 Pro — mantidas fixas para breakpoints corretos
 const FRAME_W = 390;
 const FRAME_H = 844;

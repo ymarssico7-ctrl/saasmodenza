@@ -80,11 +80,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Modé — gestão financeira para lojistas de moda" },
+      { title: "Vestuli — Gestão inteligente & Loja online para moda" },
       {
         name: "description",
         content:
-          "Caixa, precificação, fiado, pró-labore e metas em um só lugar. Feito para donas de loja de moda.",
+          "Caixa, precificação, fiado, estoque, DRE e loja online em um só lugar. Feito para o varejo de moda.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -78,12 +78,12 @@ import {
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
     meta: [
-      { title: "Controle de caixa — Modé" },
+      { title: "Controle de caixa — Vestuli" },
       {
         name: "description",
         content: "Registre entradas e saídas da loja e acompanhe o saldo do dia e do mês.",
       },
-      { property: "og:title", content: "Controle de caixa — Modé" },
+      { property: "og:title", content: "Controle de caixa — Vestuli" },
       { property: "og:description", content: "Entradas, saídas e saldo sempre atualizados." },
     ],
   }),
@@ -1120,6 +1120,9 @@ function Caixa() {
                   return;
                 }
                 setMethod(v);
+                if (v === "fiado" && selectedCustomerId) {
+                  setFiadoCustomerId(selectedCustomerId);
+                }
               }}
             >
               <SelectTrigger className="h-11 rounded-xl">
@@ -1144,103 +1147,105 @@ function Caixa() {
             </Select>
           </Field>
 
-          {/* Cliente (Busca Spotlight / Autocomplete Apple Level) */}
-          <Field label={isFiado ? "Cliente (Obrigatório para Fiado)" : "Cliente (Opcional)"} className="relative">
-            <div className="relative">
-              <Input
-                ref={customerInputRef}
-                value={selectedCustomer ? selectedCustomer.name : customerSearch}
-                onFocus={() => {
-                  if (!selectedCustomer) setShowCustomerPopover(true);
-                }}
-                onKeyDown={handleKeyDownCustomer}
-                onChange={(e) => {
-                  if (selectedCustomer) handleClearCustomer();
-                  setCustomerSearch(e.target.value);
-                  setShowCustomerPopover(true);
-                }}
-                placeholder={
-                  isEntrada
-                    ? "Digite o nome ou telefone da cliente…"
-                    : "Digite o nome ou telefone para estorno/devolução…"
-                }
-                className="h-11 rounded-xl pr-9"
-              />
-              {selectedCustomer ? (
-                <button
-                  type="button"
-                  onClick={handleClearCustomer}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : (
-                <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
-              )}
-            </div>
-
-            {/* Menu Dropdown Autocomplete de Clientes */}
-            {showCustomerPopover && !selectedCustomer && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowCustomerPopover(false)}
+          {/* Cliente (Busca Spotlight / Autocomplete Apple Level — Exibido no grid superior APENAS se não for Fiado) */}
+          {!isFiado && (
+            <Field label="Cliente (Opcional)" className="relative">
+              <div className="relative">
+                <Input
+                  ref={customerInputRef}
+                  value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                  onFocus={() => {
+                    if (!selectedCustomer) setShowCustomerPopover(true);
+                  }}
+                  onKeyDown={handleKeyDownCustomer}
+                  onChange={(e) => {
+                    if (selectedCustomer) handleClearCustomer();
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerPopover(true);
+                  }}
+                  placeholder={
+                    isEntrada
+                      ? "Digite o nome ou telefone da cliente…"
+                      : "Digite o nome ou telefone para estorno/devolução…"
+                  }
+                  className="h-11 rounded-xl pr-9"
                 />
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                  {matchingCustomers.length > 0 ? (
-                    <>
-                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        👤 Clientes Encontradas ({matchingCustomers.length})
-                      </div>
-                      {matchingCustomers.map((c, idx) => {
-                        const isHighlighted = idx === customerHighlight;
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => handleSelectCustomer(c)}
-                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
-                              isHighlighted
-                                ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
-                                : "hover:bg-primary-soft/50"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                                {c.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate font-medium leading-tight">{c.name}</p>
-                                {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                      <div className="my-1.5 h-px bg-border" />
-                    </>
-                  ) : null}
-
-                  {/* Atalho Inteligente para Cadastrar Nova Cliente */}
+                {selectedCustomer ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowCustomerPopover(false);
-                      setAddCustomerOpen(true);
-                    }}
-                    className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
-                      customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
-                    }`}
+                    onClick={handleClearCustomer}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    <Plus className="h-4 w-4" />
-                    {customerSearch.trim()
-                      ? `Cadastrar "${customerSearch.trim()}" na base`
-                      : "Cadastrar nova cliente…"}
+                    <X className="h-4 w-4" />
                   </button>
-                </div>
-              </>
-            )}
-          </Field>
+                ) : (
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                )}
+              </div>
+
+              {/* Menu Dropdown Autocomplete de Clientes */}
+              {showCustomerPopover && !selectedCustomer && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowCustomerPopover(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    {matchingCustomers.length > 0 ? (
+                      <>
+                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          👤 Clientes Encontradas ({matchingCustomers.length})
+                        </div>
+                        {matchingCustomers.map((c, idx) => {
+                          const isHighlighted = idx === customerHighlight;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => handleSelectCustomer(c)}
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                                isHighlighted
+                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
+                                  : "hover:bg-primary-soft/50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                  {c.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium leading-tight">{c.name}</p>
+                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                        <div className="my-1.5 h-px bg-border" />
+                      </>
+                    ) : null}
+
+                    {/* Atalho Inteligente para Cadastrar Nova Cliente */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomerPopover(false);
+                        setAddCustomerOpen(true);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
+                        customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {customerSearch.trim()
+                        ? `Cadastrar "${customerSearch.trim()}" na base`
+                        : "Cadastrar nova cliente…"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Field>
+          )}
 
           {/* Data com atalhos "Hoje" / "Ontem" / Outra data */}
           <Field label="Data">
@@ -1424,39 +1429,111 @@ function Caixa() {
           </div>
         )}
 
-        {/* ── Seção Fiado ──────────────────────────────────────────────── */}
+        {/* ── Seção Fiado (Card Autoritativo e Único com Spotlight + Vencimento) ─────────────── */}
         {isFiado && (
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-900/20">
-            <p className="mb-3 text-xs font-semibold text-amber-800 dark:text-amber-400">
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-5 dark:border-amber-800/40 dark:bg-amber-950/30 animate-in fade-in-50 slide-in-from-top-2">
+            <p className="mb-3.5 text-xs font-semibold text-amber-900 dark:text-amber-300">
               📋 Dados do Fiado — será registrado automaticamente na aba Fiado
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Cliente">
-                <Select value={fiadoCustomerId} onValueChange={setFiadoCustomerId}>
-                  <SelectTrigger className="h-11 rounded-xl">
-                    <SelectValue placeholder="Selecione o cliente…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.length === 0 ? (
-                      <SelectItem value="_none" disabled>
-                        Nenhum cliente cadastrado
-                      </SelectItem>
-                    ) : (
-                      customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+              <Field label="Cliente (Obrigatório para Fiado)" className="relative">
+                <div className="relative">
+                  <Input
+                    ref={customerInputRef}
+                    value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                    onFocus={() => {
+                      if (!selectedCustomer) setShowCustomerPopover(true);
+                    }}
+                    onKeyDown={handleKeyDownCustomer}
+                    onChange={(e) => {
+                      if (selectedCustomer) handleClearCustomer();
+                      setCustomerSearch(e.target.value);
+                      setShowCustomerPopover(true);
+                    }}
+                    placeholder="Selecione ou busque a cliente pelo nome/telefone…"
+                    className="h-11 rounded-xl pr-9 bg-white dark:bg-card"
+                  />
+                  {selectedCustomer ? (
+                    <button
+                      type="button"
+                      onClick={handleClearCustomer}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                  )}
+                </div>
+
+                {/* Dropdown Autocomplete no Fiado */}
+                {showCustomerPopover && !selectedCustomer && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowCustomerPopover(false)}
+                    />
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-amber-200 bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                      {matchingCustomers.length > 0 ? (
+                        <>
+                          <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            👤 Clientes Encontradas ({matchingCustomers.length})
+                          </div>
+                          {matchingCustomers.map((c, idx) => {
+                            const isHighlighted = idx === customerHighlight;
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => handleSelectCustomer(c)}
+                                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                                  isHighlighted
+                                    ? "bg-amber-100 border border-amber-300 text-amber-900 shadow-sm dark:bg-amber-950 dark:text-amber-200"
+                                    : "hover:bg-primary-soft/50"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-amber-900 text-xs font-bold dark:bg-amber-800 dark:text-amber-100">
+                                    {c.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium leading-tight">{c.name}</p>
+                                    {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                          <div className="my-1.5 h-px bg-border" />
+                        </>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomerPopover(false);
+                          setAddCustomerOpen(true);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
+                          customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
+                        }`}
+                      >
+                        <Plus className="h-4 w-4" />
+                        {customerSearch.trim()
+                          ? `Cadastrar "${customerSearch.trim()}" na base`
+                          : "Cadastrar nova cliente…"}
+                      </button>
+                    </div>
+                  </>
+                )}
               </Field>
+
               <Field label="Vencimento do fiado">
                 <Input
                   type="date"
                   value={fiadoDueDate}
                   onChange={(e) => setFiadoDueDate(e.target.value)}
-                  className="h-11 rounded-xl"
+                  className="h-11 rounded-xl bg-white dark:bg-card"
                 />
               </Field>
             </div>

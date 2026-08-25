@@ -29,12 +29,12 @@ import { insertInventoryItem, deleteInventoryItem } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
     meta: [
-      { title: "Estoque por grade — Modé" },
+      { title: "Estoque por grade — Vestuli" },
       {
         name: "description",
         content: "Controle peças, tamanhos, custo e preço de venda do estoque da sua loja.",
       },
-      { property: "og:title", content: "Estoque por grade — Modé" },
+      { property: "og:title", content: "Estoque por grade — Vestuli" },
       {
         property: "og:description",
         content: "Peças e tamanhos organizados, com valor total em estoque.",

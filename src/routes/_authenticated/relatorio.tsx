@@ -30,12 +30,12 @@ import {
 export const Route = createFileRoute("/_authenticated/relatorio")({
   head: () => ({
     meta: [
-      { title: "Relatório financeiro — Modé" },
+      { title: "Relatório financeiro — Vestuli" },
       {
         name: "description",
         content: "Compare meses, veja onde o dinheiro sai e acompanhe a margem da loja.",
       },
-      { property: "og:title", content: "Relatório financeiro — Modé" },
+      { property: "og:title", content: "Relatório financeiro — Vestuli" },
       {
         property: "og:description",
         content: "Faturamento, despesas por categoria e margem mês a mês.",

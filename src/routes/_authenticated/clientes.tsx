@@ -17,12 +17,12 @@ import { insertCustomer, deleteCustomer } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes da loja — Modé" },
+      { title: "Clientes da loja — Vestuli" },
       {
         name: "description",
         content: "Cadastro de clientes com histórico de fiado e saldo devedor.",
       },
-      { property: "og:title", content: "Clientes da loja — Modé" },
+      { property: "og:title", content: "Clientes da loja — Vestuli" },
       { property: "og:description", content: "Saiba quem compra e quem ainda deve na sua loja." },
     ],
   }),

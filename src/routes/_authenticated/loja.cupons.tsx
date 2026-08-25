@@ -32,7 +32,7 @@ import { dateBR, type Cupom } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/cupons")({
   head: () => ({
     meta: [
-      { title: "Cupons de desconto — Modenza" },
+      { title: "Cupons de desconto — Vestuli" },
       {
         name: "description",
         content: "Crie cupons em percentual ou valor fixo, com validade e limite de uso.",
@@ -43,6 +43,10 @@ export const Route = createFileRoute("/_authenticated/loja/cupons")({
 });
 
 function cuponsKey(storeId: string) {
+  return `vestuli_cupons_${storeId}`;
+}
+
+function legacyCuponsKey(storeId: string) {
   return `modaly_cupons_${storeId}`;
 }
 
@@ -62,7 +66,9 @@ function CuponsPage() {
   useEffect(() => {
     if (!storeId) return;
     try {
-      const stored = localStorage.getItem(cuponsKey(storeId));
+      const stored =
+        localStorage.getItem(cuponsKey(storeId)) ||
+        localStorage.getItem(legacyCuponsKey(storeId));
       setLista(stored ? (JSON.parse(stored) as Cupom[]) : []);
     } catch {
       setLista([]);

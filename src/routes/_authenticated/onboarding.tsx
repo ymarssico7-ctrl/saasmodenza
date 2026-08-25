@@ -15,9 +15,9 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
     meta: [
-      { title: "Configurar sua loja — Modé" },
-      { name: "description", content: "Configure os dados da sua loja para começar na Modé." },
-      { property: "og:title", content: "Configurar sua loja — Modé" },
+      { title: "Configurar sua loja — Vestuli" },
+      { name: "description", content: "Configure os dados da sua loja para começar no Vestuli." },
+      { property: "og:title", content: "Configurar sua loja — Vestuli" },
       { property: "og:description", content: "Três passos rápidos para começar." },
     ],
   }),
@@ -45,7 +45,7 @@ function Onboarding() {
             <Input
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              placeholder="Modé Boutique"
+              placeholder="Vestuli Boutique"
             />
           </FieldRow>
           <FieldRow label="Cidade">
@@ -145,7 +145,7 @@ function Onboarding() {
         },
       });
 
-      toast.success("Tudo pronto! Bem-vinda à Modé. 🎉");
+      toast.success("Tudo pronto! Bem-vinda ao Vestuli. 🎉");
       navigate({ to: "/painel" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");

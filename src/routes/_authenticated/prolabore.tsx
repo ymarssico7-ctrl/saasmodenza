@@ -20,13 +20,13 @@ import { insertProlabore, deleteProlabore, updateProlaboreTarget } from "@/lib/m
 export const Route = createFileRoute("/_authenticated/prolabore")({
   head: () => ({
     meta: [
-      { title: "Pró-labore da lojista — Modé" },
+      { title: "Pró-labore da lojista — Vestuli" },
       {
         name: "description",
         content:
           "Separe o dinheiro da loja do seu dinheiro pessoal com o controle de pró-labore mensal.",
       },
-      { property: "og:title", content: "Pró-labore da lojista — Modé" },
+      { property: "og:title", content: "Pró-labore da lojista — Vestuli" },
       {
         property: "og:description",
         content: "Defina sua retirada mensal e acompanhe o quanto já retirou.",

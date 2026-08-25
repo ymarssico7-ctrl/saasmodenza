@@ -16,11 +16,11 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/templates")({
   head: () => ({
     meta: [
-      { title: "Galeria de Temas — Modaly" },
+      { title: "Galeria de Temas — Vestuli" },
       {
         name: "description",
         content:
-          "Escolha o visual perfeito para sua vitrine. Explore os templates premium do Modaly e aplique com um clique.",
+          "Escolha o visual perfeito para sua vitrine. Explore os templates premium do Vestuli e aplique com um clique.",
       },
     ],
   }),
@@ -239,7 +239,7 @@ function TemplateCard({
               style={{ borderColor: palette.border, backgroundColor: palette.background }}
             >
               <span className="truncate text-[8px]" style={{ color: palette.foreground + "60" }}>
-                minhaloja.modaly.com.br
+                minhaloja.vestuli.com.br
               </span>
             </div>
           </div>
@@ -443,7 +443,7 @@ function ComingSoonCard() {
       <div>
         <p className="font-display text-sm font-semibold text-foreground">Mais temas em breve</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Novos templates são adicionados com atualizações do Modaly. Fique de olho!
+          Novos templates são adicionados com atualizações do Vestuli. Fique de olho!
         </p>
       </div>
     </div>

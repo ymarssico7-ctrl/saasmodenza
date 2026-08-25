@@ -19,12 +19,12 @@ import { upsertGoal, deleteGoal } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({
     meta: [
-      { title: "Metas mensais — Modé" },
+      { title: "Metas mensais — Vestuli" },
       {
         name: "description",
         content: "Defina a meta de faturamento do mês e acompanhe o progresso da sua loja.",
       },
-      { property: "og:title", content: "Metas mensais — Modé" },
+      { property: "og:title", content: "Metas mensais — Vestuli" },
       { property: "og:description", content: "Meta, progresso e projeção de fechamento do mês." },
     ],
   }),

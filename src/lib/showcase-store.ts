@@ -14,8 +14,10 @@
  *   - Zero migrations de banco necessárias.
  */
 
-const STORAGE_KEY = "modaly_showcase_configs_v1";
-const AUTO_PUBLISH_KEY = "modaly_showcase_auto_publish";
+const STORAGE_KEY = "vestuli_showcase_configs_v1";
+const LEGACY_STORAGE_KEY = "modaly_showcase_configs_v1";
+const AUTO_PUBLISH_KEY = "vestuli_showcase_auto_publish";
+const LEGACY_AUTO_PUBLISH_KEY = "modaly_showcase_auto_publish";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +62,7 @@ export const SHOWCASE_ITEM_DEFAULTS: Omit<ShowcaseItemConfig, "ordem" | "updated
 export function loadShowcaseConfigs(): ShowcaseConfigMap {
   if (typeof localStorage === "undefined") return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return {};
     return JSON.parse(raw) as ShowcaseConfigMap;
   } catch {
@@ -167,7 +169,7 @@ export function swapShowcaseOrder(idA: string, idB: string): void {
 /** Lê a flag de publicação automática do localStorage. */
 export function getAutoPublish(): boolean {
   if (typeof localStorage === "undefined") return true;
-  const raw = localStorage.getItem(AUTO_PUBLISH_KEY);
+  const raw = localStorage.getItem(AUTO_PUBLISH_KEY) ?? localStorage.getItem(LEGACY_AUTO_PUBLISH_KEY);
   if (raw === null) return true; // padrão: ativado
   try {
     return JSON.parse(raw) as boolean;

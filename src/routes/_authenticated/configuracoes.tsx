@@ -42,12 +42,12 @@ import { insertMember, deleteMember } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações da loja — Modé" },
+      { title: "Configurações da loja — Vestuli" },
       {
         name: "description",
         content: "Ajuste os dados da loja, sua retirada mensal e a equipe com acesso.",
       },
-      { property: "og:title", content: "Configurações da loja — Modé" },
+      { property: "og:title", content: "Configurações da loja — Vestuli" },
       { property: "og:description", content: "Dados da loja, pró-labore e equipe." },
     ],
   }),
@@ -121,8 +121,8 @@ function Configuracoes() {
       // garantindo que a vitrine pública reflita imediatamente o nome correto
       // independente do modo (demo ou real).
       try {
-        const themeKey = `modaly_theme_config_${storeId}`;
-        const raw = localStorage.getItem(themeKey);
+        const themeKey = `vestuli_theme_config_${storeId}`;
+        const raw = localStorage.getItem(themeKey) || localStorage.getItem(`modaly_theme_config_${storeId}`);
         const theme = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
         theme['nome'] = profilePatch.store_name;
         theme['whatsapp'] = phone.trim() || theme['whatsapp'] || "";
@@ -186,7 +186,7 @@ function Configuracoes() {
     <div className="space-y-10">
       <PageHeader
         eyebrow="Configurações"
-        title="Sua loja na Modé"
+        title="Sua loja no Vestuli"
         description="Ajuste os dados da loja, sua retirada mensal e quem trabalha com você."
       />
 

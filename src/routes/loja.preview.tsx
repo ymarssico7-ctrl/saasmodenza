@@ -5,8 +5,8 @@ import { loadTheme } from "@/lib/theme-engine/defaults";
 export const Route = createFileRoute("/loja/preview")({
   head: () => ({
     meta: [
-      { title: "Preview da Loja — Modaly" },
-      { name: "description", content: "Visualização ao vivo da sua loja Modaly." },
+      { title: "Preview da Loja — Vestuli" },
+      { name: "description", content: "Visualização ao vivo da sua loja Vestuli." },
     ],
   }),
   component: PreviewPage,

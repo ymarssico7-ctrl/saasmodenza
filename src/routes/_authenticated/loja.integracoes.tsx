@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 export const Route = createFileRoute("/_authenticated/loja/integracoes")({
   head: () => ({
     meta: [
-      { title: "Integrações — Modenza" },
+      { title: "Integrações — Vestuli" },
       {
         name: "description",
         content: "Conecte sua loja com WhatsApp, Instagram, Pix e ferramentas de marketing.",

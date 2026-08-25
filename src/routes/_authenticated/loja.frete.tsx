@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-const FRETE_STORAGE_KEY = "modaly_frete_config";
+const FRETE_STORAGE_KEY = "vestuli_frete_config";
+const LEGACY_FRETE_STORAGE_KEY = "modaly_frete_config";
 
 type FreteConfig = {
   cep: string;
@@ -24,7 +25,7 @@ type FreteConfig = {
 export const Route = createFileRoute("/_authenticated/loja/frete")({
   head: () => ({
     meta: [
-      { title: "Frete & Entrega — Modenza" },
+      { title: "Frete & Entrega — Vestuli" },
       {
         name: "description",
         content:
@@ -87,7 +88,9 @@ function FretePage() {
   // Carrega configurações salvas ao montar
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(FRETE_STORAGE_KEY);
+      const raw =
+        localStorage.getItem(FRETE_STORAGE_KEY) ||
+        localStorage.getItem(LEGACY_FRETE_STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw) as Partial<FreteConfig>;
       if (saved.cep) setCep(saved.cep);

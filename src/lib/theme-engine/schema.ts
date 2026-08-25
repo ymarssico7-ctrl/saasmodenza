@@ -1,5 +1,5 @@
 // ─── Theme Engine Schema ──────────────────────────────────────────────────────
-// Defines the full TypeScript type system for the Modaly Theme Engine.
+// Defines the full TypeScript type system for the Vestuli Theme Engine.
 // All store customizations are described by a `ThemeConfig` object,
 // which is persisted to localStorage (demo) or Supabase (production).
 

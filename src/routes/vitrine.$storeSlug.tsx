@@ -487,9 +487,9 @@ function VitrineLayout() {
             <p className="mt-3">
               Vitrine criada com{" "}
               <a href="/" className="font-semibold text-gray-600 hover:underline">
-                Modaly
+                Vestuli
               </a>{" "}
-              · Sistema de gestão para lojas de moda
+              · Gestão e loja online para moda
             </p>
           </div>
         </div>
@@ -737,7 +737,9 @@ function CartDrawer({
     const codigo = codigoCupom.trim().toUpperCase();
     if (!codigo) return;
     try {
-      const raw = localStorage.getItem(`modaly_cupons_${storeId}`);
+      const raw =
+        localStorage.getItem(`vestuli_cupons_${storeId}`) ||
+        localStorage.getItem(`modaly_cupons_${storeId}`);
       const lista = raw ? (JSON.parse(raw) as Array<{
         id: string; codigo: string; tipo: "percentual" | "fixo"; valor: number;
         usos: number; ativo: boolean; limite?: number; validade?: string;
@@ -772,8 +774,9 @@ function CartDrawer({
     // ── 1) Incrementa uso do cupom ──────────────────────────────────
     if (cupomAplicado) {
       try {
-        const chave = `modaly_cupons_${storeId}`;
-        const raw = localStorage.getItem(chave);
+        const chave = `vestuli_cupons_${storeId}`;
+        const raw =
+          localStorage.getItem(chave) || localStorage.getItem(`modaly_cupons_${storeId}`);
         if (raw) {
           const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
           const atualizado = lista.map((c) =>
@@ -786,8 +789,10 @@ function CartDrawer({
 
     // ── 2) Persiste o pedido no histórico da loja ───────────────────
     try {
-      const chaveOrders = `modaly_orders_${storeId}`;
-      const existentes = JSON.parse(localStorage.getItem(chaveOrders) ?? "[]") as unknown[];
+      const chaveOrders = `vestuli_orders_${storeId}`;
+      const rawOrders =
+        localStorage.getItem(chaveOrders) || localStorage.getItem(`modaly_orders_${storeId}`);
+      const existentes = JSON.parse(rawOrders ?? "[]") as unknown[];
       const numeroPedido = String(existentes.length + 1).padStart(4, "0");
       const novoPedido = {
         id: crypto.randomUUID(),

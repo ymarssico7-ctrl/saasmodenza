@@ -25,7 +25,7 @@ import { totalPedido, type Pedido } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/relatorios")({
   head: () => ({
     meta: [
-      { title: "Relatórios da Loja — Modenza" },
+      { title: "Relatórios da Loja — Vestuli" },
       {
         name: "description",
         content: "Análise completa de vendas, produtos mais vendidos e desempenho da loja online.",
@@ -54,7 +54,9 @@ function RelatoriosPage() {
   // Carrega pedidos reais isolados por loja
   const pedidos = useMemo<Pedido[]>(() => {
     try {
-      const stored = localStorage.getItem(`modaly_orders_${storeId}`);
+      const stored =
+        localStorage.getItem(`vestuli_orders_${storeId}`) ||
+        localStorage.getItem(`modaly_orders_${storeId}`);
       return stored ? (JSON.parse(stored) as Pedido[]) : [];
     } catch {
       return [];
@@ -63,7 +65,9 @@ function RelatoriosPage() {
 
   const cupons = useMemo(() => {
     try {
-      const stored = localStorage.getItem(`modaly_cupons_${storeId}`);
+      const stored =
+        localStorage.getItem(`vestuli_cupons_${storeId}`) ||
+        localStorage.getItem(`modaly_cupons_${storeId}`);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];

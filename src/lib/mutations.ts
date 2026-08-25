@@ -601,11 +601,13 @@ export async function recordCreditPayment(input: CreditPaymentInput) {
 export async function updateProlaboreTarget(storeId: string, target: number) {
   if (isDemoStore(storeId)) {
     // Em demo mode, armazena a meta no perfil demo no localStorage
-    const current = localStorage.getItem("modenza_demo_profile");
+    const current =
+      localStorage.getItem("vestuli_demo_profile") ||
+      localStorage.getItem("modenza_demo_profile");
     if (current) {
       const parsed = JSON.parse(current) as AnyRecord;
       localStorage.setItem(
-        "modenza_demo_profile",
+        "vestuli_demo_profile",
         JSON.stringify({ ...parsed, prolabore_target: target }),
       );
     }

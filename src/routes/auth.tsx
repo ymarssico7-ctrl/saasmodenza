@@ -13,16 +13,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar na Modé — Gestão financeira para lojas de moda" },
+      { title: "Entrar no Vestuli — Gestão financeira para lojas de moda" },
       {
         name: "description",
         content:
-          "Acesse sua conta Modé para controlar caixa, precificação, pró-labore e fiado da sua loja de moda.",
+          "Acesse sua conta Vestuli para controlar caixa, precificação, pró-labore e fiado da sua loja de moda.",
       },
-      { property: "og:title", content: "Entrar na Modé" },
+      { property: "og:title", content: "Entrar no Vestuli" },
       {
         property: "og:description",
-        content: "Gestão financeira premium para lojistas de moda.",
+        content: "Gestão financeira e vitrine online para lojistas de moda.",
       },
     ],
   }),
@@ -103,7 +103,7 @@ function AuthPage() {
         <div className="absolute -right-24 -top-24 size-[420px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <div className="absolute -bottom-32 -left-16 size-[380px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <Link to="/" className="relative">
-          <span className="font-display text-lg font-semibold tracking-tight">Modé</span>
+          <span className="font-display text-lg font-semibold tracking-tight">Vestuli</span>
         </Link>
         <div className="relative max-w-md">
           <h2 className="font-display text-[2.6rem] font-semibold leading-[1.05]">
@@ -133,13 +133,13 @@ function AuthPage() {
               <h1 className="mt-5 text-xl font-semibold">Confirme seu e-mail</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Enviamos um link de confirmação para <strong>{email}</strong>. Clique nele para
-                ativar sua conta Modé.
+                ativar sua conta Vestuli.
               </p>
             </div>
           ) : (
             <>
               <h1 className="mt-10 text-[1.9rem] font-semibold leading-tight lg:mt-0">
-                Bem-vinda à Modé
+                Bem-vinda ao Vestuli
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Entre ou crie sua conta para começar.

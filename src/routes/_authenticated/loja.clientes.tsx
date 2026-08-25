@@ -14,7 +14,7 @@ import { customersQuery, transactionsQuery } from "@/lib/db";
 export const Route = createFileRoute("/_authenticated/loja/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes da Loja — Modenza" },
+      { title: "Clientes da Loja — Vestuli" },
       {
         name: "description",
         content: "Visualize o histórico de compras, frequência e ticket médio das suas clientes.",

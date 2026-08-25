@@ -44,7 +44,7 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
     meta: [
-      { title: "Pedidos da loja — Modenza" },
+      { title: "Pedidos da loja — Vestuli" },
       {
         name: "description",
         content:
@@ -62,6 +62,10 @@ const filtros: { valor: StatusPedido | "todos"; label: string }[] = [
 ];
 
 function pedidosKey(storeId: string) {
+  return `vestuli_orders_${storeId}`;
+}
+
+function legacyPedidosKey(storeId: string) {
   return `modaly_orders_${storeId}`;
 }
 
@@ -77,7 +81,9 @@ function PedidosPage() {
   useEffect(() => {
     if (!storeId) return;
     try {
-      const stored = localStorage.getItem(pedidosKey(storeId));
+      const stored =
+        localStorage.getItem(pedidosKey(storeId)) ||
+        localStorage.getItem(legacyPedidosKey(storeId));
       if (stored) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setLista(JSON.parse(stored) as any as Pedido[]);

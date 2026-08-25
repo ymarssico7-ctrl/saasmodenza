@@ -47,7 +47,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/produtos")({
   head: () => ({
     meta: [
-      { title: "Vitrine — Modaly" },
+      { title: "Vitrine — Vestuli" },
       {
         name: "description",
         content:

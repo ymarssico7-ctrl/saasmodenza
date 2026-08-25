@@ -1,5 +1,5 @@
 /**
- * templates-registry.ts — Registro Central de Templates do Modaly SaaS
+ * templates-registry.ts — Registro Central de Templates do Vestuli SaaS
  *
  * REGRA: Cada novo template criado DEVE ser registrado aqui.
  * O ID deve ser idêntico ao `templateId` do ThemeConfig.

@@ -32,12 +32,12 @@ import { creditStatus, formatVariationHint, projectMonth, sumBy, variation, type
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
-      { title: "Painel financeiro — Modé" },
+      { title: "Painel financeiro — Vestuli" },
       {
         name: "description",
         content: "Visão geral do faturamento, despesas, lucro, meta e fiado da sua loja de moda.",
       },
-      { property: "og:title", content: "Painel financeiro — Modé" },
+      { property: "og:title", content: "Painel financeiro — Vestuli" },
       { property: "og:description", content: "Faturamento, lucro, meta e fiado em um só lugar." },
     ],
   }),

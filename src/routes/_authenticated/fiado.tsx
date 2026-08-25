@@ -27,12 +27,12 @@ import { insertCredit, deleteCredit, recordCreditPayment } from "@/lib/mutations
 export const Route = createFileRoute("/_authenticated/fiado")({
   head: () => ({
     meta: [
-      { title: "Controle de fiado — Modé" },
+      { title: "Controle de fiado — Vestuli" },
       {
         name: "description",
         content: "Acompanhe quem deve, quanto deve e quando vence cada fiado da sua loja.",
       },
-      { property: "og:title", content: "Controle de fiado — Modé" },
+      { property: "og:title", content: "Controle de fiado — Vestuli" },
       {
         property: "og:description",
         content: "Fiado organizado, com pagamentos parciais e alertas de atraso.",

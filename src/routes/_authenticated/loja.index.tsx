@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -18,8 +18,8 @@ import { totalPedido, type Pedido } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/")({
   head: () => ({
     meta: [
-      { title: "Loja Online — Modenza" },
-      { name: "description", content: "Acompanhe vendas do mes, pedidos recebidos, ticket medio e a origem dos pedidos da sua loja online." },
+      { title: "Loja Online — Vestuli" },
+      { name: "description", content: "Acompanhe vendas do mês, pedidos recebidos, ticket médio e a vitrine online da sua loja." },
     ],
   }),
   component: VisaoGeral,
@@ -29,7 +29,7 @@ function VisaoGeral() {
   const { data: profile } = useQuery(profileQuery());
   const { store, storeId } = useStore();
   const primeiroNome = (profile?.owner_name || store?.name || "Lojista").split(" ")[0] ?? "Lojista";
-  const subdominio = store?.slug ? `${store.slug}.modenza.com.br` : `minhaloja.modenza.com.br`;
+  const subdominio = store?.slug ? `${store.slug}.vestuli.com.br` : `minhaloja.vestuli.com.br`;
 
   const copiarLink = () => {
     void navigator.clipboard?.writeText(`https://${subdominio}`);
@@ -41,7 +41,9 @@ function VisaoGeral() {
   useEffect(() => {
     if (!storeId) return;
     try {
-      const raw = localStorage.getItem(`modaly_orders_${storeId}`);
+      const raw =
+        localStorage.getItem(`vestuli_orders_${storeId}`) ||
+        localStorage.getItem(`modaly_orders_${storeId}`);
       setPedidos(raw ? (JSON.parse(raw) as Pedido[]) : []);
     } catch { setPedidos([]); }
   }, [storeId]);

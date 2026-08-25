@@ -267,7 +267,7 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   // Transmite atualizações de tema para o iframe de preview mobile em tempo real
   useEffect(() => {
     try {
-      const ch = new BroadcastChannel("modaly_theme_preview");
+      const ch = new BroadcastChannel("vestuli_theme_preview");
       ch.postMessage({ type: "THEME_UPDATE", payload: state.theme });
       ch.close();
     } catch {
@@ -278,7 +278,7 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   // Transmite seção selecionada (highlight) para o iframe
   useEffect(() => {
     try {
-      const ch = new BroadcastChannel("modaly_theme_preview");
+      const ch = new BroadcastChannel("vestuli_theme_preview");
       ch.postMessage({ type: "SELECT_SECTION", payload: state.selectedSectionId });
       ch.close();
     } catch {

@@ -7,7 +7,7 @@
  *
  * Fluxo:
  *   1. Carrega o tema do localStorage na montagem inicial.
- *   2. Escuta o canal "modaly_theme_preview" para receber novas versões do tema.
+ *   2. Escuta o canal "vestuli_theme_preview" para receber novas versões do tema.
  *   3. Envia eventos de interação (clique de seção, etc.) de volta ao builder.
  */
 import { createFileRoute } from "@tanstack/react-router";
@@ -16,11 +16,11 @@ import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { loadTheme } from "@/lib/theme-engine/defaults";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
-const CHANNEL_NAME = "modaly_theme_preview";
+const CHANNEL_NAME = "vestuli_theme_preview";
 
 export const Route = createFileRoute("/loja/preview-frame")({
   head: () => ({
-    meta: [{ title: "Mobile Preview — Modaly Builder" }],
+    meta: [{ title: "Mobile Preview — Vestuli Builder" }],
   }),
   component: PreviewFramePage,
 });

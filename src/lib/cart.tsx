@@ -81,12 +81,13 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-const CART_STORAGE_KEY = "modaly_cart_items_v1";
+const CART_STORAGE_KEY = "vestuli_cart_items_v1";
+const LEGACY_CART_STORAGE_KEY = "modaly_cart_items_v1";
 
 function loadInitialCartItems(): CartItem[] {
   if (typeof localStorage === "undefined") return [];
   try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    const raw = localStorage.getItem(CART_STORAGE_KEY) || localStorage.getItem(LEGACY_CART_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as CartItem[]) : [];
   } catch {
     return [];
