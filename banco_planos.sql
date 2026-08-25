@@ -1,5 +1,5 @@
 -- ============================================================
--- MODENZA — Migração do Sistema de Planos e Controle de Acesso
+-- VESTULI — Migração do Sistema de Planos e Controle de Acesso
 -- Execute no SQL Editor do Supabase
 -- ============================================================
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useReducer, useRef, type ReactNode } from "react";
 import {
   SECTION_META,
   type Section,
@@ -257,34 +257,36 @@ const BuilderContext = createContext<ContextValue | null>(null);
 
 export function BuilderProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // Abre um único canal persistente ao montar — evita criar/destruir instâncias a cada render
+  useEffect(() => {
+    try {
+      channelRef.current = new BroadcastChannel("vestuli_theme_preview");
+    } catch {
+      // BroadcastChannel não disponível (SSR / Node)
+    }
+    return () => {
+      channelRef.current?.close();
+      channelRef.current = null;
+    };
+  }, []);
+
+  // Transmite atualizações de tema para o iframe de preview mobile em tempo real
+  useEffect(() => {
+    channelRef.current?.postMessage({ type: "THEME_UPDATE", payload: state.theme });
+  }, [state.theme]);
+
+  // Transmite seção selecionada (highlight) para o iframe
+  useEffect(() => {
+    channelRef.current?.postMessage({ type: "SELECT_SECTION", payload: state.selectedSectionId });
+  }, [state.selectedSectionId]);
 
   const selectedSection =
     state.theme.sections.find((s) => s.id === state.selectedSectionId) ?? null;
 
   const canUndo = state.past.length > 0;
   const canRedo = state.future.length > 0;
-
-  // Transmite atualizações de tema para o iframe de preview mobile em tempo real
-  useEffect(() => {
-    try {
-      const ch = new BroadcastChannel("vestuli_theme_preview");
-      ch.postMessage({ type: "THEME_UPDATE", payload: state.theme });
-      ch.close();
-    } catch {
-      // BroadcastChannel nao disponivel (SSR / Node)
-    }
-  }, [state.theme]);
-
-  // Transmite seção selecionada (highlight) para o iframe
-  useEffect(() => {
-    try {
-      const ch = new BroadcastChannel("vestuli_theme_preview");
-      ch.postMessage({ type: "SELECT_SECTION", payload: state.selectedSectionId });
-      ch.close();
-    } catch {
-      // silencioso
-    }
-  }, [state.selectedSectionId]);
 
   return (
     <BuilderContext.Provider value={{ ...state, dispatch, selectedSection, canUndo, canRedo }}>

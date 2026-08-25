@@ -1,17 +1,5 @@
-/**
- * /loja/preview-frame — Rota exclusiva para o iframe de preview mobile.
- *
- * Esta página é carregada dentro de um <iframe> pelo ThemeBuilder.
- * Não tem chrome (sem nav, sem toolbar) e se comunica com o builder-pai
- * via BroadcastChannel para atualizações de tema em tempo real.
- *
- * Fluxo:
- *   1. Carrega o tema do localStorage na montagem inicial.
- *   2. Escuta o canal "vestuli_theme_preview" para receber novas versões do tema.
- *   3. Envia eventos de interação (clique de seção, etc.) de volta ao builder.
- */
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { loadTheme } from "@/lib/theme-engine/defaults";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
@@ -28,12 +16,14 @@ export const Route = createFileRoute("/loja/preview-frame")({
 function PreviewFramePage() {
   const [theme, setTheme] = useState<ThemeConfig>(() => loadTheme());
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  // Canal reutilizável — evita criar/destruir uma instância a cada clique do usuário
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
-  // Escuta mensagens do builder (tema atualizado, seção selecionada)
+  // Abre o canal uma única vez ao montar e reutiliza para envio e recebimento
   useEffect(() => {
-    let channel: BroadcastChannel | null = null;
     try {
-      channel = new BroadcastChannel(CHANNEL_NAME);
+      const channel = new BroadcastChannel(CHANNEL_NAME);
+      channelRef.current = channel;
       channel.onmessage = (evt) => {
         const { type, payload } = evt.data ?? {};
         if (type === "THEME_UPDATE") {
@@ -46,19 +36,14 @@ function PreviewFramePage() {
       // BroadcastChannel não suportado — fallback: sem comunicação
     }
     return () => {
-      channel?.close();
+      channelRef.current?.close();
+      channelRef.current = null;
     };
   }, []);
 
-  // Funções que enviam eventos de interação de volta ao builder
+  // Envia eventos de interação de volta ao builder pelo mesmo canal persistente
   const postToBuilder = (type: string, payload?: unknown) => {
-    try {
-      const ch = new BroadcastChannel(CHANNEL_NAME);
-      ch.postMessage({ type, payload });
-      ch.close();
-    } catch {
-      // silencioso
-    }
+    channelRef.current?.postMessage({ type, payload });
   };
 
   return (

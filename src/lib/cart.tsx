@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
 
 export type CartItem = {
   id: string;
@@ -100,13 +100,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }));
 
   // Sincroniza estado do carrinho no localStorage a cada alteração
-  if (typeof window !== "undefined") {
+  useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
     } catch {
       // silenciar erros de cota/localStorage
     }
-  }
+  }, [state.items]);
 
   const totalItems = state.items.reduce((s, i) => s + i.quantidade, 0);
   const totalPrice = state.items.reduce((s, i) => s + i.preco * i.quantidade, 0);
