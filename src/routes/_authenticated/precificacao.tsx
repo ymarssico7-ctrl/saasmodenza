@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Calculator, Save, Trash2 } from "lucide-react";
+import { Calculator, PackagePlus, Save, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -14,7 +14,7 @@ import { pricingsQuery } from "@/lib/db";
 import { brl, pct, toNumber } from "@/lib/format";
 import { computePricing } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
-import { insertPricing, deletePricing } from "@/lib/mutations";
+import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
@@ -77,6 +77,34 @@ function Precificacao() {
     onSuccess: () => {
       toast.success("Precificação excluída");
       void queryClient.invalidateQueries({ queryKey: ["pricings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sendToInventory = useMutation({
+    mutationFn: async ({
+      name: itemName,
+      costPrice,
+      salePrice,
+    }: {
+      name: string;
+      costPrice: number;
+      salePrice: number;
+    }) => {
+      return insertInventoryItem({
+        storeId,
+        name: itemName,
+        category: "vestido",
+        cost_price: costPrice,
+        sale_price: salePrice,
+        sizes: { "Único": 1 },
+      });
+    },
+    onSuccess: (_, vars) => {
+      toast.success(`"${vars.name}" cadastrada no Estoque! 📦`, {
+        description: `Custo: ${brl(vars.costPrice)} · Venda: ${brl(vars.salePrice)}`,
+      });
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -250,19 +278,37 @@ function Precificacao() {
                         {brl(r.suggestedPrice)}
                       </td>
                       <td className="py-3.5 text-right">
-                        <ConfirmDelete
-                          onConfirm={() => remove.mutate(p.id)}
-                          description={`"${p.name}" será removida das suas precificações.`}
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 rounded-full text-muted-foreground"
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          }
-                        />
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Cadastrar esta peça no Estoque com este preço"
+                            className="size-8 rounded-full text-muted-foreground hover:bg-primary-soft hover:text-primary"
+                            disabled={sendToInventory.isPending}
+                            onClick={() =>
+                              sendToInventory.mutate({
+                                name: p.name,
+                                costPrice: r.realCost,
+                                salePrice: r.suggestedPrice,
+                              })
+                            }
+                          >
+                            <PackagePlus className="size-4" />
+                          </Button>
+                          <ConfirmDelete
+                            onConfirm={() => remove.mutate(p.id)}
+                            description={`"${p.name}" será removida das suas precificações.`}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            }
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

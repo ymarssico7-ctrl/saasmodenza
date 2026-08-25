@@ -30,7 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
-import { restoreOrderStock } from "@/lib/mutations";
+import { restoreOrderStock, adjustInventoryStock, insertTransaction } from "@/lib/mutations";
 import {
   fluxoStatus,
   statusPedidoLabel,
@@ -121,10 +121,45 @@ function PedidosPage() {
       p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p,
     );
     persistir(novaLista);
-    toast.success(`Status atualizado para "${statusPedidoLabel[proximo]}"`, {
-      description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
-    });
+
+    // ── Automação ao CONFIRMAR um pedido (novo → confirmado) ───────────────
+    // Baixa as quantidades do estoque e registra a entrada no Caixa automaticamente.
+    if (pedido.status === "novo" && proximo === "confirmado") {
+      // 1) Baixa de Estoque: reduz 1 unidade por item (agrupado por produto)
+      if (pedido.itens?.length) {
+        const deducoes = pedido.itens.map((item) =>
+          adjustInventoryStock(storeId, item.produtoId, -item.qtd),
+        );
+        void Promise.all(deducoes).then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+        });
+      }
+
+      // 2) Lançamento no Caixa: entrada no valor total do pedido
+      const valorTotal = totalPedido(pedido);
+      void insertTransaction({
+        storeId,
+        kind: "entrada",
+        description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
+        amount: valorTotal,
+        category: "venda_produto",
+        payment_method: pedido.pagamento === "Pix" ? "pix" : "cartao",
+        occurred_on: new Date().toISOString().slice(0, 10),
+      }).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      });
+
+      toast.success("Pedido confirmado! ✅", {
+        description: `Estoque baixado e R$ ${valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa.`,
+        duration: 5000,
+      });
+    } else {
+      toast.success(`Status atualizado para "${statusPedidoLabel[proximo]}"`, {
+        description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
+      });
+    }
   };
+
 
   const cancelar = (id: string) => {
     const pedido = lista.find((p) => p.id === id);
