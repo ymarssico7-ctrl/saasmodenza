@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  ArrowRight,
+  Boxes,
   Calculator,
   Copy,
   Layers,
+  Minus,
   PackagePlus,
   Palette,
   Plus,
@@ -23,9 +26,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { pricingsQuery } from "@/lib/db";
 import { brl, pct, toNumber } from "@/lib/format";
-import { computePricing } from "@/lib/finance";
+import { computePricing, INVENTORY_CATEGORIES } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
 import { cn } from "@/lib/utils";
@@ -96,6 +114,22 @@ function Precificacao() {
   const [other, setOther] = useState("");
   const [margin, setMargin] = useState(80);
   const [tax, setTax] = useState(6);
+
+  // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
+  const [entrySheetOpen, setEntrySheetOpen] = useState(false);
+  const [entryName, setEntryName] = useState("");
+  const [entryCategory, setEntryCategory] = useState("vestido");
+  const [entryColor, setEntryColor] = useState("");
+  const [entrySupplier, setEntrySupplier] = useState("");
+  const [entryCostPrice, setEntryCostPrice] = useState(0);
+  const [entrySalePrice, setEntrySalePrice] = useState(0);
+  const [entryPhotoUrl, setEntryPhotoUrl] = useState("");
+  const [entrySizes, setEntrySizes] = useState<Record<string, number>>({
+    P: 2,
+    M: 4,
+    G: 4,
+    GG: 2,
+  });
 
   // ── Custos Compartilhados Numéricos ────────────────────────────────
   const sharedCosts = useMemo(
@@ -285,6 +319,52 @@ function Precificacao() {
     setColors((prev) => prev.filter((col) => col !== c));
   };
 
+  // ── Abrir Ficha de Entrada no Estoque ─────────────────────────────
+  const openEntryForCurrent = () => {
+    if (!name.trim()) {
+      toast.error("Dê um nome para a peça antes de dar entrada");
+      return;
+    }
+    setEntryName(name.trim());
+    setEntryCostPrice(summaryPrices.avgCost || 0);
+    setEntrySalePrice(summaryPrices.avgSuggested || 0);
+    setEntryColor(colors[0] || "");
+    setEntrySupplier("");
+    const initialSizes: Record<string, number> = {};
+    if (mode === "grade") {
+      activeSizes.forEach((sz) => {
+        initialSizes[sz] = 2;
+      });
+    } else {
+      ["P", "M", "G", "GG"].forEach((sz) => {
+        initialSizes[sz] = 2;
+      });
+    }
+    setEntrySizes(initialSizes);
+    setEntryPhotoUrl("");
+    setEntrySheetOpen(true);
+  };
+
+  const openEntryForSaved = (p: (typeof saved)[0], realCost: number, suggestedPrice: number) => {
+    setEntryName(p.name);
+    setEntryCostPrice(realCost);
+    setEntrySalePrice(suggestedPrice);
+    setEntryColor("");
+    setEntrySupplier("");
+    setEntrySizes({ P: 2, M: 4, G: 4, GG: 2 });
+    setEntryPhotoUrl("");
+    setEntrySheetOpen(true);
+  };
+
+  // ── Totais do Lote na Ficha de Entrada ─────────────────────────────
+  const entryTotalUnits = Object.values(entrySizes).reduce(
+    (acc, val) => acc + Number(val || 0),
+    0,
+  );
+  const entryTotalCost = entryTotalUnits * entryCostPrice;
+  const entryTotalRevenue = entryTotalUnits * entrySalePrice;
+  const entryProjectedProfit = entryTotalRevenue - entryTotalCost;
+
   // ── Mutações ──────────────────────────────────────────────────────
   const save = useMutation({
     mutationFn: async () => {
@@ -294,7 +374,10 @@ function Precificacao() {
         mode === "unico"
           ? toNumber(wholesale)
           : mode === "grade"
-            ? summaryPrices.avgCost - sharedCosts.freight_cost - sharedCosts.packaging_cost - sharedCosts.other_costs
+            ? summaryPrices.avgCost -
+              sharedCosts.freight_cost -
+              sharedCosts.packaging_cost -
+              sharedCosts.other_costs
             : toNumber(Object.values(colorCosts)[0] || wholesale || baseWholesaleGrade);
 
       if (primaryWholesale <= 0 && summaryPrices.avgCost <= 0) {
@@ -325,37 +408,28 @@ function Precificacao() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const sendToInventory = useMutation({
-    mutationFn: async ({
-      name: itemName,
-      costPrice,
-      salePrice,
-      customSizes,
-    }: {
-      name: string;
-      costPrice: number;
-      salePrice: number;
-      customSizes?: Record<string, number>;
-    }) => {
-      const finalSizes: Record<string, number> =
-        customSizes && Object.keys(customSizes).length > 0
-          ? customSizes
-          : mode === "grade"
-            ? activeSizes.reduce((acc, sz) => ({ ...acc, [sz]: 1 }), {})
-            : { P: 1, M: 1, G: 1, GG: 1 };
+  const confirmEntryMutation = useMutation({
+    mutationFn: async () => {
+      if (!entryName.trim()) throw new Error("Informe o nome da peça");
+      if (entryTotalUnits <= 0) throw new Error("Adicione ao menos 1 unidade na grade de tamanhos");
 
       return insertInventoryItem({
         storeId,
-        name: itemName,
-        category: "vestido",
-        cost_price: costPrice,
-        sale_price: salePrice,
-        sizes: finalSizes,
+        name: entryName.trim(),
+        category: entryCategory,
+        color: entryColor.trim() || null,
+        supplier: entrySupplier.trim() || null,
+        cost_price: entryCostPrice,
+        sale_price: entrySalePrice,
+        sizes: entrySizes,
+        photo_url: entryPhotoUrl || null,
       });
     },
-    onSuccess: (_, vars) => {
-      toast.success(`"${vars.name}" cadastrada no Estoque! 📦`, {
-        description: `Custo: ${brl(vars.costPrice)} · Preço: ${brl(vars.salePrice)}`,
+    onSuccess: () => {
+      setEntrySheetOpen(false);
+      toast.success(`"${entryName}" entrou no Estoque! 📦`, {
+        description: `Lote com ${entryTotalUnits} unidades adicionado com sucesso.`,
+        duration: 5000,
       });
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
@@ -425,7 +499,8 @@ function Precificacao() {
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {mode === "unico" && "Mesmo custo e preço de venda para toda a peça."}
                 {mode === "grade" && "Defina valores diferentes para tamanhos maiores ou especiais."}
-                {mode === "cor_tamanho" && "Precifique variações com custos de tecido ou estampa diferentes."}
+                {mode === "cor_tamanho" &&
+                  "Precifique variações com custos de tecido ou estampa diferentes."}
               </p>
             </div>
             <Badge variant="outline" className="rounded-full text-xs capitalize">
@@ -624,7 +699,10 @@ function Precificacao() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{c}</span>
                           {item && item.suggestedPrice > 0 && (
-                            <Badge variant="secondary" className="numeric text-[11px] font-semibold text-primary">
+                            <Badge
+                              variant="secondary"
+                              className="numeric text-[11px] font-semibold text-primary"
+                            >
                               Venda: {brl(item.suggestedPrice)}
                             </Badge>
                           )}
@@ -827,26 +905,37 @@ function Precificacao() {
             {/* Resumo de Custos e Impostos */}
             <div className="space-y-3 rounded-2xl bg-primary-foreground/10 p-4 text-sm">
               <Row label="Custo real médio" value={brl(summaryPrices.avgCost)} />
-              <Row label="Imposto estimado por peça" value={brl(summaryPrices.avgSuggested * (tax / 100))} />
+              <Row
+                label="Imposto estimado por peça"
+                value={brl(summaryPrices.avgSuggested * (tax / 100))}
+              />
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-primary-foreground/15">
-            <p className="text-xs leading-relaxed text-primary-foreground/70">
-              💡 <strong>Dica de Loja:</strong> Peças maiores (G1/G2) com custo adicional de tecido
-              podem ter precificação diferenciada sem comprometer a sua margem de lucro.
+          <div className="mt-6 pt-4 border-t border-primary-foreground/15 space-y-3">
+            <Button
+              type="button"
+              onClick={openEntryCurrentPiece}
+              className="h-11 w-full rounded-xl bg-white text-primary hover:bg-white/90 font-semibold shadow-soft"
+            >
+              <PackagePlus className="mr-2 size-4" /> Dar Entrada no Estoque
+            </Button>
+            <p className="text-[11px] leading-relaxed text-primary-foreground/70 text-center">
+              💡 Preencha fotos, fornecedor e quantidades reais do lote para colocar na vitrine e no
+              caixa.
             </p>
           </div>
         </section>
       </div>
 
-      {/* ── Peças Precificadas (Histórico & 1-Clique Estoque) ─────── */}
+      {/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
       <section className="panel p-6 sm:p-7">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold">Peças precificadas</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Consulte seu histórico de cálculos e envie peças diretamente para o Estoque com 1 clique.
+              Consulte seu histórico de cálculos e dê entrada física no Estoque com fotos e
+              quantidades reais.
             </p>
           </div>
           <Badge variant="outline" className="rounded-full">
@@ -859,7 +948,7 @@ function Precificacao() {
             className="mt-6"
             icon={<Calculator className="size-6" />}
             title="Nenhuma peça salva"
-            description="Calcule e salve suas precificações para consultar depois na hora de etiquetar e enviar ao estoque."
+            description="Calcule e salve suas precificações para consultar depois na hora de etiquetar e dar entrada no estoque."
           />
         ) : (
           <div className="mt-5 overflow-x-auto">
@@ -897,19 +986,12 @@ function Precificacao() {
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
-                            size="icon"
-                            title="Cadastrar esta peça no Estoque com este preço"
-                            className="size-8 rounded-full text-muted-foreground hover:bg-primary-soft hover:text-primary"
-                            disabled={sendToInventory.isPending}
-                            onClick={() =>
-                              sendToInventory.mutate({
-                                name: p.name,
-                                costPrice: r.realCost,
-                                salePrice: r.suggestedPrice,
-                              })
-                            }
+                            size="sm"
+                            title="Dar entrada no Estoque com fotos e quantidades"
+                            className="h-8 rounded-lg text-xs font-semibold text-primary hover:bg-primary-soft"
+                            onClick={() => openEntryForSaved(p, r.realCost, r.suggestedPrice)}
                           >
-                            <PackagePlus className="size-4" />
+                            <PackagePlus className="mr-1.5 size-3.5" /> Dar Entrada
                           </Button>
                           <ConfirmDelete
                             onConfirm={() => remove.mutate(p.id)}
@@ -934,8 +1016,164 @@ function Precificacao() {
           </div>
         )}
       </section>
+
+      {/* ── Modal Sheet: Ficha de Entrada Operacional no Estoque ──── */}
+      <Sheet open={entrySheetOpen} onOpenChange={setEntrySheetOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6 space-y-6">
+          <SheetHeader>
+            <div className="flex items-center gap-2 text-primary font-semibold text-xs uppercase tracking-wider">
+              <Boxes className="size-4" /> Ficha de Entrada no Estoque
+            </div>
+            <SheetTitle className="text-xl font-bold">{entryName || "Nova Peça"}</SheetTitle>
+            <SheetDescription className="text-xs">
+              Adicione fotos, categoria, fornecedor e as quantidades reais recebidas para liberar a
+              peça para venda.
+            </SheetDescription>
+          </SheetHeader>
+
+          {/* ── Foto da Peça ── */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Foto da Peça</Label>
+            <ImageUploader
+              currentUrl={entryPhotoUrl || null}
+              bucket="product-photos"
+              folder="inventory"
+              onUploaded={setEntryPhotoUrl}
+              placeholder="Adicionar foto (câmera ou galeria)"
+              aspect="portrait"
+            />
+          </div>
+
+          {/* ── Categoria, Cor e Fornecedor ── */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs font-semibold text-muted-foreground">Categoria</Label>
+              <Select value={entryCategory} onValueChange={setEntryCategory}>
+                <SelectTrigger className="h-10 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INVENTORY_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Cor</Label>
+              <Input
+                value={entryColor}
+                onChange={(e) => setEntryColor(e.target.value)}
+                placeholder="Ex: Off-White"
+                className="h-10 rounded-xl text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Fornecedor</Label>
+              <Input
+                value={entrySupplier}
+                onChange={(e) => setEntrySupplier(e.target.value)}
+                placeholder="Ex: Brás Moda"
+                className="h-10 rounded-xl text-xs"
+              />
+            </div>
+          </div>
+
+          {/* ── Grade de Quantidades Recebidas ── */}
+          <div className="space-y-3 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Quantidades por Tamanho:
+              </Label>
+              <span className="text-xs font-bold text-primary">{entryTotalUnits} un. no total</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {Object.keys(entrySizes).map((sz) => (
+                <div
+                  key={sz}
+                  className="flex items-center justify-between rounded-xl border border-border bg-card p-2"
+                >
+                  <span className="font-bold text-xs pl-1">{sz}</span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 rounded-lg"
+                      onClick={() =>
+                        setEntrySizes((prev) => ({
+                          ...prev,
+                          [sz]: Math.max((prev[sz] ?? 0) - 1, 0),
+                        }))
+                      }
+                    >
+                      <Minus className="size-3" />
+                    </Button>
+                    <span className="numeric w-6 text-center text-xs font-bold">
+                      {entrySizes[sz] ?? 0}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 rounded-lg"
+                      onClick={() =>
+                        setEntrySizes((prev) => ({
+                          ...prev,
+                          [sz]: (prev[sz] ?? 0) + 1,
+                        }))
+                      }
+                    >
+                      <Plus className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Card Resumo Financeiro do Lote ── */}
+          <div className="rounded-2xl border border-border bg-secondary/40 p-4 space-y-2 text-xs">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Custo Unitário Calculado:</span>
+              <span className="numeric font-semibold text-foreground">{brl(entryCostPrice)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Preço Sugerido de Venda:</span>
+              <span className="numeric font-semibold text-primary">{brl(entrySalePrice)}</span>
+            </div>
+            <div className="border-t border-border/70 pt-2 flex justify-between font-semibold">
+              <span>Investimento Total no Lote:</span>
+              <span className="numeric">{brl(entryTotalCost)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-primary">
+              <span>Potencial de Faturamento:</span>
+              <span className="numeric">{brl(entryTotalRevenue)}</span>
+            </div>
+          </div>
+
+          {/* ── Botão de Confirmação ── */}
+          <Button
+            type="button"
+            className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow"
+            disabled={confirmEntryMutation.isPending || entryTotalUnits <= 0}
+            onClick={() => confirmEntryMutation.mutate()}
+          >
+            <PackagePlus className="mr-2 size-4" /> Confirmar Entrada no Estoque
+          </Button>
+        </SheetContent>
+      </Sheet>
     </div>
   );
+
+  function openEntryCurrentPiece() {
+    openEntryForCurrent();
+  }
 }
 
 function SliderRow({

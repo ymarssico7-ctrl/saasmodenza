@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Plus, Trash2 } from "lucide-react";
+import { Boxes, Calculator, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -19,9 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageUploader } from "@/components/ui/image-uploader";
-import { inventoryQuery } from "@/lib/db";
+import { inventoryQuery, pricingsQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
-import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf } from "@/lib/finance";
+import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf, computePricing } from "@/lib/finance";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 import { insertInventoryItem, deleteInventoryItem } from "@/lib/mutations";
@@ -50,6 +50,7 @@ function Estoque() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
   const { data: items = [] } = useQuery(inventoryQuery());
+  const { data: pricings = [] } = useQuery(pricingsQuery());
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("vestido");
@@ -140,7 +141,59 @@ function Estoque() {
       </div>
 
       <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Nova peça</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">Nova peça</h2>
+            <p className="text-xs text-muted-foreground">
+              Cadastre a peça com fotos, categoria e quantidade por tamanho.
+            </p>
+          </div>
+          {pricings.length > 0 && (
+            <Select
+              value=""
+              onValueChange={(pricingId) => {
+                const p = pricings.find((item) => item.id === pricingId);
+                if (p) {
+                  const r = computePricing({
+                    wholesale_cost: Number(p.wholesale_cost),
+                    freight_cost: Number(p.freight_cost),
+                    packaging_cost: Number(p.packaging_cost),
+                    other_costs: Number(p.other_costs),
+                    margin_pct: Number(p.margin_pct),
+                    tax_pct: Number(p.tax_pct),
+                  });
+                  setName(p.name);
+                  setCost(r.realCost.toFixed(2).replace(".", ","));
+                  setPrice(r.suggestedPrice.toFixed(2).replace(".", ","));
+                  toast.success(`Valores importados da precificação "${p.name}"! 💡`, {
+                    description: `Custo: ${brl(r.realCost)} · Venda: ${brl(r.suggestedPrice)}`,
+                  });
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-card px-3 text-xs font-semibold text-primary shadow-xs hover:border-primary">
+                <Calculator className="size-3.5" /> Puxar da Precificação
+              </SelectTrigger>
+              <SelectContent>
+                {pricings.map((p) => {
+                  const r = computePricing({
+                    wholesale_cost: Number(p.wholesale_cost),
+                    freight_cost: Number(p.freight_cost),
+                    packaging_cost: Number(p.packaging_cost),
+                    other_costs: Number(p.other_costs),
+                    margin_pct: Number(p.margin_pct),
+                    tax_pct: Number(p.tax_pct),
+                  });
+                  return (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} (Venda: {brl(r.suggestedPrice)})
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Nome">
             <Input
