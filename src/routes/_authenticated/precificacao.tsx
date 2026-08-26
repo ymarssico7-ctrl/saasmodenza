@@ -716,9 +716,9 @@ function Precificacao() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] w-full min-w-0">
         {/* ── Painel Esquerdo: Jornada de Precificação em 3 Passos ──── */}
-        <section className="panel p-6 sm:p-7 space-y-6">
+        <section className="panel p-6 sm:p-7 space-y-6 min-w-0 overflow-hidden">
 
           {/* ══════════════════════════════════════════════════════════
               PASSO 1: IDENTIFICAÇÃO & CUSTOS BÁSICOS
@@ -1242,8 +1242,8 @@ function Precificacao() {
         </section>
 
         {/* ── Dashboard Executivo da Peça (Painel Direito) ─────────── */}
-        <section className="panel flex flex-col justify-between bg-primary p-6 text-primary-foreground sm:p-7 shadow-lift space-y-6">
-          <div className="space-y-6">
+        <section className="panel flex flex-col justify-between bg-primary p-6 text-primary-foreground sm:p-7 shadow-lift space-y-6 min-w-0 overflow-hidden">
+          <div className="space-y-6 min-w-0">
             <div>
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
@@ -1261,17 +1261,23 @@ function Precificacao() {
 
               {/* Preço Principal ou Faixa Dinâmica */}
               {summaryPrices.hasMultiple ? (
-                <div className="mt-3">
-                  <p className="numeric text-[2.25rem] font-bold leading-tight tracking-tight">
-                    {brl(summaryPrices.minSuggested)} – {brl(summaryPrices.maxSuggested)}
-                  </p>
+                <div className="mt-3 min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <p className="numeric text-2xl font-bold leading-tight tracking-tight truncate">
+                      {brl(summaryPrices.minSuggested)}
+                    </p>
+                    <span className="text-primary-foreground/60 text-lg font-semibold">–</span>
+                    <p className="numeric text-2xl font-bold leading-tight tracking-tight truncate">
+                      {brl(summaryPrices.maxSuggested)}
+                    </p>
+                  </div>
                   <p className="mt-1 text-xs text-primary-foreground/70">
                     Faixa calculada para as {variants.length} variantes da grade
                   </p>
                 </div>
               ) : (
-                <div className="mt-3">
-                  <p className="numeric text-[2.75rem] font-bold leading-none tracking-tight">
+                <div className="mt-3 min-w-0">
+                  <p className="numeric text-[2.25rem] font-bold leading-none tracking-tight truncate">
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="mt-2 text-xs text-primary-foreground/70">
@@ -1320,35 +1326,34 @@ function Precificacao() {
 
             {/* Resumo da Grade de Variantes */}
             {mode === "grade" && variantResults.length > 0 && (
-              <div className="space-y-2 rounded-2xl bg-primary-foreground/10 p-4 text-xs">
-                <div className="flex items-center justify-between text-primary-foreground/80 font-semibold uppercase tracking-wider text-[10px]">
-                  <span>Variante</span>
-                  <span>Custo Real</span>
-                  <span>Venda</span>
-                  <span>Lucro Real</span>
-                </div>
-                <div className="divide-y divide-primary-foreground/15 max-h-40 overflow-y-auto pr-1">
+              <div className="space-y-1.5 rounded-2xl bg-primary-foreground/10 p-3.5 text-xs">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/60 mb-2">
+                  Variantes da Grade
+                </p>
+                <div className="divide-y divide-primary-foreground/15 max-h-44 overflow-y-auto pr-1 space-y-0">
                   {variantResults.map((v) => (
-                    <div key={v.id} className="flex items-center justify-between py-2">
-                      <span className="font-bold flex items-center gap-1.5">
-                        <span className={cn("size-2 rounded-full", getColorDot(v.color))} />
-                        <span>{v.size} · {v.color}</span>
-                        {v.isCustomPrice ? (
-                          <span className="rounded-full bg-white/20 px-1 text-[8px]">Fixo</span>
-                        ) : v.isCustomCost ? (
-                          <span className="rounded-full bg-white/20 px-1 text-[8px]">Custo</span>
-                        ) : null}
-                      </span>
-                      <span className="text-primary-foreground/70">{brl(v.realCost)}</span>
-                      <span className="font-bold text-white">{brl(v.suggestedPrice)}</span>
-                      <span className="font-semibold text-primary-foreground">
-                        {brl(v.profit)} ({pct(v.marginOnPrice)})
-                      </span>
+                    <div key={v.id} className="py-2 space-y-0.5 min-w-0">
+                      {/* Linha 1: Identificação + Preço de Venda */}
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <span className="font-bold flex items-center gap-1.5 truncate min-w-0">
+                          <span className={cn("size-2 rounded-full shrink-0", getColorDot(v.color))} />
+                          <span className="truncate">{v.size} · {v.color}</span>
+                        </span>
+                        <span className="font-bold text-white numeric shrink-0">{brl(v.suggestedPrice)}</span>
+                      </div>
+                      {/* Linha 2: Custo + Lucro */}
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-primary-foreground/60">
+                        <span className="numeric">Custo {brl(v.realCost)}</span>
+                        <span className={cn("numeric font-semibold", v.profit >= 0 ? "text-primary-foreground/90" : "text-red-300")}>
+                          +{brl(v.profit)} ({pct(v.marginOnPrice)})
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
 
             {/* Simulador de Meios de Pagamento */}
             <div className="rounded-2xl bg-primary-foreground/10 p-4 space-y-2.5 text-xs">
