@@ -395,6 +395,175 @@ function Precificacao() {
     }
   };
 
+  const applyPreset = (presetId: string, sizes: string[]) => {
+    setActivePreset(presetId);
+    setActiveSizes(sizes);
+    setSizeCosts({});
+    setSizeSalePrices({});
+    toast.success("Grade de tamanhos atualizada");
+  };
+
+  const resetSizeOverrides = (sz: string) => {
+    setSizeCosts((prev) => {
+      const next = { ...prev };
+      delete next[sz];
+      return next;
+    });
+    setSizeSalePrices((prev) => {
+      const next = { ...prev };
+      delete next[sz];
+      return next;
+    });
+    toast.success(`Tamanho ${sz} restaurado para a regra padrão`);
+  };
+
+  const addCustomSize = () => {
+    const clean = customSizeInput.trim().toUpperCase();
+    if (!clean) return;
+    if (activeSizes.includes(clean)) {
+      toast.error(`O tamanho ${clean} já está na grade`);
+      return;
+    }
+    setActiveSizes((prev) => [...prev, clean]);
+    setCustomSizeInput("");
+    toast.success(`Tamanho ${clean} adicionado à grade`);
+  };
+
+  // ── Ações de Cores & Variações ─────────────────────────────────────
+  const addColor = () => {
+    const clean = colorInput.trim();
+    if (!clean) return;
+    if (colors.includes(clean)) {
+      toast.error(`A cor "${clean}" já foi adicionada`);
+      return;
+    }
+    setColors((prev) => [...prev, clean]);
+    setColorCosts((prev) => ({ ...prev, [clean]: "" }));
+    setColorInput("");
+    toast.success(`Cor "${clean}" adicionada`);
+  };
+
+  const removeColor = (c: string) => {
+    if (colors.length <= 1) {
+      toast.error("Mantenha ao menos uma cor ou variação");
+      return;
+    }
+    setColors((prev) => prev.filter((col) => col !== c));
+    setColorCosts((prev) => {
+      const next = { ...prev };
+      delete next[c];
+      return next;
+    });
+    setColorSalePrices((prev) => {
+      const next = { ...prev };
+      delete next[c];
+      return next;
+    });
+  };
+
+  // ── Mutações de Histórico (Salvar / Deletar) ────────────────────────
+  const save = useMutation({
+    mutationFn: async () => {
+      const pieceName = name.trim() || "Peça sem nome";
+      const wholesaleNum =
+        mode === "grade"
+          ? toNumber(baseWholesaleGrade)
+          : toNumber(wholesale);
+
+      return insertPricing(storeId, {
+        name: pieceName,
+        wholesale_cost: wholesaleNum,
+        freight_cost: toNumber(freight),
+        packaging_cost: toNumber(packaging),
+        other_costs: toNumber(other),
+        margin_pct: strategy === "markup" ? markup : desiredMargin,
+        tax_pct: tax,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pricings"] });
+      toast.success("Precificação salva no histórico!", {
+        description: "Você pode consultá-la ou dar entrada no estoque a qualquer momento.",
+      });
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao salvar precificação", { description: err.message });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => deletePricing(storeId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pricings"] });
+      toast.success("Peça removida do histórico");
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao remover peça", { description: err.message });
+    },
+  });
+
+  // ── Ações da Ficha de Entrada no Estoque ─────────────────────────────
+  const openEntryForCurrent = () => {
+    setEntryName(name.trim() || "Nova Peça");
+    setEntryCostPrice(summaryPrices.avgCost);
+    setEntrySalePrice(summaryPrices.avgSuggested);
+    setEntryColor(mode === "cor_tamanho" ? colors[0] ?? "" : "");
+    const initialSizes: Record<string, number> = {};
+    activeSizes.forEach((sz) => {
+      initialSizes[sz] = 2; // quantidade inicial sugerida
+    });
+    setEntrySizes(initialSizes);
+    setEntrySheetOpen(true);
+  };
+
+  const openEntryForSaved = (
+    p: { name: string; wholesale_cost: number; freight_cost: number; packaging_cost: number; other_costs: number },
+    realCost: number,
+    suggestedPrice: number,
+  ) => {
+    setEntryName(p.name);
+    setEntryCostPrice(realCost);
+    setEntrySalePrice(suggestedPrice);
+    setEntrySheetOpen(true);
+  };
+
+  const entryTotalUnits = useMemo(() => {
+    return Object.values(entrySizes).reduce((acc, qty) => acc + (Number(qty) || 0), 0);
+  }, [entrySizes]);
+
+  const entryTotalCost = useMemo(() => {
+    return entryTotalUnits * entryCostPrice;
+  }, [entryTotalUnits, entryCostPrice]);
+
+  const entryTotalRevenue = useMemo(() => {
+    return entryTotalUnits * entrySalePrice;
+  }, [entryTotalUnits, entrySalePrice]);
+
+  const confirmEntryMutation = useMutation({
+    mutationFn: async () => {
+      return insertInventoryItem(storeId, {
+        name: entryName.trim() || "Peça sem nome",
+        category: entryCategory,
+        color: entryColor.trim() || null,
+        supplier: entrySupplier.trim() || null,
+        cost_price: entryCostPrice,
+        sale_price: entrySalePrice,
+        photo_url: entryPhotoUrl.trim() || null,
+        sizes: entrySizes,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      setEntrySheetOpen(false);
+      toast.success("Peça cadastrada no Estoque com sucesso! 📦", {
+        description: `${entryTotalUnits} unidades registradas na grade.`,
+      });
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao dar entrada no estoque", { description: err.message });
+    },
+  });
+
   return (
     <div className="space-y-8">
       <PageHeader
