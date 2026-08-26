@@ -660,12 +660,12 @@ function Precificacao() {
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
         {/* ── Formulário de Custos & Grade (Painel Esquerdo) ─────────── */}
         <section className="panel p-6 sm:p-7 space-y-6">
-          <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4">
             <div>
-              <h2 className="text-base font-semibold">
+              <h2 className="text-base font-bold text-foreground">
                 {mode === "grade" && "Precificação em Grade de Tamanhos"}
                 {mode === "unico" && "Precificação em Preço Único"}
-                {mode === "cor_tamanho" && "Precificação por Variação de Cores"}
+                {mode === "cor_tamanho" && "Precificação por Cores & Variações"}
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {mode === "grade" &&
@@ -675,10 +675,10 @@ function Precificacao() {
                   "Precifique variações com custos de tecido ou acabamentos distintos."}
               </p>
             </div>
-            <Badge variant="outline" className="rounded-full text-xs font-semibold capitalize">
-              {mode === "grade" && `${activeSizes.length} Tamanhos`}
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
+              {mode === "grade" && `${activeSizes.length} ${activeSizes.length === 1 ? "tamanho" : "tamanhos"}`}
               {mode === "unico" && "1 Preço"}
-              {mode === "cor_tamanho" && `${colors.length} Cores`}
+              {mode === "cor_tamanho" && `${colors.length} ${colors.length === 1 ? "cor" : "cores"}`}
             </Badge>
           </div>
 
@@ -691,14 +691,14 @@ function Precificacao() {
             />
           </Field>
 
-          {/* ── MODO 2: GRADE POR TAMANHO (PADRÃO APPLE ULTRA-REATIVO) ── */}
+          {/* ── MODO 2: GRADE POR TAMANHO (LISTA INTELIGENTE PADRÃO APPLE) ── */}
           {mode === "grade" && (
-            <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
-              {/* Presets de Grade */}
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Tipo de Grade de Tamanhos
-                </Label>
+            <div className="space-y-4">
+              {/* Barra de Presets Rápidos */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-secondary/30 p-3">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
+                  Grades Rápidas:
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {PRESET_OPTIONS.map((pr) => (
                     <button
@@ -708,8 +708,8 @@ function Precificacao() {
                       className={cn(
                         "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
                         activePreset === pr.id
-                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                          : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50",
+                          ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40",
                       )}
                     >
                       {pr.label}
@@ -718,170 +718,197 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* Bloco de Destaque: Custo Base com Reatividade Automática */}
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground">
+              {/* Bloco de Custo Base com Propagação Automática */}
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-xs">
+                <div>
+                  <Label className="text-xs font-bold text-foreground block">
                     Custo Base de Atacado da Grade (R$)
                   </Label>
-                  <span className="text-[11px] font-medium text-primary flex items-center gap-1">
-                    <Sparkles className="size-3" /> Aplica automaticamente a todos
+                  <span className="text-[11px] font-medium text-primary flex items-center gap-1 mt-0.5">
+                    <Sparkles className="size-3" /> Aplica automaticamente a todos os tamanhos
                   </span>
                 </div>
-                <Input
-                  inputMode="decimal"
-                  value={baseWholesaleGrade}
-                  onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                  placeholder="49,90"
-                  className="h-11 rounded-xl bg-card text-base font-bold text-foreground"
-                />
+                <div className="w-40">
+                  <Input
+                    inputMode="decimal"
+                    value={baseWholesaleGrade}
+                    onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                    placeholder="49,90"
+                    className="h-11 rounded-xl bg-card text-base font-bold text-right text-foreground shadow-xs"
+                  />
+                </div>
               </div>
 
-              {/* Tiles Granulares dos Tamanhos da Grade */}
-              <div className="space-y-2.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Tamanhos, Custos & Preços Granulares
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Digite o custo ou preço de venda de cada tamanho
-                  </span>
-                </div>
+              {/* Tabela / Lista Inteligente de Tamanhos (Apple Data Table) */}
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[580px] text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="py-3 px-4">Tamanho</th>
+                        <th className="py-3 px-3">Custo Atacado</th>
+                        <th className="py-3 px-3">Custo Total</th>
+                        <th className="py-3 px-3">
+                          {strategy === "direct_price" ? "Preço de Venda (R$)" : "Preço Sugerido (R$)"}
+                        </th>
+                        <th className="py-3 px-3">Lucro & Margem</th>
+                        <th className="py-3 px-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {activeSizes.map((sz) => {
+                        const item = gradeResults.find((r) => r.size === sz);
+                        const isCustomCost = item?.isCustomCost;
+                        const isCustomPrice = item?.isCustomPrice;
+                        const hasOverrides = isCustomCost || isCustomPrice;
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {activeSizes.map((sz) => {
-                    const item = gradeResults.find((r) => r.size === sz);
-                    const isCustomCost = item?.isCustomCost;
-                    const isCustomPrice = item?.isCustomPrice;
-                    const hasOverrides = isCustomCost || isCustomPrice;
-
-                    return (
-                      <div
-                        key={sz}
-                        className={cn(
-                          "relative rounded-2xl border p-3.5 flex flex-col justify-between space-y-2.5 transition-all duration-200",
-                          hasOverrides
-                            ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30"
-                            : "border-border bg-card hover:border-border/80",
-                        )}
-                      >
-                        {/* Header do Tile */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-xs font-bold">
-                              {sz}
-                            </span>
-                            {hasOverrides && (
-                              <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
-                                Personalizado
-                              </span>
-                            )}
-                          </div>
-
-                          {hasOverrides ? (
-                            <button
-                              type="button"
-                              onClick={() => resetSizeOverrides(sz)}
-                              title="Restaurar para a regra padrão"
-                              className="text-primary hover:text-primary/70 text-[10px] font-semibold flex items-center gap-0.5"
-                            >
-                              <RotateCcw className="size-2.5" /> Padrão
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleSize(sz)}
-                              title="Remover tamanho da grade"
-                              className="text-muted-foreground hover:text-destructive size-5 rounded-md flex items-center justify-center"
-                            >
-                              <X className="size-3" />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* 2 Inputs: Custo Atacado & Preço Venda Direto */}
-                        <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div className="space-y-1">
-                            <span className="font-semibold text-muted-foreground block text-[10px] uppercase tracking-wider">
-                              Custo (R$)
-                            </span>
-                            <Input
-                              inputMode="decimal"
-                              value={sizeCosts[sz] ?? ""}
-                              onChange={(e) =>
-                                setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
-                              }
-                              placeholder={baseWholesaleGrade || "0,00"}
-                              className="h-8 rounded-lg text-xs font-semibold text-right"
-                            />
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="font-semibold text-primary block text-[10px] uppercase tracking-wider">
-                              Venda (R$)
-                            </span>
-                            <Input
-                              inputMode="decimal"
-                              value={sizeSalePrices[sz] ?? ""}
-                              onChange={(e) =>
-                                setSizeSalePrices((prev) => ({ ...prev, [sz]: e.target.value }))
-                              }
-                              placeholder={
-                                item && item.suggestedPrice > 0
-                                  ? brl(item.suggestedPrice).replace("R$", "").trim()
-                                  : "0,00"
-                              }
-                              className={cn(
-                                "h-8 rounded-lg text-xs font-bold text-right",
-                                isCustomPrice && "text-primary border-primary",
-                              )}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Footer do Tile com Margem e Lucro em Tempo Real */}
-                        <div className="border-t border-border/60 pt-2 flex items-center justify-between text-[11px]">
-                          <span className="text-muted-foreground">
-                            Lucro:{" "}
-                            <strong className="text-foreground">
-                              {item ? brl(item.profit) : "R$ 0,00"}
-                            </strong>
-                          </span>
-                          <span
+                        return (
+                          <tr
+                            key={sz}
                             className={cn(
-                              "font-bold flex items-center gap-1",
-                              item?.marginHealth.color ?? "text-muted-foreground",
+                              "transition-colors duration-150 hover:bg-secondary/30",
+                              hasOverrides && "bg-primary/5",
                             )}
                           >
-                            <span>{item?.marginHealth.emoji}</span>
-                            <span>{pct(item?.marginOnPrice ?? 0)}</span>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            {/* Coluna 1: Tamanho */}
+                            <td className="py-3 px-4 font-bold text-foreground">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-foreground shadow-xs">
+                                  {sz}
+                                </span>
+                                {hasOverrides && (
+                                  <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                                    Personalizado
+                                  </span>
+                                )}
+                              </div>
+                            </td>
 
-                  {/* Tile para Adicionar Tamanho Personalizado */}
-                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 p-3 flex flex-col justify-center items-center gap-1.5">
+                            {/* Coluna 2: Custo de Atacado */}
+                            <td className="py-3 px-3">
+                              <div className="w-28">
+                                <Input
+                                  inputMode="decimal"
+                                  value={sizeCosts[sz] ?? ""}
+                                  onChange={(e) =>
+                                    setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
+                                  }
+                                  placeholder={baseWholesaleGrade || "0,00"}
+                                  className={cn(
+                                    "h-9 rounded-lg text-xs font-semibold text-right bg-background",
+                                    isCustomCost && "border-primary text-primary font-bold",
+                                  )}
+                                />
+                              </div>
+                            </td>
+
+                            {/* Coluna 3: Custo Real Total */}
+                            <td className="py-3 px-3 font-semibold text-muted-foreground numeric">
+                              {item ? brl(item.realCost) : "—"}
+                            </td>
+
+                            {/* Coluna 4: Preço de Venda */}
+                            <td className="py-3 px-3">
+                              <div className="w-32">
+                                <Input
+                                  inputMode="decimal"
+                                  value={sizeSalePrices[sz] ?? ""}
+                                  onChange={(e) =>
+                                    setSizeSalePrices((prev) => ({ ...prev, [sz]: e.target.value }))
+                                  }
+                                  placeholder={
+                                    item && item.suggestedPrice > 0
+                                      ? brl(item.suggestedPrice).replace("R$", "").trim()
+                                      : "0,00"
+                                  }
+                                  className={cn(
+                                    "h-9 rounded-lg text-xs font-bold text-right bg-background text-primary",
+                                    isCustomPrice && "border-primary ring-1 ring-primary/30",
+                                  )}
+                                />
+                              </div>
+                            </td>
+
+                            {/* Coluna 5: Lucro & Margem Real */}
+                            <td className="py-3 px-3">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-foreground numeric">
+                                  {item ? brl(item.profit) : "R$ 0,00"}
+                                </span>
+                                <span
+                                  className={cn(
+                                    "text-[11px] font-semibold flex items-center gap-1",
+                                    item?.marginHealth.color ?? "text-muted-foreground",
+                                  )}
+                                >
+                                  <span>{item?.marginHealth.emoji}</span>
+                                  <span>{pct(item?.marginOnPrice ?? 0)} margem</span>
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Coluna 6: Ações */}
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {hasOverrides && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => resetSizeOverrides(sz)}
+                                    title="Restaurar para a regra geral da grade"
+                                    className="h-8 rounded-lg px-2 text-[11px] font-semibold text-primary hover:bg-primary-soft"
+                                  >
+                                    <RotateCcw className="size-3 mr-1" /> Padrão
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => toggleSize(sz)}
+                                  title="Remover tamanho da grade"
+                                  className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <X className="size-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Linha de Rodapé da Tabela: Adicionar Novo Tamanho */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      ＋ Adicionar tamanho:
+                    </span>
                     <Input
                       value={customSizeInput}
                       onChange={(e) => setCustomSizeInput(e.target.value)}
                       onKeyDown={(e) =>
                         e.key === "Enter" && (e.preventDefault(), addCustomSize())
                       }
-                      placeholder="+ Tam (ex: G4)"
-                      className="h-8 rounded-lg text-xs text-center font-medium"
+                      placeholder="Ex: G4, 48"
+                      className="h-8 w-28 rounded-lg bg-card text-xs font-bold text-center uppercase"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={addCustomSize}
-                      className="h-7 w-full rounded-lg text-[11px] font-semibold"
+                      className="h-8 rounded-lg text-xs font-semibold"
                     >
-                      <Plus className="size-3 mr-0.5" /> Adicionar
+                      <Plus className="size-3 mr-1" /> Adicionar
                     </Button>
                   </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    Pressione <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">Enter</kbd> para inserir
+                  </span>
                 </div>
               </div>
             </div>
@@ -916,70 +943,91 @@ function Precificacao() {
             </div>
           )}
 
-          {/* ── MODO 3: COR & VARIAÇÃO ──────────────────────────────── */}
+          {/* ── MODO 3: COR & VARIAÇÃO (TABELA APPLE) ──────────────── */}
           {mode === "cor_tamanho" && (
-            <div className="space-y-4 rounded-2xl border border-border bg-secondary/30 p-5">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={colorInput}
-                  onChange={(e) => setColorInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addColor())}
-                  placeholder="Nova cor ou variação (ex: Linho Cru)"
-                  className="h-10 rounded-xl"
-                />
-                <Button
-                  type="button"
-                  onClick={addColor}
-                  className="h-10 rounded-xl px-4 text-xs font-semibold"
-                >
-                  <Plus className="mr-1 size-3.5" /> Adicionar
-                </Button>
-              </div>
+            <div className="space-y-4">
+              {/* Tabela de Cores */}
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[540px] text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="py-3 px-4">Cor / Variação</th>
+                        <th className="py-3 px-3">Custo Atacado</th>
+                        <th className="py-3 px-3">Preço Sugerido</th>
+                        <th className="py-3 px-3">Lucro Líquido</th>
+                        <th className="py-3 px-4 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {colors.map((c) => {
+                        const item = colorResults.find((r) => r.color === c);
+                        return (
+                          <tr key={c} className="transition-colors hover:bg-secondary/30">
+                            <td className="py-3 px-4 font-bold text-foreground">{c}</td>
+                            <td className="py-3 px-3">
+                              <div className="w-28">
+                                <Input
+                                  inputMode="decimal"
+                                  value={colorCosts[c] ?? ""}
+                                  onChange={(e) =>
+                                    setColorCosts((prev) => ({ ...prev, [c]: e.target.value }))
+                                  }
+                                  placeholder={baseWholesaleGrade || wholesale || "0,00"}
+                                  className="h-9 rounded-lg text-xs font-semibold text-right bg-background"
+                                />
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 font-bold text-primary numeric">
+                              {item && item.suggestedPrice > 0 ? brl(item.suggestedPrice) : "—"}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="font-semibold text-foreground numeric">
+                                {item ? brl(item.profit) : "—"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeColor(c)}
+                                className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div className="space-y-2">
-                {colors.map((c) => {
-                  const item = colorResults.find((r) => r.color === c);
-                  return (
-                    <div
-                      key={c}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3"
+                {/* Rodapé: Adicionar Cor */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">＋ Nova cor:</span>
+                    <Input
+                      value={colorInput}
+                      onChange={(e) => setColorInput(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && (e.preventDefault(), addColor())
+                      }
+                      placeholder="Ex: Terracota"
+                      className="h-8 w-32 rounded-lg bg-card text-xs font-medium"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addColor}
+                      className="h-8 rounded-lg text-xs font-semibold"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{c}</span>
-                        {item && item.suggestedPrice > 0 && (
-                          <Badge
-                            variant="secondary"
-                            className="numeric text-[11px] font-semibold text-primary"
-                          >
-                            Venda: {brl(item.suggestedPrice)} · Lucro: {brl(item.profit)}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-28">
-                          <Input
-                            inputMode="decimal"
-                            value={colorCosts[c] ?? ""}
-                            onChange={(e) =>
-                              setColorCosts((prev) => ({ ...prev, [c]: e.target.value }))
-                            }
-                            placeholder={baseWholesaleGrade || wholesale || "Custo R$"}
-                            className="h-8 rounded-lg text-right text-xs font-semibold"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeColor(c)}
-                          className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+                      <Plus className="size-3 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
