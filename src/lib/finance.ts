@@ -1,5 +1,7 @@
 /** Regras de negócio puras: precificação, totais e projeções. */
 
+// ── Tipos de Precificação ─────────────────────────────────────────────────────
+
 export type PricingInput = {
   wholesale_cost: number;
   freight_cost: number;
@@ -14,22 +16,67 @@ export type PricingResult = {
   minPrice: number;
   suggestedPrice: number;
   profit: number;
-  /** Margem real sobre o preço de venda (Gross Margin %). Ex: 30% significa que R$0,30 de cada R$1,00 vendido é lucro. */
+  /** Margem real sobre o preço de venda (Gross Margin %). Ex: 40% → R$0,40 de cada R$1,00 é lucro líquido. */
   marginOnPrice: number;
-  /** Markup sobre o custo (%). Ex: 80% significa que o preço de venda é 80% maior que o custo total. */
+  /** Markup sobre o custo (%). Ex: 80% → preço é 80% maior que o custo total. */
   markupOnCost: number;
 };
 
+// ── Status de Saúde da Margem ─────────────────────────────────────────────────
+
+export type MarginHealth = {
+  status: "danger" | "warning" | "healthy" | "premium";
+  label: string;
+  description: string;
+  color: string;
+  emoji: string;
+};
+
+export function getMarginHealth(marginPct: number): MarginHealth {
+  if (marginPct < 25) {
+    return {
+      status: "danger",
+      label: "Zona de Risco",
+      description:
+        "Margem perigosa! Qualquer desconto, frete grátis ou taxa de maquininha colocará esta peça no prejuízo.",
+      color: "text-destructive",
+      emoji: "🔴",
+    };
+  }
+  if (marginPct < 40) {
+    return {
+      status: "warning",
+      label: "Zona de Atenção",
+      description:
+        "Margem moderada. Cobre seus custos, mas deixa pouca folga para promoções e despesas fixas da loja.",
+      color: "text-warning",
+      emoji: "🟡",
+    };
+  }
+  if (marginPct < 66) {
+    return {
+      status: "healthy",
+      label: "Margem Saudável",
+      description:
+        "Margem ideal para moda! Paga custos fixos, dá lucro e ainda suporta liquidações de até 20% sem prejuízo.",
+      color: "text-success",
+      emoji: "🟢",
+    };
+  }
+  return {
+    status: "premium",
+    label: "Alta Lucratividade",
+    description:
+      "Excelente! Margem premium para peças exclusivas ou autorais com alto valor percebido.",
+    color: "text-primary",
+    emoji: "💎",
+  };
+}
+
+// ── Modo 1: Markup sobre o Custo (modo legado mantido) ───────────────────────
 /**
- * Custo real = atacado + frete rateado + embalagem + outros.
- * Preço mínimo = custo real ajustado pelo imposto (empata).
- * Preço sugerido = custo real × (1 + markup), também ajustado pelo imposto.
- *
- * ATENÇÃO FINANCEIRA:
- *  - O slider "Margem desejada" aplica Markup sobre o custo (não Margem sobre a venda).
- *  - `marginOnPrice` devolve a Margem Bruta Real sobre o preço de venda (Gross Margin).
- *  - `markupOnCost` devolve o multiplicador de custo (ex: 80% = preço 80% acima do custo).
- *  - As duas grandezas são sempre exibidas lado a lado para transparência.
+ * P = (Custo × (1 + Markup)) / (1 - Imposto)
+ * Lucro = P - Custo - P×Imposto
  */
 export function computePricing(input: PricingInput): PricingResult {
   const realCost =
@@ -38,12 +85,8 @@ export function computePricing(input: PricingInput): PricingResult {
     num(input.packaging_cost) +
     num(input.other_costs);
 
-  // Imposto máximo limitado a 95% para evitar divisão por zero:
-  // se taxRate == 1, o denominador (1 - taxRate) seria 0 → Infinity.
   const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 95) / 100;
   const markup = Math.max(num(input.margin_pct), 0) / 100;
-
-  // Garante que (1 - taxRate) nunca seja zero
   const divisor = Math.max(1 - taxRate, 0.01);
 
   const minPrice = realCost / divisor;
@@ -55,12 +98,214 @@ export function computePricing(input: PricingInput): PricingResult {
     minPrice,
     suggestedPrice,
     profit,
-    // Margem Bruta Real sobre a Venda (Gross Margin): quanto do preço final é lucro
     marginOnPrice: suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0,
-    // Markup sobre o Custo: quanto o preço sobe em relação ao custo total
     markupOnCost: realCost > 0 ? (profit / realCost) * 100 : 0,
   };
 }
+
+// ── Modo 2: Margem Real sobre a Venda (Gross Margin) ─────────────────────────
+/**
+ * Calcula o preço de venda ideal para que uma % exata do faturamento bruto
+ * seja lucro líquido no caixa, descontando impostos + taxas.
+ *
+ * FÓRMULA CORRETA:
+ *   P = C / (1 - D - M)
+ *   onde D = taxRate + cardRate, M = desiredMargin
+ *
+ * Exemplo: Custo R$ 50, Imposto 6%, Taxa cartão 4%, Margem 40%
+ *   P = 50 / (1 - 0.06 - 0.04 - 0.40) = 50 / 0.50 = R$ 100,00
+ *   Lucro = 100 × 0.40 = R$ 40,00 (exatamente 40%)
+ */
+export type MarginPricingInput = {
+  wholesale_cost: number;
+  freight_cost: number;
+  packaging_cost: number;
+  other_costs: number;
+  desired_margin_pct: number; // % que o lojista quer de lucro líquido sobre a venda
+  tax_pct: number;
+  card_rate_pct?: number; // taxa da maquininha/meio de pagamento (opcional)
+};
+
+export type FullPricingResult = PricingResult & {
+  deductions: number;          // R$ de impostos + taxas
+  netRevenue: number;          // receita líquida após deduções
+  marginHealth: MarginHealth;  // diagnóstico de saúde
+};
+
+export function computePricingByMargin(input: MarginPricingInput): FullPricingResult {
+  const realCost =
+    num(input.wholesale_cost) +
+    num(input.freight_cost) +
+    num(input.packaging_cost) +
+    num(input.other_costs);
+
+  const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 50) / 100;
+  const cardRate = Math.min(Math.max(num(input.card_rate_pct ?? 0), 0), 30) / 100;
+  const desiredMargin = Math.min(Math.max(num(input.desired_margin_pct), 0), 90) / 100;
+
+  // Divisor nunca pode ser ≤ 0
+  const divisor = Math.max(1 - taxRate - cardRate - desiredMargin, 0.01);
+
+  const suggestedPrice = realCost / divisor;
+  const deductions = suggestedPrice * (taxRate + cardRate);
+  const profit = suggestedPrice * desiredMargin;
+  const netRevenue = suggestedPrice - deductions;
+  const minPrice = realCost / Math.max(1 - taxRate - cardRate, 0.01);
+
+  return {
+    realCost,
+    minPrice,
+    suggestedPrice,
+    profit,
+    deductions,
+    netRevenue,
+    marginOnPrice: suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0,
+    markupOnCost: realCost > 0 ? (profit / realCost) * 100 : 0,
+    marginHealth: getMarginHealth(desiredMargin * 100),
+  };
+}
+
+// ── Modo 3: Precificação Reversa (dado o preço, calcular margem) ──────────────
+/**
+ * O lojista define o preço de etiqueta (ex: R$ 89,90) e o sistema
+ * faz a engenharia reversa completa de margem, markup e lucro líquido.
+ */
+export type ReversePricingInput = {
+  wholesale_cost: number;
+  freight_cost: number;
+  packaging_cost: number;
+  other_costs: number;
+  sale_price: number;  // preço de etiqueta definido pelo lojista
+  tax_pct: number;
+  card_rate_pct?: number;
+};
+
+export type ReversePricingResult = {
+  realCost: number;
+  salePrice: number;
+  deductions: number;
+  profit: number;
+  marginOnPrice: number;
+  markupOnCost: number;
+  isViable: boolean;  // se o preço cobre pelo menos o custo real
+  marginHealth: MarginHealth;
+};
+
+export function computeReversePricing(input: ReversePricingInput): ReversePricingResult {
+  const realCost =
+    num(input.wholesale_cost) +
+    num(input.freight_cost) +
+    num(input.packaging_cost) +
+    num(input.other_costs);
+
+  const salePrice = Math.max(num(input.sale_price), 0);
+  const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 50) / 100;
+  const cardRate = Math.min(Math.max(num(input.card_rate_pct ?? 0), 0), 30) / 100;
+
+  const deductions = salePrice * (taxRate + cardRate);
+  const profit = salePrice - realCost - deductions;
+  const marginOnPrice = salePrice > 0 ? (profit / salePrice) * 100 : 0;
+  const markupOnCost = realCost > 0 ? (profit / realCost) * 100 : 0;
+
+  return {
+    realCost,
+    salePrice,
+    deductions,
+    profit,
+    marginOnPrice,
+    markupOnCost,
+    isViable: profit >= 0,
+    marginHealth: getMarginHealth(marginOnPrice),
+  };
+}
+
+// ── Cenários de Pagamento (Simulador de Perdas) ───────────────────────────────
+
+export type PaymentScenario = {
+  label: string;
+  icon: string;
+  rate: number;   // taxa total do meio de pagamento (%)
+  profit: number;
+  margin: number;
+  netAmount: number;
+  isViable: boolean;
+};
+
+export function computePaymentScenarios(
+  salePrice: number,
+  realCost: number,
+  taxPct: number,
+): PaymentScenario[] {
+  const taxRate = Math.min(taxPct, 50) / 100;
+
+  const scenarios = [
+    { label: "Pix / Dinheiro", icon: "💸", rate: 0 },
+    { label: "Cartão Débito (1.5%)", icon: "💳", rate: 1.5 },
+    { label: "Cartão Crédito (3.3%)", icon: "💳", rate: 3.3 },
+    { label: "Parcelado 3x (4.5%)", icon: "📅", rate: 4.5 },
+    { label: "Parcelado 6x (6.9%)", icon: "📅", rate: 6.9 },
+    { label: "10% OFF (Promoção)", icon: "🏷️", rate: 0, discountPct: 10 },
+    { label: "20% OFF (Liquidação)", icon: "🔥", rate: 0, discountPct: 20 },
+  ] as Array<{ label: string; icon: string; rate: number; discountPct?: number }>;
+
+  return scenarios.map(({ label, icon, rate, discountPct }) => {
+    const effectivePrice = discountPct ? salePrice * (1 - discountPct / 100) : salePrice;
+    const deductions = effectivePrice * (taxRate + rate / 100);
+    const profit = effectivePrice - realCost - deductions;
+    const margin = effectivePrice > 0 ? (profit / effectivePrice) * 100 : 0;
+    return {
+      label,
+      icon,
+      rate: discountPct ?? rate,
+      profit,
+      margin,
+      netAmount: effectivePrice - deductions,
+      isViable: profit >= 0,
+    };
+  });
+}
+
+// ── Ponto de Cobertura do Lote (Sell-Through Break-Even) ─────────────────────
+
+export type LotBreakEven = {
+  totalLotCost: number;         // custo total do lote (atacado + operacionais)
+  totalUnits: number;           // total de peças do lote
+  avgNetPricePerUnit: number;   // preço líquido médio por peça (após impostos/taxas)
+  unitsToBreakEven: number;     // quantas peças precisa vender para pagar o lote
+  breakEvenPct: number;         // % do lote que precisa ser vendido
+  profitOnRemainder: number;    // lucro líquido se vender o restante
+};
+
+export function computeLotBreakEven(
+  avgSalePrice: number,
+  avgRealCost: number,
+  totalUnits: number,
+  taxPct: number,
+  cardRatePct = 0,
+): LotBreakEven {
+  const taxRate = Math.min(taxPct, 50) / 100;
+  const cardRate = Math.min(cardRatePct, 30) / 100;
+  const totalLotCost = avgRealCost * totalUnits;
+  const avgNetPricePerUnit = avgSalePrice * (1 - taxRate - cardRate);
+  const unitsToBreakEven = avgNetPricePerUnit > 0
+    ? Math.ceil(totalLotCost / avgNetPricePerUnit)
+    : totalUnits;
+
+  const remainingUnits = Math.max(totalUnits - unitsToBreakEven, 0);
+  const avgProfit = avgSalePrice - avgRealCost - avgSalePrice * (taxRate + cardRate);
+  const profitOnRemainder = remainingUnits * avgProfit;
+  const breakEvenPct = totalUnits > 0 ? (unitsToBreakEven / totalUnits) * 100 : 100;
+
+  return {
+    totalLotCost,
+    totalUnits,
+    avgNetPricePerUnit,
+    unitsToBreakEven: Math.min(unitsToBreakEven, totalUnits),
+    breakEvenPct,
+    profitOnRemainder,
+  };
+}
+
 
 export type Transaction = {
   id: string;

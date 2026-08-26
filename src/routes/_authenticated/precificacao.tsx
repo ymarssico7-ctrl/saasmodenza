@@ -3,21 +3,35 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
+  ArrowRight,
   Boxes,
   Calculator,
   Check,
+  ChevronDown,
   ChevronRight,
+  Coins,
+  CreditCard,
+  Flame,
+  HelpCircle,
+  Info,
   Layers,
   Minus,
   PackagePlus,
   Palette,
+  Percent,
   Plus,
   RotateCcw,
   Save,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Tag,
+  Target,
   Trash2,
+  TrendingUp,
   X,
+  Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
@@ -44,7 +58,16 @@ import {
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { pricingsQuery } from "@/lib/db";
 import { brl, pct, toNumber } from "@/lib/format";
-import { computePricing, INVENTORY_CATEGORIES } from "@/lib/finance";
+import {
+  computePaymentScenarios,
+  computePricing,
+  computePricingByMargin,
+  computeReversePricing,
+  computeLotBreakEven,
+  getMarginHealth,
+  INVENTORY_CATEGORIES,
+  type MarginHealth,
+} from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
 import { cn } from "@/lib/utils";
@@ -52,23 +75,24 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
     meta: [
-      { title: "Precificação com margem real — Vestuli" },
+      { title: "Precificação Estratégica & Inteligência de Margem — Vestuli" },
       {
         name: "description",
         content:
-          "Calcule o preço de venda das suas peças considerando atacado, frete, embalagem, imposto, grade de tamanhos e variações de cores.",
+          "Calcule o preço de venda das suas peças com margem real, controle individual por grade de tamanhos, simulador de taxas de cartão e ponto de equilíbrio do lote.",
       },
-      { property: "og:title", content: "Precificação com margem real — Vestuli" },
+      { property: "og:title", content: "Precificação Estratégica — Vestuli" },
       {
         property: "og:description",
-        content: "Descubra o preço mínimo e o preço ideal de cada peça por grade ou preço único.",
+        content: "Descubra o preço ideal por grade ou peça única, simulando perdas e margem real líquida.",
       },
     ],
   }),
   component: Precificacao,
 });
 
-type PricingMode = "unico" | "grade" | "cor_tamanho";
+type PricingMode = "grade" | "unico" | "cor_tamanho";
+type PricingStrategy = "margin" | "markup" | "direct_price";
 
 const PRESET_OPTIONS = [
   { id: "letras", label: "Padrão (PP–GG)", sizes: ["PP", "P", "M", "G", "GG"] },
@@ -82,36 +106,50 @@ function Precificacao() {
   const { storeId } = useStore();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
-  // ── Modo de Precificação ───────────────────────────────────────────
+  // ── Modo de Agrupamento ───────────────────────────────────────────
   const [mode, setMode] = useState<PricingMode>("grade");
+
+  // ── Estratégia de Precificação (Como o lojista prefere calcular) ───
+  const [strategy, setStrategy] = useState<PricingStrategy>("margin");
 
   // ── Dados Básicos da Peça ─────────────────────────────────────────
   const [name, setName] = useState("");
 
   // ── Modo 1: Preço Único ───────────────────────────────────────────
-  const [wholesale, setWholesale] = useState("");
+  const [wholesale, setWholesale] = useState("49,90");
 
   // ── Modo 2: Grade por Tamanho ─────────────────────────────────────
   const [activeSizes, setActiveSizes] = useState<string[]>(["P", "M", "G", "GG"]);
   const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("49,90");
   const [sizeCosts, setSizeCosts] = useState<Record<string, string>>({});
+  const [sizeSalePrices, setSizeSalePrices] = useState<Record<string, string>>({});
   const [customSizeInput, setCustomSizeInput] = useState("");
   const [activePreset, setActivePreset] = useState<string>("letras");
 
-  // ── Modo 3: Cor & Tamanho ─────────────────────────────────────────
+  // ── Modo 3: Cor & Variação ────────────────────────────────────────
   const [colors, setColors] = useState<string[]>(["Off-White", "Preto"]);
   const [colorInput, setColorInput] = useState("");
   const [colorCosts, setColorCosts] = useState<Record<string, string>>({
     "Off-White": "",
     Preto: "",
   });
+  const [colorSalePrices, setColorSalePrices] = useState<Record<string, string>>({});
 
   // ── Custos Operacionais Compartilhados ─────────────────────────────
   const [freight, setFreight] = useState("6,00");
   const [packaging, setPackaging] = useState("3,50");
   const [other, setOther] = useState("2,00");
-  const [margin, setMargin] = useState(80);
-  const [tax, setTax] = useState(6);
+
+  // ── Parâmetros de Margem, Markup e Deduções ────────────────────────
+  const [desiredMargin, setDesiredMargin] = useState(50); // 50% de margem real líquida
+  const [markup, setMarkup] = useState(80); // 80% de markup sobre custo
+  const [directSalePrice, setDirectSalePrice] = useState("119,90"); // Preço de etiqueta direto
+  const [tax, setTax] = useState(6); // 6% imposto
+  const [cardRate, setCardRate] = useState(3.5); // 3.5% taxa média de maquininha
+
+  // ── Simuladores & Lote ─────────────────────────────────────────────
+  const [lotUnits] = useState(20);
+  const [showSimulator, setShowSimulator] = useState(false);
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
@@ -129,72 +167,148 @@ function Precificacao() {
     GG: 2,
   });
 
-  // ── Custos Compartilhados Numéricos ────────────────────────────────
-  const sharedCosts = useMemo(
-    () => ({
-      freight_cost: toNumber(freight),
-      packaging_cost: toNumber(packaging),
-      other_costs: toNumber(other),
-      margin_pct: margin,
-      tax_pct: tax,
-    }),
-    [freight, packaging, other, margin, tax],
-  );
+  // ── Função Central de Cálculo de Item ──────────────────────────────
+  const calculateItem = useMemo(() => {
+    const freightNum = toNumber(freight);
+    const packagingNum = toNumber(packaging);
+    const otherNum = toNumber(other);
+
+    return (
+      wholesaleCost: number,
+      customSalePriceStr?: string,
+    ): {
+      realCost: number;
+      suggestedPrice: number;
+      profit: number;
+      marginOnPrice: number;
+      markupOnCost: number;
+      deductions: number;
+      isCustomPrice: boolean;
+      marginHealth: MarginHealth;
+    } => {
+      const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
+      const customPriceNum = customSalePriceStr ? toNumber(customSalePriceStr) : 0;
+      const hasCustomPrice = customPriceNum > 0;
+
+      // 1. Se o item tem um preço de venda fixo personalizado ou estamos no modo direct_price
+      if (hasCustomPrice || strategy === "direct_price") {
+        const targetPrice = hasCustomPrice ? customPriceNum : toNumber(directSalePrice);
+        const res = computeReversePricing({
+          wholesale_cost: wholesaleCost,
+          freight_cost: freightNum,
+          packaging_cost: packagingNum,
+          other_costs: otherNum,
+          sale_price: targetPrice,
+          tax_pct: tax,
+          card_rate_pct: cardRate,
+        });
+        return {
+          realCost: res.realCost,
+          suggestedPrice: res.salePrice,
+          profit: res.profit,
+          marginOnPrice: res.marginOnPrice,
+          markupOnCost: res.markupOnCost,
+          deductions: res.deductions,
+          isCustomPrice: hasCustomPrice,
+          marginHealth: res.marginHealth,
+        };
+      }
+
+      // 2. Se a estratégia é Margem Real sobre a Venda (Recomendado)
+      if (strategy === "margin") {
+        const res = computePricingByMargin({
+          wholesale_cost: wholesaleCost,
+          freight_cost: freightNum,
+          packaging_cost: packagingNum,
+          other_costs: otherNum,
+          desired_margin_pct: desiredMargin,
+          tax_pct: tax,
+          card_rate_pct: cardRate,
+        });
+        return {
+          realCost: res.realCost,
+          suggestedPrice: res.suggestedPrice,
+          profit: res.profit,
+          marginOnPrice: res.marginOnPrice,
+          markupOnCost: res.markupOnCost,
+          deductions: res.deductions,
+          isCustomPrice: false,
+          marginHealth: res.marginHealth,
+        };
+      }
+
+      // 3. Se a estratégia é Markup sobre o Custo
+      const res = computePricing({
+        wholesale_cost: wholesaleCost,
+        freight_cost: freightNum,
+        packaging_cost: packagingNum,
+        other_costs: otherNum,
+        margin_pct: markup,
+        tax_pct: tax,
+      });
+      const deductions = res.suggestedPrice * ((tax + cardRate) / 100);
+      const profitAdjusted = res.suggestedPrice - res.realCost - deductions;
+      const marginReal = res.suggestedPrice > 0 ? (profitAdjusted / res.suggestedPrice) * 100 : 0;
+
+      return {
+        realCost: res.realCost,
+        suggestedPrice: res.suggestedPrice,
+        profit: profitAdjusted,
+        marginOnPrice: marginReal,
+        markupOnCost: res.realCost > 0 ? (profitAdjusted / res.realCost) * 100 : 0,
+        deductions,
+        isCustomPrice: false,
+        marginHealth: getMarginHealth(marginReal),
+      };
+    };
+  }, [freight, packaging, other, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
 
   // ── Cálculo do Preço Único ────────────────────────────────────────
-  const singleResult = useMemo(
-    () =>
-      computePricing({
-        wholesale_cost: toNumber(wholesale),
-        ...sharedCosts,
-      }),
-    [wholesale, sharedCosts],
-  );
+  const singleResult = useMemo(() => {
+    return calculateItem(toNumber(wholesale));
+  }, [wholesale, calculateItem]);
 
-  // ── Cálculo da Grade por Tamanho com REATIVIDADE AUTOMÁTICA ────────
-  // Se o lojista não digitou custo individual, usa o CUSTO BASE automaticamente!
+  // ── Cálculo da Grade por Tamanho com Granularidade Total ───────────
   const gradeResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
     return activeSizes.map((size) => {
       const rawCost = sizeCosts[size];
-      const hasCustom = rawCost !== undefined && rawCost !== "" && toNumber(rawCost) > 0;
-      const wholesaleNum = hasCustom ? toNumber(rawCost) : baseNum;
+      const hasCustomCost = rawCost !== undefined && rawCost !== "" && toNumber(rawCost) > 0;
+      const wholesaleNum = hasCustomCost ? toNumber(rawCost) : baseNum;
 
-      const res = computePricing({
-        wholesale_cost: wholesaleNum,
-        ...sharedCosts,
-      });
+      const rawSalePrice = sizeSalePrices[size];
+      const res = calculateItem(wholesaleNum, rawSalePrice);
+
       return {
         size,
         wholesale_cost: wholesaleNum,
-        isCustom: hasCustom && wholesaleNum !== baseNum,
+        isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
         ...res,
       };
     });
-  }, [activeSizes, sizeCosts, baseWholesaleGrade, sharedCosts]);
+  }, [activeSizes, sizeCosts, sizeSalePrices, baseWholesaleGrade, calculateItem]);
 
   // ── Cálculo de Cor & Variação ──────────────────────────────────────
   const colorResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade || wholesale);
     return colors.map((color) => {
       const rawCost = colorCosts[color];
-      const hasCustom = rawCost !== undefined && rawCost !== "" && toNumber(rawCost) > 0;
-      const wholesaleNum = hasCustom ? toNumber(rawCost) : baseNum;
+      const hasCustomCost = rawCost !== undefined && rawCost !== "" && toNumber(rawCost) > 0;
+      const wholesaleNum = hasCustomCost ? toNumber(rawCost) : baseNum;
 
-      const res = computePricing({
-        wholesale_cost: wholesaleNum,
-        ...sharedCosts,
-      });
+      const rawSalePrice = colorSalePrices[color];
+      const res = calculateItem(wholesaleNum, rawSalePrice);
+
       return {
         color,
         wholesale_cost: wholesaleNum,
-        isCustom: hasCustom && wholesaleNum !== baseNum,
+        isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
         ...res,
       };
     });
-  }, [colors, colorCosts, baseWholesaleGrade, wholesale, sharedCosts]);
+  }, [colors, colorCosts, colorSalePrices, baseWholesaleGrade, wholesale, calculateItem]);
 
-  // ── Resumo Geral de Preços (Range / Médias) ───────────────────────
+  // ── Resumo Geral de Preços (Faixas e Médias) ───────────────────────
   const summaryPrices = useMemo(() => {
     if (mode === "unico") {
       return {
@@ -203,6 +317,9 @@ function Precificacao() {
         avgSuggested: singleResult.suggestedPrice,
         avgProfit: singleResult.profit,
         avgCost: singleResult.realCost,
+        avgMargin: singleResult.marginOnPrice,
+        avgMarkup: singleResult.markupOnCost,
+        marginHealth: singleResult.marginHealth,
         hasMultiple: false,
       };
     }
@@ -216,6 +333,9 @@ function Precificacao() {
         avgSuggested: 0,
         avgProfit: 0,
         avgCost: 0,
+        avgMargin: 0,
+        avgMarkup: 0,
+        marginHealth: getMarginHealth(0),
         hasMultiple: items.length > 1,
       };
     }
@@ -226,6 +346,8 @@ function Precificacao() {
     const avgP = prices.reduce((a, b) => a + b, 0) / prices.length;
     const avgProf = valid.reduce((a, b) => a + b.profit, 0) / valid.length;
     const avgC = valid.reduce((a, b) => a + b.realCost, 0) / valid.length;
+    const avgMarg = avgP > 0 ? (avgProf / avgP) * 100 : 0;
+    const avgMark = avgC > 0 ? (avgProf / avgC) * 100 : 0;
 
     return {
       minSuggested: minP,
@@ -233,9 +355,32 @@ function Precificacao() {
       avgSuggested: avgP,
       avgProfit: avgProf,
       avgCost: avgC,
+      avgMargin: avgMarg,
+      avgMarkup: avgMark,
+      marginHealth: getMarginHealth(avgMarg),
       hasMultiple: minP !== maxP,
     };
   }, [mode, singleResult, gradeResults, colorResults]);
+
+  // ── Simulador de Meios de Pagamento & Perdas ───────────────────────
+  const paymentScenarios = useMemo(() => {
+    return computePaymentScenarios(
+      summaryPrices.avgSuggested,
+      summaryPrices.avgCost,
+      tax,
+    );
+  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax]);
+
+  // ── Ponto de Cobertura do Lote (Break-Even) ─────────────────────────
+  const lotBreakEven = useMemo(() => {
+    return computeLotBreakEven(
+      summaryPrices.avgSuggested,
+      summaryPrices.avgCost,
+      lotUnits,
+      tax,
+      cardRate,
+    );
+  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, lotUnits, tax, cardRate]);
 
   // ── Ações da Grade de Tamanhos ────────────────────────────────────
   const toggleSize = (sz: string) => {
@@ -250,174 +395,16 @@ function Precificacao() {
     }
   };
 
-  const addCustomSize = () => {
-    const trimmed = customSizeInput.trim().toUpperCase();
-    if (!trimmed) return;
-    if (activeSizes.includes(trimmed)) {
-      toast.error("Tamanho já está na grade");
-      return;
-    }
-    setActiveSizes((prev) => [...prev, trimmed]);
-    setCustomSizeInput("");
-    setActivePreset("custom");
-    toast.success(`Tamanho ${trimmed} adicionado à grade`);
-  };
-
-  const applyPreset = (presetId: string, sizes: string[]) => {
-    setActivePreset(presetId);
-    setActiveSizes(sizes);
-    toast.success(`Grade "${PRESET_OPTIONS.find((p) => p.id === presetId)?.label}" ativada!`);
-  };
-
-  const resetSizeCost = (sz: string) => {
-    setSizeCosts((prev) => {
-      const next = { ...prev };
-      delete next[sz];
-      return next;
-    });
-    toast.info(`Tamanho ${sz} restaurado para o custo base (${brl(toNumber(baseWholesaleGrade))})`);
-  };
-
-  // ── Ações de Cores ────────────────────────────────────────────────
-  const addColor = () => {
-    const trimmed = colorInput.trim();
-    if (!trimmed) return;
-    if (colors.includes(trimmed)) {
-      toast.error("Cor já adicionada");
-      return;
-    }
-    setColors((prev) => [...prev, trimmed]);
-    setColorInput("");
-    toast.success(`Cor "${trimmed}" adicionada`);
-  };
-
-  const removeColor = (c: string) => {
-    if (colors.length <= 1) {
-      toast.error("Mantenha ao menos uma cor");
-      return;
-    }
-    setColors((prev) => prev.filter((col) => col !== c));
-  };
-
-  // ── Abrir Ficha de Entrada no Estoque ─────────────────────────────
-  const openEntryForCurrent = () => {
-    const pieceName = name.trim() || "Nova Peça Precificada";
-    setEntryName(pieceName);
-    setEntryCostPrice(summaryPrices.avgCost || 0);
-    setEntrySalePrice(summaryPrices.avgSuggested || 0);
-    setEntryColor(colors[0] || "");
-    setEntrySupplier("");
-    const initialSizes: Record<string, number> = {};
-    if (mode === "grade") {
-      activeSizes.forEach((sz) => {
-        initialSizes[sz] = 2;
-      });
-    } else {
-      ["P", "M", "G", "GG"].forEach((sz) => {
-        initialSizes[sz] = 2;
-      });
-    }
-    setEntrySizes(initialSizes);
-    setEntryPhotoUrl("");
-    setEntrySheetOpen(true);
-  };
-
-  const openEntryForSaved = (p: (typeof saved)[0], realCost: number, suggestedPrice: number) => {
-    setEntryName(p.name);
-    setEntryCostPrice(realCost);
-    setEntrySalePrice(suggestedPrice);
-    setEntryColor("");
-    setEntrySupplier("");
-    setEntrySizes({ P: 2, M: 4, G: 4, GG: 2 });
-    setEntryPhotoUrl("");
-    setEntrySheetOpen(true);
-  };
-
-  // ── Totais do Lote na Ficha de Entrada ─────────────────────────────
-  const entryTotalUnits = Object.values(entrySizes).reduce(
-    (acc, val) => acc + Number(val || 0),
-    0,
-  );
-  const entryTotalCost = entryTotalUnits * entryCostPrice;
-  const entryTotalRevenue = entryTotalUnits * entrySalePrice;
-
-  // ── Mutações ──────────────────────────────────────────────────────
-  const save = useMutation({
-    mutationFn: async () => {
-      const pieceName = name.trim() || "Peça sem nome";
-
-      const primaryWholesale =
-        mode === "unico"
-          ? toNumber(wholesale)
-          : mode === "grade"
-            ? toNumber(baseWholesaleGrade) || summaryPrices.avgCost
-            : toNumber(Object.values(colorCosts)[0] || wholesale || baseWholesaleGrade);
-
-      if (primaryWholesale <= 0 && summaryPrices.avgCost <= 0) {
-        throw new Error("Informe o custo de atacado das peças");
-      }
-
-      return insertPricing({
-        storeId,
-        name: pieceName,
-        wholesale_cost: Math.max(primaryWholesale, 0.01),
-        ...sharedCosts,
-      });
-    },
-    onSuccess: () => {
-      toast.success("Precificação salva no seu histórico! 📋");
-      void queryClient.invalidateQueries({ queryKey: ["pricings"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => deletePricing(storeId, id),
-    onSuccess: () => {
-      toast.success("Precificação excluída");
-      void queryClient.invalidateQueries({ queryKey: ["pricings"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const confirmEntryMutation = useMutation({
-    mutationFn: async () => {
-      if (!entryName.trim()) throw new Error("Informe o nome da peça");
-      if (entryTotalUnits <= 0) throw new Error("Adicione ao menos 1 unidade na grade de tamanhos");
-
-      return insertInventoryItem({
-        storeId,
-        name: entryName.trim(),
-        category: entryCategory,
-        color: entryColor.trim() || null,
-        supplier: entrySupplier.trim() || null,
-        cost_price: entryCostPrice,
-        sale_price: entrySalePrice,
-        sizes: entrySizes,
-        photo_url: entryPhotoUrl || null,
-      });
-    },
-    onSuccess: () => {
-      setEntrySheetOpen(false);
-      toast.success(`"${entryName}" cadastrada no Estoque! 📦`, {
-        description: `Grade com ${entryTotalUnits} unidades disponível para venda.`,
-        duration: 5000,
-      });
-      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Calculadora Estratégica"
+        eyebrow="Inteligência de Precificação & Vendas"
         title="Quanto cobrar por cada peça?"
-        description="Calcule custos reais, margem ideal e precifique por grade de tamanhos, cores ou preço único."
+        description="Domine suas margens reais, simule taxas e precifique com total liberdade por grade de tamanhos, cores ou preço único."
       />
 
-      {/* ── Segmented Control Apple (Seleção de Modo) ─────────────── */}
-      <div className="flex justify-center sm:justify-start">
+      {/* ── Segmented Control Apple (Seleção de Modo de Estrutura) ──── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-2xl border border-border bg-surface p-1.5 shadow-soft">
           <button
             type="button"
@@ -456,10 +443,53 @@ function Precificacao() {
             <Palette className="size-3.5" /> Cor & Variação
           </button>
         </div>
+
+        {/* ── Seletor da Estratégia de Cálculo (Apple Pill) ─────────── */}
+        <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-secondary/50 p-1">
+          <span className="px-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Estratégia:
+          </span>
+          <button
+            type="button"
+            onClick={() => setStrategy("margin")}
+            className={cn(
+              "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all",
+              strategy === "margin"
+                ? "bg-card text-primary shadow-xs border border-primary/20"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Target className="size-3" /> Margem Real %
+          </button>
+          <button
+            type="button"
+            onClick={() => setStrategy("markup")}
+            className={cn(
+              "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all",
+              strategy === "markup"
+                ? "bg-card text-primary shadow-xs border border-primary/20"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <TrendingUp className="size-3" /> Markup %
+          </button>
+          <button
+            type="button"
+            onClick={() => setStrategy("direct_price")}
+            className={cn(
+              "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all",
+              strategy === "direct_price"
+                ? "bg-card text-primary shadow-xs border border-primary/20"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Coins className="size-3" /> Preço Fixo R$
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-        {/* ── Formulário de Custos (Painel Esquerdo) ────────────────── */}
+        {/* ── Formulário de Custos & Grade (Painel Esquerdo) ─────────── */}
         <section className="panel p-6 sm:p-7 space-y-6">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
@@ -470,10 +500,10 @@ function Precificacao() {
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {mode === "grade" &&
-                  "Defina o custo base comum e ajuste apenas os tamanhos que custarem diferente."}
-                {mode === "unico" && "Um único valor de custo e preço de venda para a peça inteira."}
+                  "Defina o custo base e personalize custos ou preços de venda em qualquer tamanho individual."}
+                {mode === "unico" && "Precifique a peça inteira com valor de atacado e venda unificados."}
                 {mode === "cor_tamanho" &&
-                  "Precifique variações com custos de tecido ou estampa distintos."}
+                  "Precifique variações com custos de tecido ou acabamentos distintos."}
               </p>
             </div>
             <Badge variant="outline" className="rounded-full text-xs font-semibold capitalize">
@@ -492,10 +522,10 @@ function Precificacao() {
             />
           </Field>
 
-          {/* ── MODO 2: GRADE POR TAMANHO (PADRÃO APPLE) ────────────── */}
+          {/* ── MODO 2: GRADE POR TAMANHO (PADRÃO APPLE ULTRA-REATIVO) ── */}
           {mode === "grade" && (
             <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
-              {/* Seletor de Presets de Grade em Pills */}
+              {/* Presets de Grade */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Tipo de Grade de Tamanhos
@@ -519,7 +549,7 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* Bloco de Destaque: Custo Base com Reatividade Total */}
+              {/* Bloco de Destaque: Custo Base com Reatividade Automática */}
               <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-2 shadow-xs">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-foreground">
@@ -538,53 +568,61 @@ function Precificacao() {
                 />
               </div>
 
-              {/* Tiles Interativos dos Tamanhos da Grade */}
-              <div className="space-y-2 pt-1">
+              {/* Tiles Granulares dos Tamanhos da Grade */}
+              <div className="space-y-2.5 pt-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Tamanhos & Custos Individuais
+                    Tamanhos, Custos & Preços Granulares
                   </Label>
                   <span className="text-[11px] text-muted-foreground">
-                    Edite apenas se algum tamanho custar mais
+                    Digite o custo ou preço de venda de cada tamanho
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {activeSizes.map((sz) => {
                     const item = gradeResults.find((r) => r.size === sz);
-                    const isCustom =
-                      sizeCosts[sz] !== undefined &&
-                      sizeCosts[sz] !== "" &&
-                      toNumber(sizeCosts[sz]) !== toNumber(baseWholesaleGrade);
+                    const isCustomCost = item?.isCustomCost;
+                    const isCustomPrice = item?.isCustomPrice;
+                    const hasOverrides = isCustomCost || isCustomPrice;
 
                     return (
                       <div
                         key={sz}
                         className={cn(
-                          "relative rounded-2xl border p-3 flex flex-col justify-between space-y-2 transition-all duration-200",
-                          isCustom
+                          "relative rounded-2xl border p-3.5 flex flex-col justify-between space-y-2.5 transition-all duration-200",
+                          hasOverrides
                             ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30"
                             : "border-border bg-card hover:border-border/80",
                         )}
                       >
+                        {/* Header do Tile */}
                         <div className="flex items-center justify-between">
-                          <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-xs font-bold">
-                            {sz}
-                          </span>
-                          {isCustom ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-xs font-bold">
+                              {sz}
+                            </span>
+                            {hasOverrides && (
+                              <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                                Personalizado
+                              </span>
+                            )}
+                          </div>
+
+                          {hasOverrides ? (
                             <button
                               type="button"
-                              onClick={() => resetSizeCost(sz)}
-                              title="Restaurar ao custo base"
+                              onClick={() => resetSizeOverrides(sz)}
+                              title="Restaurar para a regra padrão"
                               className="text-primary hover:text-primary/70 text-[10px] font-semibold flex items-center gap-0.5"
                             >
-                              <RotateCcw className="size-2.5" /> Base
+                              <RotateCcw className="size-2.5" /> Padrão
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => toggleSize(sz)}
-                              title="Remover tamanho"
+                              title="Remover tamanho da grade"
                               className="text-muted-foreground hover:text-destructive size-5 rounded-md flex items-center justify-center"
                             >
                               <X className="size-3" />
@@ -592,27 +630,62 @@ function Precificacao() {
                           )}
                         </div>
 
-                        <div className="space-y-1">
-                          <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-                            {isCustom ? "Custo Especial" : "Custo (R$)"}
-                          </span>
-                          <Input
-                            inputMode="decimal"
-                            value={sizeCosts[sz] ?? ""}
-                            onChange={(e) =>
-                              setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
-                            }
-                            placeholder={baseWholesaleGrade || "0,00"}
-                            className="h-8 rounded-lg text-xs font-semibold text-right"
-                          />
+                        {/* 2 Inputs: Custo Atacado & Preço Venda Direto */}
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="space-y-1">
+                            <span className="font-semibold text-muted-foreground block text-[10px] uppercase tracking-wider">
+                              Custo (R$)
+                            </span>
+                            <Input
+                              inputMode="decimal"
+                              value={sizeCosts[sz] ?? ""}
+                              onChange={(e) =>
+                                setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
+                              }
+                              placeholder={baseWholesaleGrade || "0,00"}
+                              className="h-8 rounded-lg text-xs font-semibold text-right"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="font-semibold text-primary block text-[10px] uppercase tracking-wider">
+                              Venda (R$)
+                            </span>
+                            <Input
+                              inputMode="decimal"
+                              value={sizeSalePrices[sz] ?? ""}
+                              onChange={(e) =>
+                                setSizeSalePrices((prev) => ({ ...prev, [sz]: e.target.value }))
+                              }
+                              placeholder={
+                                item && item.suggestedPrice > 0
+                                  ? brl(item.suggestedPrice).replace("R$", "").trim()
+                                  : "0,00"
+                              }
+                              className={cn(
+                                "h-8 rounded-lg text-xs font-bold text-right",
+                                isCustomPrice && "text-primary border-primary",
+                              )}
+                            />
+                          </div>
                         </div>
 
-                        <div className="border-t border-border/60 pt-1.5 flex items-center justify-between text-[11px]">
-                          <span className="text-muted-foreground">Venda:</span>
-                          <span className="numeric font-bold text-primary">
-                            {item && item.suggestedPrice > 0
-                              ? brl(item.suggestedPrice)
-                              : "R$ 0,00"}
+                        {/* Footer do Tile com Margem e Lucro em Tempo Real */}
+                        <div className="border-t border-border/60 pt-2 flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground">
+                            Lucro:{" "}
+                            <strong className="text-foreground">
+                              {item ? brl(item.profit) : "R$ 0,00"}
+                            </strong>
+                          </span>
+                          <span
+                            className={cn(
+                              "font-bold flex items-center gap-1",
+                              item?.marginHealth.color ?? "text-muted-foreground",
+                            )}
+                          >
+                            <span>{item?.marginHealth.emoji}</span>
+                            <span>{pct(item?.marginOnPrice ?? 0)}</span>
                           </span>
                         </div>
                       </div>
@@ -620,7 +693,7 @@ function Precificacao() {
                   })}
 
                   {/* Tile para Adicionar Tamanho Personalizado */}
-                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 p-2.5 flex flex-col justify-center items-center gap-1.5">
+                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 p-3 flex flex-col justify-center items-center gap-1.5">
                     <Input
                       value={customSizeInput}
                       onChange={(e) => setCustomSizeInput(e.target.value)}
@@ -628,16 +701,16 @@ function Precificacao() {
                         e.key === "Enter" && (e.preventDefault(), addCustomSize())
                       }
                       placeholder="+ Tam (ex: G4)"
-                      className="h-7 rounded-lg text-xs text-center font-medium"
+                      className="h-8 rounded-lg text-xs text-center font-medium"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={addCustomSize}
-                      className="h-6 w-full rounded-lg text-[11px] font-semibold"
+                      className="h-7 w-full rounded-lg text-[11px] font-semibold"
                     >
-                      <Plus className="size-3 mr-0.5" /> Incluir
+                      <Plus className="size-3 mr-0.5" /> Adicionar
                     </Button>
                   </div>
                 </div>
@@ -648,15 +721,29 @@ function Precificacao() {
           {/* ── MODO 1: PREÇO ÚNICO ─────────────────────────────────── */}
           {mode === "unico" && (
             <div className="rounded-2xl border border-border bg-secondary/30 p-5 space-y-4">
-              <Field label="Custo de atacado por peça (R$)">
-                <Input
-                  inputMode="decimal"
-                  value={wholesale}
-                  onChange={(e) => setWholesale(e.target.value)}
-                  placeholder="59,90"
-                  className="h-11 rounded-xl bg-card font-semibold text-base"
-                />
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Custo de atacado por peça (R$)">
+                  <Input
+                    inputMode="decimal"
+                    value={wholesale}
+                    onChange={(e) => setWholesale(e.target.value)}
+                    placeholder="49,90"
+                    className="h-11 rounded-xl bg-card font-semibold text-base"
+                  />
+                </Field>
+
+                {strategy === "direct_price" && (
+                  <Field label="Preço de venda desejado na etiqueta (R$)">
+                    <Input
+                      inputMode="decimal"
+                      value={directSalePrice}
+                      onChange={(e) => setDirectSalePrice(e.target.value)}
+                      placeholder="119,90"
+                      className="h-11 rounded-xl bg-card font-bold text-base text-primary"
+                    />
+                  </Field>
+                )}
+              </div>
             </div>
           )}
 
@@ -668,7 +755,7 @@ function Precificacao() {
                   value={colorInput}
                   onChange={(e) => setColorInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addColor())}
-                  placeholder="Nova cor ou variação de tecido (ex: Linho Cru)"
+                  placeholder="Nova cor ou variação (ex: Linho Cru)"
                   className="h-10 rounded-xl"
                 />
                 <Button
@@ -695,7 +782,7 @@ function Precificacao() {
                             variant="secondary"
                             className="numeric text-[11px] font-semibold text-primary"
                           >
-                            Venda: {brl(item.suggestedPrice)}
+                            Venda: {brl(item.suggestedPrice)} · Lucro: {brl(item.profit)}
                           </Badge>
                         )}
                       </div>
@@ -764,22 +851,58 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* ── Sliders de Margem e Impostos ────────────────────────── */}
-          <div className="space-y-6 border-t border-border pt-4">
-            <SliderRow
-              label="Margem desejada (Markup sobre o custo)"
-              value={margin}
-              max={300}
-              onChange={setMargin}
-              display={pct(margin)}
-            />
-            <SliderRow
-              label="Imposto / taxas sobre a venda"
-              value={tax}
-              max={30}
-              onChange={setTax}
-              display={pct(tax)}
-            />
+          {/* ── Sliders e Controles da Estratégia de Precificação ─────── */}
+          <div className="space-y-5 border-t border-border pt-4">
+            {strategy === "margin" && (
+              <SliderRow
+                label="Margem de Lucro Líquida Desejada (% sobre a venda)"
+                value={desiredMargin}
+                max={85}
+                onChange={setDesiredMargin}
+                display={pct(desiredMargin)}
+                hint="De cada R$ 1,00 que entra no caixa, quanto fica limpo no seu bolso."
+              />
+            )}
+
+            {strategy === "markup" && (
+              <SliderRow
+                label="Markup Desejado (% sobre o custo total)"
+                value={markup}
+                max={300}
+                onChange={setMarkup}
+                display={pct(markup)}
+                hint="Quanto o preço de venda sobe em cima do custo da peça."
+              />
+            )}
+
+            {strategy === "direct_price" && mode === "grade" && (
+              <div className="rounded-xl bg-primary-soft p-3 text-xs text-primary flex items-start gap-2">
+                <Info className="size-4 shrink-0 mt-0.5" />
+                <span>
+                  No modo <strong>Preço Fixo</strong>, digite o valor de venda desejado diretamente em cada tamanho nos cards da grade acima para ver o lucro real de cada peça.
+                </span>
+              </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 pt-2">
+              <SliderRow
+                label="Imposto sobre a venda (%)"
+                value={tax}
+                max={25}
+                onChange={setTax}
+                display={pct(tax)}
+                hint="Simples Nacional / DAS estimado."
+              />
+
+              <SliderRow
+                label="Taxa média de cartão / maquininha (%)"
+                value={cardRate}
+                max={15}
+                onChange={setCardRate}
+                display={pct(cardRate)}
+                hint="Taxa média cobrada pelas maquininhas no crédito/débito."
+              />
+            </div>
           </div>
         </section>
 
@@ -791,8 +914,13 @@ function Precificacao() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
                   Preço Sugerido de Venda
                 </p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary-foreground/15 px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground">
-                  <Sparkles className="size-3" /> Margem Otimizada
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-white/20 text-white backdrop-blur-xs",
+                  )}
+                >
+                  <span>{summaryPrices.marginHealth.emoji}</span>
+                  <span>{summaryPrices.marginHealth.label}</span>
                 </span>
               </div>
 
@@ -812,7 +940,7 @@ function Precificacao() {
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="mt-2 text-xs text-primary-foreground/70">
-                    Lucro líquido médio de {brl(summaryPrices.avgProfit)} por unidade vendida
+                    Lucro líquido médio de <strong>{brl(summaryPrices.avgProfit)}</strong> por unidade
                   </p>
                 </div>
               )}
@@ -820,32 +948,39 @@ function Precificacao() {
 
             {/* 3 Hero Metric Cards */}
             <div className="grid grid-cols-3 gap-2.5">
-              <div className="rounded-xl bg-primary-foreground/10 p-3 backdrop-blur-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
-                  Markup
-                </p>
-                <p className="numeric mt-1 text-lg font-bold">{pct(margin)}</p>
-              </div>
-              <div className="rounded-xl bg-primary-foreground/20 p-3 backdrop-blur-xs">
+              <div className="rounded-xl bg-primary-foreground/15 p-3 backdrop-blur-xs">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
                   Margem Real
                 </p>
                 <p className="numeric mt-1 text-lg font-bold">
-                  {pct(
-                    summaryPrices.avgSuggested > 0
-                      ? (summaryPrices.avgProfit / summaryPrices.avgSuggested) * 100
-                      : 0,
-                  )}
+                  {pct(summaryPrices.avgMargin)}
                 </p>
               </div>
-              <div className="rounded-xl bg-primary-foreground/10 p-3 backdrop-blur-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+              <div className="rounded-xl bg-primary-foreground/25 p-3 backdrop-blur-xs shadow-inner">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/70">
                   Lucro Médio
                 </p>
                 <p className="numeric mt-1 text-base font-bold">
                   {brl(summaryPrices.avgProfit)}
                 </p>
               </div>
+              <div className="rounded-xl bg-primary-foreground/15 p-3 backdrop-blur-xs">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+                  Markup
+                </p>
+                <p className="numeric mt-1 text-lg font-bold">{pct(summaryPrices.avgMarkup)}</p>
+              </div>
+            </div>
+
+            {/* Diagnóstico de Saúde Financeira */}
+            <div className="rounded-2xl bg-black/20 p-3.5 backdrop-blur-sm text-xs leading-relaxed space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-primary-foreground">
+                <ShieldCheck className="size-4 text-white" />
+                <span>Diagnóstico de Lucratividade</span>
+              </div>
+              <p className="text-primary-foreground/80">
+                {summaryPrices.marginHealth.description}
+              </p>
             </div>
 
             {/* Tabela de Variações da Grade */}
@@ -854,22 +989,24 @@ function Precificacao() {
                 <div className="flex items-center justify-between text-primary-foreground/80 font-semibold uppercase tracking-wider text-[10px]">
                   <span>Tamanho</span>
                   <span>Custo Real</span>
-                  <span>Preço Sugerido</span>
+                  <span>Venda</span>
+                  <span>Lucro Real</span>
                 </div>
-                <div className="divide-y divide-primary-foreground/15 max-h-48 overflow-y-auto pr-1">
+                <div className="divide-y divide-primary-foreground/15 max-h-40 overflow-y-auto pr-1">
                   {gradeResults.map((gr) => (
                     <div key={gr.size} className="flex items-center justify-between py-2">
-                      <span className="font-bold flex items-center gap-1.5">
+                      <span className="font-bold flex items-center gap-1">
                         {gr.size}
-                        {gr.isCustom && (
-                          <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-[9px] font-normal">
-                            Especial
-                          </span>
-                        )}
+                        {gr.isCustomPrice ? (
+                          <span className="rounded-full bg-white/20 px-1 text-[8px]">Fixo</span>
+                        ) : gr.isCustomCost ? (
+                          <span className="rounded-full bg-white/20 px-1 text-[8px]">Custo</span>
+                        ) : null}
                       </span>
                       <span className="text-primary-foreground/70">{brl(gr.realCost)}</span>
-                      <span className="font-bold text-primary-foreground">
-                        {brl(gr.suggestedPrice)}
+                      <span className="font-bold text-white">{brl(gr.suggestedPrice)}</span>
+                      <span className="font-semibold text-primary-foreground">
+                        {brl(gr.profit)} ({pct(gr.marginOnPrice)})
                       </span>
                     </div>
                   ))}
@@ -877,13 +1014,59 @@ function Precificacao() {
               </div>
             )}
 
-            {/* Resumo de Custos e Impostos */}
-            <div className="space-y-2.5 rounded-2xl bg-primary-foreground/10 p-4 text-sm">
-              <Row label="Custo real médio da peça" value={brl(summaryPrices.avgCost)} />
-              <Row
-                label="Imposto estimado por venda"
-                value={brl(summaryPrices.avgSuggested * (tax / 100))}
-              />
+            {/* Simulador de Meios de Pagamento & Perdas (Colapsável) */}
+            <div className="rounded-2xl bg-primary-foreground/10 p-4 space-y-2.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setShowSimulator((prev) => !prev)}
+                className="flex w-full items-center justify-between text-left font-bold text-primary-foreground hover:opacity-90"
+              >
+                <span className="flex items-center gap-1.5">
+                  <CreditCard className="size-3.5" /> Simulador: Quanto sobra em cada meio?
+                </span>
+                <ChevronDown
+                  className={cn("size-4 transition-transform", showSimulator && "rotate-180")}
+                />
+              </button>
+
+              {showSimulator && (
+                <div className="pt-2 divide-y divide-primary-foreground/15 space-y-2">
+                  <p className="text-[11px] text-primary-foreground/70 pb-1">
+                    Veja o dinheiro líquido que cai na conta após taxas de maquininha ou descontos:
+                  </p>
+                  {paymentScenarios.map((sc) => (
+                    <div key={sc.label} className="flex items-center justify-between pt-1.5 text-[11px]">
+                      <span className="flex items-center gap-1.5 text-primary-foreground/80">
+                        <span>{sc.icon}</span>
+                        <span>{sc.label}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          "numeric font-bold",
+                          sc.isViable ? "text-white" : "text-destructive font-black",
+                        )}
+                      >
+                        {brl(sc.profit)} ({pct(sc.margin)})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Ponto de Cobertura do Lote (Break-Even) */}
+            <div className="rounded-2xl bg-primary-foreground/10 p-4 text-xs space-y-2">
+              <div className="flex items-center justify-between font-bold">
+                <span className="flex items-center gap-1.5">
+                  <Zap className="size-3.5 text-amber-300" /> Cobertura do Lote ({lotUnits} peças)
+                </span>
+                <span className="numeric text-white font-bold">
+                  {lotBreakEven.unitsToBreakEven} un. ({pct(lotBreakEven.breakEvenPct)})
+                </span>
+              </div>
+              <p className="text-[11px] text-primary-foreground/80 leading-relaxed">
+                Vendendo apenas <strong>{lotBreakEven.unitsToBreakEven} peças</strong>, você quita 100% dos custos do lote ({brl(lotBreakEven.totalLotCost)}). As outras {Math.max(lotUnits - lotBreakEven.unitsToBreakEven, 0)} peças serão <strong>100% lucro líquido ({brl(lotBreakEven.profitOnRemainder)})</strong>.
+              </p>
             </div>
           </div>
 
@@ -937,7 +1120,7 @@ function Precificacao() {
                 <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-3 font-semibold">Peça</th>
                   <th className="pb-3 font-semibold">Custo real</th>
-                  <th className="pb-3 font-semibold">Markup</th>
+                  <th className="pb-3 font-semibold">Margem Real</th>
                   <th className="pb-3 font-semibold">Preço sugerido</th>
                   <th className="pb-3 text-right">Ações</th>
                 </tr>
@@ -956,8 +1139,8 @@ function Precificacao() {
                     <tr key={p.id} className="transition-colors hover:bg-secondary/40">
                       <td className="py-3.5 font-medium">{p.name}</td>
                       <td className="numeric py-3.5 text-muted-foreground">{brl(r.realCost)}</td>
-                      <td className="numeric py-3.5 text-muted-foreground">
-                        {pct(Number(p.margin_pct))}
+                      <td className="numeric py-3.5 font-semibold text-foreground">
+                        {pct(r.marginOnPrice)}
                       </td>
                       <td className="numeric py-3.5 font-semibold text-primary">
                         {brl(r.suggestedPrice)}
@@ -1011,7 +1194,7 @@ function Precificacao() {
             </SheetDescription>
           </SheetHeader>
 
-          {/* ── Foto da Peça ── */}
+          {/* Foto da Peça */}
           <div className="space-y-2">
             <Label className="text-xs font-semibold text-muted-foreground">Foto da Peça</Label>
             <ImageUploader
@@ -1024,7 +1207,7 @@ function Precificacao() {
             />
           </div>
 
-          {/* ── Categoria, Cor e Fornecedor ── */}
+          {/* Categoria, Cor e Fornecedor */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs font-semibold text-muted-foreground">Categoria</Label>
@@ -1063,7 +1246,7 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* ── Grade de Quantidades Recebidas ── */}
+          {/* Grade de Quantidades Recebidas */}
           <div className="space-y-3 border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold text-muted-foreground">
@@ -1117,7 +1300,7 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* ── Card Resumo Financeiro do Lote ── */}
+          {/* Card Resumo Financeiro do Lote */}
           <div className="rounded-2xl border border-border bg-secondary/40 p-4 space-y-2 text-xs">
             <div className="flex justify-between text-muted-foreground">
               <span>Custo Unitário Calculado:</span>
@@ -1137,7 +1320,7 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* ── Botão de Confirmação ── */}
+          {/* Botão de Confirmação */}
           <Button
             type="button"
             className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow"
@@ -1158,35 +1341,29 @@ function SliderRow({
   max,
   onChange,
   display,
+  hint,
 }: {
   label: string;
   value: number;
   max: number;
   onChange: (v: number) => void;
   display: string;
+  hint?: string;
 }) {
   return (
-    <div>
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
-        <span className="numeric text-sm font-semibold">{display}</span>
+        <Label className="text-xs font-semibold text-foreground">{label}</Label>
+        <span className="numeric text-sm font-bold text-primary">{display}</span>
       </div>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       <Slider
-        className="mt-4"
+        className="pt-2"
         value={[value]}
         max={max}
         step={1}
         onValueChange={(v) => onChange(v[0] ?? 0)}
       />
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-primary-foreground/70">{label}</span>
-      <span className="numeric font-semibold">{value}</span>
     </div>
   );
 }
@@ -1207,3 +1384,4 @@ function Field({
     </div>
   );
 }
+
