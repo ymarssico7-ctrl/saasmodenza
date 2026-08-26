@@ -1,17 +1,18 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  ArrowRight,
   Boxes,
   Calculator,
-  Copy,
+  Check,
+  ChevronRight,
   Layers,
   Minus,
   PackagePlus,
   Palette,
   Plus,
+  RotateCcw,
   Save,
   Sparkles,
   Tag,
@@ -69,11 +70,12 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
 
 type PricingMode = "unico" | "grade" | "cor_tamanho";
 
-const PRESETS_GRADE = {
-  letras: ["PP", "P", "M", "G", "GG"],
-  plus: ["GG", "G1", "G2", "G3"],
-  numeros: ["36", "38", "40", "42", "44", "46"],
-};
+const PRESET_OPTIONS = [
+  { id: "letras", label: "Padrão (PP–GG)", sizes: ["PP", "P", "M", "G", "GG"] },
+  { id: "numeros", label: "Numérica (36–46)", sizes: ["36", "38", "40", "42", "44", "46"] },
+  { id: "plus", label: "Plus Size (GG–G3)", sizes: ["GG", "G1", "G2", "G3"] },
+  { id: "calcas", label: "Jeans (34–48)", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
+];
 
 function Precificacao() {
   const queryClient = useQueryClient();
@@ -81,7 +83,7 @@ function Precificacao() {
   const { data: saved = [] } = useQuery(pricingsQuery());
 
   // ── Modo de Precificação ───────────────────────────────────────────
-  const [mode, setMode] = useState<PricingMode>("unico");
+  const [mode, setMode] = useState<PricingMode>("grade");
 
   // ── Dados Básicos da Peça ─────────────────────────────────────────
   const [name, setName] = useState("");
@@ -91,14 +93,10 @@ function Precificacao() {
 
   // ── Modo 2: Grade por Tamanho ─────────────────────────────────────
   const [activeSizes, setActiveSizes] = useState<string[]>(["P", "M", "G", "GG"]);
-  const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("");
-  const [sizeCosts, setSizeCosts] = useState<Record<string, string>>({
-    P: "",
-    M: "",
-    G: "",
-    GG: "",
-  });
+  const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("49,90");
+  const [sizeCosts, setSizeCosts] = useState<Record<string, string>>({});
   const [customSizeInput, setCustomSizeInput] = useState("");
+  const [activePreset, setActivePreset] = useState<string>("letras");
 
   // ── Modo 3: Cor & Tamanho ─────────────────────────────────────────
   const [colors, setColors] = useState<string[]>(["Off-White", "Preto"]);
@@ -109,9 +107,9 @@ function Precificacao() {
   });
 
   // ── Custos Operacionais Compartilhados ─────────────────────────────
-  const [freight, setFreight] = useState("");
-  const [packaging, setPackaging] = useState("");
-  const [other, setOther] = useState("");
+  const [freight, setFreight] = useState("6,00");
+  const [packaging, setPackaging] = useState("3,50");
+  const [other, setOther] = useState("2,00");
   const [margin, setMargin] = useState(80);
   const [tax, setTax] = useState(6);
 
@@ -153,11 +151,15 @@ function Precificacao() {
     [wholesale, sharedCosts],
   );
 
-  // ── Cálculo da Grade por Tamanho ──────────────────────────────────
+  // ── Cálculo da Grade por Tamanho com REATIVIDADE AUTOMÁTICA ────────
+  // Se o lojista não digitou custo individual, usa o CUSTO BASE automaticamente!
   const gradeResults = useMemo(() => {
+    const baseNum = toNumber(baseWholesaleGrade);
     return activeSizes.map((size) => {
-      const costStr = sizeCosts[size] || baseWholesaleGrade;
-      const wholesaleNum = toNumber(costStr);
+      const rawCost = sizeCosts[size];
+      const hasCustom = rawCost !== undefined && rawCost !== "" && toNumber(rawCost) > 0;
+      const wholesaleNum = hasCustom ? toNumber(rawCost) : baseNum;
+
       const res = computePricing({
         wholesale_cost: wholesaleNum,
         ...sharedCosts,
@@ -165,39 +167,31 @@ function Precificacao() {
       return {
         size,
         wholesale_cost: wholesaleNum,
+        isCustom: hasCustom && wholesaleNum !== baseNum,
         ...res,
       };
     });
   }, [activeSizes, sizeCosts, baseWholesaleGrade, sharedCosts]);
 
-  // ── Cálculo de Cor & Tamanho ──────────────────────────────────────
+  // ── Cálculo de Cor & Variação ──────────────────────────────────────
   const colorResults = useMemo(() => {
-    const list: Array<{
-      color: string;
-      size?: string;
-      wholesale_cost: number;
-      realCost: number;
-      minPrice: number;
-      suggestedPrice: number;
-      profit: number;
-      marginOnPrice: number;
-      markupOnCost: number;
-    }> = [];
+    const baseNum = toNumber(baseWholesaleGrade || wholesale);
+    return colors.map((color) => {
+      const rawCost = colorCosts[color];
+      const hasCustom = rawCost !== undefined && rawCost !== "" && toNumber(rawCost) > 0;
+      const wholesaleNum = hasCustom ? toNumber(rawCost) : baseNum;
 
-    colors.forEach((color) => {
-      const wholesaleNum = toNumber(colorCosts[color] || baseWholesaleGrade || wholesale);
       const res = computePricing({
         wholesale_cost: wholesaleNum,
         ...sharedCosts,
       });
-      list.push({
+      return {
         color,
         wholesale_cost: wholesaleNum,
+        isCustom: hasCustom && wholesaleNum !== baseNum,
         ...res,
-      });
+      };
     });
-
-    return list;
   }, [colors, colorCosts, baseWholesaleGrade, wholesale, sharedCosts]);
 
   // ── Resumo Geral de Preços (Range / Médias) ───────────────────────
@@ -244,19 +238,6 @@ function Precificacao() {
   }, [mode, singleResult, gradeResults, colorResults]);
 
   // ── Ações da Grade de Tamanhos ────────────────────────────────────
-  const replicarCustoBaseGrade = () => {
-    if (!baseWholesaleGrade.trim()) {
-      toast.error("Informe um custo base primeiro");
-      return;
-    }
-    const updated: Record<string, string> = {};
-    activeSizes.forEach((sz) => {
-      updated[sz] = baseWholesaleGrade;
-    });
-    setSizeCosts(updated);
-    toast.success("Custo replicado para todos os tamanhos da grade!");
-  };
-
   const toggleSize = (sz: string) => {
     if (activeSizes.includes(sz)) {
       if (activeSizes.length <= 1) {
@@ -266,9 +247,6 @@ function Precificacao() {
       setActiveSizes((prev) => prev.filter((s) => s !== sz));
     } else {
       setActiveSizes((prev) => [...prev, sz]);
-      if (baseWholesaleGrade && !sizeCosts[sz]) {
-        setSizeCosts((prev) => ({ ...prev, [sz]: baseWholesaleGrade }));
-      }
     }
   };
 
@@ -280,22 +258,24 @@ function Precificacao() {
       return;
     }
     setActiveSizes((prev) => [...prev, trimmed]);
-    if (baseWholesaleGrade) {
-      setSizeCosts((prev) => ({ ...prev, [trimmed]: baseWholesaleGrade }));
-    }
     setCustomSizeInput("");
+    setActivePreset("custom");
     toast.success(`Tamanho ${trimmed} adicionado à grade`);
   };
 
-  const applyPresetGrade = (sizes: string[]) => {
+  const applyPreset = (presetId: string, sizes: string[]) => {
+    setActivePreset(presetId);
     setActiveSizes(sizes);
-    if (baseWholesaleGrade) {
-      const updated: Record<string, string> = {};
-      sizes.forEach((s) => {
-        updated[s] = baseWholesaleGrade;
-      });
-      setSizeCosts(updated);
-    }
+    toast.success(`Grade "${PRESET_OPTIONS.find((p) => p.id === presetId)?.label}" ativada!`);
+  };
+
+  const resetSizeCost = (sz: string) => {
+    setSizeCosts((prev) => {
+      const next = { ...prev };
+      delete next[sz];
+      return next;
+    });
+    toast.info(`Tamanho ${sz} restaurado para o custo base (${brl(toNumber(baseWholesaleGrade))})`);
   };
 
   // ── Ações de Cores ────────────────────────────────────────────────
@@ -321,11 +301,8 @@ function Precificacao() {
 
   // ── Abrir Ficha de Entrada no Estoque ─────────────────────────────
   const openEntryForCurrent = () => {
-    if (!name.trim()) {
-      toast.error("Dê um nome para a peça antes de dar entrada");
-      return;
-    }
-    setEntryName(name.trim());
+    const pieceName = name.trim() || "Nova Peça Precificada";
+    setEntryName(pieceName);
     setEntryCostPrice(summaryPrices.avgCost || 0);
     setEntrySalePrice(summaryPrices.avgSuggested || 0);
     setEntryColor(colors[0] || "");
@@ -363,21 +340,17 @@ function Precificacao() {
   );
   const entryTotalCost = entryTotalUnits * entryCostPrice;
   const entryTotalRevenue = entryTotalUnits * entrySalePrice;
-  const entryProjectedProfit = entryTotalRevenue - entryTotalCost;
 
   // ── Mutações ──────────────────────────────────────────────────────
   const save = useMutation({
     mutationFn: async () => {
-      if (!name.trim()) throw new Error("Dê um nome para a peça");
+      const pieceName = name.trim() || "Peça sem nome";
 
       const primaryWholesale =
         mode === "unico"
           ? toNumber(wholesale)
           : mode === "grade"
-            ? summaryPrices.avgCost -
-              sharedCosts.freight_cost -
-              sharedCosts.packaging_cost -
-              sharedCosts.other_costs
+            ? toNumber(baseWholesaleGrade) || summaryPrices.avgCost
             : toNumber(Object.values(colorCosts)[0] || wholesale || baseWholesaleGrade);
 
       if (primaryWholesale <= 0 && summaryPrices.avgCost <= 0) {
@@ -386,14 +359,13 @@ function Precificacao() {
 
       return insertPricing({
         storeId,
-        name: name.trim(),
+        name: pieceName,
         wholesale_cost: Math.max(primaryWholesale, 0.01),
         ...sharedCosts,
       });
     },
     onSuccess: () => {
-      toast.success("Precificação salva com sucesso!");
-      setName("");
+      toast.success("Precificação salva no seu histórico! 📋");
       void queryClient.invalidateQueries({ queryKey: ["pricings"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -427,8 +399,8 @@ function Precificacao() {
     },
     onSuccess: () => {
       setEntrySheetOpen(false);
-      toast.success(`"${entryName}" entrou no Estoque! 📦`, {
-        description: `Lote com ${entryTotalUnits} unidades adicionado com sucesso.`,
+      toast.success(`"${entryName}" cadastrada no Estoque! 📦`, {
+        description: `Grade com ${entryTotalUnits} unidades disponível para venda.`,
         duration: 5000,
       });
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
@@ -437,28 +409,16 @@ function Precificacao() {
   });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader
-        eyebrow="Precificação Inteligente"
+        eyebrow="Calculadora Estratégica"
         title="Quanto cobrar por cada peça?"
-        description="Some todos os custos, escolha a margem e precifique por peça única, por grade de tamanhos ou por variações de cor."
+        description="Calcule custos reais, margem ideal e precifique por grade de tamanhos, cores ou preço único."
       />
 
       {/* ── Segmented Control Apple (Seleção de Modo) ─────────────── */}
       <div className="flex justify-center sm:justify-start">
         <div className="inline-flex rounded-2xl border border-border bg-surface p-1.5 shadow-soft">
-          <button
-            type="button"
-            onClick={() => setMode("unico")}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200",
-              mode === "unico"
-                ? "gradient-primary text-primary-foreground shadow-glow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Tag className="size-3.5" /> Preço Único
-          </button>
           <button
             type="button"
             onClick={() => setMode("grade")}
@@ -470,6 +430,18 @@ function Precificacao() {
             )}
           >
             <Layers className="size-3.5" /> Grade por Tamanho
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("unico")}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200",
+              mode === "unico"
+                ? "gradient-primary text-primary-foreground shadow-glow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Tag className="size-3.5" /> Preço Único
           </button>
           <button
             type="button"
@@ -486,322 +458,333 @@ function Precificacao() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        {/* ── Formulário de Custos ──────────────────────────────────── */}
-        <section className="panel p-6 sm:p-7">
+      <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
+        {/* ── Formulário de Custos (Painel Esquerdo) ────────────────── */}
+        <section className="panel p-6 sm:p-7 space-y-6">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
               <h2 className="text-base font-semibold">
-                {mode === "unico" && "Custos da peça (Preço Único)"}
-                {mode === "grade" && "Custos por Grade de Tamanhos"}
-                {mode === "cor_tamanho" && "Custos por Variação de Cores"}
+                {mode === "grade" && "Precificação em Grade de Tamanhos"}
+                {mode === "unico" && "Precificação em Preço Único"}
+                {mode === "cor_tamanho" && "Precificação por Variação de Cores"}
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {mode === "unico" && "Mesmo custo e preço de venda para toda a peça."}
-                {mode === "grade" && "Defina valores diferentes para tamanhos maiores ou especiais."}
+                {mode === "grade" &&
+                  "Defina o custo base comum e ajuste apenas os tamanhos que custarem diferente."}
+                {mode === "unico" && "Um único valor de custo e preço de venda para a peça inteira."}
                 {mode === "cor_tamanho" &&
-                  "Precifique variações com custos de tecido ou estampa diferentes."}
+                  "Precifique variações com custos de tecido ou estampa distintos."}
               </p>
             </div>
-            <Badge variant="outline" className="rounded-full text-xs capitalize">
-              {mode === "unico" && "1 Preço"}
+            <Badge variant="outline" className="rounded-full text-xs font-semibold capitalize">
               {mode === "grade" && `${activeSizes.length} Tamanhos`}
+              {mode === "unico" && "1 Preço"}
               {mode === "cor_tamanho" && `${colors.length} Cores`}
             </Badge>
           </div>
 
-          <div className="mt-6 space-y-6">
-            <Field label="Nome da peça / modelo">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Vestido midi linho com fenda"
-                className="h-11 rounded-xl"
-              />
-            </Field>
+          <Field label="Nome da peça ou modelo">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Vestido midi linho com fenda"
+              className="h-11 rounded-xl font-medium"
+            />
+          </Field>
 
-            {/* ── MODO 1: Preço Único ─────────────────────────────────── */}
-            {mode === "unico" && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Custo de atacado (R$)" className="sm:col-span-2">
-                  <Input
-                    inputMode="decimal"
-                    value={wholesale}
-                    onChange={(e) => setWholesale(e.target.value)}
-                    placeholder="59,90"
-                    className="h-11 rounded-xl font-medium"
-                  />
-                </Field>
-              </div>
-            )}
-
-            {/* ── MODO 2: Grade por Tamanho ───────────────────────────── */}
-            {mode === "grade" && (
-              <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Tamanhos Ativos na Grade
-                  </span>
-                  <div className="flex items-center gap-1 text-xs">
-                    <span className="text-muted-foreground mr-1">Presets:</span>
+          {/* ── MODO 2: GRADE POR TAMANHO (PADRÃO APPLE) ────────────── */}
+          {mode === "grade" && (
+            <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
+              {/* Seletor de Presets de Grade em Pills */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Tipo de Grade de Tamanhos
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_OPTIONS.map((pr) => (
                     <button
+                      key={pr.id}
                       type="button"
-                      onClick={() => applyPresetGrade(PRESETS_GRADE.letras)}
-                      className="rounded-lg border border-border bg-card px-2 py-1 hover:border-primary"
+                      onClick={() => applyPreset(pr.id, pr.sizes)}
+                      className={cn(
+                        "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
+                        activePreset === pr.id
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50",
+                      )}
                     >
-                      PP-GG
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyPresetGrade(PRESETS_GRADE.plus)}
-                      className="rounded-lg border border-border bg-card px-2 py-1 hover:border-primary"
-                    >
-                      Plus Size
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyPresetGrade(PRESETS_GRADE.numeros)}
-                      className="rounded-lg border border-border bg-card px-2 py-1 hover:border-primary"
-                    >
-                      36-46
-                    </button>
-                  </div>
-                </div>
-
-                {/* Chips de Tamanhos */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {activeSizes.map((sz) => (
-                    <button
-                      key={sz}
-                      type="button"
-                      onClick={() => toggleSize(sz)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary shadow-xs transition-colors hover:bg-destructive-soft hover:text-destructive"
-                      title="Clique para remover tamanho"
-                    >
-                      {sz} <X className="size-3" />
+                      {pr.label}
                     </button>
                   ))}
-                  <div className="flex items-center gap-1">
-                    <Input
-                      value={customSizeInput}
-                      onChange={(e) => setCustomSizeInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomSize())}
-                      placeholder="+ Tam"
-                      className="h-8 w-20 rounded-xl text-xs"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={addCustomSize}
-                      className="size-8 rounded-xl"
-                    >
-                      <Plus className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Custo Base Rápido */}
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <Field label="Custo base comum para a grade (R$)">
-                    <Input
-                      inputMode="decimal"
-                      value={baseWholesaleGrade}
-                      onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                      placeholder="49,90"
-                      className="h-10 rounded-xl"
-                    />
-                  </Field>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={replicarCustoBaseGrade}
-                    className="h-10 rounded-xl text-xs"
-                  >
-                    <Copy className="mr-1.5 size-3.5" /> Replicar para todos
-                  </Button>
-                </div>
-
-                {/* Grade Granular de Custos por Tamanho */}
-                <div className="space-y-3 pt-2">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Custos Específicos por Tamanho:
-                  </Label>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {activeSizes.map((sz) => {
-                      const computedItem = gradeResults.find((r) => r.size === sz);
-                      return (
-                        <div
-                          key={sz}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-2.5"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-xs font-bold">
-                              {sz}
-                            </span>
-                            {computedItem && computedItem.suggestedPrice > 0 && (
-                              <span className="numeric text-[11px] font-semibold text-primary">
-                                Venda: {brl(computedItem.suggestedPrice)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="w-28">
-                            <Input
-                              inputMode="decimal"
-                              value={sizeCosts[sz] ?? ""}
-                              onChange={(e) =>
-                                setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
-                              }
-                              placeholder={baseWholesaleGrade || "0,00"}
-                              className="h-8 rounded-lg text-right text-xs"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
-            )}
 
-            {/* ── MODO 3: Cor & Variação ──────────────────────────────── */}
-            {mode === "cor_tamanho" && (
-              <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Cores / Variações de Tecido
+              {/* Bloco de Destaque: Custo Base com Reatividade Total */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-foreground">
+                    Custo Base de Atacado da Grade (R$)
+                  </Label>
+                  <span className="text-[11px] font-medium text-primary flex items-center gap-1">
+                    <Sparkles className="size-3" /> Aplica automaticamente a todos
+                  </span>
+                </div>
+                <Input
+                  inputMode="decimal"
+                  value={baseWholesaleGrade}
+                  onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                  placeholder="49,90"
+                  className="h-11 rounded-xl bg-card text-base font-bold text-foreground"
+                />
+              </div>
+
+              {/* Tiles Interativos dos Tamanhos da Grade */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Tamanhos & Custos Individuais
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Edite apenas se algum tamanho custar mais
                   </span>
                 </div>
 
-                {/* Adicionar Nova Cor */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={colorInput}
-                    onChange={(e) => setColorInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addColor())}
-                    placeholder="Nome da cor / variação (ex: Linho Cru)"
-                    className="h-10 rounded-xl"
-                  />
-                  <Button type="button" onClick={addColor} className="h-10 rounded-xl px-4 text-xs">
-                    <Plus className="mr-1 size-3.5" /> Adicionar
-                  </Button>
-                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                  {activeSizes.map((sz) => {
+                    const item = gradeResults.find((r) => r.size === sz);
+                    const isCustom =
+                      sizeCosts[sz] !== undefined &&
+                      sizeCosts[sz] !== "" &&
+                      toNumber(sizeCosts[sz]) !== toNumber(baseWholesaleGrade);
 
-                {/* Lista de Variações de Cores com Custo Individual */}
-                <div className="space-y-2">
-                  {colors.map((c) => {
-                    const item = colorResults.find((r) => r.color === c);
                     return (
                       <div
-                        key={c}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3"
+                        key={sz}
+                        className={cn(
+                          "relative rounded-2xl border p-3 flex flex-col justify-between space-y-2 transition-all duration-200",
+                          isCustom
+                            ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30"
+                            : "border-border bg-card hover:border-border/80",
+                        )}
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{c}</span>
-                          {item && item.suggestedPrice > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="numeric text-[11px] font-semibold text-primary"
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-xs font-bold">
+                            {sz}
+                          </span>
+                          {isCustom ? (
+                            <button
+                              type="button"
+                              onClick={() => resetSizeCost(sz)}
+                              title="Restaurar ao custo base"
+                              className="text-primary hover:text-primary/70 text-[10px] font-semibold flex items-center gap-0.5"
                             >
-                              Venda: {brl(item.suggestedPrice)}
-                            </Badge>
+                              <RotateCcw className="size-2.5" /> Base
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleSize(sz)}
+                              title="Remover tamanho"
+                              className="text-muted-foreground hover:text-destructive size-5 rounded-md flex items-center justify-center"
+                            >
+                              <X className="size-3" />
+                            </button>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-28">
-                            <Input
-                              inputMode="decimal"
-                              value={colorCosts[c] ?? ""}
-                              onChange={(e) =>
-                                setColorCosts((prev) => ({ ...prev, [c]: e.target.value }))
-                              }
-                              placeholder="Custo R$"
-                              className="h-8 rounded-lg text-right text-xs"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeColor(c)}
-                            className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+                            {isCustom ? "Custo Especial" : "Custo (R$)"}
+                          </span>
+                          <Input
+                            inputMode="decimal"
+                            value={sizeCosts[sz] ?? ""}
+                            onChange={(e) =>
+                              setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
+                            }
+                            placeholder={baseWholesaleGrade || "0,00"}
+                            className="h-8 rounded-lg text-xs font-semibold text-right"
+                          />
+                        </div>
+
+                        <div className="border-t border-border/60 pt-1.5 flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground">Venda:</span>
+                          <span className="numeric font-bold text-primary">
+                            {item && item.suggestedPrice > 0
+                              ? brl(item.suggestedPrice)
+                              : "R$ 0,00"}
+                          </span>
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* Tile para Adicionar Tamanho Personalizado */}
+                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 p-2.5 flex flex-col justify-center items-center gap-1.5">
+                    <Input
+                      value={customSizeInput}
+                      onChange={(e) => setCustomSizeInput(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && (e.preventDefault(), addCustomSize())
+                      }
+                      placeholder="+ Tam (ex: G4)"
+                      className="h-7 rounded-lg text-xs text-center font-medium"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addCustomSize}
+                      className="h-6 w-full rounded-lg text-[11px] font-semibold"
+                    >
+                      <Plus className="size-3 mr-0.5" /> Incluir
+                    </Button>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* ── Custos Operacionais Rateados por Peça ────────────────── */}
-            <div className="border-t border-border pt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-                Custos Operacionais Rateados (por peça)
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Frete rateado (R$)">
-                  <Input
-                    inputMode="decimal"
-                    value={freight}
-                    onChange={(e) => setFreight(e.target.value)}
-                    placeholder="6,00"
-                    className="h-10 rounded-xl"
-                  />
-                </Field>
-                <Field label="Embalagem (R$)">
-                  <Input
-                    inputMode="decimal"
-                    value={packaging}
-                    onChange={(e) => setPackaging(e.target.value)}
-                    placeholder="3,50"
-                    className="h-10 rounded-xl"
-                  />
-                </Field>
-                <Field label="Outros custos (R$)">
-                  <Input
-                    inputMode="decimal"
-                    value={other}
-                    onChange={(e) => setOther(e.target.value)}
-                    placeholder="2,00"
-                    className="h-10 rounded-xl"
-                  />
-                </Field>
+          {/* ── MODO 1: PREÇO ÚNICO ─────────────────────────────────── */}
+          {mode === "unico" && (
+            <div className="rounded-2xl border border-border bg-secondary/30 p-5 space-y-4">
+              <Field label="Custo de atacado por peça (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={wholesale}
+                  onChange={(e) => setWholesale(e.target.value)}
+                  placeholder="59,90"
+                  className="h-11 rounded-xl bg-card font-semibold text-base"
+                />
+              </Field>
+            </div>
+          )}
+
+          {/* ── MODO 3: COR & VARIAÇÃO ──────────────────────────────── */}
+          {mode === "cor_tamanho" && (
+            <div className="space-y-4 rounded-2xl border border-border bg-secondary/30 p-5">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={colorInput}
+                  onChange={(e) => setColorInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addColor())}
+                  placeholder="Nova cor ou variação de tecido (ex: Linho Cru)"
+                  className="h-10 rounded-xl"
+                />
+                <Button
+                  type="button"
+                  onClick={addColor}
+                  className="h-10 rounded-xl px-4 text-xs font-semibold"
+                >
+                  <Plus className="mr-1 size-3.5" /> Adicionar
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {colors.map((c) => {
+                  const item = colorResults.find((r) => r.color === c);
+                  return (
+                    <div
+                      key={c}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">{c}</span>
+                        {item && item.suggestedPrice > 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="numeric text-[11px] font-semibold text-primary"
+                          >
+                            Venda: {brl(item.suggestedPrice)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-28">
+                          <Input
+                            inputMode="decimal"
+                            value={colorCosts[c] ?? ""}
+                            onChange={(e) =>
+                              setColorCosts((prev) => ({ ...prev, [c]: e.target.value }))
+                            }
+                            placeholder={baseWholesaleGrade || wholesale || "Custo R$"}
+                            className="h-8 rounded-lg text-right text-xs font-semibold"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeColor(c)}
+                          className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          )}
 
-            {/* ── Sliders de Margem e Impostos ────────────────────────── */}
-            <div className="space-y-6 border-t border-border pt-4">
-              <SliderRow
-                label="Margem desejada (Markup sobre o custo)"
-                value={margin}
-                max={300}
-                onChange={setMargin}
-                display={pct(margin)}
-              />
-              <SliderRow
-                label="Imposto / taxas sobre a venda"
-                value={tax}
-                max={30}
-                onChange={setTax}
-                display={pct(tax)}
-              />
+          {/* ── Custos Operacionais Rateados por Peça ────────────────── */}
+          <div className="border-t border-border pt-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Custos Operacionais Rateados (por peça)
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Frete rateado (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={freight}
+                  onChange={(e) => setFreight(e.target.value)}
+                  placeholder="6,00"
+                  className="h-10 rounded-xl"
+                />
+              </Field>
+              <Field label="Embalagem (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={packaging}
+                  onChange={(e) => setPackaging(e.target.value)}
+                  placeholder="3,50"
+                  className="h-10 rounded-xl"
+                />
+              </Field>
+              <Field label="Outros custos (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={other}
+                  onChange={(e) => setOther(e.target.value)}
+                  placeholder="2,00"
+                  className="h-10 rounded-xl"
+                />
+              </Field>
             </div>
+          </div>
 
-            <Button
-              className="mt-6 h-12 w-full rounded-2xl font-semibold shadow-glow gradient-primary"
-              disabled={save.isPending}
-              onClick={() => save.mutate()}
-            >
-              <Save className="mr-2 size-4" /> Salvar precificação
-            </Button>
+          {/* ── Sliders de Margem e Impostos ────────────────────────── */}
+          <div className="space-y-6 border-t border-border pt-4">
+            <SliderRow
+              label="Margem desejada (Markup sobre o custo)"
+              value={margin}
+              max={300}
+              onChange={setMargin}
+              display={pct(margin)}
+            />
+            <SliderRow
+              label="Imposto / taxas sobre a venda"
+              value={tax}
+              max={30}
+              onChange={setTax}
+              display={pct(tax)}
+            />
           </div>
         </section>
 
-        {/* ── Painel de Resultados Inteligente (Dark / Indigo) ──────── */}
-        <section className="panel flex flex-col justify-between bg-primary p-6 text-primary-foreground sm:p-7 shadow-lift">
+        {/* ── Dashboard Executivo da Peça (Painel Direito) ─────────── */}
+        <section className="panel flex flex-col justify-between bg-primary p-6 text-primary-foreground sm:p-7 shadow-lift space-y-6">
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between">
@@ -813,68 +796,79 @@ function Precificacao() {
                 </span>
               </div>
 
-              {/* Valor Principal ou Faixa de Preços */}
+              {/* Preço Principal ou Faixa Dinâmica */}
               {summaryPrices.hasMultiple ? (
                 <div className="mt-3">
-                  <p className="numeric text-[2.2rem] font-bold leading-tight">
+                  <p className="numeric text-[2.25rem] font-bold leading-tight tracking-tight">
                     {brl(summaryPrices.minSuggested)} – {brl(summaryPrices.maxSuggested)}
                   </p>
                   <p className="mt-1 text-xs text-primary-foreground/70">
-                    Faixa de preços calculada para a grade de tamanhos/cores
+                    Faixa de venda calculada para os {activeSizes.length} tamanhos da grade
                   </p>
                 </div>
               ) : (
                 <div className="mt-3">
-                  <p className="numeric text-[2.75rem] font-semibold leading-none">
+                  <p className="numeric text-[2.75rem] font-bold leading-none tracking-tight">
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="mt-2 text-xs text-primary-foreground/70">
-                    Lucro líquido de {brl(summaryPrices.avgProfit)} por unidade vendida
+                    Lucro líquido médio de {brl(summaryPrices.avgProfit)} por unidade vendida
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Dois indicadores distintos para clareza financeira */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-primary-foreground/10 p-4 backdrop-blur-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/60">
-                  Markup sobre Custo
+            {/* 3 Hero Metric Cards */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="rounded-xl bg-primary-foreground/10 p-3 backdrop-blur-xs">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+                  Markup
                 </p>
-                <p className="numeric mt-1.5 text-xl font-bold">{pct(margin)}</p>
-                <p className="mt-1 text-[11px] text-primary-foreground/60">
-                  Quanto o preço sobe acima do custo
-                </p>
+                <p className="numeric mt-1 text-lg font-bold">{pct(margin)}</p>
               </div>
-              <div className="rounded-xl bg-primary-foreground/20 p-4 backdrop-blur-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/60">
-                  Margem Real s/ Venda
+              <div className="rounded-xl bg-primary-foreground/20 p-3 backdrop-blur-xs">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+                  Margem Real
                 </p>
-                <p className="numeric mt-1.5 text-xl font-bold">
+                <p className="numeric mt-1 text-lg font-bold">
                   {pct(
                     summaryPrices.avgSuggested > 0
                       ? (summaryPrices.avgProfit / summaryPrices.avgSuggested) * 100
                       : 0,
                   )}
                 </p>
-                <p className="mt-1 text-[11px] text-primary-foreground/60">
-                  % da venda que vira lucro líquido
+              </div>
+              <div className="rounded-xl bg-primary-foreground/10 p-3 backdrop-blur-xs">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+                  Lucro Médio
+                </p>
+                <p className="numeric mt-1 text-base font-bold">
+                  {brl(summaryPrices.avgProfit)}
                 </p>
               </div>
             </div>
 
-            {/* Tabela de Variações para Grade ou Cores */}
+            {/* Tabela de Variações da Grade */}
             {mode === "grade" && gradeResults.length > 0 && (
               <div className="space-y-2 rounded-2xl bg-primary-foreground/10 p-4 text-xs">
-                <p className="font-semibold uppercase tracking-wider text-primary-foreground/80 mb-2">
-                  Tabela da Grade por Tamanho
-                </p>
+                <div className="flex items-center justify-between text-primary-foreground/80 font-semibold uppercase tracking-wider text-[10px]">
+                  <span>Tamanho</span>
+                  <span>Custo Real</span>
+                  <span>Preço Sugerido</span>
+                </div>
                 <div className="divide-y divide-primary-foreground/15 max-h-48 overflow-y-auto pr-1">
                   {gradeResults.map((gr) => (
                     <div key={gr.size} className="flex items-center justify-between py-2">
-                      <span className="font-bold">{gr.size}</span>
-                      <span className="text-primary-foreground/70">Custo: {brl(gr.realCost)}</span>
-                      <span className="font-semibold text-primary-foreground">
+                      <span className="font-bold flex items-center gap-1.5">
+                        {gr.size}
+                        {gr.isCustom && (
+                          <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-[9px] font-normal">
+                            Especial
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-primary-foreground/70">{brl(gr.realCost)}</span>
+                      <span className="font-bold text-primary-foreground">
                         {brl(gr.suggestedPrice)}
                       </span>
                     </div>
@@ -883,47 +877,34 @@ function Precificacao() {
               </div>
             )}
 
-            {mode === "cor_tamanho" && colorResults.length > 0 && (
-              <div className="space-y-2 rounded-2xl bg-primary-foreground/10 p-4 text-xs">
-                <p className="font-semibold uppercase tracking-wider text-primary-foreground/80 mb-2">
-                  Tabela por Variação de Cor
-                </p>
-                <div className="divide-y divide-primary-foreground/15 max-h-48 overflow-y-auto pr-1">
-                  {colorResults.map((cr) => (
-                    <div key={cr.color} className="flex items-center justify-between py-2">
-                      <span className="font-bold">{cr.color}</span>
-                      <span className="text-primary-foreground/70">Custo: {brl(cr.realCost)}</span>
-                      <span className="font-semibold text-primary-foreground">
-                        {brl(cr.suggestedPrice)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Resumo de Custos e Impostos */}
-            <div className="space-y-3 rounded-2xl bg-primary-foreground/10 p-4 text-sm">
-              <Row label="Custo real médio" value={brl(summaryPrices.avgCost)} />
+            <div className="space-y-2.5 rounded-2xl bg-primary-foreground/10 p-4 text-sm">
+              <Row label="Custo real médio da peça" value={brl(summaryPrices.avgCost)} />
               <Row
-                label="Imposto estimado por peça"
+                label="Imposto estimado por venda"
                 value={brl(summaryPrices.avgSuggested * (tax / 100))}
               />
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-primary-foreground/15 space-y-3">
+          {/* Ações Principais no Rodapé do Dashboard */}
+          <div className="pt-4 border-t border-primary-foreground/15 space-y-2.5">
             <Button
               type="button"
-              onClick={openEntryCurrentPiece}
-              className="h-11 w-full rounded-xl bg-white text-primary hover:bg-white/90 font-semibold shadow-soft"
+              onClick={openEntryForCurrent}
+              className="h-12 w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-bold shadow-soft transition-all active:scale-[0.98]"
             >
               <PackagePlus className="mr-2 size-4" /> Dar Entrada no Estoque
             </Button>
-            <p className="text-[11px] leading-relaxed text-primary-foreground/70 text-center">
-              💡 Preencha fotos, fornecedor e quantidades reais do lote para colocar na vitrine e no
-              caixa.
-            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => save.mutate()}
+              disabled={save.isPending}
+              className="h-10 w-full rounded-2xl border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-xs font-semibold"
+            >
+              <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
+            </Button>
           </div>
         </section>
       </div>
@@ -934,8 +915,7 @@ function Precificacao() {
           <div>
             <h2 className="text-base font-semibold">Peças precificadas</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Consulte seu histórico de cálculos e dê entrada física no Estoque com fotos e
-              quantidades reais.
+              Consulte seu histórico de cálculos e dê entrada no Estoque a qualquer momento.
             </p>
           </div>
           <Badge variant="outline" className="rounded-full">
@@ -1170,10 +1150,6 @@ function Precificacao() {
       </Sheet>
     </div>
   );
-
-  function openEntryCurrentPiece() {
-    openEntryForCurrent();
-  }
 }
 
 function SliderRow({
