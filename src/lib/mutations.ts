@@ -35,6 +35,7 @@ async function getAuthUserId(): Promise<string> {
 type AnyRecord = Record<string, unknown>;
 
 function localGet(table: string): AnyRecord[] {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return [];
   try {
     return JSON.parse(localStorage.getItem(`demo_${table}`) ?? "[]") as AnyRecord[];
   } catch {
@@ -43,6 +44,7 @@ function localGet(table: string): AnyRecord[] {
 }
 
 function localSet(table: string, rows: AnyRecord[]) {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return;
   localStorage.setItem(`demo_${table}`, JSON.stringify(rows));
 }
 

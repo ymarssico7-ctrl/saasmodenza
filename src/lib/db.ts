@@ -8,6 +8,7 @@ const LEGACY_DEMO_PROFILE_KEY = "modenza_demo_profile";
 
 /** Lê itens do localStorage no formato usado pelo modo demo. */
 function localGet<T>(table: string): T[] {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return [];
   try {
     return JSON.parse(localStorage.getItem(`demo_${table}`) ?? "[]") as T[];
   } catch {
@@ -17,8 +18,12 @@ function localGet<T>(table: string): T[] {
 
 /** Retorna true se há uma sessão ativa no Supabase. Evita chamadas RLS sem autenticação. */
 async function hasSession(): Promise<boolean> {
-  const { data } = await supabase.auth.getUser();
-  return !!data.user?.id;
+  try {
+    const { data } = await supabase.auth.getUser();
+    return !!data.user?.id;
+  } catch {
+    return false;
+  }
 }
 
 // Cache padronizado: dados ficam "frescos" por 5 min, na memória por 30 min.
@@ -45,6 +50,9 @@ const DEFAULT_DEMO_PROFILE = {
  * Usado pelos componentes de mutação no modo sem login (demo/local).
  */
 export function updateDemoProfile(patch: Record<string, unknown>) {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") {
+    return DEFAULT_DEMO_PROFILE;
+  }
   const current =
     localStorage.getItem(DEMO_PROFILE_KEY) ||
     localStorage.getItem(LEGACY_DEMO_PROFILE_KEY);
@@ -60,11 +68,19 @@ export const profileQuery = () =>
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
     queryFn: async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
+      let user = null;
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        user = authData.user;
+      } catch {
+        user = null;
+      }
 
       if (!user) {
         // Modo demo: lê do localStorage para preservar estado entre invalidações
+        if (typeof window === "undefined" || typeof localStorage === "undefined") {
+          return DEFAULT_DEMO_PROFILE;
+        }
         const cached =
           localStorage.getItem(DEMO_PROFILE_KEY) ||
           localStorage.getItem(LEGACY_DEMO_PROFILE_KEY);
