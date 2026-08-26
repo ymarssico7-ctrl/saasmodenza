@@ -91,7 +91,7 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
   component: Precificacao,
 });
 
-type PricingMode = "grade" | "unico" | "cor_tamanho";
+type PricingMode = "rapida" | "grade";
 type PricingStrategy = "margin" | "markup" | "direct_price";
 
 const PRESET_OPTIONS = [
@@ -107,7 +107,7 @@ function Precificacao() {
   const { data: saved = [] } = useQuery(pricingsQuery());
 
   // ── Modo de Agrupamento ───────────────────────────────────────────
-  const [mode, setMode] = useState<PricingMode>("grade");
+  const [mode, setMode] = useState<PricingMode>("rapida");
 
   // ── Estratégia de Precificação (Como o lojista prefere calcular) ───
   const [strategy, setStrategy] = useState<PricingStrategy>("margin");
@@ -310,7 +310,7 @@ function Precificacao() {
 
   // ── Resumo Geral de Preços (Faixas e Médias) ───────────────────────
   const summaryPrices = useMemo(() => {
-    if (mode === "unico") {
+    if (mode === "rapida") {
       return {
         minSuggested: singleResult.suggestedPrice,
         maxSuggested: singleResult.suggestedPrice,
@@ -324,7 +324,8 @@ function Precificacao() {
       };
     }
 
-    const items = mode === "grade" ? gradeResults : colorResults;
+    // mode === "grade": merge grade sizes + colors
+    const items = [...gradeResults, ...colorResults];
     const valid = items.filter((i) => i.wholesale_cost > 0);
     if (!valid.length) {
       return {
@@ -336,7 +337,7 @@ function Precificacao() {
         avgMargin: 0,
         avgMarkup: 0,
         marginHealth: getMarginHealth(0),
-        hasMultiple: items.length > 1,
+        hasMultiple: activeSizes.length > 1,
       };
     }
 
@@ -360,7 +361,7 @@ function Precificacao() {
       marginHealth: getMarginHealth(avgMarg),
       hasMultiple: minP !== maxP,
     };
-  }, [mode, singleResult, gradeResults, colorResults]);
+  }, [mode, singleResult, gradeResults, colorResults, activeSizes.length]);
 
   // ── Simulador de Meios de Pagamento & Perdas ───────────────────────
   const paymentScenarios = useMemo(() => {
@@ -507,13 +508,22 @@ function Precificacao() {
     setEntryName(name.trim() || "Nova Peça");
     setEntryCostPrice(summaryPrices.avgCost);
     setEntrySalePrice(summaryPrices.avgSuggested);
-    setEntryColor(mode === "cor_tamanho" ? colors[0] ?? "" : "");
+    setEntryColor(colors[0] ?? "");
     const initialSizes: Record<string, number> = {};
     activeSizes.forEach((sz) => {
-      initialSizes[sz] = 2; // quantidade inicial sugerida
+      initialSizes[sz] = 2;
     });
     setEntrySizes(initialSizes);
     setEntrySheetOpen(true);
+  };
+
+  // ── Promoção de Rápida → Grade (transição fluida de dados) ─────────
+  const promoteToGrade = () => {
+    setBaseWholesaleGrade(wholesale);
+    setMode("grade");
+    toast.success("Dados transferidos para a Grade!", {
+      description: "Agora você pode definir tamanhos, cores e quantidades para o estoque.",
+    });
   };
 
   const openEntryForSaved = (
@@ -569,47 +579,37 @@ function Precificacao() {
       <PageHeader
         eyebrow="Inteligência de Precificação & Vendas"
         title="Quanto cobrar por cada peça?"
-        description="Domine suas margens reais, simule taxas e precifique com total liberdade por grade de tamanhos, cores ou preço único."
+        description="Calcule margens reais, simule taxas e precifique rapidamente ou com grade completa por tamanhos e cores."
       />
 
-      {/* ── Segmented Control Apple (Seleção de Modo de Estrutura) ──── */}
+      {/* ── Segmented Control Principal (2 Modos Estratégicos) ───────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-2xl border border-border bg-surface p-1.5 shadow-soft">
           <button
             type="button"
+            onClick={() => setMode("rapida")}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200",
+              mode === "rapida"
+                ? "gradient-primary text-primary-foreground shadow-glow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Zap className="size-4" />
+            ⚡ Precificação Rápida
+          </button>
+          <button
+            type="button"
             onClick={() => setMode("grade")}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200",
+              "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200",
               mode === "grade"
                 ? "gradient-primary text-primary-foreground shadow-glow"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Layers className="size-3.5" /> Grade por Tamanho
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("unico")}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200",
-              mode === "unico"
-                ? "gradient-primary text-primary-foreground shadow-glow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Tag className="size-3.5" /> Preço Único
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("cor_tamanho")}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200",
-              mode === "cor_tamanho"
-                ? "gradient-primary text-primary-foreground shadow-glow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Palette className="size-3.5" /> Cor & Variação
+            <Layers className="size-4" />
+            📦 Grade & Estoque
           </button>
         </div>
 
@@ -660,28 +660,26 @@ function Precificacao() {
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
         {/* ── Formulário de Custos & Grade (Painel Esquerdo) ─────────── */}
         <section className="panel p-6 sm:p-7 space-y-6">
+
+          {/* ── Cabeçalho contextual do painel ───────────────────────── */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4">
             <div>
               <h2 className="text-base font-bold text-foreground">
-                {mode === "grade" && "Precificação em Grade de Tamanhos"}
-                {mode === "unico" && "Precificação em Preço Único"}
-                {mode === "cor_tamanho" && "Precificação por Cores & Variações"}
+                {mode === "rapida" && "Precificação Rápida"}
+                {mode === "grade" && "Grade Detalhada & Estoque"}
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {mode === "grade" &&
-                  "Defina o custo base e personalize custos ou preços de venda em qualquer tamanho individual."}
-                {mode === "unico" && "Precifique a peça inteira com valor de atacado e venda unificados."}
-                {mode === "cor_tamanho" &&
-                  "Precifique variações com custos de tecido ou acabamentos distintos."}
+                {mode === "rapida" && "Calcule o preço ideal para uma peça em segundos. Depois avance para a Grade."}
+                {mode === "grade" && "Defina tamanhos, cores e variações. Configure individualmente cada item da grade."}
               </p>
             </div>
             <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
-              {mode === "grade" && `${activeSizes.length} ${activeSizes.length === 1 ? "tamanho" : "tamanhos"}`}
-              {mode === "unico" && "1 Preço"}
-              {mode === "cor_tamanho" && `${colors.length} ${colors.length === 1 ? "cor" : "cores"}`}
+              {mode === "rapida" && "1 Peça"}
+              {mode === "grade" && `${activeSizes.length} tam. · ${colors.length} ${colors.length === 1 ? "cor" : "cores"}`}
             </Badge>
           </div>
 
+          {/* ── Nome da Peça (ambos os modos) ─────────────────────────── */}
           <Field label="Nome da peça ou modelo">
             <Input
               value={name}
@@ -691,322 +689,380 @@ function Precificacao() {
             />
           </Field>
 
-          {/* ── MODO 2: GRADE POR TAMANHO (LISTA INTELIGENTE PADRÃO APPLE) ── */}
-          {mode === "grade" && (
-            <div className="space-y-4">
-              {/* Barra de Presets Rápidos */}
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-secondary/30 p-3">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
-                  Grades Rápidas:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_OPTIONS.map((pr) => (
-                    <button
-                      key={pr.id}
-                      type="button"
-                      onClick={() => applyPreset(pr.id, pr.sizes)}
-                      className={cn(
-                        "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
-                        activePreset === pr.id
-                          ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-                          : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40",
-                      )}
-                    >
-                      {pr.label}
-                    </button>
-                  ))}
+          {/* ══════════════════════════════════════════════════════════
+              ⚡ MODO 1: PRECIFICAÇÃO RÁPIDA
+          ══════════════════════════════════════════════════════════ */}
+          {mode === "rapida" && (
+            <div className="space-y-5">
+              {/* Custo e preço direto */}
+              <div className="rounded-2xl border border-border bg-secondary/30 p-5 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Custo de atacado por peça (R$)">
+                    <Input
+                      inputMode="decimal"
+                      value={wholesale}
+                      onChange={(e) => setWholesale(e.target.value)}
+                      placeholder="49,90"
+                      className="h-11 rounded-xl bg-card font-semibold text-base"
+                    />
+                  </Field>
+
+                  {strategy === "direct_price" && (
+                    <Field label="Preço de venda desejado na etiqueta (R$)">
+                      <Input
+                        inputMode="decimal"
+                        value={directSalePrice}
+                        onChange={(e) => setDirectSalePrice(e.target.value)}
+                        placeholder="119,90"
+                        className="h-11 rounded-xl bg-card font-bold text-base text-primary"
+                      />
+                    </Field>
+                  )}
                 </div>
               </div>
 
-              {/* Bloco de Custo Base com Propagação Automática */}
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-xs">
-                <div>
-                  <Label className="text-xs font-bold text-foreground block">
-                    Custo Base de Atacado da Grade (R$)
-                  </Label>
-                  <span className="text-[11px] font-medium text-primary flex items-center gap-1 mt-0.5">
-                    <Sparkles className="size-3" /> Aplica automaticamente a todos os tamanhos
+              {/* Card de Resultado Instantâneo */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Resultado</span>
+                  <span className={cn("text-xs font-semibold flex items-center gap-1", singleResult.marginHealth.color)}>
+                    {singleResult.marginHealth.emoji} {singleResult.marginHealth.label}
                   </span>
                 </div>
-                <div className="w-40">
-                  <Input
-                    inputMode="decimal"
-                    value={baseWholesaleGrade}
-                    onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                    placeholder="49,90"
-                    className="h-11 rounded-xl bg-card text-base font-bold text-right text-foreground shadow-xs"
-                  />
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl bg-card p-3 border border-border">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Custo Total</p>
+                    <p className="numeric text-sm font-bold text-foreground">{brl(singleResult.realCost)}</p>
+                  </div>
+                  <div className="rounded-xl bg-primary p-3 shadow-glow">
+                    <p className="text-[10px] font-semibold text-primary-foreground/70 uppercase tracking-wide mb-1">Preço Sugerido</p>
+                    <p className="numeric text-sm font-bold text-white">{brl(singleResult.suggestedPrice)}</p>
+                  </div>
+                  <div className="rounded-xl bg-card p-3 border border-border">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Lucro Líquido</p>
+                    <p className={cn("numeric text-sm font-bold", singleResult.marginHealth.color)}>{brl(singleResult.profit)}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                  <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-1.5">
+                    <span>Margem Real</span>
+                    <span className={cn("numeric font-bold", singleResult.marginHealth.color)}>{pct(singleResult.marginOnPrice)}</span>
+                  </div>
+                  <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-1.5">
+                    <span>Markup</span>
+                    <span className="numeric font-bold text-foreground">{pct(singleResult.markupOnCost)}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Tabela / Lista Inteligente de Tamanhos (Apple Data Table) */}
-              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[580px] text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        <th className="py-3 px-4">Tamanho</th>
-                        <th className="py-3 px-3">Custo Atacado</th>
-                        <th className="py-3 px-3">Custo Total</th>
-                        <th className="py-3 px-3">
-                          {strategy === "direct_price" ? "Preço de Venda (R$)" : "Preço Sugerido (R$)"}
-                        </th>
-                        <th className="py-3 px-3">Lucro & Margem</th>
-                        <th className="py-3 px-4 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {activeSizes.map((sz) => {
-                        const item = gradeResults.find((r) => r.size === sz);
-                        const isCustomCost = item?.isCustomCost;
-                        const isCustomPrice = item?.isCustomPrice;
-                        const hasOverrides = isCustomCost || isCustomPrice;
+              {/* Botão CTA de Promoção para Grade */}
+              <button
+                type="button"
+                onClick={promoteToGrade}
+                className="group flex w-full items-center justify-between rounded-2xl border-2 border-primary/30 bg-primary/5 px-5 py-4 text-left transition-all hover:border-primary/60 hover:bg-primary/10 active:scale-[0.99]"
+              >
+                <div>
+                  <p className="text-sm font-bold text-primary">Continuar na Grade Detalhada & Estoque</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">O custo já vai pré-preenchido. Configure tamanhos, cores e dê entrada.</p>
+                </div>
+                <ArrowRight className="size-5 text-primary shrink-0 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
+          )}
 
-                        return (
-                          <tr
-                            key={sz}
-                            className={cn(
-                              "transition-colors duration-150 hover:bg-secondary/30",
-                              hasOverrides && "bg-primary/5",
-                            )}
-                          >
-                            {/* Coluna 1: Tamanho */}
-                            <td className="py-3 px-4 font-bold text-foreground">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-foreground shadow-xs">
-                                  {sz}
-                                </span>
-                                {hasOverrides && (
-                                  <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">
-                                    Personalizado
+          {/* ══════════════════════════════════════════════════════════
+              📦 MODO 2: GRADE DETALHADA (TAMANHOS + CORES)
+          ══════════════════════════════════════════════════════════ */}
+          {mode === "grade" && (
+            <div className="space-y-6">
+
+              {/* ── SEÇÃO A: GRADE DE TAMANHOS ─────────────────────── */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Layers className="size-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">Tamanhos</h3>
+                </div>
+
+                {/* Barra de Presets Rápidos */}
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-secondary/30 p-3">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
+                    Grades Rápidas:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_OPTIONS.map((pr) => (
+                      <button
+                        key={pr.id}
+                        type="button"
+                        onClick={() => applyPreset(pr.id, pr.sizes)}
+                        className={cn(
+                          "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
+                          activePreset === pr.id
+                            ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40",
+                        )}
+                      >
+                        {pr.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custo Base da Grade */}
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-xs">
+                  <div>
+                    <Label className="text-xs font-bold text-foreground block">
+                      Custo Base de Atacado (R$)
+                    </Label>
+                    <span className="text-[11px] font-medium text-primary flex items-center gap-1 mt-0.5">
+                      <Sparkles className="size-3" /> Aplica automaticamente a todos os tamanhos
+                    </span>
+                  </div>
+                  <div className="w-40">
+                    <Input
+                      inputMode="decimal"
+                      value={baseWholesaleGrade}
+                      onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                      placeholder="49,90"
+                      className="h-11 rounded-xl bg-card text-base font-bold text-right text-foreground shadow-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Tabela de Tamanhos (Apple Data Table) */}
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[580px] text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <th className="py-3 px-4">Tamanho</th>
+                          <th className="py-3 px-3">Custo Atacado</th>
+                          <th className="py-3 px-3">Custo Total</th>
+                          <th className="py-3 px-3">
+                            {strategy === "direct_price" ? "Preço de Venda (R$)" : "Preço Sugerido (R$)"}
+                          </th>
+                          <th className="py-3 px-3">Lucro & Margem</th>
+                          <th className="py-3 px-4 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {activeSizes.map((sz) => {
+                          const item = gradeResults.find((r) => r.size === sz);
+                          const isCustomCost = item?.isCustomCost;
+                          const isCustomPrice = item?.isCustomPrice;
+                          const hasOverrides = isCustomCost || isCustomPrice;
+
+                          return (
+                            <tr
+                              key={sz}
+                              className={cn(
+                                "transition-colors duration-150 hover:bg-secondary/30",
+                                hasOverrides && "bg-primary/5",
+                              )}
+                            >
+                              <td className="py-3 px-4 font-bold text-foreground">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-foreground shadow-xs">
+                                    {sz}
                                   </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Coluna 2: Custo de Atacado */}
-                            <td className="py-3 px-3">
-                              <div className="w-28">
-                                <Input
-                                  inputMode="decimal"
-                                  value={sizeCosts[sz] ?? ""}
-                                  onChange={(e) =>
-                                    setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
-                                  }
-                                  placeholder={baseWholesaleGrade || "0,00"}
-                                  className={cn(
-                                    "h-9 rounded-lg text-xs font-semibold text-right bg-background",
-                                    isCustomCost && "border-primary text-primary font-bold",
+                                  {hasOverrides && (
+                                    <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                                      Personalizado
+                                    </span>
                                   )}
-                                />
-                              </div>
-                            </td>
-
-                            {/* Coluna 3: Custo Real Total */}
-                            <td className="py-3 px-3 font-semibold text-muted-foreground numeric">
-                              {item ? brl(item.realCost) : "—"}
-                            </td>
-
-                            {/* Coluna 4: Preço de Venda */}
-                            <td className="py-3 px-3">
-                              <div className="w-32">
-                                <Input
-                                  inputMode="decimal"
-                                  value={sizeSalePrices[sz] ?? ""}
-                                  onChange={(e) =>
-                                    setSizeSalePrices((prev) => ({ ...prev, [sz]: e.target.value }))
-                                  }
-                                  placeholder={
-                                    item && item.suggestedPrice > 0
-                                      ? brl(item.suggestedPrice).replace("R$", "").trim()
-                                      : "0,00"
-                                  }
-                                  className={cn(
-                                    "h-9 rounded-lg text-xs font-bold text-right bg-background text-primary",
-                                    isCustomPrice && "border-primary ring-1 ring-primary/30",
+                                </div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="w-28">
+                                  <Input
+                                    inputMode="decimal"
+                                    value={sizeCosts[sz] ?? ""}
+                                    onChange={(e) =>
+                                      setSizeCosts((prev) => ({ ...prev, [sz]: e.target.value }))
+                                    }
+                                    placeholder={baseWholesaleGrade || "0,00"}
+                                    className={cn(
+                                      "h-9 rounded-lg text-xs font-semibold text-right bg-background",
+                                      isCustomCost && "border-primary text-primary font-bold",
+                                    )}
+                                  />
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-muted-foreground numeric">
+                                {item ? brl(item.realCost) : "—"}
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="w-32">
+                                  <Input
+                                    inputMode="decimal"
+                                    value={sizeSalePrices[sz] ?? ""}
+                                    onChange={(e) =>
+                                      setSizeSalePrices((prev) => ({ ...prev, [sz]: e.target.value }))
+                                    }
+                                    placeholder={
+                                      item && item.suggestedPrice > 0
+                                        ? brl(item.suggestedPrice).replace("R$", "").trim()
+                                        : "0,00"
+                                    }
+                                    className={cn(
+                                      "h-9 rounded-lg text-xs font-bold text-right bg-background text-primary",
+                                      isCustomPrice && "border-primary ring-1 ring-primary/30",
+                                    )}
+                                  />
+                                </div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-bold text-foreground numeric">
+                                    {item ? brl(item.profit) : "R$ 0,00"}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "text-[11px] font-semibold flex items-center gap-1",
+                                      item?.marginHealth.color ?? "text-muted-foreground",
+                                    )}
+                                  >
+                                    <span>{item?.marginHealth.emoji}</span>
+                                    <span>{pct(item?.marginOnPrice ?? 0)} margem</span>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  {hasOverrides && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => resetSizeOverrides(sz)}
+                                      title="Restaurar para a regra geral da grade"
+                                      className="h-8 rounded-lg px-2 text-[11px] font-semibold text-primary hover:bg-primary-soft"
+                                    >
+                                      <RotateCcw className="size-3 mr-1" /> Padrão
+                                    </Button>
                                   )}
-                                />
-                              </div>
-                            </td>
-
-                            {/* Coluna 5: Lucro & Margem Real */}
-                            <td className="py-3 px-3">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="font-bold text-foreground numeric">
-                                  {item ? brl(item.profit) : "R$ 0,00"}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-[11px] font-semibold flex items-center gap-1",
-                                    item?.marginHealth.color ?? "text-muted-foreground",
-                                  )}
-                                >
-                                  <span>{item?.marginHealth.emoji}</span>
-                                  <span>{pct(item?.marginOnPrice ?? 0)} margem</span>
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Coluna 6: Ações */}
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                {hasOverrides && (
                                   <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
-                                    onClick={() => resetSizeOverrides(sz)}
-                                    title="Restaurar para a regra geral da grade"
-                                    className="h-8 rounded-lg px-2 text-[11px] font-semibold text-primary hover:bg-primary-soft"
+                                    size="icon"
+                                    onClick={() => toggleSize(sz)}
+                                    title="Remover tamanho da grade"
+                                    className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                   >
-                                    <RotateCcw className="size-3 mr-1" /> Padrão
+                                    <X className="size-3.5" />
                                   </Button>
-                                )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Rodapé: Adicionar Tamanho */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        ＋ Adicionar tamanho:
+                      </span>
+                      <Input
+                        value={customSizeInput}
+                        onChange={(e) => setCustomSizeInput(e.target.value)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && (e.preventDefault(), addCustomSize())
+                        }
+                        placeholder="Ex: G4, 48"
+                        className="h-8 w-28 rounded-lg bg-card text-xs font-bold text-center uppercase"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addCustomSize}
+                        className="h-8 rounded-lg text-xs font-semibold"
+                      >
+                        <Plus className="size-3 mr-1" /> Adicionar
+                      </Button>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Pressione <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">Enter</kbd> para inserir
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── SEÇÃO B: CORES & VARIAÇÕES ──────────────────────── */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Palette className="size-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">Cores & Variações</h3>
+                  <span className="text-[11px] text-muted-foreground">(opcional — preço individual por cor)</span>
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          <th className="py-3 px-4">Cor / Variação</th>
+                          <th className="py-3 px-3">Custo Atacado</th>
+                          <th className="py-3 px-3">Preço Sugerido</th>
+                          <th className="py-3 px-3">Lucro Líquido</th>
+                          <th className="py-3 px-4 text-right">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {colors.map((c) => {
+                          const item = colorResults.find((r) => r.color === c);
+                          return (
+                            <tr key={c} className="transition-colors hover:bg-secondary/30">
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex size-4 rounded-full border border-border bg-secondary shadow-xs" />
+                                  <span className="font-bold text-foreground">{c}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="w-28">
+                                  <Input
+                                    inputMode="decimal"
+                                    value={colorCosts[c] ?? ""}
+                                    onChange={(e) =>
+                                      setColorCosts((prev) => ({ ...prev, [c]: e.target.value }))
+                                    }
+                                    placeholder={baseWholesaleGrade || "0,00"}
+                                    className="h-9 rounded-lg text-xs font-semibold text-right bg-background"
+                                  />
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 font-bold text-primary numeric">
+                                {item && item.suggestedPrice > 0 ? brl(item.suggestedPrice) : "—"}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="font-semibold text-foreground numeric">
+                                  {item ? brl(item.profit) : "—"}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right">
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => toggleSize(sz)}
-                                  title="Remover tamanho da grade"
-                                  className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => removeColor(c)}
+                                  className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
                                 >
-                                  <X className="size-3.5" />
+                                  <Trash2 className="size-3.5" />
                                 </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Linha de Rodapé da Tabela: Adicionar Novo Tamanho */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      ＋ Adicionar tamanho:
-                    </span>
-                    <Input
-                      value={customSizeInput}
-                      onChange={(e) => setCustomSizeInput(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && (e.preventDefault(), addCustomSize())
-                      }
-                      placeholder="Ex: G4, 48"
-                      className="h-8 w-28 rounded-lg bg-card text-xs font-bold text-center uppercase"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addCustomSize}
-                      className="h-8 rounded-lg text-xs font-semibold"
-                    >
-                      <Plus className="size-3 mr-1" /> Adicionar
-                    </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">
-                    Pressione <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono">Enter</kbd> para inserir
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* ── MODO 1: PREÇO ÚNICO ─────────────────────────────────── */}
-          {mode === "unico" && (
-            <div className="rounded-2xl border border-border bg-secondary/30 p-5 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Custo de atacado por peça (R$)">
-                  <Input
-                    inputMode="decimal"
-                    value={wholesale}
-                    onChange={(e) => setWholesale(e.target.value)}
-                    placeholder="49,90"
-                    className="h-11 rounded-xl bg-card font-semibold text-base"
-                  />
-                </Field>
-
-                {strategy === "direct_price" && (
-                  <Field label="Preço de venda desejado na etiqueta (R$)">
-                    <Input
-                      inputMode="decimal"
-                      value={directSalePrice}
-                      onChange={(e) => setDirectSalePrice(e.target.value)}
-                      placeholder="119,90"
-                      className="h-11 rounded-xl bg-card font-bold text-base text-primary"
-                    />
-                  </Field>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ── MODO 3: COR & VARIAÇÃO (TABELA APPLE) ──────────────── */}
-          {mode === "cor_tamanho" && (
-            <div className="space-y-4">
-              {/* Tabela de Cores */}
-              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[540px] text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        <th className="py-3 px-4">Cor / Variação</th>
-                        <th className="py-3 px-3">Custo Atacado</th>
-                        <th className="py-3 px-3">Preço Sugerido</th>
-                        <th className="py-3 px-3">Lucro Líquido</th>
-                        <th className="py-3 px-4 text-right">Ação</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {colors.map((c) => {
-                        const item = colorResults.find((r) => r.color === c);
-                        return (
-                          <tr key={c} className="transition-colors hover:bg-secondary/30">
-                            <td className="py-3 px-4 font-bold text-foreground">{c}</td>
-                            <td className="py-3 px-3">
-                              <div className="w-28">
-                                <Input
-                                  inputMode="decimal"
-                                  value={colorCosts[c] ?? ""}
-                                  onChange={(e) =>
-                                    setColorCosts((prev) => ({ ...prev, [c]: e.target.value }))
-                                  }
-                                  placeholder={baseWholesaleGrade || wholesale || "0,00"}
-                                  className="h-9 rounded-lg text-xs font-semibold text-right bg-background"
-                                />
-                              </div>
-                            </td>
-                            <td className="py-3 px-3 font-bold text-primary numeric">
-                              {item && item.suggestedPrice > 0 ? brl(item.suggestedPrice) : "—"}
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className="font-semibold text-foreground numeric">
-                                {item ? brl(item.profit) : "—"}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeColor(c)}
-                                className="size-8 rounded-lg text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Rodapé: Adicionar Cor */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 px-4 py-3">
-                  <div className="flex items-center gap-2">
+                  {/* Rodapé: Adicionar Cor */}
+                  <div className="flex flex-wrap items-center gap-3 border-t border-border bg-secondary/30 px-4 py-3">
                     <span className="text-xs font-semibold text-muted-foreground">＋ Nova cor:</span>
                     <Input
                       value={colorInput}
@@ -1032,7 +1088,7 @@ function Precificacao() {
             </div>
           )}
 
-          {/* ── Custos Operacionais Rateados por Peça ────────────────── */}
+          {/* ── Custos Operacionais (ambos os modos) ─────────────────── */}
           <div className="border-t border-border pt-4">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               Custos Operacionais Rateados (por peça)
@@ -1068,7 +1124,7 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* ── Sliders e Controles da Estratégia de Precificação ─────── */}
+          {/* ── Sliders e Controles da Estratégia ─────────────────────── */}
           <div className="space-y-5 border-t border-border pt-4">
             {strategy === "margin" && (
               <SliderRow
@@ -1096,7 +1152,7 @@ function Precificacao() {
               <div className="rounded-xl bg-primary-soft p-3 text-xs text-primary flex items-start gap-2">
                 <Info className="size-4 shrink-0 mt-0.5" />
                 <span>
-                  No modo <strong>Preço Fixo</strong>, digite o valor de venda desejado diretamente em cada tamanho nos cards da grade acima para ver o lucro real de cada peça.
+                  No modo <strong>Preço Fixo</strong>, digite o valor de venda desejado diretamente em cada tamanho na grade acima para ver o lucro real de cada peça.
                 </span>
               </div>
             )}
@@ -1157,7 +1213,7 @@ function Precificacao() {
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="mt-2 text-xs text-primary-foreground/70">
-                    Lucro líquido médio de <strong>{brl(summaryPrices.avgProfit)}</strong> por unidade
+                    Lucro líquido de <strong>{brl(summaryPrices.avgProfit)}</strong> por unidade
                   </p>
                 </div>
               )}
@@ -1200,7 +1256,7 @@ function Precificacao() {
               </p>
             </div>
 
-            {/* Tabela de Variações da Grade */}
+            {/* Tabela Resumo da Grade (só no modo grade) */}
             {mode === "grade" && gradeResults.length > 0 && (
               <div className="space-y-2 rounded-2xl bg-primary-foreground/10 p-4 text-xs">
                 <div className="flex items-center justify-between text-primary-foreground/80 font-semibold uppercase tracking-wider text-[10px]">
@@ -1231,7 +1287,7 @@ function Precificacao() {
               </div>
             )}
 
-            {/* Simulador de Meios de Pagamento & Perdas (Colapsável) */}
+            {/* Simulador de Meios de Pagamento */}
             <div className="rounded-2xl bg-primary-foreground/10 p-4 space-y-2.5 text-xs">
               <button
                 type="button"
@@ -1249,7 +1305,7 @@ function Precificacao() {
               {showSimulator && (
                 <div className="pt-2 divide-y divide-primary-foreground/15 space-y-2">
                   <p className="text-[11px] text-primary-foreground/70 pb-1">
-                    Veja o dinheiro líquido que cai na conta após taxas de maquininha ou descontos:
+                    Dinheiro líquido após taxas de maquininha ou descontos:
                   </p>
                   {paymentScenarios.map((sc) => (
                     <div key={sc.label} className="flex items-center justify-between pt-1.5 text-[11px]">
@@ -1271,7 +1327,7 @@ function Precificacao() {
               )}
             </div>
 
-            {/* Ponto de Cobertura do Lote (Break-Even) */}
+            {/* Ponto de Cobertura do Lote */}
             <div className="rounded-2xl bg-primary-foreground/10 p-4 text-xs space-y-2">
               <div className="flex items-center justify-between font-bold">
                 <span className="flex items-center gap-1.5">
@@ -1289,22 +1345,45 @@ function Precificacao() {
 
           {/* Ações Principais no Rodapé do Dashboard */}
           <div className="pt-4 border-t border-primary-foreground/15 space-y-2.5">
-            <Button
-              type="button"
-              onClick={openEntryForCurrent}
-              className="h-12 w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-bold shadow-soft transition-all active:scale-[0.98]"
-            >
-              <PackagePlus className="mr-2 size-4" /> Dar Entrada no Estoque
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => save.mutate()}
-              disabled={save.isPending}
-              className="h-10 w-full rounded-2xl border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-xs font-semibold"
-            >
-              <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
-            </Button>
+            {mode === "rapida" ? (
+              <>
+                <Button
+                  type="button"
+                  onClick={promoteToGrade}
+                  className="h-12 w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-bold shadow-soft transition-all active:scale-[0.98]"
+                >
+                  <Layers className="mr-2 size-4" /> Ir para Grade Detalhada & Estoque
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending}
+                  className="h-10 w-full rounded-2xl border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-xs font-semibold"
+                >
+                  <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  onClick={openEntryForCurrent}
+                  className="h-12 w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-bold shadow-soft transition-all active:scale-[0.98]"
+                >
+                  <PackagePlus className="mr-2 size-4" /> Dar Entrada no Estoque
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending}
+                  className="h-10 w-full rounded-2xl border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-xs font-semibold"
+                >
+                  <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
+                </Button>
+              </>
+            )}
           </div>
         </section>
       </div>
