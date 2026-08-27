@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Precificação Estratégica & Inteligência de Margem — Vestuli</title>
+  
+  <!-- Google Fonts: Sora (Display) & Manrope (Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Sora', 'sans-serif'],
+            sans: ['Manrope', 'sans-serif'],
+          },
+          colors: {
+            background: '#F8F9FA',
+            foreground: '#18181B',
+            card: '#FFFFFF',
+            'card-foreground': '#18181B',
+            primary: '#3B3AEF',
+            'primary-foreground': '#FFFFFF',
+            'primary-soft': '#EEF0FF',
+            secondary: '#F1F3F5',
+            'secondary-foreground': '#27272A',
+            muted: '#F1F3F5',
+            'muted-foreground': '#71717A',
+            border: '#E4E4E7',
+            success: '#10B981',
+            'success-soft': '#ECFDF5',
+            warning: '#F59E0B',
+            'warning-soft': '#FFFBEB',
+            danger: '#EF4444',
+            'danger-soft': '#FEF2F2',
+          },
+          boxShadow: {
+            soft: '0 1px 3px rgba(0,0,0,0.03), 0 10px 24px -10px rgba(0,0,0,0.08)',
+            lift: '0 4px 12px rgba(0,0,0,0.05), 0 24px 48px -18px rgba(59,58,239,0.15)',
+            glow: '0 10px 25px -5px rgba(59,58,239,0.35)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Manrope', sans-serif;
+      background-color: #F8F9FA;
+      color: #18181B;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .font-display {
+      font-family: 'Sora', sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .numeric {
+      font-family: 'Sora', sans-serif;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #E4E4E7;
+      border-radius: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 10px 24px -10px rgba(0,0,0,0.08);
+    }
+    .gradient-primary {
+      background-image: linear-gradient(135deg, #3B3AEF 0%, #6366F1 100%);
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #E4E4E7;
+      border-radius: 9999px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3B3AEF;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(59,58,239,0.4);
+      border: 2px solid #FFFFFF;
+    }
+  </style>
+</head>
+
+<body class="min-h-full p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
+
+  <!-- ── HEADER DA PÁGINA ─────────────────────────────────────────── -->
+  <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+        <i data-lucide="calculator" class="w-4 h-4"></i>
+        <span>Financeiro & Inteligência</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-foreground mt-1">Precificação Estratégica</h1>
+      <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
+        Descubra o preço ideal por grade ou peça única, simulando perdas e garantindo lucro real líquido.
+      </p>
+    </div>
+
+    <!-- Botões de Ação Topo -->
+    <div class="flex items-center gap-2">
+      <button class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card text-xs font-bold text-foreground hover:bg-secondary transition-colors">
+        <i data-lucide="tag" class="w-3.5 h-3.5 text-muted-foreground"></i>
+        Modelos Salvos
+      </button>
+      <button class="inline-flex items-center gap-2 px-4 py-2 rounded-full gradient-primary text-xs font-bold text-white shadow-glow transition-transform active:scale-95">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        Nova Peça
+      </button>
+    </div>
+  </header>
+
+  <!-- ── SELETORES ESTRATÉGICOS (MODO & ESTRATÉGIA) ──────────────── -->
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <!-- Seletor de Modo Principal -->
+    <div class="inline-flex rounded-full border border-border bg-card p-1 shadow-sm">
+      <button id="btn-mode-rapida" onclick="setMode('rapida')" class="flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+        Precificação Rápida
+      </button>
+      <button id="btn-mode-grade" onclick="setMode('grade')" class="flex items-center gap-2 rounded-full gradient-primary px-5 py-2 text-xs font-bold text-white shadow-glow transition-all">
+        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+        Grade & Estoque
+      </button>
+    </div>
+
+    <!-- Seletor de Fórmula de Lucro -->
+    <div class="flex items-center gap-2">
+      <span class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Estratégia:</span>
+      <div class="inline-flex rounded-full border border-border bg-card p-1 text-xs">
+        <button id="btn-strat-margin" onclick="setStrategy('margin')" class="rounded-full px-3 py-1.5 font-bold gradient-primary text-white shadow-sm transition-all">
+          Margem Real %
+        </button>
+        <button id="btn-strat-markup" onclick="setStrategy('markup')" class="rounded-full px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground transition-all">
+          Markup %
+        </button>
+        <button id="btn-strat-price" onclick="setStrategy('price')" class="rounded-full px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground transition-all">
+          Preço Fixo R$
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GRID PRINCIPAL: WORKSPACE (65%) + INSPETOR EXECUTIVO (35%) ── -->
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] w-full min-w-0">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         PAINEL ESQUERDO: WORKSPACE EM 3 PASSOS
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="panel p-6 sm:p-7 space-y-6 min-w-0 overflow-hidden">
+
+      <!-- PASSO 1: IDENTIFICAÇÃO & CUSTO -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b border-border pb-3">
+          <div class="flex items-center gap-2">
+            <span class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              1
+            </span>
+            <h2 class="text-sm font-bold text-foreground">Identificação & Custo de Compra</h2>
+          </div>
+          <span id="badge-sku-count" class="rounded-full border border-border px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            5 itens na lista
+          </span>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-[1.5fr_1fr]">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-muted-foreground">Nome da peça ou modelo</label>
+            <input type="text" value="Vestido midi linho com fenda" placeholder="Ex: Vestido midi linho com fenda" class="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+          </div>
+          <div class="space-y-1.5">
+            <label id="lbl-cost-input" class="text-xs font-semibold text-muted-foreground">Custo base da grade (R$)</label>
+            <input type="text" id="input-wholesale" value="49,90" placeholder="49,90" class="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-base font-bold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+          </div>
+        </div>
+
+        <!-- Rateio Operacional Colapsável -->
+        <div>
+          <button type="button" onclick="toggleOverhead()" class="flex w-full items-center justify-between rounded-xl border border-border/60 bg-secondary/30 px-3.5 py-2.5 text-left transition-all hover:bg-secondary/50">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Rateio por peça</span>
+              <span class="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">+R$ 11,50 / peça</span>
+            </div>
+            <i id="icon-overhead-arrow" data-lucide="chevron-down" class="w-4 h-4 text-muted-foreground transition-transform duration-200"></i>
+          </button>
+
+          <div id="box-overhead" class="hidden mt-2 rounded-xl border border-border/60 bg-secondary/20 px-3.5 py-3">
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="text-[11px] text-muted-foreground block mb-1">Frete rateado</label>
+                <input type="text" value="6,00" class="w-full h-8 rounded-lg border border-border/50 bg-card px-2.5 text-xs font-semibold text-right outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="text-[11px] text-muted-foreground block mb-1">Embalagem/Tag</label>
+                <input type="text" value="3,50" class="w-full h-8 rounded-lg border border-border/50 bg-card px-2.5 text-xs font-semibold text-right outline-none focus:border-primary">
+              </div>
+              <div>
+                <label class="text-[11px] text-muted-foreground block mb-1">Outros custos</label>
+                <input type="text" value="2,00" class="w-full h-8 rounded-lg border border-border/50 bg-card px-2.5 text-xs font-semibold text-right outline-none focus:border-primary">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 2: ESTRATÉGIA DE LUCRO -->
+      <div class="space-y-4 border-t border-border pt-4">
+        <div class="flex items-center gap-2">
+          <span class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            2
+          </span>
+          <h2 class="text-sm font-bold text-foreground">Estratégia de Lucratividade</h2>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-foreground">Margem de Lucro Líquida Desejada (% sobre venda)</label>
+            <span id="txt-margin-display" class="numeric text-sm font-bold text-primary">50%</span>
+          </div>
+          <p class="text-[11px] text-muted-foreground">De cada R$ 1,00 que entra no caixa, quanto fica limpo de lucro real.</p>
+          <input type="range" id="slider-margin" min="5" max="80" value="50" oninput="updateMarginValue(this.value)">
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2 pt-2">
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="text-muted-foreground">Imposto Simples / DAS</span>
+              <span class="text-primary font-bold">6%</span>
+            </div>
+            <input type="range" min="0" max="20" value="6">
+          </div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="text-muted-foreground">Taxa Maquininha Média</span>
+              <span class="text-primary font-bold">3.5%</span>
+            </div>
+            <input type="range" min="0" max="15" step="0.5" value="3.5">
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 3: TABELA DE VARIANTES (APPLE NUMBERS STYLE) -->
+      <div id="section-step3-grade" class="space-y-4 border-t border-border pt-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              3
+            </span>
+            <h2 class="text-sm font-bold text-foreground">Lista de Variantes (Tamanho + Cor)</h2>
+          </div>
+          <button type="button" onclick="toggleMatrixGenerator()" class="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 transition-colors">
+            <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
+            Gerador de Grade Rápida
+          </button>
+        </div>
+
+        <!-- Box Gerador de Matriz (Opcional/Colapsável) -->
+        <div id="box-matrix-generator" class="hidden rounded-2xl border border-primary/20 bg-primary/[0.02] p-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold text-primary flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Gerar Matriz Automática
+            </p>
+            <button onclick="toggleMatrixGenerator()" class="text-xs text-muted-foreground hover:text-foreground">Fechar</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <button class="p-2 rounded-xl border border-primary bg-primary/10 font-bold text-primary">Padrão (PP–GG)</button>
+            <button class="p-2 rounded-xl border border-border bg-card font-medium text-muted-foreground">Numérica (36–46)</button>
+          </div>
+          <button class="w-full h-9 rounded-xl gradient-primary text-xs font-bold text-white shadow-glow">
+            Gerar 10 Variantes Instantâneas
+          </button>
+        </div>
+
+        <!-- ── TABELA APPLE DATA TABLE DE ALTA DENSIDADE (ZERO SCROLL LATERAL) ── -->
+        <div class="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+          <table class="w-full text-left text-xs">
+            <colgroup>
+              <col class="w-[28%]">
+              <col class="w-[17%]">
+              <col class="w-[15%]">
+              <col class="w-[17%]">
+              <col class="w-[16%]">
+              <col class="w-[7%]">
+            </colgroup>
+            <thead>
+              <tr class="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <th class="py-2.5 px-3">Variante</th>
+                <th class="py-2.5 px-2 text-right">Custo Atacado</th>
+                <th class="py-2.5 px-2 text-right">Custo Total</th>
+                <th class="py-2.5 px-2 text-right">Preço Sugerido</th>
+                <th class="py-2.5 px-2 text-right">Lucro & Margem</th>
+                <th class="py-2.5 px-2"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border/50">
+              
+              <!-- LINHA 1: P · Off-White -->
+              <tr class="group transition-colors duration-100 hover:bg-secondary/20">
+                <td class="py-2.5 px-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="inline-flex shrink-0 size-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold text-foreground">P</span>
+                    <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      <span class="size-2 shrink-0 rounded-full bg-[#F8F6F0] border border-border"></span>
+                      <span class="text-xs font-semibold text-foreground truncate whitespace-nowrap">Off-White</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="49,90" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-semibold text-foreground outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <span class="numeric text-xs font-semibold text-muted-foreground">R$ 61,40</span>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="151,60" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <div class="flex flex-col items-end gap-0.5">
+                    <span class="numeric text-xs font-bold text-foreground">R$ 75,80</span>
+                    <span class="text-[10px] font-semibold text-emerald-600">🟢 50%</span>
+                  </div>
+                </td>
+                <td class="py-2.5 px-2">
+                  <button class="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- LINHA 2: M · Off-White -->
+              <tr class="group transition-colors duration-100 hover:bg-secondary/20">
+                <td class="py-2.5 px-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="inline-flex shrink-0 size-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold text-foreground">M</span>
+                    <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      <span class="size-2 shrink-0 rounded-full bg-[#F8F6F0] border border-border"></span>
+                      <span class="text-xs font-semibold text-foreground truncate whitespace-nowrap">Off-White</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="49,90" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-semibold text-foreground outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <span class="numeric text-xs font-semibold text-muted-foreground">R$ 61,40</span>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="151,60" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <div class="flex flex-col items-end gap-0.5">
+                    <span class="numeric text-xs font-bold text-foreground">R$ 75,80</span>
+                    <span class="text-[10px] font-semibold text-emerald-600">🟢 50%</span>
+                  </div>
+                </td>
+                <td class="py-2.5 px-2">
+                  <button class="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- LINHA 3: M · Preto -->
+              <tr class="group transition-colors duration-100 hover:bg-secondary/20">
+                <td class="py-2.5 px-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="inline-flex shrink-0 size-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold text-foreground">M</span>
+                    <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      <span class="size-2 shrink-0 rounded-full bg-[#1A1A1A]"></span>
+                      <span class="text-xs font-semibold text-foreground truncate whitespace-nowrap">Preto</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="49,90" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-semibold text-foreground outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <span class="numeric text-xs font-semibold text-muted-foreground">R$ 61,40</span>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="151,60" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <div class="flex flex-col items-end gap-0.5">
+                    <span class="numeric text-xs font-bold text-foreground">R$ 75,80</span>
+                    <span class="text-[10px] font-semibold text-emerald-600">🟢 50%</span>
+                  </div>
+                </td>
+                <td class="py-2.5 px-2">
+                  <button class="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- LINHA 4: G · Preto -->
+              <tr class="group transition-colors duration-100 hover:bg-secondary/20">
+                <td class="py-2.5 px-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="inline-flex shrink-0 size-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold text-foreground">G</span>
+                    <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      <span class="size-2 shrink-0 rounded-full bg-[#1A1A1A]"></span>
+                      <span class="text-xs font-semibold text-foreground truncate whitespace-nowrap">Preto</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="49,90" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-semibold text-foreground outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <span class="numeric text-xs font-semibold text-muted-foreground">R$ 61,40</span>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="151,60" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <div class="flex flex-col items-end gap-0.5">
+                    <span class="numeric text-xs font-bold text-foreground">R$ 75,80</span>
+                    <span class="text-[10px] font-semibold text-emerald-600">🟢 50%</span>
+                  </div>
+                </td>
+                <td class="py-2.5 px-2">
+                  <button class="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- LINHA 5: GG · Preto -->
+              <tr class="group transition-colors duration-100 hover:bg-secondary/20">
+                <td class="py-2.5 px-3">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="inline-flex shrink-0 size-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold text-foreground">GG</span>
+                    <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                      <span class="size-2 shrink-0 rounded-full bg-[#1A1A1A]"></span>
+                      <span class="text-xs font-semibold text-foreground truncate whitespace-nowrap">Preto</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="49,90" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-semibold text-foreground outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <span class="numeric text-xs font-semibold text-muted-foreground">R$ 61,40</span>
+                </td>
+                <td class="py-2 px-2">
+                  <input type="text" value="151,60" class="w-full h-7 rounded-md border border-border/50 bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20 transition-all">
+                </td>
+                <td class="py-2.5 px-2 text-right">
+                  <div class="flex flex-col items-end gap-0.5">
+                    <span class="numeric text-xs font-bold text-foreground">R$ 75,80</span>
+                    <span class="text-[10px] font-semibold text-emerald-600">🟢 50%</span>
+                  </div>
+                </td>
+                <td class="py-2.5 px-2">
+                  <button class="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+
+          <!-- ── RODAPÉ DA TABELA: INSERÇÃO EM LINHA ÚNICA ── -->
+          <div class="flex items-center justify-between gap-2 border-t border-border bg-secondary/30 px-3 py-2.5">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <span class="shrink-0 text-[11px] font-bold text-muted-foreground">＋</span>
+              <input type="text" placeholder="Tam" value="M" class="h-7 w-14 shrink-0 rounded-md border border-border/50 bg-card px-2 text-center text-xs font-bold uppercase outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
+              <input type="text" placeholder="Cor" value="Terracota" class="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-card px-2 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
+              <input type="text" placeholder="Custo" value="49,90" class="h-7 w-20 shrink-0 rounded-md border border-border/50 bg-card px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20">
+              <button class="h-7 shrink-0 rounded-md border border-primary/30 bg-primary/5 px-3 text-xs font-bold text-primary hover:bg-primary/10 transition-colors">
+                + Inserir
+              </button>
+            </div>
+            <span class="shrink-0 text-[11px] text-muted-foreground whitespace-nowrap">
+              5 itens
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ══════════════════════════════════════════════════════════════
+         PAINEL DIREITO: INSPETOR EXECUTIVO (CLEAN / APPLE LEVEL)
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="panel flex flex-col justify-between p-6 sm:p-7 space-y-5 min-w-0 overflow-hidden">
+      
+      <div class="space-y-5 min-w-0">
+
+        <!-- ── HERO: PREÇO SUGERIDO & SAÚDE FINANCEIRA ── -->
+        <div class="space-y-1 min-w-0">
+          <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            Preço Sugerido de Venda
+          </p>
+
+          <div class="min-w-0">
+            <p class="numeric text-4xl font-bold tracking-tight text-foreground truncate">
+              R$ 151,60
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">
+              Lucro líquido de <strong class="text-foreground">R$ 75,80</strong> por peça
+            </p>
+          </div>
+
+          <!-- Badge Semântico de Saúde -->
+          <div class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200">
+            <span>🟢</span>
+            <span>Margem Saudável</span>
+          </div>
+        </div>
+
+        <!-- ── BARRA DE COMPOSIÇÃO DO PREÇO (APPLE WALLET STYLE) ── -->
+        <div class="rounded-2xl border border-border bg-secondary/30 p-4 space-y-3">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Composição do Preço
+          </p>
+          
+          <!-- Barra Visual Proporcional -->
+          <div class="flex h-3 w-full overflow-hidden rounded-full gap-0.5">
+            <div class="bg-zinc-400 rounded-l-full" style="width: 40.5%" title="Custo: 40.5%"></div>
+            <div class="bg-amber-400" style="width: 9.5%" title="Impostos & Taxas: 9.5%"></div>
+            <div class="bg-emerald-500 rounded-r-full" style="width: 50%" title="Lucro Líquido: 50%"></div>
+          </div>
+
+          <!-- Legenda -->
+          <div class="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span class="flex items-center gap-1">
+              <span class="size-2 rounded-full bg-zinc-400 shrink-0"></span>
+              Custo 40%
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="size-2 rounded-full bg-amber-400 shrink-0"></span>
+              Taxas 10%
+            </span>
+            <span class="flex items-center gap-1 font-semibold text-emerald-600">
+              <span class="size-2 rounded-full bg-emerald-500 shrink-0"></span>
+              Lucro 50%
+            </span>
+          </div>
+        </div>
+
+        <!-- ── 3 CARDS DE MÉTRICAS COMPACTAS ── -->
+        <div class="grid grid-cols-3 gap-2">
+          <div class="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Margem</p>
+            <p class="numeric mt-1 text-base font-bold text-emerald-600">50%</p>
+          </div>
+          <div class="rounded-xl border border-border bg-primary/5 p-3 text-center">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Lucro</p>
+            <p class="numeric mt-1 text-sm font-bold text-foreground">R$ 75,80</p>
+          </div>
+          <div class="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Markup</p>
+            <p class="numeric mt-1 text-base font-bold text-foreground">123,5%</p>
+          </div>
+        </div>
+
+        <!-- ── DIAGNÓSTICO DE LUCRATIVIDADE ── -->
+        <div class="rounded-2xl border border-border bg-secondary/30 p-4 text-xs space-y-1.5">
+          <div class="flex items-center gap-1.5 font-bold text-foreground">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+            <span>Diagnóstico de Lucratividade</span>
+          </div>
+          <p class="text-muted-foreground leading-relaxed">
+            Margem ideal para moda! Paga custos fixos, dá lucro e ainda suporta liquidações de até 20% sem prejuízo.
+          </p>
+        </div>
+
+        <!-- ── RESUMO DE VARIANTES DA GRADE ── -->
+        <div class="rounded-2xl border border-border bg-secondary/20 p-3.5 text-xs min-w-0">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
+            Variantes da Grade
+          </p>
+          <div class="space-y-0 divide-y divide-border/60 max-h-36 overflow-y-auto">
+            <div class="py-2 space-y-0.5 min-w-0">
+              <div class="flex items-center justify-between gap-2 min-w-0">
+                <span class="flex items-center gap-1.5 font-semibold text-foreground truncate min-w-0">
+                  <span class="size-2 rounded-full bg-[#F8F6F0] border border-border shrink-0"></span>
+                  <span class="truncate">P · Off-White</span>
+                </span>
+                <span class="numeric font-bold text-primary shrink-0">R$ 151,60</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span class="numeric">Custo R$ 61,40</span>
+                <span class="numeric font-semibold text-emerald-600">+R$ 75,80 (50%)</span>
+              </div>
+            </div>
+            <div class="py-2 space-y-0.5 min-w-0">
+              <div class="flex items-center justify-between gap-2 min-w-0">
+                <span class="flex items-center gap-1.5 font-semibold text-foreground truncate min-w-0">
+                  <span class="size-2 rounded-full bg-[#1A1A1A] shrink-0"></span>
+                  <span class="truncate">M · Preto</span>
+                </span>
+                <span class="numeric font-bold text-primary shrink-0">R$ 151,60</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span class="numeric">Custo R$ 61,40</span>
+                <span class="numeric font-semibold text-emerald-600">+R$ 75,80 (50%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SIMULADOR DE MEIOS DE PAGAMENTO (COLAPSÁVEL) ── -->
+        <div class="rounded-2xl border border-border bg-secondary/30 p-4 space-y-2.5 text-xs">
+          <button type="button" onclick="toggleSimulator()" class="flex w-full items-center justify-between text-left font-bold text-foreground hover:text-primary transition-colors">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5 text-primary"></i>
+              Sobra por meio de pagamento
+            </span>
+            <i id="icon-sim-arrow" data-lucide="chevron-down" class="w-4 h-4 text-muted-foreground transition-transform duration-200"></i>
+          </button>
+
+          <div id="box-simulator" class="hidden pt-1 divide-y divide-border space-y-1">
+            <div class="flex items-center justify-between pt-2 text-[11px]">
+              <span class="flex items-center gap-1.5 text-muted-foreground">
+                <span>⚡</span>
+                <span>Pix / Dinheiro</span>
+              </span>
+              <span class="numeric font-bold text-emerald-600">R$ 81,11 (53.5%)</span>
+            </div>
+            <div class="flex items-center justify-between pt-2 text-[11px]">
+              <span class="flex items-center gap-1.5 text-muted-foreground">
+                <span>💳</span>
+                <span>Cartão Débito (1.5%)</span>
+              </span>
+              <span class="numeric font-bold text-emerald-600">R$ 78,83 (52%)</span>
+            </div>
+            <div class="flex items-center justify-between pt-2 text-[11px]">
+              <span class="flex items-center gap-1.5 text-muted-foreground">
+                <span>💳</span>
+                <span>Cartão Crédito 1x (3.5%)</span>
+              </span>
+              <span class="numeric font-bold text-emerald-600">R$ 75,80 (50%)</span>
+            </div>
+            <div class="flex items-center justify-between pt-2 text-[11px]">
+              <span class="flex items-center gap-1.5 text-muted-foreground">
+                <span>🏷️</span>
+                <span>Promocional -10%</span>
+              </span>
+              <span class="numeric font-bold text-amber-600">R$ 61,84 (45.3%)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── COBERTURA DO LOTE (BREAK-EVEN) ── -->
+        <div class="rounded-2xl border border-border bg-amber-50/50 p-4 text-xs space-y-2">
+          <div class="flex items-center justify-between font-bold text-foreground">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+              Cobertura do Lote (20 peças)
+            </span>
+            <span class="numeric text-amber-600 font-bold">
+              9 un. (45%)
+            </span>
+          </div>
+          <p class="text-muted-foreground leading-relaxed">
+            Vendendo <strong class="text-foreground">9 peças</strong> você quita o lote todo (R$ 1.228,00). As outras 11 são <strong class="text-emerald-600">100% lucro líquido (R$ 833,83)</strong>.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- ── AÇÕES PRINCIPAIS NO RODAPÉ ── -->
+      <div class="pt-4 border-t border-border space-y-2.5">
+        <button class="h-12 w-full rounded-2xl gradient-primary font-bold text-sm text-white shadow-glow transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+          <i data-lucide="package-plus" class="w-4 h-4"></i>
+          Dar Entrada no Estoque
+        </button>
+        <button class="h-10 w-full rounded-2xl border border-border bg-card text-xs font-semibold text-foreground hover:bg-secondary transition-colors flex items-center justify-center gap-1.5">
+          <i data-lucide="save" class="w-3.5 h-3.5 text-muted-foreground"></i>
+          Salvar no Histórico
+        </button>
+      </div>
+
+    </section>
+
+  </div>
+
+
+  <!-- ── SEÇÃO INFERIOR: HISTÓRICO DE PEÇAS PRECIFICADAS ─────────── -->
+  <section class="panel p-6 sm:p-7 space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-base font-semibold text-foreground">Peças precificadas</h2>
+        <p class="text-xs text-muted-foreground">Consulte seu histórico de cálculos e dê entrada no Estoque a qualquer momento.</p>
+      </div>
+      <span class="rounded-full border border-border px-3 py-1 text-xs font-bold text-foreground">
+        3 peças salvas
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b border-border text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <th class="pb-3">Peça</th>
+            <th class="pb-3">Custo Real</th>
+            <th class="pb-3">Margem Real</th>
+            <th class="pb-3">Preço Sugerido</th>
+            <th class="pb-3 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border/60">
+          <tr class="hover:bg-secondary/30 transition-colors">
+            <td class="py-3.5 font-bold text-foreground">Vestido midi linho com fenda</td>
+            <td class="numeric py-3.5 text-muted-foreground">R$ 61,40</td>
+            <td class="numeric py-3.5 font-semibold text-emerald-600">50%</td>
+            <td class="numeric py-3.5 font-bold text-primary">R$ 151,60</td>
+            <td class="py-3.5 text-right">
+              <button class="h-8 rounded-lg px-3 text-xs font-bold text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1">
+                <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
+                Dar Entrada
+              </button>
+            </td>
+          </tr>
+          <tr class="hover:bg-secondary/30 transition-colors">
+            <td class="py-3.5 font-bold text-foreground">Calça alfaiataria pantalona</td>
+            <td class="numeric py-3.5 text-muted-foreground">R$ 78,00</td>
+            <td class="numeric py-3.5 font-semibold text-emerald-600">45%</td>
+            <td class="numeric py-3.5 font-bold text-primary">R$ 189,90</td>
+            <td class="py-3.5 text-right">
+              <button class="h-8 rounded-lg px-3 text-xs font-bold text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1">
+                <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
+                Dar Entrada
+              </button>
+            </td>
+          </tr>
+          <tr class="hover:bg-secondary/30 transition-colors">
+            <td class="py-3.5 font-bold text-foreground">Blusa cropped canelada</td>
+            <td class="numeric py-3.5 text-muted-foreground">R$ 22,50</td>
+            <td class="numeric py-3.5 font-semibold text-emerald-600">55%</td>
+            <td class="numeric py-3.5 font-bold text-primary">R$ 69,90</td>
+            <td class="py-3.5 text-right">
+              <button class="h-8 rounded-lg px-3 text-xs font-bold text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1">
+                <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
+                Dar Entrada
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- ── JAVASCRIPT DE INTERATIVIDADE RÁPIDA ───────────────────────── -->
+  <script>
+    // Inicializar ícones Lucide
+    lucide.createIcons();
+
+    // Alternar Rateio
+    function toggleOverhead() {
+      const box = document.getElementById('box-overhead');
+      const arrow = document.getElementById('icon-overhead-arrow');
+      box.classList.toggle('hidden');
+      arrow.classList.toggle('rotate-180');
+    }
+
+    // Alternar Simulador
+    function toggleSimulator() {
+      const box = document.getElementById('box-simulator');
+      const arrow = document.getElementById('icon-sim-arrow');
+      box.classList.toggle('hidden');
+      arrow.classList.toggle('rotate-180');
+    }
+
+    // Alternar Gerador de Matriz
+    function toggleMatrixGenerator() {
+      const box = document.getElementById('box-matrix-generator');
+      box.classList.toggle('hidden');
+    }
+
+    // Atualizar valor do Slider de Margem
+    function updateMarginValue(val) {
+      document.getElementById('txt-margin-display').innerText = val + '%';
+    }
+
+    // Alternar Modo (Rápida vs Grade)
+    function setMode(mode) {
+      const btnRapida = document.getElementById('btn-mode-rapida');
+      const btnGrade = document.getElementById('btn-mode-grade');
+      const step3 = document.getElementById('section-step3-grade');
+      const badge = document.getElementById('badge-sku-count');
+      const lblCost = document.getElementById('lbl-cost-input');
+
+      if (mode === 'rapida') {
+        btnRapida.className = 'flex items-center gap-2 rounded-full gradient-primary px-5 py-2 text-xs font-bold text-white shadow-glow transition-all';
+        btnGrade.className = 'flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all';
+        step3.classList.add('hidden');
+        badge.innerText = 'Preço Único';
+        lblCost.innerText = 'Custo de atacado (R$)';
+      } else {
+        btnGrade.className = 'flex items-center gap-2 rounded-full gradient-primary px-5 py-2 text-xs font-bold text-white shadow-glow transition-all';
+        btnRapida.className = 'flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all';
+        step3.classList.remove('hidden');
+        badge.innerText = '5 itens na lista';
+        lblCost.innerText = 'Custo base da grade (R$)';
+      }
+    }
+
+    // Alternar Estratégia
+    function setStrategy(strat) {
+      ['margin', 'markup', 'price'].forEach(s => {
+        const btn = document.getElementById('btn-strat-' + s);
+        if (s === strat) {
+          btn.className = 'rounded-full px-3 py-1.5 font-bold gradient-primary text-white shadow-sm transition-all';
+        } else {
+          btn.className = 'rounded-full px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground transition-all';
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>
