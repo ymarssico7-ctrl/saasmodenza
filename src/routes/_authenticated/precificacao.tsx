@@ -191,7 +191,10 @@ function Precificacao() {
   const [tax, setTax] = useState(6); // 6% imposto
   const [cardRate, setCardRate] = useState(3.5); // 3.5% taxa de maquininha
 
-  // ── Simuladores & Lote ─────────────────────────────────────────────
+  // ── Rateio Operacional: Colapsável ───────────────────────────
+  const [showOverhead, setShowOverhead] = useState(false);
+
+  // ── Simuladores & Lote ─────────────────────────────────────────
   const [lotUnits] = useState(20);
   const [showSimulator, setShowSimulator] = useState(false);
 
@@ -761,45 +764,65 @@ function Precificacao() {
               </Field>
             </div>
 
-            {/* Rateio Operacional Compacto */}
-            <div className="rounded-2xl border border-border bg-secondary/30 p-3.5 space-y-2.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                Rateio Operacional por Peça:
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label className="text-[11px] text-muted-foreground block mb-1">Frete rateado</Label>
-                  <Input
-                    inputMode="decimal"
-                    value={freight}
-                    onChange={(e) => setFreight(e.target.value)}
-                    placeholder="6,00"
-                    className="h-9 rounded-lg bg-card text-xs font-semibold"
-                  />
+            {/* Rateio Operacional — Colapsável */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowOverhead((v) => !v)}
+                className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-secondary/30 px-3.5 py-2.5 text-left transition-all hover:bg-secondary/50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Rateio por peça
+                  </span>
+                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                    +{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} / peça
+                  </span>
                 </div>
-                <div>
-                  <Label className="text-[11px] text-muted-foreground block mb-1">Embalagem/Tag</Label>
-                  <Input
-                    inputMode="decimal"
-                    value={packaging}
-                    onChange={(e) => setPackaging(e.target.value)}
-                    placeholder="3,50"
-                    className="h-9 rounded-lg bg-card text-xs font-semibold"
-                  />
+                <ChevronDown
+                  className={cn("size-4 text-muted-foreground transition-transform duration-200", showOverhead && "rotate-180")}
+                />
+              </button>
+
+              {showOverhead && (
+                <div className="mt-2 rounded-xl border border-border/60 bg-secondary/20 px-3.5 py-3 animate-in fade-in-50 slide-in-from-top-1 duration-150">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground block mb-1.5">Frete rateado</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={freight}
+                        onChange={(e) => setFreight(e.target.value)}
+                        placeholder="6,00"
+                        className="h-9 rounded-lg bg-card text-xs font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground block mb-1.5">Embalagem/Tag</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={packaging}
+                        onChange={(e) => setPackaging(e.target.value)}
+                        placeholder="3,50"
+                        className="h-9 rounded-lg bg-card text-xs font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground block mb-1.5">Outros custos</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={other}
+                        onChange={(e) => setOther(e.target.value)}
+                        placeholder="2,00"
+                        className="h-9 rounded-lg bg-card text-xs font-semibold"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-[11px] text-muted-foreground block mb-1">Outros custos</Label>
-                  <Input
-                    inputMode="decimal"
-                    value={other}
-                    onChange={(e) => setOther(e.target.value)}
-                    placeholder="2,00"
-                    className="h-9 rounded-lg bg-card text-xs font-semibold"
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </div>
+
 
           {/* ══════════════════════════════════════════════════════════
               PASSO 2: ESTRATÉGIA DE LUCRO & MARGEM
@@ -1241,110 +1264,166 @@ function Precificacao() {
           )}
         </section>
 
-        {/* ── Dashboard Executivo da Peça (Painel Direito) ─────────── */}
-        <section className="panel flex flex-col justify-between bg-primary p-6 text-primary-foreground sm:p-7 shadow-lift space-y-6 min-w-0 overflow-hidden">
-          <div className="space-y-6 min-w-0">
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
-                  Preço Sugerido de Venda
-                </p>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-white/20 text-white backdrop-blur-xs",
-                  )}
-                >
-                  <span>{summaryPrices.marginHealth.emoji}</span>
-                  <span>{summaryPrices.marginHealth.label}</span>
-                </span>
-              </div>
+        {/* ── Inspector Executivo da Peça (Painel Direito) ─────────── */}
+        <section className="panel flex flex-col justify-between p-6 sm:p-7 space-y-5 min-w-0 overflow-hidden">
+          <div className="space-y-5 min-w-0">
 
-              {/* Preço Principal ou Faixa Dinâmica */}
+            {/* ── Preço Hero + Badge de Saúde ── */}
+            <div className="space-y-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Preço Sugerido de Venda
+              </p>
+
               {summaryPrices.hasMultiple ? (
-                <div className="mt-3 min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <p className="numeric text-2xl font-bold leading-tight tracking-tight truncate">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+                    <span className="numeric text-3xl font-bold tracking-tight text-foreground truncate">
                       {brl(summaryPrices.minSuggested)}
-                    </p>
-                    <span className="text-primary-foreground/60 text-lg font-semibold">–</span>
-                    <p className="numeric text-2xl font-bold leading-tight tracking-tight truncate">
+                    </span>
+                    <span className="text-muted-foreground font-light text-xl">–</span>
+                    <span className="numeric text-3xl font-bold tracking-tight text-foreground truncate">
                       {brl(summaryPrices.maxSuggested)}
-                    </p>
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-primary-foreground/70">
-                    Faixa calculada para as {variants.length} variantes da grade
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Faixa de {variants.length} variantes
                   </p>
                 </div>
               ) : (
-                <div className="mt-3 min-w-0">
-                  <p className="numeric text-[2.25rem] font-bold leading-none tracking-tight truncate">
+                <div className="min-w-0">
+                  <p className="numeric text-4xl font-bold tracking-tight text-foreground truncate">
                     {brl(summaryPrices.avgSuggested)}
                   </p>
-                  <p className="mt-2 text-xs text-primary-foreground/70">
-                    Lucro líquido médio de <strong>{brl(summaryPrices.avgProfit)}</strong> por peça
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Lucro líquido de <strong className="text-foreground">{brl(summaryPrices.avgProfit)}</strong> por peça
                   </p>
                 </div>
               )}
+
+              {/* Badge de Saúde Financeira */}
+              <div className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold",
+                summaryPrices.marginHealth.color,
+                summaryPrices.avgMargin >= 40
+                  ? "bg-success/10"
+                  : summaryPrices.avgMargin >= 25
+                  ? "bg-warning/10"
+                  : "bg-danger/10",
+              )}>
+                <span>{summaryPrices.marginHealth.emoji}</span>
+                <span>{summaryPrices.marginHealth.label}</span>
+              </div>
             </div>
 
-            {/* 3 Hero Metric Cards */}
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="rounded-xl bg-primary-foreground/15 p-3 backdrop-blur-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
-                  Margem Real
+            {/* ── Barra de Composição do Preço (Price Breakdown Bar) ── */}
+            {summaryPrices.avgSuggested > 0 && (() => {
+              const price = summaryPrices.avgSuggested;
+              const cost = summaryPrices.avgCost;
+              const profit = summaryPrices.avgProfit;
+              const taxes = price - cost - profit;
+              const costPct = Math.max((cost / price) * 100, 0);
+              const taxPct = Math.max((taxes / price) * 100, 0);
+              const profitPct = Math.max((profit / price) * 100, 0);
+              return (
+                <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Composição do Preço
+                  </p>
+                  {/* Barra Visual */}
+                  <div className="flex h-3 w-full overflow-hidden rounded-full gap-0.5">
+                    <div
+                      className="bg-foreground/30 rounded-l-full"
+                      style={{ width: `${costPct}%` }}
+                      title={`Custo: ${Math.round(costPct)}%`}
+                    />
+                    <div
+                      className="bg-warning/60"
+                      style={{ width: `${taxPct}%` }}
+                      title={`Impostos & Taxas: ${Math.round(taxPct)}%`}
+                    />
+                    <div
+                      className="bg-success rounded-r-full"
+                      style={{ width: `${profitPct}%` }}
+                      title={`Lucro Líquido: ${Math.round(profitPct)}%`}
+                    />
+                  </div>
+                  {/* Legenda */}
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <span className="size-2 rounded-full bg-foreground/30 shrink-0" />
+                      Custo {Math.round(costPct)}%
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="size-2 rounded-full bg-warning/60 shrink-0" />
+                      Taxas {Math.round(taxPct)}%
+                    </span>
+                    <span className="flex items-center gap-1 font-semibold text-success">
+                      <span className="size-2 rounded-full bg-success shrink-0" />
+                      Lucro {Math.round(profitPct)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── 3 Métricas Compactas ── */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Margem
                 </p>
-                <p className="numeric mt-1 text-lg font-bold">
+                <p className={cn("numeric mt-1 text-base font-bold", summaryPrices.marginHealth.color)}>
                   {pct(summaryPrices.avgMargin)}
                 </p>
               </div>
-              <div className="rounded-xl bg-primary-foreground/25 p-3 backdrop-blur-xs shadow-inner">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/70">
-                  Lucro Médio
+              <div className="rounded-xl border border-border bg-primary/5 p-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Lucro
                 </p>
-                <p className="numeric mt-1 text-base font-bold">
+                <p className="numeric mt-1 text-sm font-bold text-foreground">
                   {brl(summaryPrices.avgProfit)}
                 </p>
               </div>
-              <div className="rounded-xl bg-primary-foreground/15 p-3 backdrop-blur-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+              <div className="rounded-xl border border-border bg-secondary/40 p-3 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Markup
                 </p>
-                <p className="numeric mt-1 text-lg font-bold">{pct(summaryPrices.avgMarkup)}</p>
+                <p className="numeric mt-1 text-base font-bold text-foreground">
+                  {pct(summaryPrices.avgMarkup)}
+                </p>
               </div>
             </div>
 
-            {/* Diagnóstico de Saúde Financeira */}
-            <div className="rounded-2xl bg-black/20 p-3.5 backdrop-blur-sm text-xs leading-relaxed space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-primary-foreground">
-                <ShieldCheck className="size-4 text-white" />
+            {/* ── Diagnóstico de Lucratividade ── */}
+            <div className="rounded-2xl border border-border bg-secondary/30 p-4 text-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <ShieldCheck className={cn("size-4", summaryPrices.marginHealth.color)} />
                 <span>Diagnóstico de Lucratividade</span>
               </div>
-              <p className="text-primary-foreground/80">
+              <p className="text-muted-foreground leading-relaxed">
                 {summaryPrices.marginHealth.description}
               </p>
             </div>
 
-            {/* Resumo da Grade de Variantes */}
+            {/* ── Resumo Compacto de Variantes (Modo Grade) ── */}
             {mode === "grade" && variantResults.length > 0 && (
-              <div className="space-y-1.5 rounded-2xl bg-primary-foreground/10 p-3.5 text-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/60 mb-2">
+              <div className="rounded-2xl border border-border bg-secondary/20 p-3.5 text-xs min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2.5">
                   Variantes da Grade
                 </p>
-                <div className="divide-y divide-primary-foreground/15 max-h-44 overflow-y-auto pr-1 space-y-0">
+                <div className="space-y-0 divide-y divide-border/60 max-h-40 overflow-y-auto">
                   {variantResults.map((v) => (
                     <div key={v.id} className="py-2 space-y-0.5 min-w-0">
-                      {/* Linha 1: Identificação + Preço de Venda */}
                       <div className="flex items-center justify-between gap-2 min-w-0">
-                        <span className="font-bold flex items-center gap-1.5 truncate min-w-0">
+                        <span className="flex items-center gap-1.5 font-semibold text-foreground truncate min-w-0">
                           <span className={cn("size-2 rounded-full shrink-0", getColorDot(v.color))} />
                           <span className="truncate">{v.size} · {v.color}</span>
                         </span>
-                        <span className="font-bold text-white numeric shrink-0">{brl(v.suggestedPrice)}</span>
+                        <span className="numeric font-bold text-primary shrink-0">{brl(v.suggestedPrice)}</span>
                       </div>
-                      {/* Linha 2: Custo + Lucro */}
-                      <div className="flex items-center justify-between gap-2 text-[11px] text-primary-foreground/60">
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                         <span className="numeric">Custo {brl(v.realCost)}</span>
-                        <span className={cn("numeric font-semibold", v.profit >= 0 ? "text-primary-foreground/90" : "text-red-300")}>
+                        <span className={cn("numeric font-semibold", v.profit >= 0 ? "text-success" : "text-destructive")}>
                           +{brl(v.profit)} ({pct(v.marginOnPrice)})
                         </span>
                       </div>
@@ -1354,39 +1433,31 @@ function Precificacao() {
               </div>
             )}
 
-
-            {/* Simulador de Meios de Pagamento */}
-            <div className="rounded-2xl bg-primary-foreground/10 p-4 space-y-2.5 text-xs">
+            {/* ── Simulador de Meios de Pagamento ── */}
+            <div className="rounded-2xl border border-border bg-secondary/30 p-4 space-y-2.5 text-xs">
               <button
                 type="button"
                 onClick={() => setShowSimulator((prev) => !prev)}
-                className="flex w-full items-center justify-between text-left font-bold text-primary-foreground hover:opacity-90"
+                className="flex w-full items-center justify-between text-left font-bold text-foreground hover:text-primary transition-colors"
               >
                 <span className="flex items-center gap-1.5">
-                  <CreditCard className="size-3.5" /> Simulador: Quanto sobra em cada meio?
+                  <CreditCard className="size-3.5 text-primary" />
+                  Sobra por meio de pagamento
                 </span>
                 <ChevronDown
-                  className={cn("size-4 transition-transform", showSimulator && "rotate-180")}
+                  className={cn("size-4 text-muted-foreground transition-transform", showSimulator && "rotate-180")}
                 />
               </button>
 
               {showSimulator && (
-                <div className="pt-2 divide-y divide-primary-foreground/15 space-y-2">
-                  <p className="text-[11px] text-primary-foreground/70 pb-1">
-                    Dinheiro líquido após taxas de maquininha ou descontos:
-                  </p>
+                <div className="pt-1 divide-y divide-border space-y-1">
                   {paymentScenarios.map((sc) => (
-                    <div key={sc.label} className="flex items-center justify-between pt-1.5 text-[11px]">
-                      <span className="flex items-center gap-1.5 text-primary-foreground/80">
+                    <div key={sc.label} className="flex items-center justify-between pt-2 text-[11px]">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
                         <span>{sc.icon}</span>
                         <span>{sc.label}</span>
                       </span>
-                      <span
-                        className={cn(
-                          "numeric font-bold",
-                          sc.isViable ? "text-white" : "text-destructive font-black",
-                        )}
-                      >
+                      <span className={cn("numeric font-bold", sc.isViable ? "text-success" : "text-destructive")}>
                         {brl(sc.profit)} ({pct(sc.margin)})
                       </span>
                     </div>
@@ -1395,30 +1466,31 @@ function Precificacao() {
               )}
             </div>
 
-            {/* Ponto de Cobertura do Lote */}
-            <div className="rounded-2xl bg-primary-foreground/10 p-4 text-xs space-y-2">
-              <div className="flex items-center justify-between font-bold">
+            {/* ── Cobertura do Lote ── */}
+            <div className="rounded-2xl border border-border bg-amber-50/50 dark:bg-amber-950/20 p-4 text-xs space-y-2">
+              <div className="flex items-center justify-between font-bold text-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Zap className="size-3.5 text-amber-300" /> Cobertura do Lote ({lotUnits} peças)
+                  <Zap className="size-3.5 text-amber-500" />
+                  Cobertura do Lote ({lotUnits} peças)
                 </span>
-                <span className="numeric text-white font-bold">
+                <span className="numeric text-amber-600 dark:text-amber-400 font-bold">
                   {lotBreakEven.unitsToBreakEven} un. ({pct(lotBreakEven.breakEvenPct)})
                 </span>
               </div>
-              <p className="text-[11px] text-primary-foreground/80 leading-relaxed">
-                Vendendo apenas <strong>{lotBreakEven.unitsToBreakEven} peças</strong>, você quita 100% dos custos do lote ({brl(lotBreakEven.totalLotCost)}). As outras {Math.max(lotUnits - lotBreakEven.unitsToBreakEven, 0)} peças serão <strong>100% lucro líquido ({brl(lotBreakEven.profitOnRemainder)})</strong>.
+              <p className="text-muted-foreground leading-relaxed">
+                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} peças</strong> você quita o lote ({brl(lotBreakEven.totalLotCost)}). As outras {Math.max(lotUnits - lotBreakEven.unitsToBreakEven, 0)} são <strong className="text-success">100% lucro líquido</strong>.
               </p>
             </div>
           </div>
 
-          {/* Ações Principais no Rodapé do Dashboard */}
-          <div className="pt-4 border-t border-primary-foreground/15 space-y-2.5">
+          {/* ── Ações Principais ── */}
+          <div className="pt-4 border-t border-border space-y-2.5">
             {mode === "rapida" ? (
               <>
                 <Button
                   type="button"
                   onClick={promoteToGrade}
-                  className="h-12 w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-bold shadow-soft transition-all active:scale-[0.98]"
+                  className="h-12 w-full rounded-2xl gradient-primary font-bold shadow-glow transition-all active:scale-[0.98]"
                 >
                   <Layers className="mr-2 size-4" /> Ir para Grade Detalhada & Estoque
                 </Button>
@@ -1427,7 +1499,7 @@ function Precificacao() {
                   variant="outline"
                   onClick={() => save.mutate()}
                   disabled={save.isPending}
-                  className="h-10 w-full rounded-2xl border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-xs font-semibold"
+                  className="h-10 w-full rounded-2xl text-xs font-semibold"
                 >
                   <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
                 </Button>
@@ -1437,7 +1509,7 @@ function Precificacao() {
                 <Button
                   type="button"
                   onClick={openEntryForCurrent}
-                  className="h-12 w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-bold shadow-soft transition-all active:scale-[0.98]"
+                  className="h-12 w-full rounded-2xl gradient-primary font-bold shadow-glow transition-all active:scale-[0.98]"
                 >
                   <PackagePlus className="mr-2 size-4" /> Dar Entrada no Estoque
                 </Button>
@@ -1446,7 +1518,7 @@ function Precificacao() {
                   variant="outline"
                   onClick={() => save.mutate()}
                   disabled={save.isPending}
-                  className="h-10 w-full rounded-2xl border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-xs font-semibold"
+                  className="h-10 w-full rounded-2xl text-xs font-semibold"
                 >
                   <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
                 </Button>
@@ -1455,6 +1527,7 @@ function Precificacao() {
           </div>
         </section>
       </div>
+
 
       {/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
       <section className="panel p-6 sm:p-7">
