@@ -1083,186 +1083,179 @@ function Precificacao() {
 
               {/* ── TABELA UNIFICADA DE VARIANTES (APPLE DATA TABLE) ──── */}
               <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px] text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        <th className="py-3 px-4">Variante (Tam · Cor)</th>
-                        <th className="py-3 px-3">Custo Atacado</th>
-                        <th className="py-3 px-3">Custo Total</th>
-                        <th className="py-3 px-3">
-                          {strategy === "direct_price" ? "Preço de Venda (R$)" : "Preço Sugerido (R$)"}
-                        </th>
-                        <th className="py-3 px-3">Lucro & Margem</th>
-                        <th className="py-3 px-4 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {variantResults.map((v) => {
-                        const hasOverrides = v.isCustomCost || v.isCustomPrice;
+                <table className="w-full text-left text-xs">
+                  <colgroup>
+                    <col className="w-[28%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[7%]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <th className="py-2.5 px-3">Variante</th>
+                      <th className="py-2.5 px-2 text-right">Custo Atacado</th>
+                      <th className="py-2.5 px-2 text-right">Custo Total</th>
+                      <th className="py-2.5 px-2 text-right">
+                        {strategy === "direct_price" ? "Preço Venda" : "Preço Sugerido"}
+                      </th>
+                      <th className="py-2.5 px-2 text-right">Lucro & Margem</th>
+                      <th className="py-2.5 px-2" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {variantResults.map((v) => {
+                      const hasOverrides = v.isCustomCost || v.isCustomPrice;
 
-                        return (
-                          <tr
-                            key={v.id}
-                            className={cn(
-                              "transition-colors duration-150 hover:bg-secondary/30",
-                              hasOverrides && "bg-primary/5",
-                            )}
-                          >
-                            {/* Coluna 1: Tamanho + Cor Unificados */}
-                            <td className="py-3 px-4 font-bold text-foreground">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-foreground shadow-xs">
-                                  {v.size}
+                      return (
+                        <tr
+                          key={v.id}
+                          className={cn(
+                            "group transition-colors duration-100 hover:bg-secondary/20",
+                            hasOverrides && "bg-primary/[0.03]",
+                          )}
+                        >
+                          {/* Coluna 1: Tamanho + Cor (sem quebra) */}
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="inline-flex shrink-0 size-6 items-center justify-center rounded-md bg-secondary text-[10px] font-bold text-foreground">
+                                {v.size}
+                              </span>
+                              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                                <span className={cn("size-2 shrink-0 rounded-full", getColorDot(v.color))} />
+                                <span className="text-xs font-semibold text-foreground truncate whitespace-nowrap">{v.color}</span>
+                              </div>
+                              {hasOverrides && (
+                                <span className="shrink-0 rounded bg-primary/15 px-1 py-0.5 text-[9px] font-bold text-primary">
+                                  ✦
                                 </span>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(v.color))} />
-                                  <span className="text-xs font-semibold">{v.color}</span>
-                                </div>
-                                {hasOverrides && (
-                                  <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">
-                                    Personalizado
-                                  </span>
-                                )}
-                              </div>
-                            </td>
+                              )}
+                            </div>
+                          </td>
 
-                            {/* Coluna 2: Custo Atacado */}
-                            <td className="py-3 px-3">
-                              <div className="w-28">
-                                <Input
-                                  inputMode="decimal"
-                                  value={v.wholesaleCost}
-                                  onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                  placeholder={baseWholesaleGrade || "0,00"}
-                                  className={cn(
-                                    "h-9 rounded-lg text-xs font-semibold text-right bg-background",
-                                    v.isCustomCost && "border-primary text-primary font-bold",
-                                  )}
-                                />
-                              </div>
-                            </td>
+                          {/* Coluna 2: Custo Atacado (input inline) */}
+                          <td className="py-2 px-2">
+                            <input
+                              inputMode="decimal"
+                              value={v.wholesaleCost}
+                              onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                              placeholder={baseWholesaleGrade || "0,00"}
+                              className={cn(
+                                "w-full h-7 rounded-md border bg-secondary/50 px-2 text-right text-xs font-semibold text-foreground outline-none transition-all",
+                                "border-border/50 focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20",
+                                v.isCustomCost && "border-primary/60 bg-primary/5 text-primary font-bold",
+                              )}
+                            />
+                          </td>
 
-                            {/* Coluna 3: Custo Total */}
-                            <td className="py-3 px-3 font-semibold text-muted-foreground numeric">
+                          {/* Coluna 3: Custo Total (só leitura) */}
+                          <td className="py-2.5 px-2 text-right">
+                            <span className="numeric text-xs font-semibold text-muted-foreground">
                               {brl(v.realCost)}
-                            </td>
+                            </span>
+                          </td>
 
-                            {/* Coluna 4: Preço Sugerido / Venda */}
-                            <td className="py-3 px-3">
-                              <div className="w-32">
-                                <Input
-                                  inputMode="decimal"
-                                  value={v.customSalePrice}
-                                  onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                  placeholder={
-                                    v.suggestedPrice > 0
-                                      ? brl(v.suggestedPrice).replace("R$", "").trim()
-                                      : "0,00"
-                                  }
-                                  className={cn(
-                                    "h-9 rounded-lg text-xs font-bold text-right bg-background text-primary",
-                                    v.isCustomPrice && "border-primary ring-1 ring-primary/30",
-                                  )}
-                                />
-                              </div>
-                            </td>
+                          {/* Coluna 4: Preço Sugerido / Venda (input inline) */}
+                          <td className="py-2 px-2">
+                            <input
+                              inputMode="decimal"
+                              value={v.customSalePrice}
+                              onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                              placeholder={
+                                v.suggestedPrice > 0
+                                  ? String(v.suggestedPrice.toFixed(2)).replace(".", ",")
+                                  : "0,00"
+                              }
+                              className={cn(
+                                "w-full h-7 rounded-md border bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none transition-all",
+                                "border-border/50 focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/20",
+                                v.isCustomPrice && "border-primary ring-1 ring-primary/20",
+                              )}
+                            />
+                          </td>
 
-                            {/* Coluna 5: Lucro & Margem Real */}
-                            <td className="py-3 px-3">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="font-bold text-foreground numeric">
-                                  {brl(v.profit)}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-[11px] font-semibold flex items-center gap-1",
-                                    v.marginHealth.color ?? "text-muted-foreground",
-                                  )}
-                                >
-                                  <span>{v.marginHealth.emoji}</span>
-                                  <span>{pct(v.marginOnPrice)} margem</span>
-                                </span>
-                              </div>
-                            </td>
+                          {/* Coluna 5: Lucro & Margem Real */}
+                          <td className="py-2.5 px-2 text-right">
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="numeric text-xs font-bold text-foreground">
+                                {brl(v.profit)}
+                              </span>
+                              <span className={cn("text-[10px] font-semibold", v.marginHealth.color ?? "text-muted-foreground")}>
+                                {v.marginHealth.emoji} {pct(v.marginOnPrice)}
+                              </span>
+                            </div>
+                          </td>
 
-                            {/* Coluna 6: Ações */}
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                {hasOverrides && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => resetVariantOverrides(v.id)}
-                                    title="Restaurar para a regra geral da grade"
-                                    className="h-8 rounded-lg px-2 text-[11px] font-semibold text-primary hover:bg-primary-soft"
-                                  >
-                                    <RotateCcw className="size-3 mr-1" /> Padrão
-                                  </Button>
-                                )}
-                                <Button
+                          {/* Coluna 6: Ações (aparecem no hover) */}
+                          <td className="py-2.5 px-2">
+                            <div className="flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {hasOverrides && (
+                                <button
                                   type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeVariant(v.id)}
-                                  title="Remover variante da grade"
-                                  className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => resetVariantOverrides(v.id)}
+                                  title="Restaurar padrão"
+                                  className="size-6 flex items-center justify-center rounded text-primary hover:bg-primary/10 transition-colors"
                                 >
-                                  <X className="size-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                                  <RotateCcw className="size-3" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeVariant(v.id)}
+                                title="Remover variante"
+                                className="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
 
-                {/* ── Rodapé: Inserção de Variante Avulsa ─────────────── */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-secondary/30 px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-muted-foreground">
-                      ＋ Adicionar variante:
-                    </span>
-                    <Input
+                {/* ── Rodapé: Inserção de Variante Avulsa em Linha Única ── */}
+                <div className="flex items-center justify-between gap-2 border-t border-border bg-secondary/30 px-3 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="shrink-0 text-[11px] font-bold text-muted-foreground">＋</span>
+                    <input
                       value={manualSize}
                       onChange={(e) => setManualSize(e.target.value)}
-                      placeholder="Tam (ex: G1)"
-                      className="h-8 w-24 rounded-lg bg-card text-xs font-bold text-center uppercase"
+                      placeholder="Tam"
+                      className="h-7 w-14 shrink-0 rounded-md border border-border/50 bg-card px-2 text-center text-xs font-bold uppercase outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
-                    <Input
+                    <input
                       value={manualColor}
                       onChange={(e) => setManualColor(e.target.value)}
-                      placeholder="Cor (ex: Terracota)"
-                      className="h-8 w-32 rounded-lg bg-card text-xs font-medium"
+                      placeholder="Cor"
+                      className="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-card px-2 text-xs font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
-                    <Input
+                    <input
                       inputMode="decimal"
                       value={manualCost}
                       onChange={(e) => setManualCost(e.target.value)}
-                      placeholder={`Custo (R$ ${baseWholesaleGrade})`}
-                      className="h-8 w-32 rounded-lg bg-card text-xs font-semibold text-right"
+                      placeholder="Custo"
+                      className="h-7 w-20 shrink-0 rounded-md border border-border/50 bg-card px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       onClick={addManualVariant}
-                      className="h-8 rounded-lg text-xs font-semibold"
+                      className="h-7 shrink-0 rounded-md border border-primary/30 bg-primary/5 px-3 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
                     >
-                      <Plus className="size-3 mr-1" /> Inserir
-                    </Button>
+                      + Inserir
+                    </button>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">
-                    {variants.length} {variants.length === 1 ? "item configurado" : "itens configurados"}
+                  <span className="shrink-0 text-[11px] text-muted-foreground whitespace-nowrap">
+                    {variants.length} {variants.length === 1 ? "item" : "itens"}
                   </span>
                 </div>
               </div>
             </div>
           )}
         </section>
+
 
         {/* ── Inspector Executivo da Peça (Painel Direito) ─────────── */}
         <section className="panel flex flex-col justify-between p-6 sm:p-7 space-y-5 min-w-0 overflow-hidden">
