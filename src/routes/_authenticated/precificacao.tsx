@@ -157,6 +157,7 @@ function Precificacao() {
 
   // ── Modo 2: Grade Detalhada de Variantes ──────────────────────────
   const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("49,90");
+  const [gradePricingMode, setGradePricingMode] = useState<"unified" | "per_unit">("unified");
 
   // Lista Unificada de Variantes (SKUs)
   const [variants, setVariants] = useState<VariantRow[]>([
@@ -838,7 +839,8 @@ function Precificacao() {
         <section className="panel p-6 sm:p-7 space-y-6 min-w-0 overflow-hidden">
 
           {/* ══════════════════════════════════════════════════════════
-              PASSO 1: IDENTIFICAÇÃO & CUSTOS BÁSICOS
+              PASSO 1: PRODUTO & SUA GRADE
+              (O que é a peça e quais variantes chegaram?)
           ══════════════════════════════════════════════════════════ */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
@@ -846,24 +848,388 @@ function Precificacao() {
                 <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   1
                 </span>
-                <h2 className="text-sm font-bold text-foreground">Identificação & Custo de Compra</h2>
+                <h2 className="text-sm font-bold text-foreground">
+                  {mode === "rapida" ? "Identificação da Peça" : "Produto & Grade da Coleção"}
+                </h2>
               </div>
               <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold">
-                {mode === "rapida" ? "Preço Único" : `${variants.length} itens na lista`}
+                {mode === "rapida" ? "Peça Única" : `${variants.length} itens na grade`}
               </Badge>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-[1.5fr_1fr]">
-              <Field label="Nome da peça ou modelo">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Vestido midi linho com fenda"
-                  className="h-11 rounded-xl font-medium"
-                />
-              </Field>
+            <Field label="Nome da peça ou modelo">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Vestido midi linho com fenda"
+                className="h-11 rounded-xl font-medium"
+              />
+            </Field>
 
-              <Field label={mode === "rapida" ? "Custo de atacado (R$)" : "Custo base da grade (R$)"}>
+            {/* No Modo Grade: Exibir a Grade de Tamanhos & Cores no Passo 1 */}
+            {mode === "grade" && (
+              <div className="space-y-4 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Cores & Tamanhos da Grade:
+                  </span>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMatrixGenerator((prev) => !prev)}
+                    className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    <Wand2 className="size-3.5 mr-1.5" />
+                    {showMatrixGenerator ? "Ocultar Gerador" : "⚡ Gerador de Grade Rápida"}
+                  </Button>
+                </div>
+
+                {/* ── Painel Expansível: Gerador de Matriz (Tamanhos × Cores) ── */}
+                {showMatrixGenerator && (
+                  <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                        <Sparkles className="size-3.5" />
+                        <span>Selecione os tamanhos e cores para gerar a grade automaticamente:</span>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
+                      </Badge>
+                    </div>
+
+                    {/* Seleção de Tamanhos com Presets */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                          1. Tamanhos Desejados:
+                        </span>
+                        <div className="flex gap-1">
+                          {PRESET_OPTIONS.map((pr) => (
+                            <button
+                              key={pr.id}
+                              type="button"
+                              onClick={() => applyPreset(pr.id, pr.sizes)}
+                              className={cn(
+                                "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
+                                activePreset === pr.id
+                                  ? "bg-primary text-primary-foreground border-transparent"
+                                  : "bg-card text-muted-foreground border-border hover:text-foreground",
+                              )}
+                            >
+                              {pr.label.split(" ")[0]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleGenSize(sz)}
+                            className={cn(
+                              "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
+                              genSizes.includes(sz)
+                                ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
+                                : "bg-card text-muted-foreground border-border hover:text-foreground",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Seleção de Cores */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                        2. Cores da Coleção:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {COLOR_PRESETS.map((cp) => (
+                          <button
+                            key={cp.name}
+                            type="button"
+                            onClick={() => toggleGenColor(cp.name)}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
+                              genColors.includes(cp.name)
+                                ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
+                                : "bg-card text-muted-foreground border-border hover:text-foreground",
+                            )}
+                          >
+                            <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
+                            <span>{cp.name}</span>
+                          </button>
+                        ))}
+
+                        {/* Cor Customizada no Gerador */}
+                        <div className="inline-flex items-center gap-1 rounded-full border border-dashed border-border bg-card px-2 py-0.5">
+                          <Input
+                            value={customGenColor}
+                            onChange={(e) => setCustomGenColor(e.target.value)}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" && (e.preventDefault(), addCustomGenColor())
+                            }
+                            placeholder="＋ Outra cor"
+                            className="h-6 w-24 border-0 bg-transparent px-1 text-xs font-medium shadow-none focus-visible:ring-0"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={addCustomGenColor}
+                            className="size-5 rounded-full text-primary"
+                          >
+                            <Plus className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botão de Geração */}
+                    <Button
+                      type="button"
+                      onClick={generateMatrix}
+                      className="h-10 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
+                    >
+                      <Wand2 className="size-3.5 mr-2" /> Gerar Grade com {genSizes.length * genColors.length} Peças
+                    </Button>
+                  </div>
+                )}
+
+                {/* ── CARDS VISUAIS DE MODA AGRUPADOS POR COR (ZERO FADIGA) ── */}
+                <div className="space-y-3">
+                  {colorGroups.map((group) => {
+                    const isEditingOverrides = editingColorOverride === group.color;
+                    const hasAnyOverride = group.items.some((v) => v.isCustomCost || v.isCustomPrice);
+                    const activeSizeSet = new Set(group.items.map((i) => i.size));
+
+                    const availableSizes = Array.from(
+                      new Set([
+                        ...group.items.map((i) => i.size),
+                        ...["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].filter(
+                          (s) =>
+                            variants.some((v) => v.size === s) ||
+                            ["P", "M", "G", "GG"].includes(s),
+                        ),
+                      ]),
+                    );
+
+                    return (
+                      <div
+                        key={group.color}
+                        className="rounded-2xl border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:border-primary/30"
+                      >
+                        {/* Cabeçalho da Cor */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={cn("size-3 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
+                            <span className="text-sm font-bold text-foreground truncate">{group.color}</span>
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground shrink-0">
+                              {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {/* Resumo Financeiro da Cor */}
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="numeric text-muted-foreground">
+                                Custo <strong className="text-foreground">{brl(group.avgCost)}</strong>
+                              </span>
+                              <span className="text-border">·</span>
+                              <span className="numeric text-primary font-bold">
+                                Venda {brl(group.avgPrice)}
+                              </span>
+                              <span className="text-border hidden sm:inline">·</span>
+                              <span className={cn("numeric font-semibold hidden sm:inline-flex items-center gap-0.5", group.health.color)}>
+                                {group.health.emoji} +{brl(group.avgProfit)} ({pct(group.avgMargin)})
+                              </span>
+                            </div>
+
+                            {/* Botão de Excluir Cor */}
+                            <button
+                              type="button"
+                              onClick={() => removeColor(group.color)}
+                              className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title={`Remover cor ${group.color}`}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Corpo: Pills de Tamanhos Táteis */}
+                        <div className="pt-3 space-y-3">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+                              Tamanhos ativos:
+                            </span>
+
+                            {availableSizes.map((sz) => {
+                              const isActive = activeSizeSet.has(sz);
+
+                              return (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => toggleColorSize(group.color, sz)}
+                                  className={cn(
+                                    "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-150 active:scale-95",
+                                    isActive
+                                      ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
+                                      : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
+                                  )}
+                                >
+                                  <span>{sz}</span>
+                                  {isActive && <Check className="size-3 stroke-[3]" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Seletor / Painel de Precificação por Unidade */}
+                          {(gradePricingMode === "per_unit" || isEditingOverrides) && (
+                            <div className="rounded-xl border border-border/80 bg-secondary/20 p-3 space-y-2 animate-in fade-in-50 duration-150">
+                              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 text-[10px] font-bold uppercase text-muted-foreground px-2">
+                                <span>Tamanho / Variante</span>
+                                <span className="w-24 text-right">Custo Atacado</span>
+                                <span className="w-24 text-right">Preço Venda</span>
+                              </div>
+                              {group.items.map((v) => (
+                                <div
+                                  key={v.id}
+                                  className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-lg bg-card p-2 border border-border/60 text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="size-6 flex items-center justify-center rounded bg-secondary font-bold text-foreground text-[11px]">
+                                      {v.size}
+                                    </span>
+                                    <span className="text-muted-foreground text-xs">{group.color}</span>
+                                    {v.isCustomPrice || v.isCustomCost ? (
+                                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                                        ✦ Personalizado
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <input
+                                    inputMode="decimal"
+                                    value={v.wholesaleCost}
+                                    onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                    placeholder={baseWholesaleGrade || "49,90"}
+                                    className="h-7 w-24 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
+                                  />
+                                  <input
+                                    inputMode="decimal"
+                                    value={v.customSalePrice}
+                                    onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                    placeholder={
+                                      v.suggestedPrice > 0
+                                        ? String(v.suggestedPrice.toFixed(2)).replace(".", ",")
+                                        : "0,00"
+                                    }
+                                    className="h-7 w-24 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {gradePricingMode === "unified" && (
+                            <div className="flex items-center justify-between pt-1 text-[11px]">
+                              <button
+                                type="button"
+                                onClick={() => setEditingColorOverride(isEditingOverrides ? null : group.color)}
+                                className="text-primary hover:underline font-semibold flex items-center gap-1"
+                              >
+                                <span>{isEditingOverrides ? "Ocultar ajustes individuais" : "Personalizar valor de algum tamanho específico..."}</span>
+                                <ChevronDown className={cn("size-3 transition-transform", isEditingOverrides && "rotate-180")} />
+                              </button>
+                              {hasAnyOverride && (
+                                <span className="rounded bg-primary/10 px-2 py-0.5 font-bold text-primary text-[10px]">
+                                  ✦ Valores personalizados ativos
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* ── BARRA RÁPIDA: ADICIONAR NOVA COR NA GRADE ── */}
+                  <div className="rounded-2xl border border-dashed border-border bg-card/60 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Plus className="size-3.5 text-primary" />
+                        Adicionar outra cor à grade:
+                      </span>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                        Clique numa cor sugerida ou digite
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {COLOR_PRESETS.filter(
+                        (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
+                      ).map((cp) => (
+                        <button
+                          key={cp.name}
+                          type="button"
+                          onClick={() => addQuickColor(cp.name)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary hover:bg-primary/5 transition-all active:scale-95 shadow-xs"
+                        >
+                          <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
+                          <span>+ {cp.name}</span>
+                        </button>
+                      ))}
+
+                      {/* Input de Cor Personalizada */}
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
+                        <input
+                          value={newCustomColor}
+                          onChange={(e) => setNewCustomColor(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
+                          placeholder="Outra cor..."
+                          className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustomColor}
+                          className="rounded-full gradient-primary px-2 py-0.5 text-[10px] font-bold text-white shadow-xs"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+
+          {/* ══════════════════════════════════════════════════════════
+              PASSO 2: CUSTO DE COMPRA & RATEIO OPERACIONAL
+              (Quanto custou colocar a peça na arara?)
+          ══════════════════════════════════════════════════════════ */}
+          <div className="space-y-4 border-t border-border pt-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  2
+                </span>
+                <h2 className="text-sm font-bold text-foreground">Custo de Compra & Rateio</h2>
+              </div>
+              <span className="numeric text-xs font-bold text-muted-foreground">
+                Custo Real: <strong className="text-foreground">{brl(mode === "rapida" ? singleResult.realCost : summaryPrices.avgCost)}</strong> / peça
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[1.5fr_1fr]">
+              <Field label={mode === "rapida" ? "Custo de atacado unitário (R$)" : "Custo base de atacado da grade (R$)"}>
                 <Input
                   inputMode="decimal"
                   value={mode === "rapida" ? wholesale : baseWholesaleGrade}
@@ -876,6 +1242,14 @@ function Precificacao() {
                   className="h-11 rounded-xl font-bold text-base bg-card text-foreground"
                 />
               </Field>
+
+              <div className="rounded-xl border border-border/80 bg-secondary/30 p-3 flex flex-col justify-center text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Custo Total por Peça</p>
+                <p className="numeric text-lg font-bold text-foreground mt-0.5">
+                  {brl(mode === "rapida" ? singleResult.realCost : summaryPrices.avgCost)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Atacado + Rateio (+{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))})</p>
+              </div>
             </div>
 
             {/* Rateio Operacional — Colapsável */}
@@ -939,14 +1313,47 @@ function Precificacao() {
 
 
           {/* ══════════════════════════════════════════════════════════
-              PASSO 2: ESTRATÉGIA DE LUCRO & MARGEM
+              PASSO 3: LUCRATIVIDADE & PREÇO FINAL
+              (Quanto cobrar e quanto lucrar?)
           ══════════════════════════════════════════════════════════ */}
           <div className="space-y-4 border-t border-border pt-4">
-            <div className="flex items-center gap-2">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                2
-              </span>
-              <h2 className="text-sm font-bold text-foreground">Estratégia de Lucratividade</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  3
+                </span>
+                <h2 className="text-sm font-bold text-foreground">Lucratividade & Preço de Venda</h2>
+              </div>
+
+              {/* Seletor de Modo de Precificação na Grade */}
+              {mode === "grade" && (
+                <div className="inline-flex rounded-xl border border-border bg-secondary/50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setGradePricingMode("unified")}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
+                      gradePricingMode === "unified"
+                        ? "bg-card text-primary shadow-xs border border-primary/20"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    🏷️ Preço Unificado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGradePricingMode("per_unit")}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
+                      gradePricingMode === "per_unit"
+                        ? "bg-card text-primary shadow-xs border border-primary/20"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    🎛️ Preço por Unidade
+                  </button>
+                </div>
+              )}
             </div>
 
             {strategy === "margin" && (
@@ -975,7 +1382,7 @@ function Precificacao() {
               <div className="rounded-xl bg-primary-soft p-3.5 text-xs text-primary flex items-start gap-2">
                 <Info className="size-4 shrink-0 mt-0.5" />
                 <span>
-                  No modo <strong>Preço Fixo</strong>, digite o valor de venda desejado diretamente na lista abaixo para conferir a margem e o lucro líquido real de cada item.
+                  No modo <strong>Preço Fixo</strong>, digite o valor de venda desejado diretamente para conferir a margem e o lucro líquido real de cada item.
                 </span>
               </div>
             )}
@@ -996,413 +1403,43 @@ function Precificacao() {
                 display={pct(cardRate)}
               />
             </div>
-          </div>
 
-
-          {/* ══════════════════════════════════════════════════════════
-              PASSO 3: MODO RÁPIDO OU TABELA UNIFICADA DE VARIANTES
-          ══════════════════════════════════════════════════════════ */}
-          {mode === "rapida" && (
-            <div className="space-y-4 border-t border-border pt-4">
-              <div className="flex items-center gap-2">
-                <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  3
-                </span>
-                <h2 className="text-sm font-bold text-foreground">Resultado da Precificação Rápida</h2>
-              </div>
-
-              {/* Card de Resultado Instantâneo */}
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Diagnóstico</span>
-                  <span className={cn("text-xs font-semibold flex items-center gap-1", singleResult.marginHealth.color)}>
-                    {singleResult.marginHealth.emoji} {singleResult.marginHealth.label}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-xl bg-card p-3 border border-border">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Custo Total</p>
-                    <p className="numeric text-sm font-bold text-foreground">{brl(singleResult.realCost)}</p>
-                  </div>
-                  <div className="rounded-xl bg-primary p-3 shadow-glow">
-                    <p className="text-[10px] font-semibold text-primary-foreground/70 uppercase tracking-wide mb-1">Preço Sugerido</p>
-                    <p className="numeric text-sm font-bold text-white">{brl(singleResult.suggestedPrice)}</p>
-                  </div>
-                  <div className="rounded-xl bg-card p-3 border border-border">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Lucro Líquido</p>
-                    <p className={cn("numeric text-sm font-bold", singleResult.marginHealth.color)}>{brl(singleResult.profit)}</p>
+            {/* Resultado em Modo Rápida */}
+            {mode === "rapida" && (
+              <div className="pt-2 space-y-3">
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl bg-card p-2.5 border border-border">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Custo Total</p>
+                      <p className="numeric text-sm font-bold text-foreground">{brl(singleResult.realCost)}</p>
+                    </div>
+                    <div className="rounded-xl bg-primary p-2.5 shadow-glow">
+                      <p className="text-[10px] font-semibold text-primary-foreground/70 uppercase tracking-wide">Preço Sugerido</p>
+                      <p className="numeric text-sm font-bold text-white">{brl(singleResult.suggestedPrice)}</p>
+                    </div>
+                    <div className="rounded-xl bg-card p-2.5 border border-border">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Lucro Líquido</p>
+                      <p className={cn("numeric text-sm font-bold", singleResult.marginHealth.color)}>{brl(singleResult.profit)}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-                  <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-1.5">
-                    <span>Margem Real</span>
-                    <span className={cn("numeric font-bold", singleResult.marginHealth.color)}>{pct(singleResult.marginOnPrice)}</span>
-                  </div>
-                  <div className="flex justify-between rounded-lg bg-secondary/60 px-3 py-1.5">
-                    <span>Markup</span>
-                    <span className="numeric font-bold text-foreground">{pct(singleResult.markupOnCost)}</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Botão CTA para Avançar para a Grade */}
-              <button
-                type="button"
-                onClick={promoteToGrade}
-                className="group flex w-full items-center justify-between rounded-2xl border-2 border-primary/30 bg-primary/5 px-5 py-4 text-left transition-all hover:border-primary/60 hover:bg-primary/10 active:scale-[0.99]"
-              >
-                <div>
-                  <p className="text-sm font-bold text-primary">Expandir para Grade Detalhada (Tamanho + Cor)</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">O custo já vai pré-preenchido para você personalizar e dar entrada no estoque.</p>
-                </div>
-                <ArrowRight className="size-5 text-primary shrink-0 transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
-          )}
-
-          {mode === "grade" && (
-            <div className="space-y-4 border-t border-border pt-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    3
-                  </span>
-                  <h2 className="text-sm font-bold text-foreground">Grade de Tamanhos & Cores</h2>
-                  <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                    {variants.length} {variants.length === 1 ? "peça na grade" : "peças na grade"}
-                  </span>
-                </div>
-
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowMatrixGenerator((prev) => !prev)}
-                  className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={promoteToGrade}
+                  className="group flex w-full items-center justify-between rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-3 text-left transition-all hover:border-primary/60 hover:bg-primary/10 active:scale-[0.99]"
                 >
-                  <Wand2 className="size-3.5 mr-1.5" />
-                  {showMatrixGenerator ? "Ocultar Gerador" : "⚡ Gerador de Grade Rápida"}
-                </Button>
+                  <div>
+                    <p className="text-xs font-bold text-primary">Expandir para Grade Detalhada (Tamanhos & Cores)</p>
+                    <p className="text-[11px] text-muted-foreground">O custo já vai pré-preenchido para você personalizar sua grade.</p>
+                  </div>
+                  <ArrowRight className="size-4 text-primary shrink-0 transition-transform group-hover:translate-x-1" />
+                </button>
               </div>
-
-              {/* ── Painel Expansível: Gerador de Matriz (Tamanhos × Cores) ── */}
-              {showMatrixGenerator && (
-                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                      <Sparkles className="size-3.5" />
-                      <span>Selecione os tamanhos e cores para gerar a grade automaticamente:</span>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
-                    </Badge>
-                  </div>
-
-                  {/* Seleção de Tamanhos com Presets */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                        1. Tamanhos Desejados:
-                      </span>
-                      <div className="flex gap-1">
-                        {PRESET_OPTIONS.map((pr) => (
-                          <button
-                            key={pr.id}
-                            type="button"
-                            onClick={() => applyPreset(pr.id, pr.sizes)}
-                            className={cn(
-                              "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
-                              activePreset === pr.id
-                                ? "bg-primary text-primary-foreground border-transparent"
-                                : "bg-card text-muted-foreground border-border hover:text-foreground",
-                            )}
-                          >
-                            {pr.label.split(" ")[0]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => toggleGenSize(sz)}
-                          className={cn(
-                            "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
-                            genSizes.includes(sz)
-                              ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          {sz}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Seleção de Cores */}
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                      2. Cores da Coleção:
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {COLOR_PRESETS.map((cp) => (
-                        <button
-                          key={cp.name}
-                          type="button"
-                          onClick={() => toggleGenColor(cp.name)}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                            genColors.includes(cp.name)
-                              ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
-                          <span>{cp.name}</span>
-                        </button>
-                      ))}
-
-                      {/* Cor Customizada no Gerador */}
-                      <div className="inline-flex items-center gap-1 rounded-full border border-dashed border-border bg-card px-2 py-0.5">
-                        <Input
-                          value={customGenColor}
-                          onChange={(e) => setCustomGenColor(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && (e.preventDefault(), addCustomGenColor())
-                          }
-                          placeholder="＋ Outra cor"
-                          className="h-6 w-24 border-0 bg-transparent px-1 text-xs font-medium shadow-none focus-visible:ring-0"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={addCustomGenColor}
-                          className="size-5 rounded-full text-primary"
-                        >
-                          <Plus className="size-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Botão de Geração */}
-                  <Button
-                    type="button"
-                    onClick={generateMatrix}
-                    className="h-10 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
-                  >
-                    <Wand2 className="size-3.5 mr-2" /> Gerar Grade com {genSizes.length * genColors.length} Peças
-                  </Button>
-                </div>
-              )}
-
-              {/* ── CARDS VISUAIS DE MODA AGRUPADOS POR COR (ZERO FADIGA) ── */}
-              <div className="space-y-3">
-                {colorGroups.map((group) => {
-                  const isEditingOverrides = editingColorOverride === group.color;
-                  const hasAnyOverride = group.items.some((v) => v.isCustomCost || v.isCustomPrice);
-                  const activeSizeSet = new Set(group.items.map((i) => i.size));
-
-                  // Combinar tamanhos ativos com opções comuns para toque rápido
-                  const availableSizes = Array.from(
-                    new Set([
-                      ...group.items.map((i) => i.size),
-                      ...["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].filter(
-                        (s) =>
-                          variants.some((v) => v.size === s) ||
-                          ["P", "M", "G", "GG"].includes(s),
-                      ),
-                    ]),
-                  );
-
-                  return (
-                    <div
-                      key={group.color}
-                      className="rounded-2xl border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:border-primary/30"
-                    >
-                      {/* Cabeçalho da Cor */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className={cn("size-3 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                          <span className="text-sm font-bold text-foreground truncate">{group.color}</span>
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground shrink-0">
-                            {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {/* Resumo Financeiro da Cor */}
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="numeric text-muted-foreground">
-                              Custo <strong className="text-foreground">{brl(group.avgCost)}</strong>
-                            </span>
-                            <span className="text-border">·</span>
-                            <span className="numeric text-primary font-bold">
-                              Venda {brl(group.avgPrice)}
-                            </span>
-                            <span className="text-border hidden sm:inline">·</span>
-                            <span className={cn("numeric font-semibold hidden sm:inline-flex items-center gap-0.5", group.health.color)}>
-                              {group.health.emoji} +{brl(group.avgProfit)} ({pct(group.avgMargin)})
-                            </span>
-                          </div>
-
-                          {/* Botão de Excluir Cor */}
-                          <button
-                            type="button"
-                            onClick={() => removeColor(group.color)}
-                            className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title={`Remover cor ${group.color}`}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Corpo: Pills de Tamanhos Táteis */}
-                      <div className="pt-3 space-y-3">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
-                            Tamanhos ativos:
-                          </span>
-
-                          {availableSizes.map((sz) => {
-                            const isActive = activeSizeSet.has(sz);
-
-                            return (
-                              <button
-                                key={sz}
-                                type="button"
-                                onClick={() => toggleColorSize(group.color, sz)}
-                                className={cn(
-                                  "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-150 active:scale-95",
-                                  isActive
-                                    ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                                    : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <span>{sz}</span>
-                                {isActive && <Check className="size-3 stroke-[3]" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Opção para Personalizar Custo / Preço Específico por Tamanho */}
-                        <div className="flex items-center justify-between pt-1 text-[11px]">
-                          <button
-                            type="button"
-                            onClick={() => setEditingColorOverride(isEditingOverrides ? null : group.color)}
-                            className="text-primary hover:underline font-semibold flex items-center gap-1"
-                          >
-                            <span>{isEditingOverrides ? "Ocultar ajustes individuais" : "Personalizar valor de algum tamanho específico..."}</span>
-                            <ChevronDown className={cn("size-3 transition-transform", isEditingOverrides && "rotate-180")} />
-                          </button>
-                          {hasAnyOverride && (
-                            <span className="rounded bg-primary/10 px-2 py-0.5 font-bold text-primary text-[10px]">
-                              ✦ Valores personalizados ativos
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Painel de Ajuste Individual (Aparece apenas quando expandido) */}
-                        {isEditingOverrides && (
-                          <div className="rounded-xl border border-border/80 bg-secondary/20 p-3 space-y-2 animate-in fade-in-50 duration-150">
-                            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 text-[10px] font-bold uppercase text-muted-foreground px-2">
-                              <span>Tamanho</span>
-                              <span className="w-24 text-right">Custo Atacado</span>
-                              <span className="w-24 text-right">Preço Venda</span>
-                            </div>
-                            {group.items.map((v) => (
-                              <div
-                                key={v.id}
-                                className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-lg bg-card p-2 border border-border/60 text-xs"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="size-6 flex items-center justify-center rounded bg-secondary font-bold text-foreground text-[11px]">
-                                    {v.size}
-                                  </span>
-                                  <span className="text-muted-foreground text-xs">{group.color}</span>
-                                </div>
-                                <input
-                                  inputMode="decimal"
-                                  value={v.wholesaleCost}
-                                  onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                  placeholder={baseWholesaleGrade || "49,90"}
-                                  className="h-7 w-24 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
-                                />
-                                <input
-                                  inputMode="decimal"
-                                  value={v.customSalePrice}
-                                  onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                  placeholder={
-                                    v.suggestedPrice > 0
-                                      ? String(v.suggestedPrice.toFixed(2)).replace(".", ",")
-                                      : "0,00"
-                                  }
-                                  className="h-7 w-24 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* ── BARRA RÁPIDA: ADICIONAR NOVA COR NA GRADE ── */}
-                <div className="rounded-2xl border border-dashed border-border bg-card/60 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <Plus className="size-3.5 text-primary" />
-                      Adicionar outra cor à grade:
-                    </span>
-                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                      Clique numa cor sugerida ou digite
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {COLOR_PRESETS.filter(
-                      (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
-                    ).map((cp) => (
-                      <button
-                        key={cp.name}
-                        type="button"
-                        onClick={() => addQuickColor(cp.name)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:border-primary hover:bg-primary/5 transition-all active:scale-95 shadow-xs"
-                      >
-                        <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
-                        <span>+ {cp.name}</span>
-                      </button>
-                    ))}
-
-                    {/* Input de Cor Personalizada */}
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
-                      <input
-                        value={newCustomColor}
-                        onChange={(e) => setNewCustomColor(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
-                        placeholder="Outra cor..."
-                        className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
-                      />
-                      <button
-                        type="button"
-                        onClick={addCustomColor}
-                        className="rounded-full gradient-primary px-2 py-0.5 text-[10px] font-bold text-white shadow-xs"
-                      >
-                        Adicionar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </section>
+
 
 
 
