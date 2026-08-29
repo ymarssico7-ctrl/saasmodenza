@@ -139,6 +139,22 @@ function getColorDot(col: string): string {
   return "bg-primary/40 border border-primary/20";
 }
 
+const CANONICAL_SIZE_ORDER = [
+  "PP", "P", "M", "G", "GG", "G1", "G2", "G3",
+  "34", "36", "38", "40", "42", "44", "46", "48", "50", "Único",
+];
+
+function sortCanonicalSizes(sizes: string[]): string[] {
+  return [...sizes].sort((a, b) => {
+    const idxA = CANONICAL_SIZE_ORDER.indexOf(a);
+    const idxB = CANONICAL_SIZE_ORDER.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
 function Precificacao() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -397,18 +413,23 @@ function Precificacao() {
     );
   }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax]);
 
-  // ── Ponto de Cobertura do Lote (Break-Even) ─────────────────────────
+  // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
+  const actualLotUnits = useMemo(() => {
+    return mode === "grade" ? Math.max(variants.length, 1) : 1;
+  }, [mode, variants.length]);
+
+  // ── Ponto de Cobertura do Lote (Break-Even Dinâmico) ────────────────
   const lotBreakEven = useMemo(() => {
     return computeLotBreakEven(
       summaryPrices.avgSuggested,
       summaryPrices.avgCost,
-      lotUnits,
+      actualLotUnits,
       tax,
       cardRate,
     );
-  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, lotUnits, tax, cardRate]);
+  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, actualLotUnits, tax, cardRate]);
 
-  // ── Agrupamento por Cor (Fashion Matrix) ─────────────────────────
+  // ── Agrupamento por Cor com Ordenação Canônica de Tamanhos ──────────
   const colorGroups = useMemo(() => {
     const map = new Map<string, typeof variantResults>();
     variantResults.forEach((v) => {
@@ -430,14 +451,24 @@ function Precificacao() {
     }[] = [];
 
     map.forEach((items, color) => {
-      const avgPrice = items.reduce((a, b) => a + b.suggestedPrice, 0) / items.length;
-      const avgCost = items.reduce((a, b) => a + b.realCost, 0) / items.length;
-      const avgProfit = items.reduce((a, b) => a + b.profit, 0) / items.length;
+      // Ordena os itens da cor na sequência canônica da moda (PP -> GG)
+      const sortedItems = [...items].sort((a, b) => {
+        const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+        const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.size.localeCompare(b.size);
+      });
+
+      const avgPrice = sortedItems.reduce((a, b) => a + b.suggestedPrice, 0) / sortedItems.length;
+      const avgCost = sortedItems.reduce((a, b) => a + b.realCost, 0) / sortedItems.length;
+      const avgProfit = sortedItems.reduce((a, b) => a + b.profit, 0) / sortedItems.length;
       const avgMargin = avgPrice > 0 ? (avgProfit / avgPrice) * 100 : 0;
       groups.push({
         color,
-        items,
-        totalItems: items.length,
+        items: sortedItems,
+        totalItems: sortedItems.length,
         avgPrice,
         avgCost,
         avgProfit,
@@ -939,47 +970,47 @@ function Precificacao() {
                 </div>
               )}
 
-              {/* ── LISTA DE CORES CLEAN & ELEGANTE (STUDIO FASHION LIST ROW) ── */}
-              <div className="space-y-3">
+              {/* ── LISTA DE CORES COM MATRIZ INTUITIVA DE TAMANHOS E VALORES ── */}
+              <div className="space-y-4">
                 {colorGroups.map((group) => {
-                  const isEditingOverrides = editingColorOverride === group.color;
-                  const hasAnyOverride = group.items.some((v) => v.isCustomCost || v.isCustomPrice);
                   const activeSizeSet = new Set(group.items.map((i) => i.size));
-                  const availableSizes = Array.from(
-                    new Set([
-                      ...group.items.map((i) => i.size),
-                      ...["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].filter(
-                        (s) =>
-                          variants.some((v) => v.size === s) ||
-                          ["P", "M", "G", "GG"].includes(s),
-                      ),
-                    ]),
-                  );
+                  // Lista canônica de tamanhos disponíveis ordenados corretamente
+                  const baseSizes = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"];
+                  const allKnownSizes = Array.from(new Set([...group.items.map((i) => i.size), ...baseSizes.slice(0, 6)]));
+                  const availableSizes = sortCanonicalSizes(allKnownSizes);
 
                   return (
                     <div
                       key={group.color}
-                      className={cn(
-                        "rounded-2xl border transition-all duration-200 bg-card p-4 space-y-3",
-                        isEditingOverrides
-                          ? "border-primary/40 shadow-soft ring-1 ring-primary/20"
-                          : "border-border/70 hover:border-primary/30",
-                      )}
+                      className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/30"
                     >
-                      {/* Linha Principal em 4 Zonas Integradas */}
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        {/* Zona 1: Identificação da Cor */}
-                        <div className="flex items-center gap-2.5 min-w-[130px]">
-                          <span className={cn("size-3.5 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                          <div>
-                            <p className="text-sm font-bold text-foreground leading-none">{group.color}</p>
-                            <span className="text-[11px] text-muted-foreground mt-0.5 inline-block">
-                              {group.items.length} {group.items.length === 1 ? "peça ativa" : "peças ativas"}
-                            </span>
-                          </div>
+                      {/* Cabeçalho da Cor */}
+                      <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
+                          <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
+                          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                            {group.items.length} {group.items.length === 1 ? "tamanho ativo" : "tamanhos ativos"}
+                          </span>
                         </div>
 
-                        {/* Zona 2: Tamanhos Táteis */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => removeColor(group.color)}
+                            className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title={`Remover cor ${group.color}`}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Seletor de Tamanhos Ativos */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                          Tamanhos que chegaram nesta cor:
+                        </span>
                         <div className="flex flex-wrap items-center gap-1.5">
                           {availableSizes.map((sz) => {
                             const isActive = activeSizeSet.has(sz);
@@ -989,7 +1020,7 @@ function Precificacao() {
                                 type="button"
                                 onClick={() => toggleColorSize(group.color, sz)}
                                 className={cn(
-                                  "flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
+                                  "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
                                   isActive
                                     ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
                                     : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
@@ -1001,109 +1032,80 @@ function Precificacao() {
                             );
                           })}
                         </div>
-
-                        {/* Zona 3: Métricas Financeiras da Cor (Ocupa o espaço central/direito com inteligência) */}
-                        <div className="hidden sm:flex items-center gap-3 text-xs bg-secondary/40 rounded-xl px-3 py-1.5 border border-border/50">
-                          <span className="text-muted-foreground">
-                            Custo <strong className="text-foreground numeric">{brl(group.avgCost)}</strong>
-                          </span>
-                          <span className="text-border">·</span>
-                          <span className="text-muted-foreground">
-                            Venda <strong className="text-primary numeric">{brl(group.avgPrice)}</strong>
-                          </span>
-                          <span className="text-border">·</span>
-                          <span className={cn("numeric font-bold inline-flex items-center gap-1", group.health.color)}>
-                            <span>{group.health.emoji}</span>
-                            <span>+{brl(group.avgProfit)} ({pct(group.avgMargin)})</span>
-                          </span>
-                        </div>
-
-                        {/* Zona 4: Ações (Botão Nativo Apple + Excluir) */}
-                        <div className="flex items-center gap-2">
-                          {gradePricingMode === "unified" && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setEditingColorOverride(isEditingOverrides ? null : group.color)}
-                              className={cn(
-                                "h-8 rounded-xl px-2.5 text-xs font-semibold gap-1.5 transition-all",
-                                isEditingOverrides
-                                  ? "bg-primary text-primary-foreground border-transparent shadow-xs"
-                                  : hasAnyOverride
-                                  ? "border-primary/40 bg-primary/10 text-primary"
-                                  : "border-border/80 bg-secondary/30 text-foreground hover:bg-secondary/70",
-                              )}
-                            >
-                              <Sliders className="size-3" />
-                              <span>{isEditingOverrides ? "Fechar Ajustes" : "Preço por Tamanho"}</span>
-                              <ChevronDown className={cn("size-3 transition-transform duration-200", isEditingOverrides && "rotate-180")} />
-                            </Button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => removeColor(group.color)}
-                            className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title={`Remover cor ${group.color}`}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
                       </div>
 
-                      {/* Gaveta de Ajustes Individuais por Tamanho */}
-                      {(gradePricingMode === "per_unit" || isEditingOverrides) && (
-                        <div className="rounded-xl border border-border/80 bg-secondary/20 p-3 space-y-2.5 animate-in fade-in-50 duration-150 pt-3 border-t border-border/60">
-                          <div className="flex items-center justify-between px-1">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                              Ajuste fino por tamanho em {group.color}:
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">
-                              Deixe em branco para usar o valor padrão
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-[10px] font-bold uppercase text-muted-foreground px-2">
+                      {/* ── MATRIZ DIRETA DE TAMANHOS COM VALORES EM LINHA ── */}
+                      {group.items.length > 0 && (
+                        <div className="rounded-xl border border-border/70 bg-secondary/20 overflow-hidden">
+                          {/* Cabeçalho da Tabela */}
+                          <div className="grid grid-cols-[70px_1fr_1fr_1.3fr] items-center gap-3 px-3.5 py-2 bg-secondary/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
                             <span>Tamanho</span>
-                            <span className="w-28 text-right">Custo Atacado</span>
-                            <span className="w-28 text-right">Preço de Venda</span>
+                            <span>Custo Real Total</span>
+                            <span>Preço de Venda</span>
+                            <span className="text-right">Lucro Líquido Real</span>
                           </div>
-                          {group.items.map((v) => (
-                            <div
-                              key={v.id}
-                              className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg bg-card p-2 border border-border/60 text-xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="size-6 flex items-center justify-center rounded-md bg-secondary font-bold text-foreground text-[11px]">
-                                  {v.size}
-                                </span>
-                                <span className="text-muted-foreground text-xs">{group.color}</span>
-                                {(v.isCustomPrice || v.isCustomCost) && (
-                                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                                    ✦ Personalizado
+
+                          {/* Linhas de Cada Tamanho Ativo */}
+                          <div className="divide-y divide-border/50 bg-card">
+                            {group.items.map((v) => (
+                              <div
+                                key={v.id}
+                                className="grid grid-cols-[70px_1fr_1fr_1.3fr] items-center gap-3 px-3.5 py-2.5 text-xs hover:bg-secondary/20 transition-colors"
+                              >
+                                {/* Tamanho */}
+                                <div className="flex items-center gap-1.5">
+                                  <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
+                                    {v.size}
                                   </span>
-                                )}
+                                  {(v.isCustomCost || v.isCustomPrice) && (
+                                    <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor Personalizado">
+                                      ✦
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Custo Real */}
+                                <div>
+                                  <span className="numeric font-bold text-foreground">{brl(v.realCost)}</span>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    {brl(v.wholesaleNum)} + {brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} rateio
+                                  </span>
+                                </div>
+
+                                {/* Preço de Venda */}
+                                <div>
+                                  {gradePricingMode === "per_unit" ? (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-muted-foreground">R$</span>
+                                      <input
+                                        inputMode="decimal"
+                                        value={v.customSalePrice}
+                                        onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                        placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
+                                        className="h-7 w-22 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <span className="numeric font-bold text-primary">{brl(v.suggestedPrice)}</span>
+                                      <span className="text-[10px] text-muted-foreground block">Sugerido</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Lucro Líquido Real */}
+                                <div className="text-right">
+                                  <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
+                                    <span>{v.marginHealth.emoji}</span>
+                                    <span>+{brl(v.profit)} ({pct(v.marginOnPrice)})</span>
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    Lucro Líquido Real
+                                  </span>
+                                </div>
                               </div>
-                              <input
-                                inputMode="decimal"
-                                value={v.wholesaleCost}
-                                onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                placeholder={baseWholesaleGrade || "49,90"}
-                                className="h-8 w-28 rounded-md border border-border bg-secondary/40 px-2.5 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
-                              />
-                              <input
-                                inputMode="decimal"
-                                value={v.customSalePrice}
-                                onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                placeholder={
-                                  v.suggestedPrice > 0
-                                    ? String(v.suggestedPrice.toFixed(2)).replace(".", ",")
-                                    : "0,00"
-                                }
-                                className="h-8 w-28 rounded-md border border-border bg-secondary/40 px-2.5 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
-                              />
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1113,7 +1115,7 @@ function Precificacao() {
                 {/* ── BARRA DE ADICIONAR COR ELEGANTE & LIMPA ── */}
                 <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Paleta rápida:</span>
+                    <span className="text-xs font-semibold text-muted-foreground">Adicionar cor:</span>
                     {COLOR_PRESETS.filter(
                       (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
                     ).slice(0, 6).map((cp) => (
@@ -1544,9 +1546,9 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* Diagnóstico & Cobertura do Lote */}
+              {/* Diagnóstico & Cobertura do Lote Dinâmico */}
               <div className="rounded-xl bg-secondary/30 p-3.5 text-xs text-muted-foreground leading-relaxed">
-                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} peças</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). As outras {Math.max(lotUnits - lotBreakEven.unitsToBreakEven, 0)} são <strong className="text-success">100% lucro líquido</strong>.
+                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? `As outras ${Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} são 100% lucro líquido.` : 'Lote quitado com margem saudável.'}
               </div>
 
               {/* ── BOTÕES DE AÇÃO DEFINITIVOS (NO RECIBO) ── */}
