@@ -942,36 +942,376 @@ function Precificacao() {
 
 
         {/* ══════════════════════════════════════════════════════════════════
-            PASSO 2: GRADE DE CORES, TAMANHOS & PREÇOS (CUSTO & RESULTADO AO VIVO)
+        {/* ══════════════════════════════════════════════════════════════════
+            PASSO 2: A GRADE FÍSICA & CUSTO DE ATACADO (O QUE CHEGOU DO FORNECEDOR)
+        ══════════════════════════════════════════════════════════════════ */}
+        {mode === "grade" && (
+          <section className="panel p-6 sm:p-7 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
+                  2
+                </span>
+                <div>
+                  <h2 className="text-sm font-bold text-foreground">Grade Física & Custos de Entrada</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Adicione as cores e tamanhos recebidos e informe o custo de atacado pago ao fornecedor
+                  </p>
+                </div>
+              </div>
+
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
+                {actualLotUnits} peças no lote
+              </Badge>
+            </div>
+
+            {/* Grade de Variantes & Ferramentas Rápidas */}
+            <div className="space-y-4 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Cores & Tamanhos Recebidos:
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMatrixGenerator((prev) => !prev)}
+                  className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Wand2 className="size-3.5 mr-1.5" />
+                  {showMatrixGenerator ? "Fechar Gerador" : "⚡ Gerador de Grade Rápida"}
+                </Button>
+              </div>
+
+              {/* Gerador de Matriz Expansível */}
+              {showMatrixGenerator && (
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                      <Sparkles className="size-3.5" />
+                      <span>Selecione tamanhos e cores para gerar a grade:</span>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
+                    </Badge>
+                  </div>
+
+                  {/* Tamanhos */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                        1. Tamanhos:
+                      </span>
+                      <div className="flex gap-1">
+                        {PRESET_OPTIONS.map((pr) => (
+                          <button
+                            key={pr.id}
+                            type="button"
+                            onClick={() => applyPreset(pr.id, pr.sizes)}
+                            className={cn(
+                              "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
+                              activePreset === pr.id
+                                ? "bg-primary text-primary-foreground border-transparent"
+                                : "bg-card text-muted-foreground border-border hover:text-foreground",
+                            )}
+                          >
+                            {pr.label.split(" ")[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => toggleGenSize(sz)}
+                          className={cn(
+                            "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
+                            genSizes.includes(sz)
+                              ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
+                              : "bg-card text-muted-foreground border-border hover:text-foreground",
+                          )}
+                        >
+                          {sz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cores */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      2. Cores:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {COLOR_PRESETS.map((cp) => (
+                        <button
+                          key={cp.name}
+                          type="button"
+                          onClick={() => toggleGenColor(cp.name)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
+                            genColors.includes(cp.name)
+                              ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
+                              : "bg-card text-muted-foreground border-border hover:text-foreground",
+                          )}
+                        >
+                          <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
+                          <span>{cp.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={generateMatrix}
+                    className="h-9 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
+                  >
+                    <Wand2 className="size-3.5 mr-2" /> Gerar Grade ({genSizes.length * genColors.length} peças)
+                  </Button>
+
+                  {/* Atalho de Preenchimento Rápido de Custo */}
+                  <div className="border-t border-border/60 pt-3 space-y-2">
+                    <Label className="text-[11px] font-semibold text-muted-foreground">Preencher custo de TODOS os tamanhos com:</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground shrink-0">R$</span>
+                      <Input
+                        inputMode="decimal"
+                        value={baseWholesaleGrade}
+                        onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                        placeholder="49,90"
+                        className="h-8 rounded-lg text-xs font-semibold bg-card border-border max-w-[120px]"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const v = toNumber(baseWholesaleGrade);
+                          if (v > 0) {
+                            setVariants((prev) =>
+                              prev.map((vr) => ({ ...vr, wholesaleCost: baseWholesaleGrade, isCustomCost: false }))
+                            );
+                          }
+                        }}
+                        className="h-8 rounded-lg text-xs font-semibold shrink-0 border-primary/30 text-primary"
+                      >
+                        Aplicar a Todos
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── LISTA DE CORES COM TABELA FOCADA EM ENTRADA DE CUSTOS ── */}
+              <div className="space-y-4">
+                {colorGroups.map((group) => {
+                  const activeSizeSet = new Set(group.items.map((i) => i.size));
+                  const baseSizes = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"];
+                  const allKnownSizes = Array.from(new Set([...group.items.map((i) => i.size), ...baseSizes.slice(0, 6)]));
+                  const availableSizes = sortCanonicalSizes(allKnownSizes);
+
+                  return (
+                    <div
+                      key={group.color}
+                      className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/30"
+                    >
+                      {/* Cabeçalho da Cor */}
+                      <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
+                          <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
+                          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                            {group.items.length} {group.items.length === 1 ? "tamanho ativo" : "tamanhos ativos"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => removeColor(group.color)}
+                            className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title={`Remover cor ${group.color}`}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Seletor de Tamanhos Ativos */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                          Tamanhos recebidos nesta cor:
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {availableSizes.map((sz) => {
+                            const isActive = activeSizeSet.has(sz);
+                            return (
+                              <button
+                                key={sz}
+                                type="button"
+                                onClick={() => toggleColorSize(group.color, sz)}
+                                className={cn(
+                                  "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
+                                  isActive
+                                    ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
+                                    : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
+                                )}
+                              >
+                                <span>{sz}</span>
+                                {isActive && <Check className="size-3 stroke-[3]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* ── TABELA DIRETA DE CUSTOS DE ENTRADA ── */}
+                      {group.items.length > 0 && (
+                        <div className="rounded-xl border border-border/70 bg-secondary/20 overflow-hidden">
+                          {/* Cabeçalho da Tabela */}
+                          <div className="grid grid-cols-[60px_1fr_1fr_1fr] items-center gap-3 px-3.5 py-2 bg-secondary/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                            <span>Tamanho</span>
+                            <span>Custo Atacado (R$)</span>
+                            <span>Rateio Fixo</span>
+                            <span className="text-right">Custo Real Total</span>
+                          </div>
+
+                          {/* Linhas de Cada Tamanho */}
+                          <div className="divide-y divide-border/50 bg-card">
+                            {group.items.map((v) => {
+                              const overheadPerUnit = toNumber(freight) + toNumber(packaging) + toNumber(other);
+                              return (
+                                <div
+                                  key={v.id}
+                                  className="grid grid-cols-[60px_1fr_1fr_1fr] items-center gap-3 px-3.5 py-2.5 text-xs hover:bg-secondary/20 transition-colors"
+                                >
+                                  {/* Tamanho */}
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
+                                      {v.size}
+                                    </span>
+                                    {v.isCustomCost && (
+                                      <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Custo personalizado">
+                                        ✦
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Custo Atacado (Input Direto) */}
+                                  <div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[11px] text-muted-foreground">R$</span>
+                                      <input
+                                        inputMode="decimal"
+                                        value={v.wholesaleCost}
+                                        onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                        placeholder={baseWholesaleGrade || "49,90"}
+                                        className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Rateio Operacional */}
+                                  <div className="text-muted-foreground text-xs">
+                                    + {brl(overheadPerUnit)}
+                                  </div>
+
+                                  {/* Custo Real Total */}
+                                  <div className="text-right">
+                                    <span className="numeric font-bold text-xs text-foreground">
+                                      {brl(v.realCost)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Barra de Adicionar Cor */}
+                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Paleta rápida:</span>
+                    {COLOR_PRESETS.filter(
+                      (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
+                    ).slice(0, 6).map((cp) => (
+                      <button
+                        key={cp.name}
+                        type="button"
+                        onClick={() => addQuickColor(cp.name)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs active:scale-95"
+                      >
+                        <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
+                        <span>+ {cp.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
+                    <input
+                      value={newCustomColor}
+                      onChange={(e) => setNewCustomColor(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
+                      placeholder="Outra cor..."
+                      className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomColor}
+                      className="rounded-full gradient-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            PASSO 3: ESTRATÉGIA DE PREÇO, AUDITORIA AO VIVO & FECHAMENTO DO LOTE
         ══════════════════════════════════════════════════════════════════ */}
         <section className="panel p-6 sm:p-7 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
             <div className="flex items-center gap-3">
               <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                2
+                {mode === "rapida" ? "2" : "3"}
               </span>
               <div>
                 <h2 className="text-sm font-bold text-foreground">
-                  {mode === "rapida" ? "Resultado & Fechamento da Peça" : "Grade: Custo, Preço & Resultado ao Vivo por Variante"}
+                  {mode === "rapida" ? "Estratégia, Resultado & Fechamento" : "Estratégia de Preço, Auditoria ao Vivo & Fechamento"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mode === "rapida"
-                    ? "Confira o resumo financeiro da peça única"
-                    : "Preencha o custo de cada tamanho e o preço que deseja cobrar — veja a margem e o lucro aparecer em tempo real"}
+                    ? "Defina sua meta financeira e veja o fechamento da peça"
+                    : "Escolha como precificar o lote (em massa ou por unidade) e audite os lucros antes de liberar para venda"}
                 </p>
               </div>
             </div>
 
-            <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
-              {mode === "rapida" ? "Peça Única" : `${actualLotUnits} itens no lote`}
-            </Badge>
+            {mode === "grade" && summaryPrices.avgSuggested > 0 && (
+              <div className="text-right">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Margem Média</span>
+                <span className={cn("numeric text-base font-bold", summaryPrices.marginHealth.color)}>
+                  {pct(summaryPrices.avgMargin)}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* 🎛️ ESTRATÉGIA GLOBAL DE PRECIFICAÇÃO (PILOTO AUTOMÁTICO INTELIGENTE) */}
+          {/* 🎛️ ESTRATÉGIA DE PRECIFICAÇÃO (O MOTOR DECISÓRIO) */}
           <div className="space-y-4 rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Estratégia de Precificação:
+                Estratégia de Precificação do Lote:
               </Label>
               <span className="text-[11px] font-medium text-muted-foreground">
                 {strategy === "margin" && "Calcula o preço garantindo sua margem líquida no bolso"}
@@ -1102,361 +1442,84 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* Modo Grade: Grade de Variantes & Ferramentas Rápidas */}
-          {mode === "grade" && (
-            <div className="space-y-4 pt-2">
+          {/* 📊 TABELA DE AUDITORIA FINANCEIRA AO VIVO POR VARIANTE (MODO GRADE) */}
+          {mode === "grade" && variants.length > 0 && (
+            <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Cores & Tamanhos que Chegaram:
+                  Auditoria por Variante & Ajuste Fino por Tamanho:
                 </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMatrixGenerator((prev) => !prev)}
-                    className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    <Wand2 className="size-3.5 mr-1.5" />
-                    {showMatrixGenerator ? "Fechar Gerador" : "⚡ Gerador de Grade Rápida"}
-                  </Button>
-                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  💡 Digite um preço específico para personalizar o valor de qualquer tamanho
+                </span>
               </div>
 
-              {/* Gerador de Matriz Expansível */}
-              {showMatrixGenerator && (
-                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                      <Sparkles className="size-3.5" />
-                      <span>Selecione tamanhos e cores para gerar a grade:</span>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
-                    </Badge>
-                  </div>
-
-                  {/* Tamanhos */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                        1. Tamanhos:
-                      </span>
-                      <div className="flex gap-1">
-                        {PRESET_OPTIONS.map((pr) => (
-                          <button
-                            key={pr.id}
-                            type="button"
-                            onClick={() => applyPreset(pr.id, pr.sizes)}
-                            className={cn(
-                              "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
-                              activePreset === pr.id
-                                ? "bg-primary text-primary-foreground border-transparent"
-                                : "bg-card text-muted-foreground border-border hover:text-foreground",
-                            )}
-                          >
-                            {pr.label.split(" ")[0]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => toggleGenSize(sz)}
-                          className={cn(
-                            "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
-                            genSizes.includes(sz)
-                              ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          {sz}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cores */}
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                      2. Cores:
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {COLOR_PRESETS.map((cp) => (
-                        <button
-                          key={cp.name}
-                          type="button"
-                          onClick={() => toggleGenColor(cp.name)}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                            genColors.includes(cp.name)
-                              ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
-                          <span>{cp.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    onClick={generateMatrix}
-                    className="h-9 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
-                  >
-                    <Wand2 className="size-3.5 mr-2" /> Gerar Grade ({genSizes.length * genColors.length} peças)
-                  </Button>
-
-                  {/* Atalho de Preenchimento Rápido de Custo */}
-                  <div className="border-t border-border/60 pt-3 space-y-2">
-                    <Label className="text-[11px] font-semibold text-muted-foreground">Preencher custo de TODOS os tamanhos com:</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground shrink-0">R$</span>
-                      <Input
-                        inputMode="decimal"
-                        value={baseWholesaleGrade}
-                        onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                        placeholder="49,90"
-                        className="h-8 rounded-lg text-xs font-semibold bg-card border-border max-w-[120px]"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const v = toNumber(baseWholesaleGrade);
-                          if (v > 0) {
-                            setVariants((prev) =>
-                              prev.map((vr) => ({ ...vr, wholesaleCost: baseWholesaleGrade, isCustomCost: false }))
-                            );
-                          }
-                        }}
-                        className="h-8 rounded-lg text-xs font-semibold shrink-0 border-primary/30 text-primary"
-                      >
-                        Aplicar a Todos
-                      </Button>
-                    </div>
-                  </div>
+              <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-soft">
+                <div className="grid grid-cols-[1.2fr_1fr_1.2fr_1.2fr_1fr] items-center gap-3 px-4 py-2.5 bg-secondary/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                  <span>Variante</span>
+                  <span>Custo Total</span>
+                  <span>Preço Venda (R$)</span>
+                  <span>Lucro Líquido Real</span>
+                  <span className="text-right">Margem %</span>
                 </div>
-              )}
 
-              {/* ── LISTA DE CORES COM MATRIZ INTUITIVA DE TAMANHOS E VALORES ── */}
-              <div className="space-y-4">
-                {colorGroups.map((group) => {
-                  const activeSizeSet = new Set(group.items.map((i) => i.size));
-                  const baseSizes = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"];
-                  const allKnownSizes = Array.from(new Set([...group.items.map((i) => i.size), ...baseSizes.slice(0, 6)]));
-                  const availableSizes = sortCanonicalSizes(allKnownSizes);
-
-                  return (
+                <div className="divide-y divide-border/50 max-h-[360px] overflow-y-auto">
+                  {variantResults.map((v) => (
                     <div
-                      key={group.color}
-                      className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/30"
+                      key={v.id}
+                      className="grid grid-cols-[1.2fr_1fr_1.2fr_1.2fr_1fr] items-center gap-3 px-4 py-3 text-xs hover:bg-secondary/20 transition-colors"
                     >
-                      {/* Cabeçalho da Cor */}
-                      <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                          <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
-                          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                            {group.items.length} {group.items.length === 1 ? "tamanho ativo" : "tamanhos ativos"}
+                      {/* Cor + Tamanho */}
+                      <div className="flex items-center gap-2">
+                        <span className={cn("size-3 rounded-full shadow-xs shrink-0", getColorDot(v.color))} />
+                        <span className="font-semibold text-foreground">{v.color}</span>
+                        <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-bold">{v.size}</span>
+                        {v.isCustomPrice && (
+                          <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Preço personalizado">
+                            ✦
                           </span>
-                        </div>
+                        )}
+                      </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => removeColor(group.color)}
-                            className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title={`Remover cor ${group.color}`}
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
+                      {/* Custo Total */}
+                      <div className="numeric text-muted-foreground font-medium">
+                        {brl(v.realCost)}
+                      </div>
+
+                      {/* Preço de Venda (Input Direto com Preço Sugerido) */}
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] text-muted-foreground">R$</span>
+                          <input
+                            inputMode="decimal"
+                            value={v.customSalePrice}
+                            onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                            placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
+                            className="h-7 w-24 rounded-md border border-border bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-xs"
+                          />
                         </div>
                       </div>
 
-                      {/* Seletor de Tamanhos Ativos */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Tamanhos que chegaram nesta cor:
+                      {/* Lucro Líquido Real */}
+                      <div>
+                        <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
+                          <span>{v.marginHealth.emoji}</span>
+                          <span>+{brl(v.profit)}</span>
                         </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {availableSizes.map((sz) => {
-                            const isActive = activeSizeSet.has(sz);
-                            return (
-                              <button
-                                key={sz}
-                                type="button"
-                                onClick={() => toggleColorSize(group.color, sz)}
-                                className={cn(
-                                  "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
-                                  isActive
-                                    ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                                    : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <span>{sz}</span>
-                                {isActive && <Check className="size-3 stroke-[3]" />}
-                              </button>
-                            );
-                          })}
-                        </div>
                       </div>
 
-                      {/* ── MATRIZ DIRETA DE TAMANHOS COM INPUTS EDITÁVEIS ── */}
-                      {group.items.length > 0 && (
-                        <div className="rounded-xl border border-border/70 bg-secondary/20 overflow-hidden">
-                          {/* Cabeçalho da Tabela */}
-                          <div className="grid grid-cols-[60px_1fr_1fr_1.3fr] items-center gap-3 px-3.5 py-2 bg-secondary/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
-                            <span>Tamanho</span>
-                            <span>Custo Atacado (R$)</span>
-                            <span>Preço Venda (R$)</span>
-                            <span className="text-right">Lucro Líquido Real</span>
-                          </div>
-
-                          {/* Linhas de Cada Tamanho com Edição Direta */}
-                          <div className="divide-y divide-border/50 bg-card">
-                            {group.items.map((v) => (
-                              <div
-                                key={v.id}
-                                className="grid grid-cols-[60px_1fr_1fr_1.3fr] items-center gap-3 px-3.5 py-2.5 text-xs hover:bg-secondary/20 transition-colors"
-                              >
-                                {/* Tamanho */}
-                                <div className="flex items-center gap-1.5">
-                                  <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
-                                    {v.size}
-                                  </span>
-                                  {(v.isCustomCost || v.isCustomPrice) && (
-                                    <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor Personalizado para este tamanho">
-                                      ✦
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Custo Atacado (Input Direto) */}
-                                <div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[11px] text-muted-foreground">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={v.wholesaleCost}
-                                      onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                      placeholder={baseWholesaleGrade || "49,90"}
-                                      className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
-                                    />
-                                  </div>
-                                  <span className="text-[10px] text-muted-foreground block mt-0.5">
-                                    Total: {brl(v.realCost)}
-                                  </span>
-                                </div>
-
-                                {/* Preço de Venda (Input Direto) */}
-                                <div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[11px] text-muted-foreground">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={v.customSalePrice}
-                                      onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                      placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
-                                      className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
-                                    />
-                                  </div>
-                                  <span className="text-[10px] text-muted-foreground block mt-0.5">
-                                    {v.isCustomPrice ? "Personalizado" : "Sugerido Base"}
-                                  </span>
-                                </div>
-
-                                {/* Lucro Líquido Real */}
-                                <div className="text-right">
-                                  <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
-                                    <span>{v.marginHealth.emoji}</span>
-                                    <span>+{brl(v.profit)} ({pct(v.marginOnPrice)})</span>
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground block">
-                                    Lucro Líquido Real
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {/* Margem Real % */}
+                      <div className="text-right">
+                        <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
+                          {pct(v.marginOnPrice)}
+                        </span>
+                      </div>
                     </div>
-                  );
-                })}
-
-                {/* Barra de Adicionar Cor */}
-                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Paleta rápida:</span>
-                    {COLOR_PRESETS.filter(
-                      (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
-                    ).slice(0, 6).map((cp) => (
-                      <button
-                        key={cp.name}
-                        type="button"
-                        onClick={() => addQuickColor(cp.name)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs active:scale-95"
-                      >
-                        <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
-                        <span>+ {cp.name}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
-                    <input
-                      value={newCustomColor}
-                      onChange={(e) => setNewCustomColor(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
-                      placeholder="Outra cor..."
-                      className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
-                    />
-                    <button
-                      type="button"
-                      onClick={addCustomColor}
-                      className="rounded-full gradient-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs"
-                    >
-                      Adicionar
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
-        </section>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            PASSO 3: RESUMO EXECUTIVO DO LOTE & FECHAMENTO
-        ══════════════════════════════════════════════════════════════════ */}
-        <section className="panel p-6 sm:p-7 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
-            <div className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                3
-              </span>
-              <div>
-                <h2 className="text-sm font-bold text-foreground">Resumo Executivo & Fechamento</h2>
-                <p className="text-xs text-muted-foreground">
-                  {mode === "rapida" ? "Resultado financeiro e ações da peça" : "Visão consolidada do lote — faturamento, investimento e lucro potencial"}
-                </p>
-              </div>
-            </div>
-            {mode === "grade" && summaryPrices.avgSuggested > 0 && (
-              <div className="text-right">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Margem Média</span>
-                <span className={cn("numeric text-base font-bold", summaryPrices.marginHealth.color)}>
-                  {pct(summaryPrices.avgMargin)}
-                </span>
-              </div>
-            )}
-          </div>
 
           {/* ── RECIBO EXECUTIVO MASTER & FECHAMENTO DO LOTE ── */}
           <div className="rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/5 via-card to-card p-6 space-y-5 shadow-soft">
