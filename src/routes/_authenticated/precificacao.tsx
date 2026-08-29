@@ -789,49 +789,6 @@ function Precificacao() {
             📦 Grade & Estoque
           </button>
         </div>
-
-        {/* ── Seletor da Estratégia de Cálculo (Apple Pill) ─────────── */}
-        <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-secondary/50 p-1">
-          <span className="px-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Estratégia:
-          </span>
-          <button
-            type="button"
-            onClick={() => setStrategy("margin")}
-            className={cn(
-              "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all",
-              strategy === "margin"
-                ? "bg-card text-primary shadow-xs border border-primary/20"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Target className="size-3" /> Margem Real %
-          </button>
-          <button
-            type="button"
-            onClick={() => setStrategy("markup")}
-            className={cn(
-              "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all",
-              strategy === "markup"
-                ? "bg-card text-primary shadow-xs border border-primary/20"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <TrendingUp className="size-3" /> Markup %
-          </button>
-          <button
-            type="button"
-            onClick={() => setStrategy("direct_price")}
-            className={cn(
-              "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all",
-              strategy === "direct_price"
-                ? "bg-card text-primary shadow-xs border border-primary/20"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Coins className="size-3" /> Preço Fixo R$
-          </button>
-        </div>
       </div>
 
       {/* ── CANVAS UNIFICADO & MINIMALISTA (PADRÃO APPLE STUDIO) ──────────── */}
@@ -1241,7 +1198,7 @@ function Precificacao() {
         </section>
 
 
-        {/* ══════════════════════════════════════════════════════════════════
+              {/* ══════════════════════════════════════════════════════════════════
             PASSO 3: ESTRATÉGIA DE LUCRO & RECIBO EXECUTIVO MASTER
         ══════════════════════════════════════════════════════════════════ */}
         <section className="panel p-6 sm:p-7 space-y-6">
@@ -1252,7 +1209,7 @@ function Precificacao() {
               </span>
               <div>
                 <h2 className="text-sm font-bold text-foreground">Lucratividade & Preço Final</h2>
-                <p className="text-xs text-muted-foreground">Ajuste suas margens e visualize o fechamento executivo</p>
+                <p className="text-xs text-muted-foreground">Escolha a estratégia de cálculo e visualize o fechamento executivo</p>
               </div>
             </div>
 
@@ -1268,7 +1225,7 @@ function Precificacao() {
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  🏷️ Preço Unificado
+                  🏷️ Preço Unificado na Grade
                 </button>
                 <button
                   type="button"
@@ -1280,14 +1237,62 @@ function Precificacao() {
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  🎛️ Preço por Unidade
+                  🎛️ Preço por Tamanho
                 </button>
               </div>
             )}
           </div>
 
+          {/* ── Seletor Segmentado de Estratégia de Precificação (Padrão Apple) ── */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Como você deseja calcular o preço?
+            </Label>
+            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-secondary/40 p-1.5 max-w-md sm:max-w-lg">
+              <button
+                type="button"
+                onClick={() => setStrategy("margin")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
+                  strategy === "margin"
+                    ? "bg-card text-primary shadow-xs border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/50",
+                )}
+              >
+                <Target className="size-3.5 shrink-0" />
+                <span className="truncate">Margem Real %</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStrategy("markup")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
+                  strategy === "markup"
+                    ? "bg-card text-primary shadow-xs border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/50",
+                )}
+              >
+                <TrendingUp className="size-3.5 shrink-0" />
+                <span className="truncate">Markup %</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStrategy("direct_price")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
+                  strategy === "direct_price"
+                    ? "bg-card text-primary shadow-xs border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/50",
+                )}
+              >
+                <Coins className="size-3.5 shrink-0" />
+                <span className="truncate">Preço Fixo R$</span>
+              </button>
+            </div>
+          </div>
+
           {/* Grid de 2 Colunas: Estratégia à Esquerda + Recibo à Direita */}
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] items-start">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] items-start pt-1">
 
             {/* Coluna 1: Sliders e Parâmetros */}
             <div className="space-y-6">
@@ -1312,11 +1317,25 @@ function Precificacao() {
                 />
               )}
               {strategy === "direct_price" && (
-                <div className="rounded-xl bg-primary-soft p-3.5 text-xs text-primary flex items-start gap-2">
-                  <Info className="size-4 shrink-0 mt-0.5" />
-                  <span>
-                    No modo <strong>Preço Fixo</strong>, digite o valor de venda desejado diretamente para conferir a margem e o lucro líquido real de cada item.
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Preço de Venda Desejado (R$)
+                    </Label>
+                    <span className="text-xs font-bold text-primary numeric">
+                      Margem resultante: {pct(summaryPrices.avgMargin)}
+                    </span>
+                  </div>
+                  <Input
+                    inputMode="decimal"
+                    value={directSalePrice}
+                    onChange={(e) => setDirectSalePrice(e.target.value)}
+                    placeholder="119,90"
+                    className="h-12 rounded-xl font-bold text-base bg-card border-primary/30 text-primary shadow-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Digite o preço final de etiqueta. O sistema calcula a margem líquida e o lucro real instantaneamente.
+                  </p>
                 </div>
               )}
 
@@ -1533,7 +1552,8 @@ function Precificacao() {
           </div>
         </section>
       </div>
-      {/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
+
+{/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
       <section className="panel p-6 sm:p-7">
         <div className="flex items-center justify-between">
           <div>
