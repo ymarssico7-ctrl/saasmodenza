@@ -22,6 +22,7 @@ import {
   Percent,
   Plus,
   RotateCcw,
+  Sliders,
   Save,
   ShieldAlert,
   ShieldCheck,
@@ -938,7 +939,7 @@ function Precificacao() {
                 </div>
               )}
 
-              {/* ── LISTA DE CORES CLEAN & ELEGANTE ── */}
+              {/* ── LISTA DE CORES CLEAN & ELEGANTE (STUDIO FASHION LIST ROW) ── */}
               <div className="space-y-3">
                 {colorGroups.map((group) => {
                   const isEditingOverrides = editingColorOverride === group.color;
@@ -958,23 +959,92 @@ function Precificacao() {
                   return (
                     <div
                       key={group.color}
-                      className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft transition-all duration-200 hover:border-primary/30 space-y-3"
+                      className={cn(
+                        "rounded-2xl border transition-all duration-200 bg-card p-4 space-y-3",
+                        isEditingOverrides
+                          ? "border-primary/40 shadow-soft ring-1 ring-primary/20"
+                          : "border-border/70 hover:border-primary/30",
+                      )}
                     >
-                      {/* Linha Principal da Cor */}
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
+                      {/* Linha Principal em 4 Zonas Integradas */}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        {/* Zona 1: Identificação da Cor */}
+                        <div className="flex items-center gap-2.5 min-w-[130px]">
                           <span className={cn("size-3.5 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                          <span className="text-sm font-bold text-foreground truncate">{group.color}</span>
-                          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                            {group.items.length} {group.items.length === 1 ? "peça ativa" : "peças ativas"}
+                          <div>
+                            <p className="text-sm font-bold text-foreground leading-none">{group.color}</p>
+                            <span className="text-[11px] text-muted-foreground mt-0.5 inline-block">
+                              {group.items.length} {group.items.length === 1 ? "peça ativa" : "peças ativas"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Zona 2: Tamanhos Táteis */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {availableSizes.map((sz) => {
+                            const isActive = activeSizeSet.has(sz);
+                            return (
+                              <button
+                                key={sz}
+                                type="button"
+                                onClick={() => toggleColorSize(group.color, sz)}
+                                className={cn(
+                                  "flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
+                                  isActive
+                                    ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
+                                    : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
+                                )}
+                              >
+                                <span>{sz}</span>
+                                {isActive && <Check className="size-3 stroke-[3]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Zona 3: Métricas Financeiras da Cor (Ocupa o espaço central/direito com inteligência) */}
+                        <div className="hidden sm:flex items-center gap-3 text-xs bg-secondary/40 rounded-xl px-3 py-1.5 border border-border/50">
+                          <span className="text-muted-foreground">
+                            Custo <strong className="text-foreground numeric">{brl(group.avgCost)}</strong>
+                          </span>
+                          <span className="text-border">·</span>
+                          <span className="text-muted-foreground">
+                            Venda <strong className="text-primary numeric">{brl(group.avgPrice)}</strong>
+                          </span>
+                          <span className="text-border">·</span>
+                          <span className={cn("numeric font-bold inline-flex items-center gap-1", group.health.color)}>
+                            <span>{group.health.emoji}</span>
+                            <span>+{brl(group.avgProfit)} ({pct(group.avgMargin)})</span>
                           </span>
                         </div>
 
+                        {/* Zona 4: Ações (Botão Nativo Apple + Excluir) */}
                         <div className="flex items-center gap-2">
+                          {gradePricingMode === "unified" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingColorOverride(isEditingOverrides ? null : group.color)}
+                              className={cn(
+                                "h-8 rounded-xl px-2.5 text-xs font-semibold gap-1.5 transition-all",
+                                isEditingOverrides
+                                  ? "bg-primary text-primary-foreground border-transparent shadow-xs"
+                                  : hasAnyOverride
+                                  ? "border-primary/40 bg-primary/10 text-primary"
+                                  : "border-border/80 bg-secondary/30 text-foreground hover:bg-secondary/70",
+                              )}
+                            >
+                              <Sliders className="size-3" />
+                              <span>{isEditingOverrides ? "Fechar Ajustes" : "Preço por Tamanho"}</span>
+                              <ChevronDown className={cn("size-3 transition-transform duration-200", isEditingOverrides && "rotate-180")} />
+                            </Button>
+                          )}
+
                           <button
                             type="button"
                             onClick={() => removeColor(group.color)}
-                            className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                             title={`Remover cor ${group.color}`}
                           >
                             <Trash2 className="size-3.5" />
@@ -982,54 +1052,44 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      {/* Tamanhos em Pills Táteis */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        {availableSizes.map((sz) => {
-                          const isActive = activeSizeSet.has(sz);
-                          return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => toggleColorSize(group.color, sz)}
-                              className={cn(
-                                "flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-150 active:scale-95",
-                                isActive
-                                  ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                                  : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              <span>{sz}</span>
-                              {isActive && <Check className="size-3 stroke-[3]" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Configuração Unitária por Tamanho (se selecionado) */}
+                      {/* Gaveta de Ajustes Individuais por Tamanho */}
                       {(gradePricingMode === "per_unit" || isEditingOverrides) && (
-                        <div className="rounded-xl border border-border/80 bg-secondary/20 p-3 space-y-2 animate-in fade-in-50 duration-150">
-                          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 text-[10px] font-bold uppercase text-muted-foreground px-2">
+                        <div className="rounded-xl border border-border/80 bg-secondary/20 p-3 space-y-2.5 animate-in fade-in-50 duration-150 pt-3 border-t border-border/60">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                              Ajuste fino por tamanho em {group.color}:
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Deixe em branco para usar o valor padrão
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-[10px] font-bold uppercase text-muted-foreground px-2">
                             <span>Tamanho</span>
-                            <span className="w-24 text-right">Custo Unitário</span>
-                            <span className="w-24 text-right">Preço de Venda</span>
+                            <span className="w-28 text-right">Custo Atacado</span>
+                            <span className="w-28 text-right">Preço de Venda</span>
                           </div>
                           {group.items.map((v) => (
                             <div
                               key={v.id}
-                              className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-lg bg-card p-2 border border-border/60 text-xs"
+                              className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg bg-card p-2 border border-border/60 text-xs"
                             >
-                              <div className="flex items-center gap-1.5">
-                                <span className="size-6 flex items-center justify-center rounded bg-secondary font-bold text-foreground text-[11px]">
+                              <div className="flex items-center gap-2">
+                                <span className="size-6 flex items-center justify-center rounded-md bg-secondary font-bold text-foreground text-[11px]">
                                   {v.size}
                                 </span>
                                 <span className="text-muted-foreground text-xs">{group.color}</span>
+                                {(v.isCustomPrice || v.isCustomCost) && (
+                                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                                    ✦ Personalizado
+                                  </span>
+                                )}
                               </div>
                               <input
                                 inputMode="decimal"
                                 value={v.wholesaleCost}
                                 onChange={(e) => updateVariantCost(v.id, e.target.value)}
                                 placeholder={baseWholesaleGrade || "49,90"}
-                                className="h-7 w-24 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
+                                className="h-8 w-28 rounded-md border border-border bg-secondary/40 px-2.5 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card"
                               />
                               <input
                                 inputMode="decimal"
@@ -1040,66 +1100,50 @@ function Precificacao() {
                                     ? String(v.suggestedPrice.toFixed(2)).replace(".", ",")
                                     : "0,00"
                                 }
-                                className="h-7 w-24 rounded-md border border-border bg-secondary/50 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
+                                className="h-8 w-28 rounded-md border border-border bg-secondary/40 px-2.5 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card"
                               />
                             </div>
                           ))}
-                        </div>
-                      )}
-
-                      {gradePricingMode === "unified" && (
-                        <div className="flex items-center justify-between pt-0.5 text-[11px]">
-                          <button
-                            type="button"
-                            onClick={() => setEditingColorOverride(isEditingOverrides ? null : group.color)}
-                            className="text-primary hover:underline font-semibold flex items-center gap-1"
-                          >
-                            <span>{isEditingOverrides ? "Ocultar ajustes individuais" : "Personalizar preço/custo por tamanho..."}</span>
-                            <ChevronDown className={cn("size-3 transition-transform", isEditingOverrides && "rotate-180")} />
-                          </button>
-                          {hasAnyOverride && (
-                            <span className="rounded bg-primary/10 px-2 py-0.5 font-bold text-primary text-[10px]">
-                              ✦ Valores personalizados ativos
-                            </span>
-                          )}
                         </div>
                       )}
                     </div>
                   );
                 })}
 
-                {/* Linha Discreta: Adicionar Outra Cor */}
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="text-xs font-semibold text-muted-foreground">Adicionar cor:</span>
-                  {COLOR_PRESETS.filter(
-                    (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
-                  ).slice(0, 5).map((cp) => (
-                    <button
-                      key={cp.name}
-                      type="button"
-                      onClick={() => addQuickColor(cp.name)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs"
-                    >
-                      <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
-                      <span>+ {cp.name}</span>
-                    </button>
-                  ))}
+                {/* ── BARRA DE ADICIONAR COR ELEGANTE & LIMPA ── */}
+                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Paleta rápida:</span>
+                    {COLOR_PRESETS.filter(
+                      (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
+                    ).slice(0, 6).map((cp) => (
+                      <button
+                        key={cp.name}
+                        type="button"
+                        onClick={() => addQuickColor(cp.name)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs active:scale-95"
+                      >
+                        <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
+                        <span>+ {cp.name}</span>
+                      </button>
+                    ))}
+                  </div>
 
-                  {/* Input de cor personalizada */}
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 shadow-xs">
+                  {/* Input de Cor Personalizada */}
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
                     <input
                       value={newCustomColor}
                       onChange={(e) => setNewCustomColor(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
                       placeholder="Outra cor..."
-                      className="h-6 w-20 text-xs font-medium outline-none bg-transparent"
+                      className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
                     />
                     <button
                       type="button"
                       onClick={addCustomColor}
-                      className="rounded-full gradient-primary px-2 py-0.5 text-[10px] font-bold text-white shadow-xs"
+                      className="rounded-full gradient-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs"
                     >
-                      OK
+                      Adicionar
                     </button>
                   </div>
                 </div>
@@ -1107,7 +1151,6 @@ function Precificacao() {
             </div>
           )}
         </section>
-
 
         {/* ══════════════════════════════════════════════════════════════════
             PASSO 2: CUSTO DE AQUISIÇÃO & RATEIO
