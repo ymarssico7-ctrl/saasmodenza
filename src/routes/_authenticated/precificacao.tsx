@@ -572,6 +572,59 @@ function Precificacao() {
     );
   };
 
+  const computePriceForVariantMargin = (wholesaleCost: number, targetMargin: number): number => {
+    const freightNum = toNumber(freight);
+    const packagingNum = toNumber(packaging);
+    const otherNum = toNumber(other);
+    const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
+    const divisor = 1 - (targetMargin + tax + cardRate) / 100;
+    if (divisor <= 0) return 0;
+    return realCost / divisor;
+  };
+
+  const updateVariantMargin = (id: string, marginPct: number) => {
+    const target = variantResults.find((v) => v.id === id);
+    if (!target) return;
+    const price = computePriceForVariantMargin(target.wholesaleNum, marginPct);
+    if (price > 0) {
+      updateVariantPrice(id, price.toFixed(2).replace(".", ","));
+      toast.success(`Tamanho ${target.size}: margem definida em ${marginPct}% (R$ ${price.toFixed(2).replace(".", ",")})`);
+    }
+  };
+
+  const applyCostToColor = (color: string, costStr: string) => {
+    const v = toNumber(costStr);
+    if (v <= 0) return;
+    setVariants((prev) =>
+      prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, wholesaleCost: costStr } : vr))
+    );
+    toast.success(`Custo de R$ ${costStr} aplicado em todos os tamanhos de ${color}`);
+  };
+
+  const applyPriceToColor = (color: string, priceStr: string) => {
+    const p = toNumber(priceStr);
+    if (p <= 0) return;
+    setVariants((prev) =>
+      prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, customSalePrice: priceStr } : vr))
+    );
+    toast.success(`Preço de R$ ${priceStr} aplicado em todos os tamanhos de ${color}`);
+  };
+
+  const applyMarginToColor = (color: string, marginPct: number) => {
+    setVariants((prev) =>
+      prev.map((vr) => {
+        if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
+        const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
+        const price = computePriceForVariantMargin(wholesaleNum, marginPct);
+        return {
+          ...vr,
+          customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice,
+        };
+      })
+    );
+    toast.success(`Margem de ${marginPct}% aplicada a todos os tamanhos de ${color}`);
+  };
+
   const resetVariantOverrides = (id: string) => {
     setVariants((prev) =>
       prev.map((v) => (v.id === id ? { ...v, wholesaleCost: "", customSalePrice: "" } : v)),
@@ -942,7 +995,8 @@ function Precificacao() {
 
 
         {/* ══════════════════════════════════════════════════════════════════
-            PASSO 2: GRADE DE VARIANTES & MOTOR DE PRECIFICAÇÃO INTEGRADO
+        {/* ══════════════════════════════════════════════════════════════════
+            PASSO 2: CORES & TAMANHOS DA COLEÇÃO (A CONSOLE MESTRE DE PRECIFICAÇÃO)
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <section className="panel p-6 sm:p-7 space-y-6">
@@ -952,159 +1006,17 @@ function Precificacao() {
                   2
                 </span>
                 <div>
-                  <h2 className="text-sm font-bold text-foreground">Grade de Variantes & Motor de Precificação</h2>
+                  <h2 className="text-sm font-bold text-foreground">Cores & Tamanhos da Coleção</h2>
                   <p className="text-xs text-muted-foreground">
-                    Defina a estratégia do lote ou ajuste o preço/custo de cada tamanho diretamente na tabela ao vivo
+                    Cadastre suas cores e tamanhos, informe custos e defina preços por peça ou para a grade inteira
                   </p>
                 </div>
               </div>
 
-              <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
-                {actualLotUnits} peças no lote
-              </Badge>
-            </div>
-
-            {/* 🎛️ ESTRATÉGIA GLOBAL DO LOTE (PILOTO AUTOMÁTICO INTELIGENTE) */}
-            <div className="space-y-4 rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Estratégia Global do Lote (Calcula os preços da grade automaticamente):
-                </Label>
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  {strategy === "margin" && "Garante a porcentagem limpa no bolso para toda a grade"}
-                  {strategy === "markup" && "Aplica o multiplicador de atacado sobre o custo de cada peça"}
-                  {strategy === "direct_price" && "Define um preço fixo de etiqueta para todo o lote"}
-                </span>
-              </div>
-
-              {/* Pílulas de Seleção de Estratégia */}
-              <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card p-1.5 max-w-md sm:max-w-lg shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => setStrategy("margin")}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
-                    strategy === "margin"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                  )}
-                >
-                  <Target className="size-3.5 shrink-0" />
-                  <span className="truncate">Margem Real %</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStrategy("markup")}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
-                    strategy === "markup"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                  )}
-                >
-                  <TrendingUp className="size-3.5 shrink-0" />
-                  <span className="truncate">Markup %</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStrategy("direct_price")}
-                  className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
-                    strategy === "direct_price"
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                  )}
-                >
-                  <Coins className="size-3.5 shrink-0" />
-                  <span className="truncate">Preço Fixo R$</span>
-                </button>
-              </div>
-
-              {/* Controle Ativo da Estratégia */}
-              <div className="pt-1">
-                {strategy === "margin" && (
-                  <SliderRow
-                    label="Margem de Lucro Líquida Alvo (% sobre o preço de venda)"
-                    value={desiredMargin}
-                    max={85}
-                    onChange={setDesiredMargin}
-                    display={pct(desiredMargin)}
-                    hint="Calcula o preço de venda de cada tamanho para garantir essa margem líquida exata."
-                  />
-                )}
-                {strategy === "markup" && (
-                  <SliderRow
-                    label="Markup Desejado (% sobre o custo total)"
-                    value={markup}
-                    max={300}
-                    onChange={setMarkup}
-                    display={pct(markup)}
-                    hint="Multiplicador aplicado sobre o custo real de cada tamanho."
-                  />
-                )}
-                {strategy === "direct_price" && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-foreground">
-                        Preço de Venda Padrão do Lote (R$)
-                      </Label>
-                      <span className="text-xs font-bold text-primary numeric">
-                        Margem média resultante: {pct(summaryPrices.avgMargin)}
-                      </span>
-                    </div>
-                    <Input
-                      inputMode="decimal"
-                      value={directSalePrice}
-                      onChange={(e) => setDirectSalePrice(e.target.value)}
-                      placeholder="119,90"
-                      className="h-11 rounded-xl font-bold text-sm bg-card border-primary/30 text-primary shadow-xs"
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      Preço base aplicado a todos os tamanhos. O lucro e a margem de cada tamanho são calculados em tempo real na tabela.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Simulador de Meios de Pagamento colapsável */}
-              <div className="rounded-xl border border-border/80 bg-card p-3 space-y-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setShowSimulator((prev) => !prev)}
-                  className="flex w-full items-center justify-between text-left font-bold text-foreground hover:text-primary transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <CreditCard className="size-3.5 text-primary" />
-                    Sobra real por meio de pagamento (Pix, Débito, Crédito)
-                  </span>
-                  <ChevronDown
-                    className={cn("size-4 text-muted-foreground transition-transform", showSimulator && "rotate-180")}
-                  />
-                </button>
-                {showSimulator && (
-                  <div className="pt-2 divide-y divide-border/60 space-y-1">
-                    {paymentScenarios.map((sc) => (
-                      <div key={sc.label} className="flex items-center justify-between pt-2 text-[11px]">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <span>{sc.icon}</span>
-                          <span>{sc.label}</span>
-                        </span>
-                        <span className={cn("numeric font-bold", sc.isViable ? "text-success" : "text-destructive")}>
-                          {brl(sc.profit)} ({pct(sc.margin)})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Grade de Variantes & Ferramentas Rápidas */}
-            <div className="space-y-4 pt-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Cores & Tamanhos da Coleção:
-                </span>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
+                  {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} no lote
+                </Badge>
                 <Button
                   type="button"
                   variant="outline"
@@ -1116,315 +1028,350 @@ function Precificacao() {
                   {showMatrixGenerator ? "Fechar Gerador" : "⚡ Gerador de Grade Rápida"}
                 </Button>
               </div>
+            </div>
 
-              {/* Gerador de Matriz Expansível */}
-              {showMatrixGenerator && (
-                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                      <Sparkles className="size-3.5" />
-                      <span>Selecione tamanhos e cores para gerar a grade:</span>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
-                    </Badge>
+            {/* Gerador de Matriz Expansível */}
+            {showMatrixGenerator && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                    <Sparkles className="size-3.5" />
+                    <span>Selecione tamanhos e cores para gerar a grade:</span>
                   </div>
-
-                  {/* Tamanhos */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                        1. Tamanhos:
-                      </span>
-                      <div className="flex gap-1">
-                        {PRESET_OPTIONS.map((pr) => (
-                          <button
-                            key={pr.id}
-                            type="button"
-                            onClick={() => applyPreset(pr.id, pr.sizes)}
-                            className={cn(
-                              "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
-                              activePreset === pr.id
-                                ? "bg-primary text-primary-foreground border-transparent"
-                                : "bg-card text-muted-foreground border-border hover:text-foreground",
-                            )}
-                          >
-                            {pr.label.split(" ")[0]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => toggleGenSize(sz)}
-                          className={cn(
-                            "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
-                            genSizes.includes(sz)
-                              ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          {sz}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cores */}
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                      2. Cores:
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {COLOR_PRESETS.map((cp) => (
-                        <button
-                          key={cp.name}
-                          type="button"
-                          onClick={() => toggleGenColor(cp.name)}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                            genColors.includes(cp.name)
-                              ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
-                          <span>{cp.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    onClick={generateMatrix}
-                    className="h-9 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
-                  >
-                    <Wand2 className="size-3.5 mr-2" /> Gerar Grade ({genSizes.length * genColors.length} peças)
-                  </Button>
-
-                  {/* Atalho de Preenchimento Rápido de Custo */}
-                  <div className="border-t border-border/60 pt-3 space-y-2">
-                    <Label className="text-[11px] font-semibold text-muted-foreground">Preencher custo de TODOS os tamanhos com:</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground shrink-0">R$</span>
-                      <Input
-                        inputMode="decimal"
-                        value={baseWholesaleGrade}
-                        onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                        placeholder="49,90"
-                        className="h-8 rounded-lg text-xs font-semibold bg-card border-border max-w-[120px]"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const v = toNumber(baseWholesaleGrade);
-                          if (v > 0) {
-                            setVariants((prev) =>
-                              prev.map((vr) => ({ ...vr, wholesaleCost: baseWholesaleGrade, isCustomCost: false }))
-                            );
-                          }
-                        }}
-                        className="h-8 rounded-lg text-xs font-semibold shrink-0 border-primary/30 text-primary"
-                      >
-                        Aplicar a Todos
-                      </Button>
-                    </div>
-                  </div>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
+                  </Badge>
                 </div>
-              )}
 
-              {/* ── LISTA DE CORES COM A MATRIZ VIVA DE PRECIFICAÇÃO INTEGRADA (LINHA ÚNICA) ── */}
-              <div className="space-y-4">
-                {colorGroups.map((group) => {
-                  const activeSizeSet = new Set(group.items.map((i) => i.size));
-                  const baseSizes = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"];
-                  const allKnownSizes = Array.from(new Set([...group.items.map((i) => i.size), ...baseSizes.slice(0, 6)]));
-                  const availableSizes = sortCanonicalSizes(allKnownSizes);
-
-                  return (
-                    <div
-                      key={group.color}
-                      className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/30"
-                    >
-                      {/* Cabeçalho da Cor */}
-                      <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                          <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
-                          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                            {group.items.length} {group.items.length === 1 ? "tamanho ativo" : "tamanhos ativos"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => removeColor(group.color)}
-                            className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            title={`Remover cor ${group.color}`}
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Seletor de Tamanhos Ativos */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                          Tamanhos ativos nesta cor:
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {availableSizes.map((sz) => {
-                            const isActive = activeSizeSet.has(sz);
-                            return (
-                              <button
-                                key={sz}
-                                type="button"
-                                onClick={() => toggleColorSize(group.color, sz)}
-                                className={cn(
-                                  "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
-                                  isActive
-                                    ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                                    : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <span>{sz}</span>
-                                {isActive && <Check className="size-3 stroke-[3]" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* ── TABELA VIVA INTEGRADA: CUSTO + PREÇO + RESULTADO NA MESMA LINHA ── */}
-                      {group.items.length > 0 && (
-                        <div className="rounded-xl border border-border/70 bg-secondary/20 overflow-hidden">
-                          {/* Cabeçalho da Tabela */}
-                          <div className="grid grid-cols-[60px_1fr_1fr_1.1fr_1.1fr_1fr] items-center gap-3 px-3.5 py-2.5 bg-secondary/50 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
-                            <span>Tamanho</span>
-                            <span>Custo Atacado (R$)</span>
-                            <span>Custo Total</span>
-                            <span>Preço Venda (R$)</span>
-                            <span>Lucro Líquido Real</span>
-                            <span className="text-right">Margem %</span>
-                          </div>
-
-                          {/* Linhas de Cada Tamanho com Edição Direta */}
-                          <div className="divide-y divide-border/50 bg-card">
-                            {group.items.map((v) => (
-                              <div
-                                key={v.id}
-                                className="grid grid-cols-[60px_1fr_1fr_1.1fr_1.1fr_1fr] items-center gap-3 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
-                              >
-                                {/* Tamanho */}
-                                <div className="flex items-center gap-1.5">
-                                  <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
-                                    {v.size}
-                                  </span>
-                                  {(v.isCustomCost || v.isCustomPrice) && (
-                                    <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor personalizado para este tamanho">
-                                      ✦
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* Custo Atacado (Input Direto) */}
-                                <div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[11px] text-muted-foreground">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={v.wholesaleCost}
-                                      onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                      placeholder={baseWholesaleGrade || "49,90"}
-                                      className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-xs"
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* Custo Total Calculado (Atacado + Rateio) */}
-                                <div className="numeric text-muted-foreground font-medium text-xs">
-                                  {brl(v.realCost)}
-                                </div>
-
-                                {/* Preço de Venda (Input Direto / Sugerido pela Estratégia) */}
-                                <div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[11px] text-muted-foreground">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={v.customSalePrice}
-                                      onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                      placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
-                                      className="h-7 w-22 rounded-md border border-border bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-xs"
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* Lucro Líquido Real */}
-                                <div>
-                                  <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
-                                    <span>{v.marginHealth.emoji}</span>
-                                    <span>+{brl(v.profit)}</span>
-                                  </span>
-                                </div>
-
-                                {/* Margem Real % */}
-                                <div className="text-right">
-                                  <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
-                                    {pct(v.marginOnPrice)}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                {/* Tamanhos */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      1. Tamanhos:
+                    </span>
+                    <div className="flex gap-1">
+                      {PRESET_OPTIONS.map((pr) => (
+                        <button
+                          key={pr.id}
+                          type="button"
+                          onClick={() => applyPreset(pr.id, pr.sizes)}
+                          className={cn(
+                            "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
+                            activePreset === pr.id
+                              ? "bg-primary text-primary-foreground border-transparent"
+                              : "bg-card text-muted-foreground border-border hover:text-foreground",
+                          )}
+                        >
+                          {pr.label.split(" ")[0]}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
-
-                {/* Barra de Adicionar Cor */}
-                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Paleta rápida:</span>
-                    {COLOR_PRESETS.filter(
-                      (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
-                    ).slice(0, 6).map((cp) => (
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
                       <button
-                        key={cp.name}
+                        key={sz}
                         type="button"
-                        onClick={() => addQuickColor(cp.name)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs active:scale-95"
+                        onClick={() => toggleGenSize(sz)}
+                        className={cn(
+                          "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
+                          genSizes.includes(sz)
+                            ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
+                            : "bg-card text-muted-foreground border-border hover:text-foreground",
+                        )}
                       >
-                        <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
-                        <span>+ {cp.name}</span>
+                        {sz}
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
-                    <input
-                      value={newCustomColor}
-                      onChange={(e) => setNewCustomColor(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
-                      placeholder="Outra cor..."
-                      className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
-                    />
-                    <button
-                      type="button"
-                      onClick={addCustomColor}
-                      className="rounded-full gradient-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs"
-                    >
-                      Adicionar
-                    </button>
+                {/* Cores */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    2. Cores:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {COLOR_PRESETS.map((cp) => (
+                      <button
+                        key={cp.name}
+                        type="button"
+                        onClick={() => toggleGenColor(cp.name)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
+                          genColors.includes(cp.name)
+                            ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
+                            : "bg-card text-muted-foreground border-border hover:text-foreground",
+                        )}
+                      >
+                        <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
+                        <span>{cp.name}</span>
+                      </button>
+                    ))}
                   </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={generateMatrix}
+                  className="h-9 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
+                >
+                  <Wand2 className="size-3.5 mr-2" /> Gerar Grade ({genSizes.length * genColors.length} peças)
+                </Button>
+              </div>
+            )}
+
+            {/* ── LISTA DE CORES COM A CONSOLE MESTRE DE CADA COR ── */}
+            <div className="space-y-5">
+              {colorGroups.map((group) => {
+                const activeSizeSet = new Set(group.items.map((i) => i.size));
+                const baseSizes = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"];
+                const allKnownSizes = Array.from(new Set([...group.items.map((i) => i.size), ...baseSizes.slice(0, 6)]));
+                const availableSizes = sortCanonicalSizes(allKnownSizes);
+
+                return (
+                  <div
+                    key={group.color}
+                    className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/40"
+                  >
+                    {/* Cabeçalho da Cor */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
+                        <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
+                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                          {group.items.length} {group.items.length === 1 ? "tamanho ativo" : "tamanhos ativos"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {group.avgPrice > 0 && (
+                          <span className="text-xs text-muted-foreground hidden sm:inline">
+                            Média da cor: <strong className="text-foreground">{brl(group.avgPrice)}</strong> (Margem <strong className={group.health.color}>{pct(group.avgMargin)}</strong>)
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeColor(group.color)}
+                          className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title={`Remover cor ${group.color}`}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Seletor de Tamanhos Ativos */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tamanhos desta cor:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {availableSizes.map((sz) => {
+                          const isActive = activeSizeSet.has(sz);
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => toggleColorSize(group.color, sz)}
+                              className={cn(
+                                "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
+                                isActive
+                                  ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
+                                  : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
+                              )}
+                            >
+                              <span>{sz}</span>
+                              {isActive && <Check className="size-3 stroke-[3]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* ⚡ BARRA DE AÇÕES RÁPIDAS DA COR (ESTRATÉGIA EM MASSA) */}
+                    {group.items.length > 0 && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Zap className="size-3.5 text-primary shrink-0" />
+                          <span className="font-bold text-foreground text-[11px] uppercase tracking-wide">
+                            Atalhos Rápidos ({group.color}):
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Atalhos Rápidos de Margem */}
+                          <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg p-1 shadow-2xs">
+                            <span className="text-[10px] font-semibold text-muted-foreground px-1">Margem:</span>
+                            {[40, 50, 60].map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => applyMarginToColor(group.color, m)}
+                                className="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary hover:bg-primary hover:text-primary-foreground transition-all"
+                              >
+                                {m}%
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Preço Fixo Rápido */}
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const currentP = group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90";
+                                applyPriceToColor(group.color, currentP);
+                              }}
+                              className="h-7 rounded-lg text-[11px] font-semibold border-border bg-card"
+                            >
+                              <Coins className="size-3 mr-1 text-primary" />
+                              Uniformizar Preço
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── TABELA VIVA INTEGRADA: CUSTO + PREÇO + MARGEM NA MESMA LINHA ── */}
+                    {group.items.length > 0 && (
+                      <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
+                        {/* Cabeçalho da Tabela */}
+                        <div className="grid grid-cols-[55px_1fr_1fr_1.2fr_1.1fr_1.1fr] items-center gap-3 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                          <span>Tam.</span>
+                          <span>Custo Atacado</span>
+                          <span>Custo Real</span>
+                          <span>Preço Venda (R$)</span>
+                          <span>Margem Real</span>
+                          <span className="text-right">Lucro Líquido</span>
+                        </div>
+
+                        {/* Linhas de Cada Tamanho */}
+                        <div className="divide-y divide-border/50 bg-card">
+                          {group.items.map((v) => (
+                            <div
+                              key={v.id}
+                              className="grid grid-cols-[55px_1fr_1fr_1.2fr_1.1fr_1.1fr] items-center gap-3 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
+                            >
+                              {/* Tamanho */}
+                              <div className="flex items-center gap-1">
+                                <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
+                                  {v.size}
+                                </span>
+                                {(v.isCustomCost || v.isCustomPrice) && (
+                                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor personalizado para este tamanho">
+                                    ✦
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Custo Fornecedor (Input Direto) */}
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[11px] text-muted-foreground">R$</span>
+                                  <input
+                                    inputMode="decimal"
+                                    value={v.wholesaleCost}
+                                    onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                    placeholder={baseWholesaleGrade || "49,90"}
+                                    className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Custo Real Total Calculado (Atacado + Rateio) */}
+                              <div className="numeric text-muted-foreground font-medium text-xs">
+                                {brl(v.realCost)}
+                              </div>
+
+                              {/* Preço de Venda (Input Direto com Preço Sugerido) */}
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[11px] text-muted-foreground">R$</span>
+                                  <input
+                                    inputMode="decimal"
+                                    value={v.customSalePrice}
+                                    onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                    placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
+                                    className="h-7 w-22 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Margem Real & Seletor de Margem Rápido */}
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
+                                    {pct(v.marginOnPrice)}
+                                  </span>
+                                  <div className="flex items-center gap-0.5">
+                                    {[40, 50, 60].map((m) => (
+                                      <button
+                                        key={m}
+                                        type="button"
+                                        onClick={() => updateVariantMargin(v.id, m)}
+                                        className="text-[9px] px-1 py-0.2 rounded bg-secondary/80 hover:bg-primary hover:text-white text-muted-foreground font-semibold transition-all"
+                                        title={`Ajustar preço para margem ${m}%`}
+                                      >
+                                        {m}%
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Lucro Líquido Real */}
+                              <div className="text-right">
+                                <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
+                                  <span>{v.marginHealth.emoji}</span>
+                                  <span>+{brl(v.profit)}</span>
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Barra de Adicionar Outra Cor */}
+              <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">Adicionar cor rápida:</span>
+                  {COLOR_PRESETS.filter(
+                    (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
+                  ).slice(0, 6).map((cp) => (
+                    <button
+                      key={cp.name}
+                      type="button"
+                      onClick={() => addQuickColor(cp.name)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs active:scale-95"
+                    >
+                      <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
+                      <span>+ {cp.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
+                  <input
+                    value={newCustomColor}
+                    onChange={(e) => setNewCustomColor(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
+                    placeholder="Outra cor..."
+                    className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomColor}
+                    className="rounded-full gradient-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs"
+                  >
+                    Adicionar
+                  </button>
                 </div>
               </div>
             </div>
