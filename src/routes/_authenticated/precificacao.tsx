@@ -96,6 +96,13 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
 type PricingMode = "rapida" | "grade";
 type PricingStrategy = "margin" | "markup" | "direct_price";
 
+type ColorStrategy = {
+  mode: PricingStrategy;
+  margin: number;      // 0–85
+  markup: number;      // 0–300
+  directPrice: string; // e.g. "139,90"
+};
+
 export type VariantRow = {
   id: string;
   size: string;
@@ -193,6 +200,9 @@ function Precificacao() {
   const [showMatrixGenerator, setShowMatrixGenerator] = useState(false);
   const [editingColorOverride, setEditingColorOverride] = useState<string | null>(null);
   const [newCustomColor, setNewCustomColor] = useState("");
+
+  // Estratégia de precificação por cor (independente por card de cor)
+  const [colorStrategies, setColorStrategies] = useState<Record<string, ColorStrategy>>({});
 
   // Inserção manual no rodapé da tabela
   const [manualSize, setManualSize] = useState("M");
@@ -623,6 +633,53 @@ function Precificacao() {
       })
     );
     toast.success(`Margem de ${marginPct}% aplicada a todos os tamanhos de ${color}`);
+  };
+
+  // ── Estratégia Completa por Cor (Margem / Markup / Preço Fixo) ──────
+
+  const DEFAULT_COLOR_STRATEGY: ColorStrategy = { mode: "margin", margin: 50, markup: 100, directPrice: "" };
+
+  const getColorStrategy = (color: string): ColorStrategy =>
+    colorStrategies[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+
+  const setColorStrategy = (color: string, patch: Partial<ColorStrategy>) => {
+    setColorStrategies((prev) => {
+      const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+      return { ...prev, [color.toLowerCase()]: { ...current, ...patch } };
+    });
+  };
+
+  const applyStrategyToColor = (color: string) => {
+    const cs = getColorStrategy(color);
+    setVariants((prev) =>
+      prev.map((vr) => {
+        if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
+        const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
+
+        if (cs.mode === "margin") {
+          const price = computePriceForVariantMargin(wholesaleNum, cs.margin);
+          return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
+        }
+
+        if (cs.mode === "markup") {
+          const freightNum = toNumber(freight);
+          const packagingNum = toNumber(packaging);
+          const otherNum = toNumber(other);
+          const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
+          const price = realCost * (1 + cs.markup / 100);
+          return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
+        }
+
+        // direct_price
+        const p = toNumber(cs.directPrice);
+        return { ...vr, customSalePrice: p > 0 ? cs.directPrice : vr.customSalePrice };
+      })
+    );
+    const label =
+      cs.mode === "margin" ? `Margem ${cs.margin}%` :
+      cs.mode === "markup" ? `Markup ${cs.markup}%` :
+      `Preço Fixo R$ ${cs.directPrice}`;
+    toast.success(`${label} aplicado(a) a todos os tamanhos de ${color}`);
   };
 
   const resetVariantOverrides = (id: string) => {
@@ -1189,51 +1246,183 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* ⚡ BARRA DE AÇÕES RÁPIDAS DA COR (ESTRATÉGIA EM MASSA) */}
-                    {group.items.length > 0 && (
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Zap className="size-3.5 text-primary shrink-0" />
-                          <span className="font-bold text-foreground text-[11px] uppercase tracking-wide">
-                            Atalhos Rápidos ({group.color}):
-                          </span>
-                        </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          {/* Atalhos Rápidos de Margem */}
-                          <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg p-1 shadow-2xs">
-                            <span className="text-[10px] font-semibold text-muted-foreground px-1">Margem:</span>
-                            {[40, 50, 60].map((m) => (
+                    {/* ══ ESTRATÉGIA DE PRECIFICAÇÃO DA COR (MINI-CONSOLE COMPLETA) ══ */}
+                    {group.items.length > 0 && (() => {
+                      const cs = getColorStrategy(group.color);
+                      return (
+                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-3 text-xs">
+                          {/* Título + Pílulas de Modo */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <Zap className="size-3.5 text-primary shrink-0" />
+                              <span className="font-bold text-foreground text-[11px] uppercase tracking-wide">
+                                Estratégia ({group.color}):
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => setColorStrategy(group.color, { mode: "margin" })}
+                                className={cn(
+                                  "flex items-center justify-center gap-1 rounded-lg py-1.5 px-2 text-[11px] font-bold transition-all",
+                                  cs.mode === "margin"
+                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                )}
+                              >
+                                <Target className="size-3 shrink-0" />
+                                <span>Margem %</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setColorStrategy(group.color, { mode: "markup" })}
+                                className={cn(
+                                  "flex items-center justify-center gap-1 rounded-lg py-1.5 px-2 text-[11px] font-bold transition-all",
+                                  cs.mode === "markup"
+                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                )}
+                              >
+                                <TrendingUp className="size-3 shrink-0" />
+                                <span>Markup %</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setColorStrategy(group.color, { mode: "direct_price" })}
+                                className={cn(
+                                  "flex items-center justify-center gap-1 rounded-lg py-1.5 px-2 text-[11px] font-bold transition-all",
+                                  cs.mode === "direct_price"
+                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                )}
+                              >
+                                <Coins className="size-3 shrink-0" />
+                                <span>Preço R$</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Controle ativo do modo */}
+                          <div className="flex flex-wrap items-center gap-3">
+                            {cs.mode === "margin" && (
+                              <>
+                                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                                  <Slider
+                                    value={[cs.margin]}
+                                    min={1}
+                                    max={85}
+                                    step={1}
+                                    onValueChange={([v]) => setColorStrategy(group.color, { margin: v })}
+                                    className="flex-1"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg px-2 py-1 shadow-2xs shrink-0">
+                                  <input
+                                    inputMode="numeric"
+                                    value={cs.margin}
+                                    onChange={(e) => {
+                                      const v = Math.min(85, Math.max(0, Number(e.target.value) || 0));
+                                      setColorStrategy(group.color, { margin: v });
+                                    }}
+                                    className="w-8 text-right text-xs font-bold outline-none bg-transparent text-primary"
+                                  />
+                                  <span className="text-[11px] text-muted-foreground">%</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                                  Garante esta margem líquida exata sobre o preço de venda
+                                </span>
+                              </>
+                            )}
+
+                            {cs.mode === "markup" && (
+                              <>
+                                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                                  <Slider
+                                    value={[cs.markup]}
+                                    min={1}
+                                    max={300}
+                                    step={1}
+                                    onValueChange={([v]) => setColorStrategy(group.color, { markup: v })}
+                                    className="flex-1"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg px-2 py-1 shadow-2xs shrink-0">
+                                  <input
+                                    inputMode="numeric"
+                                    value={cs.markup}
+                                    onChange={(e) => {
+                                      const v = Math.min(300, Math.max(0, Number(e.target.value) || 0));
+                                      setColorStrategy(group.color, { markup: v });
+                                    }}
+                                    className="w-10 text-right text-xs font-bold outline-none bg-transparent text-primary"
+                                  />
+                                  <span className="text-[11px] text-muted-foreground">%</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                                  Multiplicador sobre o custo real de cada tamanho
+                                </span>
+                              </>
+                            )}
+
+                            {cs.mode === "direct_price" && (
+                              <>
+                                <div className="flex items-center gap-1.5 bg-card border border-border/80 rounded-lg px-2 py-1.5 shadow-2xs">
+                                  <span className="text-[11px] text-muted-foreground shrink-0">R$</span>
+                                  <input
+                                    inputMode="decimal"
+                                    value={cs.directPrice}
+                                    onChange={(e) => setColorStrategy(group.color, { directPrice: e.target.value })}
+                                    placeholder="139,90"
+                                    className="w-20 text-right text-xs font-bold outline-none bg-transparent text-primary"
+                                  />
+                                </div>
+                                {cs.directPrice && toNumber(cs.directPrice) > 0 && group.avgCost > 0 && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Margem resultante média: <strong className={getMarginHealth((1 - group.avgCost / toNumber(cs.directPrice)) * 100).color}>
+                                      {pct(Math.max(0, (1 - group.avgCost / toNumber(cs.directPrice)) * 100))}
+                                    </strong>
+                                  </span>
+                                )}
+                              </>
+                            )}
+
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => applyStrategyToColor(group.color)}
+                              className="h-7 rounded-lg text-[11px] font-bold gradient-primary shadow-glow shrink-0"
+                            >
+                              <Zap className="size-3 mr-1" />
+                              Aplicar à Cor
+                            </Button>
+                          </div>
+
+                          {/* Atalhos de margem rápida */}
+                          <div className="flex items-center gap-1.5 border-t border-primary/10 pt-2.5">
+                            <span className="text-[10px] font-semibold text-muted-foreground">Atalhos rápidos de margem:</span>
+                            {[30, 40, 50, 60, 70].map((m) => (
                               <button
                                 key={m}
                                 type="button"
-                                onClick={() => applyMarginToColor(group.color, m)}
-                                className="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary hover:bg-primary hover:text-primary-foreground transition-all"
+                                onClick={() => {
+                                  setColorStrategy(group.color, { mode: "margin", margin: m });
+                                  applyMarginToColor(group.color, m);
+                                }}
+                                className={cn(
+                                  "px-2 py-0.5 rounded-md text-[10px] font-bold transition-all border",
+                                  cs.mode === "margin" && cs.margin === m
+                                    ? "bg-primary text-primary-foreground border-transparent"
+                                    : "bg-card border-border text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                                )}
                               >
                                 {m}%
                               </button>
                             ))}
                           </div>
-
-                          {/* Preço Fixo Rápido */}
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const currentP = group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90";
-                                applyPriceToColor(group.color, currentP);
-                              }}
-                              className="h-7 rounded-lg text-[11px] font-semibold border-border bg-card"
-                            >
-                              <Coins className="size-3 mr-1 text-primary" />
-                              Uniformizar Preço
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* ── TABELA VIVA INTEGRADA: CUSTO + PREÇO + MARGEM NA MESMA LINHA ── */}
                     {group.items.length > 0 && (
