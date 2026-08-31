@@ -1085,16 +1085,6 @@ function Precificacao() {
                 </p>
               </div>
             </div>
-
-            {/* Smart Summary Pill de Rateio Operacional */}
-            {summaryPrices.avgCost > 0 && (
-              <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3.5 py-1.5 text-xs shadow-2xs">
-                <span className="text-muted-foreground text-[11px] font-semibold hidden sm:inline">Rateio Operacional Fixo:</span>
-                <span className="numeric text-xs font-bold text-primary">
-                  +{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} <span className="text-[10px] font-medium text-muted-foreground">/ peça</span>
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Grid de Identificação da Peça (Nome + Categoria/Referência) */}
@@ -1143,30 +1133,72 @@ function Precificacao() {
             </div>
           )}
 
-          {/* Custos Operacionais Compartilhados (Frete, Embalagem, Outros) */}
+          {/* Custos Operacionais Compartilhados com Live Equation & Botões Integrados */}
           <div className="rounded-2xl border border-border/80 bg-secondary/20 p-4 sm:p-5 space-y-4 shadow-2xs">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                📦 Custos Fixos Compartilhados por Peça
-              </span>
-              <span className="text-[11px] font-medium text-muted-foreground">
-                Aplicados igualmente a todas as cores e tamanhos
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <span>📦 Custos Fixos Compartilhados por Peça</span>
+                </span>
+                <p className="text-[11px] text-muted-foreground">
+                  Despesas de logística e acabamento adicionadas a todas as unidades do lote
+                </p>
+              </div>
+
+              {/* Dashboard de Rateio Estrategicamente Integrado ao Lado dos Campos */}
+              <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3.5 py-1.5 shadow-2xs">
+                <span className="text-muted-foreground text-[11px] font-semibold">Total Rateado:</span>
+                <span className="numeric text-xs font-bold text-primary">
+                  +{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} <span className="text-[10px] font-medium text-muted-foreground">/ peça</span>
+                </span>
+              </div>
             </div>
 
-            {/* Assistente de Rateio Rápido Expandido (Frosted Studio Card) */}
+            {/* Assistente de Rateio Rápido Expandido (Frosted Studio Card com Abas) */}
             {rateioTarget && (
               <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3.5 animate-in fade-in-50 duration-200 shadow-soft">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                     <div className="size-6 rounded-lg bg-primary/15 flex items-center justify-center">
                       <Calculator className="size-3.5 text-primary" />
                     </div>
-                    <span>
-                      Assistente de Rateio:{" "}
-                      {rateioTarget === "freight" ? "Frete da Nota" : rateioTarget === "packaging" ? "Embalagens & Tags" : "Outros Custos"}
-                    </span>
+                    <span className="text-xs font-bold text-primary">Assistente de Rateio por Peça</span>
                   </div>
+
+                  {/* Abas Rápidas para trocar a despesa */}
+                  <div className="flex items-center gap-1 rounded-lg bg-card border border-border/70 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => openRateioAssistant("freight")}
+                      className={cn(
+                        "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                        rateioTarget === "freight" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Frete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openRateioAssistant("packaging")}
+                      className={cn(
+                        "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                        rateioTarget === "packaging" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Embalagem
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openRateioAssistant("other")}
+                      className={cn(
+                        "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                        rateioTarget === "other" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      Outros
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setRateioTarget(null)}
@@ -1230,27 +1262,41 @@ function Precificacao() {
                     )}
                   </Button>
                 </div>
+
+                {/* Presets Rápidos de Embalagem dentro do Assistente */}
+                {rateioTarget === "packaging" && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-primary/20">
+                    <span className="text-[10px] font-semibold text-muted-foreground">Atalhos rápidos:</span>
+                    {[
+                      { label: "Sacola + Tag (R$ 3,50)", val: "3,50" },
+                      { label: "Caixa Sedex (R$ 5,00)", val: "5,00" },
+                      { label: "Tag Simples (R$ 0,80)", val: "0,80" },
+                    ].map((pr) => (
+                      <button
+                        key={pr.label}
+                        type="button"
+                        onClick={() => {
+                          setPackaging(pr.val);
+                          setRateioTarget(null);
+                          toast.success(`Embalagem definida como ${pr.label}`);
+                        }}
+                        className="rounded-md px-2 py-0.5 text-[10px] font-semibold bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/80 cursor-pointer transition-all active:scale-95"
+                      >
+                        {pr.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Grid dos 3 Custos Compartilhados com R$ Integrado e Micro-Pílula */}
+            {/* Grid dos 3 Custos Compartilhados com R$ Integrado e Botão de Calculadora Integrado */}
             <div className="grid gap-4 sm:grid-cols-3">
               {/* Frete */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-foreground">Frete por peça</Label>
-                  <button
-                    type="button"
-                    onClick={() => openRateioAssistant("freight")}
-                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer shadow-2xs"
-                    title="Calcular rateio do frete total da nota"
-                  >
-                    <Calculator className="size-3" />
-                    <span>÷ Ratear</span>
-                  </button>
-                </div>
+                <Label className="text-xs font-semibold text-foreground">Frete por peça</Label>
                 <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                   <input
                     inputMode="decimal"
                     value={freight}
@@ -1258,25 +1304,22 @@ function Precificacao() {
                     placeholder="6,00"
                     className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => openRateioAssistant("freight")}
+                    className="mr-1.5 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer active:scale-95"
+                    title="Calcular rateio do frete total da nota"
+                  >
+                    <Calculator className="size-4" />
+                  </button>
                 </div>
               </div>
 
               {/* Embalagem & Tag */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-foreground">Embalagem & Tag</Label>
-                  <button
-                    type="button"
-                    onClick={() => openRateioAssistant("packaging")}
-                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer shadow-2xs"
-                    title="Calcular rateio do custo de embalagens e tags"
-                  >
-                    <Calculator className="size-3" />
-                    <span>÷ Ratear</span>
-                  </button>
-                </div>
+                <Label className="text-xs font-semibold text-foreground">Embalagem & Tag</Label>
                 <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                   <input
                     inputMode="decimal"
                     value={packaging}
@@ -1284,25 +1327,22 @@ function Precificacao() {
                     placeholder="3,50"
                     className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => openRateioAssistant("packaging")}
+                    className="mr-1.5 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer active:scale-95"
+                    title="Calcular rateio das embalagens da nota"
+                  >
+                    <Calculator className="size-4" />
+                  </button>
                 </div>
               </div>
 
               {/* Outros Custos */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-foreground">Outros custos por peça</Label>
-                  <button
-                    type="button"
-                    onClick={() => openRateioAssistant("other")}
-                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer shadow-2xs"
-                    title="Calcular rateio de despesas extras"
-                  >
-                    <Calculator className="size-3" />
-                    <span>÷ Ratear</span>
-                  </button>
-                </div>
+                <Label className="text-xs font-semibold text-foreground">Outros custos por peça</Label>
                 <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                   <input
                     inputMode="decimal"
                     value={other}
@@ -1310,7 +1350,29 @@ function Precificacao() {
                     placeholder="2,00"
                     className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => openRateioAssistant("other")}
+                    className="mr-1.5 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer active:scale-95"
+                    title="Calcular rateio de outros custos"
+                  >
+                    <Calculator className="size-4" />
+                  </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Live Formula Bar: Mostra a equação ao vivo no rodapé do container */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card/60 border border-border/70 px-4 py-2.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Info className="size-3.5 text-primary shrink-0" />
+                <span>
+                  <strong>Composição:</strong> Frete ({brl(toNumber(freight))}) + Embalagem ({brl(toNumber(packaging))}) + Outros ({brl(toNumber(other))})
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <span>Total Operacional:</span>
+                <span className="text-primary font-bold">+{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} / un.</span>
               </div>
             </div>
           </div>
