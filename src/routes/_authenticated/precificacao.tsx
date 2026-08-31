@@ -109,6 +109,7 @@ export type VariantRow = {
   color: string;
   wholesaleCost: string; // custom cost string or "" (inherits baseWholesaleGrade)
   customSalePrice: string; // custom sale price string or "" (calculated by strategy)
+  qty?: number; // quantidade física da variante no lote
 };
 
 const PRESET_OPTIONS = [
@@ -185,11 +186,11 @@ function Precificacao() {
 
   // Lista Unificada de Variantes (SKUs)
   const [variants, setVariants] = useState<VariantRow[]>([
-    { id: "v-p-off", size: "P", color: "Off-White", wholesaleCost: "", customSalePrice: "" },
-    { id: "v-m-off", size: "M", color: "Off-White", wholesaleCost: "", customSalePrice: "" },
-    { id: "v-m-preto", size: "M", color: "Preto", wholesaleCost: "", customSalePrice: "" },
-    { id: "v-g-preto", size: "G", color: "Preto", wholesaleCost: "", customSalePrice: "" },
-    { id: "v-gg-preto", size: "GG", color: "Preto", wholesaleCost: "", customSalePrice: "" },
+    { id: "v-p-off", size: "P", color: "Off-White", wholesaleCost: "", customSalePrice: "", qty: 2 },
+    { id: "v-m-off", size: "M", color: "Off-White", wholesaleCost: "", customSalePrice: "", qty: 4 },
+    { id: "v-m-preto", size: "M", color: "Preto", wholesaleCost: "", customSalePrice: "", qty: 4 },
+    { id: "v-g-preto", size: "G", color: "Preto", wholesaleCost: "", customSalePrice: "", qty: 4 },
+    { id: "v-gg-preto", size: "GG", color: "Preto", wholesaleCost: "", customSalePrice: "", qty: 2 },
   ]);
 
   // Seletor de geração rápida da grade
@@ -208,6 +209,11 @@ function Precificacao() {
   const [manualSize, setManualSize] = useState("M");
   const [manualColor, setManualColor] = useState("Off-White");
   const [manualCost, setManualCost] = useState("");
+
+  // ── Assistente de Rateio Rápido de Custos Operacionais ─────────────
+  const [rateioTarget, setRateioTarget] = useState<"freight" | "packaging" | "other" | null>(null);
+  const [rateioTotal, setRateioTotal] = useState("");
+  const [rateioPieces, setRateioPieces] = useState("");
 
   // ── Custos Operacionais Rateados (por peça) ───────────────────────
   const [freight, setFreight] = useState("6,00");
@@ -352,8 +358,10 @@ function Precificacao() {
       const hasCustomCost = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
       const wholesaleNum = hasCustomCost ? toNumber(v.wholesaleCost) : baseNum;
       const res = calculateItem(wholesaleNum, v.customSalePrice);
+      const qty = v.qty && v.qty > 0 ? v.qty : 1;
       return {
         ...v,
+        qty,
         wholesaleNum,
         isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
         ...res,
@@ -361,7 +369,7 @@ function Precificacao() {
     });
   }, [variants, baseWholesaleGrade, calculateItem]);
 
-  // ── Resumo Geral de Preços (Faixas e Médias) ───────────────────────
+  // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
     if (mode === "rapida") {
       return {
@@ -372,6 +380,9 @@ function Precificacao() {
         avgCost: singleResult.realCost,
         avgMargin: singleResult.marginOnPrice,
         avgMarkup: singleResult.markupOnCost,
+        totalRevenue: singleResult.suggestedPrice,
+        totalInvestment: singleResult.realCost,
+        totalProfit: singleResult.profit,
         marginHealth: singleResult.marginHealth,
         hasMultiple: false,
       };
@@ -387,6 +398,9 @@ function Precificacao() {
         avgCost: 0,
         avgMargin: 0,
         avgMarkup: 0,
+        totalRevenue: 0,
+        totalInvestment: 0,
+        totalProfit: 0,
         marginHealth: getMarginHealth(0),
         hasMultiple: variants.length > 1,
       };
@@ -395,9 +409,14 @@ function Precificacao() {
     const prices = valid.map((v) => v.suggestedPrice);
     const minP = Math.min(...prices);
     const maxP = Math.max(...prices);
-    const avgP = prices.reduce((a, b) => a + b, 0) / prices.length;
-    const avgProf = valid.reduce((a, b) => a + b.profit, 0) / valid.length;
-    const avgC = valid.reduce((a, b) => a + b.realCost, 0) / valid.length;
+    const totalQty = valid.reduce((a, b) => a + b.qty, 0) || 1;
+    const totalRev = valid.reduce((a, b) => a + b.suggestedPrice * b.qty, 0);
+    const totalInv = valid.reduce((a, b) => a + b.realCost * b.qty, 0);
+    const totalProf = valid.reduce((a, b) => a + b.profit * b.qty, 0);
+
+    const avgP = totalRev / totalQty;
+    const avgProf = totalProf / totalQty;
+    const avgC = totalInv / totalQty;
     const avgMarg = avgP > 0 ? (avgProf / avgP) * 100 : 0;
     const avgMark = avgC > 0 ? (avgProf / avgC) * 100 : 0;
 
@@ -409,6 +428,9 @@ function Precificacao() {
       avgCost: avgC,
       avgMargin: avgMarg,
       avgMarkup: avgMark,
+      totalRevenue: totalRev,
+      totalInvestment: totalInv,
+      totalProfit: totalProf,
       marginHealth: getMarginHealth(avgMarg),
       hasMultiple: minP !== maxP,
     };
@@ -425,8 +447,9 @@ function Precificacao() {
 
   // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
   const actualLotUnits = useMemo(() => {
-    return mode === "grade" ? Math.max(variants.length, 1) : 1;
-  }, [mode, variants.length]);
+    if (mode !== "grade") return 1;
+    return variantResults.reduce((acc, v) => acc + v.qty, 0);
+  }, [mode, variantResults]);
 
   // ── Ponto de Cobertura do Lote (Break-Even Dinâmico) ────────────────
   const lotBreakEven = useMemo(() => {
@@ -453,6 +476,10 @@ function Precificacao() {
       color: string;
       items: typeof variantResults;
       totalItems: number;
+      totalUnits: number;
+      totalRevenue: number;
+      totalCost: number;
+      totalProfit: number;
       avgPrice: number;
       avgCost: number;
       avgProfit: number;
@@ -471,10 +498,15 @@ function Precificacao() {
         return a.size.localeCompare(b.size);
       });
 
-      const avgPrice = sortedItems.reduce((a, b) => a + b.suggestedPrice, 0) / sortedItems.length;
-      const avgCost = sortedItems.reduce((a, b) => a + b.realCost, 0) / sortedItems.length;
-      const avgProfit = sortedItems.reduce((a, b) => a + b.profit, 0) / sortedItems.length;
+      const groupTotalQty = sortedItems.reduce((a, b) => a + b.qty, 0) || 1;
+      const groupTotalRev = sortedItems.reduce((a, b) => a + b.suggestedPrice * b.qty, 0);
+      const groupTotalCost = sortedItems.reduce((a, b) => a + b.realCost * b.qty, 0);
+      const groupTotalProf = sortedItems.reduce((a, b) => a + b.profit * b.qty, 0);
+      const avgPrice = groupTotalRev / groupTotalQty;
+      const avgCost = groupTotalCost / groupTotalQty;
+      const avgProfit = groupTotalProf / groupTotalQty;
       const avgMargin = avgPrice > 0 ? (avgProfit / avgPrice) * 100 : 0;
+
       groups.push({
         color,
         items: sortedItems,
@@ -580,6 +612,43 @@ function Precificacao() {
     setVariants((prev) =>
       prev.map((v) => (v.id === id ? { ...v, customSalePrice: val } : v)),
     );
+  };
+
+  const updateVariantQty = (id: string, qty: number) => {
+    const safeQty = Math.max(1, Math.floor(qty) || 1);
+    setVariants((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, qty: safeQty } : v)),
+    );
+  };
+
+  const openRateioAssistant = (target: "freight" | "packaging" | "other") => {
+    setRateioTarget(target);
+    setRateioTotal("");
+    setRateioPieces(actualLotUnits > 0 ? String(actualLotUnits) : "20");
+  };
+
+  const applyRateio = () => {
+    if (!rateioTarget) return;
+    const total = toNumber(rateioTotal);
+    const pieces = Math.max(1, Number(rateioPieces) || 1);
+    if (total <= 0) {
+      toast.error("Informe um valor total maior que zero");
+      return;
+    }
+    const perUnit = total / pieces;
+    const formatted = perUnit.toFixed(2).replace(".", ",");
+
+    if (rateioTarget === "freight") {
+      setFreight(formatted);
+      toast.success(`Frete rateado: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
+    } else if (rateioTarget === "packaging") {
+      setPackaging(formatted);
+      toast.success(`Embalagem rateada: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
+    } else if (rateioTarget === "other") {
+      setOther(formatted);
+      toast.success(`Outros custos rateados: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
+    }
+    setRateioTarget(null);
   };
 
   const computePriceForVariantMargin = (wholesaleCost: number, targetMargin: number): number => {
@@ -836,10 +905,11 @@ function Precificacao() {
     const uniqueColors = Array.from(new Set(variants.map((v) => v.color)));
     setEntryColor(uniqueColors.join(", ") || "");
 
-    // Quantidades por tamanho agregadas
+    // Quantidades por tamanho agregadas usando as quantidades REAIS de cada variante
     const initialSizes: Record<string, number> = {};
     variants.forEach((v) => {
-      initialSizes[v.size] = (initialSizes[v.size] ?? 0) + 2;
+      const q = v.qty && v.qty > 0 ? v.qty : 1;
+      initialSizes[v.size] = (initialSizes[v.size] ?? 0) + q;
     });
     setEntrySizes(initialSizes);
     setEntrySheetOpen(true);
@@ -998,8 +1068,94 @@ function Precificacao() {
                 <span className="flex-1 h-px bg-border/60" />
               </div>
             )}
+
+            {/* Assistente de Rateio Rápido Expandido */}
+            {rateioTarget && (
+              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3 animate-in fade-in-50 duration-200 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                    <Calculator className="size-4" />
+                    <span>
+                      Assistente de Rateio:{" "}
+                      {rateioTarget === "freight" ? "Frete da Nota" : rateioTarget === "packaging" ? "Embalagens / Tags" : "Outros Custos"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRateioTarget(null)}
+                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3 items-end">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-muted-foreground">Valor Total da Nota (R$)</Label>
+                    <Input
+                      inputMode="decimal"
+                      value={rateioTotal}
+                      onChange={(e) => setRateioTotal(e.target.value)}
+                      placeholder="Ex: 120,00"
+                      className="h-9 rounded-lg font-bold text-xs bg-card"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[11px] font-semibold text-muted-foreground">Total de Peças</Label>
+                      {actualLotUnits > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setRateioPieces(String(actualLotUnits))}
+                          className="text-[10px] text-primary hover:underline font-bold"
+                        >
+                          Usar {actualLotUnits} un. da grade
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      inputMode="numeric"
+                      value={rateioPieces}
+                      onChange={(e) => setRateioPieces(e.target.value)}
+                      placeholder="Ex: 20"
+                      className="h-9 rounded-lg font-bold text-xs bg-card"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={applyRateio}
+                      disabled={!toNumber(rateioTotal) || !Number(rateioPieces)}
+                      className="h-9 w-full rounded-lg gradient-primary text-xs font-bold shadow-glow"
+                    >
+                      {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
+                        <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
+                      ) : (
+                        <>Calcular e Aplicar</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Frete rateado por peça">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground">Frete por peça</Label>
+                  <button
+                    type="button"
+                    onClick={() => openRateioAssistant("freight")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                    title="Calcular rateio do frete total pelo número de peças"
+                  >
+                    <Calculator className="size-3" />
+                    <span>÷ Ratear</span>
+                  </button>
+                </div>
                 <Input
                   inputMode="decimal"
                   value={freight}
@@ -1007,9 +1163,21 @@ function Precificacao() {
                   placeholder="6,00"
                   className="h-11 rounded-xl font-semibold text-sm bg-card"
                 />
-              </Field>
+              </div>
 
-              <Field label="Embalagem & Tag por peça">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground">Embalagem & Tag por peça</Label>
+                  <button
+                    type="button"
+                    onClick={() => openRateioAssistant("packaging")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                    title="Calcular rateio das embalagens pelo número de peças"
+                  >
+                    <Calculator className="size-3" />
+                    <span>÷ Ratear</span>
+                  </button>
+                </div>
                 <Input
                   inputMode="decimal"
                   value={packaging}
@@ -1017,9 +1185,21 @@ function Precificacao() {
                   placeholder="3,50"
                   className="h-11 rounded-xl font-semibold text-sm bg-card"
                 />
-              </Field>
+              </div>
 
-              <Field label="Outros custos por peça">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground">Outros custos por peça</Label>
+                  <button
+                    type="button"
+                    onClick={() => openRateioAssistant("other")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                    title="Calcular rateio de outros custos pelo número de peças"
+                  >
+                    <Calculator className="size-3" />
+                    <span>÷ Ratear</span>
+                  </button>
+                </div>
                 <Input
                   inputMode="decimal"
                   value={other}
@@ -1027,7 +1207,7 @@ function Precificacao() {
                   placeholder="2,00"
                   className="h-11 rounded-xl font-semibold text-sm bg-card"
                 />
-              </Field>
+              </div>
             </div>
           </div>
 
@@ -1197,7 +1377,7 @@ function Precificacao() {
                         <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
                         <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
                         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          {group.items.length} {group.items.length === 1 ? "tamanho ativo" : "tamanhos ativos"}
+                          {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"} · {group.totalUnits} {group.totalUnits === 1 ? "peça" : "peças"}
                         </span>
                       </div>
 
@@ -1368,81 +1548,99 @@ function Precificacao() {
                             )}
 
                             {/* MODO MARKUP */}
-                            {cs.mode === "markup" && (
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {/* Stepper Tátil [- | 100% | +] */}
-                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = Math.max(10, cs.markup - 10);
-                                      setColorStrategy(group.color, { markup: next });
-                                    }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
-                                    title="Diminuir 10%"
-                                  >
-                                    <Minus className="size-3" />
-                                  </button>
-                                  <div className="flex items-center px-1.5">
-                                    <input
-                                      inputMode="numeric"
-                                      value={cs.markup}
-                                      onChange={(e) => {
-                                        const v = Math.min(300, Math.max(0, Number(e.target.value) || 0));
-                                        setColorStrategy(group.color, { markup: v });
-                                      }}
-                                      className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                    />
-                                    <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = Math.min(300, cs.markup + 10);
-                                      setColorStrategy(group.color, { markup: next });
-                                    }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
-                                    title="Aumentar 10%"
-                                  >
-                                    <Plus className="size-3" />
-                                  </button>
-                                </div>
+                            {cs.mode === "markup" && (() => {
+                              // Calcular margem real líquida do markup
+                              const sampleCost = group.avgCost || 50;
+                              const samplePrice = sampleCost * (1 + cs.markup / 100);
+                              const deductions = samplePrice * ((tax + cardRate) / 100);
+                              const sampleProfit = samplePrice - sampleCost - deductions;
+                              const realNetMargin = samplePrice > 0 ? (sampleProfit / samplePrice) * 100 : 0;
+                              const health = getMarginHealth(realNetMargin);
 
-                                {/* Segmented Preset Strip Markup */}
-                                <div className="inline-flex rounded-lg border border-border/70 bg-secondary/50 p-0.5 shadow-2xs">
-                                  {[60, 80, 100, 120, 150].map((mk) => (
+                              return (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* Stepper Tátil [- | 100% | +] */}
+                                  <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                                     <button
-                                      key={mk}
                                       type="button"
                                       onClick={() => {
-                                        setColorStrategy(group.color, { mode: "markup", markup: mk });
-                                        const freightNum = toNumber(freight);
-                                        const packagingNum = toNumber(packaging);
-                                        const otherNum = toNumber(other);
-                                        setVariants((prev) =>
-                                          prev.map((vr) => {
-                                            if (vr.color.toLowerCase() !== group.color.toLowerCase()) return vr;
-                                            const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
-                                            const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-                                            const price = realCost * (1 + mk / 100);
-                                            return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
-                                          })
-                                        );
-                                        toast.success(`Markup de ${mk}% aplicado a todos os tamanhos de ${group.color}`);
+                                        const next = Math.max(10, cs.markup - 10);
+                                        setColorStrategy(group.color, { markup: next });
                                       }}
-                                      className={cn(
-                                        "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all",
-                                        cs.markup === mk
-                                          ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
-                                          : "text-muted-foreground hover:text-foreground hover:bg-card/50",
-                                      )}
+                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
+                                      title="Diminuir 10%"
                                     >
-                                      {mk}%
+                                      <Minus className="size-3" />
                                     </button>
-                                  ))}
+                                    <div className="flex items-center px-1.5">
+                                      <input
+                                        inputMode="numeric"
+                                        value={cs.markup}
+                                        onChange={(e) => {
+                                          const v = Math.min(300, Math.max(0, Number(e.target.value) || 0));
+                                          setColorStrategy(group.color, { markup: v });
+                                        }}
+                                        className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                      />
+                                      <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const next = Math.min(300, cs.markup + 10);
+                                        setColorStrategy(group.color, { markup: next });
+                                      }}
+                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
+                                      title="Aumentar 10%"
+                                    >
+                                      <Plus className="size-3" />
+                                    </button>
+                                  </div>
+
+                                  {/* Segmented Preset Strip Markup */}
+                                  <div className="inline-flex rounded-lg border border-border/70 bg-secondary/50 p-0.5 shadow-2xs">
+                                    {[60, 80, 100, 120, 150].map((mk) => (
+                                      <button
+                                        key={mk}
+                                        type="button"
+                                        onClick={() => {
+                                          setColorStrategy(group.color, { mode: "markup", markup: mk });
+                                          const freightNum = toNumber(freight);
+                                          const packagingNum = toNumber(packaging);
+                                          const otherNum = toNumber(other);
+                                          setVariants((prev) =>
+                                            prev.map((vr) => {
+                                              if (vr.color.toLowerCase() !== group.color.toLowerCase()) return vr;
+                                              const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
+                                              const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
+                                              const price = realCost * (1 + mk / 100);
+                                              return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
+                                            })
+                                          );
+                                          toast.success(`Markup de ${mk}% aplicado a todos os tamanhos de ${group.color}`);
+                                        }}
+                                        className={cn(
+                                          "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all",
+                                          cs.markup === mk
+                                            ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
+                                            : "text-muted-foreground hover:text-foreground hover:bg-card/50",
+                                        )}
+                                      >
+                                        {mk}%
+                                      </button>
+                                    ))}
+                                  </div>
+
+                                  {/* Transparência Financeira: Margem Real resultante */}
+                                  <div className="inline-flex items-center gap-1 rounded-md bg-card px-2 py-0.5 text-[11px] border border-border/70 shadow-2xs" title="Margem líquida real que sobra no bolso após custos, impostos e taxas de cartão">
+                                    <span className="text-muted-foreground text-[10px]">Margem:</span>
+                                    <span className={cn("font-bold text-xs", health.color)}>
+                                      {pct(realNetMargin)}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* MODO PREÇO FIXO */}
                             {cs.mode === "direct_price" && (
@@ -1526,11 +1724,12 @@ function Precificacao() {
                     {group.items.length > 0 && (
                       <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
                         {/* Cabeçalho da Tabela */}
-                        <div className="grid grid-cols-[55px_1fr_1fr_1.2fr_1fr_1.1fr] items-center gap-3 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                        <div className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
                           <span>Tam.</span>
+                          <span>Qtd</span>
                           <span>Custo Atacado</span>
                           <span>Custo Real</span>
-                          <span>Preço Venda (R$)</span>
+                          <span>Preço Venda</span>
                           <span>Margem Real</span>
                           <span className="text-right">Lucro Líquido</span>
                         </div>
@@ -1540,7 +1739,7 @@ function Precificacao() {
                           {group.items.map((v) => (
                             <div
                               key={v.id}
-                              className="grid grid-cols-[55px_1fr_1fr_1.2fr_1fr_1.1fr] items-center gap-3 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
+                              className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
                             >
                               {/* Tamanho */}
                               <div className="flex items-center gap-1">
@@ -1552,6 +1751,17 @@ function Precificacao() {
                                     ✦
                                   </span>
                                 )}
+                              </div>
+
+                              {/* Quantidade no Lote */}
+                              <div>
+                                <input
+                                  inputMode="numeric"
+                                  value={v.qty ?? 1}
+                                  onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
+                                  className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                  title="Quantidade desta variante no lote"
+                                />
                               </div>
 
                               {/* Custo Fornecedor (Input Direto) */}
@@ -1582,7 +1792,7 @@ function Precificacao() {
                                     value={v.customSalePrice}
                                     onChange={(e) => updateVariantPrice(v.id, e.target.value)}
                                     placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
-                                    className="h-7 w-22 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                    className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
                                   />
                                 </div>
                               </div>
