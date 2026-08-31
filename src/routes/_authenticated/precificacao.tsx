@@ -178,6 +178,7 @@ function Precificacao() {
 
   // ── Identificação da Peça ─────────────────────────────────────────
   const [name, setName] = useState("");
+  const [category, setCategory] = useState("Vestidos");
 
   // ── Modo 1: Precificação Rápida ───────────────────────────────────
   const [wholesale, setWholesale] = useState("49,90");
@@ -1084,206 +1085,263 @@ function Precificacao() {
                 </p>
               </div>
             </div>
+
+            {/* Smart Summary Pill de Rateio Operacional */}
             {summaryPrices.avgCost > 0 && (
-              <div className="text-right">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Rateio por peça</span>
-                <span className="numeric text-sm font-bold text-muted-foreground">
-                  +{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} / peça
+              <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3.5 py-1.5 text-xs shadow-2xs">
+                <span className="text-muted-foreground text-[11px] font-semibold hidden sm:inline">Rateio Operacional Fixo:</span>
+                <span className="numeric text-xs font-bold text-primary">
+                  +{brl(toNumber(freight) + toNumber(packaging) + toNumber(other))} <span className="text-[10px] font-medium text-muted-foreground">/ peça</span>
                 </span>
               </div>
             )}
           </div>
 
-          {/* Nome da Peça */}
-          <Field label="Nome da peça ou modelo">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Vestido midi linho com fenda"
-              className="h-11 rounded-xl font-medium text-sm"
-            />
-          </Field>
+          {/* Grid de Identificação da Peça (Nome + Categoria/Referência) */}
+          <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <TagIcon className="size-3.5 text-primary" />
+                <span>Nome da peça ou modelo</span>
+              </Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Vestido Midi Linho com Fenda"
+                className="h-11 rounded-xl font-semibold text-sm bg-card shadow-2xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-primary" />
+                <span>Categoria / Referência</span>
+              </Label>
+              <Input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="Ex: Vestidos / REF-204"
+                className="h-11 rounded-xl font-medium text-sm bg-card shadow-2xs"
+              />
+            </div>
+          </div>
 
           {/* Custo Fornecedor apenas no Modo Rápido */}
           {mode === "rapida" && (
-            <Field label="Custo Fornecedor (Atacado)">
-              <Input
-                inputMode="decimal"
-                value={wholesale}
-                onChange={(e) => setWholesale(e.target.value)}
-                placeholder="49,90"
-                className="h-11 rounded-xl font-bold text-sm bg-card"
-              />
-            </Field>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Custo Fornecedor (Atacado)</Label>
+              <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                <input
+                  inputMode="decimal"
+                  value={wholesale}
+                  onChange={(e) => setWholesale(e.target.value)}
+                  placeholder="49,90"
+                  className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                />
+              </div>
+            </div>
           )}
 
-          {/* Custos Operacionais Rateados — aplicam a TODAS as variantes */}
-          <div className="space-y-3">
-            {mode === "grade" && (
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                <span className="flex-1 h-px bg-border/60" />
-                Custos fixos rateados por peça (aplicados a todos os tamanhos)
-                <span className="flex-1 h-px bg-border/60" />
-              </div>
-            )}
+          {/* Custos Operacionais Compartilhados (Frete, Embalagem, Outros) */}
+          <div className="rounded-2xl border border-border/80 bg-secondary/20 p-4 sm:p-5 space-y-4 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                📦 Custos Fixos Compartilhados por Peça
+              </span>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Aplicados igualmente a todas as cores e tamanhos
+              </span>
+            </div>
 
-            {/* Assistente de Rateio Rápido Expandido */}
+            {/* Assistente de Rateio Rápido Expandido (Frosted Studio Card) */}
             {rateioTarget && (
-              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3 animate-in fade-in-50 duration-200 shadow-2xs">
+              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 space-y-3.5 animate-in fade-in-50 duration-200 shadow-soft">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                    <Calculator className="size-4" />
+                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                    <div className="size-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                      <Calculator className="size-3.5 text-primary" />
+                    </div>
                     <span>
                       Assistente de Rateio:{" "}
-                      {rateioTarget === "freight" ? "Frete da Nota" : rateioTarget === "packaging" ? "Embalagens / Tags" : "Outros Custos"}
+                      {rateioTarget === "freight" ? "Frete da Nota" : rateioTarget === "packaging" ? "Embalagens & Tags" : "Outros Custos"}
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setRateioTarget(null)}
-                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs"
+                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs cursor-pointer"
                   >
-                    <X className="size-3.5" />
+                    <X className="size-4" />
                   </button>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3 items-end">
-                  <div className="space-y-1">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
+                  <div className="space-y-1.5">
                     <Label className="text-[11px] font-semibold text-muted-foreground">Valor Total da Nota (R$)</Label>
-                    <Input
-                      inputMode="decimal"
-                      value={rateioTotal}
-                      onChange={(e) => setRateioTotal(e.target.value)}
-                      placeholder="Ex: 120,00"
-                      className="h-9 rounded-lg font-bold text-xs bg-card"
-                      autoFocus
-                    />
+                    <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                      <input
+                        inputMode="decimal"
+                        value={rateioTotal}
+                        onChange={(e) => setRateioTotal(e.target.value)}
+                        placeholder="120,00"
+                        className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
+                        autoFocus
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-[11px] font-semibold text-muted-foreground">Total de Peças</Label>
                       {actualLotUnits > 0 && (
                         <button
                           type="button"
                           onClick={() => setRateioPieces(String(actualLotUnits))}
-                          className="text-[10px] text-primary hover:underline font-bold"
+                          className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
                         >
                           Usar {actualLotUnits} un. da grade
                         </button>
                       )}
                     </div>
-                    <Input
-                      inputMode="numeric"
-                      value={rateioPieces}
-                      onChange={(e) => setRateioPieces(e.target.value)}
-                      placeholder="Ex: 20"
-                      className="h-9 rounded-lg font-bold text-xs bg-card"
-                    />
+                    <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                      <input
+                        inputMode="numeric"
+                        value={rateioPieces}
+                        onChange={(e) => setRateioPieces(e.target.value)}
+                        placeholder="20"
+                        className="h-10 w-full bg-transparent px-3 text-xs font-bold text-foreground outline-none"
+                      />
+                      <span className="pr-3 text-[11px] font-semibold text-muted-foreground select-none">un.</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      onClick={applyRateio}
-                      disabled={!toNumber(rateioTotal) || !Number(rateioPieces)}
-                      className="h-9 w-full rounded-lg gradient-primary text-xs font-bold shadow-glow"
-                    >
-                      {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
-                        <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
-                      ) : (
-                        <>Calcular e Aplicar</>
-                      )}
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    onClick={applyRateio}
+                    disabled={!toNumber(rateioTotal) || !Number(rateioPieces)}
+                    className="h-10 rounded-xl gradient-primary text-xs font-bold shadow-glow shrink-0 cursor-pointer active:scale-95 transition-all"
+                  >
+                    {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
+                      <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
+                    ) : (
+                      <>Calcular e Aplicar</>
+                    )}
+                  </Button>
                 </div>
               </div>
             )}
 
+            {/* Grid dos 3 Custos Compartilhados com R$ Integrado e Micro-Pílula */}
             <div className="grid gap-4 sm:grid-cols-3">
+              {/* Frete */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground">Frete por peça</Label>
+                  <Label className="text-xs font-semibold text-foreground">Frete por peça</Label>
                   <button
                     type="button"
                     onClick={() => openRateioAssistant("freight")}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-                    title="Calcular rateio do frete total pelo número de peças"
+                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    title="Calcular rateio do frete total da nota"
                   >
                     <Calculator className="size-3" />
                     <span>÷ Ratear</span>
                   </button>
                 </div>
-                <Input
-                  inputMode="decimal"
-                  value={freight}
-                  onChange={(e) => setFreight(e.target.value)}
-                  placeholder="6,00"
-                  className="h-11 rounded-xl font-semibold text-sm bg-card"
-                />
+                <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <input
+                    inputMode="decimal"
+                    value={freight}
+                    onChange={(e) => setFreight(e.target.value)}
+                    placeholder="6,00"
+                    className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                  />
+                </div>
               </div>
 
+              {/* Embalagem & Tag */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground">Embalagem & Tag por peça</Label>
+                  <Label className="text-xs font-semibold text-foreground">Embalagem & Tag</Label>
                   <button
                     type="button"
                     onClick={() => openRateioAssistant("packaging")}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-                    title="Calcular rateio das embalagens pelo número de peças"
+                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    title="Calcular rateio do custo de embalagens e tags"
                   >
                     <Calculator className="size-3" />
                     <span>÷ Ratear</span>
                   </button>
                 </div>
-                <Input
-                  inputMode="decimal"
-                  value={packaging}
-                  onChange={(e) => setPackaging(e.target.value)}
-                  placeholder="3,50"
-                  className="h-11 rounded-xl font-semibold text-sm bg-card"
-                />
+                <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <input
+                    inputMode="decimal"
+                    value={packaging}
+                    onChange={(e) => setPackaging(e.target.value)}
+                    placeholder="3,50"
+                    className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                  />
+                </div>
               </div>
 
+              {/* Outros Custos */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground">Outros custos por peça</Label>
+                  <Label className="text-xs font-semibold text-foreground">Outros custos por peça</Label>
                   <button
                     type="button"
                     onClick={() => openRateioAssistant("other")}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-                    title="Calcular rateio de outros custos pelo número de peças"
+                    className="inline-flex items-center gap-1 rounded-md bg-primary/10 hover:bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    title="Calcular rateio de despesas extras"
                   >
                     <Calculator className="size-3" />
                     <span>÷ Ratear</span>
                   </button>
                 </div>
-                <Input
-                  inputMode="decimal"
-                  value={other}
-                  onChange={(e) => setOther(e.target.value)}
-                  placeholder="2,00"
-                  className="h-11 rounded-xl font-semibold text-sm bg-card"
-                />
+                <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <input
+                    inputMode="decimal"
+                    value={other}
+                    onChange={(e) => setOther(e.target.value)}
+                    placeholder="2,00"
+                    className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Taxas Fiscais e de Cartão sempre visíveis */}
+          {/* Taxas Fiscais e de Cartão com Controles Híbridos Studio */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <SliderRow
+            <HybridTaxControl
               label="Imposto DAS / Simples (%)"
+              hint="Alíquota aplicada sobre o faturamento de cada venda"
               value={tax}
               max={25}
               onChange={setTax}
-              display={pct(tax)}
+              presets={[
+                { label: "MEI (0%)", value: 0 },
+                { label: "Simples F1 (4%)", value: 4 },
+                { label: "Simples F2 (7%)", value: 7 },
+                { label: "Simples F3 (10%)", value: 10 },
+              ]}
             />
-            <SliderRow
+            <HybridTaxControl
               label="Taxa média de cartão (%)"
+              hint="Taxa média ponderada descontada pelas maquininhas"
               value={cardRate}
               max={15}
               onChange={setCardRate}
-              display={pct(cardRate)}
+              presets={[
+                { label: "Pix (0%)", value: 0 },
+                { label: "Débito (1.5%)", value: 1.5 },
+                { label: "Crédito 1x (3.2%)", value: 3.2 },
+                { label: "Parcelado (5.5%)", value: 5.5 },
+              ]}
             />
           </div>
         </section>
@@ -2437,6 +2495,83 @@ function Precificacao() {
           </Button>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function HybridTaxControl({
+  label,
+  value,
+  max,
+  onChange,
+  hint,
+  presets,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  onChange: (v: number) => void;
+  hint?: string;
+  presets?: { label: string; value: number }[];
+}) {
+  return (
+    <div className="space-y-2 rounded-2xl border border-border/80 bg-secondary/20 p-4 shadow-2xs">
+      <div className="flex items-center justify-between gap-2">
+        <div className="space-y-0.5">
+          <Label className="text-xs font-bold text-foreground">{label}</Label>
+          {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+        </div>
+
+        {/* Input Numérico de Precisão Decimal com % integrado */}
+        <div className="flex items-center rounded-lg border border-border/80 bg-card px-2.5 py-1 shadow-2xs">
+          <input
+            inputMode="decimal"
+            value={value}
+            onChange={(e) => {
+              const val = e.target.value.replace(",", ".");
+              const n = parseFloat(val);
+              if (!isNaN(n)) {
+                onChange(Math.min(max, Math.max(0, n)));
+              } else if (e.target.value === "") {
+                onChange(0);
+              }
+            }}
+            className="w-10 text-right text-xs font-bold text-primary outline-none bg-transparent"
+          />
+          <span className="text-xs font-bold text-muted-foreground ml-0.5">%</span>
+        </div>
+      </div>
+
+      {/* Slider Suave com precisão de 0.1% */}
+      <Slider
+        className="pt-1.5"
+        value={[value]}
+        max={max}
+        step={0.1}
+        onValueChange={(v) => onChange(v[0] ?? 0)}
+      />
+
+      {/* Chips Rápidos de Mercado (Presets) */}
+      {presets && presets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-[10px] font-semibold text-muted-foreground mr-1">Atalhos:</span>
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => onChange(p.value)}
+              className={cn(
+                "rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer",
+                Math.abs(value - p.value) < 0.05
+                  ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                  : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
