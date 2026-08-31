@@ -197,6 +197,7 @@ function Precificacao() {
   ]);
 
   // Seletor de geração rápida da grade
+  const [activeColors, setActiveColors] = useState<string[]>(["Off-White", "Preto"]);
   const [genSizes, setGenSizes] = useState<string[]>(["P", "M", "G", "GG"]);
   const [genColors, setGenColors] = useState<string[]>(["Off-White", "Preto"]);
   const [activePreset, setActivePreset] = useState<string>("letras");
@@ -494,6 +495,12 @@ function Precificacao() {
   // ── Agrupamento por Cor com Ordenação Canônica de Tamanhos ──────────
   const colorGroups = useMemo(() => {
     const map = new Map<string, typeof variantResults>();
+
+    // Inicializa o mapa com todas as cores ativas cadastradas
+    activeColors.forEach((c) => {
+      map.set(c, []);
+    });
+
     variantResults.forEach((v) => {
       if (!map.has(v.color)) {
         map.set(v.color, []);
@@ -517,7 +524,7 @@ function Precificacao() {
     }[] = [];
 
     map.forEach((items, color) => {
-      // Ordena os itens da cor na sequência canônica da moda (PP -> GG)
+      // Ordena os itens da cor na sequência canônica da moda (PP -> GG -> G1 -> 36 -> 38... -> Único)
       const sortedItems = [...items].sort((a, b) => {
         const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
         const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
@@ -527,19 +534,23 @@ function Precificacao() {
         return a.size.localeCompare(b.size);
       });
 
-      const groupTotalQty = sortedItems.reduce((a, b) => a + b.qty, 0) || 1;
-      const groupTotalRev = sortedItems.reduce((a, b) => a + b.suggestedPrice * b.qty, 0);
-      const groupTotalCost = sortedItems.reduce((a, b) => a + b.realCost * b.qty, 0);
-      const groupTotalProf = sortedItems.reduce((a, b) => a + b.profit * b.qty, 0);
-      const avgPrice = groupTotalRev / groupTotalQty;
-      const avgCost = groupTotalCost / groupTotalQty;
-      const avgProfit = groupTotalProf / groupTotalQty;
+      const groupTotalQty = sortedItems.reduce((a, b) => a + (b.qty || 1), 0);
+      const groupTotalRev = sortedItems.reduce((a, b) => a + b.suggestedPrice * (b.qty || 1), 0);
+      const groupTotalCost = sortedItems.reduce((a, b) => a + b.realCost * (b.qty || 1), 0);
+      const groupTotalProf = sortedItems.reduce((a, b) => a + b.profit * (b.qty || 1), 0);
+      const avgPrice = groupTotalQty > 0 ? groupTotalRev / groupTotalQty : 0;
+      const avgCost = groupTotalQty > 0 ? groupTotalCost / groupTotalQty : 0;
+      const avgProfit = groupTotalQty > 0 ? groupTotalProf / groupTotalQty : 0;
       const avgMargin = avgPrice > 0 ? (avgProfit / avgPrice) * 100 : 0;
 
       groups.push({
         color,
         items: sortedItems,
         totalItems: sortedItems.length,
+        totalUnits: groupTotalQty,
+        totalRevenue: groupTotalRev,
+        totalCost: groupTotalCost,
+        totalProfit: groupTotalProf,
         avgPrice,
         avgCost,
         avgProfit,
@@ -549,7 +560,7 @@ function Precificacao() {
     });
 
     return groups;
-  }, [variantResults]);
+  }, [activeColors, variantResults]);
 
   // ── Ações de Manipulação da Grade por Cor & Tamanho ──────────────
   const toggleColorSize = (color: string, size: string) => {
@@ -558,61 +569,73 @@ function Precificacao() {
     );
 
     if (existing) {
-      if (variants.length <= 1) {
-        toast.error("Mantenha ao menos um tamanho na grade");
-        return;
-      }
       setVariants((prev) => prev.filter((v) => v.id !== existing.id));
       toast.success(`Tamanho ${size} removido da cor ${color}`);
     } else {
       const newId = `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`;
-      setVariants((prev) => [
-        ...prev,
-        {
-          id: newId,
-          size: size.toUpperCase(),
-          color: color,
-          wholesaleCost: "",
-          customSalePrice: "",
-        },
-      ]);
+      const newVariant: VariantRow = {
+        id: newId,
+        size: size.toUpperCase(),
+        color: color,
+        wholesaleCost: "",
+        customSalePrice: "",
+        qty: 2,
+      };
+
+      // Garante que a cor esteja em activeColors
+      setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === color.toLowerCase()) ? prev : [...prev, color]));
+
+      // Adiciona e ordena na ordem canônica da moda
+      setVariants((prev) => {
+        const nextList = [...prev, newVariant];
+        return nextList.sort((a, b) => {
+          if (a.color.toLowerCase() === b.color.toLowerCase()) {
+            const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+            const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.size.localeCompare(b.size);
+          }
+          return a.color.localeCompare(b.color);
+        });
+      });
       toast.success(`Tamanho ${size} adicionado à cor ${color}!`);
     }
   };
 
   const removeColor = (color: string) => {
-    const remaining = variants.filter((v) => v.color.toLowerCase() !== color.toLowerCase());
-    if (remaining.length === 0) {
-      toast.error("Mantenha ao menos uma cor na grade");
-      return;
-    }
-    setVariants(remaining);
+    setActiveColors((prev) => prev.filter((c) => c.toLowerCase() !== color.toLowerCase()));
+    setVariants((prev) => prev.filter((v) => v.color.toLowerCase() !== color.toLowerCase()));
     toast.success(`Cor "${color}" removida da grade`);
   };
 
   const addQuickColor = (colorName: string) => {
     const clean = colorName.trim();
     if (!clean) return;
-    const exists = colorGroups.some((g) => g.color.toLowerCase() === clean.toLowerCase());
+    const exists = activeColors.some((c) => c.toLowerCase() === clean.toLowerCase());
     if (exists) {
       toast.error(`A cor "${clean}" já está na grade`);
       return;
     }
 
-    // Pega os tamanhos mais comuns já presentes na grade ou padrão PP-GG
+    // Pega os tamanhos mais comuns já presentes na grade ou padrão P, M, G, GG
     const currentSizes = Array.from(new Set(variants.map((v) => v.size)));
     const sizesToUse = currentSizes.length > 0 ? currentSizes : ["P", "M", "G", "GG"];
+    const canonicalSizesToUse = sortCanonicalSizes(sizesToUse);
 
-    const newRows: VariantRow[] = sizesToUse.map((sz) => ({
+    const newRows: VariantRow[] = canonicalSizesToUse.map((sz) => ({
       id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
       size: sz,
       color: clean,
       wholesaleCost: "",
       customSalePrice: "",
+      qty: 2,
     }));
 
+    setActiveColors((prev) => [...prev, clean]);
     setVariants((prev) => [...prev, ...newRows]);
-    toast.success(`Cor "${clean}" adicionada com os tamanhos ${sizesToUse.join(", ")}!`);
+    toast.success(`Cor "${clean}" adicionada com os tamanhos ${canonicalSizesToUse.join(", ")}!`);
   };
 
   const addCustomColor = () => {
@@ -624,10 +647,6 @@ function Precificacao() {
 
   // ── Ações de Manipulação da Tabela de Variantes ────────────────────
   const removeVariant = (id: string) => {
-    if (variants.length <= 1) {
-      toast.error("Mantenha ao menos uma variante na lista");
-      return;
-    }
     setVariants((prev) => prev.filter((v) => v.id !== id));
   };
 
@@ -890,8 +909,9 @@ function Precificacao() {
       return;
     }
 
+    const canonicalSizes = sortCanonicalSizes(genSizes);
     const newRows: VariantRow[] = [];
-    genSizes.forEach((sz) => {
+    canonicalSizes.forEach((sz) => {
       genColors.forEach((col) => {
         newRows.push({
           id: `v-${sz.toLowerCase()}-${col.toLowerCase().replace(/\s+/g, "-")}`,
@@ -899,10 +919,12 @@ function Precificacao() {
           color: col,
           wholesaleCost: "",
           customSalePrice: "",
+          qty: 2,
         });
       });
     });
 
+    setActiveColors(genColors);
     setVariants(newRows);
     setShowMatrixGenerator(false);
     toast.success(`Grade gerada com sucesso! ${newRows.length} itens criados na lista.`);
@@ -2130,6 +2152,13 @@ function Precificacao() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {group.items.length === 0 && (
+                      <div className="rounded-xl border border-dashed border-border/80 bg-secondary/20 p-5 text-center space-y-1">
+                        <p className="text-xs font-semibold text-foreground">Nenhum tamanho selecionado para {group.color}</p>
+                        <p className="text-[11px] text-muted-foreground">Clique nos botões de tamanho acima (PP, P, M, G...) para incluir na grade.</p>
                       </div>
                     )}
                   </div>
