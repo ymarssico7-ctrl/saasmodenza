@@ -371,13 +371,13 @@ function Precificacao() {
 
       if (!hasExplicitManualPrice) {
         if (cs.mode === "margin") {
-          const targetMargin = typeof cs.margin === "number" ? cs.margin : Number(cs.margin) || 50;
+          const targetMargin = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
           const divisor = 1 - (targetMargin + tax + cardRate) / 100;
           const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
           const price = divisor > 0 ? realCost / divisor : realCost * 2;
           customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
         } else if (cs.mode === "markup") {
-          const targetMarkup = typeof cs.markup === "number" ? cs.markup : Number(cs.markup) || 100;
+          const targetMarkup = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
           const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
           const price = realCost * (1 + targetMarkup / 100);
           customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
@@ -736,15 +736,33 @@ function Precificacao() {
   };
 
   const updateColorMargin = (color: string, marginVal: number | string) => {
-    if (marginVal === "" || marginVal === undefined) {
+    // Permite strings intermediárias com vírgula (ex: "13,", "13,5") durante digitação
+    if (marginVal === "" || marginVal === undefined || marginVal === "," || marginVal === ".") {
       setColorStrategies((prev) => {
         const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
         return { ...prev, [color.toLowerCase()]: { ...current, mode: "margin", margin: "" } };
       });
       return;
     }
-    const num = typeof marginVal === "number" ? marginVal : Number(marginVal);
-    if (isNaN(num)) return;
+    // Se for string com vírgula ou ponto incompleto (ex: "13,"), guarda como string sem clampar
+    const strVal = String(marginVal);
+    if (strVal.endsWith(",") || strVal.endsWith(".")) {
+      setColorStrategies((prev) => {
+        const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+        return { ...prev, [color.toLowerCase()]: { ...current, mode: "margin", margin: strVal } };
+      });
+      return;
+    }
+    // Número completo: converte usando toNumber (aceita vírgula BR) e clampeia
+    const num = typeof marginVal === "number" ? marginVal : toNumber(String(marginVal));
+    if (isNaN(num) || num === 0) {
+      // Guarda a string bruta para permitir edição contínua
+      setColorStrategies((prev) => {
+        const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+        return { ...prev, [color.toLowerCase()]: { ...current, mode: "margin", margin: strVal } };
+      });
+      return;
+    }
     const safeMargin = Math.min(85, Math.max(1, num));
     setColorStrategies((prev) => {
       const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
@@ -756,15 +774,33 @@ function Precificacao() {
   };
 
   const updateColorMarkup = (color: string, markupVal: number | string) => {
-    if (markupVal === "" || markupVal === undefined) {
+    // Permite strings intermediárias com vírgula (ex: "115,", "115,5") durante digitação
+    if (markupVal === "" || markupVal === undefined || markupVal === "," || markupVal === ".") {
       setColorStrategies((prev) => {
         const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
         return { ...prev, [color.toLowerCase()]: { ...current, mode: "markup", markup: "" } };
       });
       return;
     }
-    const num = typeof markupVal === "number" ? markupVal : Number(markupVal);
-    if (isNaN(num)) return;
+    // Se for string com vírgula ou ponto incompleto (ex: "115,"), guarda como string sem clampar
+    const strVal = String(markupVal);
+    if (strVal.endsWith(",") || strVal.endsWith(".")) {
+      setColorStrategies((prev) => {
+        const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+        return { ...prev, [color.toLowerCase()]: { ...current, mode: "markup", markup: strVal } };
+      });
+      return;
+    }
+    // Número completo: converte usando toNumber (aceita vírgula BR) e clampeia
+    const num = typeof markupVal === "number" ? markupVal : toNumber(String(markupVal));
+    if (isNaN(num) || num === 0) {
+      // Guarda a string bruta para permitir edição contínua
+      setColorStrategies((prev) => {
+        const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+        return { ...prev, [color.toLowerCase()]: { ...current, mode: "markup", markup: strVal } };
+      });
+      return;
+    }
     const safeMarkup = Math.min(300, Math.max(1, num));
     setColorStrategies((prev) => {
       const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
@@ -795,10 +831,10 @@ function Precificacao() {
   const applyStrategyToColor = (color: string) => {
     const cs = getColorStrategy(color);
     if (cs.mode === "margin") {
-      const m = typeof cs.margin === "number" ? cs.margin : Number(cs.margin) || 50;
+      const m = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
       updateColorMargin(color, m);
     } else if (cs.mode === "markup") {
-      const mk = typeof cs.markup === "number" ? cs.markup : Number(cs.markup) || 100;
+      const mk = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
       updateColorMarkup(color, mk);
     } else if (cs.mode === "direct_price") {
       updateColorDirectPrice(color, cs.directPrice);
@@ -1762,8 +1798,8 @@ function Precificacao() {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const cur = typeof cs.margin === "number" ? cs.margin : (Number(cs.margin) || 50);
-                                      const next = Math.max(1, cur - 1);
+                                      const cur = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
+                                      const next = Math.max(1, Math.round(cur) - 1);
                                       updateColorMargin(group.color, next);
                                     }}
                                     className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
@@ -1779,22 +1815,17 @@ function Precificacao() {
                                         const raw = e.target.value;
                                         // Aceita dígitos, vírgula e ponto (ex: "52,5" ou "52.5")
                                         if (/^[\d,\.]*$/.test(raw)) {
-                                          const n = parseFloat(raw.replace(",", "."));
-                                          if (raw === "" || raw === "," || raw === ".") {
-                                            updateColorMargin(group.color, raw);
-                                          } else if (!isNaN(n)) {
-                                            // Não clampeia durante digitação para não bloquear "52,"
-                                            updateColorMargin(group.color, raw);
-                                          }
+                                          updateColorMargin(group.color, raw);
                                         }
                                       }}
                                       onBlur={() => {
-                                        const raw = String(cs.margin ?? "").replace(",", ".");
-                                        const n = parseFloat(raw);
-                                        if (isNaN(n) || n <= 0) {
+                                        const raw = String(cs.margin ?? "").trim();
+                                        const n = toNumber(raw);
+                                        if (raw === "" || isNaN(n) || n <= 0) {
                                           updateColorMargin(group.color, 50);
                                         } else {
-                                          updateColorMargin(group.color, Math.min(85, Math.max(1, n)));
+                                          const clamped = Math.min(85, Math.max(1, n));
+                                          updateColorMargin(group.color, String(clamped).replace(".", ","));
                                         }
                                       }}
                                       className="w-10 text-center text-xs font-bold outline-none bg-transparent text-primary"
@@ -1804,8 +1835,8 @@ function Precificacao() {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const cur = typeof cs.margin === "number" ? cs.margin : (Number(cs.margin) || 50);
-                                      const next = Math.min(85, cur + 1);
+                                      const cur = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
+                                      const next = Math.min(85, Math.round(cur) + 1);
                                       updateColorMargin(group.color, next);
                                     }}
                                     className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
@@ -1824,7 +1855,7 @@ function Precificacao() {
                                       onClick={() => updateColorMargin(group.color, m)}
                                       className={cn(
                                         "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                                        Number(cs.margin) === m
+                                        toNumber(cs.margin) === m
                                           ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
                                           : "text-muted-foreground hover:text-foreground hover:bg-card/50",
                                       )}
@@ -1840,7 +1871,7 @@ function Precificacao() {
                             {cs.mode === "markup" && (() => {
                               // Calcular margem real líquida do markup
                               const sampleCost = group.avgCost || 50;
-                              const mkNum = typeof cs.markup === "number" ? cs.markup : (Number(cs.markup) || 100);
+                              const mkNum = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
                               const samplePrice = sampleCost * (1 + mkNum / 100);
                               const deductions = samplePrice * ((tax + cardRate) / 100);
                               const sampleProfit = samplePrice - sampleCost - deductions;
@@ -1854,8 +1885,8 @@ function Precificacao() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const cur = typeof cs.markup === "number" ? cs.markup : (Number(cs.markup) || 100);
-                                        const next = Math.max(1, cur - 5);
+                                        const cur = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
+                                        const next = Math.max(1, Math.round(cur) - 5);
                                         updateColorMarkup(group.color, next);
                                       }}
                                       className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
@@ -1871,22 +1902,17 @@ function Precificacao() {
                                           const raw = e.target.value;
                                           // Aceita dígitos, vírgula e ponto (ex: "115,5" ou "115.5")
                                           if (/^[\d,\.]*$/.test(raw)) {
-                                            const n = parseFloat(raw.replace(",", "."));
-                                            if (raw === "" || raw === "," || raw === ".") {
-                                              updateColorMarkup(group.color, raw);
-                                            } else if (!isNaN(n)) {
-                                              // Não clampeia durante digitação para não bloquear "115,"
-                                              updateColorMarkup(group.color, raw);
-                                            }
+                                            updateColorMarkup(group.color, raw);
                                           }
                                         }}
                                         onBlur={() => {
-                                          const raw = String(cs.markup ?? "").replace(",", ".");
-                                          const n = parseFloat(raw);
-                                          if (isNaN(n) || n <= 0) {
+                                          const raw = String(cs.markup ?? "").trim();
+                                          const n = toNumber(raw);
+                                          if (raw === "" || isNaN(n) || n <= 0) {
                                             updateColorMarkup(group.color, 100);
                                           } else {
-                                            updateColorMarkup(group.color, Math.min(300, Math.max(1, n)));
+                                            const clamped = Math.min(300, Math.max(1, n));
+                                            updateColorMarkup(group.color, String(clamped).replace(".", ","));
                                           }
                                         }}
                                         className="w-10 text-center text-xs font-bold outline-none bg-transparent text-primary"
@@ -1896,8 +1922,8 @@ function Precificacao() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const cur = typeof cs.markup === "number" ? cs.markup : (Number(cs.markup) || 100);
-                                        const next = Math.min(300, cur + 5);
+                                        const cur = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
+                                        const next = Math.min(300, Math.round(cur) + 5);
                                         updateColorMarkup(group.color, next);
                                       }}
                                       className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
