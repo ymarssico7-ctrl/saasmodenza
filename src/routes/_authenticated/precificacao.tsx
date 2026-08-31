@@ -122,14 +122,62 @@ const PRESET_OPTIONS = [
 ];
 
 const COLOR_PRESETS = [
+  // Neutros & Clássicos
   { name: "Off-White", color: "#F8F6F0" },
   { name: "Preto", color: "#1A1A1A" },
   { name: "Areia", color: "#D8C7B5" },
+  { name: "Nude", color: "#E3BC9A" },
+  { name: "Bege", color: "#E8D8C8" },
+  { name: "Branco", color: "#FFFFFF" },
+  { name: "Grafite", color: "#4A4A4A" },
+  { name: "Cinza Mescla", color: "#9E9E9E" },
+
+  // Terrosos & Quentes
   { name: "Terracota", color: "#C86D51" },
+  { name: "Caramelo", color: "#A86538" },
+  { name: "Marrom Chocolate", color: "#5C4033" },
+  { name: "Telha", color: "#B85338" },
+  { name: "Mostarda", color: "#D4AF37" },
+  { name: "Amarelo Manteiga", color: "#F0E68C" },
+
+  // Verdes
   { name: "Verde Oliva", color: "#556B2F" },
+  { name: "Verde Militar", color: "#4B5320" },
+  { name: "Verde Menta", color: "#98FF98" },
+  { name: "Verde Esmeralda", color: "#046307" },
+  { name: "Verde Sálvia", color: "#9DC183" },
+  { name: "Verde Lima", color: "#32CD32" },
+
+  // Azuis
   { name: "Azul Marinho", color: "#1B2A4A" },
+  { name: "Azul Jeans", color: "#4B6B94" },
+  { name: "Azul Céu", color: "#87CEEB" },
+  { name: "Azul Royal", color: "#4169E1" },
+  { name: "Azul Turquesa", color: "#40E0D0" },
+  { name: "Índigo", color: "#3F51B5" },
+
+  // Rosas & Vermelhos
   { name: "Rosa Seco", color: "#D4A5A5" },
+  { name: "Rosa Bebê", color: "#FFB6C1" },
+  { name: "Fúcsia", color: "#C71585" },
+  { name: "Pink", color: "#FF1493" },
+  { name: "Rosê", color: "#C98A7D" },
+  { name: "Coral", color: "#FF7F50" },
+  { name: "Vermelho", color: "#C41E3A" },
+  { name: "Vinho", color: "#722F37" },
   { name: "Marsala", color: "#651C32" },
+
+  // Roxos & Lilás
+  { name: "Lilás", color: "#C8A2C8" },
+  { name: "Lavanda", color: "#E6E6FA" },
+  { name: "Roxo", color: "#800080" },
+
+  // Estampas & Especiais
+  { name: "Estampado", color: "#FF69B4" },
+  { name: "Animal Print", color: "#C19A6B" },
+  { name: "Floral", color: "#FFB7C5" },
+  { name: "Dourado", color: "#FFD700" },
+  { name: "Prata", color: "#C0C0C0" },
 ];
 
 function getColorDot(col: string): string {
@@ -138,14 +186,21 @@ function getColorDot(col: string): string {
   if (normalized.includes("preto") || normalized.includes("black")) return "bg-[#1A1A1A]";
   if (normalized.includes("areia") || normalized.includes("bege") || normalized.includes("nude")) return "bg-[#D8C7B5]";
   if (normalized.includes("terracota") || normalized.includes("caramelo") || normalized.includes("telha")) return "bg-[#C86D51]";
-  if (normalized.includes("verde") || normalized.includes("militar") || normalized.includes("oliva")) return "bg-[#556B2F]";
-  if (normalized.includes("azul") || normalized.includes("marinho") || normalized.includes("jeans")) return "bg-[#1B2A4A]";
-  if (normalized.includes("rosa") || normalized.includes("pink") || normalized.includes("rose")) return "bg-[#D4A5A5]";
-  if (normalized.includes("vermelho") || normalized.includes("vinho") || normalized.includes("marsala")) return "bg-[#651C32]";
+  if (normalized.includes("menta") || normalized.includes("sálvia") || normalized.includes("salvia")) return "bg-[#9DC183]";
+  if (normalized.includes("militar") || normalized.includes("oliva") || normalized.includes("verde")) return "bg-[#556B2F]";
+  if (normalized.includes("jeans") || normalized.includes("índigo") || normalized.includes("indigo")) return "bg-[#4B6B94]";
+  if (normalized.includes("marinho") || normalized.includes("royal") || normalized.includes("azul") || normalized.includes("turquesa")) return "bg-[#1B2A4A]";
+  if (normalized.includes("fúcsia") || normalized.includes("fucsia") || normalized.includes("pink")) return "bg-[#C71585]";
+  if (normalized.includes("rosa") || normalized.includes("rose") || normalized.includes("rosê")) return "bg-[#D4A5A5]";
+  if (normalized.includes("vinho") || normalized.includes("marsala")) return "bg-[#651C32]";
+  if (normalized.includes("vermelho") || normalized.includes("coral") || normalized.includes("laranja")) return "bg-[#C41E3A]";
   if (normalized.includes("cinza") || normalized.includes("grafite") || normalized.includes("mescla")) return "bg-[#707070]";
-  if (normalized.includes("amarelo") || normalized.includes("mostarda")) return "bg-[#D4AF37]";
+  if (normalized.includes("amarelo") || normalized.includes("mostarda") || normalized.includes("manteiga")) return "bg-[#D4AF37]";
   if (normalized.includes("marrom") || normalized.includes("chocolate")) return "bg-[#5C4033]";
-  if (normalized.includes("lilas") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF]";
+  if (normalized.includes("lilas") || normalized.includes("lilás") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF]";
+  if (normalized.includes("dourado") || normalized.includes("ouro")) return "bg-[#FFD700]";
+  if (normalized.includes("prata")) return "bg-[#C0C0C0]";
+  if (normalized.includes("estampa") || normalized.includes("floral") || normalized.includes("animal")) return "bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500";
   return "bg-primary/40 border border-primary/20";
 }
 
@@ -203,8 +258,12 @@ function Precificacao() {
   const [activePreset, setActivePreset] = useState<string>("letras");
   const [customGenColor, setCustomGenColor] = useState("");
   const [showMatrixGenerator, setShowMatrixGenerator] = useState(false);
-  const [editingColorOverride, setEditingColorOverride] = useState<string | null>(null);
   const [newCustomColor, setNewCustomColor] = useState("");
+
+  // Busca Spotlight de Cores (Apple Level)
+  const [colorSearchQuery, setColorSearchQuery] = useState("");
+  const [showColorPopover, setShowColorPopover] = useState(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   // Estratégia de precificação por cor (independente por card de cor)
   const [colorStrategies, setColorStrategies] = useState<Record<string, ColorStrategy>>({});
@@ -643,6 +702,30 @@ function Precificacao() {
     if (!clean) return;
     addQuickColor(clean);
     setNewCustomColor("");
+  };
+
+  // ── Handlers do Color Spotlight Autocomplete (Apple Level) ────────
+  const matchingColorPresets = useMemo(() => {
+    const q = colorSearchQuery.trim().toLowerCase();
+    const available = COLOR_PRESETS.filter(
+      (cp) => !activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase()),
+    );
+    if (!q) return available.slice(0, 12);
+    return available.filter((cp) => cp.name.toLowerCase().includes(q));
+  }, [colorSearchQuery, activeColors]);
+
+  const handleSelectColorFromSpotlight = (colorName: string) => {
+    addQuickColor(colorName);
+    setColorSearchQuery("");
+    setShowColorPopover(false);
+  };
+
+  const handleCreateCustomColorFromSpotlight = () => {
+    const clean = colorSearchQuery.trim();
+    if (!clean) return;
+    addQuickColor(clean);
+    setColorSearchQuery("");
+    setShowColorPopover(false);
   };
 
   // ── Ações de Manipulação da Tabela de Variantes ────────────────────
@@ -2165,40 +2248,140 @@ function Precificacao() {
                 );
               })}
 
-              {/* Barra de Adicionar Outra Cor */}
-              <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-3.5 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground">Adicionar cor rápida:</span>
-                  {COLOR_PRESETS.filter(
-                    (cp) => !colorGroups.some((g) => g.color.toLowerCase() === cp.name.toLowerCase()),
-                  ).slice(0, 6).map((cp) => (
-                    <button
-                      key={cp.name}
-                      type="button"
-                      onClick={() => addQuickColor(cp.name)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all shadow-xs active:scale-95"
-                    >
-                      <span className={cn("size-2 rounded-full", getColorDot(cp.name))} />
-                      <span>+ {cp.name}</span>
-                    </button>
-                  ))}
+              {/* ── CARD BENTO DE ADIÇÃO DE CORES: SPOTLIGHT AUTOCOMPLETE + PALETA TÁTIL (APPLE HIG) ── */}
+              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-6.5 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-2xs">
+                      <Sparkles className="size-3.5" />
+                    </span>
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Adicionar Cores à Grade</h3>
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                    Busque na biblioteca de moda ou digite uma cor personalizada
+                  </span>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 shadow-xs">
-                  <input
-                    value={newCustomColor}
-                    onChange={(e) => setNewCustomColor(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomColor())}
-                    placeholder="Outra cor..."
-                    className="h-6 w-24 text-xs font-medium outline-none bg-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={addCustomColor}
-                    className="rounded-full gradient-primary px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs"
-                  >
-                    Adicionar
-                  </button>
+                {/* Campo Spotlight com Popover */}
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      ref={colorInputRef}
+                      value={colorSearchQuery}
+                      onChange={(e) => {
+                        setColorSearchQuery(e.target.value);
+                        setShowColorPopover(true);
+                      }}
+                      onFocus={() => setShowColorPopover(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (matchingColorPresets.length > 0 && matchingColorPresets[0]) {
+                            handleSelectColorFromSpotlight(matchingColorPresets[0].name);
+                          } else if (colorSearchQuery.trim()) {
+                            handleCreateCustomColorFromSpotlight();
+                          }
+                        } else if (e.key === "Escape") {
+                          setShowColorPopover(false);
+                        }
+                      }}
+                      placeholder="Buscar ou cadastrar cor (ex: Terracota, Nude, Jeans, Fúcsia, Verde Oliva...)"
+                      className="h-10.5 w-full rounded-xl border border-border/80 bg-secondary/30 pl-10 pr-26 text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/20 transition-all shadow-2xs"
+                    />
+                    {colorSearchQuery.trim() && (
+                      <button
+                        type="button"
+                        onClick={handleCreateCustomColorFromSpotlight}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7.5 rounded-lg gradient-primary px-3 text-[11px] font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                      >
+                        + Adicionar
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Menu Dropdown Spotlight Autocomplete de Cores */}
+                  {showColorPopover && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setShowColorPopover(false)}
+                      />
+                      <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-72 overflow-y-auto rounded-2xl border border-border/80 bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-1">
+                        {matchingColorPresets.length > 0 && (
+                          <>
+                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                              🎨 Cores Sugeridas da Moda ({matchingColorPresets.length})
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                              {matchingColorPresets.map((cp) => (
+                                <button
+                                  key={cp.name}
+                                  type="button"
+                                  onClick={() => handleSelectColorFromSpotlight(cp.name)}
+                                  className="flex items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all hover:bg-primary-soft/60 hover:text-primary active:scale-98 cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className={cn("size-3.5 rounded-full shadow-xs shrink-0", getColorDot(cp.name))} />
+                                    <span className="truncate font-semibold text-foreground">{cp.name}</span>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md shrink-0">
+                                    + Incluir
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="my-1.5 h-px bg-border/60" />
+                          </>
+                        )}
+
+                        {/* Atalho Inteligente para Cadastrar Cor Personalizada */}
+                        {colorSearchQuery.trim() ? (
+                          <button
+                            type="button"
+                            onClick={handleCreateCustomColorFromSpotlight}
+                            className="flex w-full items-center justify-between gap-2 rounded-xl bg-primary/10 border border-primary/30 px-3.5 py-2.5 text-left text-xs font-bold text-primary transition-all hover:bg-primary/20 active:scale-98 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Plus className="size-4 shrink-0" />
+                              <span>Cadastrar e adicionar <strong className="underline decoration-primary">"{colorSearchQuery.trim()}"</strong> à grade</span>
+                            </div>
+                            <span className="rounded-md bg-primary text-white text-[10px] px-2 py-0.5 shadow-2xs">
+                              Enter ↵
+                            </span>
+                          </button>
+                        ) : matchingColorPresets.length === 0 ? (
+                          <div className="px-3 py-3 text-center text-xs text-muted-foreground">
+                            Digite o nome de uma cor para cadastrar
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Sugestões Rápidas em Pílulas Táteis */}
+                <div className="space-y-1.5 pt-2 border-t border-border/50">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    ✨ Sugestões Rápidas:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {COLOR_PRESETS.filter(
+                      (cp) => !activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase()),
+                    ).slice(0, 10).map((cp) => (
+                      <button
+                        key={cp.name}
+                        type="button"
+                        onClick={() => addQuickColor(cp.name)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/30 px-3 py-1 text-xs font-semibold text-foreground hover:border-primary hover:bg-primary/5 hover:text-primary transition-all shadow-2xs active:scale-95 cursor-pointer"
+                      >
+                        <span className={cn("size-2.5 rounded-full shadow-2xs", getColorDot(cp.name))} />
+                        <span>+ {cp.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
