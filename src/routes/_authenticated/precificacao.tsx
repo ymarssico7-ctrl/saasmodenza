@@ -103,6 +103,8 @@ type ColorStrategy = {
   directPrice: string; // e.g. "139,90"
 };
 
+const DEFAULT_COLOR_STRATEGY: ColorStrategy = { mode: "margin", margin: 50, markup: 100, directPrice: "" };
+
 export type VariantRow = {
   id: string;
   size: string;
@@ -351,13 +353,39 @@ function Precificacao() {
     return calculateItem(toNumber(wholesale));
   }, [wholesale, calculateItem]);
 
-  // ── Cálculo da Tabela Unificada de Variantes ───────────────────────
+  // ── Cálculo da Tabela Unificada de Variantes (Totalmente Reativo) ───
   const variantResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
+    const freightNum = toNumber(freight);
+    const packagingNum = toNumber(packaging);
+    const otherNum = toNumber(other);
+
     return variants.map((v) => {
       const hasCustomCost = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
       const wholesaleNum = hasCustomCost ? toNumber(v.wholesaleCost) : baseNum;
-      const res = calculateItem(wholesaleNum, v.customSalePrice);
+      const cs = colorStrategies[v.color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+
+      let customPriceStr = v.customSalePrice;
+      const hasExplicitManualPrice = customPriceStr !== undefined && customPriceStr !== "" && toNumber(customPriceStr) > 0;
+
+      if (!hasExplicitManualPrice) {
+        if (cs.mode === "margin") {
+          const targetMargin = typeof cs.margin === "number" ? cs.margin : Number(cs.margin) || 50;
+          const divisor = 1 - (targetMargin + tax + cardRate) / 100;
+          const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
+          const price = divisor > 0 ? realCost / divisor : realCost * 2;
+          customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
+        } else if (cs.mode === "markup") {
+          const targetMarkup = typeof cs.markup === "number" ? cs.markup : Number(cs.markup) || 100;
+          const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
+          const price = realCost * (1 + targetMarkup / 100);
+          customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
+        } else if (cs.mode === "direct_price") {
+          customPriceStr = cs.directPrice;
+        }
+      }
+
+      const res = calculateItem(wholesaleNum, customPriceStr);
       const qty = v.qty && v.qty > 0 ? v.qty : 1;
       return {
         ...v,
@@ -367,7 +395,7 @@ function Precificacao() {
         ...res,
       };
     });
-  }, [variants, baseWholesaleGrade, calculateItem]);
+  }, [variants, baseWholesaleGrade, freight, packaging, other, tax, cardRate, colorStrategies, calculateItem]);
 
   // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
@@ -604,7 +632,7 @@ function Precificacao() {
 
   const updateVariantCost = (id: string, val: string) => {
     setVariants((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, wholesaleCost: val } : v)),
+      prev.map((v) => (v.id === id ? { ...v, wholesaleCost: val, customSalePrice: "" } : v)),
     );
   };
 
@@ -675,7 +703,7 @@ function Precificacao() {
     const v = toNumber(costStr);
     if (v <= 0) return;
     setVariants((prev) =>
-      prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, wholesaleCost: costStr } : vr))
+      prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, wholesaleCost: costStr, customSalePrice: "" } : vr))
     );
     toast.success(`Custo de R$ ${costStr} aplicado em todos os tamanhos de ${color}`);
   };
@@ -690,23 +718,11 @@ function Precificacao() {
   };
 
   const applyMarginToColor = (color: string, marginPct: number) => {
-    setVariants((prev) =>
-      prev.map((vr) => {
-        if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
-        const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
-        const price = computePriceForVariantMargin(wholesaleNum, marginPct);
-        return {
-          ...vr,
-          customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice,
-        };
-      })
-    );
+    updateColorMargin(color, marginPct);
     toast.success(`Margem de ${marginPct}% aplicada a todos os tamanhos de ${color}`);
   };
 
   // ── Estratégia Completa por Cor com Live-Sync Reativo (Margem / Markup / Preço Fixo) ──────
-
-  const DEFAULT_COLOR_STRATEGY: ColorStrategy = { mode: "margin", margin: 50, markup: 100, directPrice: "" };
 
   const getColorStrategy = (color: string): ColorStrategy =>
     colorStrategies[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
@@ -734,15 +750,7 @@ function Precificacao() {
       return { ...prev, [color.toLowerCase()]: { ...current, mode: "margin", margin: safeMargin } };
     });
     setVariants((prev) =>
-      prev.map((vr) => {
-        if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
-        const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
-        const price = computePriceForVariantMargin(wholesaleNum, safeMargin);
-        return {
-          ...vr,
-          customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice,
-        };
-      })
+      prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, customSalePrice: "" } : vr))
     );
   };
 
@@ -761,20 +769,8 @@ function Precificacao() {
       const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
       return { ...prev, [color.toLowerCase()]: { ...current, mode: "markup", markup: safeMarkup } };
     });
-    const freightNum = toNumber(freight);
-    const packagingNum = toNumber(packaging);
-    const otherNum = toNumber(other);
     setVariants((prev) =>
-      prev.map((vr) => {
-        if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
-        const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
-        const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-        const price = realCost * (1 + safeMarkup / 100);
-        return {
-          ...vr,
-          customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice,
-        };
-      })
+      prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, customSalePrice: "" } : vr))
     );
   };
 
@@ -1861,15 +1857,15 @@ function Precificacao() {
                                 {brl(v.realCost)}
                               </div>
 
-                              {/* Preço de Venda (Input Direto com Preço Sugerido) */}
+                              {/* Preço de Venda (Input Direto com Preço Sugerido Reativo) */}
                               <div>
                                 <div className="flex items-center gap-1">
                                   <span className="text-[11px] text-muted-foreground">R$</span>
                                   <input
                                     inputMode="decimal"
-                                    value={v.customSalePrice}
+                                    value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
                                     onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                    placeholder={String(v.suggestedPrice.toFixed(2)).replace(".", ",")}
+                                    placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
                                     className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
                                   />
                                 </div>
