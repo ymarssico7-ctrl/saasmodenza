@@ -704,7 +704,7 @@ function Precificacao() {
     toast.success(`Margem de ${marginPct}% aplicada a todos os tamanhos de ${color}`);
   };
 
-  // ── Estratégia Completa por Cor (Margem / Markup / Preço Fixo) ──────
+  // ── Estratégia Completa por Cor com Live-Sync Reativo (Margem / Markup / Preço Fixo) ──────
 
   const DEFAULT_COLOR_STRATEGY: ColorStrategy = { mode: "margin", margin: 50, markup: 100, directPrice: "" };
 
@@ -718,32 +718,74 @@ function Precificacao() {
     });
   };
 
-  const applyStrategyToColor = (color: string) => {
-    const cs = getColorStrategy(color);
+  const updateColorMargin = (color: string, marginPct: number) => {
+    const safeMargin = Math.min(85, Math.max(5, marginPct));
+    setColorStrategies((prev) => {
+      const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+      return { ...prev, [color.toLowerCase()]: { ...current, mode: "margin", margin: safeMargin } };
+    });
     setVariants((prev) =>
       prev.map((vr) => {
         if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
         const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
-
-        if (cs.mode === "margin") {
-          const price = computePriceForVariantMargin(wholesaleNum, cs.margin);
-          return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
-        }
-
-        if (cs.mode === "markup") {
-          const freightNum = toNumber(freight);
-          const packagingNum = toNumber(packaging);
-          const otherNum = toNumber(other);
-          const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-          const price = realCost * (1 + cs.markup / 100);
-          return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
-        }
-
-        // direct_price
-        const p = toNumber(cs.directPrice);
-        return { ...vr, customSalePrice: p > 0 ? cs.directPrice : vr.customSalePrice };
+        const price = computePriceForVariantMargin(wholesaleNum, safeMargin);
+        return {
+          ...vr,
+          customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice,
+        };
       })
     );
+  };
+
+  const updateColorMarkup = (color: string, markupPct: number) => {
+    const safeMarkup = Math.min(300, Math.max(10, markupPct));
+    setColorStrategies((prev) => {
+      const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+      return { ...prev, [color.toLowerCase()]: { ...current, mode: "markup", markup: safeMarkup } };
+    });
+    const freightNum = toNumber(freight);
+    const packagingNum = toNumber(packaging);
+    const otherNum = toNumber(other);
+    setVariants((prev) =>
+      prev.map((vr) => {
+        if (vr.color.toLowerCase() !== color.toLowerCase()) return vr;
+        const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
+        const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
+        const price = realCost * (1 + safeMarkup / 100);
+        return {
+          ...vr,
+          customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice,
+        };
+      })
+    );
+  };
+
+  const updateColorDirectPrice = (color: string, priceStr: string) => {
+    setColorStrategies((prev) => {
+      const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
+      return { ...prev, [color.toLowerCase()]: { ...current, mode: "direct_price", directPrice: priceStr } };
+    });
+    const p = toNumber(priceStr);
+    if (p > 0) {
+      setVariants((prev) =>
+        prev.map((vr) =>
+          vr.color.toLowerCase() === color.toLowerCase()
+            ? { ...vr, customSalePrice: priceStr }
+            : vr
+        )
+      );
+    }
+  };
+
+  const applyStrategyToColor = (color: string) => {
+    const cs = getColorStrategy(color);
+    if (cs.mode === "margin") {
+      updateColorMargin(color, cs.margin);
+    } else if (cs.mode === "markup") {
+      updateColorMarkup(color, cs.markup);
+    } else if (cs.mode === "direct_price") {
+      updateColorDirectPrice(color, cs.directPrice);
+    }
     const label =
       cs.mode === "margin" ? `Margem ${cs.margin}%` :
       cs.mode === "markup" ? `Markup ${cs.markup}%` :
@@ -1377,7 +1419,7 @@ function Precificacao() {
                         <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
                         <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
                         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"} · {group.totalUnits} {group.totalUnits === 1 ? "peça" : "peças"}
+                          {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"} · {group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)} {(group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)) === 1 ? "peça" : "peças"}
                         </span>
                       </div>
 
@@ -1390,7 +1432,7 @@ function Precificacao() {
                         <button
                           type="button"
                           onClick={() => removeColor(group.color)}
-                          className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                           title={`Remover cor ${group.color}`}
                         >
                           <Trash2 className="size-4" />
@@ -1412,7 +1454,7 @@ function Precificacao() {
                               type="button"
                               onClick={() => toggleColorSize(group.color, sz)}
                               className={cn(
-                                "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95",
+                                "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
                                 isActive
                                   ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
                                   : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
@@ -1440,9 +1482,12 @@ function Precificacao() {
                             <div className="grid grid-cols-3 gap-0.5 rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                               <button
                                 type="button"
-                                onClick={() => setColorStrategy(group.color, { mode: "margin" })}
+                                onClick={() => {
+                                  setColorStrategy(group.color, { mode: "margin" });
+                                  updateColorMargin(group.color, cs.margin);
+                                }}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all",
+                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
                                   cs.mode === "margin"
                                     ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -1453,9 +1498,12 @@ function Precificacao() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setColorStrategy(group.color, { mode: "markup" })}
+                                onClick={() => {
+                                  setColorStrategy(group.color, { mode: "markup" });
+                                  updateColorMarkup(group.color, cs.markup);
+                                }}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all",
+                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
                                   cs.mode === "markup"
                                     ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -1466,9 +1514,12 @@ function Precificacao() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setColorStrategy(group.color, { mode: "direct_price" })}
+                                onClick={() => {
+                                  setColorStrategy(group.color, { mode: "direct_price" });
+                                  if (cs.directPrice) updateColorDirectPrice(group.color, cs.directPrice);
+                                }}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all",
+                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
                                   cs.mode === "direct_price"
                                     ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -1485,18 +1536,18 @@ function Precificacao() {
                             {/* MODO MARGEM */}
                             {cs.mode === "margin" && (
                               <div className="flex flex-wrap items-center gap-1.5">
-                                {/* Stepper Tátil [- | 50% | +] */}
+                                {/* Stepper Tátil [- | 50% | +] com Live-Sync */}
                                 <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const next = Math.max(5, cs.margin - 5);
-                                      setColorStrategy(group.color, { margin: next });
+                                      updateColorMargin(group.color, next);
                                     }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
-                                    title="Diminuir 5%"
+                                    className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                                    title="Diminuir 5% na margem da cor"
                                   >
-                                    <Minus className="size-3" />
+                                    <Minus className="size-3.5" />
                                   </button>
                                   <div className="flex items-center px-1.5">
                                     <input
@@ -1504,9 +1555,9 @@ function Precificacao() {
                                       value={cs.margin}
                                       onChange={(e) => {
                                         const v = Math.min(85, Math.max(0, Number(e.target.value) || 0));
-                                        setColorStrategy(group.color, { margin: v });
+                                        updateColorMargin(group.color, v);
                                       }}
-                                      className="w-7 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                      className="w-8 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                     />
                                     <span className="text-[11px] font-semibold text-muted-foreground">%</span>
                                   </div>
@@ -1514,12 +1565,12 @@ function Precificacao() {
                                     type="button"
                                     onClick={() => {
                                       const next = Math.min(85, cs.margin + 5);
-                                      setColorStrategy(group.color, { margin: next });
+                                      updateColorMargin(group.color, next);
                                     }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
-                                    title="Aumentar 5%"
+                                    className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                                    title="Aumentar 5% na margem da cor"
                                   >
-                                    <Plus className="size-3" />
+                                    <Plus className="size-3.5" />
                                   </button>
                                 </div>
 
@@ -1529,12 +1580,9 @@ function Precificacao() {
                                     <button
                                       key={m}
                                       type="button"
-                                      onClick={() => {
-                                        setColorStrategy(group.color, { mode: "margin", margin: m });
-                                        applyMarginToColor(group.color, m);
-                                      }}
+                                      onClick={() => updateColorMargin(group.color, m)}
                                       className={cn(
-                                        "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all",
+                                        "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
                                         cs.margin === m
                                           ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
                                           : "text-muted-foreground hover:text-foreground hover:bg-card/50",
@@ -1559,18 +1607,18 @@ function Precificacao() {
 
                               return (
                                 <div className="flex flex-wrap items-center gap-2">
-                                  {/* Stepper Tátil [- | 100% | +] */}
+                                  {/* Stepper Tátil [- | 100% | +] com Live-Sync */}
                                   <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                                     <button
                                       type="button"
                                       onClick={() => {
                                         const next = Math.max(10, cs.markup - 10);
-                                        setColorStrategy(group.color, { markup: next });
+                                        updateColorMarkup(group.color, next);
                                       }}
-                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
-                                      title="Diminuir 10%"
+                                      className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                                      title="Diminuir 10% no markup da cor"
                                     >
-                                      <Minus className="size-3" />
+                                      <Minus className="size-3.5" />
                                     </button>
                                     <div className="flex items-center px-1.5">
                                       <input
@@ -1578,7 +1626,7 @@ function Precificacao() {
                                         value={cs.markup}
                                         onChange={(e) => {
                                           const v = Math.min(300, Math.max(0, Number(e.target.value) || 0));
-                                          setColorStrategy(group.color, { markup: v });
+                                          updateColorMarkup(group.color, v);
                                         }}
                                         className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                       />
@@ -1588,12 +1636,12 @@ function Precificacao() {
                                       type="button"
                                       onClick={() => {
                                         const next = Math.min(300, cs.markup + 10);
-                                        setColorStrategy(group.color, { markup: next });
+                                        updateColorMarkup(group.color, next);
                                       }}
-                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
-                                      title="Aumentar 10%"
+                                      className="size-7 sm:size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                                      title="Aumentar 10% no markup da cor"
                                     >
-                                      <Plus className="size-3" />
+                                      <Plus className="size-3.5" />
                                     </button>
                                   </div>
 
@@ -1603,24 +1651,9 @@ function Precificacao() {
                                       <button
                                         key={mk}
                                         type="button"
-                                        onClick={() => {
-                                          setColorStrategy(group.color, { mode: "markup", markup: mk });
-                                          const freightNum = toNumber(freight);
-                                          const packagingNum = toNumber(packaging);
-                                          const otherNum = toNumber(other);
-                                          setVariants((prev) =>
-                                            prev.map((vr) => {
-                                              if (vr.color.toLowerCase() !== group.color.toLowerCase()) return vr;
-                                              const wholesaleNum = toNumber(vr.wholesaleCost) > 0 ? toNumber(vr.wholesaleCost) : toNumber(baseWholesaleGrade);
-                                              const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-                                              const price = realCost * (1 + mk / 100);
-                                              return { ...vr, customSalePrice: price > 0 ? price.toFixed(2).replace(".", ",") : vr.customSalePrice };
-                                            })
-                                          );
-                                          toast.success(`Markup de ${mk}% aplicado a todos os tamanhos de ${group.color}`);
-                                        }}
+                                        onClick={() => updateColorMarkup(group.color, mk)}
                                         className={cn(
-                                          "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all",
+                                          "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
                                           cs.markup === mk
                                             ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
                                             : "text-muted-foreground hover:text-foreground hover:bg-card/50",
@@ -1645,17 +1678,17 @@ function Precificacao() {
                             {/* MODO PREÇO FIXO */}
                             {cs.mode === "direct_price" && (
                               <div className="flex flex-wrap items-center gap-1.5">
-                                {/* Stepper de Moeda [- | R$ 139,90 | +] */}
+                                {/* Stepper de Moeda [- | R$ 139,90 | +] com Live-Sync */}
                                 <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const current = toNumber(cs.directPrice) || group.avgPrice || 100;
                                       const next = Math.max(5, current - 5);
-                                      setColorStrategy(group.color, { directPrice: next.toFixed(2).replace(".", ",") });
+                                      updateColorDirectPrice(group.color, next.toFixed(2).replace(".", ","));
                                     }}
-                                    className="px-1.5 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-[10px] font-bold"
-                                    title="Diminuir R$ 5"
+                                    className="px-2 h-7 sm:h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-[10px] font-bold cursor-pointer"
+                                    title="Diminuir R$ 5 no preço da cor"
                                   >
                                     -R$5
                                   </button>
@@ -1664,7 +1697,7 @@ function Precificacao() {
                                     <input
                                       inputMode="decimal"
                                       value={cs.directPrice}
-                                      onChange={(e) => setColorStrategy(group.color, { directPrice: e.target.value })}
+                                      onChange={(e) => updateColorDirectPrice(group.color, e.target.value)}
                                       placeholder={group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90"}
                                       className="w-16 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                     />
@@ -1674,16 +1707,16 @@ function Precificacao() {
                                     onClick={() => {
                                       const current = toNumber(cs.directPrice) || group.avgPrice || 100;
                                       const next = current + 5;
-                                      setColorStrategy(group.color, { directPrice: next.toFixed(2).replace(".", ",") });
+                                      updateColorDirectPrice(group.color, next.toFixed(2).replace(".", ","));
                                     }}
-                                    className="px-1.5 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-[10px] font-bold"
-                                    title="Aumentar R$ 5"
+                                    className="px-2 h-7 sm:h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-[10px] font-bold cursor-pointer"
+                                    title="Aumentar R$ 5 no preço da cor"
                                   >
                                     +R$5
                                   </button>
                                 </div>
 
-                                {/* Terminações Psicológicas de Moda (,90 / ,00 / ,50) */}
+                                {/* Terminações Psicológicas de Moda (,90 / ,00 / ,50) com Live-Sync */}
                                 <div className="inline-flex rounded-lg border border-border/70 bg-secondary/50 p-0.5 shadow-2xs">
                                   {[",90", ",00", ",50"].map((ending) => (
                                     <button
@@ -1693,9 +1726,9 @@ function Precificacao() {
                                         const current = cs.directPrice || group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90";
                                         const integerPart = Math.floor(toNumber(current));
                                         const newPrice = `${integerPart}${ending}`;
-                                        setColorStrategy(group.color, { directPrice: newPrice });
+                                        updateColorDirectPrice(group.color, newPrice);
                                       }}
-                                      className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-card/60 transition-all"
+                                      className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-card/60 transition-all cursor-pointer"
                                       title={`Terminar em ${ending}`}
                                     >
                                       {ending}
@@ -1710,7 +1743,7 @@ function Precificacao() {
                               type="button"
                               size="sm"
                               onClick={() => applyStrategyToColor(group.color)}
-                              className="h-7 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all"
+                              className="h-7 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer"
                             >
                               <Zap className="size-3 mr-1" />
                               Aplicar à Cor
