@@ -2669,23 +2669,48 @@ function HybridTaxControl({
           {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
         </div>
 
-        {/* Input Numérico de Precisão Decimal com % integrado */}
-        <div className="flex items-center rounded-lg border border-border/80 bg-card px-2.5 py-1 shadow-2xs">
-          <input
-            inputMode="decimal"
-            value={value}
-            onChange={(e) => {
-              const val = e.target.value.replace(",", ".");
-              const n = parseFloat(val);
-              if (!isNaN(n)) {
-                onChange(Math.min(max, Math.max(0, n)));
-              } else if (e.target.value === "") {
-                onChange(0);
-              }
-            }}
-            className="w-10 text-right text-xs font-bold text-primary outline-none bg-transparent"
-          />
-          <span className="text-xs font-bold text-muted-foreground ml-0.5">%</span>
+        {/* Pílula de Controle Triplo Apple: [ − ] valor% [ + ] */}
+        <div className="flex items-center overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
+          {/* Botão Decremento */}
+          <button
+            type="button"
+            disabled={value <= 0}
+            onClick={() => onChange(Math.max(0, Math.round((value - 0.5) * 10) / 10))}
+            className="flex h-8 w-8 shrink-0 items-center justify-center border-r border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+            aria-label="Diminuir"
+          >
+            <Minus className="size-3" />
+          </button>
+
+          {/* Campo Central Editável */}
+          <div className="flex items-center px-2.5 py-1">
+            <input
+              inputMode="decimal"
+              value={value}
+              onChange={(e) => {
+                const val = e.target.value.replace(",", ".");
+                const n = parseFloat(val);
+                if (!isNaN(n)) {
+                  onChange(Math.min(max, Math.max(0, n)));
+                } else if (e.target.value === "") {
+                  onChange(0);
+                }
+              }}
+              className="w-10 text-center text-xs font-bold text-primary outline-none bg-transparent"
+            />
+            <span className="text-xs font-bold text-muted-foreground">%</span>
+          </div>
+
+          {/* Botão Incremento */}
+          <button
+            type="button"
+            disabled={value >= max}
+            onClick={() => onChange(Math.min(max, Math.round((value + 0.5) * 10) / 10))}
+            className="flex h-8 w-8 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+            aria-label="Aumentar"
+          >
+            <Plus className="size-3" />
+          </button>
         </div>
       </div>
 
