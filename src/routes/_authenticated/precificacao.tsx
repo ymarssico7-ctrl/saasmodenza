@@ -1773,23 +1773,31 @@ function Precificacao() {
                                   </button>
                                   <div className="flex items-center px-1.5">
                                     <input
-                                      inputMode="numeric"
+                                      inputMode="decimal"
                                       value={cs.margin}
                                       onChange={(e) => {
-                                        const raw = e.target.value.replace(/\D/g, "");
-                                        if (raw === "") {
-                                          updateColorMargin(group.color, "");
-                                        } else {
-                                          const v = Math.min(85, Number(raw));
-                                          updateColorMargin(group.color, v);
+                                        const raw = e.target.value;
+                                        // Aceita dígitos, vírgula e ponto (ex: "52,5" ou "52.5")
+                                        if (/^[\d,\.]*$/.test(raw)) {
+                                          const n = parseFloat(raw.replace(",", "."));
+                                          if (raw === "" || raw === "," || raw === ".") {
+                                            updateColorMargin(group.color, raw);
+                                          } else if (!isNaN(n)) {
+                                            // Não clampeia durante digitação para não bloquear "52,"
+                                            updateColorMargin(group.color, raw);
+                                          }
                                         }
                                       }}
                                       onBlur={() => {
-                                        if (cs.margin === "" || Number(cs.margin) <= 0) {
+                                        const raw = String(cs.margin ?? "").replace(",", ".");
+                                        const n = parseFloat(raw);
+                                        if (isNaN(n) || n <= 0) {
                                           updateColorMargin(group.color, 50);
+                                        } else {
+                                          updateColorMargin(group.color, Math.min(85, Math.max(1, n)));
                                         }
                                       }}
-                                      className="w-8 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                      className="w-10 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                     />
                                     <span className="text-[11px] font-semibold text-muted-foreground">%</span>
                                   </div>
@@ -1857,23 +1865,31 @@ function Precificacao() {
                                     </button>
                                     <div className="flex items-center px-1.5">
                                       <input
-                                        inputMode="numeric"
+                                        inputMode="decimal"
                                         value={cs.markup}
                                         onChange={(e) => {
-                                          const raw = e.target.value.replace(/\D/g, "");
-                                          if (raw === "") {
-                                            updateColorMarkup(group.color, "");
-                                          } else {
-                                            const v = Math.min(300, Number(raw));
-                                            updateColorMarkup(group.color, v);
+                                          const raw = e.target.value;
+                                          // Aceita dígitos, vírgula e ponto (ex: "115,5" ou "115.5")
+                                          if (/^[\d,\.]*$/.test(raw)) {
+                                            const n = parseFloat(raw.replace(",", "."));
+                                            if (raw === "" || raw === "," || raw === ".") {
+                                              updateColorMarkup(group.color, raw);
+                                            } else if (!isNaN(n)) {
+                                              // Não clampeia durante digitação para não bloquear "115,"
+                                              updateColorMarkup(group.color, raw);
+                                            }
                                           }
                                         }}
                                         onBlur={() => {
-                                          if (cs.markup === "" || Number(cs.markup) <= 0) {
+                                          const raw = String(cs.markup ?? "").replace(",", ".");
+                                          const n = parseFloat(raw);
+                                          if (isNaN(n) || n <= 0) {
                                             updateColorMarkup(group.color, 100);
+                                          } else {
+                                            updateColorMarkup(group.color, Math.min(300, Math.max(1, n)));
                                           }
                                         }}
-                                        className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                        className="w-10 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                       />
                                       <span className="text-[11px] font-semibold text-muted-foreground">%</span>
                                     </div>
