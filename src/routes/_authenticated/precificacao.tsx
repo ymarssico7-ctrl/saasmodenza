@@ -1101,7 +1101,7 @@ function Precificacao() {
           <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <TagIcon className="size-3.5 text-primary" />
+                <Tag className="size-3.5 text-primary" />
                 <span>Nome da peça ou modelo</span>
               </Label>
               <Input
