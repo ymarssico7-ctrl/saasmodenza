@@ -1247,12 +1247,12 @@ function Precificacao() {
                     </div>
 
 
-                    {/* ══ BARRA DE ESTRATÉGIA PRO EM LINHA ÚNICA (APPLE STYLE) ══ */}
+                    {/* ══ BARRA DE ESTRATÉGIA PRO COM SMART PRECISION STEPPER (APPLE HIG) ══ */}
                     {group.items.length > 0 && (() => {
                       const cs = getColorStrategy(group.color);
                       return (
                         <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-border/70 bg-secondary/30 px-3 py-2 text-xs">
-                          {/* Esquerda: Segmented Control Minimalista */}
+                          {/* Esquerda: Segmented Control Minimalista dos Modos */}
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider hidden sm:inline">
                               ⚡ Aplicar na Cor:
@@ -1262,7 +1262,7 @@ function Precificacao() {
                                 type="button"
                                 onClick={() => setColorStrategy(group.color, { mode: "margin" })}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2 text-[11px] font-bold transition-all",
+                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all",
                                   cs.mode === "margin"
                                     ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -1275,7 +1275,7 @@ function Precificacao() {
                                 type="button"
                                 onClick={() => setColorStrategy(group.color, { mode: "markup" })}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2 text-[11px] font-bold transition-all",
+                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all",
                                   cs.mode === "markup"
                                     ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -1288,7 +1288,7 @@ function Precificacao() {
                                 type="button"
                                 onClick={() => setColorStrategy(group.color, { mode: "direct_price" })}
                                 className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2 text-[11px] font-bold transition-all",
+                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all",
                                   cs.mode === "direct_price"
                                     ? "bg-primary text-primary-foreground shadow-xs"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -1300,24 +1300,51 @@ function Precificacao() {
                             </div>
                           </div>
 
-                          {/* Centro & Direita: Inputs compactos + chips táteis + botão aplicar */}
+                          {/* Centro & Direita: Smart Stepper + Segmented Strip + Ação */}
                           <div className="flex flex-wrap items-center gap-2">
+                            {/* MODO MARGEM */}
                             {cs.mode === "margin" && (
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2 py-0.5 shadow-2xs">
-                                  <input
-                                    inputMode="numeric"
-                                    value={cs.margin}
-                                    onChange={(e) => {
-                                      const v = Math.min(85, Math.max(0, Number(e.target.value) || 0));
-                                      setColorStrategy(group.color, { margin: v });
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {/* Stepper Tátil [- | 50% | +] */}
+                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = Math.max(5, cs.margin - 5);
+                                      setColorStrategy(group.color, { margin: next });
                                     }}
-                                    className="w-7 text-right text-xs font-bold outline-none bg-transparent text-primary"
-                                  />
-                                  <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
+                                    title="Diminuir 5%"
+                                  >
+                                    <Minus className="size-3" />
+                                  </button>
+                                  <div className="flex items-center px-1.5">
+                                    <input
+                                      inputMode="numeric"
+                                      value={cs.margin}
+                                      onChange={(e) => {
+                                        const v = Math.min(85, Math.max(0, Number(e.target.value) || 0));
+                                        setColorStrategy(group.color, { margin: v });
+                                      }}
+                                      className="w-7 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                    />
+                                    <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = Math.min(85, cs.margin + 5);
+                                      setColorStrategy(group.color, { margin: next });
+                                    }}
+                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
+                                    title="Aumentar 5%"
+                                  >
+                                    <Plus className="size-3" />
+                                  </button>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                {/* Segmented Preset Strip */}
+                                <div className="inline-flex rounded-lg border border-border/70 bg-secondary/50 p-0.5 shadow-2xs">
                                   {[30, 40, 50, 60, 70].map((m) => (
                                     <button
                                       key={m}
@@ -1327,10 +1354,10 @@ function Precificacao() {
                                         applyMarginToColor(group.color, m);
                                       }}
                                       className={cn(
-                                        "rounded-md border px-1.5 py-0.5 text-[10px] font-bold transition-all",
+                                        "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all",
                                         cs.margin === m
-                                          ? "bg-primary text-primary-foreground border-transparent shadow-2xs"
-                                          : "bg-card border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+                                          ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
+                                          : "text-muted-foreground hover:text-foreground hover:bg-card/50",
                                       )}
                                     >
                                       {m}%
@@ -1340,22 +1367,49 @@ function Precificacao() {
                               </div>
                             )}
 
+                            {/* MODO MARKUP */}
                             {cs.mode === "markup" && (
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2 py-0.5 shadow-2xs">
-                                  <input
-                                    inputMode="numeric"
-                                    value={cs.markup}
-                                    onChange={(e) => {
-                                      const v = Math.min(300, Math.max(0, Number(e.target.value) || 0));
-                                      setColorStrategy(group.color, { markup: v });
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {/* Stepper Tátil [- | 100% | +] */}
+                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = Math.max(10, cs.markup - 10);
+                                      setColorStrategy(group.color, { markup: next });
                                     }}
-                                    className="w-9 text-right text-xs font-bold outline-none bg-transparent text-primary"
-                                  />
-                                  <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
+                                    title="Diminuir 10%"
+                                  >
+                                    <Minus className="size-3" />
+                                  </button>
+                                  <div className="flex items-center px-1.5">
+                                    <input
+                                      inputMode="numeric"
+                                      value={cs.markup}
+                                      onChange={(e) => {
+                                        const v = Math.min(300, Math.max(0, Number(e.target.value) || 0));
+                                        setColorStrategy(group.color, { markup: v });
+                                      }}
+                                      className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                    />
+                                    <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = Math.min(300, cs.markup + 10);
+                                      setColorStrategy(group.color, { markup: next });
+                                    }}
+                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-xs font-bold"
+                                    title="Aumentar 10%"
+                                  >
+                                    <Plus className="size-3" />
+                                  </button>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                {/* Segmented Preset Strip Markup */}
+                                <div className="inline-flex rounded-lg border border-border/70 bg-secondary/50 p-0.5 shadow-2xs">
                                   {[60, 80, 100, 120, 150].map((mk) => (
                                     <button
                                       key={mk}
@@ -1377,10 +1431,10 @@ function Precificacao() {
                                         toast.success(`Markup de ${mk}% aplicado a todos os tamanhos de ${group.color}`);
                                       }}
                                       className={cn(
-                                        "rounded-md border px-1.5 py-0.5 text-[10px] font-bold transition-all",
+                                        "rounded-md px-2 py-0.5 text-[11px] font-semibold transition-all",
                                         cs.markup === mk
-                                          ? "bg-primary text-primary-foreground border-transparent shadow-2xs"
-                                          : "bg-card border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+                                          ? "bg-card font-bold text-foreground shadow-xs border border-border/40"
+                                          : "text-muted-foreground hover:text-foreground hover:bg-card/50",
                                       )}
                                     >
                                       {mk}%
@@ -1390,27 +1444,75 @@ function Precificacao() {
                               </div>
                             )}
 
+                            {/* MODO PREÇO FIXO */}
                             {cs.mode === "direct_price" && (
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2 py-0.5 shadow-2xs">
-                                  <span className="text-[11px] text-muted-foreground">R$</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={cs.directPrice}
-                                    onChange={(e) => setColorStrategy(group.color, { directPrice: e.target.value })}
-                                    placeholder={group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90"}
-                                    className="w-16 text-right text-xs font-bold outline-none bg-transparent text-primary"
-                                  />
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {/* Stepper de Moeda [- | R$ 139,90 | +] */}
+                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = toNumber(cs.directPrice) || group.avgPrice || 100;
+                                      const next = Math.max(5, current - 5);
+                                      setColorStrategy(group.color, { directPrice: next.toFixed(2).replace(".", ",") });
+                                    }}
+                                    className="px-1.5 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-[10px] font-bold"
+                                    title="Diminuir R$ 5"
+                                  >
+                                    -R$5
+                                  </button>
+                                  <div className="flex items-center px-1.5">
+                                    <span className="text-[11px] text-muted-foreground mr-1">R$</span>
+                                    <input
+                                      inputMode="decimal"
+                                      value={cs.directPrice}
+                                      onChange={(e) => setColorStrategy(group.color, { directPrice: e.target.value })}
+                                      placeholder={group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90"}
+                                      className="w-16 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = toNumber(cs.directPrice) || group.avgPrice || 100;
+                                      const next = current + 5;
+                                      setColorStrategy(group.color, { directPrice: next.toFixed(2).replace(".", ",") });
+                                    }}
+                                    className="px-1.5 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-95 transition-all text-[10px] font-bold"
+                                    title="Aumentar R$ 5"
+                                  >
+                                    +R$5
+                                  </button>
+                                </div>
+
+                                {/* Terminações Psicológicas de Moda (,90 / ,00 / ,50) */}
+                                <div className="inline-flex rounded-lg border border-border/70 bg-secondary/50 p-0.5 shadow-2xs">
+                                  {[",90", ",00", ",50"].map((ending) => (
+                                    <button
+                                      key={ending}
+                                      type="button"
+                                      onClick={() => {
+                                        const current = cs.directPrice || group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90";
+                                        const integerPart = Math.floor(toNumber(current));
+                                        const newPrice = `${integerPart}${ending}`;
+                                        setColorStrategy(group.color, { directPrice: newPrice });
+                                      }}
+                                      className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-card/60 transition-all"
+                                      title={`Terminar em ${ending}`}
+                                    >
+                                      {ending}
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
                             )}
 
-                            {/* Botão Aplicar */}
+                            {/* Botão Principal de Aplicação */}
                             <Button
                               type="button"
                               size="sm"
                               onClick={() => applyStrategyToColor(group.color)}
-                              className="h-7 rounded-lg px-2.5 text-[11px] font-bold gradient-primary shadow-glow shrink-0"
+                              className="h-7 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all"
                             >
                               <Zap className="size-3 mr-1" />
                               Aplicar à Cor
