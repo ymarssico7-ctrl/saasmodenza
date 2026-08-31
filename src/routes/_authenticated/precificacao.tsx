@@ -2661,6 +2661,16 @@ function HybridTaxControl({
   hint?: string;
   presets?: { label: string; value: number }[];
 }) {
+  // Estado interno de string: permite digitação livre com vírgula (ex: "3,19")
+  // sem travar o campo em estados intermediários como "3," ou "3."
+  const [rawValue, setRawValue] = useState<string>(String(value));
+
+  // Sincroniza rawValue quando o valor externo muda (ex: slider ou preset)
+  const displayVal = rawValue;
+  const syncExternal = (newVal: number) => {
+    setRawValue(String(newVal));
+  };
+
   return (
     <div className="space-y-2 rounded-2xl border border-border/80 bg-secondary/20 p-4 shadow-2xs">
       <div className="flex items-center justify-between gap-2">
@@ -2671,29 +2681,49 @@ function HybridTaxControl({
 
         {/* Pílula de Controle Triplo Apple: [ − ] valor% [ + ] */}
         <div className="flex items-center overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
-          {/* Botão Decremento */}
+          {/* Botão Decremento — step 1 */}
           <button
             type="button"
             disabled={value <= 0}
-            onClick={() => onChange(Math.max(0, Math.round((value - 0.5) * 10) / 10))}
+            onClick={() => {
+              const next = Math.max(0, Math.round(value) - 1);
+              onChange(next);
+              setRawValue(String(next));
+            }}
             className="flex h-8 w-8 shrink-0 items-center justify-center border-r border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
             aria-label="Diminuir"
           >
             <Minus className="size-3" />
           </button>
 
-          {/* Campo Central Editável */}
+          {/* Campo Central — aceita vírgula e ponto, trava no min/max só no blur */}
           <div className="flex items-center px-2.5 py-1">
             <input
               inputMode="decimal"
-              value={value}
+              value={displayVal}
               onChange={(e) => {
-                const val = e.target.value.replace(",", ".");
-                const n = parseFloat(val);
+                // Permite digitação livre incluindo vírgula como separador decimal
+                const raw = e.target.value.replace(",", ".");
+                setRawValue(e.target.value); // mantém o que o usuário digitou (com vírgula)
+                const n = parseFloat(raw);
                 if (!isNaN(n)) {
                   onChange(Math.min(max, Math.max(0, n)));
-                } else if (e.target.value === "") {
+                } else if (e.target.value === "" || e.target.value === "0") {
                   onChange(0);
+                }
+                // se for "3," ou "3." (incompleto) não faz nada — aguarda mais dígitos
+              }}
+              onBlur={(e) => {
+                // No blur: sanitiza e formata o valor final
+                const raw = e.target.value.replace(",", ".");
+                const n = parseFloat(raw);
+                if (!isNaN(n)) {
+                  const clamped = Math.min(max, Math.max(0, n));
+                  onChange(clamped);
+                  setRawValue(String(clamped));
+                } else {
+                  onChange(0);
+                  setRawValue("0");
                 }
               }}
               className="w-10 text-center text-xs font-bold text-primary outline-none bg-transparent"
@@ -2701,11 +2731,15 @@ function HybridTaxControl({
             <span className="text-xs font-bold text-muted-foreground">%</span>
           </div>
 
-          {/* Botão Incremento */}
+          {/* Botão Incremento — step 1 */}
           <button
             type="button"
             disabled={value >= max}
-            onClick={() => onChange(Math.min(max, Math.round((value + 0.5) * 10) / 10))}
+            onClick={() => {
+              const next = Math.min(max, Math.round(value) + 1);
+              onChange(next);
+              setRawValue(String(next));
+            }}
             className="flex h-8 w-8 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
             aria-label="Aumentar"
           >
@@ -2720,7 +2754,11 @@ function HybridTaxControl({
         value={[value]}
         max={max}
         step={0.1}
-        onValueChange={(v) => onChange(v[0] ?? 0)}
+        onValueChange={(v) => {
+          const next = v[0] ?? 0;
+          onChange(next);
+          syncExternal(next);
+        }}
       />
 
       {/* Chips Rápidos de Mercado (Presets) */}
@@ -2731,7 +2769,10 @@ function HybridTaxControl({
             <button
               key={p.label}
               type="button"
-              onClick={() => onChange(p.value)}
+              onClick={() => {
+                onChange(p.value);
+                syncExternal(p.value);
+              }}
               className={cn(
                 "rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer",
                 Math.abs(value - p.value) < 0.05
