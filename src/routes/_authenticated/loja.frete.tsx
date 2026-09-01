@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 
 function freteKey(storeId: string) {
@@ -121,13 +122,20 @@ function FretePage() {
 
   function salvar() {
     if (!storeId) return;
+    if (freteGratisMinimoAtivo) {
+      const minVal = toNumber(freteGratisMinimo);
+      if (isNaN(minVal) || minVal <= 0) {
+        toast.error("Informe um valor mínimo válido para o frete grátis (maior que zero).");
+        return;
+      }
+    }
     try {
       const config: FreteConfig = {
         cep,
         endereco: enderecoLoja,
         opcoes,
         freteGratisMinimoAtivo,
-        freteGratisMinimo,
+        freteGratisMinimo: freteGratisMinimo.trim(),
       };
       localStorage.setItem(freteKey(storeId), JSON.stringify(config));
     } catch {
@@ -256,11 +264,11 @@ function FretePage() {
               <Label htmlFor="minimo">Valor mínimo do pedido (R$)</Label>
               <Input
                 id="minimo"
-                type="number"
+                inputMode="decimal"
                 value={freteGratisMinimo}
                 onChange={(e) => setFreteGratisMinimo(e.target.value)}
                 className="h-11 max-w-[200px] rounded-xl"
-                placeholder="250"
+                placeholder="250,00"
               />
             </div>
           )}

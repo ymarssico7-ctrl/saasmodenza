@@ -33,7 +33,8 @@ function CompartilharPage() {
 
   // Slug real da loja
   const slug = store?.slug ?? storeId ?? "minha-loja";
-  const linkLoja = (path = "") => `https://vestuli.com.br/vitrine/${slug}${path}`;
+  const baseUrl = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://vestuli.com.br";
+  const linkLoja = (path = "") => `${baseUrl}/vitrine/${slug}${path}`;
 
   // Produtos reais do inventário
   const { data: inventario = [] } = useQuery(inventoryQuery());

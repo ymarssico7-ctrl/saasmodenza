@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, Search, ShoppingBag, Star, Users } from "lucide-react";
@@ -9,7 +9,9 @@ import { Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
-import { customersQuery, transactionsQuery } from "@/lib/db";
+import { customersQuery, creditsQuery, transactionsQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
+import { totalPedido, type Pedido } from "@/data/loja";
 
 export const Route = createFileRoute("/_authenticated/loja/clientes")({
   head: () => ({
@@ -42,47 +44,103 @@ function dataBR(iso: string) {
 }
 
 function ClientesLojaPage() {
+  const { storeId } = useStore();
   const [busca, setBusca] = useState("");
   const { data: customersData = [] } = useQuery(customersQuery());
+  const { data: creditsData = [] } = useQuery(creditsQuery());
   const { data: transactionsData = [] } = useQuery(transactionsQuery());
+  const [orders, setOrders] = useState<Pedido[]>([]);
 
-  // Deriva estatísticas de clientes a partir das transações reais
+  useEffect(() => {
+    if (!storeId) return;
+    try {
+      const raw =
+        localStorage.getItem(`vestuli_orders_${storeId}`) ||
+        localStorage.getItem(`modaly_orders_${storeId}`);
+      setOrders(raw ? (JSON.parse(raw) as Pedido[]) : []);
+    } catch {
+      setOrders([]);
+    }
+  }, [storeId]);
+
+  // Deriva estatísticas de clientes unificando pedidos online, caixa e fiado
   const clientesBase = useMemo<ClienteLoja[]>(() => {
     const map = new Map<string, ClienteLoja>();
 
     for (const customer of customersData) {
+      const norm = (customer.name ?? "").toLowerCase().trim();
+      const phoneNorm = (customer.phone ?? "").replace(/\D/g, "");
+
+      // 1. Pedidos online da vitrine
+      const customerOrders = orders.filter((p) => {
+        if (p.status === "cancelado") return false;
+        const pNome = (p.cliente || "").toLowerCase().trim();
+        const pTel = (p.telefone || "").replace(/\D/g, "");
+        return (norm && pNome === norm) || (phoneNorm && pTel && pTel === phoneNorm);
+      });
+
+      const onlineTotal = customerOrders.reduce((acc, p) => acc + totalPedido(p), 0);
+      const onlineCount = customerOrders.length;
+      let lastOnlineDate: string | null = null;
+      for (const p of customerOrders) {
+        const d = p.criadoEm.slice(0, 10);
+        if (!lastOnlineDate || d > lastOnlineDate) lastOnlineDate = d;
+      }
+
+      // 2. Fiados quitados vinculados ao customerId
+      const fiados = creditsData.filter((c) => c.customer_id === customer.id);
+      const fiadoPaid = fiados.reduce((acc, c) => acc + Number(c.paid_amount), 0);
+      const fiadoCount = fiados.filter((c) => Number(c.paid_amount) > 0).length;
+
+      // 3. Vendas diretas no caixa atribuídas ao cliente
+      const directTxs = transactionsData.filter((t) => {
+        if (t.kind !== "entrada" || t.category !== "venda_produto") return false;
+        if (t.payment_method === "fiado" || t.description.toLowerCase().startsWith("recebimento fiado")) {
+          return false;
+        }
+        const desc = t.description.toLowerCase();
+        return norm && (desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`));
+      });
+
+      const directTotal = directTxs.reduce((acc, t) => acc + Number(t.amount), 0);
+      const directCount = directTxs.length;
+
+      // 4. Estornos atribuídos ao cliente
+      const refunds = transactionsData
+        .filter((t) => {
+          if (t.kind !== "saida" || t.category !== "estorno_devolucao") return false;
+          const desc = t.description.toLowerCase();
+          return norm && (desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`));
+        })
+        .reduce((acc, t) => acc + Number(t.amount), 0);
+
+      // 5. Data mais recente entre transações físicas e pedidos online
+      let lastTxDate: string | null = null;
+      for (const t of directTxs) {
+        if (!lastTxDate || t.occurred_on > lastTxDate) lastTxDate = t.occurred_on;
+      }
+
+      const ultimaCompra =
+        lastOnlineDate && lastTxDate
+          ? lastOnlineDate > lastTxDate ? lastOnlineDate : lastTxDate
+          : lastOnlineDate || lastTxDate || null;
+
+      const totalGasto = Math.max(onlineTotal + directTotal + fiadoPaid - refunds, 0);
+      const totalPedidos = onlineCount + directCount + (fiadoCount > 0 ? 1 : 0);
+
       map.set(customer.id, {
         id: customer.id,
         nome: customer.name ?? "Cliente sem nome",
         telefone: customer.phone ?? "",
         cidade: ((customer as Record<string, unknown>)["city"] as string) ?? "",
-        totalGasto: 0,
-        totalPedidos: 0,
-        ultimaCompra: null,
+        totalGasto,
+        totalPedidos,
+        ultimaCompra,
         vip: false,
       });
     }
 
-    // Acumula transações de entrada por cliente
-    for (const tx of transactionsData) {
-      const customerId = (tx as Record<string, unknown>)["customer_id"] as string | undefined;
-      if (!customerId) continue;
-      const existing = map.get(customerId);
-      if (!existing) continue;
-
-      const amount = Number(tx.amount ?? 0);
-      if (amount > 0) {
-        existing.totalGasto += amount;
-        existing.totalPedidos += 1;
-        if (!existing.ultimaCompra || tx.occurred_on > existing.ultimaCompra) {
-          existing.ultimaCompra = tx.occurred_on;
-        }
-      }
-    }
-
-    const list = Array.from(map.values()).filter(
-      (c) => c.totalPedidos > 0 || customersData.length > 0,
-    );
+    const list = Array.from(map.values());
     list.sort((a, b) => b.totalGasto - a.totalGasto);
 
     // Top 25% viram VIP
@@ -92,7 +150,7 @@ function ClientesLojaPage() {
     });
 
     return list;
-  }, [customersData, transactionsData]);
+  }, [customersData, creditsData, transactionsData, orders]);
 
   const clientesFiltrados = useMemo(() => {
     if (!busca.trim()) return clientesBase;
