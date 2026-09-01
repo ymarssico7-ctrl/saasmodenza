@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { prolaboreQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber, todayISO } from "@/lib/format";
-import { sumBy, type Transaction } from "@/lib/finance";
+import { sumBy, sumByExcluding, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertProlabore, deleteProlabore, updateProlaboreTarget } from "@/lib/mutations";
 
@@ -54,8 +54,8 @@ function Prolabore() {
   const progress = goal > 0 ? Math.min((withdrawn / goal) * 100, 100) : 0;
 
   const monthTxs = txs.filter((t) => t.occurred_on.slice(0, 7) === month.slice(0, 7));
-  const profit = sumBy(monthTxs, "entrada") - sumBy(monthTxs, "saida");
-  const available = Math.max(profit - withdrawn, 0);
+  const operatingProfit = sumBy(monthTxs, "entrada") - sumByExcluding(monthTxs, "saida", new Set(["prolabore"]));
+  const available = Math.max(operatingProfit - withdrawn, 0);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -119,7 +119,7 @@ function Prolabore() {
           label="Disponível para retirar"
           value={brl(available)}
           tone={available > 0 ? "positive" : "warning"}
-          hint={`Lucro do mês: ${brl(profit)}`}
+          hint={`Lucro da loja: ${brl(operatingProfit)}`}
         />
       </div>
 

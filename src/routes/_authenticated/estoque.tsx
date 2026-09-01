@@ -161,6 +161,7 @@ function Estoque() {
                     other_costs: Number(p.other_costs),
                     margin_pct: Number(p.margin_pct),
                     tax_pct: Number(p.tax_pct),
+                    card_rate_pct: 3.5,
                   });
                   setName(p.name);
                   setCost(r.realCost.toFixed(2).replace(".", ","));
@@ -183,6 +184,7 @@ function Estoque() {
                     other_costs: Number(p.other_costs),
                     margin_pct: Number(p.margin_pct),
                     tax_pct: Number(p.tax_pct),
+                    card_rate_pct: 3.5,
                   });
                   return (
                     <SelectItem key={p.id} value={p.id}>

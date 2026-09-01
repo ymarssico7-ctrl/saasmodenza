@@ -73,6 +73,11 @@ function Relatorio() {
   const expenses = sumByExcluding(current, "saida", REFUND_CATEGORIES);
   // 5. Lucro Líquido Real: resultado operacional da loja
   const profit = netRevenue - expenses;
+
+  // Comparativo homogêneo mês anterior (Receita Líquida vs Receita Líquida)
+  const previousGross = sumBy(previous, "entrada");
+  const previousRefunds = sumByCategories(previous, "saida", REFUND_CATEGORIES);
+  const previousNetRevenue = previousGross - previousRefunds;
   // ────────────────────────────────────────────────────────────────────────────
 
   const bars = Array.from({ length: 6 }, (_, i) => {
@@ -115,7 +120,7 @@ function Relatorio() {
         <StatCard
           label="Receita Líquida"
           value={brl(netRevenue)}
-          hint={formatVariationHint(netRevenue, sumBy(previous, "entrada"))}
+          hint={formatVariationHint(netRevenue, previousNetRevenue)}
         />
         <StatCard label="Despesas Operacionais" value={brl(expenses)} />
         <StatCard
