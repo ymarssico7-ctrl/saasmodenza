@@ -2857,26 +2857,35 @@ function Precificacao() {
                   )}
                 </div>
 
-                {/* Barra de Composição Limpa */}
+                {/* Barra de Composição Limpa & Resiliente */}
                 {summaryPrices.avgSuggested > 0 && (() => {
-                  const price = summaryPrices.avgSuggested;
                   const cost = summaryPrices.avgCost;
                   const profit = summaryPrices.avgProfit;
-                  const taxes = price - cost - profit;
-                  const costPct = Math.max((cost / price) * 100, 0);
-                  const taxPct = Math.max((taxes / price) * 100, 0);
-                  const profitPct = Math.max((profit / price) * 100, 0);
+                  const isPrejuizo = profit < 0;
+                  const taxes = Math.max(summaryPrices.avgSuggested * ((tax + cardRate) / 100), 0);
+                  const totalSum = cost + taxes + Math.max(profit, 0);
+                  const costPct = totalSum > 0 ? (cost / totalSum) * 100 : 0;
+                  const taxPct = totalSum > 0 ? (taxes / totalSum) * 100 : 0;
+                  const profitPct = totalSum > 0 ? (Math.max(profit, 0) / totalSum) * 100 : 0;
                   return (
                     <div className="space-y-1.5 pt-1 border-t border-border/50">
                       <div className="flex h-2.5 w-full overflow-hidden rounded-full gap-0.5 bg-secondary">
                         <div className="bg-foreground/30 rounded-l-full" style={{ width: `${costPct}%` }} title={`Custo: ${Math.round(costPct)}%`} />
                         <div className="bg-warning/70" style={{ width: `${taxPct}%` }} title={`Impostos: ${Math.round(taxPct)}%`} />
-                        <div className="bg-success rounded-r-full" style={{ width: `${profitPct}%` }} title={`Lucro: ${Math.round(profitPct)}%`} />
+                        {isPrejuizo ? (
+                          <div className="bg-destructive rounded-r-full" style={{ width: `6%` }} title="Prejuízo" />
+                        ) : (
+                          <div className="bg-success rounded-r-full" style={{ width: `${profitPct}%` }} title={`Lucro: ${Math.round(profitPct)}%`} />
+                        )}
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1"><span className="size-1.5 rounded-full bg-foreground/30" />Custo {Math.round(costPct)}%</span>
                         <span className="flex items-center gap-1"><span className="size-1.5 rounded-full bg-warning/70" />Taxas {Math.round(taxPct)}%</span>
-                        <span className="flex items-center gap-1 font-semibold text-success"><span className="size-1.5 rounded-full bg-success" />Lucro {Math.round(profitPct)}%</span>
+                        {isPrejuizo ? (
+                          <span className="flex items-center gap-1 font-semibold text-destructive"><span className="size-1.5 rounded-full bg-destructive" />Prejuízo {brl(profit)}</span>
+                        ) : (
+                          <span className="flex items-center gap-1 font-semibold text-success"><span className="size-1.5 rounded-full bg-success" />Lucro {Math.round(profitPct)}%</span>
+                        )}
                       </div>
                     </div>
                   );
@@ -2894,7 +2903,7 @@ function Precificacao() {
                   </div>
                   <div className="rounded-xl border border-border/70 bg-card p-2.5 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Lucro Médio</p>
-                    <p className="numeric mt-0.5 text-sm font-bold text-foreground">
+                    <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.avgProfit < 0 ? "text-destructive" : "text-foreground")}>
                       {brl(summaryPrices.avgProfit)}
                     </p>
                   </div>
@@ -2911,12 +2920,18 @@ function Precificacao() {
             {/* Ponto de Equilíbrio — aparece no Rápido quando qty > 1, sempre no Grade */}
             {(mode === "grade" || (mode === "rapida" && actualLotUnits > 1)) && (
               <div className="rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
-                  <>
-                    As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
-                  </>
+                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
+                  Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
+                    <>
+                      As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
+                    </>
+                  ) : (
+                    "Lote quitado com margem saudável."
+                  )
                 ) : (
-                  "Lote quitado com margem saudável."
+                  <span className="text-destructive font-semibold">
+                    Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
+                  </span>
                 )}
               </div>
             )}

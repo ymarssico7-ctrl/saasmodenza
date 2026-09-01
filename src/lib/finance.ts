@@ -301,7 +301,7 @@ export function computeLotBreakEven(
   const remainingUnits = Math.max(totalUnits - unitsToBreakEven, 0);
   const profitOnRemainder = remainingUnits * avgNetPricePerUnit;
   const totalNetRevenue = totalUnits * avgNetPricePerUnit;
-  const totalLotProfit = Math.max(totalNetRevenue - totalLotCost, 0);
+  const totalLotProfit = totalNetRevenue - totalLotCost;
   const breakEvenPct = totalUnits > 0 ? (unitsToBreakEven / totalUnits) * 100 : 100;
 
   return {

@@ -63,17 +63,19 @@ function Estoque() {
 
   const totalUnits = items.reduce((acc, i) => {
     const s = (i.sizes ?? {}) as Sizes;
-    return acc + Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+    return acc + Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
   }, 0);
   const stockValue = items.reduce((acc, i) => {
     const s = (i.sizes ?? {}) as Sizes;
-    const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
-    return acc + units * Number(i.cost_price);
+    const units = Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
+    const cost = toNumber(i.cost_price);
+    return acc + (isNaN(cost) ? 0 : units * cost);
   }, 0);
   const potential = items.reduce((acc, i) => {
     const s = (i.sizes ?? {}) as Sizes;
-    const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
-    return acc + units * Number(i.sale_price);
+    const units = Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
+    const salePrice = toNumber(i.sale_price);
+    return acc + (isNaN(salePrice) ? 0 : units * salePrice);
   }, 0);
 
   const create = useMutation({

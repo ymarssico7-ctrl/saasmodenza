@@ -31,7 +31,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { brl } from "@/lib/format";
+import { brl, toNumber } from "@/lib/format";
 import { inventoryQuery } from "@/lib/db";
 import { INVENTORY_CATEGORIES, labelOf } from "@/lib/finance";
 import {
@@ -149,17 +149,46 @@ function ProdutosPage() {
   };
 
   const salvarPromocao = () => {
-    if (!promocaoId) return;
-    const preco = parseFloat(promocaoPreco.replace(",", "."));
+    if (!promocaoId || !emPromocaoProduto) return;
+    const preco = toNumber(promocaoPreco);
+    if (isNaN(preco) || preco <= 0) {
+      toast.error("O preço promocional deve ser maior que zero.");
+      return;
+    }
+    if (preco >= emPromocaoProduto.sale_price) {
+      toast.error(
+        `O preço promocional deve ser menor que o preço original (${brl(emPromocaoProduto.sale_price)}).`,
+      );
+      return;
+    }
+    if (promocaoInicio && promocaoFim && promocaoInicio > promocaoFim) {
+      toast.error("A data de início não pode ser posterior à data de término.");
+      return;
+    }
     patchShowcaseConfig(promocaoId, {
-      ...(Number.isFinite(preco) ? { precoPromocional: preco } : {}),
-      ...(promocaoInicio ? { promocaoInicio } : {}),
-      ...(promocaoFim ? { promocaoFim } : {}),
+      precoPromocional: preco,
+      ...(promocaoInicio ? { promocaoInicio } : { promocaoInicio: undefined }),
+      ...(promocaoFim ? { promocaoFim } : { promocaoFim: undefined }),
     });
     setShowcaseVersion((v) => v + 1);
     setPromocaoId(null);
     toast.success("Promoção salva", {
-      description: emPromocaoProduto?.name,
+      description: emPromocaoProduto.name,
+    });
+    void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+  };
+
+  const removerPromocao = () => {
+    if (!promocaoId || !emPromocaoProduto) return;
+    patchShowcaseConfig(promocaoId, {
+      precoPromocional: undefined,
+      promocaoInicio: undefined,
+      promocaoFim: undefined,
+    });
+    setShowcaseVersion((v) => v + 1);
+    setPromocaoId(null);
+    toast.success("Promoção encerrada", {
+      description: emPromocaoProduto.name,
     });
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
   };
@@ -556,9 +585,21 @@ function ProdutosPage() {
                     </div>
                   </div>
 
-                  <Button type="submit" className="gradient-primary w-full rounded-xl shadow-glow">
-                    Salvar promoção
-                  </Button>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button type="submit" className="gradient-primary w-full rounded-xl shadow-glow">
+                      Salvar promoção
+                    </Button>
+                    {emPromocaoProduto.showcase.precoPromocional ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={removerPromocao}
+                        className="w-full rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10"
+                      >
+                        Encerrar / Remover promoção
+                      </Button>
+                    ) : null}
+                  </div>
                 </form>
               </>
             ) : null}

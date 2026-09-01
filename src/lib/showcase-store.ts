@@ -29,11 +29,11 @@ export type ShowcaseItemConfig = {
   /** Esconde o preço — cliente deve negociar via WhatsApp. Padrão: false */
   precoOculto: boolean;
   /** Preço promocional (exibido com o original riscado). Opcional. */
-  precoPromocional?: number;
+  precoPromocional?: number | undefined;
   /** Início da promoção (ISO string). */
-  promocaoInicio?: string;
+  promocaoInicio?: string | undefined;
   /** Fim da promoção (ISO string). */
-  promocaoFim?: string;
+  promocaoFim?: string | undefined;
   /** Posição de ordenação na vitrine (menor = mais no topo). */
   ordem: number;
   /** Timestamp da última atualização. */
@@ -43,7 +43,7 @@ export type ShowcaseItemConfig = {
    * Se preenchida, substitui a foto básica do estoque nos templates da loja.
    * Primeira foto = capa; segunda foto = hover (se o template suportar).
    */
-  vitrineFotos?: string[];
+  vitrineFotos?: string[] | undefined;
 };
 
 export type ShowcaseConfigMap = Record<string, ShowcaseItemConfig>;

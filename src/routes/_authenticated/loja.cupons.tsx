@@ -25,7 +25,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { brl } from "@/lib/format";
+import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { dateBR, type Cupom } from "@/data/loja";
 
@@ -111,7 +111,7 @@ function CuponsPage() {
         return;
       }
     }
-    const valNum = Number(novoValor);
+    const valNum = toNumber(novoValor);
     if (isNaN(valNum) || valNum <= 0) {
       toast.error("Informe um valor de desconto válido maior que zero.");
       return;
@@ -122,7 +122,7 @@ function CuponsPage() {
       });
       return;
     }
-    const limiteNum = Number(novoLimite);
+    const limiteNum = Math.round(toNumber(novoLimite));
     const cupom: Cupom = {
       id: crypto.randomUUID(),
       codigo: codigoFormatado,
