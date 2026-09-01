@@ -111,12 +111,23 @@ function CuponsPage() {
         return;
       }
     }
+    const valNum = Number(novoValor);
+    if (isNaN(valNum) || valNum <= 0) {
+      toast.error("Informe um valor de desconto válido maior que zero.");
+      return;
+    }
+    if (novoTipo === "percentual" && valNum > 100) {
+      toast.error("O desconto percentual não pode ser superior a 100%.", {
+        description: "Defina um percentual entre 1% e 100%.",
+      });
+      return;
+    }
     const limiteNum = Number(novoLimite);
     const cupom: Cupom = {
       id: crypto.randomUUID(),
       codigo: codigoFormatado,
       tipo: novoTipo,
-      valor: Number(novoValor) || 10,
+      valor: valNum,
       usos: 0,
       ativo: true,
       ...(limiteNum > 0 ? { limite: limiteNum } : {}),

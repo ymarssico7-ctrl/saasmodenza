@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { goalsQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber } from "@/lib/format";
-import { projectMonth, sumBy, type Transaction } from "@/lib/finance";
+import { projectMonth, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { upsertGoal, deleteGoal } from "@/lib/mutations";
 
@@ -40,11 +40,14 @@ function Metas() {
   const [target, setTarget] = useState("");
   const month = monthStart(0);
 
-  const revenueOf = (m: string) =>
-    sumBy(
-      txs.filter((t) => t.occurred_on.slice(0, 7) === m.slice(0, 7)),
-      "entrada",
-    );
+  // Receita Líquida Real do mês (Vendas − Estornos/Devoluções)
+  const revenueOf = (m: string) => {
+    const mPrefix = m.slice(0, 7);
+    const monthTransactions = txs.filter((t) => t.occurred_on.slice(0, 7) === mPrefix);
+    const grossSales = sumBy(monthTransactions, "entrada");
+    const refunds = sumByCategories(monthTransactions, "saida", new Set(["estorno_devolucao"]));
+    return Math.max(grossSales - refunds, 0);
+  };
 
   const currentGoal = goals.find((g) => g.month.slice(0, 7) === month.slice(0, 7));
   const revenue = revenueOf(month);
