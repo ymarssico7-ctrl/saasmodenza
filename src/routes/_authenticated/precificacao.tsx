@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -22,10 +22,11 @@ import {
   Percent,
   Plus,
   RotateCcw,
-  Sliders,
   Save,
+  Search,
   ShieldAlert,
   ShieldCheck,
+  Sliders,
   Sparkles,
   Tag,
   Target,
@@ -1063,7 +1064,8 @@ function Precificacao() {
           ? toNumber(baseWholesaleGrade)
           : toNumber(wholesale);
 
-      return insertPricing(storeId, {
+      return insertPricing({
+        storeId,
         name: pieceName,
         wholesale_cost: wholesaleNum,
         freight_cost: toNumber(freight),
@@ -1140,7 +1142,8 @@ function Precificacao() {
 
   const confirmEntryMutation = useMutation({
     mutationFn: async () => {
-      return insertInventoryItem(storeId, {
+      return insertInventoryItem({
+        storeId,
         name: entryName.trim() || "Peça sem nome",
         category: entryCategory,
         color: entryColor.trim() || null,
