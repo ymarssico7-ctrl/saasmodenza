@@ -163,18 +163,41 @@ function PedidosPage() {
 
   const cancelar = (id: string) => {
     const pedido = lista.find((p) => p.id === id);
+    if (!pedido) return;
+    const statusAnterior = pedido.status;
     const novaLista = lista.map((p) =>
       p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p,
     );
     persistir(novaLista);
     setAberto(null);
-    // Devolve efetivamente as quantidades ao estoque de cada item cancelado
-    if (pedido?.itens?.length) {
-      void restoreOrderStock(storeId, pedido.itens).then(() => {
-        void queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      });
+
+    // Se o pedido já havia sido confirmado (baixou estoque e entrou no caixa), estorna ambos
+    if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
+      // 1. Devolve estoque das peças
+      if (pedido.itens?.length) {
+        void restoreOrderStock(storeId, pedido.itens).then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+        });
+      }
+      // 2. Lança saída de estorno no Caixa
+      const valorTotal = totalPedido(pedido);
+      if (valorTotal > 0) {
+        void insertTransaction({
+          storeId,
+          kind: "saida",
+          description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
+          amount: valorTotal,
+          category: "estorno_devolucao",
+          payment_method: pedido.pagamento === "Pix" ? "pix" : "cartao",
+          occurred_on: new Date().toISOString().slice(0, 10),
+        }).then(() => {
+          void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        });
+      }
+      toast.error("Pedido cancelado: estoque devolvido e estorno registrado no Caixa.");
+    } else {
+      toast.error("Pedido cancelado.");
     }
-    toast.error("Pedido cancelado e estoque estornado.");
   };
 
   return (

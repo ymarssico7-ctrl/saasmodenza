@@ -74,19 +74,23 @@ function RelatoriosPage() {
     }
   }, [storeId]);
 
-  // KPIs
-  const receita = useMemo(
-    () =>
-      pedidos
-        .filter((p) => p.status === "entregue" || p.status === "enviado")
-        .reduce((a, p) => a + totalPedido(p), 0),
+  // KPIs baseados em pedidos confirmados/pagos (não cancelados nem novos pendentes)
+  const pedidosConfirmados = useMemo(
+    () => pedidos.filter((p) => p.status !== "cancelado" && p.status !== "novo"),
     [pedidos],
+  );
+
+  const receita = useMemo(
+    () => pedidosConfirmados.reduce((a, p) => a + totalPedido(p), 0),
+    [pedidosConfirmados],
   );
 
   const ticketMedio = useMemo(
     () =>
-      pedidos.length > 0 ? pedidos.reduce((a, p) => a + totalPedido(p), 0) / pedidos.length : 0,
-    [pedidos],
+      pedidosConfirmados.length > 0
+        ? pedidosConfirmados.reduce((a, p) => a + totalPedido(p), 0) / pedidosConfirmados.length
+        : 0,
+    [pedidosConfirmados],
   );
 
   // Vendas por dia — últimos 8 dias
