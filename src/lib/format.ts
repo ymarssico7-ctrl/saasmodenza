@@ -89,7 +89,28 @@ export function digitsOnly(value: string) {
 export function toNumber(value: string | number | null | undefined) {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (!value) return 0;
-  const normalized = String(value).replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+  const str = String(value).trim().replace(/\s/g, "");
+  if (!str) return 0;
+
+  // Se tem vírgula, tratamos como padrão BR (ponto é milhar, vírgula é decimal: ex: "1.500,00" ou "49,90")
+  if (str.includes(",")) {
+    const normalized = str.replace(/\./g, "").replace(",", ".");
+    const parsed = Number(normalized.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  // Se não tem vírgula, verifica se tem um único ponto decimal (ex: "49.90" ou "1500.5")
+  const dotCount = (str.match(/\./g) || []).length;
+  if (dotCount === 1) {
+    const parts = str.split(".");
+    if (parts[1] && parts[1].length <= 2) {
+      const parsed = Number(str.replace(/[^\d.-]/g, ""));
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+  }
+
+  // Múltiplos pontos ou padrão de milhar sem vírgula (ex: "1.500")
+  const normalized = str.replace(/\./g, "");
   const parsed = Number(normalized.replace(/[^\d.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }

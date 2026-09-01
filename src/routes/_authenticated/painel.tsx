@@ -27,7 +27,16 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { creditsQuery, goalsQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, formatDate, monthLabel, monthStart, pct, todayISO } from "@/lib/format";
-import { creditStatus, formatVariationHint, projectMonth, sumBy, variation, type Transaction } from "@/lib/finance";
+import {
+  REFUND_CATEGORIES,
+  creditStatus,
+  formatVariationHint,
+  projectMonth,
+  sumBy,
+  sumByCategories,
+  variation,
+  type Transaction,
+} from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -61,6 +70,8 @@ function Painel() {
   const previous = inMonth(prevMonth);
 
   const revenue = sumBy(current, "entrada");
+  const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
+  const netRevenue = revenue - refunds;
   const expenses = sumBy(current, "saida");
   const profit = revenue - expenses;
   const prevRevenue = sumBy(previous, "entrada");
@@ -185,9 +196,9 @@ function Painel() {
           tone={profit >= 0 ? "positive" : "negative"}
           icon={<Wallet className="size-4" />}
           hint={
-            revenue > 0
+            netRevenue > 0
               ? profit >= 0
-                ? `Margem líquida de ${pct((profit / revenue) * 100)}`
+                ? `Margem líquida de ${pct((profit / netRevenue) * 100)}`
                 : `Prejuízo operacional de ${brl(Math.abs(profit))}`
               : "Sem vendas ainda"
           }

@@ -75,7 +75,7 @@ export type Pedido = {
 
 export function totalPedido(p: Pedido): number {
   const subtotal = p.itens.reduce((acc, i) => acc + i.preco * i.qtd, 0);
-  return subtotal + p.frete - p.desconto;
+  return Math.max(subtotal + (p.frete || 0) - (p.desconto || 0), 0);
 }
 
 // ─── Tipo de Cupom ────────────────────────────────────────────────────────────
