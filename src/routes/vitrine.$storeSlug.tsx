@@ -735,6 +735,15 @@ function CartDrawer({
     freteGratisMinimoAtivo?: boolean;
     freteGratisMinimo?: number;
   };
+  // Recalcula o desconto dinamicamente sempre que o carrinho ou o cupom muda
+  const valorDesconto = useMemo(() => {
+    if (!cupomAplicado || totalPrice <= 0) return 0;
+    if (cupomAplicado.tipo === "percentual") {
+      return (totalPrice * cupomAplicado.valor) / 100;
+    }
+    return Math.min(cupomAplicado.valor, totalPrice);
+  }, [cupomAplicado, totalPrice]);
+
   const opcoesFreteDisponiveis = useMemo((): OpcaoFrete[] => {
     try {
       const raw =
@@ -753,30 +762,20 @@ function CartDrawer({
         .filter((o) => o.ativa)
         .map((o) => ({
           ...o,
-          // Frete grátis por valor mínimo sobrepõe o valor da opção
+          // Frete grátis por valor mínimo examina o subtotal líquido de desconto
           valor:
-            o.gratis || (minGratis > 0 && totalPrice - (valorDesconto ?? 0) >= minGratis)
+            o.gratis || (minGratis > 0 && totalPrice - valorDesconto >= minGratis)
               ? 0
               : (o.valor ?? 0),
         }));
     } catch {
       return [];
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId, totalPrice]);
+  }, [storeId, totalPrice, valorDesconto]);
 
   const [freteSelecionadoId, setFreteSelecionadoId] = useState<string>("");
   const freteSelecionado = opcoesFreteDisponiveis.find((o) => o.id === freteSelecionadoId) ?? null;
   const valorFrete = freteSelecionado?.valor ?? 0;
-
-  // Recalcula dinamicamente sempre que o carrinho ou o cupom muda
-  const valorDesconto = useMemo(() => {
-    if (!cupomAplicado || totalPrice <= 0) return 0;
-    if (cupomAplicado.tipo === "percentual") {
-      return (totalPrice * cupomAplicado.valor) / 100;
-    }
-    return Math.min(cupomAplicado.valor, totalPrice);
-  }, [cupomAplicado, totalPrice]);
 
   const totalFinal = Math.max(totalPrice - valorDesconto + valorFrete, 0);
 

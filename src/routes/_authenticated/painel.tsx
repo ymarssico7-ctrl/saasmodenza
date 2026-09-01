@@ -79,7 +79,7 @@ function Painel() {
 
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const projection = projectMonth(revenue, now.getDate(), daysInMonth);
+  const projection = projectMonth(netRevenue, now.getDate(), daysInMonth);
 
   const goal = goals.find((g) => g.month.slice(0, 7) === thisMonth.slice(0, 7));
   const goalTarget = Number(goal?.target_amount ?? 0);
@@ -184,15 +184,18 @@ function Painel() {
           label="Despesas do mês"
           value={brl(expenses)}
           icon={<ArrowDownRight className="size-4" />}
-          hint={
-            current.filter((t) => t.kind === "saida").length === 0
-              ? "Nenhuma saída registrada"
-              : `${current.filter((t) => t.kind === "saida").length} ${
-                  current.filter((t) => t.kind === "saida").length === 1
-                    ? "saída registrada"
-                    : "saídas registradas"
-                }`
-          }
+          {...(refunds > 0
+            ? { hint: `Inclui ${brl(refunds)} em devoluções` }
+            : {
+                hint:
+                  current.filter((t) => t.kind === "saida").length === 0
+                    ? "Nenhuma saída registrada"
+                    : `${current.filter((t) => t.kind === "saida").length} ${
+                        current.filter((t) => t.kind === "saida").length === 1
+                          ? "saída registrada"
+                          : "saídas registradas"
+                      }`,
+              })}
         />
         <StatCard
           label="Lucro do mês"

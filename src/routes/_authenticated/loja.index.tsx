@@ -83,12 +83,15 @@ function VisaoGeral() {
       d.setDate(d.getDate() - (7 - i));
       return d.toISOString().slice(0, 10);
     });
-    return days.map((day) => ({
-      dia: day.slice(8),
-      vendas: pedidos
-        .filter((p) => p.status !== "cancelado" && p.status !== "novo" && p.criadoEm.startsWith(day))
-        .reduce((acc, p) => acc + totalPedido(p), 0),
-    }));
+    return days.map((day) => {
+      const [y, m, d] = day.split("-");
+      return {
+        dia: `${d}/${m}`,
+        vendas: pedidos
+          .filter((p) => p.status !== "cancelado" && p.status !== "novo" && p.criadoEm.startsWith(day))
+          .reduce((acc, p) => acc + totalPedido(p), 0),
+      };
+    });
   }, [pedidos]);
 
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
