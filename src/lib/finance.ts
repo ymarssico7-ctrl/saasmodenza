@@ -9,6 +9,7 @@ export type PricingInput = {
   other_costs: number;
   margin_pct: number;
   tax_pct: number;
+  card_rate_pct?: number;
 };
 
 export type PricingResult = {
@@ -73,10 +74,10 @@ export function getMarginHealth(marginPct: number): MarginHealth {
   };
 }
 
-// ── Modo 1: Markup sobre o Custo (modo legado mantido) ───────────────────────
+// ── Modo 1: Markup sobre o Custo (com proteção de impostos e taxas) ──────────
 /**
- * P = (Custo × (1 + Markup)) / (1 - Imposto)
- * Lucro = P - Custo - P×Imposto
+ * P = (Custo × (1 + Markup)) / (1 - Imposto - TaxaCartão)
+ * Lucro = P - Custo - P×(Imposto + TaxaCartão)
  */
 export function computePricing(input: PricingInput): PricingResult {
   const realCost =
@@ -85,13 +86,16 @@ export function computePricing(input: PricingInput): PricingResult {
     num(input.packaging_cost) +
     num(input.other_costs);
 
-  const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 95) / 100;
+  const taxRate = Math.min(Math.max(num(input.tax_pct), 0), 50) / 100;
+  const cardRate = Math.min(Math.max(num(input.card_rate_pct ?? 0), 0), 30) / 100;
   const markup = Math.max(num(input.margin_pct), 0) / 100;
-  const divisor = Math.max(1 - taxRate, 0.01);
+  const totalDeductionRate = taxRate + cardRate;
+  const divisor = Math.max(1 - totalDeductionRate, 0.01);
 
   const minPrice = realCost / divisor;
   const suggestedPrice = (realCost * (1 + markup)) / divisor;
-  const profit = suggestedPrice - realCost - suggestedPrice * taxRate;
+  const deductions = suggestedPrice * totalDeductionRate;
+  const profit = suggestedPrice - realCost - deductions;
 
   return {
     realCost,
@@ -273,7 +277,8 @@ export type LotBreakEven = {
   avgNetPricePerUnit: number;   // preço líquido médio por peça (após impostos/taxas)
   unitsToBreakEven: number;     // quantas peças precisa vender para pagar o lote
   breakEvenPct: number;         // % do lote que precisa ser vendido
-  profitOnRemainder: number;    // lucro líquido se vender o restante
+  profitOnRemainder: number;    // receita líquida pura gerada após quitar o lote
+  totalLotProfit: number;       // lucro líquido final se vender 100% do lote
 };
 
 export function computeLotBreakEven(
@@ -292,8 +297,9 @@ export function computeLotBreakEven(
     : totalUnits;
 
   const remainingUnits = Math.max(totalUnits - unitsToBreakEven, 0);
-  const avgProfit = avgSalePrice - avgRealCost - avgSalePrice * (taxRate + cardRate);
-  const profitOnRemainder = remainingUnits * avgProfit;
+  const profitOnRemainder = remainingUnits * avgNetPricePerUnit;
+  const totalNetRevenue = totalUnits * avgNetPricePerUnit;
+  const totalLotProfit = Math.max(totalNetRevenue - totalLotCost, 0);
   const breakEvenPct = totalUnits > 0 ? (unitsToBreakEven / totalUnits) * 100 : 100;
 
   return {
@@ -303,6 +309,7 @@ export function computeLotBreakEven(
     unitsToBreakEven: Math.min(unitsToBreakEven, totalUnits),
     breakEvenPct,
     profitOnRemainder,
+    totalLotProfit,
   };
 }
 

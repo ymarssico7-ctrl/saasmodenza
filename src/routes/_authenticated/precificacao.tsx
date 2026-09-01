@@ -416,20 +416,19 @@ function Precificacao() {
         other_costs: otherNum,
         margin_pct: markup,
         tax_pct: tax,
+        card_rate_pct: cardRate,
       });
-      const deductions = res.suggestedPrice * ((tax + cardRate) / 100);
-      const profitAdjusted = res.suggestedPrice - res.realCost - deductions;
-      const marginReal = res.suggestedPrice > 0 ? (profitAdjusted / res.suggestedPrice) * 100 : 0;
+      const totalDeductions = res.suggestedPrice * ((tax + cardRate) / 100);
 
       return {
         realCost: res.realCost,
         suggestedPrice: res.suggestedPrice,
-        profit: profitAdjusted,
-        marginOnPrice: marginReal,
-        markupOnCost: res.realCost > 0 ? (profitAdjusted / res.realCost) * 100 : 0,
-        deductions,
+        profit: res.profit,
+        marginOnPrice: res.marginOnPrice,
+        markupOnCost: res.markupOnCost,
+        deductions: totalDeductions,
         isCustomPrice: false,
-        marginHealth: getMarginHealth(marginReal),
+        marginHealth: getMarginHealth(res.marginOnPrice),
       };
     };
   }, [freight, packaging, other, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
@@ -2768,16 +2767,20 @@ function Precificacao() {
 
               {/* Controle Ativo da Estratégia */}
               <div className="pt-1">
-                {strategy === "margin" && (
-                  <SliderRow
-                    label="Margem de Lucro Líquida Alvo (% sobre o preço de venda)"
-                    value={desiredMargin}
-                    max={85}
-                    onChange={setDesiredMargin}
-                    display={pct(desiredMargin)}
-                    hint="Calcula o preço garantindo a margem líquida no bolso após custos e impostos."
-                  />
-                )}
+                {strategy === "margin" && (() => {
+                  const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
+                  const effectiveMargin = Math.min(desiredMargin, maxMarginSafe);
+                  return (
+                    <SliderRow
+                      label="Margem de Lucro Líquida Alvo (% sobre o preço de venda)"
+                      value={effectiveMargin}
+                      max={maxMarginSafe}
+                      onChange={(val) => setDesiredMargin(Math.min(val, maxMarginSafe))}
+                      display={pct(effectiveMargin)}
+                      hint={`Calcula o preço garantindo a margem líquida no bolso após custos (${tax}% imposto + ${cardRate}% cartão).`}
+                    />
+                  );
+                })()}
                 {strategy === "markup" && (
                   <SliderRow
                     label="Markup Desejado (% sobre o custo total)"
@@ -2785,7 +2788,7 @@ function Precificacao() {
                     max={300}
                     onChange={setMarkup}
                     display={pct(markup)}
-                    hint="Multiplicador direto sobre o custo total da peça."
+                    hint="Multiplicador direto sobre o custo total da peça (com taxas de cartão e impostos inclusos no divisor)."
                   />
                 )}
                 {strategy === "direct_price" && (
@@ -2901,7 +2904,13 @@ function Precificacao() {
             {/* Ponto de Equilíbrio — aparece no Rápido quando qty > 1, sempre no Grade */}
             {(mode === "grade" || (mode === "rapida" && actualLotUnits > 1)) && (
               <div className="rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? `As outras ${Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} são 100% lucro líquido.` : "Lote quitado com margem saudável."}
+                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
+                  <>
+                    As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
+                  </>
+                ) : (
+                  "Lote quitado com margem saudável."
+                )}
               </div>
             )}
 
@@ -3008,6 +3017,7 @@ function Precificacao() {
                     other_costs: Number(p.other_costs),
                     margin_pct: Number(p.margin_pct),
                     tax_pct: Number(p.tax_pct),
+                    card_rate_pct: cardRate,
                   });
                   return (
                     <tr key={p.id} className="transition-colors hover:bg-secondary/40">
@@ -3177,7 +3187,7 @@ function Precificacao() {
           {/* Card Resumo Financeiro do Lote */}
           <div className="rounded-2xl border border-border bg-secondary/40 p-4 space-y-2 text-xs">
             <div className="flex justify-between text-muted-foreground">
-              <span>Custo Unitário Calculado:</span>
+              <span>Custo Unitário de Entrada (CMV):</span>
               <span className="numeric font-semibold text-foreground">{brl(entryCostPrice)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
@@ -3192,6 +3202,12 @@ function Precificacao() {
               <span>Potencial de Faturamento:</span>
               <span className="numeric">{brl(entryTotalRevenue)}</span>
             </div>
+            {entryTotalRevenue > entryTotalCost && (
+              <div className="flex justify-between font-bold text-success pt-0.5">
+                <span>Lucro Bruto Estimado:</span>
+                <span className="numeric">+{brl(entryTotalRevenue - entryTotalCost)}</span>
+              </div>
+            )}
           </div>
 
           {/* Botão de Confirmação */}
