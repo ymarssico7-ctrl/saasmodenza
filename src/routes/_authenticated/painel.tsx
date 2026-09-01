@@ -83,7 +83,8 @@ function Painel() {
 
   const goal = goals.find((g) => g.month.slice(0, 7) === thisMonth.slice(0, 7));
   const goalTarget = Number(goal?.target_amount ?? 0);
-  const goalProgress = goalTarget > 0 ? Math.min((revenue / goalTarget) * 100, 100) : 0;
+  // Fix 1: progresso da meta usa Receita Líquida (idêntico a metas.tsx — base homogênea)
+  const goalProgress = goalTarget > 0 ? Math.min((netRevenue / goalTarget) * 100, 100) : 0;
 
   const openCredits = credits.filter(
     (c) =>
@@ -108,7 +109,10 @@ function Painel() {
     };
   });
 
-  const recent = txs.slice(0, 6);
+  // Fix 8: filtra pelo mês atual e ordena por data desc — exibe os lançamentos mais recentes
+  const recent = [...current]
+    .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
+    .slice(0, 6);
 
   if (isProfileLoading || isTxsLoading) {
     return (
@@ -276,7 +280,7 @@ function Painel() {
             </div>
             {goalTarget > 0 ? (
               <>
-                <p className="numeric mt-4 text-2xl font-semibold">{brl(revenue)}</p>
+                <p className="numeric mt-4 text-2xl font-semibold">{brl(netRevenue)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">de {brl(goalTarget)}</p>
                 <Progress value={goalProgress} className="mt-4 h-2" />
                 <p className="mt-3 text-xs text-muted-foreground">

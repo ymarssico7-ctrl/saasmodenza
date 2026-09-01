@@ -559,6 +559,8 @@ function ProductModal({
       tamanho,
       cor: cor2,
       quantidade: 1,
+      // Fix 6: teto de estoque real — o reducer não deixa ultrapassar
+      maxQuantity: product.totalEstoque,
     };
     add(item);
     setAdded(true);
@@ -722,6 +724,51 @@ function CartDrawer({
   } | null>(null);
   const [cupomErro, setCupomErro] = useState("");
 
+  // Fix 3: Opções de frete lidas do localStorage (mesma config do loja.frete.tsx)
+  type OpcaoFrete = {
+    id: string;
+    label: string;
+    ativa: boolean;
+    valor?: number;
+    gratis?: boolean;
+    prazo?: string;
+    freteGratisMinimoAtivo?: boolean;
+    freteGratisMinimo?: number;
+  };
+  const opcoesFreteDisponiveis = useMemo((): OpcaoFrete[] => {
+    try {
+      const raw =
+        localStorage.getItem(`vestuli_frete_config_${storeId}`) ||
+        localStorage.getItem(`modaly_frete_config_${storeId}`);
+      if (!raw) return [];
+      const cfg = JSON.parse(raw) as {
+        opcoes?: OpcaoFrete[];
+        freteGratisMinimoAtivo?: boolean;
+        freteGratisMinimo?: string;
+      };
+      const minGratis = cfg.freteGratisMinimoAtivo
+        ? parseFloat((cfg.freteGratisMinimo ?? "0").replace(",", ".")) || 0
+        : 0;
+      return (cfg.opcoes ?? [])
+        .filter((o) => o.ativa)
+        .map((o) => ({
+          ...o,
+          // Frete grátis por valor mínimo sobrepõe o valor da opção
+          valor:
+            o.gratis || (minGratis > 0 && totalPrice - (valorDesconto ?? 0) >= minGratis)
+              ? 0
+              : (o.valor ?? 0),
+        }));
+    } catch {
+      return [];
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId, totalPrice]);
+
+  const [freteSelecionadoId, setFreteSelecionadoId] = useState<string>("");
+  const freteSelecionado = opcoesFreteDisponiveis.find((o) => o.id === freteSelecionadoId) ?? null;
+  const valorFrete = freteSelecionado?.valor ?? 0;
+
   // Recalcula dinamicamente sempre que o carrinho ou o cupom muda
   const valorDesconto = useMemo(() => {
     if (!cupomAplicado || totalPrice <= 0) return 0;
@@ -731,7 +778,7 @@ function CartDrawer({
     return Math.min(cupomAplicado.valor, totalPrice);
   }, [cupomAplicado, totalPrice]);
 
-  const totalFinal = Math.max(totalPrice - valorDesconto, 0);
+  const totalFinal = Math.max(totalPrice - valorDesconto + valorFrete, 0);
 
   const aplicarCupom = () => {
     const codigo = codigoCupom.trim().toUpperCase();
@@ -804,9 +851,10 @@ function CartDrawer({
         status: "novo",
         origem: "Checkout",
         pagamento: "Pix",
-        entrega: "Retirada na loja",
+        // Fix 3: salva a opção de entrega escolhida (ou padrão) e o valor real do frete
+        entrega: freteSelecionado?.label ?? "A definir",
         endereco: "",
-        frete: 0,
+        frete: valorFrete,
         desconto: cupomAplicado ? valorDesconto : 0,
         cupom: cupomAplicado?.codigo ?? undefined,
         itens: items.map((i) => ({
@@ -829,6 +877,7 @@ function CartDrawer({
     clear();
     setCupomAplicado(null);
     setCodigoCupom("");
+    setFreteSelecionadoId("");
     onClose();
   }
 
@@ -991,6 +1040,31 @@ function CartDrawer({
                 </div>
               </div>
             )}
+            {/* Fix 3: Seletor de frete — opções configuradas no módulo Frete da loja */}
+            {opcoesFreteDisponiveis.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-semibold text-gray-500">Entrega</p>
+                <div className="space-y-1.5">
+                  {opcoesFreteDisponiveis.map((opcao) => (
+                    <button
+                      key={opcao.id}
+                      onClick={() => setFreteSelecionadoId(opcao.id)}
+                      className="flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition-all"
+                      style={
+                        freteSelecionadoId === opcao.id
+                          ? { borderColor: cor, backgroundColor: `${cor}12`, color: cor }
+                          : { borderColor: "#e5e7eb", color: "#374151" }
+                      }
+                    >
+                      <span className="font-medium">{opcao.label}</span>
+                      <span className="font-semibold">
+                        {opcao.valor === 0 ? "Grátis" : brl(opcao.valor ?? 0)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Totais */}
             <div className="mb-4 space-y-1">
               <div className="flex items-center justify-between text-sm text-gray-500">
@@ -1001,6 +1075,13 @@ function CartDrawer({
                 <div className="flex items-center justify-between text-sm text-green-600">
                   <span>Desconto</span>
                   <span>−{brl(valorDesconto)}</span>
+                </div>
+              )}
+              {/* Fix 3: linha de frete nos totais */}
+              {freteSelecionado && (
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>Frete ({freteSelecionado.label})</span>
+                  <span>{valorFrete === 0 ? "Grátis" : `+ ${brl(valorFrete)}`}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-base font-bold text-gray-900">

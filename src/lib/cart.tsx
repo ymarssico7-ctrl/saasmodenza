@@ -8,6 +8,8 @@ export type CartItem = {
   tamanho: string;
   cor: string;
   quantidade: number;
+  /** Estoque máximo disponível — impede incrementar além do estoque real */
+  maxQuantity?: number;
 };
 
 type CartState = { items: CartItem[] };
@@ -47,11 +49,12 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       };
     case "INCREMENT":
       return {
-        items: state.items.map((i) =>
-          key(i.id, i.tamanho, i.cor) === key(action.id, action.tamanho, action.cor)
-            ? { ...i, quantidade: i.quantidade + 1 }
-            : i,
-        ),
+        items: state.items.map((i) => {
+          if (key(i.id, i.tamanho, i.cor) !== key(action.id, action.tamanho, action.cor)) return i;
+          // Fix 6: respeita teto de estoque se definido
+          const max = i.maxQuantity ?? Infinity;
+          return { ...i, quantidade: Math.min(i.quantidade + 1, max) };
+        }),
       };
     case "DECREMENT":
       return {

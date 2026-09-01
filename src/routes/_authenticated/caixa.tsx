@@ -632,6 +632,8 @@ function Caixa() {
     setCategory(next === "entrada" ? "venda_produto" : "compra_estoque");
     setMethod("pix");
     setSelectedProductId(null);
+    // Fix 7: reseta o cliente para não vazar cliente de fiado numa saída
+    handleClearCustomer();
   };
 
   // ── Handlers de criação rápida ────────────────────────────────────────────
@@ -701,6 +703,10 @@ function Caixa() {
   const todayTxs = txs.filter((t) => t.occurred_on === today);
   const revenue = sumBy(monthTxs, "entrada");
   const expenses = sumBy(monthTxs, "saida");
+  // Fix 2: calcula estornos para exibir hint transparente no card de Entradas
+  const monthRefunds = monthTxs
+    .filter((t) => t.kind === "saida" && t.category === "estorno_devolucao")
+    .reduce((acc, t) => acc + Number(t.amount), 0);
   const todayBalance = sumBy(todayTxs, "entrada") - sumBy(todayTxs, "saida");
 
   // ── Mutações ──────────────────────────────────────────────────────────────
@@ -852,6 +858,7 @@ function Caixa() {
           value={brl(revenue)}
           tone="positive"
           icon={<ArrowUpRight className="size-4" />}
+          {...(monthRefunds > 0 ? { hint: `Inclui ${brl(monthRefunds)} em estornos` } : {})}
         />
         <StatCard
           label="Saídas do mês"
