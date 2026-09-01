@@ -30,16 +30,26 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "ADD": {
       const k = key(action.item.id, action.item.tamanho, action.item.cor);
       const existing = state.items.find((i) => key(i.id, i.tamanho, i.cor) === k);
+      const max = action.item.maxQuantity ?? existing?.maxQuantity ?? Infinity;
       if (existing) {
         return {
           items: state.items.map((i) =>
             key(i.id, i.tamanho, i.cor) === k
-              ? { ...i, quantidade: i.quantidade + action.item.quantidade }
+              ? {
+                  ...i,
+                  ...(max !== Infinity ? { maxQuantity: max } : {}),
+                  quantidade: Math.min(i.quantidade + action.item.quantidade, max),
+                }
               : i,
           ),
         };
       }
-      return { items: [...state.items, action.item] };
+      return {
+        items: [
+          ...state.items,
+          { ...action.item, quantidade: Math.min(action.item.quantidade, max) },
+        ],
+      };
     }
     case "REMOVE":
       return {

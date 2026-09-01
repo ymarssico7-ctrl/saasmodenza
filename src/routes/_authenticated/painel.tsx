@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { creditsQuery, goalsQuery, profileQuery, transactionsQuery } from "@/lib/db";
-import { brl, brlCompact, formatDate, monthLabel, monthStart, pct, todayISO } from "@/lib/format";
+import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, todayISO } from "@/lib/format";
 import {
   REFUND_CATEGORIES,
   creditStatus,
@@ -103,7 +103,7 @@ function Painel() {
     const m = monthStart(-(5 - i));
     const items = inMonth(m);
     return {
-      month: monthLabel(m).split(" de ")[0]?.slice(0, 3),
+      month: monthLabelShort(m),
       faturamento: sumBy(items, "entrada"),
       lucro: sumBy(items, "entrada") - sumBy(items, "saida"),
     };

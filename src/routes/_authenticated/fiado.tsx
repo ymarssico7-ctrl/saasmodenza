@@ -288,14 +288,26 @@ function Fiado() {
                         variant="outline"
                         className="h-10 rounded-full font-semibold"
                         disabled={pay.isPending}
-                        onClick={() =>
-                          pay.mutate({
-                            credit: c,
-                            value: toNumber(payments[c.id] ?? "") || remaining,
-                          })
-                        }
+                        onClick={() => {
+                          const rawInput = (payments[c.id] ?? "").trim();
+                          let valToPay = remaining;
+                          if (rawInput !== "") {
+                            valToPay = toNumber(rawInput);
+                            if (isNaN(valToPay) || valToPay <= 0) {
+                              toast.error("Informe um valor de pagamento válido (maior que zero).");
+                              return;
+                            }
+                            if (valToPay > remaining + 0.005) {
+                              toast.error(
+                                `O valor (${brl(valToPay)}) é maior que o saldo devedor (${brl(remaining)}).`,
+                              );
+                              return;
+                            }
+                          }
+                          pay.mutate({ credit: c, value: valToPay });
+                        }}
                       >
-                        Registrar pagamento
+                        {payments[c.id]?.trim() ? "Registrar pagamento" : "Quitar total"}
                       </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(c.id)}
