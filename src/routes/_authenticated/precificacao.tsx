@@ -679,23 +679,9 @@ function Precificacao() {
       return;
     }
 
-    // Pega os tamanhos mais comuns já presentes na grade ou padrão P, M, G, GG
-    const currentSizes = Array.from(new Set(variants.map((v) => v.size)));
-    const sizesToUse = currentSizes.length > 0 ? currentSizes : ["P", "M", "G", "GG"];
-    const canonicalSizesToUse = sortCanonicalSizes(sizesToUse);
-
-    const newRows: VariantRow[] = canonicalSizesToUse.map((sz) => ({
-      id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
-      size: sz,
-      color: clean,
-      wholesaleCost: "",
-      customSalePrice: "",
-      qty: 2,
-    }));
-
+    // Adiciona a cor limpa para que o lojista escolha livremente os tamanhos que desejar
     setActiveColors((prev) => [...prev, clean]);
-    setVariants((prev) => [...prev, ...newRows]);
-    toast.success(`Cor "${clean}" adicionada com os tamanhos ${canonicalSizesToUse.join(", ")}!`);
+    toast.success(`Cor "${clean}" adicionada à grade! Selecione os tamanhos acima.`);
   };
 
   const addCustomColor = () => {
