@@ -734,15 +734,6 @@ function Caixa() {
 
       if (isFiado) {
         if (!fiadoCustomerId) throw new Error("Selecione o cliente para registrar o fiado");
-        await insertTransaction({
-          storeId,
-          kind,
-          description: finalDescription,
-          amount: netAmount,
-          category,
-          payment_method: "fiado",
-          occurred_on: date,
-        });
         await insertCredit({
           storeId,
           customer_id: fiadoCustomerId,
@@ -767,10 +758,10 @@ function Caixa() {
     onSuccess: () => {
       const msg = selectedProductId && deductStock
         ? isFiado
-          ? "Fiado registrado e estoque atualizado!"
+          ? "Venda a prazo registrada na aba Fiado e peça baixada do estoque!"
           : `Lançamento registrado e estoque ${category === "estorno_devolucao" || category === "compra_estoque" ? "atualizado (+1 un.)" : "atualizado (-1 un.)"}!`
         : isFiado
-        ? "Fiado registrado no caixa e na aba Fiado!"
+        ? "Venda a prazo registrada na aba Fiado!"
         : "Lançamento registrado";
 
       toast.success(msg);
