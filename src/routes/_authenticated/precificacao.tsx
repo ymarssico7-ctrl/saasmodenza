@@ -253,6 +253,9 @@ function Precificacao() {
 
   // ── Modo 1: Precificação Rápida ───────────────────────────────────
   const [wholesale, setWholesale] = useState("49,90");
+  const [rapidaQty, setRapidaQty] = useState("1");     // quantidade de peças no lote rápido
+  const [rapidaColor, setRapidaColor] = useState("");   // cor opcional (identificação)
+  const [rapidaSize, setRapidaSize] = useState("");     // tamanho opcional (identificação)
 
   // ── Modo 2: Grade Detalhada de Variantes ──────────────────────────
   const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("49,90");
@@ -552,9 +555,9 @@ function Precificacao() {
 
   // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
   const actualLotUnits = useMemo(() => {
-    if (mode !== "grade") return 1;
+    if (mode !== "grade") return Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
     return variantResults.reduce((acc, v) => acc + v.qty, 0);
-  }, [mode, variantResults]);
+  }, [mode, variantResults, rapidaQty]);
 
   // ── Ponto de Cobertura do Lote (Break-Even Dinâmico) ────────────────
   const lotBreakEven = useMemo(() => {
@@ -1104,17 +1107,23 @@ function Precificacao() {
     setEntryCostPrice(summaryPrices.avgCost);
     setEntrySalePrice(summaryPrices.avgSuggested);
 
-    // Cores únicas da lista
-    const uniqueColors = Array.from(new Set(variants.map((v) => v.color)));
-    setEntryColor(uniqueColors.join(", ") || "");
-
-    // Quantidades por tamanho agregadas usando as quantidades REAIS de cada variante
-    const initialSizes: Record<string, number> = {};
-    variants.forEach((v) => {
-      const q = v.qty && v.qty > 0 ? v.qty : 1;
-      initialSizes[v.size] = (initialSizes[v.size] ?? 0) + q;
-    });
-    setEntrySizes(initialSizes);
+    if (mode === "rapida") {
+      // Modo Rápido: usar cor/tamanho/quantidade informados pelo lojista
+      setEntryColor(rapidaColor.trim() || "");
+      const sz = rapidaSize.trim() || "Único";
+      const qty = Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
+      setEntrySizes({ [sz]: qty });
+    } else {
+      // Modo Grade: agregar cores e quantidades reais da lista
+      const uniqueColors = Array.from(new Set(variants.map((v) => v.color)));
+      setEntryColor(uniqueColors.join(", ") || "");
+      const initialSizes: Record<string, number> = {};
+      variants.forEach((v) => {
+        const q = v.qty && v.qty > 0 ? v.qty : 1;
+        initialSizes[v.size] = (initialSizes[v.size] ?? 0) + q;
+      });
+      setEntrySizes(initialSizes);
+    }
     setEntrySheetOpen(true);
   };
 
@@ -1273,6 +1282,52 @@ function Precificacao() {
                   onChange={(e) => setWholesale(e.target.value)}
                   placeholder="49,90"
                   className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Quantidade + Cor + Tamanho — Modo Rápido (identificação completa da peça) */}
+          {mode === "rapida" && (
+            <div className="grid grid-cols-3 gap-3">
+              {/* Quantidade */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">Quantidade (un.)</Label>
+                <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                  <input
+                    inputMode="numeric"
+                    value={rapidaQty}
+                    onChange={(e) => setRapidaQty(e.target.value)}
+                    placeholder="1"
+                    className="h-11 w-full bg-transparent px-3 text-sm font-bold text-foreground outline-none"
+                  />
+                  <span className="pr-3 text-[11px] font-semibold text-muted-foreground select-none">un.</span>
+                </div>
+              </div>
+
+              {/* Cor (opcional) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  Cor <span className="font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <input
+                  value={rapidaColor}
+                  onChange={(e) => setRapidaColor(e.target.value)}
+                  placeholder="Ex: Nude, Preto…"
+                  className="h-11 w-full rounded-xl border border-border/80 bg-card px-3 text-sm font-semibold text-foreground shadow-2xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* Tamanho (opcional) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  Tamanho <span className="font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <input
+                  value={rapidaSize}
+                  onChange={(e) => setRapidaSize(e.target.value)}
+                  placeholder="Ex: M, G, 38…"
+                  className="h-11 w-full rounded-xl border border-border/80 bg-card px-3 text-sm font-semibold text-foreground shadow-2xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -2642,15 +2697,18 @@ function Precificacao() {
                     </p>
                   </div>
                 </div>
-
-                <div className="rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                  Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? `As outras ${Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} são 100% lucro líquido.` : 'Lote quitado com margem saudável.'}
-                </div>
               </div>
             </div>
 
+            {/* Ponto de Equilíbrio — aparece no Rápido quando qty > 1, sempre no Grade */}
+            {(mode === "grade" || (mode === "rapida" && actualLotUnits > 1)) && (
+              <div className="rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground leading-relaxed border border-border/60">
+                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? `As outras ${Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} são 100% lucro líquido.` : "Lote quitado com margem saudável."}
+              </div>
+            )}
+
             {/* Ações Finais */}
-            <div className="grid sm:grid-cols-2 gap-3 pt-2 border-t border-border/50">
+            <div className="grid sm:grid-cols-3 gap-3 pt-2 border-t border-border/50">
               {mode === "rapida" ? (
                 <>
                   <Button
@@ -2664,14 +2722,30 @@ function Precificacao() {
                   </Button>
                   <Button
                     type="button"
+                    variant="outline"
+                    onClick={openEntryForCurrent}
+                    className="h-11 rounded-xl text-xs font-semibold border-success/40 text-success hover:bg-success/5 hover:text-success"
+                  >
+                    <PackagePlus className="mr-1.5 size-3.5" /> Dar Entrada no Estoque
+                  </Button>
+                  <Button
+                    type="button"
                     onClick={promoteToGrade}
                     className="h-11 rounded-xl gradient-primary font-bold shadow-glow transition-all active:scale-[0.98]"
                   >
-                    <Layers className="mr-2 size-4" /> Expandir para Grade Completa
+                    <Layers className="mr-2 size-4" /> Expandir para Grade
                   </Button>
                 </>
               ) : (
                 <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setMode("rapida")}
+                    className="h-11 rounded-xl text-xs font-semibold"
+                  >
+                    ← Modo Rápido
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
