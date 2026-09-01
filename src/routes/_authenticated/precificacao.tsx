@@ -279,10 +279,16 @@ function Precificacao() {
   const [showMatrixGenerator, setShowMatrixGenerator] = useState(false);
   const [newCustomColor, setNewCustomColor] = useState("");
 
-  // Busca Spotlight de Cores (Apple Level)
+  // Busca Spotlight de Cores (Apple Level - Modo Grade)
   const [colorSearchQuery, setColorSearchQuery] = useState("");
   const [showColorPopover, setShowColorPopover] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
+
+  // Busca Spotlight de Cores & Seletor de Tamanhos (Apple Level - Modo Rápido)
+  const [rapidaColorSearchQuery, setRapidaColorSearchQuery] = useState("");
+  const [showRapidaColorPopover, setShowRapidaColorPopover] = useState(false);
+  const rapidaColorInputRef = useRef<HTMLInputElement>(null);
+  const [showRapidaMoreSizes, setShowRapidaMoreSizes] = useState(false);
 
   // Estratégia de precificação por cor (independente por card de cor)
   const [colorStrategies, setColorStrategies] = useState<Record<string, ColorStrategy>>({});
@@ -731,6 +737,27 @@ function Precificacao() {
     addQuickColor(clean);
     setColorSearchQuery("");
     setShowColorPopover(false);
+  };
+
+  // ── Handlers do Color Spotlight no Modo Rápido (Apple Level) ───────
+  const matchingRapidaColorPresets = useMemo(() => {
+    const q = rapidaColorSearchQuery.trim().toLowerCase();
+    if (!q) return COLOR_PRESETS.slice(0, 18);
+    return COLOR_PRESETS.filter((cp) => cp.name.toLowerCase().includes(q));
+  }, [rapidaColorSearchQuery]);
+
+  const handleSelectRapidaColor = (colorName: string) => {
+    setRapidaColor(colorName);
+    setRapidaColorSearchQuery("");
+    setShowRapidaColorPopover(false);
+  };
+
+  const handleCreateCustomRapidaColor = () => {
+    const clean = rapidaColorSearchQuery.trim();
+    if (!clean) return;
+    setRapidaColor(clean);
+    setRapidaColorSearchQuery("");
+    setShowRapidaColorPopover(false);
   };
 
   // ── Ações de Manipulação da Tabela de Variantes ────────────────────
@@ -1287,49 +1314,291 @@ function Precificacao() {
             </div>
           )}
 
-          {/* Quantidade + Cor + Tamanho — Modo Rápido (identificação completa da peça) */}
+          {/* ══ CONTROLES TÁTEIS: QUANTIDADE, COR & TAMANHO (PADRÃO APPLE STUDIO HIG) ══ */}
           {mode === "rapida" && (
-            <div className="grid grid-cols-3 gap-3">
-              {/* Quantidade */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Quantidade (un.)</Label>
-                <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                  <input
-                    inputMode="numeric"
-                    value={rapidaQty}
-                    onChange={(e) => setRapidaQty(e.target.value)}
-                    placeholder="1"
-                    className="h-11 w-full bg-transparent px-3 text-sm font-bold text-foreground outline-none"
-                  />
-                  <span className="pr-3 text-[11px] font-semibold text-muted-foreground select-none">un.</span>
+            <div className="grid gap-4 md:grid-cols-3 rounded-2xl border border-border/80 bg-secondary/20 p-4 sm:p-5 shadow-2xs">
+              
+              {/* 1. QUANTIDADE — SMART PRECISION STEPPER */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Quantidade (un.)
+                  </Label>
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    Total: {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
+                  </span>
+                </div>
+
+                {/* Stepper com Botões Táteis */}
+                <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = parseInt(rapidaQty, 10) || 1;
+                      setRapidaQty(String(Math.max(1, cur - 1)));
+                    }}
+                    disabled={(parseInt(rapidaQty, 10) || 1) <= 1}
+                    className="size-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer border-r border-border/50"
+                    title="Diminuir 1 unidade"
+                  >
+                    <Minus className="size-3.5" />
+                  </button>
+
+                  <div className="relative flex-1 flex items-center justify-center">
+                    <input
+                      inputMode="numeric"
+                      value={rapidaQty}
+                      onChange={(e) => setRapidaQty(e.target.value.replace(/[^\d]/g, ""))}
+                      className="h-11 w-full bg-transparent text-center text-sm font-bold text-foreground outline-none px-1"
+                    />
+                    <span className="absolute right-3 text-[11px] font-semibold text-muted-foreground select-none pointer-events-none">
+                      un.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = parseInt(rapidaQty, 10) || 1;
+                      setRapidaQty(String(cur + 1));
+                    }}
+                    className="size-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all shrink-0 cursor-pointer border-l border-border/50"
+                    title="Aumentar 1 unidade"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </div>
+
+                {/* Pílulas de Quantidade Rápida (1-Toque) */}
+                <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                  {["1", "5", "10", "20"].map((presetQty) => (
+                    <button
+                      key={presetQty}
+                      type="button"
+                      onClick={() => setRapidaQty(presetQty)}
+                      className={cn(
+                        "rounded-md border px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                        rapidaQty === presetQty
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      )}
+                    >
+                      {presetQty} {presetQty === "1" ? "un." : "un."}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Cor (opcional) */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
-                  Cor <span className="font-normal text-muted-foreground">(opcional)</span>
-                </Label>
-                <input
-                  value={rapidaColor}
-                  onChange={(e) => setRapidaColor(e.target.value)}
-                  placeholder="Ex: Nude, Preto…"
-                  className="h-11 w-full rounded-xl border border-border/80 bg-card px-3 text-sm font-semibold text-foreground shadow-2xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
+              {/* 2. COR — COLOR SPOTLIGHT POPOVER COM DOT CROMÁTICO */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Cor <span className="font-normal text-muted-foreground text-[10px] lowercase">(opcional)</span>
+                  </Label>
+                  {rapidaColor && (
+                    <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                      <span className={cn("size-2 rounded-full", getColorDot(rapidaColor))} />
+                      {rapidaColor}
+                    </span>
+                  )}
+                </div>
+
+                {/* Input com Dot Cromático e Popover */}
+                <div className="relative">
+                  <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                    {rapidaColor ? (
+                      <span className={cn("size-3.5 rounded-full ml-3 shrink-0 shadow-2xs", getColorDot(rapidaColor))} />
+                    ) : (
+                      <Search className="size-3.5 text-muted-foreground ml-3 shrink-0 pointer-events-none" />
+                    )}
+                    <input
+                      ref={rapidaColorInputRef}
+                      value={showRapidaColorPopover ? rapidaColorSearchQuery : rapidaColor}
+                      onChange={(e) => {
+                        setRapidaColorSearchQuery(e.target.value);
+                        setShowRapidaColorPopover(true);
+                      }}
+                      onFocus={() => {
+                        setRapidaColorSearchQuery("");
+                        setShowRapidaColorPopover(true);
+                      }}
+                      placeholder="Buscar cor da moda..."
+                      className="h-11 w-full bg-transparent px-2.5 text-xs font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+                    />
+                    {rapidaColor && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRapidaColor("");
+                          setRapidaColorSearchQuery("");
+                          setShowRapidaColorPopover(false);
+                        }}
+                        className="mr-2 size-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                        title="Limpar cor"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Popover Spotlight Flutuante */}
+                  {showRapidaColorPopover && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setShowRapidaColorPopover(false)} />
+                      <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-2xl border border-border/80 bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-1">
+                        {matchingRapidaColorPresets.length > 0 && (
+                          <>
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                              🎨 Biblioteca de Moda ({matchingRapidaColorPresets.length})
+                            </div>
+                            <div className="grid grid-cols-2 gap-1">
+                              {matchingRapidaColorPresets.map((cp) => (
+                                <button
+                                  key={cp.name}
+                                  type="button"
+                                  onClick={() => handleSelectRapidaColor(cp.name)}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-xl p-1.5 text-left text-xs font-semibold transition-all hover:bg-secondary/80 cursor-pointer",
+                                    rapidaColor.toLowerCase() === cp.name.toLowerCase() && "bg-primary/10 text-primary font-bold",
+                                  )}
+                                >
+                                  <span className={cn("size-3.5 rounded-full shrink-0 shadow-2xs", getColorDot(cp.name))} />
+                                  <span className="truncate">{cp.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        {rapidaColorSearchQuery.trim() && (
+                          <button
+                            type="button"
+                            onClick={handleCreateCustomRapidaColor}
+                            className="flex w-full items-center gap-2 rounded-xl p-2 text-left text-xs font-bold text-primary hover:bg-primary/10 transition-colors cursor-pointer border-t border-border/50"
+                          >
+                            <Plus className="size-3.5" />
+                            <span>Usar cor "{rapidaColorSearchQuery.trim()}"</span>
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Pílulas de Cores Rápidas */}
+                <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                  {["Nude", "Preto", "Off-White", "Terracota", "Areia"].map((colName) => (
+                    <button
+                      key={colName}
+                      type="button"
+                      onClick={() => setRapidaColor(rapidaColor === colName ? "" : colName)}
+                      className={cn(
+                        "flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                        rapidaColor === colName
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn("size-2 rounded-full", getColorDot(colName))} />
+                      <span>{colName}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Tamanho (opcional) */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
-                  Tamanho <span className="font-normal text-muted-foreground">(opcional)</span>
-                </Label>
-                <input
-                  value={rapidaSize}
-                  onChange={(e) => setRapidaSize(e.target.value)}
-                  placeholder="Ex: M, G, 38…"
-                  className="h-11 w-full rounded-xl border border-border/80 bg-card px-3 text-sm font-semibold text-foreground shadow-2xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
+              {/* 3. TAMANHO — SELETOR CANÔNICO DE 1-TOQUE */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Tamanho <span className="font-normal text-muted-foreground text-[10px] lowercase">(opcional)</span>
+                  </Label>
+                  {rapidaSize && (
+                    <span className="text-[10px] font-bold text-primary">
+                      Tam: {rapidaSize}
+                    </span>
+                  )}
+                </div>
+
+                {/* Botões Canônicos de 1-Toque */}
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {["PP", "P", "M", "G", "GG", "36", "38", "40", "42", "Único"].map((sz) => {
+                      const isSelected = rapidaSize === sz;
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setRapidaSize(isSelected ? "" : sz)}
+                          className={cn(
+                            "flex items-center justify-center rounded-lg px-2 py-1 text-[11px] font-bold transition-all active:scale-95 cursor-pointer",
+                            isSelected
+                              ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
+                              : "border border-border/80 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
+                          )}
+                        >
+                          <span>{sz}</span>
+                          {isSelected && <Check className="ml-1 size-2.5 stroke-[3]" />}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowRapidaMoreSizes((prev) => !prev)}
+                      className={cn(
+                        "rounded-lg border px-2 py-1 text-[10px] font-semibold transition-all cursor-pointer",
+                        showRapidaMoreSizes
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/60 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      )}
+                    >
+                      {showRapidaMoreSizes ? "Menos" : "+ Mais"}
+                    </button>
+                  </div>
+
+                  {/* Gaveta Expandida de Tamanhos Adicionais (Plus & Jeans) */}
+                  {showRapidaMoreSizes && (
+                    <div className="rounded-xl border border-border/70 bg-card p-2.5 space-y-2 animate-in fade-in-50 shadow-2xs">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                          Plus Size & Jeans:
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {["G1", "G2", "G3", "34", "44", "46", "48", "50"].map((sz) => {
+                            const isSelected = rapidaSize === sz;
+                            return (
+                              <button
+                                key={sz}
+                                type="button"
+                                onClick={() => setRapidaSize(isSelected ? "" : sz)}
+                                className={cn(
+                                  "flex items-center justify-center rounded-lg px-2 py-0.5 text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
+                                  isSelected
+                                    ? "gradient-primary text-primary-foreground shadow-xs"
+                                    : "border border-border/80 bg-secondary/30 text-muted-foreground hover:text-foreground",
+                                )}
+                              >
+                                <span>{sz}</span>
+                                {isSelected && <Check className="ml-1 size-2 stroke-[3]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Input Livre para Medida Especial */}
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
+                        <input
+                          value={["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "34", "36", "38", "40", "42", "44", "46", "48", "50", "Único"].includes(rapidaSize) ? "" : rapidaSize}
+                          onChange={(e) => setRapidaSize(e.target.value)}
+                          placeholder="Outra medida (ex: 52, 14 anos...)"
+                          className="h-7 w-full rounded-lg border border-border/80 bg-secondary/30 px-2 text-[11px] font-semibold text-foreground outline-none focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+
             </div>
           )}
 
