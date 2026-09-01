@@ -10,9 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useStore } from "@/lib/store-context";
 
-const FRETE_STORAGE_KEY = "vestuli_frete_config";
-const LEGACY_FRETE_STORAGE_KEY = "modaly_frete_config";
+function freteKey(storeId: string) {
+  return `vestuli_frete_config_${storeId}`;
+}
+
+function legacyFreteKey(storeId: string) {
+  return `modaly_frete_config_${storeId}`;
+}
+
+const GLOBAL_FRETE_KEY = "vestuli_frete_config";
 
 type FreteConfig = {
   cep: string;
@@ -79,18 +87,21 @@ const opcoesIniciais: OpcaoEntrega[] = [
 ];
 
 function FretePage() {
+  const { storeId } = useStore();
   const [opcoes, setOpcoes] = useState<OpcaoEntrega[]>(opcoesIniciais);
   const [cep, setCep] = useState("");
   const [enderecoLoja, setEnderecoLoja] = useState("");
   const [freteGratisMinimoAtivo, setFreteGratisMinimoAtivo] = useState(false);
   const [freteGratisMinimo, setFreteGratisMinimo] = useState("");
 
-  // Carrega configurações salvas ao montar
+  // Carrega configurações salvas isoladas por loja ao montar
   useEffect(() => {
+    if (!storeId) return;
     try {
       const raw =
-        localStorage.getItem(FRETE_STORAGE_KEY) ||
-        localStorage.getItem(LEGACY_FRETE_STORAGE_KEY);
+        localStorage.getItem(freteKey(storeId)) ||
+        localStorage.getItem(legacyFreteKey(storeId)) ||
+        localStorage.getItem(GLOBAL_FRETE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw) as Partial<FreteConfig>;
       if (saved.cep) setCep(saved.cep);
@@ -102,13 +113,14 @@ function FretePage() {
     } catch {
       // localStorage indisponível ou corrompido — iniciar vazio
     }
-  }, []);
+  }, [storeId]);
 
   function toggleOpcao(id: string) {
     setOpcoes((prev) => prev.map((o) => (o.id === id ? { ...o, ativa: !o.ativa } : o)));
   }
 
   function salvar() {
+    if (!storeId) return;
     try {
       const config: FreteConfig = {
         cep,
@@ -117,7 +129,7 @@ function FretePage() {
         freteGratisMinimoAtivo,
         freteGratisMinimo,
       };
-      localStorage.setItem(FRETE_STORAGE_KEY, JSON.stringify(config));
+      localStorage.setItem(freteKey(storeId), JSON.stringify(config));
     } catch {
       // ignore
     }

@@ -12,6 +12,7 @@ import {
   Pencil,
   Percent,
   Plus,
+  Search,
   Settings,
   Sparkles,
   Tag,
@@ -387,6 +388,10 @@ function Caixa() {
   const [customerHighlight, setCustomerHighlight] = useState(-1);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const customerInputRef = useRef<HTMLInputElement>(null);
+
+  // Busca e Filtros no Extrato
+  const [extratoSearch, setExtratoSearch] = useState("");
+  const [extratoKind, setExtratoKind] = useState<"todos" | "entrada" | "saida">("todos");
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -809,6 +814,20 @@ function Caixa() {
     const cleanDesc = t.description.replace(/\s*\[Desconto:.*\]/, "").trim().toLowerCase();
     return inventoryItems.find((p) => p.name.toLowerCase() === cleanDesc) ?? null;
   };
+
+  // ── Extrato Filtrado e Buscado Instantaneamente ───────────────────────────
+  const filteredMonthTxs = useMemo(() => {
+    return monthTxs.filter((t) => {
+      const matchesKind = extratoKind === "todos" || t.kind === extratoKind;
+      if (!matchesKind) return false;
+      if (!extratoSearch.trim()) return true;
+      const q = extratoSearch.toLowerCase();
+      const descMatch = t.description.toLowerCase().includes(q);
+      const catMatch = resolveCategory(t).toLowerCase().includes(q);
+      const payMatch = resolvePayment(t).toLowerCase().includes(q);
+      return descMatch || catMatch || payMatch;
+    });
+  }, [monthTxs, extratoKind, extratoSearch, customOpts]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   const accentClass = isEntrada
@@ -1544,9 +1563,57 @@ function Caixa() {
 
       {/* ── Extrato do mês ───────────────────────────────────────────────── */}
       <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">
-          Lançamentos de {monthLabel(month).toLowerCase()}
-        </h2>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold">
+              Lançamentos de {monthLabel(month).toLowerCase()}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "lançamento encontrado" : "lançamentos encontrados"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filtros rápidos: Todos / Entradas / Saídas */}
+            <div className="inline-flex rounded-full bg-surface-muted p-1 text-xs font-semibold">
+              {(["todos", "entrada", "saida"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setExtratoKind(k)}
+                  className={`rounded-full px-3 py-1 transition-all ${
+                    extratoKind === k
+                      ? "bg-card text-foreground shadow-xs font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {k === "todos" ? "Todos" : k === "entrada" ? "Entradas" : "Saídas"}
+                </button>
+              ))}
+            </div>
+
+            {/* Input de Busca Instantânea */}
+            <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={extratoSearch}
+                onChange={(e) => setExtratoSearch(e.target.value)}
+                placeholder="Buscar por cliente, peça…"
+                className="h-8 rounded-full pl-8 pr-3 text-xs bg-card"
+              />
+              {extratoSearch && (
+                <button
+                  type="button"
+                  onClick={() => setExtratoSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {monthTxs.length === 0 ? (
           <EmptyState
             className="mt-6"
@@ -1554,9 +1621,16 @@ function Caixa() {
             title="Nenhum lançamento neste mês"
             description="Registre a primeira venda ou despesa para acompanhar o caixa em tempo real."
           />
+        ) : filteredMonthTxs.length === 0 ? (
+          <EmptyState
+            className="mt-6"
+            icon={<Search className="size-6" />}
+            title="Nenhum lançamento encontrado"
+            description={`Nenhum resultado corresponde à busca "${extratoSearch}". Tente outro termo ou limpe o filtro.`}
+          />
         ) : (
           <ul className="mt-5 divide-y divide-border">
-            {monthTxs.map((t) => {
+            {filteredMonthTxs.map((t) => {
               const linkedProd = resolveLinkedProduct(t);
               return (
                 <li key={t.id} className="flex items-center justify-between gap-4 py-4">

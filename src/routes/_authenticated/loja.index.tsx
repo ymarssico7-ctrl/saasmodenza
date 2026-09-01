@@ -50,8 +50,15 @@ function VisaoGeral() {
 
   const thisMonth = new Date().toISOString().slice(0, 7);
 
+  // Pedidos confirmados/pagos no mês
   const pedidosMes = useMemo(
-    () => pedidos.filter((p) => p.status !== "cancelado" && p.criadoEm.slice(0, 7) === thisMonth),
+    () =>
+      pedidos.filter(
+        (p) =>
+          p.status !== "cancelado" &&
+          p.status !== "novo" &&
+          p.criadoEm.slice(0, 7) === thisMonth,
+      ),
     [pedidos, thisMonth],
   );
 
@@ -79,15 +86,29 @@ function VisaoGeral() {
     return days.map((day) => ({
       dia: day.slice(8),
       vendas: pedidos
-        .filter((p) => p.status !== "cancelado" && p.criadoEm.startsWith(day))
+        .filter((p) => p.status !== "cancelado" && p.status !== "novo" && p.criadoEm.startsWith(day))
         .reduce((acc, p) => acc + totalPedido(p), 0),
     }));
   }, [pedidos]);
 
-  const esgotados = 0;
-  const ultimasUnidades = 0;
-
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
+
+  const esgotados = useMemo(() => {
+    return inventoryItems.filter((i) => {
+      const s = (i.sizes ?? {}) as Record<string, number>;
+      const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+      return units === 0;
+    }).length;
+  }, [inventoryItems]);
+
+  const ultimasUnidades = useMemo(() => {
+    return inventoryItems.filter((i) => {
+      const s = (i.sizes ?? {}) as Record<string, number>;
+      const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+      return units > 0 && units < 3;
+    }).length;
+  }, [inventoryItems]);
+
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {

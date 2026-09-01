@@ -9,10 +9,11 @@ import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { creditsQuery, customersQuery } from "@/lib/db";
+import { creditsQuery, customersQuery, transactionsQuery } from "@/lib/db";
 import { brl } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { insertCustomer, deleteCustomer } from "@/lib/mutations";
+import { type Transaction } from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -34,6 +35,8 @@ function Clientes() {
   const { storeId } = useStore();
   const { data: customers = [] } = useQuery(customersQuery());
   const { data: credits = [] } = useQuery(creditsQuery());
+  const { data: rawTxs = [] } = useQuery(transactionsQuery());
+  const txs = rawTxs as unknown as Transaction[];
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -41,6 +44,25 @@ function Clientes() {
     credits
       .filter((c) => c.customer_id === customerId)
       .reduce((acc, c) => acc + (Number(c.amount) - Number(c.paid_amount)), 0);
+
+  const totalSpentOf = (customerName: string, customerId: string) => {
+    // 1. Pagamentos já quitados de fiado
+    const fiadoPaid = credits
+      .filter((c) => c.customer_id === customerId)
+      .reduce((acc, c) => acc + Number(c.paid_amount), 0);
+
+    // 2. Vendas diretas à vista registradas com a tag da cliente no caixa
+    const directSales = txs
+      .filter(
+        (t) =>
+          t.kind === "entrada" &&
+          t.category === "venda_produto" &&
+          t.description.toLowerCase().includes(`[cliente: ${customerName.toLowerCase()}]`),
+      )
+      .reduce((acc, t) => acc + Number(t.amount), 0);
+
+    return fiadoPaid + directSales;
+  };
 
   const create = useMutation({
     mutationFn: async () => {
@@ -118,6 +140,7 @@ function Clientes() {
           <ul className="mt-5 divide-y divide-border">
             {customers.map((c) => {
               const balance = balanceOf(c.id);
+              const totalSpent = totalSpentOf(c.name, c.id);
               return (
                 <li key={c.id} className="flex items-center justify-between gap-4 py-4">
                   <div className="flex min-w-0 items-center gap-3">
@@ -127,7 +150,7 @@ function Clientes() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{c.name}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {c.phone || "Sem telefone"}
+                        {c.phone || "Sem telefone"} · Total em compras: <span className="font-semibold text-foreground">{brl(totalSpent)}</span>
                       </p>
                     </div>
                   </div>
