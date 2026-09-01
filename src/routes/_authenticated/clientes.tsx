@@ -46,22 +46,37 @@ function Clientes() {
       .reduce((acc, c) => acc + (Number(c.amount) - Number(c.paid_amount)), 0);
 
   const totalSpentOf = (customerName: string, customerId: string) => {
-    // 1. Pagamentos já quitados de fiado
+    const norm = customerName.toLowerCase().trim();
+    if (!norm) return 0;
+
+    // 1. Pagamentos já quitados de fiado vinculados ao ID do cliente
     const fiadoPaid = credits
       .filter((c) => c.customer_id === customerId)
       .reduce((acc, c) => acc + Number(c.paid_amount), 0);
 
-    // 2. Vendas diretas à vista registradas com a tag da cliente no caixa
-    const directSales = txs
-      .filter(
-        (t) =>
-          t.kind === "entrada" &&
-          t.category === "venda_produto" &&
-          t.description.toLowerCase().includes(`[cliente: ${customerName.toLowerCase()}]`),
-      )
+    // 2. Vendas diretas no caixa e vendas da loja online atribuídas ao cliente
+    const sales = txs
+      .filter((t) => {
+        if (t.kind !== "entrada" || t.category !== "venda_produto") return false;
+        // Evita dupla contagem com fiadoPaid
+        if (t.payment_method === "fiado" || t.description.toLowerCase().startsWith("recebimento fiado")) {
+          return false;
+        }
+        const desc = t.description.toLowerCase();
+        return desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`);
+      })
       .reduce((acc, t) => acc + Number(t.amount), 0);
 
-    return fiadoPaid + directSales;
+    // 3. Estornos e devoluções atribuídos ao cliente
+    const refunds = txs
+      .filter((t) => {
+        if (t.kind !== "saida" || t.category !== "estorno_devolucao") return false;
+        const desc = t.description.toLowerCase();
+        return desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`);
+      })
+      .reduce((acc, t) => acc + Number(t.amount), 0);
+
+    return Math.max(fiadoPaid + sales - refunds, 0);
   };
 
   const create = useMutation({

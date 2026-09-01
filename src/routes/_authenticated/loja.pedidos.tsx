@@ -61,6 +61,15 @@ const filtros: { valor: StatusPedido | "todos"; label: string }[] = [
   { valor: "cancelado", label: "Cancelado" },
 ];
 
+function mapPedidoPaymentMethod(pagamento: string): string {
+  const p = (pagamento || "").toLowerCase();
+  if (p.includes("pix")) return "pix";
+  if (p.includes("débito") || p.includes("debito")) return "debito";
+  if (p.includes("crédito") || p.includes("credito") || p.includes("cartão") || p.includes("cartao")) return "credito";
+  if (p.includes("dinheiro")) return "dinheiro";
+  return "pix";
+}
+
 function pedidosKey(storeId: string) {
   return `vestuli_orders_${storeId}`;
 }
@@ -143,7 +152,7 @@ function PedidosPage() {
         description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
         amount: valorTotal,
         category: "venda_produto",
-        payment_method: pedido.pagamento === "Pix" ? "pix" : "cartao",
+        payment_method: mapPedidoPaymentMethod(pedido.pagamento),
         occurred_on: new Date().toISOString().slice(0, 10),
       }).then(() => {
         void queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -188,7 +197,7 @@ function PedidosPage() {
           description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
           amount: valorTotal,
           category: "estorno_devolucao",
-          payment_method: pedido.pagamento === "Pix" ? "pix" : "cartao",
+          payment_method: mapPedidoPaymentMethod(pedido.pagamento),
           occurred_on: new Date().toISOString().slice(0, 10),
         }).then(() => {
           void queryClient.invalidateQueries({ queryKey: ["transactions"] });

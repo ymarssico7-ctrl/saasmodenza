@@ -873,7 +873,10 @@ function CartDrawer({
     const infoCupom = cupomAplicado
       ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
       : undefined;
-    openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, infoCupom);
+    const infoFrete = freteSelecionado
+      ? { label: freteSelecionado.label, valor: valorFrete }
+      : undefined;
+    openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, infoCupom, infoFrete);
     clear();
     setCupomAplicado(null);
     setCodigoCupom("");

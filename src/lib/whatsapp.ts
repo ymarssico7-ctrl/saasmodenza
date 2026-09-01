@@ -5,16 +5,18 @@ function brl(v: number) {
 }
 
 type CupomInfo = { codigo: string; desconto: number };
+type FreteInfo = { label: string; valor: number };
 
 /**
  * Formata os itens do carrinho em uma mensagem pronta para o WhatsApp.
- * Se um cupom foi aplicado, inclui o desconto e o código na mensagem.
+ * Se um cupom ou frete foi aplicado, inclui o detalhamento discriminado.
  */
 export function formatWhatsAppMessage(
   storeName: string,
   items: CartItem[],
   total: number,
   cupom?: CupomInfo,
+  frete?: FreteInfo,
 ): string {
   const linhas = items.map((item) => {
     const variante = [item.tamanho, item.cor].filter(Boolean).join(" · ");
@@ -25,13 +27,24 @@ export function formatWhatsAppMessage(
   // Garante que o desconto reportado nunca ultrapasse o subtotal real
   const descontoLimitado = cupom ? Math.min(cupom.desconto, subtotal) : 0;
 
+  const linhasResumo: string[] = [];
+  if (cupom || frete) {
+    linhasResumo.push(``, `Subtotal: ${brl(subtotal)}`);
+    if (cupom) {
+      linhasResumo.push(`Desconto (${cupom.codigo}): −${brl(descontoLimitado)}`);
+    }
+    if (frete) {
+      linhasResumo.push(`Entrega (${frete.label}): ${frete.valor === 0 ? "Grátis" : `+ ${brl(frete.valor)}`}`);
+    }
+  }
+
   const msg = [
     `Olá, ${storeName}! 👋`,
     ``,
     `Gostaria de fazer um pedido:`,
     ``,
     ...linhas,
-    ...(cupom ? [``, `Subtotal: ${brl(subtotal)}`, `Desconto (${cupom.codigo}): −${brl(descontoLimitado)}`] : []),
+    ...linhasResumo,
     ``,
     `━━━━━━━━━━━━━━━`,
     `*Total: ${brl(total)}*`,
@@ -52,12 +65,13 @@ export function openWhatsAppCheckout(
   items: CartItem[],
   total: number,
   cupom?: CupomInfo,
+  frete?: FreteInfo,
 ) {
   // Remove tudo que não é número
   const digits = whatsapp.replace(/\D/g, "");
   // Se não começa com 55, assume Brasil
   const phone = digits.startsWith("55") ? digits : `55${digits}`;
-  const message = formatWhatsAppMessage(storeName, items, total, cupom);
+  const message = formatWhatsAppMessage(storeName, items, total, cupom, frete);
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }

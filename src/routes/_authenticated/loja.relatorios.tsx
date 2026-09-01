@@ -93,7 +93,7 @@ function RelatoriosPage() {
     [pedidosConfirmados],
   );
 
-  // Vendas por dia — últimos 8 dias
+  // Vendas por dia — últimos 8 dias (apenas pedidos confirmados/pagos)
   const vendasPorDia = useMemo(() => {
     const today = new Date();
     const days: { dia: string; vendas: number }[] = [];
@@ -101,18 +101,18 @@ function RelatoriosPage() {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       const isoDate = d.toISOString().slice(0, 10);
-      const total = pedidos
+      const total = pedidosConfirmados
         .filter((p) => p.criadoEm.startsWith(isoDate))
         .reduce((a, p) => a + totalPedido(p), 0);
       days.push({ dia: dataBR(isoDate), vendas: total });
     }
     return days;
-  }, [pedidos]);
+  }, [pedidosConfirmados]);
 
-  // Categorias (derivadas dos itens dos pedidos)
+  // Categorias (derivadas dos itens dos pedidos confirmados)
   const vendasPorCategoria = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const pedido of pedidos) {
+    for (const pedido of pedidosConfirmados) {
       for (const item of pedido.itens) {
         map[item.nome] = (map[item.nome] ?? 0) + item.preco * item.qtd;
       }
@@ -121,12 +121,12 @@ function RelatoriosPage() {
       .map(([nome, valor]) => ({ nome: nome.length > 18 ? nome.slice(0, 18) + "…" : nome, valor }))
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
-  }, [pedidos]);
+  }, [pedidosConfirmados]);
 
-  // Produtos mais vendidos por quantidade
+  // Produtos mais vendidos por quantidade (apenas vendas confirmadas)
   const topProdutos = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const pedido of pedidos) {
+    for (const pedido of pedidosConfirmados) {
       for (const item of pedido.itens) {
         map[item.nome] = (map[item.nome] ?? 0) + item.qtd;
       }
@@ -138,7 +138,7 @@ function RelatoriosPage() {
       }))
       .sort((a, b) => b.vendas - a.vendas)
       .slice(0, 5);
-  }, [pedidos]);
+  }, [pedidosConfirmados]);
 
   // Origem dos pedidos
   const origemPedidos = useMemo(() => {
