@@ -239,8 +239,10 @@ export function computePaymentScenarios(
   salePrice: number,
   realCost: number,
   taxPct: number,
+  cardRatePct = 3.5,
 ): PaymentScenario[] {
   const taxRate = Math.min(taxPct, 50) / 100;
+  const standardCardRate = Math.min(cardRatePct, 30);
 
   const scenarios = [
     { label: "Pix / Dinheiro", icon: "💸", rate: 0 },
@@ -248,8 +250,8 @@ export function computePaymentScenarios(
     { label: "Cartão Crédito (3.3%)", icon: "💳", rate: 3.3 },
     { label: "Parcelado 3x (4.5%)", icon: "📅", rate: 4.5 },
     { label: "Parcelado 6x (6.9%)", icon: "📅", rate: 6.9 },
-    { label: "10% OFF (Promoção)", icon: "🏷️", rate: 0, discountPct: 10 },
-    { label: "20% OFF (Liquidação)", icon: "🔥", rate: 0, discountPct: 20 },
+    { label: "10% OFF + Cartão", icon: "🏷️", rate: standardCardRate, discountPct: 10 },
+    { label: "20% OFF (Liquidação)", icon: "🔥", rate: standardCardRate, discountPct: 20 },
   ] as Array<{ label: string; icon: string; rate: number; discountPct?: number }>;
 
   return scenarios.map(({ label, icon, rate, discountPct }) => {
@@ -260,7 +262,7 @@ export function computePaymentScenarios(
     return {
       label,
       icon,
-      rate: discountPct ?? rate,
+      rate: discountPct ? discountPct + rate : rate,
       profit,
       margin,
       netAmount: effectivePrice - deductions,

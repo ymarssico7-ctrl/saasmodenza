@@ -462,8 +462,10 @@ function Precificacao() {
           customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
         } else if (cs.mode === "markup") {
           const targetMarkup = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
+          const totalDeductions = (tax + cardRate) / 100;
+          const divisor = Math.max(1 - totalDeductions, 0.01);
           const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-          const price = realCost * (1 + targetMarkup / 100);
+          const price = (realCost * (1 + targetMarkup / 100)) / divisor;
           customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
         } else if (cs.mode === "direct_price") {
           customPriceStr = cs.directPrice;
@@ -555,8 +557,9 @@ function Precificacao() {
       summaryPrices.avgSuggested,
       summaryPrices.avgCost,
       tax,
+      cardRate,
     );
-  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax]);
+  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax, cardRate]);
 
   // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
   const actualLotUnits = useMemo(() => {
@@ -1161,6 +1164,10 @@ function Precificacao() {
     setEntryName(p.name);
     setEntryCostPrice(realCost);
     setEntrySalePrice(suggestedPrice);
+    setEntryColor("");
+    setEntrySupplier("");
+    setEntryPhotoUrl("");
+    setEntrySizes({ P: 2, M: 4, G: 4, GG: 2 });
     setEntrySheetOpen(true);
   };
 
