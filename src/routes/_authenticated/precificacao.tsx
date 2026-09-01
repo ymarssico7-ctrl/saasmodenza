@@ -1318,7 +1318,7 @@ function Precificacao() {
           {mode === "rapida" && (
             <div className="grid gap-4 md:grid-cols-3 rounded-2xl border border-border/80 bg-secondary/20 p-4 sm:p-5 shadow-2xs">
               
-              {/* 1. QUANTIDADE — SMART PRECISION STEPPER */}
+              {/* 1. QUANTIDADE — SMART PRECISION STEPPER (COMPACTO & ERGONÔMICO) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
@@ -1329,63 +1329,69 @@ function Precificacao() {
                   </span>
                 </div>
 
-                {/* Stepper com Botões Táteis */}
-                <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cur = parseInt(rapidaQty, 10) || 1;
-                      setRapidaQty(String(Math.max(1, cur - 1)));
-                    }}
-                    disabled={(parseInt(rapidaQty, 10) || 1) <= 1}
-                    className="size-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer border-r border-border/50"
-                    title="Diminuir 1 unidade"
-                  >
-                    <Minus className="size-3.5" />
-                  </button>
+                {/* Linha com Stepper Compacto + Indicador */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {/* Stepper Proporcional Compacto (w-32 / h-10) */}
+                    <div className="inline-flex h-10 w-32 items-center rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = parseInt(rapidaQty, 10) || 1;
+                          setRapidaQty(String(Math.max(1, cur - 1)));
+                        }}
+                        disabled={(parseInt(rapidaQty, 10) || 1) <= 1}
+                        className="size-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer border-r border-border/50"
+                        title="Diminuir 1 unidade"
+                      >
+                        <Minus className="size-3.5" />
+                      </button>
 
-                  <div className="relative flex-1 flex items-center justify-center">
-                    <input
-                      inputMode="numeric"
-                      value={rapidaQty}
-                      onChange={(e) => setRapidaQty(e.target.value.replace(/[^\d]/g, ""))}
-                      className="h-11 w-full bg-transparent text-center text-sm font-bold text-foreground outline-none px-1"
-                    />
-                    <span className="absolute right-3 text-[11px] font-semibold text-muted-foreground select-none pointer-events-none">
-                      un.
+                      <div className="relative flex-1 flex items-center justify-center">
+                        <input
+                          inputMode="numeric"
+                          value={rapidaQty}
+                          onChange={(e) => setRapidaQty(e.target.value.replace(/[^\d]/g, ""))}
+                          className="h-10 w-full bg-transparent text-center text-sm font-bold text-foreground outline-none px-0.5"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = parseInt(rapidaQty, 10) || 1;
+                          setRapidaQty(String(cur + 1));
+                        }}
+                        className="size-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all shrink-0 cursor-pointer border-l border-border/50"
+                        title="Aumentar 1 unidade"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    </div>
+
+                    <span className="text-xs font-medium text-muted-foreground select-none">
+                      {actualLotUnits === 1 ? "peça única" : "peças no lote"}
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cur = parseInt(rapidaQty, 10) || 1;
-                      setRapidaQty(String(cur + 1));
-                    }}
-                    className="size-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-95 transition-all shrink-0 cursor-pointer border-l border-border/50"
-                    title="Aumentar 1 unidade"
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
-                </div>
-
-                {/* Pílulas de Quantidade Rápida (1-Toque) */}
-                <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                  {["1", "5", "10", "20"].map((presetQty) => (
-                    <button
-                      key={presetQty}
-                      type="button"
-                      onClick={() => setRapidaQty(presetQty)}
-                      className={cn(
-                        "rounded-md border px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
-                        rapidaQty === presetQty
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                      )}
-                    >
-                      {presetQty} {presetQty === "1" ? "un." : "un."}
-                    </button>
-                  ))}
+                  {/* Pílulas de Quantidade Rápida (1-Toque) */}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {["1", "5", "10", "20", "50"].map((presetQty) => (
+                      <button
+                        key={presetQty}
+                        type="button"
+                        onClick={() => setRapidaQty(presetQty)}
+                        className={cn(
+                          "rounded-md border px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                          rapidaQty === presetQty
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        {presetQty} {presetQty === "1" ? "un." : "un."}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
