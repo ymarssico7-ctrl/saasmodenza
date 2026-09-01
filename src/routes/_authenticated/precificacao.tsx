@@ -122,6 +122,21 @@ const PRESET_OPTIONS = [
   { id: "calcas", label: "Jeans (34–48)", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
 ];
 
+// Todas as medidas do vestuário brasileiro em ordem canônica da moda
+const ALL_FASHION_SIZES = [
+  "PP", "P", "M", "G", "GG", "G1", "G2", "G3",
+  "34", "36", "38", "40", "42", "44", "46", "48", "50",
+  "Único",
+];
+
+// Atalhos rápidos de categoria para seleção em 1 clique no card da cor
+const SIZE_QUICK_PRESETS = [
+  { id: "padrao",   label: "P–GG",    sizes: ["PP", "P", "M", "G", "GG"] },
+  { id: "numerico", label: "36–46",   sizes: ["36", "38", "40", "42", "44", "46"] },
+  { id: "plus",     label: "Plus",    sizes: ["GG", "G1", "G2", "G3"] },
+  { id: "jeans",    label: "Jeans",   sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
+];
+
 const COLOR_PRESETS = [
   // Neutros & Clássicos
   { name: "Off-White", color: "#F8F6F0" },
@@ -1755,9 +1770,16 @@ function Precificacao() {
             <div className="space-y-5">
               {colorGroups.map((group) => {
                 const activeSizeSet = new Set(group.items.map((i) => i.size));
-                const baseSizes = ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"];
-                const allKnownSizes = Array.from(new Set([...group.items.map((i) => i.size), ...baseSizes.slice(0, 6)]));
+                // Exibe TODA a grade do vestuário brasileiro + quaisquer tamanhos customizados já presentes
+                const allKnownSizes = Array.from(new Set([...ALL_FASHION_SIZES, ...group.items.map((i) => i.size)]));
                 const availableSizes = sortCanonicalSizes(allKnownSizes);
+
+                // Handlers de atalho rápido por categoria
+                const applyQuickPreset = (sizes: string[]) => {
+                  sizes.forEach((sz) => {
+                    if (!activeSizeSet.has(sz)) toggleColorSize(group.color, sz);
+                  });
+                };
 
                 return (
                   <div
@@ -1791,11 +1813,41 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* Seletor de Tamanhos Ativos */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tamanhos desta cor:
-                      </span>
+                    {/* Seletor de Tamanhos — Grade Completa */}
+                    <div className="space-y-2.5">
+                      {/* Linha de título + atalhos rápidos de categoria */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Tamanhos desta cor:
+                        </span>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {SIZE_QUICK_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => applyQuickPreset(preset.sizes)}
+                              className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
+                              title={`Selecionar grade ${preset.label}`}
+                            >
+                              + {preset.label}
+                            </button>
+                          ))}
+                          {activeSizeSet.size > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                Array.from(activeSizeSet).forEach((sz) => toggleColorSize(group.color, sz));
+                              }}
+                              className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer"
+                              title="Limpar todos os tamanhos desta cor"
+                            >
+                              Limpar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Botões de Tamanho — todos visíveis */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         {availableSizes.map((sz) => {
                           const isActive = activeSizeSet.has(sz);
@@ -1818,6 +1870,7 @@ function Precificacao() {
                         })}
                       </div>
                     </div>
+
 
 
                     {/* ══ BARRA DE ESTRATÉGIA PRO COM SMART PRECISION STEPPER (APPLE HIG) ══ */}
