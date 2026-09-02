@@ -167,7 +167,12 @@ function Fiado() {
           value={brl(receivedTotal)}
           tone="positive"
           icon={<CheckCircle2 className="size-4" />}
-          hint="Total quitado no caixa"
+          hint={(() => {
+            const paidCount = withStatus.filter((c) => c.status === "pago").length;
+            const totalCount = withStatus.length;
+            if (totalCount === 0) return "Nenhum título registrado";
+            return `${paidCount} de ${totalCount} título${totalCount !== 1 ? "s" : ""} quitado${paidCount !== 1 ? "s" : ""}`;
+          })()}
         />
       </div>
 

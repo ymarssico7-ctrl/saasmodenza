@@ -191,18 +191,15 @@ function Painel() {
           label="Despesas do mês"
           value={brl(expenses)}
           icon={<ArrowDownRight className="size-4" />}
-          {...(refunds > 0
-            ? { hint: `Inclui ${brl(refunds)} em devoluções` }
-            : {
-                hint:
-                  current.filter((t) => t.kind === "saida").length === 0
-                    ? "Nenhuma saída registrada"
-                    : `${current.filter((t) => t.kind === "saida").length} ${
-                        current.filter((t) => t.kind === "saida").length === 1
-                          ? "saída registrada"
-                          : "saídas registradas"
-                      }`,
-              })}
+          hint={(() => {
+            // Fix 1 (Rodada 32): conta só OPEX real — exclui estornos (deduções de receita, não despesas)
+            const opexCount = current.filter(
+              (t) => t.kind === "saida" && !REFUND_CATEGORIES.has(t.category),
+            ).length;
+            if (refunds > 0) return `Inclui ${brl(refunds)} em devoluções`;
+            if (opexCount === 0) return "Nenhuma despesa registrada";
+            return `${opexCount} despesa${opexCount !== 1 ? "s" : ""} registrada${opexCount !== 1 ? "s" : ""}`;
+          })()}
         />
         <StatCard
           label="Lucro do mês"

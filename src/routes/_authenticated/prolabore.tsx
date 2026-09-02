@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { prolaboreQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber, todayISO } from "@/lib/format";
-import { sumBy, sumByExcluding, type Transaction } from "@/lib/finance";
+import { sumBy, sumByCategories, sumByExcluding, REFUND_CATEGORIES, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertProlabore, deleteProlabore, updateProlaboreTarget } from "@/lib/mutations";
 
@@ -54,7 +54,15 @@ function Prolabore() {
   const progress = goal > 0 ? Math.min((withdrawn / goal) * 100, 100) : 0;
 
   const monthTxs = txs.filter((t) => t.occurred_on.slice(0, 7) === month.slice(0, 7));
-  const operatingProfit = sumBy(monthTxs, "entrada") - sumByExcluding(monthTxs, "saida", new Set(["prolabore"]));
+  // Fix 2 (Rodada 32): Lucro Operacional = Receita Líquida − OPEX puro
+  // Estornos são deduções da Receita Bruta (CPC 00/IFRS 15), NÃO despesas operacionais.
+  // Excluímos tanto "prolabore" (a própria retirada) quanto "estorno_devolucao" das despesas.
+  const opexExclusions = new Set([...REFUND_CATEGORIES, "prolabore"]);
+  const grossRevenue    = sumBy(monthTxs, "entrada");
+  const monthRefunds    = sumByCategories(monthTxs, "saida", REFUND_CATEGORIES);
+  const netRevenue      = grossRevenue - monthRefunds;
+  const opex            = sumByExcluding(monthTxs, "saida", opexExclusions);
+  const operatingProfit = netRevenue - opex;
   const available = Math.max(operatingProfit - withdrawn, 0);
 
   const create = useMutation({

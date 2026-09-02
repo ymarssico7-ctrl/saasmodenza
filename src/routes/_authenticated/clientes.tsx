@@ -177,7 +177,14 @@ function Clientes() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{c.name}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {c.phone || "Sem telefone"} · Total em compras: <span className="font-semibold text-foreground">{brl(totalSpent)}</span>
+                        {c.phone || "Sem telefone"} ·{" "}
+                        {totalSpent > 0 ? (
+                          <>
+                            Total em compras: <span className="font-semibold text-foreground">{brl(totalSpent)}</span>
+                          </>
+                        ) : (
+                          "Sem compras registradas"
+                        )}
                       </p>
                     </div>
                   </div>

@@ -145,10 +145,10 @@ function RelatoriosPage() {
       .slice(0, 5);
   }, [pedidosConfirmados]);
 
-  // Origem dos pedidos
+  // Origem dos pedidos (apenas pedidos válidos / não cancelados)
   const origemPedidos = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const pedido of pedidos) {
+    for (const pedido of pedidos.filter((p) => p.status !== "cancelado")) {
       const origem = pedido.origem ?? "Vitrine";
       map[origem] = (map[origem] ?? 0) + 1;
     }
@@ -294,6 +294,7 @@ function RelatoriosPage() {
                           border: "1px solid var(--color-border)",
                           background: "var(--color-popover)",
                           color: "var(--color-popover-foreground)",
+                          boxShadow: "var(--shadow-lifted)",
                           fontSize: 12,
                         }}
                       />
@@ -334,6 +335,8 @@ function RelatoriosPage() {
                           borderRadius: 16,
                           border: "1px solid var(--color-border)",
                           background: "var(--color-popover)",
+                          color: "var(--color-popover-foreground)",
+                          boxShadow: "var(--shadow-lifted)",
                           fontSize: 12,
                         }}
                       />
