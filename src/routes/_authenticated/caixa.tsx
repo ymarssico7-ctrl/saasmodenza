@@ -858,13 +858,18 @@ function Caixa() {
           value={brl(revenue)}
           tone="positive"
           icon={<ArrowUpRight className="size-4" />}
-          {...(monthRefunds > 0 ? { hint: `Inclui ${brl(monthRefunds)} em estornos` } : {})}
+          hint={
+            monthRefunds > 0
+              ? `Receita líquida: ${brl(revenue - monthRefunds)} após ${brl(monthRefunds)} em estornos`
+              : `${monthTxs.filter((t) => t.kind === "entrada").length} entrada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} confirmada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} no mês`
+          }
         />
         <StatCard
           label="Saídas do mês"
           value={brl(expenses)}
           tone="negative"
           icon={<ArrowDownRight className="size-4" />}
+          hint={`${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} registrada${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`}
         />
         <StatCard
           label="Saldo de hoje"

@@ -145,9 +145,23 @@ function Estoque() {
           value={String(totalUnits)}
           icon={<Boxes className="size-4" />}
           tone="primary"
+          hint={`${items.length} modelo${items.length !== 1 ? "s" : ""} cadastrado${items.length !== 1 ? "s" : ""}`}
         />
-        <StatCard label="Valor investido" value={brl(stockValue)} />
-        <StatCard label="Potencial de venda" value={brl(potential)} tone="positive" />
+        <StatCard
+          label="Valor investido"
+          value={brl(stockValue)}
+          hint={totalUnits > 0 ? `Custo médio: ${brl(stockValue / totalUnits)} / peça` : "Sem peças em estoque"}
+        />
+        <StatCard
+          label="Potencial de venda"
+          value={brl(potential)}
+          tone="positive"
+          hint={
+            potential > 0 && stockValue >= 0
+              ? `Lucro potencial de ${brl(potential - stockValue)} (${potential > 0 ? ((((potential - stockValue) / potential) * 100).toFixed(1)) : "0"}% de margem)`
+              : "Cadastre peças com custo e preço"
+          }
+        />
       </div>
 
       <section className="panel p-6 sm:p-7">
