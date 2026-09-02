@@ -378,9 +378,30 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
     setEditLabel(label);
   };
 
+  const baseEntry = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
+  const baseExit = EXIT_CATEGORIES as readonly { value: string; label: string }[];
+  const basePay = PAYMENT_METHODS as readonly { value: string; label: string }[];
+
+  const activeKind = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
+  const activeCustoms = tab === "entry" ? customOpts.entryCategories : tab === "exit" ? customOpts.exitCategories : customOpts.paymentMethods;
+  const activeBases = tab === "entry" ? baseEntry : tab === "exit" ? baseExit : basePay;
+
   const handleSaveEdit = (kind: keyof CustomOptionsStore, value: string) => {
-    if (!editLabel.trim()) return;
-    updateCustomOption(storeId, kind, value, editLabel);
+    const trimmed = editLabel.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    const jaExiste =
+      activeBases.some((b) => b.label.toLowerCase() === lower || b.value.toLowerCase() === lower) ||
+      activeCustoms.some((c) => c.value !== value && c.label.toLowerCase() === lower);
+
+    if (jaExiste) {
+      toast.error("Já existe uma opção com este nome.", {
+        description: `"${trimmed}" já está cadastrada na lista.`,
+      });
+      return;
+    }
+
+    updateCustomOption(storeId, kind, value, trimmed);
     setEditingValue(null);
     setEditLabel("");
     toast.success("Opção atualizada");
@@ -392,21 +413,26 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
   };
 
   const handleAdd = (kind: keyof CustomOptionsStore) => {
-    if (!newLabel.trim()) return;
-    if (kind === "entryCategories") addCustomEntry(storeId, newLabel);
-    if (kind === "exitCategories") addCustomExit(storeId, newLabel);
-    if (kind === "paymentMethods") addCustomPaymentMethod(storeId, newLabel);
+    const trimmed = newLabel.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    const jaExiste =
+      activeBases.some((b) => b.label.toLowerCase() === lower || b.value.toLowerCase() === lower) ||
+      activeCustoms.some((c) => c.label.toLowerCase() === lower);
+
+    if (jaExiste) {
+      toast.error("Esta opção já existe.", {
+        description: `"${trimmed}" já está cadastrada na lista.`,
+      });
+      return;
+    }
+
+    if (kind === "entryCategories") addCustomEntry(storeId, trimmed);
+    if (kind === "exitCategories") addCustomExit(storeId, trimmed);
+    if (kind === "paymentMethods") addCustomPaymentMethod(storeId, trimmed);
     setNewLabel("");
     toast.success("Nova opção adicionada");
   };
-
-  const baseEntry = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
-  const baseExit = EXIT_CATEGORIES as readonly { value: string; label: string }[];
-  const basePay = PAYMENT_METHODS as readonly { value: string; label: string }[];
-
-  const activeKind = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
-  const activeCustoms = tab === "entry" ? customOpts.entryCategories : tab === "exit" ? customOpts.exitCategories : customOpts.paymentMethods;
-  const activeBases = tab === "entry" ? baseEntry : tab === "exit" ? baseExit : basePay;
 
   return (
     <section id="categorias-pagamentos" className="panel p-6 sm:p-7 space-y-5">

@@ -869,7 +869,11 @@ function Caixa() {
           value={brl(expenses)}
           tone="negative"
           icon={<ArrowDownRight className="size-4" />}
-          hint={`${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} registrada${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`}
+          hint={
+            monthRefunds > 0
+              ? `Despesas operacionais: ${brl(expenses - monthRefunds)} (${brl(monthRefunds)} em estornos)`
+              : `${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} registrada${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`
+          }
         />
         <StatCard
           label="Saldo de hoje"

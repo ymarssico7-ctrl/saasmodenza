@@ -152,9 +152,11 @@ export function computePricingByMargin(input: MarginPricingInput): FullPricingRe
 
   const suggestedPrice = realCost / divisor;
   const deductions = suggestedPrice * (taxRate + cardRate);
-  const profit = suggestedPrice * desiredMargin;
+  const profit = suggestedPrice - realCost - deductions;
   const netRevenue = suggestedPrice - deductions;
   const minPrice = realCost / Math.max(1 - taxRate - cardRate, 0.01);
+  const marginOnPrice = suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0;
+  const markupOnCost = realCost > 0 ? (profit / realCost) * 100 : 0;
 
   return {
     realCost,
@@ -163,9 +165,9 @@ export function computePricingByMargin(input: MarginPricingInput): FullPricingRe
     profit,
     deductions,
     netRevenue,
-    marginOnPrice: suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0,
-    markupOnCost: realCost > 0 ? (profit / realCost) * 100 : 0,
-    marginHealth: getMarginHealth(desiredMargin * 100),
+    marginOnPrice,
+    markupOnCost,
+    marginHealth: getMarginHealth(marginOnPrice),
   };
 }
 

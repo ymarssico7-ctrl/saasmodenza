@@ -274,6 +274,33 @@ function Estoque() {
           </Field>
         </div>
 
+        {(() => {
+          const costNum = toNumber(cost);
+          const priceNum = toNumber(price);
+          if (isNaN(costNum) || isNaN(priceNum) || priceNum <= 0) return null;
+          const margemReais = priceNum - costNum;
+          const margemPct = (margemReais / priceNum) * 100;
+          const markup = costNum > 0 ? (priceNum / costNum).toFixed(2) : null;
+          const abaixoCusto = costNum > 0 && priceNum < costNum;
+
+          return (
+            <div className="mt-4 space-y-1.5 rounded-2xl bg-secondary/50 p-3.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-muted-foreground">Rentabilidade projetada por peça:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  Margem Bruta: {brl(margemReais)} ({margemPct.toFixed(1)}%)
+                  {markup ? ` · Markup: ${markup}x` : ""}
+                </span>
+              </div>
+              {abaixoCusto ? (
+                <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive leading-relaxed">
+                  ⚠️ Preço de venda menor que o custo de aquisição. Venda com prejuízo direto de {brl(costNum - priceNum)} por peça.
+                </div>
+              ) : null}
+            </div>
+          );
+        })()}
+
         {/* ── Foto da peça ── */}
         <div className="mt-6">
           <Label className="text-xs font-semibold text-muted-foreground">
@@ -364,7 +391,11 @@ function Estoque() {
                           {brl(Number(i.sale_price))}
                         </p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          custo {brl(Number(i.cost_price))} · {units} un.
+                          custo {brl(Number(i.cost_price))}
+                          {Number(i.sale_price) > 0 && Number(i.cost_price) > 0
+                            ? ` · margem ${brl(Number(i.sale_price) - Number(i.cost_price))} (${(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%)`
+                            : ""}
+                          {" "}· {units} un.
                         </p>
                       </div>
                       <ConfirmDelete
