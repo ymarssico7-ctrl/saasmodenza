@@ -113,7 +113,10 @@ function Metas() {
               </p>
             </div>
             <p className="mt-5 text-xs text-primary-foreground/60">
-              {pct(progress)} concluído · precisa de {brl(perDay)} por dia para bater a meta
+              {missing === 0
+                ? `🎉 Meta batida! Você faturou ${pct((revenue / goalAmount) * 100)} do planejado.`
+                : `${pct(progress)} concluído · precisa de ${brl(perDay)} por dia para bater a meta`
+              }
             </p>
           </>
         ) : (

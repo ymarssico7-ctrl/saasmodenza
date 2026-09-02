@@ -34,6 +34,7 @@ import {
   projectMonth,
   sumBy,
   sumByCategories,
+  sumByExcluding,
   variation,
   type Transaction,
 } from "@/lib/finance";
@@ -72,8 +73,10 @@ function Painel() {
   const revenue = sumBy(current, "entrada");
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   const netRevenue = revenue - refunds;
-  const expenses = sumBy(current, "saida");
-  const profit = revenue - expenses;
+  // Fix 1 (Rodada 31): expenses exclui estornos (são deduções de receita, não OPEX) — alinhado com relatorio.tsx
+  const expenses = sumByExcluding(current, "saida", REFUND_CATEGORIES);
+  // Fix 1 (Rodada 31): profit = Receita Líquida − OPEX real (consistente com o DRE do Relatório)
+  const profit = netRevenue - expenses;
   const prevRevenue = sumBy(previous, "entrada");
   const revVariation = variation(revenue, prevRevenue);
 
@@ -99,13 +102,17 @@ function Painel() {
   );
   const overdue = openCredits.filter((c) => c.due_date < today).length;
 
+  // Fix 2 (Rodada 31): série histórica usa DRE correto — estornos são deduções de receita, não OPEX
   const series = Array.from({ length: 6 }, (_, i) => {
     const m = monthStart(-(5 - i));
     const items = inMonth(m);
+    const mRevenue  = sumBy(items, "entrada");
+    const mRefunds  = sumByCategories(items, "saida", REFUND_CATEGORIES);
+    const mExpenses = sumByExcluding(items, "saida", REFUND_CATEGORIES);
     return {
       month: monthLabelShort(m),
-      faturamento: sumBy(items, "entrada"),
-      lucro: sumBy(items, "entrada") - sumBy(items, "saida"),
+      faturamento: mRevenue,
+      lucro: (mRevenue - mRefunds) - mExpenses,
     };
   });
 
