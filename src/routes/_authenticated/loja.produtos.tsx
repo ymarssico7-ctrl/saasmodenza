@@ -571,6 +571,39 @@ function ProdutosPage() {
                       className="h-11 rounded-xl"
                     />
                   </div>
+
+                  {(() => {
+                    const precoNum = toNumber(promocaoPreco);
+                    if (isNaN(precoNum) || precoNum <= 0 || precoNum >= emPromocaoProduto.sale_price) {
+                      return null;
+                    }
+                    const descontoReais = emPromocaoProduto.sale_price - precoNum;
+                    const descontoPct = (descontoReais / emPromocaoProduto.sale_price) * 100;
+                    const custo = Number(emPromocaoProduto.cost_price ?? 0);
+                    const abaixoCusto = custo > 0 && precoNum < custo;
+
+                    return (
+                      <div className="space-y-2 rounded-2xl bg-secondary/50 p-3 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Desconto oferecido:</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            −{descontoPct.toFixed(0)}% (−{brl(descontoReais)})
+                          </span>
+                        </div>
+                        {custo > 0 ? (
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span>Custo de estoque: {brl(custo)}</span>
+                            <span>Margem bruta: {brl(precoNum - custo)}</span>
+                          </div>
+                        ) : null}
+                        {abaixoCusto ? (
+                          <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive leading-relaxed">
+                            ⚠️ Atenção: Preço promocional abaixo do custo ({brl(custo)}). Venda com prejuízo direto de {brl(custo - precoNum)} por peça.
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground">Início</Label>
