@@ -99,7 +99,12 @@ function ClientesLojaPage() {
           return false;
         }
         const desc = t.description.toLowerCase();
-        return norm && (desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`));
+        return (
+          norm &&
+          (desc.includes(`[cliente: ${norm}]`) ||
+            desc.includes(`(${norm})`) ||
+            (norm.length >= 3 && desc.includes(norm)))
+        );
       });
 
       const directTotal = directTxs.reduce((acc, t) => acc + Number(t.amount), 0);
@@ -110,7 +115,12 @@ function ClientesLojaPage() {
         .filter((t) => {
           if (t.kind !== "saida" || t.category !== "estorno_devolucao") return false;
           const desc = t.description.toLowerCase();
-          return norm && (desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`));
+          return (
+            norm &&
+            (desc.includes(`[cliente: ${norm}]`) ||
+              desc.includes(`(${norm})`) ||
+              (norm.length >= 3 && desc.includes(norm)))
+          );
         })
         .reduce((acc, t) => acc + Number(t.amount), 0);
 

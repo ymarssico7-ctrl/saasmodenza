@@ -63,7 +63,11 @@ function Clientes() {
           return false;
         }
         const desc = t.description.toLowerCase();
-        return desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`);
+        return (
+          desc.includes(`[cliente: ${norm}]`) ||
+          desc.includes(`(${norm})`) ||
+          (norm.length >= 3 && desc.includes(norm))
+        );
       })
       .reduce((acc, t) => acc + Number(t.amount), 0);
 
@@ -72,7 +76,11 @@ function Clientes() {
       .filter((t) => {
         if (t.kind !== "saida" || t.category !== "estorno_devolucao") return false;
         const desc = t.description.toLowerCase();
-        return desc.includes(`[cliente: ${norm}]`) || desc.includes(`(${norm})`);
+        return (
+          desc.includes(`[cliente: ${norm}]`) ||
+          desc.includes(`(${norm})`) ||
+          (norm.length >= 3 && desc.includes(norm))
+        );
       })
       .reduce((acc, t) => acc + Number(t.amount), 0);
 
@@ -81,8 +89,12 @@ function Clientes() {
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!name.trim()) throw new Error("Informe o nome do cliente");
-      return insertCustomer(storeId, name.trim(), phone.trim() || null);
+      const trimmedName = name.trim();
+      if (!trimmedName) throw new Error("Informe o nome do cliente");
+      if (customers.some((c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase())) {
+        throw new Error("Já existe um cliente cadastrado com este nome");
+      }
+      return insertCustomer(storeId, trimmedName, phone.trim() || null);
     },
     onSuccess: () => {
       toast.success("Cliente cadastrado");
