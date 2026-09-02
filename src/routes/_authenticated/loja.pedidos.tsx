@@ -338,17 +338,17 @@ function PedidosPage() {
                       {brl(pedidoAberto.itens.reduce((a, i) => a + i.preco * i.qtd, 0))}
                     </span>
                   </div>
-                  {pedidoAberto.frete > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Frete</span>
-                      <span className="num-display">+ {brl(pedidoAberto.frete)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Frete</span>
+                    <span className="num-display">
+                      {pedidoAberto.frete > 0 ? `+ ${brl(pedidoAberto.frete)}` : "Grátis"}
+                    </span>
+                  </div>
                   {pedidoAberto.desconto > 0 && (
                     <div className="flex justify-between text-muted-foreground">
                       <span>Cupom {pedidoAberto.cupom}</span>
                       <span className="num-display text-success">
-                        - {brl(pedidoAberto.desconto)}
+                        − {brl(pedidoAberto.desconto)}
                       </span>
                     </div>
                   )}
@@ -423,11 +423,18 @@ function PedidosPage() {
                   className="h-11 rounded-full"
                   onClick={() => {
                     const nomeLoja = store?.name ?? "nossa loja";
-                    const msg = `Olá ${pedidoAberto.cliente}! Aqui é ${nomeLoja}. Seu pedido ${pedidoAberto.numero} está ${statusPedidoLabel[pedidoAberto.status].toLowerCase()}. Qualquer dúvida estou aqui!`;
-                    window.open(
-                      `https://wa.me/${pedidoAberto.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
-                      "_blank",
-                    );
+                    const rastreioInfo = pedidoAberto.rastreio
+                      ? ` Código de rastreio: ${pedidoAberto.rastreio}.`
+                      : "";
+                    const msg = `Olá, ${pedidoAberto.cliente}! Aqui é da ${nomeLoja}. Seu pedido ${pedidoAberto.numero} está ${statusPedidoLabel[pedidoAberto.status].toLowerCase()}.${rastreioInfo} Qualquer dúvida estamos à disposição! 💜`;
+                    const digits = (pedidoAberto.telefone || "").replace(/\D/g, "");
+                    const encoded = encodeURIComponent(msg);
+                    if (digits.length >= 8) {
+                      const phone = digits.startsWith("55") ? digits : `55${digits}`;
+                      window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank", "noopener,noreferrer");
+                    } else {
+                      window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank", "noopener,noreferrer");
+                    }
                   }}
                 >
                   <MessageCircle className="mr-2 h-4 w-4" /> Avisar no WhatsApp
