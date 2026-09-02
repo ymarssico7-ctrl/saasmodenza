@@ -109,16 +109,21 @@ function RelatoriosPage() {
     return days;
   }, [pedidosConfirmados]);
 
-  // Categorias (derivadas dos itens dos pedidos confirmados)
+  // Categorias (derivadas dos itens dos pedidos confirmados, agrupadas por produtoId)
   const vendasPorCategoria = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { nome: string; valor: number }> = {};
     for (const pedido of pedidosConfirmados) {
       for (const item of pedido.itens) {
-        map[item.nome] = (map[item.nome] ?? 0) + item.preco * item.qtd;
+        const key = item.produtoId ?? item.nome;
+        if (!map[key]) map[key] = { nome: item.nome, valor: 0 };
+        map[key]!.valor += item.preco * item.qtd;
       }
     }
-    return Object.entries(map)
-      .map(([nome, valor]) => ({ nome: nome.length > 18 ? nome.slice(0, 18) + "…" : nome, valor }))
+    return Object.values(map)
+      .map((entry) => ({
+        nome: entry.nome.length > 18 ? entry.nome.slice(0, 18) + "…" : entry.nome,
+        valor: entry.valor,
+      }))
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
   }, [pedidosConfirmados]);
@@ -169,8 +174,8 @@ function RelatoriosPage() {
             icon: <Wallet className="h-4 w-4" />,
           },
           {
-            label: "Pedidos no total",
-            value: pedidos.length.toString(),
+            label: "Pedidos confirmados",
+            value: pedidosConfirmados.length.toString(),
             icon: <ShoppingBag className="h-4 w-4" />,
           },
           {

@@ -266,6 +266,7 @@ function ClientesLojaPage() {
                         window.open(
                           `https://wa.me/55${c.telefone.replace(/\D/g, "")}?text=${msg}`,
                           "_blank",
+                          "noopener,noreferrer",
                         );
                       }}
                     >

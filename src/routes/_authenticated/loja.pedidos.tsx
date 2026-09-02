@@ -275,8 +275,8 @@ function PedidosPage() {
                 key={p.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setAberto(p.id)}
-                onKeyDown={(e) => e.key === "Enter" && setAberto(p.id)}
+                onClick={() => { setAberto(p.id); setCodigoRastreio(""); }}
+                onKeyDown={(e) => e.key === "Enter" && (setAberto(p.id), setCodigoRastreio(""))}
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-5 py-4 transition-colors duration-200 hover:bg-secondary/50 cursor-pointer"
               >
                 <div className="min-w-0">
