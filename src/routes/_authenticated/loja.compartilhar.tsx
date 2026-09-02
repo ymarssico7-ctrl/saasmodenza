@@ -90,7 +90,7 @@ function CompartilharPage() {
               className="h-10 rounded-full text-xs"
               onClick={() => {
                 const msg = encodeURIComponent(`Olá! Confira nossa loja online: ${linkLoja()}`);
-                window.open(`https://wa.me/?text=${msg}`, "_blank");
+                window.open(`https://api.whatsapp.com/send?text=${msg}`, "_blank", "noopener,noreferrer");
               }}
             >
               <Link2 className="mr-2 h-3.5 w-3.5" /> Enviar no WhatsApp
@@ -135,15 +135,16 @@ function CompartilharPage() {
             {produtosAtivos.map((p) => {
               const cfg = showcaseConfigs[p.id];
               const preco = cfg?.precoPromocional ?? Number(p.sale_price ?? 0);
+              const foto = cfg?.vitrineFotos?.[0] || p.photo_url;
               return (
                 <li
                   key={p.id}
                   className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-4 transition-colors duration-200 hover:bg-secondary/40"
                 >
                   <div className="h-14 w-11 rounded-lg bg-secondary/60 flex items-center justify-center overflow-hidden">
-                    {cfg?.vitrineFotos?.[0] ? (
+                    {foto ? (
                       <img
-                        src={cfg.vitrineFotos[0]}
+                        src={foto}
                         alt={p.name}
                         className="h-full w-full object-cover"
                       />

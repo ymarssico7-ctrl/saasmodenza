@@ -84,21 +84,29 @@ function Configuracoes() {
   const saveProfile = useMutation({
     mutationFn: async () => {
       const realUser = await isAuthenticated();
+      if (!storeName.trim()) {
+        throw new Error("Informe o nome da loja");
+      }
+      const prolaboreNum = target.trim() ? toNumber(target) : 0;
+      if (isNaN(prolaboreNum) || prolaboreNum < 0) {
+        throw new Error("Informe uma meta de pró-labore válida (não pode ser negativa)");
+      }
+
       const profilePatch = {
-        store_name: storeName.trim() || "Minha loja",
+        store_name: storeName.trim(),
         owner_name: ownerName.trim() || "Lojista",
         city: city.trim() || null,
         phone: phone.trim() || null,
-        prolabore_target: toNumber(target),
+        prolabore_target: prolaboreNum,
         logo_url: logoUrl.trim() || null,
       };
 
       // Patch de campos espelhados na tabela `stores` (multi-tenant)
       const storePatch = {
-        name: storeName.trim() || "Minha loja",
+        name: storeName.trim(),
         city: city.trim() || null,
         phone: phone.trim() || null,
-        prolabore_target: toNumber(target),
+        prolabore_target: prolaboreNum,
       };
 
       if (realUser) {
