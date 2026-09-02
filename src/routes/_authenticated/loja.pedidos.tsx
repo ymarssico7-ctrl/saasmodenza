@@ -85,6 +85,7 @@ function PedidosPage() {
   const [filtro, setFiltro] = useState<StatusPedido | "todos">("todos");
   const [data, setData] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
+  const [codigoRastreio, setCodigoRastreio] = useState("");
 
   // Carrega pedidos isolados por loja do localStorage
   useEffect(() => {
@@ -207,6 +208,22 @@ function PedidosPage() {
     } else {
       toast.error("Pedido cancelado.");
     }
+  };
+
+  const salvarRastreio = (pedidoId: string) => {
+    if (!codigoRastreio.trim()) {
+      toast.error("Informe o código de rastreio.");
+      return;
+    }
+    const cod = codigoRastreio.trim().toUpperCase();
+    const novaLista = lista.map((p) =>
+      p.id === pedidoId ? { ...p, rastreio: cod } : p,
+    );
+    persistir(novaLista);
+    setCodigoRastreio("");
+    toast.success("Código de rastreio salvo!", {
+      description: `Código: ${cod}`,
+    });
   };
 
   return (
@@ -360,10 +377,17 @@ function PedidosPage() {
                   ) : (
                     <div className="mt-2 space-y-1.5">
                       <Input
-                        placeholder="Inserir código de rastreio"
-                        className="h-10 rounded-xl text-xs"
+                        placeholder="Inserir código de rastreio (ex: BR849201773BR)"
+                        value={codigoRastreio}
+                        onChange={(e) => setCodigoRastreio(e.target.value)}
+                        className="h-10 rounded-xl text-xs font-mono uppercase"
                       />
-                      <Button variant="outline" size="sm" className="h-9 w-full rounded-xl text-xs">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-full rounded-xl text-xs font-semibold"
+                        onClick={() => salvarRastreio(pedidoAberto.id)}
+                      >
                         Salvar rastreio
                       </Button>
                     </div>

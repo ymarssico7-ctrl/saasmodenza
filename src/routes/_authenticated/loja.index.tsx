@@ -12,8 +12,8 @@ import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
 import { StatusBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
-import { brl, brlCompact } from "@/lib/format";
-import { totalPedido, type Pedido } from "@/data/loja";
+import { brl, brlCompact, toNumber } from "@/lib/format";
+import { dateBR, totalPedido, type Pedido } from "@/data/loja";
 
 export const Route = createFileRoute("/_authenticated/loja/")({
   head: () => ({
@@ -99,7 +99,7 @@ function VisaoGeral() {
   const esgotados = useMemo(() => {
     return inventoryItems.filter((i) => {
       const s = (i.sizes ?? {}) as Record<string, number>;
-      const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+      const units = Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
       return units === 0;
     }).length;
   }, [inventoryItems]);
@@ -107,7 +107,7 @@ function VisaoGeral() {
   const ultimasUnidades = useMemo(() => {
     return inventoryItems.filter((i) => {
       const s = (i.sizes ?? {}) as Record<string, number>;
-      const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+      const units = Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
       return units > 0 && units < 3;
     }).length;
   }, [inventoryItems]);
@@ -267,7 +267,7 @@ function VisaoGeral() {
               <li key={p.id} className="flex items-center justify-between gap-3 px-6 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{p.cliente}</p>
-                  <p className="text-xs text-muted-foreground">{p.numero} · {p.criadoEm.slice(0, 10)}</p>
+                  <p className="text-xs text-muted-foreground">{p.numero} · {dateBR(p.criadoEm)}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <StatusBadge status={p.status} />
