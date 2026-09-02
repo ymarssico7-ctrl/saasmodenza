@@ -136,7 +136,7 @@ function ClientesLojaPage() {
           : lastOnlineDate || lastTxDate || null;
 
       const totalGasto = Math.max(onlineTotal + directTotal + fiadoPaid - refunds, 0);
-      const totalPedidos = onlineCount + directCount + (fiadoCount > 0 ? 1 : 0);
+      const totalPedidos = onlineCount + directCount + fiadoCount;
 
       map.set(customer.id, {
         id: customer.id,
@@ -270,14 +270,24 @@ function ClientesLojaPage() {
                       size="sm"
                       className="mt-1 h-7 rounded-full text-xs"
                       onClick={() => {
+                        const digits = (c.telefone ?? "").replace(/\D/g, "");
                         const msg = encodeURIComponent(
                           `Olá, ${c.nome.split(" ")[0]}! 👋 Passando para avisar as novidades da loja 💜`,
                         );
-                        window.open(
-                          `https://wa.me/55${c.telefone.replace(/\D/g, "")}?text=${msg}`,
-                          "_blank",
-                          "noopener,noreferrer",
-                        );
+                        if (digits.length >= 8) {
+                          const phone = digits.startsWith("55") ? digits : `55${digits}`;
+                          window.open(
+                            `https://wa.me/${phone}?text=${msg}`,
+                            "_blank",
+                            "noopener,noreferrer",
+                          );
+                        } else {
+                          window.open(
+                            `https://api.whatsapp.com/send?text=${msg}`,
+                            "_blank",
+                            "noopener,noreferrer",
+                          );
+                        }
                       }}
                     >
                       <MessageCircle className="mr-1 h-3 w-3" />
