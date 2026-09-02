@@ -852,7 +852,7 @@ function Caixa() {
       />
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Entradas do mês"
           value={brl(revenue)}
@@ -865,7 +865,7 @@ function Caixa() {
           }
         />
         <StatCard
-          label="Saídas do mês"
+          label="Total de saídas"
           value={brl(expenses)}
           tone="negative"
           icon={<ArrowDownRight className="size-4" />}
@@ -881,6 +881,13 @@ function Caixa() {
           tone={todayBalance >= 0 ? "primary" : "negative"}
           icon={<Wallet className="size-4" />}
           hint={`${todayTxs.length} lançamento${todayTxs.length !== 1 ? "s" : ""} hoje`}
+        />
+        <StatCard
+          label="Resultado do mês"
+          value={brl(revenue - expenses)}
+          tone={revenue - expenses >= 0 ? "positive" : "negative"}
+          icon={revenue - expenses >= 0 ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
+          hint={revenue > 0 ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%` : "Sem receita no mês"}
         />
       </div>
 

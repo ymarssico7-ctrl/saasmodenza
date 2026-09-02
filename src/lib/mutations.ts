@@ -700,13 +700,16 @@ export async function restoreOrderStock(
 }
 
 /**
- * Ajusta o estoque de um produto específico (+1 ou -1 unidade).
- * Utilizado ao vincular uma venda ou compra no Caixa ao Estoque.
+ * Ajusta o estoque de um produto específico por quantidade e, opcionalmente, por tamanho.
+ * - Quando `tamanho` é fornecido e `delta < 0`: abate exatamente do tamanho informado (ex.: "G").
+ * - Quando `tamanho` não é fornecido: usa o algoritmo de fallback (primeiro com estoque > 0).
+ * - Compatível retroativamente com chamadas do Caixa (vínculo de produto sem tamanho).
  */
 export async function adjustInventoryStock(
   storeId: string,
   productId: string,
   delta: number,
+  tamanho?: string,
 ): Promise<void> {
   if (!productId || delta === 0) return;
 
@@ -719,11 +722,17 @@ export async function adjustInventoryStock(
 
     const novoSizes: Record<string, number> = { ...(row.sizes ?? {}) };
     if (delta < 0) {
-      const keys = Object.keys(novoSizes);
-      const targetKey = keys.find((k) => (novoSizes[k] ?? 0) > 0) ?? keys[0] ?? "Único";
-      novoSizes[targetKey] = Math.max((novoSizes[targetKey] ?? 0) + delta, 0);
+      // Se o tamanho exato foi informado, abate desse tamanho diretamente
+      if (tamanho && tamanho in novoSizes) {
+        novoSizes[tamanho] = Math.max((novoSizes[tamanho] ?? 0) + delta, 0);
+      } else {
+        // Fallback: primeiro tamanho com estoque > 0
+        const keys = Object.keys(novoSizes);
+        const targetKey = keys.find((k) => (novoSizes[k] ?? 0) > 0) ?? keys[0] ?? "Único";
+        novoSizes[targetKey] = Math.max((novoSizes[targetKey] ?? 0) + delta, 0);
+      }
     } else {
-      const targetKey = Object.keys(novoSizes)[0] ?? "Único";
+      const targetKey = (tamanho && tamanho in novoSizes) ? tamanho : (Object.keys(novoSizes)[0] ?? "Único");
       novoSizes[targetKey] = (novoSizes[targetKey] ?? 0) + delta;
     }
     localUpdate("inventory_items", productId, { sizes: novoSizes });
@@ -743,11 +752,17 @@ export async function adjustInventoryStock(
   };
 
   if (delta < 0) {
-    const keys = Object.keys(novoSizes);
-    const targetKey = keys.find((k) => (novoSizes[k] ?? 0) > 0) ?? keys[0] ?? "Único";
-    novoSizes[targetKey] = Math.max((novoSizes[targetKey] ?? 0) + delta, 0);
+    // Se o tamanho exato foi informado, abate desse tamanho diretamente
+    if (tamanho && tamanho in novoSizes) {
+      novoSizes[tamanho] = Math.max((novoSizes[tamanho] ?? 0) + delta, 0);
+    } else {
+      // Fallback: primeiro tamanho com estoque > 0
+      const keys = Object.keys(novoSizes);
+      const targetKey = keys.find((k) => (novoSizes[k] ?? 0) > 0) ?? keys[0] ?? "Único";
+      novoSizes[targetKey] = Math.max((novoSizes[targetKey] ?? 0) + delta, 0);
+    }
   } else {
-    const targetKey = Object.keys(novoSizes)[0] ?? "Único";
+    const targetKey = (tamanho && tamanho in novoSizes) ? tamanho : (Object.keys(novoSizes)[0] ?? "Único");
     novoSizes[targetKey] = (novoSizes[targetKey] ?? 0) + delta;
   }
 

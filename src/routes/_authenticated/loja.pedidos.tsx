@@ -135,10 +135,10 @@ function PedidosPage() {
     // ── Automação ao CONFIRMAR um pedido (novo → confirmado) ───────────────
     // Baixa as quantidades do estoque e registra a entrada no Caixa automaticamente.
     if (pedido.status === "novo" && proximo === "confirmado") {
-      // 1) Baixa de Estoque: reduz 1 unidade por item (agrupado por produto)
+      // 1) Baixa de Estoque: reduz por produto e tamanho exato do item comprado
       if (pedido.itens?.length) {
         const deducoes = pedido.itens.map((item) =>
-          adjustInventoryStock(storeId, item.produtoId, -item.qtd),
+          adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
         );
         void Promise.all(deducoes).then(() => {
           void queryClient.invalidateQueries({ queryKey: ["inventory"] });
