@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   CreditCard,
@@ -135,12 +135,30 @@ function IntegracoesPage() {
     }
   });
 
+  // Sincroniza quando storeId é resolvido ou alterado
+  useEffect(() => {
+    if (!storeId) return;
+    try {
+      const raw =
+        localStorage.getItem(`vestuli_integrations_${storeId}`) ||
+        localStorage.getItem(`modaly_integrations_${storeId}`);
+      if (raw) {
+        setStatusMap((prev) => ({ ...prev, ...(JSON.parse(raw) as Record<string, boolean>) }));
+      }
+    } catch {
+      // ignore
+    }
+  }, [storeId]);
+
   const toggleIntegracao = (integ: Integracao) => {
     const nextVal = !(statusMap[integ.id] ?? integ.conectado);
     const updated = { ...statusMap, [integ.id]: nextVal };
     setStatusMap(updated);
     try {
       localStorage.setItem(`vestuli_integrations_${storeId}`, JSON.stringify(updated));
+      window.dispatchEvent(
+        new CustomEvent("integrations-changed", { detail: { storeId, integrations: updated } }),
+      );
     } catch {
       // ignore
     }

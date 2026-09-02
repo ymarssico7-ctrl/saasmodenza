@@ -70,8 +70,9 @@ function VisaoGeral() {
     const contagem: Record<string, { nome: string; qtd: number }> = {};
     for (const p of pedidosMes) {
       for (const item of p.itens) {
-        if (!contagem[item.produtoId]) contagem[item.produtoId] = { nome: item.nome, qtd: 0 };
-        contagem[item.produtoId]!.qtd += item.qtd;
+        const key = item.produtoId ?? item.nome;
+        if (!contagem[key]) contagem[key] = { nome: item.nome, qtd: 0 };
+        contagem[key]!.qtd += item.qtd;
       }
     }
     return Object.values(contagem).sort((a, b) => b.qtd - a.qtd)[0] ?? null;
@@ -218,7 +219,7 @@ function VisaoGeral() {
             ) : (
               <div className="space-y-2 text-sm">
                 {(["WhatsApp", "Checkout"] as const).map((origem) => {
-                  const count = pedidos.filter((p) => p.origem === origem).length;
+                  const count = pedidos.filter((p) => p.status !== "cancelado" && p.origem === origem).length;
                   if (count === 0) return null;
                   return (
                     <div key={origem} className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2">
