@@ -40,14 +40,12 @@ function CompartilharPage() {
   const { data: inventario = [] } = useQuery(inventoryQuery());
   const showcaseConfigs = useMemo(() => loadShowcaseConfigs(), []);
 
-  // Filtra apenas os produtos marcados como ativos na vitrine
+  // Filtra todos os produtos marcados como ativos na vitrine
   const produtosAtivos = useMemo(() => {
-    return inventario
-      .filter((item) => {
-        const cfg = showcaseConfigs[item.id];
-        return cfg?.ativo === true;
-      })
-      .slice(0, 5);
+    return inventario.filter((item) => {
+      const cfg = showcaseConfigs[item.id];
+      return cfg?.ativo === true;
+    });
   }, [inventario, showcaseConfigs]);
 
   const copiar = (texto: string, mensagem: string) => {

@@ -240,7 +240,9 @@ function isPromocaoAtiva(config: ShowcaseItemConfig): boolean {
 export function calcTotalEstoque(sizes: Record<string, number> | unknown): number {
   if (!sizes || typeof sizes !== "object") return 0;
   return Object.values(sizes as Record<string, number>).reduce(
-    (acc, val) => acc + Number(val || 0),
+    (acc, val) =>
+      acc +
+      (Math.round(typeof val === "number" ? val : parseFloat(String(val).replace(",", "."))) || 0),
     0,
   );
 }

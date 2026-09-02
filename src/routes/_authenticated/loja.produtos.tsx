@@ -165,6 +165,13 @@ function ProdutosPage() {
       toast.error("A data de início não pode ser posterior à data de término.");
       return;
     }
+    if (promocaoFim) {
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (promocaoFim < hoje) {
+        toast.error("A data de término da promoção não pode ser uma data passada.");
+        return;
+      }
+    }
     patchShowcaseConfig(promocaoId, {
       precoPromocional: preco,
       ...(promocaoInicio ? { promocaoInicio } : { promocaoInicio: undefined }),
