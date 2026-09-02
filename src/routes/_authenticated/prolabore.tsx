@@ -77,6 +77,7 @@ function Prolabore() {
     onSuccess: () => {
       toast.success("Retirada excluída");
       void queryClient.invalidateQueries({ queryKey: ["prolabore"] });
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

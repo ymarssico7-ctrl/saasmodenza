@@ -146,7 +146,10 @@ function Relatorio() {
                 width={78}
               />
               <Tooltip
-                formatter={(v: number | string) => brl(Number(v))}
+                formatter={(v: any, name: any) => [
+                  brl(Number(v || 0)),
+                  name === "entradas" ? "Entradas" : name === "saidas" ? "Saídas" : String(name ?? ""),
+                ]}
                 contentStyle={{
                   borderRadius: 16,
                   border: "1px solid var(--color-border)",

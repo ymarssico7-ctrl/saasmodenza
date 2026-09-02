@@ -3327,7 +3327,7 @@ function HybridTaxControl({
                   setRawValue("0");
                 }
               }}
-              className="w-10 text-center text-xs font-bold text-primary outline-none bg-transparent"
+              className="min-w-[44px] w-auto px-1 text-center text-xs font-bold text-primary outline-none bg-transparent"
             />
             <span className="text-xs font-bold text-muted-foreground">%</span>
           </div>
