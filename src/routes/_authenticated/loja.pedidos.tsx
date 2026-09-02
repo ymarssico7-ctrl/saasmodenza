@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { CalendarDays, MessageCircle, PackageSearch, Truck, X } from "lucide-react";
 import { toast } from "sonner";
+import { inventoryQuery } from "@/lib/db";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
@@ -86,6 +87,22 @@ function PedidosPage() {
   const [data, setData] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
+  const [pedidoConfirmarSemEstoque, setPedidoConfirmarSemEstoque] = useState<Pedido | null>(null);
+
+  // Consulta reativa ao estoque da loja
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const inventoryItems = rawInventory as unknown as Array<{
+    id: string;
+    name: string;
+    sizes: Record<string, number> | null;
+  }>;
+
+  // Consulta o saldo atual de um produto e tamanho
+  const getItemStock = (produtoId: string, tamanho: string): number | null => {
+    const prod = inventoryItems.find((p) => p.id === produtoId);
+    if (!prod || !prod.sizes) return null;
+    return prod.sizes[tamanho] ?? 0;
+  };
 
   // Carrega pedidos isolados por loja do localStorage
   useEffect(() => {
@@ -123,7 +140,7 @@ function PedidosPage() {
 
   const pedidoAberto = lista.find((p) => p.id === aberto) ?? null;
 
-  const avancarStatus = (pedido: Pedido) => {
+  const executarAvancoStatus = (pedido: Pedido) => {
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
     const proximo = fluxoStatus[atual + 1]!;
@@ -168,6 +185,24 @@ function PedidosPage() {
         description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
       });
     }
+  };
+
+  const tentarAvancarStatus = (pedido: Pedido) => {
+    const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
+    const proximo = fluxoStatus[atual + 1];
+    // Se for confirmação de pedido novo, valida se há falta de estoque na grade
+    if (pedido.status === "novo" && proximo === "confirmado" && pedido.itens?.length) {
+      const temFalta = pedido.itens.some((it) => {
+        const st = getItemStock(it.produtoId, it.tamanho);
+        return st !== null && st < it.qtd;
+      });
+      if (temFalta) {
+        setPedidoConfirmarSemEstoque(pedido);
+        return;
+      }
+    }
+    executarAvancoStatus(pedido);
+    setAberto(null);
   };
 
 
@@ -319,17 +354,39 @@ function PedidosPage() {
               {/* Itens */}
               <SectionCard title="Itens do pedido" bodyClassName="p-3">
                 <ul className="divide-y divide-border/70">
-                  {pedidoAberto.itens.map((item, i) => (
-                    <li key={i} className="flex items-center justify-between py-2.5 text-sm">
-                      <div>
-                        <p className="font-medium">{item.nome}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Tam. {item.tamanho} · {item.cor} · Qtd. {item.qtd}
-                        </p>
-                      </div>
-                      <p className="num-display font-semibold">{brl(item.preco * item.qtd)}</p>
-                    </li>
-                  ))}
+                  {pedidoAberto.itens.map((item, i) => {
+                    const currentStock = getItemStock(item.produtoId, item.tamanho);
+                    return (
+                      <li key={i} className="flex items-center justify-between py-2.5 text-sm">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-medium truncate">{item.nome}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            <p className="text-xs text-muted-foreground">
+                              Tam. {item.tamanho} · {item.cor} · Qtd. {item.qtd}
+                            </p>
+                            {currentStock !== null && (
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                  currentStock >= item.qtd
+                                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                    : currentStock > 0
+                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 font-semibold"
+                                    : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 font-semibold"
+                                }`}
+                              >
+                                {currentStock >= item.qtd
+                                  ? `✓ ${currentStock} un. em estoque`
+                                  : currentStock > 0
+                                  ? `⚠️ Apenas ${currentStock} un. em estoque`
+                                  : "❌ Esgotado na grade"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="num-display font-semibold shrink-0">{brl(item.preco * item.qtd)}</p>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <div className="mt-3 flex flex-col gap-1 border-t border-border/70 pt-3 text-sm">
                   <div className="flex justify-between text-muted-foreground">
@@ -399,11 +456,8 @@ function PedidosPage() {
               <div className="flex flex-col gap-2">
                 {pedidoAberto.status !== "entregue" && pedidoAberto.status !== "cancelado" ? (
                   <Button
-                    className="gradient-primary h-11 rounded-full shadow-glow"
-                    onClick={() => {
-                      avancarStatus(pedidoAberto);
-                      setAberto(null);
-                    }}
+                    className="gradient-primary h-11 rounded-full shadow-glow cursor-pointer"
+                    onClick={() => tentarAvancarStatus(pedidoAberto)}
                   >
                     Marcar como "
                     {
@@ -475,6 +529,59 @@ function PedidosPage() {
           </SheetContent>
         ) : null}
       </Sheet>
+
+      {/* ── Diálogo Guardrail de Confirmação com Estoque Insuficiente ────────── */}
+      <AlertDialog
+        open={pedidoConfirmarSemEstoque !== null}
+        onOpenChange={(o) => !o && setPedidoConfirmarSemEstoque(null)}
+      >
+        <AlertDialogContent className="rounded-3xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-display text-base">
+              <span>⚠️ Atenção ao estoque da peça</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-1 text-sm text-muted-foreground">
+                <p>
+                  Um ou mais itens do pedido <strong>{pedidoConfirmarSemEstoque?.numero}</strong> estão com saldo insuficiente no estoque físico da loja:
+                </p>
+                <ul className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 space-y-1.5 text-foreground">
+                  {pedidoConfirmarSemEstoque?.itens.map((it, idx) => {
+                    const st = getItemStock(it.produtoId, it.tamanho);
+                    const isShortage = st !== null && st < it.qtd;
+                    return (
+                      <li key={idx} className="flex justify-between items-center gap-2">
+                        <span className="truncate">{it.nome} (Tam. {it.tamanho} • {it.qtd} un.)</span>
+                        <span className={isShortage ? "text-rose-600 dark:text-rose-400 font-semibold shrink-0" : "text-muted-foreground shrink-0"}>
+                          {st === null ? "—" : st <= 0 ? "Esgotado (0 un.)" : `${st} un. em estoque`}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="text-xs">
+                  Deseja confirmar o pedido e registrar a entrada de <strong>{pedidoConfirmarSemEstoque ? brl(totalPedido(pedidoConfirmarSemEstoque)) : ""}</strong> no Caixa mesmo assim?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-full">Voltar e revisar</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
+              onClick={() => {
+                if (pedidoConfirmarSemEstoque) {
+                  executarAvancoStatus(pedidoConfirmarSemEstoque);
+                  setPedidoConfirmarSemEstoque(null);
+                  setAberto(null);
+                }
+              }}
+            >
+              Confirmar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

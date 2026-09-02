@@ -362,6 +362,7 @@ function Caixa() {
 
   // Conexão Inteligente com Estoque
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedProductSize, setSelectedProductSize] = useState<string>("");
   const [deductStock, setDeductStock] = useState(true);
   const [showProductPopover, setShowProductPopover] = useState(false);
 
@@ -521,6 +522,11 @@ function Caixa() {
     setSelectedProductId(product.id);
     setDescription(product.name);
 
+    const sizes = (product.sizes ?? {}) as Record<string, number>;
+    const entries = Object.entries(sizes);
+    const firstAvailable = entries.find(([, q]) => q > 0)?.[0] ?? entries[0]?.[0] ?? "";
+    setSelectedProductSize(firstAvailable);
+
     // Em Entrada: puxa Preço de Venda (selling_price)
     // Em Saída: puxa Preço de Custo ao fornecedor (cost_price se > 0, senão selling_price)
     const priceToUse = isEntrada
@@ -632,6 +638,7 @@ function Caixa() {
     setCategory(next === "entrada" ? "venda_produto" : "compra_estoque");
     setMethod("pix");
     setSelectedProductId(null);
+    setSelectedProductSize("");
     // Fix 7: reseta o cliente para não vazar cliente de fiado numa saída
     handleClearCustomer();
   };
@@ -725,6 +732,9 @@ function Caixa() {
       if (calculatedDiscount > 0) {
         finalDescription += ` [Desconto: ${brl(calculatedDiscount)}]`;
       }
+      if (selectedProductId && selectedProductSize && !finalDescription.toLowerCase().includes(selectedProductSize.toLowerCase())) {
+        finalDescription += ` [Tam: ${selectedProductSize}]`;
+      }
 
       // Baixa/Acréscimo automático de estoque se vinculado a produto do estoque
       if (selectedProductId && deductStock) {
@@ -739,7 +749,8 @@ function Caixa() {
           delta = -1; // Padrão para saídas com peça vinculada
         }
 
-        await adjustInventoryStock(storeId, selectedProductId, delta);
+        // Passa o tamanho exato selecionado
+        await adjustInventoryStock(storeId, selectedProductId, delta, selectedProductSize || undefined);
         void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       }
 
@@ -781,6 +792,7 @@ function Caixa() {
       setShowDiscount(false);
       setDiscountValue("");
       setSelectedProductId(null);
+      setSelectedProductSize("");
       setSelectedCustomerId("");
       setDeductStock(true);
       setFiadoCustomerId("");
@@ -1404,61 +1416,122 @@ function Caixa() {
 
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
         {selectedProduct && (
-          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary-soft/30 p-4 sm:flex-row sm:items-center sm:justify-between animate-in fade-in-50 slide-in-from-top-2">
-            <div className="flex items-center gap-3 min-w-0">
-              {selectedProduct.image_url ? (
-                <img
-                  src={selectedProduct.image_url}
-                  alt={selectedProduct.name}
-                  className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
-                />
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Package className="h-5 w-5" />
+          <div className="mt-4 flex flex-col gap-3.5 rounded-2xl border border-primary/20 bg-primary-soft/30 p-4 animate-in fade-in-50 slide-in-from-top-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                {selectedProduct.image_url ? (
+                  <img
+                    src={selectedProduct.image_url}
+                    alt={selectedProduct.name}
+                    className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Package className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-xs font-semibold text-foreground">
+                      {selectedProduct.name}
+                    </span>
+                    <Badge variant="outline" className="rounded-full text-[10px]">
+                      {calcTotalStock(selectedProduct)} un. no total
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Peça vinculada do Estoque • Categoria: {selectedProduct.category}
+                  </p>
                 </div>
-              )}
-              <div className="min-w-0">
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-t border-primary/10 pt-2 sm:border-t-0 sm:pt-0">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-xs font-semibold text-foreground">
-                    {selectedProduct.name}
-                  </span>
-                  <Badge variant="outline" className="rounded-full text-[10px]">
-                    {calcTotalStock(selectedProduct)} un. em estoque
-                  </Badge>
+                  <Switch
+                    id="deduct-stock-switch"
+                    checked={deductStock}
+                    onCheckedChange={setDeductStock}
+                  />
+                  <Label htmlFor="deduct-stock-switch" className="cursor-pointer text-xs font-medium">
+                    {isEntrada
+                      ? "Dar baixa no estoque (-1 un.)"
+                      : category === "perda_avaria"
+                      ? "Dar baixa por perda/avaria no estoque (-1 un.)"
+                      : "Adicionar ao estoque (+1 un.)"}
+                  </Label>
                 </div>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Peça vinculada do Estoque da loja • Categoria: {selectedProduct.category}
-                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={() => {
+                    setSelectedProductId(null);
+                    setSelectedProductSize("");
+                    setDescription("");
+                  }}
+                >
+                  Desvincular
+                </Button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-4 border-t border-primary/10 pt-2 sm:border-t-0 sm:pt-0">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="deduct-stock-switch"
-                  checked={deductStock}
-                  onCheckedChange={setDeductStock}
-                />
-                <Label htmlFor="deduct-stock-switch" className="cursor-pointer text-xs font-medium">
-                  {isEntrada
-                    ? "Dar baixa no estoque (-1 un.)"
-                    : category === "perda_avaria"
-                    ? "Dar baixa por perda/avaria no estoque (-1 un.)"
-                    : "Adicionar ao estoque (+1 un.)"}
-                </Label>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setSelectedProductId(null);
-                  setDescription("");
-                }}
-              >
-                Desvincular
-              </Button>
-            </div>
+            {/* Seletor de Tamanho da Peça (Apple UI Chips) */}
+            {(() => {
+              const sizesRecord = (selectedProduct.sizes ?? {}) as Record<string, number>;
+              const entries = Object.entries(sizesRecord);
+              if (entries.length === 0 || (entries.length === 1 && entries[0]?.[0] === "Único")) return null;
+              return (
+                <div className="border-t border-primary/15 pt-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-foreground">
+                      Tamanho da peça movimentada:
+                    </span>
+                    {selectedProductSize && (
+                      <span className="text-[10px]">
+                        {(sizesRecord[selectedProductSize] ?? 0) > 0 ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                            {sizesRecord[selectedProductSize]} un. disponíveis no tamanho {selectedProductSize}
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                            ⚠️ Tamanho {selectedProductSize} está esgotado
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {entries.map(([sz, qty]) => {
+                      const isSelected = selectedProductSize === sz;
+                      const isZero = qty <= 0;
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setSelectedProductSize(sz)}
+                          className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                              : isZero
+                              ? "border border-border bg-card/60 text-muted-foreground/70 hover:border-primary/40"
+                              : "border border-border bg-card text-foreground hover:border-primary/50 shadow-2xs"
+                          }`}
+                        >
+                          <span>{sz}</span>
+                          <span
+                            className={`text-[10px] ${
+                              isSelected ? "text-primary-foreground/85 font-normal" : "text-muted-foreground"
+                            }`}
+                          >
+                            ({qty} un.)
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

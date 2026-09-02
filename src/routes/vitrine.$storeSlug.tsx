@@ -537,11 +537,13 @@ function ProductModal({
 }) {
   const { add } = useCart();
   const sizesObj = (product.sizes ?? {}) as Record<string, number>;
-  const tamanhos = Object.entries(sizesObj)
-    .filter(([, qty]) => qty > 0)
-    .map(([size]) => size);
+  const sizeEntries = Object.entries(sizesObj);
+  const hasMultipleSizes = sizeEntries.length > 0 && !(sizeEntries.length === 1 && sizeEntries[0]![0] === "Único");
 
-  const [tamanho, setTamanho] = useState(tamanhos[0] ?? "Único");
+  // Primeiro tamanho disponível com estoque > 0, ou o primeiro tamanho, ou "Único"
+  const defaultSize = sizeEntries.find(([, qty]) => qty > 0)?.[0] ?? sizeEntries[0]?.[0] ?? "Único";
+
+  const [tamanho, setTamanho] = useState(defaultSize);
   const [cor2, setCor2] = useState(product.color ?? "");
   const [added, setAdded] = useState(false);
 
@@ -551,7 +553,11 @@ function ProductModal({
     product.fotoEfetiva ??
     `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(product.name)}`;
 
+  // Estoque específico do tamanho selecionado
+  const estoqueTamanho = (tamanho in sizesObj ? sizesObj[tamanho] : product.totalEstoque) ?? 0;
+
   function handleAdd() {
+    if (estoqueTamanho <= 0) return;
     const item: CartItem = {
       id: product.id,
       nome: product.name,
@@ -560,8 +566,8 @@ function ProductModal({
       tamanho,
       cor: cor2,
       quantidade: 1,
-      // Fix 6: teto de estoque real — o reducer não deixa ultrapassar
-      maxQuantity: product.totalEstoque,
+      // Fix QA/Dev: Teto de estoque restrito ao tamanho exato escolhido
+      maxQuantity: estoqueTamanho,
     };
     add(item);
     setAdded(true);
@@ -585,7 +591,7 @@ function ProductModal({
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-gray-800 hover:bg-black/20 transition-colors"
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-gray-800 hover:bg-black/20 transition-colors cursor-pointer"
           aria-label="Fechar"
         >
           <X className="h-4 w-4" />
@@ -625,27 +631,53 @@ function ProductModal({
             </div>
           </div>
 
-          {/* Tamanhos */}
-          {tamanhos.length > 0 && tamanhos[0] !== "Único" && (
+          {/* Tamanhos — UI Apple: todos visíveis; zerados riscados com feedback tátil */}
+          {hasMultipleSizes && (
             <div className="mt-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Tamanho
-              </p>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Tamanho
+                </p>
+                {estoqueTamanho > 0 && (
+                  <span className="text-[11px] text-gray-500">
+                    {estoqueTamanho === 1 ? (
+                      <span className="font-semibold text-amber-600">⚡ Última unidade no tamanho {tamanho}</span>
+                    ) : estoqueTamanho <= 3 ? (
+                      <span className="text-amber-600 font-medium">Apenas {estoqueTamanho} unidades no tamanho {tamanho}</span>
+                    ) : (
+                      <span>{estoqueTamanho} unidades no tamanho {tamanho}</span>
+                    )}
+                  </span>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
-                {tamanhos.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTamanho(t)}
-                    className="min-w-[2.5rem] rounded-xl border px-3 py-1.5 text-sm font-medium transition-all"
-                    style={
-                      tamanho === t
-                        ? { borderColor: cor, backgroundColor: `${cor}15`, color: cor }
-                        : { borderColor: "#e5e7eb", color: "#374151" }
-                    }
-                  >
-                    {t}
-                  </button>
-                ))}
+                {sizeEntries.map(([t, qty]) => {
+                  const isAvailable = qty > 0;
+                  const isSelected = tamanho === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      disabled={!isAvailable}
+                      onClick={() => setTamanho(t)}
+                      className={`relative min-w-[2.75rem] rounded-xl border px-3 py-1.5 text-sm font-medium transition-all ${
+                        !isAvailable
+                          ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300 line-through"
+                          : isSelected
+                          ? "font-semibold shadow-sm cursor-pointer"
+                          : "border-gray-200 text-gray-700 hover:border-gray-300 cursor-pointer"
+                      }`}
+                      style={
+                        isSelected && isAvailable
+                          ? { borderColor: cor, backgroundColor: `${cor}15`, color: cor }
+                          : undefined
+                      }
+                      title={!isAvailable ? `Tamanho ${t} esgotado` : `${qty} un. disponíveis`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -657,8 +689,9 @@ function ProductModal({
                 Cor — <span className="font-semibold text-gray-900">{cor2}</span>
               </p>
               <button
+                type="button"
                 onClick={() => setCor2(product.color!)}
-                className="rounded-xl border px-3 py-1.5 text-sm font-medium transition-all"
+                className="rounded-xl border px-3 py-1.5 text-sm font-medium transition-all cursor-pointer"
                 style={{ borderColor: cor, backgroundColor: `${cor}15`, color: cor }}
               >
                 {product.color}
@@ -666,24 +699,34 @@ function ProductModal({
             </div>
           )}
 
-          {/* Estoque */}
-          <p className="mt-4 text-xs text-gray-400">
-            {product.totalEstoque > 0
-              ? `${product.totalEstoque} unidade${product.totalEstoque !== 1 ? "s" : ""} disponíve${product.totalEstoque !== 1 ? "is" : "l"}`
-              : "Sem estoque"}
-          </p>
+          {/* Estoque dinâmico e semântico */}
+          <div className="mt-4 flex items-center gap-2">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                estoqueTamanho > 0 ? "bg-emerald-500" : "bg-red-400"
+              }`}
+            />
+            <p className="text-xs text-gray-500">
+              {estoqueTamanho > 0
+                ? estoqueTamanho === 1
+                  ? "Última unidade disponível neste tamanho"
+                  : `${estoqueTamanho} unidades disponíveis no tamanho ${tamanho}`
+                : `Tamanho ${tamanho} esgotado`}
+            </p>
+          </div>
 
           <button
             id="add-to-cart-btn"
+            type="button"
             onClick={handleAdd}
-            disabled={product.totalEstoque === 0 || added}
-            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-60 hover:opacity-90"
+            disabled={estoqueTamanho === 0 || added}
+            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-50 hover:opacity-90 cursor-pointer disabled:cursor-not-allowed shadow-sm"
             style={{ backgroundColor: cor }}
           >
             {added ? (
               <>✓ Adicionado ao carrinho!</>
-            ) : product.totalEstoque === 0 ? (
-              "Sem estoque"
+            ) : estoqueTamanho === 0 ? (
+              "Tamanho esgotado"
             ) : (
               <>
                 <ShoppingBag className="h-4 w-4" />
@@ -988,15 +1031,41 @@ function CartDrawer({
                         <button
                           onClick={() => {
                             const prod = allProducts.find((p) => p.id === item.id);
-                            const maxEstoque = prod ? prod.totalEstoque : 99;
+                            const sizes = (prod?.sizes ?? {}) as Record<string, number>;
+                            const maxEstoque =
+                              (item.tamanho && item.tamanho in sizes
+                                ? sizes[item.tamanho]
+                                : prod?.totalEstoque) ??
+                              item.maxQuantity ??
+                              99;
                             if (item.quantidade < maxEstoque) {
                               increment(item.id, item.tamanho, item.cor);
                             }
                           }}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                           disabled={(() => {
                             const prod = allProducts.find((p) => p.id === item.id);
-                            return prod ? item.quantidade >= prod.totalEstoque : false;
+                            const sizes = (prod?.sizes ?? {}) as Record<string, number>;
+                            const maxEstoque =
+                              (item.tamanho && item.tamanho in sizes
+                                ? sizes[item.tamanho]
+                                : prod?.totalEstoque) ??
+                              item.maxQuantity ??
+                              99;
+                            return item.quantidade >= maxEstoque;
+                          })()}
+                          title={(() => {
+                            const prod = allProducts.find((p) => p.id === item.id);
+                            const sizes = (prod?.sizes ?? {}) as Record<string, number>;
+                            const maxEstoque =
+                              (item.tamanho && item.tamanho in sizes
+                                ? sizes[item.tamanho]
+                                : prod?.totalEstoque) ??
+                              item.maxQuantity ??
+                              99;
+                            return item.quantidade >= maxEstoque
+                              ? `Estoque máximo atingido para o tamanho ${item.tamanho} (${maxEstoque} un.)`
+                              : undefined;
                           })()}
                         >
                           <Plus className="h-3 w-3" />
