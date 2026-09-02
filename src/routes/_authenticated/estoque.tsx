@@ -81,14 +81,22 @@ function Estoque() {
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome da peça");
+      const salePriceNum = toNumber(price);
+      if (isNaN(salePriceNum) || salePriceNum <= 0) {
+        throw new Error("Informe um preço de venda válido (maior que zero)");
+      }
+      const costNum = toNumber(cost);
+      if (isNaN(costNum) || costNum < 0) {
+        throw new Error("Informe um custo de aquisição válido");
+      }
       return insertInventoryItem({
         storeId,
         name: name.trim(),
         category,
         color: color.trim() || null,
         supplier: supplier.trim() || null,
-        cost_price: toNumber(cost),
-        sale_price: toNumber(price),
+        cost_price: costNum,
+        sale_price: salePriceNum,
         sizes,
         photo_url: photoUrl || null,
       });
@@ -278,13 +286,13 @@ function Estoque() {
                 <Input
                   className="mt-1.5 text-center"
                   inputMode="numeric"
-                  value={String(sizes[s] ?? 0)}
-                  onChange={(e) =>
-                    setSizes((p) => ({
-                      ...p,
-                      [s]: Math.max(0, Math.round(toNumber(e.target.value))),
-                    }))
-                  }
+                  placeholder="0"
+                  value={sizes[s] ? String(sizes[s]) : ""}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
+                    setSizes((p) => ({ ...p, [s]: isNaN(num) ? 0 : num }));
+                  }}
                 />
               </div>
             ))}

@@ -513,7 +513,7 @@ function Caixa() {
 
   const calcTotalStock = (item: InventoryItem) => {
     const sizes = item.sizes ?? {};
-    return Object.values(sizes).reduce((acc, n) => acc + Number(n), 0);
+    return Object.values(sizes).reduce((acc, n) => acc + (Math.round(toNumber(n)) || 0), 0);
   };
 
   // ── Puxar valor automático incondicional ao selecionar produto ────────────
