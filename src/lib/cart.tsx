@@ -94,32 +94,36 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-const CART_STORAGE_KEY = "vestuli_cart_items_v1";
-const LEGACY_CART_STORAGE_KEY = "modaly_cart_items_v1";
-
-function loadInitialCartItems(): CartItem[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(CART_STORAGE_KEY) || localStorage.getItem(LEGACY_CART_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
-  } catch {
-    return [];
-  }
+function getCartStorageKey(storeKey?: string) {
+  return storeKey ? `vestuli_cart_items_v1_${storeKey}` : "vestuli_cart_items_v1";
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, null, () => ({
-    items: loadInitialCartItems(),
-  }));
+function getLegacyCartStorageKey(storeKey?: string) {
+  return storeKey ? `modaly_cart_items_v1_${storeKey}` : "modaly_cart_items_v1";
+}
 
-  // Sincroniza estado do carrinho no localStorage a cada alteração
+export function CartProvider({ children, storeKey }: { children: ReactNode; storeKey?: string }) {
+  const currentKey = getCartStorageKey(storeKey);
+  const legacyKey = getLegacyCartStorageKey(storeKey);
+
+  const [state, dispatch] = useReducer(cartReducer, null, () => {
+    if (typeof localStorage === "undefined") return { items: [] };
+    try {
+      const raw = localStorage.getItem(currentKey) || localStorage.getItem(legacyKey);
+      return { items: raw ? (JSON.parse(raw) as CartItem[]) : [] };
+    } catch {
+      return { items: [] };
+    }
+  });
+
+  // Sincroniza estado do carrinho no localStorage a cada alteração isolado por loja
   useEffect(() => {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+      localStorage.setItem(currentKey, JSON.stringify(state.items));
     } catch {
       // silenciar erros de cota/localStorage
     }
-  }, [state.items]);
+  }, [state.items, currentKey]);
 
   const totalItems = state.items.reduce((s, i) => s + i.quantidade, 0);
   const totalPrice = state.items.reduce((s, i) => s + i.preco * i.quantidade, 0);

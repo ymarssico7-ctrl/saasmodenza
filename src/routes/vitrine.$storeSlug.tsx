@@ -57,8 +57,9 @@ const CATEGORIAS_PADRAO = ["Tudo"] as const;
 
 // ─── Root (wraps CartProvider) ────────────────────────────────────
 function VitrineRoot() {
+  const { storeSlug } = Route.useParams();
   return (
-    <CartProvider>
+    <CartProvider storeKey={storeSlug}>
       <VitrineLayout />
     </CartProvider>
   );
