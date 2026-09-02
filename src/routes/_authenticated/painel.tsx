@@ -249,10 +249,20 @@ function Painel() {
                   width={78}
                 />
                 <Tooltip
-                  formatter={(v: number | string) => brl(Number(v))}
+                  formatter={(v: any, name: any) => [
+                    brl(Number(v)),
+                    name === "faturamento"
+                      ? "Faturamento"
+                      : name === "lucro"
+                        ? "Resultado líquido"
+                        : name,
+                  ]}
                   contentStyle={{
                     borderRadius: 16,
                     border: "1px solid var(--color-border)",
+                    background: "var(--color-popover)",
+                    color: "var(--color-popover-foreground)",
+                    boxShadow: "var(--shadow-lifted)",
                     fontSize: 12,
                   }}
                 />

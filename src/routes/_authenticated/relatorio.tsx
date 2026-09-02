@@ -153,6 +153,9 @@ function Relatorio() {
                 contentStyle={{
                   borderRadius: 16,
                   border: "1px solid var(--color-border)",
+                  background: "var(--color-popover)",
+                  color: "var(--color-popover-foreground)",
+                  boxShadow: "var(--shadow-lifted)",
                   fontSize: 12,
                 }}
               />
@@ -198,7 +201,14 @@ function Relatorio() {
                   </Pie>
                   <Tooltip
                     formatter={(v: number | string) => brl(Number(v))}
-                    contentStyle={{ borderRadius: 16, fontSize: 12 }}
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-popover)",
+                      color: "var(--color-popover-foreground)",
+                      boxShadow: "var(--shadow-lifted)",
+                      fontSize: 12,
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { goalsQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber } from "@/lib/format";
-import { projectMonth, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
+import { REFUND_CATEGORIES, projectMonth, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { upsertGoal, deleteGoal } from "@/lib/mutations";
 
@@ -45,7 +45,7 @@ function Metas() {
     const mPrefix = m.slice(0, 7);
     const monthTransactions = txs.filter((t) => t.occurred_on.slice(0, 7) === mPrefix);
     const grossSales = sumBy(monthTransactions, "entrada");
-    const refunds = sumByCategories(monthTransactions, "saida", new Set(["estorno_devolucao"]));
+    const refunds = sumByCategories(monthTransactions, "saida", REFUND_CATEGORIES);
     return Math.max(grossSales - refunds, 0);
   };
 
@@ -160,17 +160,16 @@ function Metas() {
           <ul className="mt-5 divide-y divide-border">
             {goals.map((g) => {
               const achieved = revenueOf(g.month);
-              const p =
-                Number(g.target_amount) > 0
-                  ? Math.min((achieved / Number(g.target_amount)) * 100, 100)
-                  : 0;
+              const targetAmount = Number(g.target_amount);
+              const percentualReal = targetAmount > 0 ? (achieved / targetAmount) * 100 : 0;
+              const percentualBarra = Math.min(percentualReal, 100);
               return (
                 <li key={g.id} className="py-4">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-medium">{monthLabel(g.month)}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {brl(achieved)} de {brl(Number(g.target_amount))} · {pct(p)}
+                        {brl(achieved)} de {brl(targetAmount)} · {pct(percentualReal)}
                       </p>
                     </div>
                     <ConfirmDelete
@@ -187,7 +186,7 @@ function Metas() {
                       }
                     />
                   </div>
-                  <Progress value={p} className="mt-3 h-1.5" />
+                  <Progress value={percentualBarra} className="mt-3 h-1.5" />
                 </li>
               );
             })}

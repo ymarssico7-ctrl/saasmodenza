@@ -120,7 +120,11 @@ function Prolabore() {
           label="Disponível para retirar"
           value={brl(available)}
           tone={available > 0 ? "positive" : "warning"}
-          hint={`Lucro da loja: ${brl(operatingProfit)}`}
+          hint={
+            operatingProfit >= 0
+              ? `Lucro operacional: ${brl(operatingProfit)}`
+              : `Prejuízo operacional: ${brl(Math.abs(operatingProfit))}`
+          }
         />
       </div>
 

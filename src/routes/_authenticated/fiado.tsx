@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { creditsQuery, customersQuery } from "@/lib/db";
-import { brl, formatDate, todayISO, toNumber } from "@/lib/format";
+import { brl, formatDate, pct, todayISO, toNumber } from "@/lib/format";
 import { CREDIT_STATUS_LABEL, creditStatus } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertCredit, deleteCredit, recordCreditPayment } from "@/lib/mutations";
@@ -153,18 +153,21 @@ function Fiado() {
           value={brl(openTotal)}
           tone="primary"
           icon={<Users className="size-4" />}
+          hint={open.length > 0 ? `${open.length} ${open.length === 1 ? "título ativo" : "títulos ativos"}` : "Nenhum fiado em aberto"}
         />
         <StatCard
           label="Vencido"
           value={brl(overdueTotal)}
           tone={overdueTotal > 0 ? "negative" : "default"}
           icon={<AlertTriangle className="size-4" />}
+          hint={openTotal > 0 ? `${pct((overdueTotal / openTotal) * 100)} do saldo em atraso` : "Nenhum fiado em atraso"}
         />
         <StatCard
           label="Já recebido"
           value={brl(receivedTotal)}
           tone="positive"
           icon={<CheckCircle2 className="size-4" />}
+          hint="Total quitado no caixa"
         />
       </div>
 
