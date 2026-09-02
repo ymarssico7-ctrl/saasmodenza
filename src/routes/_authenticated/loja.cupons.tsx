@@ -170,8 +170,7 @@ function CuponsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {lista.map((c) => {
-            const limite = c.limite ?? 100;
-            const uso = (c.usos / limite) * 100;
+            const uso = c.limite ? Math.min(Math.round((c.usos / c.limite) * 100), 100) : 0;
             return (
               <div key={c.id} className="surface-card surface-card-hover p-5">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -225,7 +224,7 @@ function CuponsPage() {
                         ? new Date(`${c.validade.slice(0, 10)}T23:59:59.999`).getTime() < Date.now()
                         : false;
                     if (expirado) return <Tag tone="danger">Expirado</Tag>;
-                    if (c.limite && uso >= 100) return <Tag tone="danger">Limite atingido</Tag>;
+                    if (c.limite && c.usos >= c.limite) return <Tag tone="danger">Limite atingido</Tag>;
                     if (c.ativo) return <Tag tone="success">Ativo</Tag>;
                     return <Tag>Pausado</Tag>;
                   })()}

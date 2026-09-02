@@ -838,11 +838,16 @@ function CartDrawer({
       const chaveOrders = `vestuli_orders_${storeId}`;
       const rawOrders =
         localStorage.getItem(chaveOrders) || localStorage.getItem(`modaly_orders_${storeId}`);
-      const existentes = JSON.parse(rawOrders ?? "[]") as unknown[];
-      const numeroPedido = String(existentes.length + 1).padStart(4, "0");
+      const existentes = JSON.parse(rawOrders ?? "[]") as Array<{ numero?: string }>;
+      let maxNum = 1000;
+      for (const ord of existentes) {
+        const n = parseInt(String(ord.numero ?? "").replace(/\D/g, ""), 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+      const numeroPedido = `#${maxNum + 1}`;
       const novoPedido = {
         id: crypto.randomUUID(),
-        numero: `#${numeroPedido}`,
+        numero: numeroPedido,
         cliente: "Cliente Vitrine",
         telefone: "",
         cidade: "",

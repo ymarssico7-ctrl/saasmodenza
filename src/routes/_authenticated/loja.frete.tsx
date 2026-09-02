@@ -224,9 +224,25 @@ function FretePage() {
                     )}
                     {op.prazo && <span className="text-xs text-muted-foreground">{op.prazo}</span>}
                     {op.valor !== undefined && (
-                      <span className="text-xs text-muted-foreground">
-                        R$ {op.valor.toFixed(2).replace(".", ",")} fixo
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-xs font-medium text-muted-foreground">Taxa fixa:</span>
+                        <div className="flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-0.5">
+                          <span className="text-xs text-muted-foreground">R$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={op.valor}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value);
+                              setOpcoes((prev) =>
+                                prev.map((o) => (o.id === op.id ? { ...o, valor: isNaN(v) ? 0 : v } : o)),
+                              );
+                            }}
+                            className="w-16 bg-transparent text-xs font-semibold focus:outline-none"
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
