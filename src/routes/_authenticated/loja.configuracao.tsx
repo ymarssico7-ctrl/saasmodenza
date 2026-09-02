@@ -79,6 +79,10 @@ function AparenciaPage() {
   }, [store]);
 
   const salvar = async () => {
+    if (!nome.trim()) {
+      toast.error("Informe o nome da loja antes de salvar.");
+      return;
+    }
     setSalvando(true);
     try {
       // 1) Persiste Nome, Cidade e Telefone no banco (tabela stores)

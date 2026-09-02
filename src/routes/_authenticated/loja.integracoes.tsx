@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   CreditCard,
@@ -8,12 +9,14 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard } from "@/components/loja/section-card";
 import { PlanoBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useStore } from "@/lib/store-context";
 
 export const Route = createFileRoute("/_authenticated/loja/integracoes")({
   head: () => ({
@@ -115,6 +118,38 @@ const integracoesData: Integracao[] = [
 ];
 
 function IntegracoesPage() {
+  const { storeId } = useStore();
+  const [statusMap, setStatusMap] = useState<Record<string, boolean>>(() => {
+    const defaultMap = integracoesData.reduce<Record<string, boolean>>((acc, i) => {
+      acc[i.id] = i.conectado;
+      return acc;
+    }, {});
+    if (typeof localStorage === "undefined") return defaultMap;
+    try {
+      const raw =
+        localStorage.getItem(`vestuli_integrations_${storeId}`) ||
+        localStorage.getItem(`modaly_integrations_${storeId}`);
+      return raw ? { ...defaultMap, ...(JSON.parse(raw) as Record<string, boolean>) } : defaultMap;
+    } catch {
+      return defaultMap;
+    }
+  });
+
+  const toggleIntegracao = (integ: Integracao) => {
+    const nextVal = !(statusMap[integ.id] ?? integ.conectado);
+    const updated = { ...statusMap, [integ.id]: nextVal };
+    setStatusMap(updated);
+    try {
+      localStorage.setItem(`vestuli_integrations_${storeId}`, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    toast.success(
+      nextVal ? `Integração "${integ.nome}" ativada!` : `Integração "${integ.nome}" desativada.`,
+      { description: nextVal ? "Configuração aplicada na vitrine." : "Desconectada da vitrine." },
+    );
+  };
+
   const porCategoria = integracoesData.reduce<Record<string, Integracao[]>>((acc, item) => {
     if (!acc[item.categoria]) acc[item.categoria] = [];
     acc[item.categoria]!.push(item);
@@ -139,6 +174,7 @@ function IntegracoesPage() {
             {items.map((integ) => {
               const Icon = integ.icon;
               const precisaCrescimento = integ.plano === "crescimento";
+              const isConectado = statusMap[integ.id] ?? integ.conectado;
               return (
                 <div
                   key={integ.id}
@@ -154,7 +190,7 @@ function IntegracoesPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold">{integ.nome}</p>
                         {precisaCrescimento && <PlanoBadge plan="crescimento" />}
-                        {integ.conectado && (
+                        {isConectado && (
                           <span className="rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
                             Conectado
                           </span>
@@ -176,7 +212,11 @@ function IntegracoesPage() {
                       Upgrade
                     </Button>
                   ) : (
-                    <Switch checked={integ.conectado} className="shrink-0" />
+                    <Switch
+                      checked={isConectado}
+                      onCheckedChange={() => toggleIntegracao(integ)}
+                      className="shrink-0"
+                    />
                   )}
                 </div>
               );

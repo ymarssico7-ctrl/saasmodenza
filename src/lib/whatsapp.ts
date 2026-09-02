@@ -68,10 +68,18 @@ export function openWhatsAppCheckout(
   frete?: FreteInfo,
 ) {
   // Remove tudo que não é número
-  const digits = whatsapp.replace(/\D/g, "");
-  // Se não começa com 55, assume Brasil
-  const phone = digits.startsWith("55") ? digits : `55${digits}`;
+  const digits = (whatsapp || "").replace(/\D/g, "");
   const message = formatWhatsAppMessage(storeName, items, total, cupom, frete);
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank", "noopener,noreferrer");
+  const encoded = encodeURIComponent(message);
+
+  // Se o número tiver ao menos 8 dígitos (DDD + número), usa wa.me direcionado
+  if (digits.length >= 8) {
+    const phone = digits.startsWith("55") ? digits : `55${digits}`;
+    const url = `https://wa.me/${phone}?text=${encoded}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  } else {
+    // Fallback gracioso: abre o seletor de contato do WhatsApp com a mensagem pronta
+    const url = `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
