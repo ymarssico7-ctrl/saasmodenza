@@ -62,17 +62,22 @@ function Relatorio() {
   const current = inMonth(monthStart(0));
   const previous = inMonth(monthStart(-1));
 
-  // ─── DRE Contábil Correto (CPC 00 / IFRS 15) ────────────────────────────────
-  // 1. Receita Bruta: todas as entradas (vendas brutas)
+  // ─── DRE Contábil em Camadas Transparentes (CPC 00 / IFRS 15) ──────────────
+  // 1. Receita Bruta: todas as entradas confirmadas
   const grossRevenue = sumBy(current, "entrada");
-  // 2. Deduções da Receita: estornos e devoluções de clientes (NÃO são despesas OPEX)
+  // 2. Deduções da Receita: estornos e devoluções de clientes (NÃO são OPEX)
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   // 3. Receita Líquida Real: o que a loja realmente reteve após devoluções
   const netRevenue = grossRevenue - refunds;
-  // 4. Despesas Operacionais (OPEX): saídas que NÃO são devoluções (aluguel, frete, etc.)
-  const expenses = sumByExcluding(current, "saida", REFUND_CATEGORIES);
-  // 5. Lucro Líquido Real: resultado operacional da loja
-  const profit = netRevenue - expenses;
+  // 4. Despesas Operacionais (OPEX puro): custos da loja (exclui estornos e pró-labore)
+  const opexExclusions = new Set([...REFUND_CATEGORIES, "prolabore"]);
+  const opexExpenses = sumByExcluding(current, "saida", opexExclusions);
+  // 5. Lucro Operacional da Loja (EBITDA simples): geração de caixa do negócio
+  const operatingProfit = netRevenue - opexExpenses;
+  // 6. Retiradas de Pró-labore: remuneração da dona/administração
+  const prolaboreWithdrawals = sumByCategories(current, "saida", new Set(["prolabore"]));
+  // 7. Resultado Líquido Retido no Caixa: lucro que sobra para reinvestimento e reserva
+  const retainedProfit = operatingProfit - prolaboreWithdrawals;
 
   // Comparativo homogêneo mês anterior (Receita Líquida vs Receita Líquida)
   const previousGross = sumBy(previous, "entrada");
@@ -93,8 +98,9 @@ function Relatorio() {
 
   const byCategory = Object.entries(
     current
-      // Pie de despesas exclui estornos (que são deduções de receita, não custos)
-      .filter((t) => t.kind === "saida" && !REFUND_CATEGORIES.has(t.category))
+      // Pie de despesas exclui estornos (deduções de receita) E pró-labore (retirada da dona)
+      // → as fatias do gráfico devem somar exatamente o valor do StatCard "Despesas da Loja"
+      .filter((t) => t.kind === "saida" && !opexExclusions.has(t.category))
       .reduce<Record<string, number>>((acc, t) => {
         acc[t.category] = (acc[t.category] ?? 0) + Number(t.amount);
         return acc;
@@ -109,9 +115,27 @@ function Relatorio() {
         description="Onde o dinheiro entra, para onde ele vai e qual é a sua margem real."
       />
 
-      {/* DRE Simplificado — 5 camadas contábeis corretas */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Receita Bruta" value={brl(grossRevenue)} tone="primary" />
+      {/* Indicador de Regime Contábil */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-muted-foreground shadow-2xs">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="font-semibold text-foreground">DRE Gerencial</span> · Regime de Caixa Operacional
+        </div>
+        {prolaboreWithdrawals > 0 && (
+          <span className="text-xs text-muted-foreground">
+            Pró-labore retirado: <strong className="text-foreground">{brl(prolaboreWithdrawals)}</strong>
+          </span>
+        )}
+      </div>
+
+      {/* DRE em 6 Camadas Transparentes */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <StatCard
+          label="Receita Bruta"
+          value={brl(grossRevenue)}
+          tone="primary"
+          hint={`${current.filter((t) => t.kind === "entrada").length} vendas confirmadas`}
+        />
         <StatCard
           label="Estornos / Devoluções"
           value={refunds > 0 ? `− ${brl(refunds)}` : brl(0)}
@@ -122,12 +146,26 @@ function Relatorio() {
           value={brl(netRevenue)}
           hint={formatVariationHint(netRevenue, previousNetRevenue)}
         />
-        <StatCard label="Despesas Operacionais" value={brl(expenses)} />
         <StatCard
-          label="Lucro Líquido Real"
-          value={brl(profit)}
-          tone={profit >= 0 ? "positive" : "negative"}
-          hint={netRevenue > 0 ? `Margem ${pct((profit / netRevenue) * 100)}` : "—"}
+          label="Despesas da Loja"
+          value={brl(opexExpenses)}
+          hint="OPEX puro (sem pró-labore)"
+        />
+        <StatCard
+          label="Lucro da Loja"
+          value={brl(operatingProfit)}
+          tone={operatingProfit >= 0 ? "positive" : "negative"}
+          hint={netRevenue > 0 ? `Margem operacional ${pct((operatingProfit / netRevenue) * 100)}` : "—"}
+        />
+        <StatCard
+          label="Sobra no Caixa"
+          value={brl(retainedProfit)}
+          tone={retainedProfit >= 0 ? "positive" : "negative"}
+          hint={
+            prolaboreWithdrawals > 0
+              ? `Após ${brl(prolaboreWithdrawals)} em pró-labore`
+              : "Sem pró-labore retirado"
+          }
         />
       </div>
 

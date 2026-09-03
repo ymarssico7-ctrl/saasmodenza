@@ -41,16 +41,19 @@ function Metas() {
   const month = monthStart(0);
 
   // Receita Líquida Real do mês (Vendas − Estornos/Devoluções)
-  const revenueOf = (m: string) => {
+  const revenueDetailsOf = (m: string) => {
     const mPrefix = m.slice(0, 7);
     const monthTransactions = txs.filter((t) => t.occurred_on.slice(0, 7) === mPrefix);
     const grossSales = sumBy(monthTransactions, "entrada");
     const refunds = sumByCategories(monthTransactions, "saida", REFUND_CATEGORIES);
-    return Math.max(grossSales - refunds, 0);
+    const netRevenue = Math.max(grossSales - refunds, 0);
+    return { grossSales, refunds, netRevenue };
   };
 
+  const revenueOf = (m: string) => revenueDetailsOf(m).netRevenue;
+
   const currentGoal = goals.find((g) => g.month.slice(0, 7) === month.slice(0, 7));
-  const revenue = revenueOf(month);
+  const { grossSales, refunds, netRevenue: revenue } = revenueDetailsOf(month);
   const goalAmount = Number(currentGoal?.target_amount ?? 0);
   const progress = goalAmount > 0 ? Math.min((revenue / goalAmount) * 100, 100) : 0;
 
@@ -102,9 +105,16 @@ function Metas() {
           <>
             <Progress value={progress} className="mt-7 h-2.5 bg-primary-foreground/20" />
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-              <p className="text-primary-foreground/80">
-                Faturado: <span className="numeric font-semibold">{brl(revenue)}</span>
-              </p>
+              <div>
+                <p className="text-primary-foreground/80">
+                  Faturamento Líquido: <span className="numeric font-semibold">{brl(revenue)}</span>
+                </p>
+                {refunds > 0 && (
+                  <p className="text-[11px] text-primary-foreground/70 mt-0.5">
+                    ({brl(grossSales)} brutos − {brl(refunds)} estornos)
+                  </p>
+                )}
+              </div>
               <p className="text-primary-foreground/80">
                 Falta: <span className="numeric font-semibold">{brl(missing)}</span>
               </p>
@@ -172,7 +182,7 @@ function Metas() {
                     <div>
                       <p className="text-sm font-medium">{monthLabel(g.month)}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {brl(achieved)} de {brl(targetAmount)} · {pct(percentualReal)}
+                        {brl(achieved)} líquido de {brl(targetAmount)} · {pct(percentualReal)}
                       </p>
                     </div>
                     <ConfirmDelete

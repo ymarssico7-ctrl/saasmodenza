@@ -54,7 +54,8 @@ function Clientes() {
       .filter((c) => c.customer_id === customerId)
       .reduce((acc, c) => acc + Number(c.paid_amount), 0);
 
-    // 2. Vendas diretas no caixa e vendas da loja online atribuídas ao cliente
+    // 2. Vendas diretas no caixa e vendas da loja online atribuídas ao cliente.
+    // Usa APENAS delimitadores estruturados para evitar falsos positivos (ex: "Ana" em "havaiANA").
     const sales = txs
       .filter((t) => {
         if (t.kind !== "entrada" || t.category !== "venda_produto") return false;
@@ -63,23 +64,22 @@ function Clientes() {
           return false;
         }
         const desc = t.description.toLowerCase();
+        // Somente correspondência com delimitadores estruturados — sem busca textual livre
         return (
           desc.includes(`[cliente: ${norm}]`) ||
-          desc.includes(`(${norm})`) ||
-          (norm.length >= 3 && desc.includes(norm))
+          desc.includes(`(${norm})`)
         );
       })
       .reduce((acc, t) => acc + Number(t.amount), 0);
 
-    // 3. Estornos e devoluções atribuídos ao cliente
+    // 3. Estornos e devoluções atribuídos ao cliente (mesma regra de delimitadores)
     const refunds = txs
       .filter((t) => {
         if (t.kind !== "saida" || t.category !== "estorno_devolucao") return false;
         const desc = t.description.toLowerCase();
         return (
           desc.includes(`[cliente: ${norm}]`) ||
-          desc.includes(`(${norm})`) ||
-          (norm.length >= 3 && desc.includes(norm))
+          desc.includes(`(${norm})`)
         );
       })
       .reduce((acc, t) => acc + Number(t.amount), 0);

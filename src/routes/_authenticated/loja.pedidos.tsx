@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { CalendarDays, MessageCircle, PackageSearch, Truck, X } from "lucide-react";
+import { CalendarDays, MessageCircle, PackageSearch, Trash2, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery } from "@/lib/db";
 
@@ -239,10 +239,20 @@ function PedidosPage() {
           void queryClient.invalidateQueries({ queryKey: ["transactions"] });
         });
       }
-      toast.error("Pedido cancelado: estoque devolvido e estorno registrado no Caixa.");
+      toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorTotal)} lançado no Caixa.`);
     } else {
-      toast.error("Pedido cancelado.");
+      toast.info(`Pedido ${pedido.numero} cancelado sem impacto no caixa.`);
     }
+  };
+
+  const excluirPedido = (id: string) => {
+    const pedido = lista.find((p) => p.id === id);
+    const novaLista = lista.filter((p) => p.id !== id);
+    persistir(novaLista);
+    setAberto(null);
+    toast.success("Pedido excluído do histórico", {
+      description: pedido ? `Pedido ${pedido.numero} removido.` : undefined,
+    });
   };
 
   const salvarRastreio = (pedidoId: string) => {
@@ -499,31 +509,65 @@ function PedidosPage() {
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="h-11 rounded-full text-danger hover:bg-danger-soft hover:text-danger"
+                        className="h-11 rounded-full text-danger hover:bg-danger-soft hover:text-danger cursor-pointer"
                       >
                         <X className="mr-2 h-4 w-4" /> Cancelar pedido
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Cancelar {pedidoAberto.numero}?</AlertDialogTitle>
+                        <AlertDialogTitle>Cancelar pedido {pedidoAberto.numero}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          O estoque dos itens será estornado e a entrada no caixa, estornada. Esta
-                          ação não pode ser desfeita.
+                          {pedidoAberto.status === "novo" ? (
+                            "Este pedido ainda não foi confirmado, portanto não alterou seu estoque nem registrou entradas no caixa. Ele será marcado como cancelado sem nenhum impacto financeiro."
+                          ) : (
+                            <>
+                              Como este pedido já foi confirmado, o estoque dos itens será devolvido à grade e o valor de{" "}
+                              <strong className="font-semibold text-foreground">{brl(totalPedido(pedidoAberto))}</strong> será registrado como estorno no Caixa.
+                            </>
+                          )}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Voltar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-danger text-danger-foreground"
+                          className="bg-danger text-danger-foreground hover:bg-danger/90"
                           onClick={() => cancelar(pedidoAberto.id)}
                         >
-                          Sim, cancelar
+                          Sim, cancelar pedido
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                ) : null}
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-11 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Excluir pedido cancelado
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir pedido {pedidoAberto.numero}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Este pedido já está cancelado e será removido permanentemente do seu histórico.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => excluirPedido(pedidoAberto.id)}
+                        >
+                          Sim, excluir do histórico
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </div>
           </SheetContent>

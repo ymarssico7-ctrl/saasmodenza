@@ -73,10 +73,16 @@ function Painel() {
   const revenue = sumBy(current, "entrada");
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   const netRevenue = revenue - refunds;
-  // Fix 1 (Rodada 31): expenses exclui estornos (são deduções de receita, não OPEX) — alinhado com relatorio.tsx
-  const expenses = sumByExcluding(current, "saida", REFUND_CATEGORIES);
-  // Fix 1 (Rodada 31): profit = Receita Líquida − OPEX real (consistente com o DRE do Relatório)
-  const profit = netRevenue - expenses;
+  // CORREÇÃO CRÍTICA (Rodada 43): Unificar com relatorio.tsx — pró-labore é retirada da dona,
+  // não uma despesa operacional da loja. Excluir ambos: estornos e pró-labore do OPEX.
+  const opexExclusions = new Set([...REFUND_CATEGORIES, "prolabore"]);
+  const expenses = sumByExcluding(current, "saida", opexExclusions);
+  // Lucro Operacional: o que a OPERAÇÃO da loja gerou (sem contar retirada da dona)
+  const operatingProfit = netRevenue - expenses;
+  // Pró-labore retirado no mês
+  const prolaboreAmount = sumByCategories(current, "saida", new Set(["prolabore"]));
+  // Sobra no Caixa: lucro após retirada da dona — alinhado 100% com relatorio.tsx
+  const profit = operatingProfit - prolaboreAmount;
   const prevRevenue = sumBy(previous, "entrada");
   const revVariation = variation(revenue, prevRevenue);
 
@@ -102,17 +108,19 @@ function Painel() {
   );
   const overdue = openCredits.filter((c) => c.due_date < today).length;
 
-  // Fix 2 (Rodada 31): série histórica usa DRE correto — estornos são deduções de receita, não OPEX
+  // Série histórica — usa DRE correto com fórmula unificada (exclui estornos E pró-labore do OPEX)
   const series = Array.from({ length: 6 }, (_, i) => {
     const m = monthStart(-(5 - i));
     const items = inMonth(m);
     const mRevenue  = sumBy(items, "entrada");
     const mRefunds  = sumByCategories(items, "saida", REFUND_CATEGORIES);
-    const mExpenses = sumByExcluding(items, "saida", REFUND_CATEGORIES);
+    const mOpex     = sumByExcluding(items, "saida", opexExclusions);
+    const mPro      = sumByCategories(items, "saida", new Set(["prolabore"]));
     return {
       month: monthLabelShort(m),
       faturamento: mRevenue,
-      lucro: (mRevenue - mRefunds) - mExpenses,
+      // Lucro = Receita Líquida − OPEX − Pró-labore (sobra real no caixa)
+      lucro: (mRevenue - mRefunds) - mOpex - mPro,
     };
   });
 
@@ -185,34 +193,40 @@ function Painel() {
           value={brl(revenue)}
           icon={<ArrowUpRight className="size-4" />}
           tone="primary"
-          hint={formatVariationHint(revenue, prevRevenue)}
+          hint={
+            refunds > 0
+              ? `Líquido: ${brl(netRevenue)} (−${brl(refunds)} em devoluções)`
+              : formatVariationHint(revenue, prevRevenue)
+          }
         />
         <StatCard
           label="Despesas do mês"
           value={brl(expenses)}
           icon={<ArrowDownRight className="size-4" />}
           hint={(() => {
-            // Fix 1 (Rodada 32): conta só OPEX real — exclui estornos (deduções de receita, não despesas)
+            // Conta OPEX real — exclui estornos E pró-labore (que é retirada da dona)
             const opexCount = current.filter(
-              (t) => t.kind === "saida" && !REFUND_CATEGORIES.has(t.category),
+              (t) => t.kind === "saida" && !opexExclusions.has(t.category),
             ).length;
-            if (refunds > 0) return `Inclui ${brl(refunds)} em devoluções`;
-            if (opexCount === 0) return "Nenhuma despesa registrada";
-            return `${opexCount} despesa${opexCount !== 1 ? "s" : ""} registrada${opexCount !== 1 ? "s" : ""}`;
+            const parts: string[] = [];
+            if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
+            if (refunds > 0) parts.push(`exclui ${brl(refunds)} estornos`);
+            if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
+            if (parts.length === 0) return "Nenhuma despesa registrada";
+            return parts.join(" · ");
           })()}
         />
         <StatCard
-          label="Lucro do mês"
+          label="Sobra no caixa"
           value={brl(profit)}
           tone={profit >= 0 ? "positive" : "negative"}
           icon={<Wallet className="size-4" />}
-          hint={
-            netRevenue > 0
-              ? profit >= 0
-                ? `Margem líquida de ${pct((profit / netRevenue) * 100)}`
-                : `Prejuízo operacional de ${brl(Math.abs(profit))}`
-              : "Sem vendas ainda"
-          }
+          hint={(() => {
+            if (netRevenue <= 0) return "Sem vendas ainda";
+            const marginStr = `Margem ${pct((operatingProfit / netRevenue) * 100)} antes do pró-labore`;
+            if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore · ${marginStr}`;
+            return marginStr;
+          })()}
         />
         <StatCard
           label="Projeção de fechamento"

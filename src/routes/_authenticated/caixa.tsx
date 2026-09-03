@@ -720,6 +720,11 @@ function Caixa() {
   const create = useMutation({
     mutationFn: async () => {
       if (!description.trim()) throw new Error("Descreva o lançamento");
+      if (grossAmount > 0 && calculatedDiscount >= grossAmount) {
+        throw new Error(
+          `O desconto (${brl(calculatedDiscount)}) não pode ser igual ou maior que o valor bruto (${brl(grossAmount)}). Reduza o desconto para lançar.`,
+        );
+      }
       if (netAmount <= 0) throw new Error("Informe um valor maior que zero");
 
       // Monta a descrição final (acrescentando cliente e nota de desconto se houver)
@@ -1315,12 +1320,19 @@ function Caixa() {
                 ))}
               </div>
               {dateMode === "custom" && (
-                <Input
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => setCustomDate(e.target.value)}
-                  className="h-10 rounded-xl text-sm"
-                />
+                <div className="space-y-1.5">
+                  <Input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => setCustomDate(e.target.value)}
+                    className="h-10 rounded-xl text-sm"
+                  />
+                  {customDate > todayISO() && (
+                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                      ⚠️ Data futura selecionada: este lançamento entrará no fluxo de caixa de {customDate.slice(0, 7)}.
+                    </p>
+                  )}
+                </div>
               )}
               {dateMode !== "custom" && (
                 <p className="text-xs text-muted-foreground">
@@ -1402,6 +1414,12 @@ function Caixa() {
                 </div>
               </div>
             </div>
+
+            {grossAmount > 0 && calculatedDiscount >= grossAmount && (
+              <div className="mt-3 rounded-xl bg-destructive/15 p-2.5 text-xs font-medium text-destructive">
+                ⚠️ O desconto ({brl(calculatedDiscount)}) zera ou supera o valor bruto ({brl(grossAmount)}). Reduza o desconto para lançar.
+              </div>
+            )}
           </div>
         )}
 

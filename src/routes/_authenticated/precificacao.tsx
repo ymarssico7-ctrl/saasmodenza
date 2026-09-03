@@ -73,6 +73,7 @@ import {
 } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
+import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
@@ -1091,11 +1092,17 @@ function Precificacao() {
   // ── Mutações de Histórico (Salvar / Deletar) ────────────────────────
   const save = useMutation({
     mutationFn: async () => {
-      const pieceName = name.trim() || "Peça sem nome";
+      const pieceName = name.trim();
+      if (!pieceName) throw new Error("Dê um nome para a peça antes de salvar no histórico");
+
       const wholesaleNum =
         mode === "grade"
           ? toNumber(baseWholesaleGrade)
           : toNumber(wholesale);
+
+      if (isNaN(wholesaleNum) || wholesaleNum <= 0) {
+        throw new Error("Informe o custo no atacado da peça (maior que zero) antes de salvar");
+      }
 
       return insertPricing({
         storeId,
@@ -1197,9 +1204,19 @@ function Precificacao() {
         sizes: entrySizes,
       });
     },
-    onSuccess: () => {
+    onSuccess: (newId) => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       setEntrySheetOpen(false);
+
+      // Auto-publicar na vitrine se a flag estiver ativa (sincronizado com estoque.tsx)
+      if (newId && getAutoPublish()) {
+        patchShowcaseConfig(newId, { ativo: true });
+        toast.info("Peça publicada automaticamente na vitrine", {
+          description: "Você pode ajustar a visibilidade em Loja → Produtos.",
+          duration: 4000,
+        });
+      }
+
       toast.success("Peça cadastrada no Estoque com sucesso! 📦", {
         description: `${entryTotalUnits} unidades registradas na grade.`,
       });

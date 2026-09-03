@@ -218,7 +218,7 @@ function Prolabore() {
                   <span className="numeric text-sm font-semibold">{brl(Number(w.amount))}</span>
                   <ConfirmDelete
                     onConfirm={() => remove.mutate(w.id)}
-                    description="A retirada será removida do histórico."
+                    description="A retirada e o lançamento no caixa serão removidos permanentemente."
                     trigger={
                       <Button
                         variant="ghost"

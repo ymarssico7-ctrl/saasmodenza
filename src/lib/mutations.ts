@@ -142,6 +142,32 @@ export async function deleteInventoryItem(storeId: string, id: string) {
   if (error) throw new Error(error.message);
 }
 
+export type InventoryUpdate = {
+  storeId: string;
+  id: string;
+  name?: string;
+  category?: string;
+  color?: string | null;
+  supplier?: string | null;
+  cost_price?: number;
+  sale_price?: number;
+  sizes?: Record<string, number>;
+  photo_url?: string | null;
+};
+
+export async function updateInventoryItem(input: InventoryUpdate): Promise<void> {
+  const { storeId, id, ...patch } = input;
+  if (isDemoStore(storeId)) {
+    localUpdate("inventory_items", id, patch as AnyRecord);
+    return;
+  }
+  const { error } = await supabase
+    .from("inventory_items")
+    .update(patch)
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 // ============================================================
 // TRANSACTIONS (Caixa)
 // ============================================================

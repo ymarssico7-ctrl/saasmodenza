@@ -396,7 +396,8 @@ export function variation(current: number, previous: number) {
 /** Formata subtexto explicativo e preciso sobre a variação vs mês anterior. */
 export function formatVariationHint(current: number, previous: number): string {
   if (previous <= 0) {
-    if (current > 0) return "Sem vendas no mês anterior";
+    // Mês anterior sem faturamento: variação é matematicamente indefinida
+    if (current > 0) return "Primeiro faturamento registrado ✨";
     return "Sem faturamento no período";
   }
   const v = ((current - previous) / previous) * 100;

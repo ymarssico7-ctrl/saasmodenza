@@ -319,7 +319,7 @@ function Fiado() {
                       </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(c.id)}
-                        description="O fiado e seu histórico de pagamentos serão removidos."
+                        description="O fiado e os pagamentos lançados no caixa serão removidos permanentemente."
                         trigger={
                           <Button
                             variant="ghost"

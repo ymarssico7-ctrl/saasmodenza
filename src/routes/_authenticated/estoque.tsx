@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Plus, Trash2 } from "lucide-react";
+import { Boxes, Calculator, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -18,13 +18,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { inventoryQuery, pricingsQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf, computePricing } from "@/lib/finance";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
-import { insertInventoryItem, deleteInventoryItem } from "@/lib/mutations";
+import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -126,6 +133,69 @@ function Estoque() {
     mutationFn: async (id: string) => deleteInventoryItem(storeId, id),
     onSuccess: () => {
       toast.success("Peça removida");
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // ── Edição e Ajuste de Grade (Apple UX) ──────────────────────────────────
+  const [editingItem, setEditingItem] = useState<(typeof items)[0] | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("vestido");
+  const [editColor, setEditColor] = useState("");
+  const [editSupplier, setEditSupplier] = useState("");
+  const [editCost, setEditCost] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editSizes, setEditSizes] = useState<Sizes>({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
+
+  const startEditing = (i: (typeof items)[0]) => {
+    setEditingItem(i);
+    setEditName(i.name);
+    setEditCategory(i.category);
+    setEditColor(i.color ?? "");
+    setEditSupplier(i.supplier ?? "");
+    setEditCost(String(i.cost_price).replace(".", ","));
+    setEditPrice(String(i.sale_price).replace(".", ","));
+    const s = (i.sizes ?? {}) as Sizes;
+    setEditSizes({
+      PP: Number(s["PP"] ?? 0),
+      P: Number(s["P"] ?? 0),
+      M: Number(s["M"] ?? 0),
+      G: Number(s["G"] ?? 0),
+      GG: Number(s["GG"] ?? 0),
+    });
+    setEditPhotoUrl(i.photo_url ?? "");
+  };
+
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!editingItem) return;
+      if (!editName.trim()) throw new Error("Informe o nome da peça");
+      const salePriceNum = toNumber(editPrice);
+      if (isNaN(salePriceNum) || salePriceNum <= 0) {
+        throw new Error("Informe um preço de venda válido (maior que zero)");
+      }
+      const costNum = toNumber(editCost);
+      if (isNaN(costNum) || costNum < 0) {
+        throw new Error("Informe um custo de aquisição válido");
+      }
+      return updateInventoryItem({
+        storeId,
+        id: editingItem.id,
+        name: editName.trim(),
+        category: editCategory,
+        color: editColor.trim() || null,
+        supplier: editSupplier.trim() || null,
+        cost_price: costNum,
+        sale_price: salePriceNum,
+        sizes: editSizes,
+        photo_url: editPhotoUrl || null,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Peça e grade atualizadas! ✨");
+      setEditingItem(null);
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -398,6 +468,16 @@ function Estoque() {
                           {" "}· {units} un.
                         </p>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => startEditing(i)}
+                        className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+                        title="Editar peça e grade"
+                        aria-label={`Editar ${i.name}`}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(i.id)}
                         description={`"${i.name}" será removida do estoque.`}
@@ -405,7 +485,7 @@ function Estoque() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 rounded-full text-muted-foreground"
+                            className="size-8 rounded-full text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="size-4" />
                           </Button>
@@ -419,6 +499,194 @@ function Estoque() {
           </ul>
         )}
       </section>
+
+      {/* ── Sheet de Edição e Ajuste de Grade (Apple UX) ───────────────── */}
+      <Sheet open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="text-left">
+            <SheetTitle>Editar Peça & Grade</SheetTitle>
+            <SheetDescription>
+              Ajuste as quantidades por tamanho, custo e preço de venda.
+            </SheetDescription>
+          </SheetHeader>
+
+          {editingItem && (
+            <div className="mt-6 space-y-5 px-1 pb-10">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Nome da peça">
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Vestido midi linho"
+                  />
+                </Field>
+                <Field label="Categoria">
+                  <Select value={editCategory} onValueChange={setEditCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INVENTORY_CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Cor">
+                  <Input
+                    value={editColor}
+                    onChange={(e) => setEditColor(e.target.value)}
+                    placeholder="Off-white"
+                  />
+                </Field>
+                <Field label="Fornecedor">
+                  <Input
+                    value={editSupplier}
+                    onChange={(e) => setEditSupplier(e.target.value)}
+                    placeholder="Bras Moda"
+                  />
+                </Field>
+                <Field label="Custo (R$)">
+                  <Input
+                    inputMode="decimal"
+                    value={editCost}
+                    onChange={(e) => setEditCost(e.target.value)}
+                    placeholder="59,90"
+                  />
+                </Field>
+                <Field label="Preço de venda (R$)">
+                  <Input
+                    inputMode="decimal"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    placeholder="169,90"
+                  />
+                </Field>
+              </div>
+
+              {/* Indicador de Margem em Tempo Real */}
+              {(() => {
+                const costNum = toNumber(editCost);
+                const priceNum = toNumber(editPrice);
+                if (isNaN(costNum) || isNaN(priceNum) || priceNum <= 0) return null;
+                const margemReais = priceNum - costNum;
+                const margemPct = (margemReais / priceNum) * 100;
+                const markup = costNum > 0 ? (priceNum / costNum).toFixed(2) : null;
+                const abaixoCusto = costNum > 0 && priceNum < costNum;
+
+                return (
+                  <div className="rounded-2xl bg-secondary/50 p-3.5 text-xs space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Rentabilidade atualizada:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        Margem: {brl(margemReais)} ({margemPct.toFixed(1)}%)
+                        {markup ? ` · Markup: ${markup}x` : ""}
+                      </span>
+                    </div>
+                    {abaixoCusto && (
+                      <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive">
+                        ⚠️ Preço de venda menor que o custo. Prejuízo de {brl(costNum - priceNum)} por peça.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Foto da Peça */}
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground">Foto da peça</Label>
+                <div className="mt-2">
+                  <ImageUploader
+                    currentUrl={editPhotoUrl || null}
+                    bucket="product-photos"
+                    folder="inventory"
+                    onUploaded={setEditPhotoUrl}
+                    placeholder="Clique para alterar foto"
+                    aspect="portrait"
+                  />
+                </div>
+              </div>
+
+              {/* Grade de Tamanhos Interativa com Botões Táteis */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground">Grade de tamanhos</Label>
+                  <span className="text-xs text-muted-foreground">
+                    Total: {Object.values(editSizes).reduce((acc, q) => acc + (Number(q) || 0), 0)} un.
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {SIZE_GRID.map((s) => {
+                    const currentQty = Number(editSizes[s] ?? 0);
+                    return (
+                      <div key={s} className="rounded-2xl border border-border bg-card p-2 text-center space-y-1.5">
+                        <p className="text-xs font-bold text-foreground">{s}</p>
+                        <Input
+                          inputMode="numeric"
+                          className="h-8 text-center text-xs font-semibold p-1"
+                          value={currentQty > 0 ? String(currentQty) : ""}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
+                            setEditSizes((prev) => ({ ...prev, [s]: isNaN(num) ? 0 : num }));
+                          }}
+                        />
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-6 rounded-full"
+                            disabled={currentQty <= 0}
+                            onClick={() =>
+                              setEditSizes((prev) => ({ ...prev, [s]: Math.max(0, currentQty - 1) }))
+                            }
+                          >
+                            <Minus className="size-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-6 rounded-full"
+                            onClick={() =>
+                              setEditSizes((prev) => ({ ...prev, [s]: currentQty + 1 }))
+                            }
+                          >
+                            <Plus className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-11 rounded-full font-semibold"
+                  onClick={() => setEditingItem(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1 h-11 rounded-full font-semibold"
+                  disabled={update.isPending}
+                  onClick={() => update.mutate()}
+                >
+                  Salvar alterações
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

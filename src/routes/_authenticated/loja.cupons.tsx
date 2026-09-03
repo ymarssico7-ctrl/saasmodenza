@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
 import { PlanoBadge, Tag } from "@/components/loja/badges";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -192,13 +193,19 @@ function CuponsPage() {
                         });
                       }}
                     />
-                    <button
-                      onClick={() => excluirCupom(c.id, c.codigo)}
-                      title="Excluir cupom"
-                      className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <ConfirmDelete
+                      onConfirm={() => excluirCupom(c.id, c.codigo)}
+                      description={`O cupom "${c.codigo}" será excluído permanentemente e clientes não poderão mais utilizá-lo no checkout.`}
+                      trigger={
+                        <button
+                          type="button"
+                          title="Excluir cupom"
+                          className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      }
+                    />
                   </div>
                 </div>
 
