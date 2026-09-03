@@ -298,6 +298,7 @@ function VitrineLayout() {
             {destaques.map((p) => {
               const precoFinal = p.precoEfetivo;
               const temPromocao = p.emPromocao;
+              const semEstoque = p.totalEstoque === 0;
               const foto =
                 p.fotoEfetiva ??
                 `https://placehold.co/400x400/f5f5f5/999?text=${encodeURIComponent(p.name)}`;
@@ -305,7 +306,11 @@ function VitrineLayout() {
                 <button
                   key={p.id}
                   onClick={() => setSelectedProduct(p)}
-                  className="group relative flex-shrink-0 w-52 overflow-hidden rounded-3xl border border-white bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+                  className={`group relative flex-shrink-0 w-52 overflow-hidden rounded-3xl border border-white bg-white shadow-sm transition-all ${
+                    semEstoque
+                      ? "cursor-not-allowed opacity-60"
+                      : "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                  }`}
                 >
                   <div className="relative h-52 w-full overflow-hidden bg-gray-100">
                     <img
@@ -313,7 +318,14 @@ function VitrineLayout() {
                       alt={p.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    {temPromocao && (
+                    {semEstoque && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-900">
+                          Esgotado
+                        </span>
+                      </div>
+                    )}
+                    {temPromocao && !semEstoque && (
                       <span className="absolute left-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
                         PROMO
                       </span>
@@ -719,12 +731,14 @@ function ProductModal({
             id="add-to-cart-btn"
             type="button"
             onClick={handleAdd}
-            disabled={estoqueTamanho === 0 || added}
+            disabled={product.totalEstoque === 0 || estoqueTamanho === 0 || added}
             className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-50 hover:opacity-90 cursor-pointer disabled:cursor-not-allowed shadow-sm"
             style={{ backgroundColor: cor }}
           >
             {added ? (
               <>✓ Adicionado ao carrinho!</>
+            ) : product.totalEstoque === 0 ? (
+              "Produto esgotado"
             ) : estoqueTamanho === 0 ? (
               "Tamanho esgotado"
             ) : (

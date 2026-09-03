@@ -45,6 +45,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { transactionsQuery, customersQuery, inventoryQuery } from "@/lib/db";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
@@ -365,6 +375,7 @@ function Caixa() {
   const [selectedProductSize, setSelectedProductSize] = useState<string>("");
   const [deductStock, setDeductStock] = useState(true);
   const [showProductPopover, setShowProductPopover] = useState(false);
+  const [confirmZeroStockOpen, setConfirmZeroStockOpen] = useState(false);
 
   // Navegação por Teclado Desktop (produto)
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
@@ -807,6 +818,38 @@ function Caixa() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const handleTriggerSubmit = () => {
+    if (isEntrada && deductStock && selectedProduct) {
+      const sizesRecord = (selectedProduct.sizes ?? {}) as Record<string, number>;
+      const sizeKeys = Object.keys(sizesRecord);
+
+      // Caso 1: peça tem grade normal e tamanho selecionado com estoque zerado
+      if (selectedProductSize && sizeKeys.length > 0) {
+        const qtyInSize = Number(sizesRecord[selectedProductSize] ?? 0);
+        if (qtyInSize <= 0) {
+          setConfirmZeroStockOpen(true);
+          return;
+        }
+      }
+
+      // Caso 2: peça de Tamanho Único com estoque total zerado (sem chips de grade)
+      if (!selectedProductSize && (sizeKeys.length === 0)) {
+        // Nenhum tamanho cadastrado — estoque totalmente zerado
+        setConfirmZeroStockOpen(true);
+        return;
+      }
+      if (!selectedProductSize && sizeKeys.length > 0) {
+        // Peça com tamanhos mas nenhum chip selecionado — verifica estoque total
+        const totalQty = Object.values(sizesRecord).reduce((a, b) => a + Number(b || 0), 0);
+        if (totalQty <= 0) {
+          setConfirmZeroStockOpen(true);
+          return;
+        }
+      }
+    }
+    create.mutate();
+  };
 
   const remove = useMutation({
     mutationFn: async (id: string) => deleteTransaction(storeId, id),
@@ -1666,13 +1709,53 @@ function Caixa() {
 
         {/* ── Botão de envio com cor dinâmica ─────────────────────────── */}
         <Button
-          className={`mt-6 h-11 rounded-full px-6 font-semibold transition-colors ${btnClass}`}
+          className={`mt-6 h-11 rounded-full px-6 font-semibold transition-colors cursor-pointer ${btnClass}`}
           disabled={create.isPending}
-          onClick={() => create.mutate()}
+          onClick={handleTriggerSubmit}
         >
           {isEntrada ? <Plus className="size-4" /> : <Minus className="size-4" />}
           {isEntrada ? "Registrar entrada" : "Registrar saída"}
         </Button>
+
+        {/* ── Diálogo Guardrail de Venda com Estoque Zerado (Apple UX) ───────── */}
+        <AlertDialog open={confirmZeroStockOpen} onOpenChange={setConfirmZeroStockOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Peça esgotada no estoque</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedProductSize ? (
+                  <>
+                    O tamanho <strong className="font-semibold text-foreground">{selectedProductSize}</strong> de{" "}
+                    <strong className="font-semibold text-foreground">{selectedProduct?.name}</strong> consta com{" "}
+                    <strong className="font-semibold text-destructive">0 unidades</strong> no estoque.
+                  </>
+                ) : (
+                  <>
+                    <strong className="font-semibold text-foreground">{selectedProduct?.name}</strong> está com{" "}
+                    <strong className="font-semibold text-destructive">estoque zerado</strong>.
+                  </>
+                )}
+                <br />
+                <br />
+                Deseja registrar a venda no caixa mesmo assim? O estoque permanecerá zerado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="cursor-pointer">
+                {selectedProductSize ? "Trocar tamanho" : "Cancelar"}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                onClick={() => {
+                  setConfirmZeroStockOpen(false);
+                  create.mutate();
+                }}
+              >
+                Sim, confirmar venda
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
 
       {/* ── Extrato do mês ───────────────────────────────────────────────── */}

@@ -29,6 +29,9 @@ import { creditsQuery, goalsQuery, profileQuery, transactionsQuery } from "@/lib
 import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, todayISO } from "@/lib/format";
 import {
   REFUND_CATEGORIES,
+  STOCK_PURCHASE_CATEGORIES,
+  PROLABORE_CATEGORIES,
+  OPEX_CATEGORIES,
   creditStatus,
   formatVariationHint,
   projectMonth,
@@ -73,16 +76,18 @@ function Painel() {
   const revenue = sumBy(current, "entrada");
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   const netRevenue = revenue - refunds;
-  // CORREÇÃO CRÍTICA (Rodada 43): Unificar com relatorio.tsx — pró-labore é retirada da dona,
-  // não uma despesa operacional da loja. Excluir ambos: estornos e pró-labore do OPEX.
-  const opexExclusions = new Set([...REFUND_CATEGORIES, "prolabore"]);
+  // Segregação contábil homogênea com relatorio.tsx:
+  // OPEX puro exclui devoluções, pró-labore E compra de estoque (patrimônio em arara)
+  const opexExclusions = new Set([...REFUND_CATEGORIES, ...PROLABORE_CATEGORIES, ...STOCK_PURCHASE_CATEGORIES]);
   const expenses = sumByExcluding(current, "saida", opexExclusions);
-  // Lucro Operacional: o que a OPERAÇÃO da loja gerou (sem contar retirada da dona)
+  // Lucro Operacional: resultado das vendas menos despesas correntes de manutenção da loja
   const operatingProfit = netRevenue - expenses;
   // Pró-labore retirado no mês
-  const prolaboreAmount = sumByCategories(current, "saida", new Set(["prolabore"]));
-  // Sobra no Caixa: lucro após retirada da dona — alinhado 100% com relatorio.tsx
-  const profit = operatingProfit - prolaboreAmount;
+  const prolaboreAmount = sumByCategories(current, "saida", PROLABORE_CATEGORIES);
+  // Compras de estoque no mês (investimento em novas coleções)
+  const stockPurchases = sumByCategories(current, "saida", STOCK_PURCHASE_CATEGORIES);
+  // Sobra no Caixa: saldo líquido final retido na conta bancária/gaveta
+  const profit = operatingProfit - stockPurchases - prolaboreAmount;
   const prevRevenue = sumBy(previous, "entrada");
   const revVariation = variation(revenue, prevRevenue);
 
@@ -108,19 +113,20 @@ function Painel() {
   );
   const overdue = openCredits.filter((c) => c.due_date < today).length;
 
-  // Série histórica — usa DRE correto com fórmula unificada (exclui estornos E pró-labore do OPEX)
+  // Série histórica — fórmula unificada com relatorio.tsx
   const series = Array.from({ length: 6 }, (_, i) => {
     const m = monthStart(-(5 - i));
     const items = inMonth(m);
     const mRevenue  = sumBy(items, "entrada");
     const mRefunds  = sumByCategories(items, "saida", REFUND_CATEGORIES);
     const mOpex     = sumByExcluding(items, "saida", opexExclusions);
-    const mPro      = sumByCategories(items, "saida", new Set(["prolabore"]));
+    const mStock    = sumByCategories(items, "saida", STOCK_PURCHASE_CATEGORIES);
+    const mPro      = sumByCategories(items, "saida", PROLABORE_CATEGORIES);
     return {
       month: monthLabelShort(m),
       faturamento: mRevenue,
-      // Lucro = Receita Líquida − OPEX − Pró-labore (sobra real no caixa)
-      lucro: (mRevenue - mRefunds) - mOpex - mPro,
+      // Lucro retido no caixa = Receita Líquida − OPEX − Compras de Estoque − Pró-labore
+      lucro: (mRevenue - mRefunds) - mOpex - mStock - mPro,
     };
   });
 
@@ -200,17 +206,16 @@ function Painel() {
           }
         />
         <StatCard
-          label="Despesas do mês"
+          label="Despesas da loja"
           value={brl(expenses)}
           icon={<ArrowDownRight className="size-4" />}
           hint={(() => {
-            // Conta OPEX real — exclui estornos E pró-labore (que é retirada da dona)
             const opexCount = current.filter(
               (t) => t.kind === "saida" && !opexExclusions.has(t.category),
             ).length;
             const parts: string[] = [];
             if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
-            if (refunds > 0) parts.push(`exclui ${brl(refunds)} estornos`);
+            if (stockPurchases > 0) parts.push(`reinvestiu ${brl(stockPurchases)} em roupas`);
             if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
             if (parts.length === 0) return "Nenhuma despesa registrada";
             return parts.join(" · ");
@@ -223,8 +228,12 @@ function Painel() {
           icon={<Wallet className="size-4" />}
           hint={(() => {
             if (netRevenue <= 0) return "Sem vendas ainda";
-            const marginStr = `Margem ${pct((operatingProfit / netRevenue) * 100)} antes do pró-labore`;
-            if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore · ${marginStr}`;
+            const marginStr = `Margem ${pct((operatingProfit / netRevenue) * 100)} na operação`;
+            if (stockPurchases > 0 && prolaboreAmount > 0) {
+              return `Após ${brl(stockPurchases)} estoque e ${brl(prolaboreAmount)} pró-labore`;
+            }
+            if (stockPurchases > 0) return `Após ${brl(stockPurchases)} em estoque novo`;
+            if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore`;
             return marginStr;
           })()}
         />

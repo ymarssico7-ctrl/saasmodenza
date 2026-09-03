@@ -19,6 +19,9 @@ import { brl, brlCompact, monthLabel, monthLabelShort, monthStart, pct } from "@
 import {
   EXIT_CATEGORIES,
   REFUND_CATEGORIES,
+  STOCK_PURCHASE_CATEGORIES,
+  PROLABORE_CATEGORIES,
+  OPEX_CATEGORIES,
   formatVariationHint,
   labelOf,
   sumBy,
@@ -62,22 +65,24 @@ function Relatorio() {
   const current = inMonth(monthStart(0));
   const previous = inMonth(monthStart(-1));
 
-  // ─── DRE Contábil em Camadas Transparentes (CPC 00 / IFRS 15) ──────────────
+  // ─── DRE Contábil em Camadas Transparentes (CPC 00 / IFRS 15 / Varejo de Moda) ──
   // 1. Receita Bruta: todas as entradas confirmadas
   const grossRevenue = sumBy(current, "entrada");
-  // 2. Deduções da Receita: estornos e devoluções de clientes (NÃO são OPEX)
+  // 2. Deduções da Receita: estornos e devoluções de clientes (NÃO são custos)
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   // 3. Receita Líquida Real: o que a loja realmente reteve após devoluções
   const netRevenue = grossRevenue - refunds;
-  // 4. Despesas Operacionais (OPEX puro): custos da loja (exclui estornos e pró-labore)
-  const opexExclusions = new Set([...REFUND_CATEGORIES, "prolabore"]);
+  // 4. Despesas Operacionais (OPEX puro): custos da loja (exclui estornos, pró-labore e compras de estoque)
+  const opexExclusions = new Set([...REFUND_CATEGORIES, ...PROLABORE_CATEGORIES, ...STOCK_PURCHASE_CATEGORIES]);
   const opexExpenses = sumByExcluding(current, "saida", opexExclusions);
-  // 5. Lucro Operacional da Loja (EBITDA simples): geração de caixa do negócio
+  // 5. Lucro Operacional da Loja: capacidade de geração do negócio antes de compras de peças e retiradas
   const operatingProfit = netRevenue - opexExpenses;
-  // 6. Retiradas de Pró-labore: remuneração da dona/administração
-  const prolaboreWithdrawals = sumByCategories(current, "saida", new Set(["prolabore"]));
-  // 7. Resultado Líquido Retido no Caixa: lucro que sobra para reinvestimento e reserva
-  const retainedProfit = operatingProfit - prolaboreWithdrawals;
+  // 6. Compras de Estoque: investimento em roupas e mercadoria para revenda (patrimônio em arara)
+  const stockPurchases = sumByCategories(current, "saida", STOCK_PURCHASE_CATEGORIES);
+  // 7. Retiradas de Pró-labore: remuneração da dona/administração
+  const prolaboreWithdrawals = sumByCategories(current, "saida", PROLABORE_CATEGORIES);
+  // 8. Resultado Líquido Retido no Caixa: lucro que sobra após reposição de estoque e pró-labore
+  const retainedProfit = operatingProfit - stockPurchases - prolaboreWithdrawals;
 
   // Comparativo homogêneo mês anterior (Receita Líquida vs Receita Líquida)
   const previousGross = sumBy(previous, "entrada");
@@ -99,7 +104,7 @@ function Relatorio() {
   const byCategory = Object.entries(
     current
       // Pie de despesas exclui estornos (deduções de receita) E pró-labore (retirada da dona)
-      // → as fatias do gráfico devem somar exatamente o valor do StatCard "Despesas da Loja"
+      // → as fatias do gráfico somam exatamente o valor do StatCard "Despesas da Loja"
       .filter((t) => t.kind === "saida" && !opexExclusions.has(t.category))
       .reduce<Record<string, number>>((acc, t) => {
         acc[t.category] = (acc[t.category] ?? 0) + Number(t.amount);
@@ -119,7 +124,7 @@ function Relatorio() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-muted-foreground shadow-2xs">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="font-semibold text-foreground">DRE Gerencial</span> · Regime de Caixa Operacional
+          <span className="font-semibold text-foreground">DRE Gerencial</span> · Conciliação Operacional & Caixa
         </div>
         {prolaboreWithdrawals > 0 && (
           <span className="text-xs text-muted-foreground">
@@ -128,8 +133,8 @@ function Relatorio() {
         )}
       </div>
 
-      {/* DRE em 6 Camadas Transparentes */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      {/* DRE em 7 Camadas Transparentes */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <StatCard
           label="Receita Bruta"
           value={brl(grossRevenue)}
@@ -147,15 +152,20 @@ function Relatorio() {
           hint={formatVariationHint(netRevenue, previousNetRevenue)}
         />
         <StatCard
-          label="Despesas da Loja"
+          label="Despesas da Loja (OPEX)"
           value={brl(opexExpenses)}
-          hint="OPEX puro (sem pró-labore)"
+          hint="Aluguel, marketing, frete, luz"
         />
         <StatCard
-          label="Lucro da Loja"
+          label="Lucro Operacional"
           value={brl(operatingProfit)}
           tone={operatingProfit >= 0 ? "positive" : "negative"}
-          hint={netRevenue > 0 ? `Margem operacional ${pct((operatingProfit / netRevenue) * 100)}` : "—"}
+          hint={netRevenue > 0 ? `Margem ${pct((operatingProfit / netRevenue) * 100)}` : "—"}
+        />
+        <StatCard
+          label="Compras de Estoque"
+          value={brl(stockPurchases)}
+          hint={stockPurchases > 0 ? "Patrimônio novo na arara" : "Sem reposição no mês"}
         />
         <StatCard
           label="Sobra no Caixa"
@@ -163,10 +173,23 @@ function Relatorio() {
           tone={retainedProfit >= 0 ? "positive" : "negative"}
           hint={
             prolaboreWithdrawals > 0
-              ? `Após ${brl(prolaboreWithdrawals)} em pró-labore`
-              : "Sem pró-labore retirado"
+              ? `Após estoque e pró-labore`
+              : "Saldo livre em conta"
           }
         />
+      </div>
+
+      {/* Card Educativo Apple de Conciliação Contábil */}
+      <div className="rounded-2xl border border-border bg-card/70 p-4 text-xs leading-relaxed text-muted-foreground shadow-2xs">
+        <div className="flex items-center gap-2 font-semibold text-foreground">
+          <span className="text-base">💡</span>
+          <span>Como funciona a conciliação financeira do Modaly</span>
+        </div>
+        <p className="mt-1.5">
+          O <strong className="text-foreground">Lucro Operacional</strong> mede a saúde real do seu negócio (vendas menos despesas correntes como aluguel e marketing).
+          As <strong className="text-foreground">Compras de Estoque</strong> não são tratadas como despesa perdida: representam roupas compradas que continuam tendo valor patrimonial na sua arara.
+          A <strong className="text-foreground">Sobra no Caixa</strong> é o saldo final em dinheiro que permaneceu na conta após abastecer a loja e retirar seu pró-labore.
+        </p>
       </div>
 
       <section className="panel p-6 sm:p-7">

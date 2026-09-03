@@ -67,6 +67,8 @@ function Estoque() {
   const [price, setPrice] = useState("");
   const [sizes, setSizes] = useState<Sizes>({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
   const [photoUrl, setPhotoUrl] = useState("");
+  const [gradeMode, setGradeMode] = useState<"grade" | "unico">("grade");
+  const [singleSizeQty, setSingleSizeQty] = useState("");
 
   const totalUnits = items.reduce((acc, i) => {
     const s = (i.sizes ?? {}) as Sizes;
@@ -96,6 +98,13 @@ function Estoque() {
       if (isNaN(costNum) || costNum < 0) {
         throw new Error("Informe um custo de aquisição válido");
       }
+
+      let finalSizes: Sizes = sizes;
+      if (gradeMode === "unico") {
+        const qty = Math.max(1, Math.round(toNumber(singleSizeQty)) || 1);
+        finalSizes = { "Único": qty };
+      }
+
       return insertInventoryItem({
         storeId,
         name: name.trim(),
@@ -104,7 +113,7 @@ function Estoque() {
         supplier: supplier.trim() || null,
         cost_price: costNum,
         sale_price: salePriceNum,
-        sizes,
+        sizes: finalSizes,
         photo_url: photoUrl || null,
       });
     },
@@ -116,6 +125,8 @@ function Estoque() {
       setPrice("");
       setPhotoUrl("");
       setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+      setSingleSizeQty("");
+      setGradeMode("grade");
       // Auto-publicar na vitrine se a flag estiver ativa
       if (newId && getAutoPublish()) {
         patchShowcaseConfig(newId, { ativo: true });
@@ -146,6 +157,7 @@ function Estoque() {
   const [editSupplier, setEditSupplier] = useState("");
   const [editCost, setEditCost] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editGradeMode, setEditGradeMode] = useState<"grade" | "unico">("grade");
   const [editSizes, setEditSizes] = useState<Sizes>({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
   const [editPhotoUrl, setEditPhotoUrl] = useState("");
 
@@ -158,13 +170,29 @@ function Estoque() {
     setEditCost(String(i.cost_price).replace(".", ","));
     setEditPrice(String(i.sale_price).replace(".", ","));
     const s = (i.sizes ?? {}) as Sizes;
-    setEditSizes({
-      PP: Number(s["PP"] ?? 0),
-      P: Number(s["P"] ?? 0),
-      M: Number(s["M"] ?? 0),
-      G: Number(s["G"] ?? 0),
-      GG: Number(s["GG"] ?? 0),
-    });
+    const isUnico = "Único" in s || (Object.keys(s).length === 1 && Object.keys(s)[0] === "Único");
+    if (isUnico) {
+      setEditGradeMode("unico");
+      setEditSizes({ "Único": Number(s["Único"] ?? 0) });
+    } else {
+      setEditGradeMode("grade");
+      const keys = Object.keys(s);
+      if (keys.length > 0 && !keys.some((k) => (SIZE_GRID as readonly string[]).includes(k))) {
+        const customSizes: Sizes = {};
+        for (const k of keys) {
+          customSizes[k] = Number(s[k] ?? 0);
+        }
+        setEditSizes(customSizes);
+      } else {
+        setEditSizes({
+          PP: Number(s["PP"] ?? 0),
+          P: Number(s["P"] ?? 0),
+          M: Number(s["M"] ?? 0),
+          G: Number(s["G"] ?? 0),
+          GG: Number(s["GG"] ?? 0),
+        });
+      }
+    }
     setEditPhotoUrl(i.photo_url ?? "");
   };
 
@@ -389,25 +417,69 @@ function Estoque() {
         </div>
 
         <div className="mt-6">
-          <Label className="text-xs font-semibold text-muted-foreground">Grade de tamanhos</Label>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {SIZE_GRID.map((s) => (
-              <div key={s} className="w-20">
-                <p className="text-center text-xs font-semibold text-muted-foreground">{s}</p>
-                <Input
-                  className="mt-1.5 text-center"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={sizes[s] ? String(sizes[s]) : ""}
-                  onChange={(e) => {
-                    const val = e.target.value.trim();
-                    const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
-                    setSizes((p) => ({ ...p, [s]: isNaN(num) ? 0 : num }));
-                  }}
-                />
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Grade de tamanhos</Label>
+            <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-medium shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setGradeMode("grade")}
+                className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
+                  gradeMode === "grade"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Grade P / M / G
+              </button>
+              <button
+                type="button"
+                onClick={() => setGradeMode("unico")}
+                className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
+                  gradeMode === "unico"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Tamanho Único
+              </button>
+            </div>
           </div>
+
+          {gradeMode === "grade" ? (
+            <div className="mt-3 flex flex-wrap gap-3">
+              {SIZE_GRID.map((s) => (
+                <div key={s} className="w-20">
+                  <p className="text-center text-xs font-semibold text-muted-foreground">{s}</p>
+                  <Input
+                    className="mt-1.5 text-center"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={sizes[s] ? String(sizes[s]) : ""}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
+                      setSizes((p) => ({ ...p, [s]: isNaN(num) ? 0 : num }));
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 max-w-xs space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Quantidade em estoque (Tamanho Único)</Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="Ex: 5"
+                value={singleSizeQty}
+                onChange={(e) => setSingleSizeQty(e.target.value)}
+                className="h-10"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Ideal para bolsas, carteiras, cintos, brincos, batas e peças sem variação de tamanho.
+              </p>
+            </div>
+          )}
         </div>
 
         <Button
@@ -444,15 +516,34 @@ function Estoque() {
                         {i.supplier ? ` · ${i.supplier}` : ""}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
-                        {SIZE_GRID.map((size) => (
-                          <Badge
-                            key={size}
-                            variant="outline"
-                            className="rounded-full text-[10px] font-semibold"
-                          >
-                            {size} · {Number(s[size] ?? 0)}
-                          </Badge>
-                        ))}
+                        {(() => {
+                          const sizeEntries = Object.entries(s);
+                          if (sizeEntries.length === 0) {
+                            return SIZE_GRID.map((size) => (
+                              <Badge
+                                key={size}
+                                variant="outline"
+                                className="rounded-full text-[10px] font-semibold opacity-50"
+                              >
+                                {size} · 0
+                              </Badge>
+                            ));
+                          }
+                          return sizeEntries.map(([size, qty]) => {
+                            const q = Number(qty || 0);
+                            return (
+                              <Badge
+                                key={size}
+                                variant="outline"
+                                className={`rounded-full text-[10px] font-semibold ${
+                                  q <= 0 ? "opacity-50 line-through border-dashed" : "border-border"
+                                }`}
+                              >
+                                {size} · {q}
+                              </Badge>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -609,60 +700,129 @@ function Estoque() {
                 </div>
               </div>
 
-              {/* Grade de Tamanhos Interativa com Botões Táteis */}
+              {/* Grade de Tamanhos — suporte dinâmico a Grade P/M/G e Tamanho Único */}
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label className="text-xs font-semibold text-muted-foreground">Grade de tamanhos</Label>
-                  <span className="text-xs text-muted-foreground">
-                    Total: {Object.values(editSizes).reduce((acc, q) => acc + (Number(q) || 0), 0)} un.
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      Total: {Object.values(editSizes).reduce((acc, q) => acc + (Number(q) || 0), 0)} un.
+                    </span>
+                    <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-medium shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditGradeMode("grade");
+                          setEditSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+                        }}
+                        className={`rounded-full px-2.5 py-0.5 transition-all cursor-pointer ${
+                          editGradeMode === "grade"
+                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Grade
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditGradeMode("unico");
+                          const prev = editSizes["Único"] ?? 1;
+                          setEditSizes({ "Único": Number(prev) });
+                        }}
+                        className={`rounded-full px-2.5 py-0.5 transition-all cursor-pointer ${
+                          editGradeMode === "unico"
+                            ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Único
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-3 grid grid-cols-5 gap-2">
-                  {SIZE_GRID.map((s) => {
-                    const currentQty = Number(editSizes[s] ?? 0);
-                    return (
-                      <div key={s} className="rounded-2xl border border-border bg-card p-2 text-center space-y-1.5">
-                        <p className="text-xs font-bold text-foreground">{s}</p>
-                        <Input
-                          inputMode="numeric"
-                          className="h-8 text-center text-xs font-semibold p-1"
-                          value={currentQty > 0 ? String(currentQty) : ""}
-                          placeholder="0"
-                          onChange={(e) => {
-                            const val = e.target.value.trim();
-                            const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
-                            setEditSizes((prev) => ({ ...prev, [s]: isNaN(num) ? 0 : num }));
-                          }}
-                        />
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="size-6 rounded-full"
-                            disabled={currentQty <= 0}
-                            onClick={() =>
-                              setEditSizes((prev) => ({ ...prev, [s]: Math.max(0, currentQty - 1) }))
-                            }
-                          >
-                            <Minus className="size-3" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="size-6 rounded-full"
-                            onClick={() =>
-                              setEditSizes((prev) => ({ ...prev, [s]: currentQty + 1 }))
-                            }
-                          >
-                            <Plus className="size-3" />
-                          </Button>
+
+                {editGradeMode === "grade" ? (
+                  <div className="mt-3 grid grid-cols-5 gap-2">
+                    {SIZE_GRID.map((s) => {
+                      const currentQty = Number(editSizes[s] ?? 0);
+                      return (
+                        <div key={s} className="rounded-2xl border border-border bg-card p-2 text-center space-y-1.5">
+                          <p className="text-xs font-bold text-foreground">{s}</p>
+                          <Input
+                            inputMode="numeric"
+                            className="h-8 text-center text-xs font-semibold p-1"
+                            value={currentQty > 0 ? String(currentQty) : ""}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const val = e.target.value.trim();
+                              const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
+                              setEditSizes((prev) => ({ ...prev, [s]: isNaN(num) ? 0 : num }));
+                            }}
+                          />
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="size-6 rounded-full"
+                              disabled={currentQty <= 0}
+                              onClick={() =>
+                                setEditSizes((prev) => ({ ...prev, [s]: Math.max(0, currentQty - 1) }))
+                              }
+                            >
+                              <Minus className="size-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="size-6 rounded-full"
+                              onClick={() =>
+                                setEditSizes((prev) => ({ ...prev, [s]: currentQty + 1 }))
+                              }
+                            >
+                              <Plus className="size-3" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-3 rounded-2xl border border-border bg-card p-4 space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Ideal para bolsas, cintos, brincos, acessórios e peças sem variação de tamanho.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button" variant="outline" size="icon"
+                        className="size-9 rounded-full shrink-0"
+                        disabled={(editSizes["Único"] ?? 0) <= 0}
+                        onClick={() => setEditSizes({ "Único": Math.max(0, (editSizes["Único"] ?? 0) - 1) })}
+                      >
+                        <Minus className="size-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        min="0"
+                        className="h-10 text-center font-bold text-lg"
+                        value={String(editSizes["Único"] ?? 0)}
+                        onChange={(e) => {
+                          const n = Math.max(0, Math.round(Number(e.target.value) || 0));
+                          setEditSizes({ "Único": n });
+                        }}
+                      />
+                      <Button
+                        type="button" variant="outline" size="icon"
+                        className="size-9 rounded-full shrink-0"
+                        onClick={() => setEditSizes({ "Único": (editSizes["Único"] ?? 0) + 1 })}
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex gap-3">

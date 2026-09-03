@@ -340,6 +340,24 @@ export function sumBy(items: Transaction[], kind: "entrada" | "saida") {
 export const REFUND_CATEGORIES = new Set(["estorno_devolucao"]);
 
 /**
+ * Categorias de saída que são COMPRA DE ESTOQUE (recomposição de mercadoria).
+ * Contabilidade de Moda: compra de roupas no atacado é investimento em ativo circulante
+ * (patrimônio em estoque), e NÃO despesa operacional consumida (OPEX).
+ */
+export const STOCK_PURCHASE_CATEGORIES = new Set(["compra_estoque"]);
+
+/**
+ * Categorias de saída que são RETIRADA DE PRÓ-LABORE (remuneração da sócia/dona).
+ */
+export const PROLABORE_CATEGORIES = new Set(["prolabore"]);
+
+/**
+ * Categorias que compõem o OPEX PURO (Despesas Operacionais Correntes da Loja).
+ * Exclui devoluções (dedução de receita), pró-labore (retirada da dona) e compra de estoque (patrimônio).
+ */
+export const OPEX_CATEGORIES = new Set(["aluguel", "marketing", "frete", "perda_avaria", "outro"]);
+
+/**
  * Soma saídas excluindo as categorias informadas.
  * Usado no DRE para separar OPEX de deduções de receita.
  */

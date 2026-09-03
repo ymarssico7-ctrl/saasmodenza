@@ -298,9 +298,16 @@ export async function insertCredit(input: CreditInsert) {
 
 export async function deleteCredit(storeId: string, id: string) {
   if (isDemoStore(storeId)) {
+    // Remove pagamentos associados para manter integridade
+    const payments = localGet("credit_payments").filter((p) => p["credit_id"] === id);
+    for (const p of payments) {
+      localDelete("credit_payments", p["id"] as string);
+    }
     localDelete("credits", id);
     return;
   }
+  // No Supabase: remove pagamentos vinculados primeiro para prevenir erro de chave estrangeira
+  await supabase.from("credit_payments").delete().eq("credit_id", id);
   const { error } = await supabase.from("credits").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }

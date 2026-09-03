@@ -88,6 +88,7 @@ function PedidosPage() {
   const [aberto, setAberto] = useState<string | null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [pedidoConfirmarSemEstoque, setPedidoConfirmarSemEstoque] = useState<Pedido | null>(null);
+  const [pedidoComPecaExcluida, setPedidoComPecaExcluida] = useState<{ pedido: Pedido; nomes: string[] } | null>(null);
 
   // Consulta reativa ao estoque da loja
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
@@ -190,8 +191,18 @@ function PedidosPage() {
   const tentarAvancarStatus = (pedido: Pedido) => {
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     const proximo = fluxoStatus[atual + 1];
-    // Se for confirmação de pedido novo, valida se há falta de estoque na grade
+    // Se for confirmação de pedido novo, valida requisitos
     if (pedido.status === "novo" && proximo === "confirmado" && pedido.itens?.length) {
+      // 1) Verifica se algum produto foi excluído do catálogo de estoque
+      const pecasExcluidas = pedido.itens
+        .filter((it) => !inventoryItems.find((inv) => inv.id === it.produtoId))
+        .map((it) => it.nome ?? it.produtoId);
+      if (pecasExcluidas.length > 0) {
+        setPedidoComPecaExcluida({ pedido, nomes: pecasExcluidas });
+        return;
+      }
+
+      // 2) Verifica se há falta de estoque na grade
       const temFalta = pedido.itens.some((it) => {
         const st = getItemStock(it.produtoId, it.tamanho);
         return st !== null && st < it.qtd;
@@ -617,6 +628,55 @@ function PedidosPage() {
                 if (pedidoConfirmarSemEstoque) {
                   executarAvancoStatus(pedidoConfirmarSemEstoque);
                   setPedidoConfirmarSemEstoque(null);
+                  setAberto(null);
+                }
+              }}
+            >
+              Confirmar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Diálogo Guardrail de Peças Excluídas do Catálogo ──────────────── */}
+      <AlertDialog
+        open={pedidoComPecaExcluida !== null}
+        onOpenChange={(o) => !o && setPedidoComPecaExcluida(null)}
+      >
+        <AlertDialogContent className="rounded-3xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive font-display text-base">
+              <span>⚠️ Peças removidas do catálogo</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-1 text-sm text-muted-foreground">
+                <p>
+                  As seguintes peças do pedido <strong>{pedidoComPecaExcluida?.pedido.numero}</strong> foram
+                  removidas do estoque e não existem mais no catálogo:
+                </p>
+                <ul className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1.5 text-foreground">
+                  {pedidoComPecaExcluida?.nomes.map((nome, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="text-destructive">✕</span>
+                      <span>{nome}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs">
+                  A baixa de estoque dessas peças será ignorada. O valor do pedido será lançado normalmente no Caixa.
+                  Deseja confirmar mesmo assim?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-full">Voltar e revisar</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+              onClick={() => {
+                if (pedidoComPecaExcluida) {
+                  executarAvancoStatus(pedidoComPecaExcluida.pedido);
+                  setPedidoComPecaExcluida(null);
                   setAberto(null);
                 }
               }}
