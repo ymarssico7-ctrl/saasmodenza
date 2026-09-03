@@ -25,7 +25,9 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { creditsQuery, goalsQuery, profileQuery, transactionsQuery } from "@/lib/db";
+import { ActivationChecklist } from "@/components/activation-checklist";
+import { useStore } from "@/lib/store-context";
+import { creditsQuery, goalsQuery, inventoryQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, todayISO } from "@/lib/format";
 import {
   REFUND_CATEGORIES,
@@ -58,8 +60,10 @@ export const Route = createFileRoute("/_authenticated/painel")({
 });
 
 function Painel() {
+  const { storeId, store } = useStore();
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
   const { data: all = [], isLoading: isTxsLoading } = useQuery(transactionsQuery());
+  const { data: inventory = [] } = useQuery(inventoryQuery());
   const { data: credits = [] } = useQuery(creditsQuery());
   const { data: goals = [] } = useQuery(goalsQuery());
 
@@ -191,6 +195,18 @@ function Painel() {
             </Link>
           </Button>
         }
+      />
+
+      <ActivationChecklist
+        storeId={storeId}
+        storeName={profile?.store_name || store?.name}
+        storeSlug={store?.slug}
+        hasInventory={inventory.length > 0}
+        inventoryCount={inventory.length}
+        hasSales={txs.some((t) => t.kind === "entrada")}
+        salesCount={txs.filter((t) => t.kind === "entrada").length}
+        hasGoal={goalTarget > 0}
+        hasStorefront={Boolean(store?.slug)}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
