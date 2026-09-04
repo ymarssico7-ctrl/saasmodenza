@@ -182,14 +182,27 @@ function Painel() {
     );
   }
 
+  const rawOwner = profile?.owner_name?.trim();
+  const greetingName =
+    rawOwner && rawOwner.toLowerCase() !== "lojista" && rawOwner.toLowerCase() !== "visitante"
+      ? rawOwner.split(" ")[0]
+      : "Lojista";
+
+  const rawStore = profile?.store_name?.trim();
+  const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
+
   return (
     <div className="space-y-10">
       <PageHeader
         eyebrow={monthLabel(thisMonth)}
-        title={`Olá, ${(profile?.owner_name || "lojista").split(" ")[0]}`}
-        description={`Aqui está o retrato financeiro de ${profile?.store_name || "sua loja"} hoje.`}
+        title={`Olá, ${greetingName}`}
+        description={
+          hasCustomStore
+            ? `Aqui está o resumo financeiro da sua boutique (${rawStore}) hoje.`
+            : "Aqui está o resumo financeiro da sua boutique hoje."
+        }
         action={
-          <Button asChild className="h-11 rounded-full px-5 font-semibold">
+          <Button asChild className="h-11 rounded-full px-5 font-semibold shadow-xs">
             <Link to="/caixa">
               <Plus className="size-4" /> Novo lançamento
             </Link>
