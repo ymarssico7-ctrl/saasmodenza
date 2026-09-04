@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useGuideTour, type MissionId } from "@/lib/guide-context";
+import { useGuideTour } from "@/lib/guide-context";
 
 interface ActivationChecklistProps {
   storeId?: string | null;
@@ -64,7 +64,7 @@ export function ActivationChecklist({
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   const navigate = useNavigate();
-  const { startMission } = useGuideTour();
+  const { openCoach } = useGuideTour();
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -75,7 +75,6 @@ export function ActivationChecklist({
   const steps = [
     {
       id: "inventory",
-      missionId: "lucro" as MissionId,
       title: "Descubra seu lucro real em 60s",
       description:
         "Adicione sua primeira peça e veja na hora o cálculo exato do que sobra no seu bolso.",
@@ -92,7 +91,6 @@ export function ActivationChecklist({
     },
     {
       id: "goal",
-      missionId: "meta" as MissionId,
       title: "Calibre seu alvo de faturamento",
       description:
         "Defina sua meta mensal para o sistema calcular o faturamento diário necessário.",
@@ -107,7 +105,6 @@ export function ActivationChecklist({
     },
     {
       id: "sales",
-      missionId: "venda" as MissionId,
       title: "Simule sua primeira venda no balcão",
       description:
         "Passe uma venda teste para ver a baixa de estoque automática e o lucro caindo no caixa.",
@@ -124,7 +121,6 @@ export function ActivationChecklist({
     },
     {
       id: "storefront",
-      missionId: "vitrine" as MissionId,
       title: "Ative seu link de vendas no Instagram",
       description:
         "Sua vitrine online pronta com link direto para receber pedidos no WhatsApp.",
@@ -147,9 +143,9 @@ export function ActivationChecklist({
   const nextStep = steps.find((s) => !s.isDone) ?? steps[0];
   const nextStepIndex = steps.findIndex((s) => s.id === nextStep.id);
 
-  // Inicia a missão na GuideIsland e navega para o destino
+  // Inicia a missão e abre o Coach da Boutique na página de destino
   const handleStepAction = (step: (typeof steps)[number]) => {
-    startMission(step.missionId);
+    openCoach();
     if (step.usePricingModal && !step.isDone) {
       setPricingModalOpen(true);
     } else {
@@ -224,7 +220,7 @@ export function ActivationChecklist({
               type="button"
               onClick={() => {
                 setPricingModalOpen(false);
-                startMission("lucro");
+                openCoach();
                 void navigate({ to: "/precificacao" });
               }}
               className="flex items-center gap-3 w-full rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-left transition-all hover:border-primary/60 hover:bg-primary/10 cursor-pointer group"
@@ -247,7 +243,7 @@ export function ActivationChecklist({
               type="button"
               onClick={() => {
                 setPricingModalOpen(false);
-                startMission("lucro");
+                openCoach();
                 void navigate({ to: "/estoque" });
               }}
               className="flex items-center gap-3 w-full rounded-2xl border border-border/70 bg-card px-4 py-3 text-left transition-all hover:border-border hover:bg-secondary/30 cursor-pointer group"

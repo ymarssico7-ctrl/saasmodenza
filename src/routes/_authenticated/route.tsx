@@ -8,7 +8,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
-import { GuideIsland } from "@/components/guide-island";
+import { BoutiqueMentor } from "@/components/boutique-mentor";
 import { GuideProvider } from "@/lib/guide-context";
 import { profileQuery } from "@/lib/db";
 
@@ -46,7 +46,7 @@ function AuthenticatedLayout() {
       <AppShell>
         <Outlet />
       </AppShell>
-      <GuideIsland />
+      <BoutiqueMentor />
     </GuideProvider>
   );
 }
