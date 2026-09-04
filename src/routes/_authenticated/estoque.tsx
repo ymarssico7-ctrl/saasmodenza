@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { Boxes, Calculator, Minus, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -69,6 +69,21 @@ function Estoque() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [gradeMode, setGradeMode] = useState<"grade" | "unico">("grade");
   const [singleSizeQty, setSingleSizeQty] = useState("");
+
+  const handleUseSampleAsTemplate = () => {
+    setName("Vestido Midi Linho Cru");
+    setCategory("vestido");
+    setColor("Cru / Areia");
+    setSupplier("Confecção Própria");
+    setCost("65.00");
+    setPrice("179.90");
+    setGradeMode("grade");
+    setSizes({ PP: 1, P: 2, M: 3, G: 2, GG: 1 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.success("Modelo carregado no formulário acima!", {
+      description: "Edite o nome, fotos e valores para a sua peça real.",
+    });
+  };
 
   const totalUnits = items.reduce((acc, i) => {
     const s = (i.sizes ?? {}) as Sizes;
@@ -494,12 +509,87 @@ function Estoque() {
       <section className="panel p-6 sm:p-7">
         <h2 className="text-base font-semibold">Peças cadastradas</h2>
         {items.length === 0 ? (
-          <EmptyState
-            className="mt-6"
-            icon={<Boxes className="size-6" />}
-            title="Estoque vazio"
-            description="Cadastre suas peças para acompanhar grade, custo e potencial de venda."
-          />
+          <div className="mt-6 space-y-4">
+            <div className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 via-card to-card p-5 sm:p-6 shadow-soft">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-7 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                    <Sparkles className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      Modo Playground · Peça de Demonstração
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Veja como o Modaly organiza fotos, grade e calcula lucros e margens
+                    </p>
+                  </div>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[11px] rounded-full border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                >
+                  Não afeta seu caixa real
+                </Badge>
+              </div>
+
+              <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl bg-card border border-border/70 p-4 shadow-2xs">
+                <div className="min-w-0 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-foreground">Vestido Midi Linho Cru</p>
+                    <Badge variant="secondary" className="text-[10px] rounded-full">
+                      Exemplo
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Vestido · Cru / Areia · Confecção Própria · 9 unidades no total
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                      PP · 1
+                    </Badge>
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                      P · 2
+                    </Badge>
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                      M · 3
+                    </Badge>
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                      G · 2
+                    </Badge>
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                      GG · 1
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 shrink-0 md:text-right">
+                  <div>
+                    <p className="numeric text-base font-semibold text-primary">R$ 179,90</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      custo R$ 65,00 ·{" "}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        lucro R$ 114,90 (64%)
+                      </span>
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={handleUseSampleAsTemplate}
+                    size="sm"
+                    className="rounded-full gradient-primary shadow-glow text-xs font-semibold px-4 cursor-pointer"
+                  >
+                    <Sparkles className="mr-1.5 size-3.5" /> Usar como modelo
+                  </Button>
+                </div>
+              </div>
+
+              <p className="mt-3 text-[11px] text-muted-foreground text-center">
+                💡 Toque em <strong>"Usar como modelo"</strong> para carregar estes dados no formulário acima e apenas personalizar para sua peça real, ou preencha do zero.
+              </p>
+            </div>
+          </div>
         ) : (
           <ul className="mt-5 space-y-3">
             {items.map((i) => {

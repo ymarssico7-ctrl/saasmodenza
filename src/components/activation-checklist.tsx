@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useGuideTour, type MissionId } from "@/lib/guide-context";
 
 interface ActivationChecklistProps {
   storeId?: string | null;
@@ -63,25 +64,27 @@ export function ActivationChecklist({
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   const navigate = useNavigate();
+  const { startMission } = useGuideTour();
 
   const handleDismiss = () => {
     setDismissed(true);
     localStorage.setItem(storageKey, "true");
   };
 
-  // Ordem didática: 1. Peça & Preço → 2. Meta do Mês → 3. Venda no Caixa → 4. Vitrine Online
+  // Micro-Missões de Dopamina (Solução C): 1. Lucro em 60s → 2. Alvo de faturamento → 3. Venda no balcão → 4. Link Instagram
   const steps = [
     {
       id: "inventory",
-      title: "Cadastrar a primeira peça",
+      missionId: "lucro" as MissionId,
+      title: "Descubra seu lucro real em 60s",
       description:
-        "Adicione fotos, preços de custo e venda, e defina a grade ou Tamanho Único.",
+        "Adicione sua primeira peça e veja na hora o cálculo exato do que sobra no seu bolso.",
       isDone: hasInventory,
       badgeText: hasInventory
         ? `${inventoryCount} peça${inventoryCount !== 1 ? "s" : ""}`
         : undefined,
       to: "/estoque",
-      cta: "Cadastrar peça",
+      cta: "Descobrir meu lucro",
       icon: <Boxes className="size-4.5" />,
       colorClass:
         "bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400",
@@ -89,13 +92,14 @@ export function ActivationChecklist({
     },
     {
       id: "goal",
-      title: "Definir sua meta do mês",
+      missionId: "meta" as MissionId,
+      title: "Calibre seu alvo de faturamento",
       description:
-        "Acompanhe o ritmo diário e a projeção de faturamento da sua loja.",
+        "Defina sua meta mensal para o sistema calcular o faturamento diário necessário.",
       isDone: hasGoal,
       badgeText: hasGoal ? "Meta ativa" : undefined,
       to: "/metas",
-      cta: "Definir meta",
+      cta: "Definir meu alvo",
       icon: <Target className="size-4.5" />,
       colorClass:
         "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
@@ -103,15 +107,16 @@ export function ActivationChecklist({
     },
     {
       id: "sales",
-      title: "Registrar a primeira venda no caixa",
+      missionId: "venda" as MissionId,
+      title: "Simule sua primeira venda no balcão",
       description:
-        "Experimente a baixa automática de estoque e o cálculo de lucro em tempo real.",
+        "Passe uma venda teste para ver a baixa de estoque automática e o lucro caindo no caixa.",
       isDone: hasSales,
       badgeText: hasSales
         ? `${salesCount} venda${salesCount !== 1 ? "s" : ""}`
         : undefined,
       to: "/caixa",
-      cta: "Ir para o caixa",
+      cta: "Simular venda",
       icon: <Wallet className="size-4.5" />,
       colorClass:
         "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
@@ -119,13 +124,14 @@ export function ActivationChecklist({
     },
     {
       id: "storefront",
-      title: "Conhecer sua vitrine online",
+      missionId: "vitrine" as MissionId,
+      title: "Ative seu link de vendas no Instagram",
       description:
-        "Sua vitrine na internet pronta para vender pelo Instagram e WhatsApp.",
+        "Sua vitrine online pronta com link direto para receber pedidos no WhatsApp.",
       isDone: hasStorefront,
       badgeText: storeSlug ? `@${storeSlug}` : undefined,
       to: storeSlug ? `/vitrine/${storeSlug}` : "/loja",
-      cta: "Acessar vitrine",
+      cta: "Ativar vitrine",
       icon: <ShoppingBag className="size-4.5" />,
       colorClass:
         "bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400",
@@ -141,8 +147,9 @@ export function ActivationChecklist({
   const nextStep = steps.find((s) => !s.isDone) ?? steps[0];
   const nextStepIndex = steps.findIndex((s) => s.id === nextStep.id);
 
-  // Abre modal antes de navegar para estoque (etapa 1), navega direto para as demais
+  // Inicia a missão na GuideIsland e navega para o destino
   const handleStepAction = (step: (typeof steps)[number]) => {
+    startMission(step.missionId);
     if (step.usePricingModal && !step.isDone) {
       setPricingModalOpen(true);
     } else {
@@ -192,7 +199,7 @@ export function ActivationChecklist({
     );
   }
 
-  // ─── 3. BENTO TRAY INTEGRADA ─────────────────────────────────────────────────
+  // ─── 3. BENTO TRAY INTEGRADA COM MICRO-MISSÕES ──────────────────────────────
   return (
     <>
       {/* Modal Consultivo de Precificação */}
@@ -217,6 +224,7 @@ export function ActivationChecklist({
               type="button"
               onClick={() => {
                 setPricingModalOpen(false);
+                startMission("lucro");
                 void navigate({ to: "/precificacao" });
               }}
               className="flex items-center gap-3 w-full rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-left transition-all hover:border-primary/60 hover:bg-primary/10 cursor-pointer group"
@@ -239,6 +247,7 @@ export function ActivationChecklist({
               type="button"
               onClick={() => {
                 setPricingModalOpen(false);
+                startMission("lucro");
                 void navigate({ to: "/estoque" });
               }}
               className="flex items-center gap-3 w-full rounded-2xl border border-border/70 bg-card px-4 py-3 text-left transition-all hover:border-border hover:bg-secondary/30 cursor-pointer group"
@@ -267,7 +276,7 @@ export function ActivationChecklist({
       <div className="rounded-3xl border border-border/80 bg-gradient-to-r from-card via-surface to-card shadow-soft backdrop-blur-xl transition-all duration-300 hover:border-primary/30 overflow-hidden">
         {/* ── Barra de topo: Next Step + Controles ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 px-4 py-3 sm:py-2.5">
-          {/* Bloco Esquerdo: Próxima Ação */}
+          {/* Bloco Esquerdo: Próxima Missão */}
           <div className="flex items-center gap-3 min-w-0">
             <div
               className={`flex size-9 sm:size-10 items-center justify-center rounded-2xl shrink-0 shadow-2xs ${nextStep.colorClass}`}
@@ -277,7 +286,7 @@ export function ActivationChecklist({
             <div className="min-w-0 space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold tracking-wider uppercase text-primary">
-                  Passo {nextStepIndex + 1} de {totalSteps}
+                  Missão {nextStepIndex + 1} de {totalSteps}
                 </span>
                 <span className="text-muted-foreground/40 text-xs">·</span>
                 <span className="text-xs font-semibold text-foreground truncate">
@@ -313,7 +322,7 @@ export function ActivationChecklist({
 
           {/* Bloco Direito: CTA + Toggle Tray + Fechar */}
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-            {/* CTA direto na próxima etapa */}
+            {/* CTA direto na próxima missão */}
             <Button
               size="sm"
               onClick={() => handleStepAction(nextStep)}
@@ -329,9 +338,9 @@ export function ActivationChecklist({
               onClick={() => setTrayOpen((v) => !v)}
               className="h-8 rounded-full border-border/80 bg-card px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 shadow-2xs transition-all cursor-pointer"
               aria-expanded={trayOpen}
-              aria-label="Ver todas as etapas"
+              aria-label="Ver todas as missões"
             >
-              <span>Ver {totalSteps} etapas</span>
+              <span>Ver {totalSteps} missões</span>
               {trayOpen ? (
                 <ChevronUp className="ml-1 size-3" />
               ) : (
@@ -352,14 +361,11 @@ export function ActivationChecklist({
           </div>
         </div>
 
-        {/* ══ BENTO TRAY INLINE ══
-            Renderizada dentro do mesmo elemento pai.
-            Transição pura com max-height + opacity — nenhum lag de posicionamento.
-        */}
+        {/* ══ BENTO TRAY INLINE ══ */}
         <div
           className={`transition-all duration-300 ease-in-out ${
             trayOpen
-              ? "max-h-[400px] opacity-100"
+              ? "max-h-[420px] opacity-100"
               : "max-h-0 opacity-0 pointer-events-none"
           } overflow-hidden`}
         >
@@ -369,7 +375,7 @@ export function ActivationChecklist({
               <div className="flex items-center gap-1.5">
                 <Sparkles className="size-3.5 text-primary" />
                 <p className="text-[11px] font-semibold text-foreground">
-                  Guia de Ativação da Loja
+                  Guia Rápido de Ativação · ~1 min por missão
                 </p>
               </div>
               <Badge variant="secondary" className="text-[10px] rounded-full">
@@ -438,7 +444,7 @@ export function ActivationChecklist({
             })}
 
             <p className="text-[10px] text-center text-muted-foreground/70 pt-1.5 border-t border-border/40">
-              💡 As etapas podem ser feitas em qualquer ordem.
+              💡 Complete em qualquer ordem. O Modaly salva seu progresso automaticamente.
             </p>
           </div>
         </div>
