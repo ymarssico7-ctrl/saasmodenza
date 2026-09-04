@@ -192,7 +192,7 @@ function Painel() {
   const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHeader
         eyebrow={monthLabel(thisMonth)}
         title={`Olá, ${greetingName}`}
@@ -202,7 +202,7 @@ function Painel() {
             : "Aqui está o resumo financeiro da sua boutique hoje."
         }
         action={
-          <Button asChild className="h-11 rounded-full px-5 font-semibold shadow-xs">
+          <Button asChild className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all">
             <Link to="/caixa">
               <Plus className="size-4" /> Novo lançamento
             </Link>
