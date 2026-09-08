@@ -111,7 +111,9 @@ function VitrineLayout() {
 
   // ── Filtros dinâmicos ─────────────────────────────────────────
   const categorias = useMemo(() => {
-    const unique = Array.from(new Set(allProducts.filter((p) => p.showcase.ativo).map((p) => p.category))).sort();
+    const unique = Array.from(
+      new Set(allProducts.filter((p) => p.showcase.ativo !== false).map((p) => p.category)),
+    ).sort();
     return ["Tudo", ...unique];
   }, [allProducts]);
 
@@ -119,14 +121,14 @@ function VitrineLayout() {
     () =>
       allProducts.filter(
         (p) =>
-          p.showcase.ativo &&
+          p.showcase.ativo !== false &&
           (categoria === "Tudo" || p.category === categoria) &&
           p.name.toLowerCase().includes(busca.toLowerCase()),
       ),
     [allProducts, busca, categoria],
   );
 
-  const destaques = allProducts.filter((p) => p.showcase.ativo && p.showcase.destaque);
+  const destaques = allProducts.filter((p) => p.showcase.ativo !== false && p.showcase.destaque);
 
   // storeId usado para ler cupons e orders do localStorage.
   // Fallback para storeSlug em preview demo (sem registro no banco).
@@ -500,7 +502,7 @@ function VitrineLayout() {
             <p className="mt-3">
               Vitrine criada com{" "}
               <a href="/" className="font-semibold text-gray-600 hover:underline">
-                Vestuli
+                Modaly
               </a>{" "}
               · Gestão e loja online para moda
             </p>

@@ -15,14 +15,27 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
     meta: [
-      { title: "Configurar sua loja — Vestuli" },
-      { name: "description", content: "Configure os dados da sua loja para começar no Vestuli." },
-      { property: "og:title", content: "Configurar sua loja — Vestuli" },
+      { title: "Configurar sua loja — Modaly" },
+      { name: "description", content: "Configure os dados da sua loja para começar no Modaly." },
+      { property: "og:title", content: "Configurar sua loja — Modaly" },
       { property: "og:description", content: "Três passos rápidos para começar." },
     ],
   }),
   component: Onboarding,
 });
+
+/** Gera um slug limpo a partir de qualquer texto (remove acentos, espaços → hífens) */
+function slugify(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remove acentos
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 50) || "boutique"
+  );
+}
 
 function Onboarding() {
   const [step, setStep] = useState(0);
@@ -101,6 +114,26 @@ function Onboarding() {
     try {
       const uid = await currentUserId();
 
+      // ── Gera slug único ────────────────────────────────────────────
+      const base = slugify(storeName.trim() || "boutique");
+      let uniqueSlug = base;
+      let attempt = 0;
+      while (true) {
+        const { data: existing } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("slug", uniqueSlug)
+          .maybeSingle();
+        if (!existing) break; // slug disponível
+        attempt++;
+        uniqueSlug = `${base}-${attempt}`;
+      }
+
+      // ── Trial de 7 dias ────────────────────────────────────────────
+      const now = new Date();
+      const trialExpires = new Date(now);
+      trialExpires.setDate(trialExpires.getDate() + 7);
+
       const profilePatch = {
         store_name: storeName.trim() || "Minha loja",
         owner_name: ownerName.trim() || "Lojista",
@@ -115,6 +148,10 @@ function Onboarding() {
         city: city.trim() || null,
         phone: phone.trim() || null,
         prolabore_target: toNumber(target),
+        slug: uniqueSlug,
+        store_trial_offered_at: now.toISOString(),
+        store_trial_accepted: true,
+        store_trial_expires_at: trialExpires.toISOString(),
       };
 
       // Atualiza profiles e stores simultaneamente
@@ -145,7 +182,10 @@ function Onboarding() {
         },
       });
 
-      toast.success("Tudo pronto! Bem-vinda ao Vestuli. 🎉");
+      toast.success(
+        `Tudo pronto! Sua vitrine já está em modaly.app/vitrine/${uniqueSlug} 🎉`,
+        { duration: 6000 },
+      );
       navigate({ to: "/painel" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");

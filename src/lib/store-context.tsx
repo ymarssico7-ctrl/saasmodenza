@@ -88,9 +88,21 @@ export const storeQuery = () =>
 
       // User exists but store hasn't been created yet (race condition on sign-up)
       if (!data) {
+        const fallbackSlug = `loja-${user.id.slice(0, 6)}`;
+        const now = new Date();
+        const trialExpires = new Date(now);
+        trialExpires.setDate(trialExpires.getDate() + 7);
+
         const { data: created, error: createErr } = await supabase
           .from("stores")
-          .insert({ owner_id: user.id, name: "Minha Loja" })
+          .insert({
+            owner_id: user.id,
+            name: "Minha Loja",
+            slug: fallbackSlug,
+            store_trial_offered_at: now.toISOString(),
+            store_trial_accepted: true,
+            store_trial_expires_at: trialExpires.toISOString(),
+          })
           .select()
           .single();
         if (createErr) throw new Error(createErr.message);

@@ -13,13 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar no Vestuli — Gestão financeira para lojas de moda" },
+      { title: "Entrar no Modaly — Gestão financeira para lojas de moda" },
       {
         name: "description",
         content:
-          "Acesse sua conta Vestuli para controlar caixa, precificação, pró-labore e fiado da sua loja de moda.",
+          "Acesse sua conta Modaly para controlar caixa, precificação, pró-labore e fiado da sua loja de moda.",
       },
-      { property: "og:title", content: "Entrar no Vestuli" },
+      { property: "og:title", content: "Entrar no Modaly" },
       {
         property: "og:description",
         content: "Gestão financeira e vitrine online para lojistas de moda.",
@@ -103,7 +103,7 @@ function AuthPage() {
         <div className="absolute -right-24 -top-24 size-[420px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <div className="absolute -bottom-32 -left-16 size-[380px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <Link to="/" className="relative">
-          <span className="font-display text-lg font-semibold tracking-tight">Vestuli</span>
+          <span className="font-display text-lg font-semibold tracking-tight">Modaly</span>
         </Link>
         <div className="relative max-w-md">
           <h2 className="font-display text-[2.6rem] font-semibold leading-[1.05]">
@@ -133,13 +133,13 @@ function AuthPage() {
               <h1 className="mt-5 text-xl font-semibold">Confirme seu e-mail</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Enviamos um link de confirmação para <strong>{email}</strong>. Clique nele para
-                ativar sua conta Vestuli.
+                ativar sua conta Modaly.
               </p>
             </div>
           ) : (
             <>
               <h1 className="mt-10 text-[1.9rem] font-semibold leading-tight lg:mt-0">
-                Bem-vinda ao Vestuli
+                Bem-vinda ao Modaly
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Entre ou crie sua conta para começar.

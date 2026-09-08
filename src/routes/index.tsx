@@ -18,13 +18,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Vestuli — Gestão financeira & Loja online para moda" },
+      { title: "Modaly — Gestão financeira & Loja online para moda" },
       {
         name: "description",
         content:
           "Precificação com margem real, controle de caixa, fiado, estoque, DRE e vitrine online: a plataforma feita para o varejo de moda.",
       },
-      { property: "og:title", content: "Vestuli — Gestão financeira & Loja online para moda" },
+      { property: "og:title", content: "Modaly — Gestão financeira & Loja online para moda" },
       {
         property: "og:description",
         content:
@@ -102,7 +102,7 @@ function Landing() {
             O financeiro da sua loja com <span className="gradient-ink">clareza total</span>.
           </h1>
           <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            O Vestuli mostra quanto você realmente lucra em cada peça, organiza o caixa, separa seu
+            O Modaly mostra quanto você realmente lucra em cada peça, organiza o caixa, separa seu
             pró-labore e coloca o fiado no lugar. Sem planilha, sem achismo.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -208,7 +208,7 @@ function Landing() {
       <footer className="border-t border-border py-10">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-5 text-xs text-muted-foreground sm:flex-row sm:px-8">
           <Logo />
-          <p>© {new Date().getFullYear()} Vestuli. Gestão financeira e loja online para moda.</p>
+          <p>© {new Date().getFullYear()} Modaly. Gestão financeira e loja online para moda.</p>
         </div>
       </footer>
     </div>

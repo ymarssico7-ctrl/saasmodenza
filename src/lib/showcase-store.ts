@@ -51,7 +51,7 @@ export type ShowcaseConfigMap = Record<string, ShowcaseItemConfig>;
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 export const SHOWCASE_ITEM_DEFAULTS: Omit<ShowcaseItemConfig, "ordem" | "updatedAt"> = {
-  ativo: false,
+  ativo: true,
   destaque: false,
   precoOculto: false,
 };

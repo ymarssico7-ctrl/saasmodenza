@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { LogOut, Pencil, Plus, Settings, Tags, Trash2, Users } from "lucide-react";
+import { LogOut, Pencil, Plus, Settings, Sparkles, Tags, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { SubscriptionModal } from "@/components/subscription-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,12 +43,12 @@ import { insertMember, deleteMember } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações da loja — Vestuli" },
+      { title: "Configurações da loja — Modaly" },
       {
         name: "description",
         content: "Ajuste os dados da loja, sua retirada mensal e a equipe com acesso.",
       },
-      { property: "og:title", content: "Configurações da loja — Vestuli" },
+      { property: "og:title", content: "Configurações da loja — Modaly" },
       { property: "og:description", content: "Dados da loja, pró-labore e equipe." },
     ],
   }),
@@ -70,6 +71,7 @@ function Configuracoes() {
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberRole, setMemberRole] = useState("vendedora");
+  const [subModalOpen, setSubModalOpen] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -334,24 +336,39 @@ function Configuracoes() {
       <CustomOptionsSettingsSection storeId={storeId} />
 
       <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Plano</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Plano atual:{" "}
-          <span className="font-semibold capitalize text-foreground">
-            {profile?.plan ?? "essencial"}
-          </span>
-          {profile?.prolabore_target
-            ? ` · retirada planejada de ${brl(Number(profile.prolabore_target))} por mês`
-            : ""}
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold">Plano & Assinatura</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Plano atual:{" "}
+              <span className="font-semibold capitalize text-foreground">
+                {profile?.plan ?? "essencial"}
+              </span>
+              {profile?.prolabore_target
+                ? ` · retirada planejada de ${brl(Number(profile.prolabore_target))} por mês`
+                : ""}
+            </p>
+          </div>
+          <Button
+            type="button"
+            className="rounded-full px-5 text-xs font-semibold shadow-glow cursor-pointer"
+            onClick={() => setSubModalOpen(true)}
+          >
+            <Sparkles className="size-3.5 mr-1.5" />
+            Gerenciar Assinatura / Upgrade
+          </Button>
+        </div>
+
         <Button
           variant="ghost"
-          className="mt-6 rounded-full text-destructive"
+          className="mt-6 rounded-full text-destructive cursor-pointer"
           onClick={() => void signOut()}
         >
           <LogOut className="size-4" /> Sair da conta
         </Button>
       </section>
+
+      <SubscriptionModal open={subModalOpen} onOpenChange={setSubModalOpen} />
     </div>
   );
 }
