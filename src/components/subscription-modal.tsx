@@ -24,9 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentUserId, isAuthenticated } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
-// Chave Pix padrão comercial da Modaly
-const CHAVE_PIX_MODALY = "financeiro@modaly.app";
-const WHATSAPP_SUPORTE = "5511999999999";
+import { CHAVE_PIX_MODALY, WHATSAPP_SUPORTE } from "@/lib/constants";
 
 type Props = {
   open: boolean;
