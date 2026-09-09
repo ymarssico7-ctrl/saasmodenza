@@ -14,6 +14,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { slugify } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,8 +48,8 @@ export const DEMO_STORE: Store = {
   id: DEMO_STORE_ID,
   owner_id: DEMO_STORE_ID,
   name: "Loja Demo",
-  slug: null,
-  city: null,
+  slug: "loja-demo",
+  city: "São Paulo",
   phone: null,
   logo_url: null,
   plan: "gestao_anual",
@@ -75,8 +76,21 @@ export const storeQuery = () =>
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
 
-      // Not authenticated → return the demo store (no DB call)
-      if (!user) return DEMO_STORE;
+      // Not authenticated → return demo store (com suporte a dados locais do Onboarding)
+      if (!user) {
+        if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+          try {
+            const raw = localStorage.getItem("demo_active_store");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              return { ...DEMO_STORE, ...parsed };
+            }
+          } catch {
+            // fallback para DEMO_STORE
+          }
+        }
+        return DEMO_STORE;
+      }
 
       const { data, error } = await supabase
         .from("stores")
@@ -86,9 +100,29 @@ export const storeQuery = () =>
 
       if (error) throw new Error(error.message);
 
-      // User exists but store hasn't been created yet (race condition on sign-up)
+      // ── CASO 1: Usuário autenticado mas sem loja (inicialização inteligente com dados do perfil) ──
       if (!data) {
-        const fallbackSlug = `loja-${user.id.slice(0, 6)}`;
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("store_name, city, phone")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        const initialName = profileData?.store_name?.trim() || "Minha Loja";
+        const baseSlug = slugify(initialName);
+        let uniqueSlug = baseSlug;
+        let attempt = 0;
+        while (true) {
+          const { data: existing } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("slug", uniqueSlug)
+            .maybeSingle();
+          if (!existing) break;
+          attempt++;
+          uniqueSlug = `${baseSlug}-${attempt}`;
+        }
+
         const now = new Date();
         const trialExpires = new Date(now);
         trialExpires.setDate(trialExpires.getDate() + 7);
@@ -97,16 +131,45 @@ export const storeQuery = () =>
           .from("stores")
           .insert({
             owner_id: user.id,
-            name: "Minha Loja",
-            slug: fallbackSlug,
+            name: initialName,
+            slug: uniqueSlug,
+            city: profileData?.city ?? null,
+            phone: profileData?.phone ?? null,
             store_trial_offered_at: now.toISOString(),
             store_trial_accepted: true,
             store_trial_expires_at: trialExpires.toISOString(),
           })
           .select()
           .single();
+
         if (createErr) throw new Error(createErr.message);
         return created as Store;
+      }
+
+      // ── CASO 2: Autocura (Self-Healing) — Loja existe no banco mas está sem slug ──
+      if (!data.slug || !data.slug.trim()) {
+        const baseSlug = slugify(data.name || "loja");
+        let uniqueSlug = baseSlug;
+        let attempt = 0;
+        while (true) {
+          const { data: existing } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("slug", uniqueSlug)
+            .neq("id", data.id)
+            .maybeSingle();
+          if (!existing) break;
+          attempt++;
+          uniqueSlug = `${baseSlug}-${attempt}`;
+        }
+
+        // Persiste o slug curado no banco
+        await supabase
+          .from("stores")
+          .update({ slug: uniqueSlug })
+          .eq("id", data.id);
+
+        data.slug = uniqueSlug;
       }
 
       return data as Store;

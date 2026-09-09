@@ -17,7 +17,7 @@ import { loadShowcaseConfigs } from "@/lib/showcase-store";
 export const Route = createFileRoute("/_authenticated/loja/compartilhar")({
   head: () => ({
     meta: [
-      { title: "Compartilhar a loja — Vestuli" },
+      { title: "Compartilhar a loja — Modaly" },
       {
         name: "description",
         content:
@@ -33,7 +33,7 @@ function CompartilharPage() {
 
   // Slug real da loja
   const slug = store?.slug ?? storeId ?? "minha-loja";
-  const baseUrl = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://vestuli.com.br";
+  const baseUrl = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://modaly.app";
   const linkLoja = (path = "") => `${baseUrl}/vitrine/${slug}${path}`;
 
   // Produtos reais do inventário

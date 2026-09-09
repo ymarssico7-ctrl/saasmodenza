@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowUpRight, Camera, Copy, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import { ArrowUpRight, Camera, Copy, ExternalLink, MessageCircle, Receipt, Rocket, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery, profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
@@ -18,7 +18,7 @@ import { dateBR, totalPedido, type Pedido } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/")({
   head: () => ({
     meta: [
-      { title: "Loja Online — Vestuli" },
+      { title: "Loja Online — Modaly" },
       { name: "description", content: "Acompanhe vendas do mês, pedidos recebidos, ticket médio e a vitrine online da sua loja." },
     ],
   }),
@@ -29,11 +29,21 @@ function VisaoGeral() {
   const { data: profile } = useQuery(profileQuery());
   const { store, storeId } = useStore();
   const primeiroNome = (profile?.owner_name || store?.name || "Lojista").split(" ")[0] ?? "Lojista";
-  const subdominio = store?.slug ? `${store.slug}.vestuli.com.br` : `minhaloja.vestuli.com.br`;
+
+  const origin = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://modaly.app";
+  const vitrinePath = store?.slug ? `/vitrine/${store.slug}` : "";
+  const vitrineUrl = vitrinePath ? `${origin}${vitrinePath}` : "";
+  const vitrineDisplay = store?.slug ? `modaly.app/vitrine/${store.slug}` : "sua vitrine";
 
   const copiarLink = () => {
-    void navigator.clipboard?.writeText(`https://${subdominio}`);
-    toast.success("Link da loja copiado", { description: "Cole no Instagram, WhatsApp ou TikTok." });
+    if (!vitrineUrl) {
+      toast.error("Configure o link da sua loja nas Configurações");
+      return;
+    }
+    void navigator.clipboard?.writeText(vitrineUrl);
+    toast.success("Link da vitrine copiado!", {
+      description: `${vitrineDisplay} (pronto para colar na Bio do Instagram ou WhatsApp)`,
+    });
   };
 
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -171,13 +181,28 @@ function VisaoGeral() {
       <PageHeader
         eyebrow="Loja online"
         title={`Bom te ver, ${primeiroNome}`}
-        description={`Sua vitrine esta no ar em ${subdominio}. Tudo que voce cadastra no estoque aparece aqui automaticamente.`}
+        description={`Sua vitrine está no ar em ${vitrineDisplay}. Tudo que você cadastra no estoque aparece aqui automaticamente.`}
         actions={
           <>
-            <Button variant="outline" onClick={copiarLink} className="h-10 rounded-full border-border bg-card text-sm">
+            <Button
+              variant="outline"
+              onClick={copiarLink}
+              className="h-10 rounded-full border-border bg-card text-sm cursor-pointer"
+            >
               <Copy className="mr-2 h-4 w-4" /> Copiar link
             </Button>
-            <Button asChild className="gradient-primary h-10 rounded-full text-sm shadow-glow">
+            {vitrinePath && (
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 rounded-full border-border bg-card text-sm cursor-pointer"
+              >
+                <a href={vitrinePath} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" /> Ver vitrine
+                </a>
+              </Button>
+            )}
+            <Button asChild className="gradient-primary h-10 rounded-full text-sm shadow-glow cursor-pointer">
               <Link to="/loja/produtos"><Sparkles className="mr-2 h-4 w-4" /> Gerenciar vitrine</Link>
             </Button>
           </>

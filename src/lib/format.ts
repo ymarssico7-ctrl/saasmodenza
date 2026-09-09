@@ -114,3 +114,17 @@ export function toNumber(value: string | number | null | undefined) {
   const parsed = Number(normalized.replace(/[^\d.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
+
+/** Gera um slug limpo a partir de qualquer texto (remove acentos, espaços → hífens) */
+export function slugify(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remove acentos
+      .replace(/[^a-z0-9]+/g, "-") // caracteres especiais viram hífen
+      .replace(/^-+|-+$/g, "") // remove hífens das extremidades
+      .slice(0, 50) || "loja"
+  );
+}
+

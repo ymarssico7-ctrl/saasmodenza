@@ -4,8 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId } from "@/lib/db";
-import { toNumber } from "@/lib/format";
+import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
+import { toNumber, slugify } from "@/lib/format";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -23,19 +23,6 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
   }),
   component: Onboarding,
 });
-
-/** Gera um slug limpo a partir de qualquer texto (remove acentos, espaços → hífens) */
-function slugify(text: string): string {
-  return (
-    text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // remove acentos
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 50) || "boutique"
-  );
-}
 
 function Onboarding() {
   const [step, setStep] = useState(0);
@@ -58,7 +45,7 @@ function Onboarding() {
             <Input
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              placeholder="Vestuli Boutique"
+              placeholder="Ex: Bella Mulher, Ateliê..."
             />
           </FieldRow>
           <FieldRow label="Cidade">
@@ -72,23 +59,29 @@ function Onboarding() {
       ),
     },
     {
-      title: "Você",
-      description: "Para personalizarmos seu painel.",
+      title: "Você & Contato",
+      description: "Para personalizarmos seu painel e conectar sua vitrine.",
       fields: (
         <>
           <FieldRow label="Seu nome">
             <Input
               value={ownerName}
               onChange={(e) => setOwnerName(e.target.value)}
-              placeholder="Ana Souza"
+              placeholder="Ex: Ana Souza"
             />
           </FieldRow>
-          <FieldRow label="WhatsApp (opcional)">
+          <FieldRow
+            label="WhatsApp da loja"
+            hint="Essencial para pedidos"
+          >
             <Input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="(11) 99999-0000"
+              placeholder="(11) 98765-4321"
             />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Seus clientes enviarão os pedidos da vitrine online diretamente para este WhatsApp.
+            </p>
           </FieldRow>
         </>
       ),
@@ -112,21 +105,26 @@ function Onboarding() {
   async function finish() {
     setLoading(true);
     try {
+      const isAuth = await isAuthenticated();
       const uid = await currentUserId();
 
-      // ── Gera slug único ────────────────────────────────────────────
+      // ── Gera slug único (excluindo a própria loja se já inicializada) ──
       const base = slugify(storeName.trim() || "boutique");
       let uniqueSlug = base;
       let attempt = 0;
-      while (true) {
-        const { data: existing } = await supabase
-          .from("stores")
-          .select("id")
-          .eq("slug", uniqueSlug)
-          .maybeSingle();
-        if (!existing) break; // slug disponível
-        attempt++;
-        uniqueSlug = `${base}-${attempt}`;
+
+      if (isAuth) {
+        while (true) {
+          const { data: existing } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("slug", uniqueSlug)
+            .neq("owner_id", uid)
+            .maybeSingle();
+          if (!existing) break; // slug disponível
+          attempt++;
+          uniqueSlug = `${base}-${attempt}`;
+        }
       }
 
       // ── Trial de 7 dias ────────────────────────────────────────────
@@ -154,16 +152,69 @@ function Onboarding() {
         store_trial_expires_at: trialExpires.toISOString(),
       };
 
-      // Atualiza profiles e stores simultaneamente
-      const [profileRes, storeRes] = await Promise.all([
-        supabase.from("profiles").update(profilePatch).eq("id", uid),
-        supabase.from("stores").update(storePatch).eq("owner_id", uid),
-      ]);
+      if (!isAuth) {
+        // Modo demo / dev local sem autenticação Supabase
+        updateDemoProfile({
+          ...profilePatch,
+          plan: "gestao_anual",
+        });
+        try {
+          const demoStore = {
+            id: "demo-store",
+            owner_id: uid,
+            ...storePatch,
+            plan: "gestao_anual",
+            onboarding_done: true,
+            created_at: now.toISOString(),
+            updated_at: now.toISOString(),
+          };
+          localStorage.setItem("demo_active_store", JSON.stringify(demoStore));
+        } catch {
+          // ignora erro de localStorage
+        }
+      } else {
+        // 1. Atualizar ou Criar perfil (profiles) garantindo persistência
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", uid)
+          .maybeSingle();
 
-      if (profileRes.error) throw new Error(profileRes.error.message);
-      if (storeRes.error) throw new Error(storeRes.error.message);
+        if (existingProfile) {
+          const { error } = await supabase
+            .from("profiles")
+            .update(profilePatch)
+            .eq("id", uid);
+          if (error) throw new Error(`Erro ao salvar perfil: ${error.message}`);
+        } else {
+          const { error } = await supabase
+            .from("profiles")
+            .insert({ ...profilePatch, id: uid });
+          if (error) throw new Error(`Erro ao criar perfil: ${error.message}`);
+        }
 
-      // Invalida ambas as queries para sincronizar sidebar e header
+        // 2. Atualizar ou Criar loja (stores - Upsert seguro)
+        const { data: existingStore } = await supabase
+          .from("stores")
+          .select("id")
+          .eq("owner_id", uid)
+          .maybeSingle();
+
+        if (existingStore) {
+          const { error } = await supabase
+            .from("stores")
+            .update(storePatch)
+            .eq("owner_id", uid);
+          if (error) throw new Error(`Erro ao atualizar loja: ${error.message}`);
+        } else {
+          const { error } = await supabase
+            .from("stores")
+            .insert({ ...storePatch, owner_id: uid });
+          if (error) throw new Error(`Erro ao criar loja: ${error.message}`);
+        }
+      }
+
+      // Invalida ambas as queries para sincronizar sidebar, header e loja
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["profile"] }),
         queryClient.invalidateQueries({ queryKey: ["active_store"] }),
@@ -252,10 +303,25 @@ function Onboarding() {
   );
 }
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-2">
-      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+        {hint && (
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+            {hint}
+          </span>
+        )}
+      </div>
       {children}
     </div>
   );

@@ -16,11 +16,11 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/templates")({
   head: () => ({
     meta: [
-      { title: "Galeria de Temas — Vestuli" },
+      { title: "Galeria de Temas — Modaly" },
       {
         name: "description",
         content:
-          "Escolha o visual perfeito para sua vitrine. Explore os templates premium do Vestuli e aplique com um clique.",
+          "Escolha o visual perfeito para sua vitrine. Explore os templates premium do Modaly e aplique com um clique.",
       },
     ],
   }),
@@ -239,7 +239,7 @@ function TemplateCard({
               style={{ borderColor: palette.border, backgroundColor: palette.background }}
             >
               <span className="truncate text-[8px]" style={{ color: palette.foreground + "60" }}>
-                minhaloja.vestuli.com.br
+                {store?.slug ? `modaly.app/vitrine/${store.slug}` : "modaly.app/vitrine/sua-loja"}
               </span>
             </div>
           </div>
