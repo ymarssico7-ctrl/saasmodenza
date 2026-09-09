@@ -1,58 +1,14 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Lock, ShieldCheck, Zap } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
+import { SubscriptionModal } from "@/components/subscription-modal";
 
 type Props = {
   reason: "expired" | "declined" | "no_plan";
 };
 
 export function LojaBloqueadaScreen({ reason }: Props) {
-  const queryClient = useQueryClient();
-
-  const subscribe = useMutation({
-    mutationFn: async () => {
-      const uid = await currentUserId();
-      const realUser = await isAuthenticated();
-      const subExpires = new Date();
-      subExpires.setMonth(subExpires.getMonth() + 1);
-
-      if (realUser) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            store_subscription_active: true,
-            store_subscription_expires_at: subExpires.toISOString(),
-            store_trial_accepted: true,
-          } as any)
-          .eq("id", uid);
-        if (error) throw new Error(error.message);
-      } else {
-        // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
-        updateDemoProfile({
-          store_subscription_active: true,
-          store_subscription_expires_at: subExpires.toISOString(),
-          store_trial_accepted: true,
-        });
-      }
-
-      // Atualiza cache React Query imediatamente (sem esperar refetch)
-      queryClient.setQueryData(["profile"], (old: any) => ({
-        ...old,
-        store_subscription_active: true,
-        store_subscription_expires_at: subExpires.toISOString(),
-        store_trial_accepted: true,
-      }));
-    },
-    onSuccess: () => {
-      // Não invalidar no modo demo — o setQueryData já garantiu a UI correta
-      // invalidateQueries causaria reset do estado caso não haja usuário logado
-      toast.success("Loja reativada com sucesso! 🎉");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const [modalOpen, setModalOpen] = useState(false);
 
   const messages = {
     expired: {
@@ -114,14 +70,15 @@ export function LojaBloqueadaScreen({ reason }: Props) {
 
         <Button
           id="loja-subscribe-btn"
-          className="mt-6 h-12 w-full rounded-full text-base font-semibold"
-          onClick={() => subscribe.mutate()}
-          disabled={subscribe.isPending}
+          className="mt-6 h-12 w-full rounded-full text-base font-semibold cursor-pointer shadow-glow"
+          onClick={() => setModalOpen(true)}
         >
           <Zap className="size-4 mr-2" />
-          {subscribe.isPending ? "Ativando..." : "Reativar minha loja"}
+          Reativar minha loja
         </Button>
       </div>
+
+      <SubscriptionModal open={modalOpen} onOpenChange={setModalOpen} />
 
       <p className="mt-4 text-xs text-muted-foreground">
         Quer continuar só com a Gestão?{" "}

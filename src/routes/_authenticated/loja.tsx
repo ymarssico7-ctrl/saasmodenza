@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { profileQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { LojaBloqueadaScreen } from "@/components/loja-bloqueada-screen";
 import { TrialBanner } from "@/components/trial-banner";
@@ -14,13 +15,15 @@ export const Route = createFileRoute("/_authenticated/loja")({
 });
 
 function LojaLayout() {
-  const { data: profile, isLoading } = useQuery(profileQuery());
+  const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
+  const { store, isLoading: isStoreLoading } = useStore();
   const { hasLoja, trialStatus, daysLeftInTrial, isTrialUrgent, isShouldShowTrialModal } =
-    useAccess(profile);
+    useAccess(profile, store);
   const [modalDismissed, setModalDismissed] = useState(false);
 
-  // ── Guarda de carregamento: aguarda o perfil carregar antes de qualquer decisão
+  // ── Guarda de carregamento: aguarda perfil e loja carregarem antes de qualquer decisão
   // Isso evita que a tela de bloqueio pisque brevemente para assinantes ativos.
+  const isLoading = isProfileLoading || isStoreLoading;
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center py-24">

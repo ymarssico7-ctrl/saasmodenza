@@ -1,8 +1,11 @@
-import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { profileQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
+import { useAccess } from "@/lib/useAccess";
+import { SubscriptionModal } from "@/components/subscription-modal";
 
 type Plan = "lojista" | "digital" | "crescimento" | "gestao_anual";
 
@@ -22,9 +25,9 @@ const planNames: Record<Plan, string> = {
 
 const planPrices: Record<Plan, string> = {
   lojista: "R$ 127/ano",
-  digital: "R$ 97/mês",
+  digital: "R$ 67/mês",
   crescimento: "R$ 147/mês",
-  gestao_anual: "R$ 127/ano",
+  gestao_anual: "R$ 49/mês (no plano anual)",
 };
 
 export function PlanGuard({
@@ -38,9 +41,15 @@ export function PlanGuard({
   featureName?: string;
   featureDescription?: string;
 }) {
+  const [subModalOpen, setSubModalOpen] = useState(false);
   const { data: profile } = useQuery(profileQuery());
-  const currentPlan = (profile?.plan ?? "lojista") as Plan;
-  const hasAccess = planRank[currentPlan] >= planRank[requires];
+  const { store } = useStore();
+  const { hasLoja } = useAccess(profile, store);
+
+  const currentPlan = (store?.plan || profile?.plan || "lojista") as Plan;
+  // Se o recurso requer o plano digital e o usuário tem loja ativa (seja por assinatura ou trial ativo), libera!
+  const hasAccess =
+    (requires === "digital" && hasLoja) || (planRank[currentPlan] ?? 0) >= planRank[requires];
 
   if (hasAccess) return <>{children}</>;
 
@@ -68,12 +77,15 @@ export function PlanGuard({
         </p>
       </div>
 
-      <Button asChild className="mt-6 h-11 rounded-full px-8 font-semibold shadow-glow">
-        <Link to="/configuracoes">
-          <Sparkles className="mr-2 size-4" />
-          Fazer upgrade agora
-        </Link>
+      <Button
+        onClick={() => setSubModalOpen(true)}
+        className="mt-6 h-11 rounded-full px-8 font-semibold shadow-glow cursor-pointer"
+      >
+        <Sparkles className="mr-2 size-4" />
+        Fazer upgrade agora
       </Button>
+
+      <SubscriptionModal open={subModalOpen} onOpenChange={setSubModalOpen} />
     </div>
   );
 }

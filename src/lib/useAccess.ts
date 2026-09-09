@@ -1,6 +1,9 @@
 // ─── Hook Central de Acesso por Plano ──────────────────────────────────────
 // Este hook é a ÚNICA fonte de verdade sobre o que o cliente pode acessar.
-// Qualquer componente ou rota deve consultá-lo para decidir o que renderizar.
+// Consulta prioritariamente a tabela `stores` (onde reside a assinatura e o trial)
+// e mantém fallback para `profile` para total resiliência e suporte a modo demo.
+
+import type { Store } from "@/lib/store-context";
 
 export type Profile = {
   id: string;
@@ -13,7 +16,7 @@ export type Profile = {
   plan?: string | null;
   plan_expires_at?: string | null;
   onboarding_done?: boolean | null;
-  // Campos do sistema de planos
+  // Campos legados mantidos para compatibilidade retroativa
   store_trial_offered_at?: string | null;
   store_trial_accepted?: boolean | null;
   store_trial_expires_at?: string | null;
@@ -26,7 +29,7 @@ export type TrialStatus =
   | "active" // trial ativo e no prazo
   | "declined" // recusou o trial
   | "expired" // aceitou mas expirou sem assinar
-  | "subscribed"; // assinante ativo do mensal
+  | "subscribed"; // assinante ativo do mensal ou anual
 
 export type AccessInfo = {
   hasGestao: boolean;
@@ -37,10 +40,13 @@ export type AccessInfo = {
   isShouldShowTrialModal: boolean;
 };
 
-export function useAccess(profile: Profile | null | undefined): AccessInfo {
+export function useAccess(
+  profile: Profile | null | undefined,
+  store?: Store | null | undefined,
+): AccessInfo {
   const now = new Date();
 
-  if (!profile) {
+  if (!profile && !store) {
     return {
       hasGestao: false,
       hasLoja: false,
@@ -51,16 +57,18 @@ export function useAccess(profile: Profile | null | undefined): AccessInfo {
     };
   }
 
-  // ── Gestão: disponível se o plano anual estiver ativo ─────────────────────
-  const planExpiresAt = profile.plan_expires_at ? new Date(profile.plan_expires_at) : null;
-  const hasGestao = !!profile.plan && (planExpiresAt ? planExpiresAt > now : true); // sem data = não expirado
+  // ── Gestão: disponível se o plano estiver ativo ─────────────────────────
+  const rawPlan = store?.plan || profile?.plan;
+  const rawPlanExpires = store?.plan_expires_at || profile?.plan_expires_at;
+  const planExpiresAt = rawPlanExpires ? new Date(rawPlanExpires) : null;
+  const hasGestao = !!rawPlan && (planExpiresAt ? planExpiresAt > now : true);
 
   // ── Trial ─────────────────────────────────────────────────────────────────
-  const trialExpiresAt = profile.store_trial_expires_at
-    ? new Date(profile.store_trial_expires_at)
-    : null;
+  const storeTrialAccepted = store?.store_trial_accepted ?? profile?.store_trial_accepted;
+  const storeTrialExpires = store?.store_trial_expires_at ?? profile?.store_trial_expires_at;
+  const trialExpiresAt = storeTrialExpires ? new Date(storeTrialExpires) : null;
   const trialAtivo =
-    profile.store_trial_accepted === true && trialExpiresAt !== null && trialExpiresAt > now;
+    storeTrialAccepted === true && trialExpiresAt !== null && trialExpiresAt > now;
 
   // Dias restantes no trial
   let daysLeftInTrial: number | null = null;
@@ -69,12 +77,12 @@ export function useAccess(profile: Profile | null | undefined): AccessInfo {
     daysLeftInTrial = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   }
 
-  // ── Assinatura mensal ─────────────────────────────────────────────────────
-  const subExpiresAt = profile.store_subscription_expires_at
-    ? new Date(profile.store_subscription_expires_at)
-    : null;
+  // ── Assinatura ativa (Digital ou Anual) ───────────────────────────────────
+  const storeSubActive = store?.store_subscription_active ?? profile?.store_subscription_active;
+  const storeSubExpires = store?.store_subscription_expires_at ?? profile?.store_subscription_expires_at;
+  const subExpiresAt = storeSubExpires ? new Date(storeSubExpires) : null;
   const assinanteAtivo =
-    profile.store_subscription_active === true && subExpiresAt !== null && subExpiresAt > now;
+    storeSubActive === true && (subExpiresAt !== null ? subExpiresAt > now : true);
 
   // ── Acesso à Loja ─────────────────────────────────────────────────────────
   const hasLoja = trialAtivo || assinanteAtivo;
@@ -84,9 +92,9 @@ export function useAccess(profile: Profile | null | undefined): AccessInfo {
 
   if (assinanteAtivo) {
     trialStatus = "subscribed";
-  } else if (profile.store_trial_accepted === null || profile.store_trial_accepted === undefined) {
+  } else if (storeTrialAccepted === null || storeTrialAccepted === undefined) {
     trialStatus = "not_offered";
-  } else if (profile.store_trial_accepted === false) {
+  } else if (storeTrialAccepted === false) {
     trialStatus = "declined";
   } else if (trialAtivo) {
     trialStatus = "active";

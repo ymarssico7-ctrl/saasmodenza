@@ -27,36 +27,46 @@ export function TrialOfferModal({ open, onClose }: Props) {
       const trialExpires = getTrialExpiry();
       const uid = await currentUserId();
       const realUser = await isAuthenticated();
+      const nowIso = new Date().toISOString();
 
       if (realUser) {
-        // Usuário real → grava no Supabase
+        // Usuário real → grava na tabela stores vinculada ao usuário
         const { error } = await supabase
-          .from("profiles")
+          .from("stores")
           .update({
             store_trial_accepted: true,
-            store_trial_offered_at: new Date().toISOString(),
+            store_trial_offered_at: nowIso,
             store_trial_expires_at: trialExpires,
-          } as any)
-          .eq("id", uid);
+          })
+          .eq("owner_id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage para sobreviver ao invalidateQueries
         updateDemoProfile({
           store_trial_accepted: true,
-          store_trial_offered_at: new Date().toISOString(),
+          store_trial_offered_at: nowIso,
           store_trial_expires_at: trialExpires,
         });
       }
 
-      // Atualiza cache React Query imediatamente (sem esperar refetch)
+      // Atualiza cache React Query imediatamente (profile e active_store)
       queryClient.setQueryData(["profile"], (old: any) => ({
         ...old,
         store_trial_accepted: true,
-        store_trial_offered_at: new Date().toISOString(),
+        store_trial_offered_at: nowIso,
+        store_trial_expires_at: trialExpires,
+      }));
+
+      queryClient.setQueryData(["active_store"], (old: any) => ({
+        ...old,
+        store_trial_accepted: true,
+        store_trial_offered_at: nowIso,
         store_trial_expires_at: trialExpires,
       }));
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
       setDecided(true);
       toast.success("Sua loja online está ativa! Você tem 30 dias grátis. 🎉");
       setTimeout(onClose, 1800);
@@ -68,33 +78,42 @@ export function TrialOfferModal({ open, onClose }: Props) {
     mutationFn: async () => {
       const uid = await currentUserId();
       const realUser = await isAuthenticated();
+      const nowIso = new Date().toISOString();
 
       if (realUser) {
-        // Usuário real → grava no Supabase
+        // Usuário real → grava na tabela stores vinculada ao usuário
         const { error } = await supabase
-          .from("profiles")
+          .from("stores")
           .update({
             store_trial_accepted: false,
-            store_trial_offered_at: new Date().toISOString(),
-          } as any)
-          .eq("id", uid);
+            store_trial_offered_at: nowIso,
+          })
+          .eq("owner_id", uid);
         if (error) throw new Error(error.message);
       } else {
         // Modo demo → persiste no localStorage
         updateDemoProfile({
           store_trial_accepted: false,
-          store_trial_offered_at: new Date().toISOString(),
+          store_trial_offered_at: nowIso,
         });
       }
 
-      // Atualiza cache React Query imediatamente
+      // Atualiza cache React Query imediatamente (profile e active_store)
       queryClient.setQueryData(["profile"], (old: any) => ({
         ...old,
         store_trial_accepted: false,
-        store_trial_offered_at: new Date().toISOString(),
+        store_trial_offered_at: nowIso,
+      }));
+
+      queryClient.setQueryData(["active_store"], (old: any) => ({
+        ...old,
+        store_trial_accepted: false,
+        store_trial_offered_at: nowIso,
       }));
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
       onClose();
       toast.info("Tudo bem! Você pode ativar a Loja Online quando quiser nas Configurações.");
     },

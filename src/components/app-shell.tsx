@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { cn } from "@/lib/utils";
 
@@ -143,11 +144,12 @@ function ModeSwitcher({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
+  const { store } = useStore();
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { hasLoja, trialStatus } = useAccess(profile);
+  const { hasLoja, trialStatus } = useAccess(profile, store);
 
   // Derive active mode from pathname
   const isLojaRoute = pathname.startsWith("/loja");
