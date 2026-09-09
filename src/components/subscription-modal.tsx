@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { currentUserId, isAuthenticated } from "@/lib/db";
+import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 import { CHAVE_PIX_MODALY, WHATSAPP_SUPORTE } from "@/lib/constants";
@@ -52,27 +52,64 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
         expires.setMonth(expires.getMonth() + 1);
       }
 
+      const planSelected = isAnual ? "gestao_anual" : "digital";
+      const expiresIso = expires.toISOString();
+      const renewalDate = expiresIso.slice(0, 10);
+
       if (isAuth) {
-        const { error } = await supabase
+        // 1. Atualiza dados de plano no profile
+        const { error: profileError } = await supabase
           .from("profiles")
           .update({
-            plan: isAnual ? "gestao_anual" : "digital",
-            store_subscription_active: true,
-            store_subscription_expires_at: expires.toISOString(),
-          } as any)
+            plan: planSelected,
+            plan_renewal_date: renewalDate,
+          })
           .eq("id", uid);
-        if (error) throw new Error(error.message);
+        if (profileError) throw new Error(profileError.message);
+
+        // 2. Atualiza assinatura e plano na loja do usuário
+        const { error: storeError } = await supabase
+          .from("stores")
+          .update({
+            plan: planSelected,
+            store_subscription_active: true,
+            store_subscription_expires_at: expiresIso,
+            plan_expires_at: renewalDate,
+            plan_renewal_date: renewalDate,
+          })
+          .eq("owner_id", uid);
+        if (storeError) throw new Error(storeError.message);
+      } else {
+        // Modo demonstração local
+        updateDemoProfile({
+          plan: planSelected,
+          store_subscription_active: true,
+          store_subscription_expires_at: expiresIso,
+        });
       }
 
+      // Sincroniza cache de perfil
       queryClient.setQueryData(["profile"], (old: any) => ({
         ...old,
-        plan: isAnual ? "gestao_anual" : "digital",
+        plan: planSelected,
+        plan_renewal_date: renewalDate,
         store_subscription_active: true,
-        store_subscription_expires_at: expires.toISOString(),
+        store_subscription_expires_at: expiresIso,
+      }));
+
+      // Sincroniza cache da loja ativa
+      queryClient.setQueryData(["active_store"], (old: any) => ({
+        ...old,
+        plan: planSelected,
+        store_subscription_active: true,
+        store_subscription_expires_at: expiresIso,
+        plan_expires_at: renewalDate,
+        plan_renewal_date: renewalDate,
       }));
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
       toast.success("Assinatura Modaly ativada com sucesso! Bem-vinda. 🎉");
       onOpenChange(false);
     },
