@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
+import { toast } from "sonner";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 
@@ -585,7 +586,23 @@ function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: strin
                   subtotal,
                 );
               } else {
-                alert("Configure o WhatsApp da loja nas Configurações para receber pedidos.");
+                openWhatsAppCheckout(
+                  "",
+                  storeMeta.name,
+                  items.map((i) => ({
+                    id: i.id,
+                    nome: i.name,
+                    imagem: i.image,
+                    preco: i.price,
+                    tamanho: i.size,
+                    cor: i.color,
+                    quantidade: i.quantity,
+                  })),
+                  subtotal,
+                );
+                toast.info("WhatsApp da loja não configurado", {
+                  description: "Selecione o contato da loja no WhatsApp para enviar o resumo do pedido.",
+                });
               }
             }}
             className="mt-5 w-full bg-primary py-4 font-display text-[11px] uppercase tracking-[0.24em] text-primary-foreground transition-opacity hover:opacity-85 disabled:opacity-40"

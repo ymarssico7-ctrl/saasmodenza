@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -16,11 +16,13 @@ import {
   RefreshCw,
   Truck,
   Shield,
+  AlertCircle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CartProvider, useCart, type CartItem } from "@/lib/cart";
-import { openWhatsAppCheckout } from "@/lib/whatsapp";
+import { openWhatsAppCheckout, formatWhatsAppMessage } from "@/lib/whatsapp";
 import {
   mergeInventoryWithShowcase,
   loadShowcaseConfigs,
@@ -108,6 +110,17 @@ function VitrineLayout() {
     if (!inventoryItems.length) return [];
     return mergeInventoryWithShowcase(inventoryItems as Parameters<typeof mergeInventoryWithShowcase>[0]);
   }, [inventoryItems]);
+
+  // Deep link: ao acessar com ?p=id ou ?produto=id, abre o modal da peça automaticamente
+  useEffect(() => {
+    if (typeof window === "undefined" || !allProducts.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const pId = params.get("p") || params.get("produto");
+    if (pId) {
+      const found = allProducts.find((p) => p.id === pId);
+      if (found) setSelectedProduct(found);
+    }
+  }, [allProducts]);
 
   // ── Filtros dinâmicos ─────────────────────────────────────────
   const categorias = useMemo(() => {
@@ -940,6 +953,19 @@ function CartDrawer({
     const infoFrete = freteSelecionado
       ? { label: freteSelecionado.label, valor: valorFrete }
       : undefined;
+
+    if (!whatsapp) {
+      try {
+        const msg = formatWhatsAppMessage(storeName, items, totalFinal, infoCupom, infoFrete);
+        void navigator.clipboard?.writeText(msg);
+      } catch {
+        /* silencia */
+      }
+      toast.info("WhatsApp da loja não configurado", {
+        description: "O resumo do pedido foi copiado! Você pode encaminhar para a loja no WhatsApp.",
+      });
+    }
+
     openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, infoCupom, infoFrete);
     clear();
     setCupomAplicado(null);
@@ -1182,10 +1208,21 @@ function CartDrawer({
                 <span>{brl(totalFinal)}</span>
               </div>
             </div>
+
+            {/* Erro 6: aviso amigável quando loja não tem WhatsApp configurado */}
+            {!whatsapp && (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <p className="text-xs leading-relaxed text-amber-700">
+                  Esta loja ainda não configurou o WhatsApp. Seu pedido será
+                  copiado e você poderá enviá-lo manualmente.
+                </p>
+              </div>
+            )}
+
             <button
               id="whatsapp-checkout-btn"
               onClick={handleCheckout}
-              disabled={!whatsapp}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "#25D366" }}
             >
@@ -1193,7 +1230,7 @@ function CartDrawer({
               Finalizar pelo WhatsApp
             </button>
             <p className="mt-2 text-center text-[11px] text-gray-400">
-              Voce sera redirecionada para o WhatsApp da loja
+              Você será redirecionada para o WhatsApp da loja
             </p>
           </div>
         )}

@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
 import { openWhatsAppCheckout } from "@/lib/whatsapp";
+import { toast } from "sonner";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 
@@ -1202,7 +1203,23 @@ export function Template01Store({
                     subtotal,
                   );
                 } else {
-                  alert("Configure o WhatsApp da loja nas Configurações para receber pedidos.");
+                  openWhatsAppCheckout(
+                    "",
+                    settings?.storeName ?? "",
+                    cart.map((i) => ({
+                      id: i.product.id,
+                      nome: i.product.nome,
+                      imagem: i.product.imagem,
+                      preco: i.product.preco,
+                      tamanho: i.tamanho,
+                      cor: i.product.cores[0]?.nome ?? "",
+                      quantidade: i.qtd,
+                    })),
+                    subtotal,
+                  );
+                  toast.info("WhatsApp da loja não configurado", {
+                    description: "Selecione o contato da loja no WhatsApp para enviar o resumo do pedido.",
+                  });
                 }
               }}
               className="mt-6 w-full bg-foreground py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-opacity duration-300 hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"

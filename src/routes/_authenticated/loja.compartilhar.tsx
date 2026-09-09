@@ -160,7 +160,7 @@ function CompartilharPage() {
                     <Button
                       variant="ghost"
                       className="h-9 rounded-full text-xs"
-                      onClick={() => copiar(linkLoja(`/p/${p.id}`), "Link da peça copiado")}
+                      onClick={() => copiar(linkLoja(`?p=${p.id}`), "Link da peça copiado")}
                     >
                       <Copy className="mr-1.5 h-3.5 w-3.5" /> Link
                     </Button>
