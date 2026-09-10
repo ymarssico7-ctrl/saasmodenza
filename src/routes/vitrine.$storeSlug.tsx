@@ -34,8 +34,28 @@ import { getVitrineSettings } from "@/lib/vitrine-settings";
 export const Route = createFileRoute("/vitrine/$storeSlug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Vitrine — ${params.storeSlug}` },
-      { name: "description", content: "Vitrine online da loja." },
+      { title: `Vitrine Online — Modaly` },
+      {
+        name: "description",
+        content:
+          "Conheça as novidades e compre online com atendimento direto no WhatsApp.",
+      },
+      { property: "og:title", content: `Vitrine Online — Modaly` },
+      {
+        property: "og:description",
+        content: "Conheça nossas peças e compre direto pelo WhatsApp.",
+      },
+      { property: "og:type", content: "website" },
+      {
+        property: "og:url",
+        content: `https://modaly.com.br/vitrine/${params.storeSlug}`,
+      },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: `Vitrine Online — Modaly` },
+      {
+        name: "twitter:description",
+        content: "Conheça nossas peças e compre direto pelo WhatsApp.",
+      },
     ],
   }),
   component: VitrineRoot,
