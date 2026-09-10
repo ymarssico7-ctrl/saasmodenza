@@ -33,7 +33,7 @@ import { dateBR, type Cupom } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/cupons")({
   head: () => ({
     meta: [
-      { title: "Cupons de desconto — Vestuli" },
+      { title: "Cupons de desconto — Modaly" },
       {
         name: "description",
         content: "Crie cupons em percentual ou valor fixo, com validade e limite de uso.",
@@ -44,11 +44,11 @@ export const Route = createFileRoute("/_authenticated/loja/cupons")({
 });
 
 function cuponsKey(storeId: string) {
-  return `vestuli_cupons_${storeId}`;
+  return `modaly_cupons_${storeId}`;
 }
 
 function legacyCuponsKey(storeId: string) {
-  return `modaly_cupons_${storeId}`;
+  return `vestuli_cupons_${storeId}`;
 }
 
 function CuponsPage() {

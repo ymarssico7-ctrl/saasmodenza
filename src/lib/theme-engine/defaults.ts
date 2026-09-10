@@ -1,8 +1,8 @@
 import type { ThemeConfig, ThemeSettings } from "./schema";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
-const STORAGE_KEY = "vestuli_theme_config";
-const LEGACY_STORAGE_KEY = "modaly_theme_config";
+const STORAGE_KEY = "modaly_theme_config";
+const LEGACY_STORAGE_KEY = "vestuli_theme_config";
 
 const SETTINGS_DEFAULTS: Partial<ThemeSettings> = {
   checkoutMode: "whatsapp",

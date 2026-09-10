@@ -22,11 +22,11 @@ const DEFAULT: CustomOptionsStore = {
 };
 
 function key(storeId: string) {
-  return `vestuli_custom_options_${storeId}`;
+  return `modaly_custom_options_${storeId}`;
 }
 
 function legacyKey(storeId: string) {
-  return `modaly_custom_options_${storeId}`;
+  return `vestuli_custom_options_${storeId}`;
 }
 
 export function getCustomOptions(storeId: string): CustomOptionsStore {

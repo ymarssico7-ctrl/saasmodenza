@@ -21,7 +21,7 @@ import { useStore } from "@/lib/store-context";
 export const Route = createFileRoute("/_authenticated/loja/integracoes")({
   head: () => ({
     meta: [
-      { title: "Integrações — Vestuli" },
+      { title: "Integrações — Modaly" },
       {
         name: "description",
         content: "Conecte sua loja com WhatsApp, Instagram, Pix e ferramentas de marketing.",
@@ -127,8 +127,8 @@ function IntegracoesPage() {
     if (typeof localStorage === "undefined") return defaultMap;
     try {
       const raw =
-        localStorage.getItem(`vestuli_integrations_${storeId}`) ||
-        localStorage.getItem(`modaly_integrations_${storeId}`);
+        localStorage.getItem(`modaly_integrations_${storeId}`) ||
+        localStorage.getItem(`vestuli_integrations_${storeId}`);
       return raw ? { ...defaultMap, ...(JSON.parse(raw) as Record<string, boolean>) } : defaultMap;
     } catch {
       return defaultMap;
@@ -140,8 +140,8 @@ function IntegracoesPage() {
     if (!storeId) return;
     try {
       const raw =
-        localStorage.getItem(`vestuli_integrations_${storeId}`) ||
-        localStorage.getItem(`modaly_integrations_${storeId}`);
+        localStorage.getItem(`modaly_integrations_${storeId}`) ||
+        localStorage.getItem(`vestuli_integrations_${storeId}`);
       if (raw) {
         setStatusMap((prev) => ({ ...prev, ...(JSON.parse(raw) as Record<string, boolean>) }));
       }
@@ -155,7 +155,7 @@ function IntegracoesPage() {
     const updated = { ...statusMap, [integ.id]: nextVal };
     setStatusMap(updated);
     try {
-      localStorage.setItem(`vestuli_integrations_${storeId}`, JSON.stringify(updated));
+      localStorage.setItem(`modaly_integrations_${storeId}`, JSON.stringify(updated));
       window.dispatchEvent(
         new CustomEvent("integrations-changed", { detail: { storeId, integrations: updated } }),
       );

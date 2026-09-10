@@ -45,7 +45,7 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
     meta: [
-      { title: "Pedidos da loja — Vestuli" },
+      { title: "Pedidos da loja — Modaly" },
       {
         name: "description",
         content:
@@ -72,11 +72,11 @@ function mapPedidoPaymentMethod(pagamento: string): string {
 }
 
 function pedidosKey(storeId: string) {
-  return `vestuli_orders_${storeId}`;
+  return `modaly_orders_${storeId}`;
 }
 
 function legacyPedidosKey(storeId: string) {
-  return `modaly_orders_${storeId}`;
+  return `vestuli_orders_${storeId}`;
 }
 
 function PedidosPage() {

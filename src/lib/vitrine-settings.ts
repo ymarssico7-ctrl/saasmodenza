@@ -33,8 +33,8 @@ export function getVitrineSettings(storeId: string): VitrineSettings {
   if (typeof localStorage === "undefined" || !storeId) return DEFAULT_SETTINGS;
   try {
     const raw =
-      localStorage.getItem(`vestuli_vitrine_settings_${storeId}`) ||
-      localStorage.getItem(`modaly_vitrine_settings_${storeId}`);
+      localStorage.getItem(`modaly_vitrine_settings_${storeId}`) ||
+      localStorage.getItem(`vestuli_vitrine_settings_${storeId}`);
     if (!raw) return DEFAULT_SETTINGS;
     return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } as VitrineSettings;
   } catch {
@@ -44,7 +44,7 @@ export function getVitrineSettings(storeId: string): VitrineSettings {
 
 export function saveVitrineSettings(storeId: string, settings: VitrineSettings): void {
   if (typeof localStorage === "undefined" || !storeId) return;
-  localStorage.setItem(`vestuli_vitrine_settings_${storeId}`, JSON.stringify(settings));
+  localStorage.setItem(`modaly_vitrine_settings_${storeId}`, JSON.stringify(settings));
   try {
     window.dispatchEvent(
       new CustomEvent("vitrine-settings-changed", { detail: { storeId, settings } }),

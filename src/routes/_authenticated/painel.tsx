@@ -47,12 +47,12 @@ import {
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
-      { title: "Painel financeiro — Vestuli" },
+      { title: "Painel financeiro — Modaly" },
       {
         name: "description",
         content: "Visão geral do faturamento, despesas, lucro, meta e fiado da sua loja de moda.",
       },
-      { property: "og:title", content: "Painel financeiro — Vestuli" },
+      { property: "og:title", content: "Painel financeiro — Modaly" },
       { property: "og:description", content: "Faturamento, lucro, meta e fiado em um só lugar." },
     ],
   }),

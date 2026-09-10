@@ -820,8 +820,8 @@ function CartDrawer({
   const opcoesFreteDisponiveis = useMemo((): OpcaoFrete[] => {
     try {
       const raw =
-        localStorage.getItem(`vestuli_frete_config_${storeId}`) ||
-        localStorage.getItem(`modaly_frete_config_${storeId}`);
+        localStorage.getItem(`modaly_frete_config_${storeId}`) ||
+        localStorage.getItem(`vestuli_frete_config_${storeId}`);
       if (!raw) return [];
       const cfg = JSON.parse(raw) as {
         opcoes?: OpcaoFrete[];
@@ -857,8 +857,8 @@ function CartDrawer({
     if (!codigo) return;
     try {
       const raw =
-        localStorage.getItem(`vestuli_cupons_${storeId}`) ||
-        localStorage.getItem(`modaly_cupons_${storeId}`);
+        localStorage.getItem(`modaly_cupons_${storeId}`) ||
+        localStorage.getItem(`vestuli_cupons_${storeId}`);
       const lista = raw ? (JSON.parse(raw) as Array<{
         id: string; codigo: string; tipo: "percentual" | "fixo"; valor: number;
         usos: number; ativo: boolean; limite?: number; validade?: string;
@@ -893,9 +893,9 @@ function CartDrawer({
     // ── 1) Incrementa uso do cupom ──────────────────────────────────
     if (cupomAplicado) {
       try {
-        const chave = `vestuli_cupons_${storeId}`;
+        const chave = `modaly_cupons_${storeId}`;
         const raw =
-          localStorage.getItem(chave) || localStorage.getItem(`modaly_cupons_${storeId}`);
+          localStorage.getItem(chave) || localStorage.getItem(`vestuli_cupons_${storeId}`);
         if (raw) {
           const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
           const atualizado = lista.map((c) =>
@@ -908,9 +908,9 @@ function CartDrawer({
 
     // ── 2) Persiste o pedido no histórico da loja ───────────────────
     try {
-      const chaveOrders = `vestuli_orders_${storeId}`;
+      const chaveOrders = `modaly_orders_${storeId}`;
       const rawOrders =
-        localStorage.getItem(chaveOrders) || localStorage.getItem(`modaly_orders_${storeId}`);
+        localStorage.getItem(chaveOrders) || localStorage.getItem(`vestuli_orders_${storeId}`);
       const existentes = JSON.parse(rawOrders ?? "[]") as Array<{ numero?: string }>;
       let maxNum = 1000;
       for (const ord of existentes) {

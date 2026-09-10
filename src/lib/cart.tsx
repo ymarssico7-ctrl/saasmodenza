@@ -95,11 +95,11 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 function getCartStorageKey(storeKey?: string) {
-  return storeKey ? `vestuli_cart_items_v1_${storeKey}` : "vestuli_cart_items_v1";
+  return storeKey ? `modaly_cart_items_v1_${storeKey}` : "modaly_cart_items_v1";
 }
 
 function getLegacyCartStorageKey(storeKey?: string) {
-  return storeKey ? `modaly_cart_items_v1_${storeKey}` : "modaly_cart_items_v1";
+  return storeKey ? `vestuli_cart_items_v1_${storeKey}` : "vestuli_cart_items_v1";
 }
 
 export function CartProvider({ children, storeKey }: { children: ReactNode; storeKey?: string }) {

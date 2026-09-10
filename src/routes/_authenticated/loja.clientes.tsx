@@ -16,7 +16,7 @@ import { totalPedido, type Pedido } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes da Loja — Vestuli" },
+      { title: "Clientes da Loja — Modaly" },
       {
         name: "description",
         content: "Visualize o histórico de compras, frequência e ticket médio das suas clientes.",
@@ -55,8 +55,8 @@ function ClientesLojaPage() {
     if (!storeId) return;
     try {
       const raw =
-        localStorage.getItem(`vestuli_orders_${storeId}`) ||
-        localStorage.getItem(`modaly_orders_${storeId}`);
+        localStorage.getItem(`modaly_orders_${storeId}`) ||
+        localStorage.getItem(`vestuli_orders_${storeId}`);
       setOrders(raw ? (JSON.parse(raw) as Pedido[]) : []);
     } catch {
       setOrders([]);

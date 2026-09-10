@@ -79,13 +79,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
     meta: [
-      { title: "Precificação Estratégica & Inteligência de Margem — Vestuli" },
+      { title: "Precificação Estratégica & Inteligência de Margem — Modaly" },
       {
         name: "description",
         content:
           "Calcule o preço de venda das suas peças com margem real, controle unificado por variante de tamanho e cor, simulador de taxas e ponto de equilíbrio do lote.",
       },
-      { property: "og:title", content: "Precificação Estratégica — Vestuli" },
+      { property: "og:title", content: "Precificação Estratégica — Modaly" },
       {
         name: "og:description",
         content: "Descubra o preço ideal por grade ou peça única, simulando perdas e margem real líquida.",

@@ -35,7 +35,7 @@ import { updateStoreDetails } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
     meta: [
-      { title: "Aparência da loja — Vestuli" },
+      { title: "Aparência da loja — Modaly" },
       {
         name: "description",
         content: "Personalize o layout e as configurações da sua vitrine online.",

@@ -89,12 +89,12 @@ import {
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
     meta: [
-      { title: "Controle de caixa — Vestuli" },
+      { title: "Controle de caixa — Modaly" },
       {
         name: "description",
         content: "Registre entradas e saídas da loja e acompanhe o saldo do dia e do mês.",
       },
-      { property: "og:title", content: "Controle de caixa — Vestuli" },
+      { property: "og:title", content: "Controle de caixa — Modaly" },
       { property: "og:description", content: "Entradas, saídas e saldo sempre atualizados." },
     ],
   }),

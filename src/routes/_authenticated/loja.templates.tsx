@@ -443,7 +443,7 @@ function ComingSoonCard() {
       <div>
         <p className="font-display text-sm font-semibold text-foreground">Mais temas em breve</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Novos templates são adicionados com atualizações do Vestuli. Fique de olho!
+          Novos templates são adicionados com atualizações do Modaly. Fique de olho!
         </p>
       </div>
     </div>

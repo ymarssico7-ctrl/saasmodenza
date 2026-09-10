@@ -52,8 +52,8 @@ function VisaoGeral() {
     if (!storeId) return;
     try {
       const raw =
-        localStorage.getItem(`vestuli_orders_${storeId}`) ||
-        localStorage.getItem(`modaly_orders_${storeId}`);
+        localStorage.getItem(`modaly_orders_${storeId}`) ||
+        localStorage.getItem(`vestuli_orders_${storeId}`);
       setPedidos(raw ? (JSON.parse(raw) as Pedido[]) : []);
     } catch { setPedidos([]); }
   }, [storeId]);

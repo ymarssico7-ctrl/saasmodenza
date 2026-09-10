@@ -14,10 +14,10 @@
  *   - Zero migrations de banco necessárias.
  */
 
-const STORAGE_KEY = "vestuli_showcase_configs_v1";
-const LEGACY_STORAGE_KEY = "modaly_showcase_configs_v1";
-const AUTO_PUBLISH_KEY = "vestuli_showcase_auto_publish";
-const LEGACY_AUTO_PUBLISH_KEY = "modaly_showcase_auto_publish";
+const STORAGE_KEY = "modaly_showcase_configs_v1";
+const LEGACY_STORAGE_KEY = "vestuli_showcase_configs_v1";
+const AUTO_PUBLISH_KEY = "modaly_showcase_auto_publish";
+const LEGACY_AUTO_PUBLISH_KEY = "vestuli_showcase_auto_publish";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 

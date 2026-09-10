@@ -131,8 +131,8 @@ function Configuracoes() {
       // garantindo que a vitrine pública reflita imediatamente o nome correto
       // independente do modo (demo ou real).
       try {
-        const themeKey = `vestuli_theme_config_${storeId}`;
-        const raw = localStorage.getItem(themeKey) || localStorage.getItem(`modaly_theme_config_${storeId}`);
+        const themeKey = `modaly_theme_config_${storeId}`;
+        const raw = localStorage.getItem(themeKey) || localStorage.getItem(`vestuli_theme_config_${storeId}`);
         const theme = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
         theme['nome'] = profilePatch.store_name;
         theme['whatsapp'] = phone.trim() || theme['whatsapp'] || "";
@@ -196,7 +196,7 @@ function Configuracoes() {
     <div className="space-y-10">
       <PageHeader
         eyebrow="Configurações"
-        title="Sua loja no Vestuli"
+        title="Sua loja no Modaly"
         description="Ajuste os dados da loja, sua retirada mensal e quem trabalha com você."
       />
 

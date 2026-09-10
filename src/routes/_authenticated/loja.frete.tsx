@@ -14,14 +14,14 @@ import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 
 function freteKey(storeId: string) {
-  return `vestuli_frete_config_${storeId}`;
-}
-
-function legacyFreteKey(storeId: string) {
   return `modaly_frete_config_${storeId}`;
 }
 
-const GLOBAL_FRETE_KEY = "vestuli_frete_config";
+function legacyFreteKey(storeId: string) {
+  return `vestuli_frete_config_${storeId}`;
+}
+
+const GLOBAL_FRETE_KEY = "modaly_frete_config";
 
 type FreteConfig = {
   cep: string;
@@ -34,7 +34,7 @@ type FreteConfig = {
 export const Route = createFileRoute("/_authenticated/loja/frete")({
   head: () => ({
     meta: [
-      { title: "Frete & Entrega — Vestuli" },
+      { title: "Frete & Entrega — Modaly" },
       {
         name: "description",
         content:

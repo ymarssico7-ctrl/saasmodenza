@@ -242,7 +242,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
 
 export const DEFAULT_EDUCATION: EducationalGuide = {
   title: "Coach Financeiro & Operacional da Boutique",
-  badge: "Mentoria Vestuli",
+  badge: "Mentoria Modaly",
   headline: "Como gerenciar sua boutique no padrão de grandes marcas",
   expertLessons: [
     {

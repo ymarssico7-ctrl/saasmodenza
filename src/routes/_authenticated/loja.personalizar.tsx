@@ -4,11 +4,11 @@ import { ThemeBuilder } from "@/components/theme/builder/theme-builder";
 export const Route = createFileRoute("/_authenticated/loja/personalizar")({
   head: () => ({
     meta: [
-      { title: "Personalizar Loja — Vestuli" },
+      { title: "Personalizar Loja — Modaly" },
       {
         name: "description",
         content:
-          "Monte e personalize o visual da sua vitrine online com o construtor de lojas Vestuli.",
+          "Monte e personalize o visual da sua vitrine online com o construtor de lojas Modaly.",
       },
     ],
   }),

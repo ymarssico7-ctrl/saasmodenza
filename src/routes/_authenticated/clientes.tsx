@@ -18,12 +18,12 @@ import { type Transaction } from "@/lib/finance";
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [
-      { title: "Clientes da loja — Vestuli" },
+      { title: "Clientes da loja — Modaly" },
       {
         name: "description",
         content: "Cadastro de clientes com histórico de fiado e saldo devedor.",
       },
-      { property: "og:title", content: "Clientes da loja — Vestuli" },
+      { property: "og:title", content: "Clientes da loja — Modaly" },
       { property: "og:description", content: "Saiba quem compra e quem ainda deve na sua loja." },
     ],
   }),

@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { monthEnd, monthStart } from "./format";
 
-const DEMO_PROFILE_KEY = "vestuli_demo_profile";
-const LEGACY_DEMO_PROFILE_KEY = "modenza_demo_profile";
+const DEMO_PROFILE_KEY = "modaly_demo_profile";
+const LEGACY_DEMO_PROFILE_KEY = "vestuli_demo_profile";
+const ANCESTRAL_DEMO_PROFILE_KEY = "modenza_demo_profile";
 
 /** Lê itens do localStorage no formato usado pelo modo demo. */
 function localGet<T>(table: string): T[] {
@@ -55,7 +56,8 @@ export function updateDemoProfile(patch: Record<string, unknown>) {
   }
   const current =
     localStorage.getItem(DEMO_PROFILE_KEY) ||
-    localStorage.getItem(LEGACY_DEMO_PROFILE_KEY);
+    localStorage.getItem(LEGACY_DEMO_PROFILE_KEY) ||
+    localStorage.getItem(ANCESTRAL_DEMO_PROFILE_KEY);
   const base = current ? JSON.parse(current) : DEFAULT_DEMO_PROFILE;
   const updated = { ...base, ...patch };
   localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify(updated));
@@ -83,7 +85,8 @@ export const profileQuery = () =>
         }
         const cached =
           localStorage.getItem(DEMO_PROFILE_KEY) ||
-          localStorage.getItem(LEGACY_DEMO_PROFILE_KEY);
+          localStorage.getItem(LEGACY_DEMO_PROFILE_KEY) ||
+          localStorage.getItem(ANCESTRAL_DEMO_PROFILE_KEY);
         if (cached) return JSON.parse(cached);
         localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify(DEFAULT_DEMO_PROFILE));
         return DEFAULT_DEMO_PROFILE;

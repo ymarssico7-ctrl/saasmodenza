@@ -4,11 +4,11 @@ import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { loadTheme } from "@/lib/theme-engine/defaults";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
-const CHANNEL_NAME = "vestuli_theme_preview";
+const CHANNEL_NAME = "modaly_theme_preview";
 
 export const Route = createFileRoute("/loja/preview-frame")({
   head: () => ({
-    meta: [{ title: "Mobile Preview — Vestuli Builder" }],
+    meta: [{ title: "Mobile Preview — Modaly Builder" }],
   }),
   component: PreviewFramePage,
 });
