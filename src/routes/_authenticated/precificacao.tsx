@@ -2234,7 +2234,7 @@ function Precificacao() {
                                       value={cs.margin}
                                       onChange={(e) => {
                                         const raw = e.target.value;
-                                        if (/^[\d,\.]*$/.test(raw)) {
+                                        if (/^[\d,.]*$/.test(raw)) {
                                           updateColorMargin(group.color, raw);
                                         }
                                       }}
@@ -2319,7 +2319,7 @@ function Precificacao() {
                                         value={cs.markup}
                                         onChange={(e) => {
                                           const raw = e.target.value;
-                                          if (/^[\d,\.]*$/.test(raw)) {
+                                          if (/^[\d,.]*$/.test(raw)) {
                                             updateColorMarkup(group.color, raw);
                                           }
                                         }}

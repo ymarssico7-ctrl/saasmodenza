@@ -89,8 +89,8 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
       }
 
       // Sincroniza cache de perfil
-      queryClient.setQueryData(["profile"], (old: any) => ({
-        ...old,
+      queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
         plan: planSelected,
         plan_renewal_date: renewalDate,
         store_subscription_active: true,
@@ -98,8 +98,8 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
       }));
 
       // Sincroniza cache da loja ativa
-      queryClient.setQueryData(["active_store"], (old: any) => ({
-        ...old,
+      queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
         plan: planSelected,
         store_subscription_active: true,
         store_subscription_expires_at: expiresIso,

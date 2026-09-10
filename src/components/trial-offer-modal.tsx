@@ -50,15 +50,15 @@ export function TrialOfferModal({ open, onClose }: Props) {
       }
 
       // Atualiza cache React Query imediatamente (profile e active_store)
-      queryClient.setQueryData(["profile"], (old: any) => ({
-        ...old,
+      queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
         store_trial_accepted: true,
         store_trial_offered_at: nowIso,
         store_trial_expires_at: trialExpires,
       }));
 
-      queryClient.setQueryData(["active_store"], (old: any) => ({
-        ...old,
+      queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
         store_trial_accepted: true,
         store_trial_offered_at: nowIso,
         store_trial_expires_at: trialExpires,
@@ -99,14 +99,14 @@ export function TrialOfferModal({ open, onClose }: Props) {
       }
 
       // Atualiza cache React Query imediatamente (profile e active_store)
-      queryClient.setQueryData(["profile"], (old: any) => ({
-        ...old,
+      queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
         store_trial_accepted: false,
         store_trial_offered_at: nowIso,
       }));
 
-      queryClient.setQueryData(["active_store"], (old: any) => ({
-        ...old,
+      queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
         store_trial_accepted: false,
         store_trial_offered_at: nowIso,
       }));

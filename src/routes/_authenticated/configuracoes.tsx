@@ -143,8 +143,8 @@ function Configuracoes() {
       }
 
       // Atualiza a interface imediatamente em ambos os casos
-      queryClient.setQueryData(["profile"], (old: any) => ({ ...old, ...profilePatch }));
-      queryClient.setQueryData(["active_store"], (old: any) =>
+      queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({ ...(old ?? {}), ...profilePatch }));
+      queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) =>
         old ? { ...old, ...storePatch } : old,
       );
     },

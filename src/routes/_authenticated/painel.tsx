@@ -305,13 +305,13 @@ function Painel() {
                   width={78}
                 />
                 <Tooltip
-                  formatter={(v: any, name: any) => [
+                  formatter={(v: unknown, name: unknown) => [
                     brl(Number(v)),
                     name === "faturamento"
                       ? "Faturamento"
                       : name === "lucro"
                         ? "Resultado líquido"
-                        : name,
+                        : String(name ?? ""),
                   ]}
                   contentStyle={{
                     borderRadius: 16,

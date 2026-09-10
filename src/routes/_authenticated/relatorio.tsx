@@ -207,7 +207,7 @@ function Relatorio() {
                 width={78}
               />
               <Tooltip
-                formatter={(v: any, name: any) => [
+                formatter={(v: unknown, name: unknown) => [
                   brl(Number(v || 0)),
                   name === "entradas" ? "Entradas" : name === "saidas" ? "Saídas" : String(name ?? ""),
                 ]}
