@@ -1,5 +1,5 @@
 -- ================================================================
--- VESTULI — Storefront SQL (cola no SQL Editor do Supabase → Run)
+-- MODALY — Storefront SQL (cola no SQL Editor do Supabase → Run)
 -- Adiciona campos de loja pública + tabela store_products
 -- ================================================================
 

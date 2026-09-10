@@ -1,5 +1,5 @@
 -- ================================================================
--- VESTULI — Script SQL COMPLETO E UNIFICADO
+-- MODALY — Script SQL COMPLETO E UNIFICADO
 -- Cole este script no SQL Editor do Supabase e clique em "Run"
 -- É 100% seguro rodar múltiplas vezes (idempotente - preserva dados)
 -- ================================================================
