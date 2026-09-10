@@ -899,23 +899,21 @@ export function Template02Store({
   // ── Extrai dados das seções do Engine (mantido para compatibilidade de ref) ──
   const sections = theme?.sections ?? [];
 
-  // Dynamic categories derived from real product catalogue.
-  // PRODUCT_CATEGORIES e PRODUCTS são constantes estáticas de módulo —
-  // nunca mudam em runtime, portanto [] como deps é semanticamente correto.
+  // Dynamic categories derived from real product catalogue
   const categorias = useMemo(
     () => [
       { value: "todos", label: "Todos" },
       ...PRODUCT_CATEGORIES.map((cat) => ({ value: slugify(cat), label: cat })),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [PRODUCT_CATEGORIES],
   );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const tamanhos = useMemo(() => Array.from(new Set(PRODUCTS.flatMap((p) => p.sizes))).sort(), []);
+  const tamanhos = useMemo(
+    () => Array.from(new Set(PRODUCTS.flatMap((p) => p.sizes))).sort(),
+    [PRODUCTS],
+  );
   const novidades = PRODUCTS.filter((p) => p.isNew).slice(0, 4);
 
   const filteredProducts = useMemo(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- PRODUCTS é constante estática de módulo
     let list = [...PRODUCTS];
     if (activeCategory !== "todos") {
       list = list.filter((p) => p.category === activeCategory);
@@ -925,7 +923,7 @@ export function Template02Store({
     if (sortBy === "maior") list.sort((a, b) => b.price - a.price);
     if (sortBy === "novidades") list.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
     return list;
-  }, [activeCategory, activeSize, sortBy]);
+  }, [PRODUCTS, activeCategory, activeSize, sortBy]);
 
   // ── Helpers de seção ────────────────────────────────────────────────────────
   const isEditing = typeof onSectionClick === "function";
