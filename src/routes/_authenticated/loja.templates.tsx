@@ -184,6 +184,7 @@ function TemplateCard({
   isActive: boolean;
   onApply: () => void;
 }) {
+  const { store } = useStore();
   const { palette, typography } = entry;
 
   return (
