@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
@@ -31,11 +31,19 @@ const CATEGORIES: TemplateCategory[] = ["todos", "minimalista", "editorial", "lu
 
 function GaleriaTemplatesPage() {
   const { store } = useStore();
-  // Leitura do tema ativo memorizada: localStorage só é lido na montagem
-  // da página, não a cada re-render (change de categoria, hover, etc.)
-  const activeTheme = useMemo(() => loadTheme(), []);
-  const activeTemplateId = activeTheme.settings.templateId ?? "template-02";
+  // Estado reativo do tema ativo com sincronização de eventos
+  const [activeTemplateId, setActiveTemplateId] = useState<string>(
+    () => loadTheme().settings.templateId ?? "template-02"
+  );
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>("todos");
+
+  useEffect(() => {
+    const onThemeChange = () => {
+      setActiveTemplateId(loadTheme().settings.templateId ?? "template-02");
+    };
+    window.addEventListener("theme-changed", onThemeChange);
+    return () => window.removeEventListener("theme-changed", onThemeChange);
+  }, []);
 
   const templates = useMemo(() => getTemplatesByCategory(activeCategory), [activeCategory]);
 
@@ -63,10 +71,11 @@ function GaleriaTemplatesPage() {
       },
     };
     saveTheme(updated);
+    setActiveTemplateId(entry.id);
     toast.success(`Tema "${entry.name}" aplicado com sucesso!`, {
       description: "Abra o Preview para ver ao vivo ou personalize as cores.",
     });
-    // Force page reload to reflect new theme
+    // Notifica outros componentes e abas
     window.dispatchEvent(new Event("theme-changed"));
   }
 
