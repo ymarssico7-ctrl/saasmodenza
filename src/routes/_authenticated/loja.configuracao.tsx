@@ -71,11 +71,15 @@ function AparenciaPage() {
   const [capaUrl, setCapaUrl] = useState(vitrineSettings.capaUrl ?? "");
   const [salvando, setSalvando] = useState(false);
 
-  // Sincroniza se o store mudar (ex: após refetch)
+  // Sincroniza se o store mudar (ex: após refetch).
+  // nome/whatsapp/cidade são lidos apenas como guards de "campo ainda vazio"
+  // na inicialização — adicioná-los nas deps causaria sobrescrita do input
+  // do usuário a cada digitação (loop de re-render). Padrão intencional.
   useEffect(() => {
     if (store?.name && !nome) setNome(store.name);
     if (store?.phone && !whatsapp) setWhatsapp(store.phone ?? "");
     if (store?.city && !cidade) setCidade(store.city ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store]);
 
   const salvar = async () => {

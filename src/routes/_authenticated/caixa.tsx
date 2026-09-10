@@ -321,6 +321,11 @@ function QuickProductDialog({
   );
 }
 
+// ── Constantes estáticas de base ────────────────────────────────────────────
+const baseEntryCategories = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
+const baseExitCategories = EXIT_CATEGORIES as readonly { value: string; label: string }[];
+const basePaymentMethods = PAYMENT_METHODS as readonly { value: string; label: string }[];
+
 // ── Componente principal Caixa ──────────────────────────────────────────────
 function Caixa() {
   const queryClient = useQueryClient();
@@ -629,9 +634,6 @@ function Caixa() {
   const netAmount = Math.max(grossAmount - calculatedDiscount, 0);
 
   // ── Listas combinadas (padrão + custom) ──────────────────────────────────
-  const baseEntryCategories = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
-  const baseExitCategories = EXIT_CATEGORIES as readonly { value: string; label: string }[];
-  const basePaymentMethods = PAYMENT_METHODS as readonly { value: string; label: string }[];
 
   const categories: { value: string; label: string }[] =
     isEntrada
@@ -863,18 +865,26 @@ function Caixa() {
   });
 
   // ── Helpers de label & foto de produto no extrato ─────────────────────────
-  const resolveCategory = (t: Transaction) => {
-    const allEntries = [...baseEntryCategories, ...customOpts.entryCategories];
-    const allExits = [...baseExitCategories, ...customOpts.exitCategories];
-    const pool = t.kind === "entrada" ? allEntries : allExits;
-    return pool.find((c) => c.value === t.category)?.label ?? t.category;
-  };
+  const resolveCategory = useCallback(
+    (t: Transaction) => {
+      const allEntries = [...baseEntryCategories, ...customOpts.entryCategories];
+      const allExits = [...baseExitCategories, ...customOpts.exitCategories];
+      const pool = t.kind === "entrada" ? allEntries : allExits;
+      return pool.find((c) => c.value === t.category)?.label ?? t.category;
+    },
+    [customOpts],
+  );
 
-  const resolvePayment = (t: Transaction) => {
-    const allPay = [...basePaymentMethods, ...customOpts.paymentMethods];
-    return allPay.find((c) => c.value === t.payment_method)?.label
-      ?? labelOf(basePaymentMethods, t.payment_method);
-  };
+  const resolvePayment = useCallback(
+    (t: Transaction) => {
+      const allPay = [...basePaymentMethods, ...customOpts.paymentMethods];
+      return (
+        allPay.find((c) => c.value === t.payment_method)?.label ??
+        labelOf(basePaymentMethods, t.payment_method)
+      );
+    },
+    [customOpts],
+  );
 
   const resolveLinkedProduct = (t: Transaction) => {
     const cleanDesc = t.description.replace(/\s*\[Desconto:.*\]/, "").trim().toLowerCase();
@@ -893,7 +903,7 @@ function Caixa() {
       const payMatch = resolvePayment(t).toLowerCase().includes(q);
       return descMatch || catMatch || payMatch;
     });
-  }, [monthTxs, extratoKind, extratoSearch, customOpts]);
+  }, [monthTxs, extratoKind, extratoSearch, resolveCategory, resolvePayment]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   const accentClass = isEntrada
