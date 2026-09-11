@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Redefinir senha — Modaly" },
-      { name: "description", content: "Defina uma nova senha para sua conta Modaly." },
-      { property: "og:title", content: "Redefinir senha — Modaly" },
-      { property: "og:description", content: "Defina uma nova senha para sua conta Modaly." },
+      { title: "Redefinir senha — Vestui" },
+      { name: "description", content: "Defina uma nova senha para sua conta Vestui." },
+      { property: "og:title", content: "Redefinir senha — Vestui" },
+      { property: "og:description", content: "Defina uma nova senha para sua conta Vestui." },
     ],
   }),
   component: ResetPassword,

@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { monthEnd, monthStart } from "./format";
 
-const DEMO_PROFILE_KEY = "modaly_demo_profile";
-const LEGACY_DEMO_PROFILE_KEY = "vestuli_demo_profile";
-const ANCESTRAL_DEMO_PROFILE_KEY = "modenza_demo_profile";
+const DEMO_PROFILE_KEY = "vestui_demo_profile";
+const LEGACY_DEMO_PROFILE_KEY = "modaly_demo_profile";
+const ANCESTRAL_DEMO_PROFILE_KEY = "vestuli_demo_profile";
 
 /** Lê itens do localStorage no formato usado pelo modo demo. */
 function localGet<T>(table: string): T[] {

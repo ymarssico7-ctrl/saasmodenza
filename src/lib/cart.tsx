@@ -95,21 +95,29 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 function getCartStorageKey(storeKey?: string) {
-  return storeKey ? `modaly_cart_items_v1_${storeKey}` : "modaly_cart_items_v1";
+  return storeKey ? `vestui_cart_items_v1_${storeKey}` : "vestui_cart_items_v1";
 }
 
 function getLegacyCartStorageKey(storeKey?: string) {
+  return storeKey ? `modaly_cart_items_v1_${storeKey}` : "modaly_cart_items_v1";
+}
+
+function getAncestralCartStorageKey(storeKey?: string) {
   return storeKey ? `vestuli_cart_items_v1_${storeKey}` : "vestuli_cart_items_v1";
 }
 
 export function CartProvider({ children, storeKey }: { children: ReactNode; storeKey?: string }) {
   const currentKey = getCartStorageKey(storeKey);
   const legacyKey = getLegacyCartStorageKey(storeKey);
+  const ancestralKey = getAncestralCartStorageKey(storeKey);
 
   const [state, dispatch] = useReducer(cartReducer, null, () => {
     if (typeof localStorage === "undefined") return { items: [] };
     try {
-      const raw = localStorage.getItem(currentKey) || localStorage.getItem(legacyKey);
+      const raw =
+        localStorage.getItem(currentKey) ||
+        localStorage.getItem(legacyKey) ||
+        localStorage.getItem(ancestralKey);
       return { items: raw ? (JSON.parse(raw) as CartItem[]) : [] };
     } catch {
       return { items: [] };

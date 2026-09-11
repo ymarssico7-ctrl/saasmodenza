@@ -68,7 +68,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
       {
         title: "O Que é o Custo Invisível?",
         explanation:
-          "Toda viagem ao atacado, frete de transportadora e embalagem bonita que sua cliente adora recebendo nos Stories tem um custo. O Modaly divide esse custo por cada peça para você nunca pagar isso do próprio bolso.",
+          "Toda viagem ao atacado, frete de transportadora e embalagem bonita que sua cliente adora recebendo nos Stories tem um custo. O Vestui divide esse custo por cada peça para você nunca pagar isso do próprio bolso.",
       },
       {
         title: "Margem Segura para Boutique de Moda",
@@ -109,7 +109,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
       {
         title: "Dinheiro Parado no Cabide",
         explanation:
-          "Estoque parado é dinheiro perdendo valor. Ao cadastrar grade no Modaly, você acompanha quantas unidades restam de cada tamanho em tempo real.",
+          "Estoque parado é dinheiro perdendo valor. Ao cadastrar grade no Vestui, você acompanha quantas unidades restam de cada tamanho em tempo real.",
       },
       {
         title: "Tamanho Único vs Grade Numérica",
@@ -190,7 +190,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
       {
         title: "Fim das Planilhas Paralelas",
         explanation:
-          "Ao registrar a venda no caixa do Modaly, você resolve 3 coisas com um clique: baixa o estoque, registra a entrada no DRE e atualiza o progresso da sua meta do mês.",
+          "Ao registrar a venda no caixa do Vestui, você resolve 3 coisas com um clique: baixa o estoque, registra a entrada no DRE e atualiza o progresso da sua meta do mês.",
       },
       {
         title: "Avisos de Estoque Zerado",
@@ -242,7 +242,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
 
 export const DEFAULT_EDUCATION: EducationalGuide = {
   title: "Coach Financeiro & Operacional da Boutique",
-  badge: "Mentoria Modaly",
+  badge: "Mentoria Vestui",
   headline: "Como gerenciar sua boutique no padrão de grandes marcas",
   expertLessons: [
     {
@@ -253,7 +253,7 @@ export const DEFAULT_EDUCATION: EducationalGuide = {
     {
       title: "Use o Coach em Cada Tela",
       explanation:
-        "Em qualquer aba do Modaly que você acessar (Precificação, Estoque, Metas, Caixa ou Vitrine), abra este painel para receber orientações financeiras exclusivas e práticas.",
+        "Em qualquer aba do Vestui que você acessar (Precificação, Estoque, Metas, Caixa ou Vitrine), abra este painel para receber orientações financeiras exclusivas e práticas.",
     },
   ],
   goldenRule:
@@ -272,7 +272,8 @@ interface GuideContextValue {
 
 const GuideContext = createContext<GuideContextValue | undefined>(undefined);
 
-const STORAGE_KEY_COACH_OPEN = "modaly_guide_coach_open";
+const STORAGE_KEY_COACH_OPEN = "vestui_guide_coach_open";
+const LEGACY_STORAGE_KEY_COACH_OPEN = "modaly_guide_coach_open";
 
 export function GuideProvider({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -280,7 +281,10 @@ export function GuideProvider({ children }: { children: React.ReactNode }) {
   // Por padrão, o Coach inicia recolhido para nunca atrapalhar o uso livre da tela
   const [isCoachOpen, setIsCoachOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem(STORAGE_KEY_COACH_OPEN) === "true";
+    return (
+      localStorage.getItem(STORAGE_KEY_COACH_OPEN) === "true" ||
+      localStorage.getItem(LEGACY_STORAGE_KEY_COACH_OPEN) === "true"
+    );
   });
 
   const openCoach = () => {

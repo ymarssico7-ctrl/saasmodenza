@@ -1,5 +1,5 @@
 /**
- * Modaly 2.0 — Resilient Application Error Reporting
+ * Vestui — Resilient Application Error Reporting
  *
  * Captura e formata erros em tempo de execução com contexto semântico.
  * Em desenvolvimento, registra logs estruturados no console.
@@ -29,7 +29,7 @@ export function reportAppError(error: unknown, context: AppErrorContext = {}): v
 
   // Log estruturado padronizado
   if (import.meta.env?.DEV) {
-    console.groupCollapsed(`[Modaly Error Boundary] ${formattedMessage}`);
+    console.groupCollapsed(`[Vestui Error Boundary] ${formattedMessage}`);
     console.error("Timestamp:", timestamp);
     console.error("Route:", route);
     console.error("Context:", context);
@@ -37,6 +37,6 @@ export function reportAppError(error: unknown, context: AppErrorContext = {}): v
     console.groupEnd();
   } else {
     // Em produção, registra de forma limpa e resiliente
-    console.error(`[Modaly App Error] (${route}):`, formattedMessage);
+    console.error(`[Vestui App Error] (${route}):`, formattedMessage);
   }
 }

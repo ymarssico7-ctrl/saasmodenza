@@ -22,17 +22,24 @@ const DEFAULT: CustomOptionsStore = {
 };
 
 function key(storeId: string) {
-  return `modaly_custom_options_${storeId}`;
+  return `vestui_custom_options_${storeId}`;
 }
 
 function legacyKey(storeId: string) {
+  return `modaly_custom_options_${storeId}`;
+}
+
+function ancestralKey(storeId: string) {
   return `vestuli_custom_options_${storeId}`;
 }
 
 export function getCustomOptions(storeId: string): CustomOptionsStore {
   if (!storeId || typeof localStorage === "undefined") return DEFAULT;
   try {
-    const raw = localStorage.getItem(key(storeId)) || localStorage.getItem(legacyKey(storeId));
+    const raw =
+      localStorage.getItem(key(storeId)) ||
+      localStorage.getItem(legacyKey(storeId)) ||
+      localStorage.getItem(ancestralKey(storeId));
     if (!raw) return DEFAULT;
     return { ...DEFAULT, ...JSON.parse(raw) } as CustomOptionsStore;
   } catch {

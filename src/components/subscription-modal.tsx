@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
-import { CHAVE_PIX_MODALY, WHATSAPP_SUPORTE } from "@/lib/constants";
+import { CHAVE_PIX_VESTUI, WHATSAPP_SUPORTE } from "@/lib/constants";
 
 type Props = {
   open: boolean;
@@ -110,17 +110,17 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
       void queryClient.invalidateQueries({ queryKey: ["active_store"] });
-      toast.success("Assinatura Modaly ativada com sucesso! Bem-vinda. 🎉");
+      toast.success("Assinatura Vestui ativada com sucesso! Bem-vinda. 🎉");
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const handleCopyPix = () => {
-    void navigator.clipboard.writeText(CHAVE_PIX_MODALY);
+    void navigator.clipboard.writeText(CHAVE_PIX_VESTUI);
     setCopiedPix(true);
     toast.success("Chave Pix copiada!", {
-      description: `${CHAVE_PIX_MODALY} (Chave Pix)`,
+      description: `${CHAVE_PIX_VESTUI} (Chave Pix)`,
     });
     setTimeout(() => setCopiedPix(false), 3000);
   };
@@ -128,7 +128,7 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
   const handleOpenWhatsApp = () => {
     const planoNome = isAnual ? "Anual (R$ 588/ano)" : "Mensal (R$ 67/mês)";
     const text = encodeURIComponent(
-      `Olá! Quero assinar o Modaly no Plano ${planoNome} para a minha boutique. Como faço para pagar e ativar minha loja agora?`,
+      `Olá! Quero assinar o Vestui no Plano ${planoNome} para a minha boutique. Como faço para pagar e ativar minha loja agora?`,
     );
     window.open(`https://wa.me/${WHATSAPP_SUPORTE}?text=${text}`, "_blank");
   };
@@ -136,7 +136,7 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
   const handleSendComprovante = () => {
     const planoNome = isAnual ? "Anual (R$ 588)" : "Mensal (R$ 67)";
     const text = encodeURIComponent(
-      `Olá! Acabei de fazer o Pix de ${planoNome} para assinar o Modaly. Segue meu comprovante para ativação da minha conta!`,
+      `Olá! Acabei de fazer o Pix de ${planoNome} para assinar o Vestui. Segue meu comprovante para ativação da minha conta!`,
     );
     window.open(`https://wa.me/${WHATSAPP_SUPORTE}?text=${text}`, "_blank");
   };
@@ -151,7 +151,7 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
           </div>
 
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Zap className="size-3.5 fill-primary" /> Modaly Boutique Pro
+            <Zap className="size-3.5 fill-primary" /> Vestui Boutique Pro
           </span>
 
           <DialogTitle className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -202,7 +202,7 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
                 Plano selecionado
               </p>
               <h3 className="text-lg font-bold text-foreground">
-                Modaly Boutique {isAnual ? "Anual" : "Mensal"}
+                Vestui Boutique {isAnual ? "Anual" : "Mensal"}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isAnual
@@ -254,7 +254,7 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <div className="flex-1 truncate rounded-xl border border-input bg-card px-3.5 py-2.5 text-xs font-mono text-muted-foreground">
-                {CHAVE_PIX_MODALY}
+                {CHAVE_PIX_VESTUI}
               </div>
               <Button
                 type="button"

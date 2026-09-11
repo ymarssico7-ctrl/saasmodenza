@@ -50,11 +50,15 @@ export function ActivationChecklist({
   hasStorefront,
 }: ActivationChecklistProps) {
   const sid = storeId || "default";
-  const storageKey = `modaly_activation_dismissed_${sid}`;
+  const storageKey = `vestui_activation_dismissed_${sid}`;
+  const legacyStorageKey = `modaly_activation_dismissed_${sid}`;
 
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-    return localStorage.getItem(storageKey) === "true";
+    return (
+      localStorage.getItem(storageKey) === "true" ||
+      localStorage.getItem(legacyStorageKey) === "true"
+    );
   });
 
   // Bento Tray: controla abertura inline (sem Portal, sem jitter)
@@ -440,7 +444,7 @@ export function ActivationChecklist({
             })}
 
             <p className="text-[10px] text-center text-muted-foreground/70 pt-1.5 border-t border-border/40">
-              💡 Complete em qualquer ordem. O Modaly salva seu progresso automaticamente.
+              💡 Complete em qualquer ordem. O Vestui salva seu progresso automaticamente.
             </p>
           </div>
         </div>

@@ -34,13 +34,13 @@ import { getVitrineSettings } from "@/lib/vitrine-settings";
 export const Route = createFileRoute("/vitrine/$storeSlug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Vitrine Online — Modaly` },
+      { title: `Vitrine Online — Vestui` },
       {
         name: "description",
         content:
           "Conheça as novidades e compre online com atendimento direto no WhatsApp.",
       },
-      { property: "og:title", content: `Vitrine Online — Modaly` },
+      { property: "og:title", content: `Vitrine Online — Vestui` },
       {
         property: "og:description",
         content: "Conheça nossas peças e compre direto pelo WhatsApp.",
@@ -48,10 +48,10 @@ export const Route = createFileRoute("/vitrine/$storeSlug")({
       { property: "og:type", content: "website" },
       {
         property: "og:url",
-        content: `https://modaly.com.br/vitrine/${params.storeSlug}`,
+        content: `https://vestui.com.br/vitrine/${params.storeSlug}`,
       },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: `Vitrine Online — Modaly` },
+      { name: "twitter:title", content: `Vitrine Online — Vestui` },
       {
         name: "twitter:description",
         content: "Conheça nossas peças e compre direto pelo WhatsApp.",
@@ -535,7 +535,7 @@ function VitrineLayout() {
             <p className="mt-3">
               Vitrine criada com{" "}
               <a href="/" className="font-semibold text-gray-600 hover:underline">
-                Modaly
+                Vestui
               </a>{" "}
               · Gestão e loja online para moda
             </p>
@@ -840,6 +840,7 @@ function CartDrawer({
   const opcoesFreteDisponiveis = useMemo((): OpcaoFrete[] => {
     try {
       const raw =
+        localStorage.getItem(`vestui_frete_config_${storeId}`) ||
         localStorage.getItem(`modaly_frete_config_${storeId}`) ||
         localStorage.getItem(`vestuli_frete_config_${storeId}`);
       if (!raw) return [];
@@ -877,6 +878,7 @@ function CartDrawer({
     if (!codigo) return;
     try {
       const raw =
+        localStorage.getItem(`vestui_cupons_${storeId}`) ||
         localStorage.getItem(`modaly_cupons_${storeId}`) ||
         localStorage.getItem(`vestuli_cupons_${storeId}`);
       const lista = raw ? (JSON.parse(raw) as Array<{
@@ -913,9 +915,11 @@ function CartDrawer({
     // ── 1) Incrementa uso do cupom ──────────────────────────────────
     if (cupomAplicado) {
       try {
-        const chave = `modaly_cupons_${storeId}`;
+        const chave = `vestui_cupons_${storeId}`;
         const raw =
-          localStorage.getItem(chave) || localStorage.getItem(`vestuli_cupons_${storeId}`);
+          localStorage.getItem(chave) ||
+          localStorage.getItem(`modaly_cupons_${storeId}`) ||
+          localStorage.getItem(`vestuli_cupons_${storeId}`);
         if (raw) {
           const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
           const atualizado = lista.map((c) =>
@@ -928,9 +932,11 @@ function CartDrawer({
 
     // ── 2) Persiste o pedido no histórico da loja ───────────────────
     try {
-      const chaveOrders = `modaly_orders_${storeId}`;
+      const chaveOrders = `vestui_orders_${storeId}`;
       const rawOrders =
-        localStorage.getItem(chaveOrders) || localStorage.getItem(`vestuli_orders_${storeId}`);
+        localStorage.getItem(chaveOrders) ||
+        localStorage.getItem(`modaly_orders_${storeId}`) ||
+        localStorage.getItem(`vestuli_orders_${storeId}`);
       const existentes = JSON.parse(rawOrders ?? "[]") as Array<{ numero?: string }>;
       let maxNum = 1000;
       for (const ord of existentes) {
