@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -17,6 +17,12 @@ import {
   Truck,
   Shield,
   AlertCircle,
+  CheckCircle,
+  User,
+  Phone,
+  Home,
+  CreditCard,
+  Loader2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -817,6 +823,28 @@ function CartDrawer({
   } | null>(null);
   const [cupomErro, setCupomErro] = useState("");
 
+  // ── Checkout multi-etapa ─────────────────────────────────────────────────
+  type CheckoutStep = "cart" | "dados" | "pagamento";
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("cart");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerRua, setCustomerRua] = useState("");
+  const [customerNumero, setCustomerNumero] = useState("");
+  const [customerBairro, setCustomerBairro] = useState("");
+  const [customerCep, setCustomerCep] = useState("");
+  const [customerComplemento, setCustomerComplemento] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "retirada">("pix");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function resetCheckout() {
+    setCheckoutStep("cart");
+    setCustomerName(""); setCustomerPhone(""); setCustomerEmail("");
+    setCustomerRua(""); setCustomerNumero(""); setCustomerBairro("");
+    setCustomerCep(""); setCustomerComplemento("");
+    setPaymentMethod("pix"); setIsSubmitting(false);
+  }
+
   // Fix 3: Opções de frete lidas do localStorage (mesma config do loja.frete.tsx)
   type OpcaoFrete = {
     id: string;
@@ -911,7 +939,17 @@ function CartDrawer({
     setCupomErro("");
   };
 
-  function handleCheckout() {
+  async function handleCheckout() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    const infoCupom = cupomAplicado
+      ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
+      : undefined;
+    const infoFrete = freteSelecionado
+      ? { label: freteSelecionado.label, valor: valorFrete }
+      : undefined;
+
     // ── 1) Incrementa uso do cupom ──────────────────────────────────
     if (cupomAplicado) {
       try {
@@ -930,37 +968,35 @@ function CartDrawer({
       } catch { /* silencia */ }
     }
 
-    // ── 2) Persiste o pedido no histórico da loja ───────────────────
+    // ── 2) Calcula número sequencial do pedido via Supabase ─────────
+    let numeroPedido = `#${Date.now().toString().slice(-6)}`;
     try {
-      const chaveOrders = `vestui_orders_${storeId}`;
-      const rawOrders =
-        localStorage.getItem(chaveOrders) ||
-        localStorage.getItem(`modaly_orders_${storeId}`) ||
-        localStorage.getItem(`vestuli_orders_${storeId}`);
-      const existentes = JSON.parse(rawOrders ?? "[]") as Array<{ numero?: string }>;
-      let maxNum = 1000;
-      for (const ord of existentes) {
-        const n = parseInt(String(ord.numero ?? "").replace(/\D/g, ""), 10);
-        if (!isNaN(n) && n > maxNum) maxNum = n;
-      }
-      const numeroPedido = `#${maxNum + 1}`;
-      const novoPedido = {
-        id: crypto.randomUUID(),
+      const { count } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId);
+      numeroPedido = `#${1001 + (count ?? 0)}`;
+    } catch { /* fallback */ }
+
+    // ── 3) Persiste no Supabase (tabela orders) ──────────────────────
+    const taxaCartao = paymentMethod === "cartao" ? totalFinal * 0.035 : 0;
+    const netAmount = Math.max(totalFinal - taxaCartao, 0);
+
+    try {
+      const { error } = await supabase.from("orders").insert({
+        store_id: storeId,
         numero: numeroPedido,
-        cliente: "Cliente Vitrine",
-        telefone: "",
-        cidade: "",
-        criadoEm: new Date().toISOString(),
-        status: "novo",
-        origem: "Checkout",
-        pagamento: "Pix",
-        // Fix 3: salva a opção de entrega escolhida (ou padrão) e o valor real do frete
-        entrega: freteSelecionado?.label ?? "A definir",
-        endereco: "",
-        frete: valorFrete,
-        desconto: cupomAplicado ? valorDesconto : 0,
-        cupom: cupomAplicado?.codigo ?? undefined,
-        itens: items.map((i) => ({
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim(),
+        customer_email: customerEmail.trim() || null,
+        customer_address: {
+          cep: customerCep.trim(),
+          rua: customerRua.trim(),
+          numero: customerNumero.trim(),
+          bairro: customerBairro.trim(),
+          complemento: customerComplemento.trim(),
+        },
+        items: items.map((i) => ({
           produtoId: i.id,
           nome: i.nome,
           tamanho: i.tamanho,
@@ -968,36 +1004,98 @@ function CartDrawer({
           qtd: i.quantidade,
           preco: i.preco,
         })),
-      };
-      localStorage.setItem(chaveOrders, JSON.stringify([novoPedido, ...existentes]));
-    } catch { /* silencia — nunca bloquear o checkout */ }
+        subtotal: totalPrice,
+        frete_valor: valorFrete,
+        frete_tipo: freteSelecionado?.label ?? null,
+        desconto: valorDesconto,
+        cupom: cupomAplicado?.codigo ?? null,
+        total: totalFinal,
+        payment_method: paymentMethod,
+        payment_fee: parseFloat(taxaCartao.toFixed(2)),
+        net_amount: parseFloat(netAmount.toFixed(2)),
+        payment_status: "pendente",
+        status: "novo",
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error("Erro ao salvar pedido no Supabase:", err);
+      // fallback: salva no localStorage para não bloquear o checkout
+      try {
+        const chaveOrders = `vestui_orders_${storeId}`;
+        const rawOrders = localStorage.getItem(chaveOrders) || "[]";
+        const existentes = JSON.parse(rawOrders) as unknown[];
+        localStorage.setItem(chaveOrders, JSON.stringify([{
+          id: crypto.randomUUID(),
+          numero: numeroPedido,
+          cliente: customerName,
+          telefone: customerPhone,
+          criadoEm: new Date().toISOString(),
+          status: "novo",
+          pagamento: paymentMethod,
+          frete: valorFrete,
+          desconto: valorDesconto,
+          cupom: cupomAplicado?.codigo,
+          itens: items.map((i) => ({ produtoId: i.id, nome: i.nome, qtd: i.quantidade, preco: i.preco })),
+        }, ...existentes]));
+      } catch { /* silencia */ }
+    }
 
-    // ── 3) Abre WhatsApp e limpa estado ─────────────────────────────
-    const infoCupom = cupomAplicado
-      ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
-      : undefined;
-    const infoFrete = freteSelecionado
-      ? { label: freteSelecionado.label, valor: valorFrete }
-      : undefined;
+    // ── 4) Monta mensagem WhatsApp enriquecida com dados da cliente ──
+    const enderecoStr = [
+      customerRua, customerNumero && `nº ${customerNumero}`,
+      customerBairro, customerCep && `CEP ${customerCep}`,
+      customerComplemento,
+    ].filter(Boolean).join(", ");
+
+    const metodoPagamentoLabel = {
+      pix: "💠 Pix",
+      cartao: "💳 Cartão de Crédito",
+      retirada: "🏪 Retirada na Loja",
+    }[paymentMethod];
+
+    const msgExtra = [
+      `\n👤 Cliente: ${customerName}`,
+      `📱 WhatsApp: ${customerPhone}`,
+      enderecoStr ? `📍 Endereço: ${enderecoStr}` : null,
+      `💳 Pagamento: ${metodoPagamentoLabel}`,
+      `🔖 Pedido: ${numeroPedido}`,
+    ].filter(Boolean).join("\n");
+
+    const infoCupomWpp = infoCupom;
+    const infoFreteWpp = infoFrete;
 
     if (!whatsapp) {
       try {
-        const msg = formatWhatsAppMessage(storeName, items, totalFinal, infoCupom, infoFrete);
+        const msg = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp) + msgExtra;
         void navigator.clipboard?.writeText(msg);
-      } catch {
-        /* silencia */
-      }
+      } catch { /* silencia */ }
       toast.info("WhatsApp da loja não configurado", {
         description: "O resumo do pedido foi copiado! Você pode encaminhar para a loja no WhatsApp.",
       });
     }
 
-    openWhatsAppCheckout(whatsapp, storeName, items, totalFinal, infoCupom, infoFrete);
+    // Monta URL manualmente para incluir dados extras na mensagem
+    const baseMsgWpp = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp);
+    const fullMsg = baseMsgWpp + msgExtra;
+    const digits = (whatsapp || "").replace(/\D/g, "");
+    if (digits.length >= 8) {
+      const phone = digits.startsWith("55") ? digits : `55${digits}`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(fullMsg)}`, "_blank", "noopener,noreferrer");
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(fullMsg)}`, "_blank", "noopener,noreferrer");
+    }
+
+    // ── 5) Limpa estado ──────────────────────────────────────────────
     clear();
     setCupomAplicado(null);
     setCodigoCupom("");
     setFreteSelecionadoId("");
+    resetCheckout();
+    setIsSubmitting(false);
     onClose();
+    toast.success(`Pedido ${numeroPedido} registrado!`, {
+      description: "Sua mensagem foi aberta no WhatsApp da boutique.",
+    });
   }
 
   return (
@@ -1178,14 +1276,14 @@ function CartDrawer({
                   Cupom <span className="font-bold">{cupomAplicado.codigo}</span> aplicado
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-green-700">−{brl(valorDesconto)}</span>
+                  <span className="text-xs font-bold text-green-700">-{brl(valorDesconto)}</span>
                   <button onClick={removerCupom} className="text-gray-400 hover:text-gray-600">
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               </div>
             )}
-            {/* Fix 3: Seletor de frete — opções configuradas no módulo Frete da loja */}
+            {/* Seletor de frete */}
             {opcoesFreteDisponiveis.length > 0 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-semibold text-gray-500">Entrega</p>
@@ -1203,7 +1301,7 @@ function CartDrawer({
                     >
                       <span className="font-medium">{opcao.label}</span>
                       <span className="font-semibold">
-                        {opcao.valor === 0 ? "Grátis" : brl(opcao.valor ?? 0)}
+                        {opcao.valor === 0 ? "Gratis" : brl(opcao.valor ?? 0)}
                       </span>
                     </button>
                   ))}
@@ -1213,55 +1311,197 @@ function CartDrawer({
             {/* Totais */}
             <div className="mb-4 space-y-1">
               <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>Subtotal</span>
-                <span>{brl(totalPrice)}</span>
+                <span>Subtotal</span><span>{brl(totalPrice)}</span>
               </div>
               {cupomAplicado && (
                 <div className="flex items-center justify-between text-sm text-green-600">
-                  <span>Desconto</span>
-                  <span>−{brl(valorDesconto)}</span>
+                  <span>Desconto</span><span>-{brl(valorDesconto)}</span>
                 </div>
               )}
-              {/* Fix 3: linha de frete nos totais */}
               {freteSelecionado && (
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <span>Frete ({freteSelecionado.label})</span>
-                  <span>{valorFrete === 0 ? "Grátis" : `+ ${brl(valorFrete)}`}</span>
+                  <span>{valorFrete === 0 ? "Gratis" : `+ ${brl(valorFrete)}`}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-base font-bold text-gray-900">
-                <span>Total</span>
-                <span>{brl(totalFinal)}</span>
+                <span>Total</span><span>{brl(totalFinal)}</span>
               </div>
             </div>
-
-            {/* Erro 6: aviso amigável quando loja não tem WhatsApp configurado */}
             {!whatsapp && (
               <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                 <p className="text-xs leading-relaxed text-amber-700">
-                  Esta loja ainda não configurou o WhatsApp. Seu pedido será
-                  copiado e você poderá enviá-lo manualmente.
+                  Esta loja nao configurou o WhatsApp. Seu pedido sera copiado.
                 </p>
               </div>
             )}
-
             <button
-              id="whatsapp-checkout-btn"
-              onClick={handleCheckout}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: "#25D366" }}
+              onClick={() => setCheckoutStep("dados")}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{ backgroundColor: cor }}
             >
-              <MessageCircle className="h-4 w-4" />
-              Finalizar pelo WhatsApp
+              <User className="h-4 w-4" />
+              Continuar para dados de entrega
             </button>
             <p className="mt-2 text-center text-[11px] text-gray-400">
-              Você será redirecionada para o WhatsApp da loja
+              Informe seus dados para finalizar o pedido
             </p>
           </div>
         )}
-
       </div>
+
+      {/* Checkout Overlay: Etapa Dados */}
+      {checkoutStep === "dados" && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCheckoutStep("cart")} />
+          <div className="relative z-10 w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-display text-base font-bold text-gray-900">Dados de entrega</h3>
+                <p className="text-xs text-gray-400">Etapa 1 de 2</p>
+              </div>
+              <button onClick={() => setCheckoutStep("cart")} className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">Nome completo *</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input type="text" placeholder="Seu nome" value={customerName} onChange={(e) => setCustomerName(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-gray-200 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                    style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">WhatsApp *</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input type="tel" placeholder="(99) 99999-9999" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-gray-200 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                    style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">E-mail (opcional)</label>
+                <input type="email" placeholder="seu@email.com" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+              </div>
+              <p className="pt-1 text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                <Home className="h-3.5 w-3.5" /> Endereco de entrega
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <input type="text" placeholder="Rua / Av." value={customerRua} onChange={(e) => setCustomerRua(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                    style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                </div>
+                <input type="text" placeholder="No" value={customerNumero} onChange={(e) => setCustomerNumero(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Bairro" value={customerBairro} onChange={(e) => setCustomerBairro(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                <input type="text" placeholder="CEP" value={customerCep} onChange={(e) => setCustomerCep(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+              </div>
+              <input type="text" placeholder="Complemento (apto, bloco...)" value={customerComplemento} onChange={(e) => setCustomerComplemento(e.target.value)}
+                className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+            </div>
+            <div className="px-5 pb-6">
+              <button
+                onClick={() => {
+                  if (!customerName.trim() || !customerPhone.trim()) {
+                    toast.error("Preencha nome e WhatsApp para continuar.");
+                    return;
+                  }
+                  setCheckoutStep("pagamento");
+                }}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90"
+                style={{ backgroundColor: cor }}
+              >
+                <CreditCard className="h-4 w-4" />
+                Ir para pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Overlay: Etapa Pagamento */}
+      {checkoutStep === "pagamento" && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCheckoutStep("dados")} />
+          <div className="relative z-10 w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-display text-base font-bold text-gray-900">Forma de pagamento</h3>
+                <p className="text-xs text-gray-400">Etapa 2 de 2</p>
+              </div>
+              <button onClick={() => setCheckoutStep("dados")} className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div className="rounded-xl bg-gray-50 px-4 py-3 space-y-1 text-sm">
+                <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{brl(totalPrice)}</span></div>
+                {cupomAplicado && <div className="flex justify-between text-green-600"><span>Desconto</span><span>-{brl(valorDesconto)}</span></div>}
+                {freteSelecionado && <div className="flex justify-between text-gray-500"><span>Frete</span><span>{valorFrete === 0 ? "Gratis" : `+ ${brl(valorFrete)}`}</span></div>}
+                <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-200"><span>Total</span><span>{brl(totalFinal)}</span></div>
+              </div>
+              <p className="text-xs font-semibold text-gray-500">Como deseja pagar?</p>
+              {([
+                { id: "pix" as const, label: "Pix", desc: "Taxa 0% - Direto para a loja", icon: "💠" },
+                { id: "cartao" as const, label: "Cartao de Credito", desc: "Taxa operadora 3,5% aplicada", icon: "💳" },
+                { id: "retirada" as const, label: "Pagar na Retirada", desc: "Pagamento no balcao da loja", icon: "🏪" },
+              ] as const).map((opt) => (
+                <button key={opt.id} onClick={() => setPaymentMethod(opt.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all"
+                  style={paymentMethod === opt.id ? { borderColor: cor, backgroundColor: `${cor}10` } : { borderColor: "#e5e7eb" }}>
+                  <span className="text-xl">{opt.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
+                    <p className="text-xs text-gray-500">{opt.desc}</p>
+                  </div>
+                  {paymentMethod === opt.id && <CheckCircle className="h-5 w-5 flex-shrink-0" style={{ color: cor }} />}
+                </button>
+              ))}
+              {paymentMethod === "cartao" && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
+                  <p className="font-semibold text-blue-800">Detalhamento financeiro</p>
+                  <div className="flex justify-between text-blue-700"><span>Total pago pela cliente</span><span>{brl(totalFinal)}</span></div>
+                  <div className="flex justify-between text-blue-600"><span>Taxa operadora (3,5%)</span><span>- {brl(totalFinal * 0.035)}</span></div>
+                  <div className="flex justify-between font-bold text-blue-900 border-t border-blue-200 pt-1"><span>Liquido para a loja</span><span>{brl(Math.max(totalFinal - totalFinal * 0.035, 0))}</span></div>
+                  <p className="text-[10px] text-blue-500 pt-0.5">Esta taxa e cobrada pela operadora de cartao, nao pela Vestui.</p>
+                </div>
+              )}
+            </div>
+            <div className="px-5 pb-6">
+              <button
+                onClick={() => { void handleCheckout(); }}
+                disabled={isSubmitting}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: "#25D366" }}
+              >
+                {isSubmitting
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando pedido...</>
+                  : <><MessageCircle className="h-4 w-4" /> Confirmar e abrir WhatsApp</>
+                }
+              </button>
+              <p className="mt-2 text-center text-[11px] text-gray-400">
+                Pedido de {customerName || "voce"} sera enviado para a boutique
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

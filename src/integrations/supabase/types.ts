@@ -8,6 +8,95 @@ export type Database = {
   };
   public: {
     Tables: {
+      orders: {
+        Row: {
+          id: string;
+          store_id: string;
+          numero: string;
+          customer_name: string;
+          customer_phone: string;
+          customer_email: string | null;
+          customer_address: Json;
+          items: Json;
+          subtotal: number;
+          frete_valor: number;
+          frete_tipo: string | null;
+          desconto: number;
+          cupom: string | null;
+          total: number;
+          payment_method: string;
+          payment_fee: number;
+          net_amount: number;
+          payment_status: string;
+          status: string;
+          tracking_code: string | null;
+          gateway_transaction_id: string | null;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          numero: string;
+          customer_name: string;
+          customer_phone: string;
+          customer_email?: string | null;
+          customer_address?: Json;
+          items?: Json;
+          subtotal?: number;
+          frete_valor?: number;
+          frete_tipo?: string | null;
+          desconto?: number;
+          cupom?: string | null;
+          total?: number;
+          payment_method?: string;
+          payment_fee?: number;
+          net_amount?: number;
+          payment_status?: string;
+          status?: string;
+          tracking_code?: string | null;
+          gateway_transaction_id?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          store_id?: string;
+          numero?: string;
+          customer_name?: string;
+          customer_phone?: string;
+          customer_email?: string | null;
+          customer_address?: Json;
+          items?: Json;
+          subtotal?: number;
+          frete_valor?: number;
+          frete_tipo?: string | null;
+          desconto?: number;
+          cupom?: string | null;
+          total?: number;
+          payment_method?: string;
+          payment_fee?: number;
+          net_amount?: number;
+          payment_status?: string;
+          status?: string;
+          tracking_code?: string | null;
+          gateway_transaction_id?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       credit_payments: {
         Row: {
           amount: number;
