@@ -34,7 +34,7 @@ import {
   loadShowcaseConfigs,
   type ShowcaseProduct,
 } from "@/lib/showcase-store";
-import { getVitrineSettings } from "@/lib/vitrine-settings";
+import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings";
 
 // ─── Route ───────────────────────────────────────────────────────
 export const Route = createFileRoute("/vitrine/$storeSlug")({
@@ -74,6 +74,7 @@ type StoreData = {
   phone: string | null;
   city: string | null;
   owner_id: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 // ─── Utilitários ──────────────────────────────────────────────────
@@ -108,11 +109,11 @@ function VitrineLayout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        .select("id, name, phone, city, owner_id")
+        .select("id, name, phone, city, owner_id, metadata")
         .eq("slug", storeSlug)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return (data as unknown) as StoreData;
     },
   });
 
@@ -172,7 +173,11 @@ function VitrineLayout() {
   // storeId usado para ler cupons e orders do localStorage.
   // Fallback para storeSlug em preview demo (sem registro no banco).
   const storeId = store?.id ?? storeSlug;
-  const vitrineSettings = getVitrineSettings(storeId);
+  type StoreMetadataObj = { vitrineSettings?: VitrineSettings };
+  const dbVitrineSettings = (store?.metadata as StoreMetadataObj | null)?.vitrineSettings;
+  const vitrineSettings = dbVitrineSettings
+    ? { ...getVitrineSettings(storeId), ...dbVitrineSettings }
+    : getVitrineSettings(storeId);
   const cor = vitrineSettings.corPrincipal || "#3A3AF0";
   const storeName = store?.name ?? storeSlug;
   const storeCity = store?.city ?? "";
@@ -968,15 +973,18 @@ function CartDrawer({
       } catch { /* silencia */ }
     }
 
-    // ── 2) Calcula número sequencial do pedido via Supabase ─────────
-    let numeroPedido = `#${Date.now().toString().slice(-6)}`;
+    // ── 2) Calcula número sequencial do pedido via Supabase RPC ────
+    let numeroPedido = `#${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
     try {
-      const { count } = await supabase
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("store_id", storeId);
-      numeroPedido = `#${1001 + (count ?? 0)}`;
-    } catch { /* fallback */ }
+      const { data: rpcNum, error: rpcErr } = await supabase.rpc("generate_order_number", {
+        p_store_id: storeId,
+      });
+      if (!rpcErr && rpcNum) {
+        numeroPedido = rpcNum;
+      }
+    } catch {
+      /* fallback com código único garantido */
+    }
 
     // ── 3) Persiste no Supabase (tabela orders) ──────────────────────
     const taxaCartao = paymentMethod === "cartao" ? totalFinal * 0.035 : 0;
@@ -1035,7 +1043,14 @@ function CartDrawer({
           frete: valorFrete,
           desconto: valorDesconto,
           cupom: cupomAplicado?.codigo,
-          itens: items.map((i) => ({ produtoId: i.id, nome: i.nome, qtd: i.quantidade, preco: i.preco })),
+          itens: items.map((i) => ({
+            produtoId: i.id,
+            nome: i.nome,
+            tamanho: i.tamanho,
+            cor: i.cor,
+            qtd: i.quantidade,
+            preco: i.preco,
+          })),
         }, ...existentes]));
       } catch { /* silencia */ }
     }

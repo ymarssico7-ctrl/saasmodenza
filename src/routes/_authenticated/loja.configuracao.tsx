@@ -32,6 +32,7 @@ import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
 import { getVitrineSettings, saveVitrineSettings } from "@/lib/vitrine-settings";
 import { updateStoreDetails } from "@/lib/mutations";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
@@ -102,8 +103,7 @@ function AparenciaPage() {
         ...(whatsapp.trim() ? { phone: whatsapp.trim() } : {}),
       });
 
-      // 2) Persiste as configs de estilo no localStorage isolado por loja
-      saveVitrineSettings(storeId, {
+      const vitrinePayload = {
         descricao,
         corPrincipal: cor,
         boasVindas,
@@ -116,9 +116,28 @@ function AparenciaPage() {
         chavePix: chavePix.trim(),
         tipoChavePix,
         titularPix: titularPix.trim(),
-      });
+      };
 
-      // 3) Sincroniza nome e WhatsApp no Theme Engine (assim os templates ficam atualizados)
+      // 2) Persiste no Supabase (tabela stores.metadata) para estar disponível em qualquer dispositivo/celular
+      try {
+        const currentMeta = (typeof store?.metadata === "object" && store?.metadata) ? store.metadata : {};
+        await supabase
+          .from("stores")
+          .update({
+            metadata: {
+              ...(currentMeta as Record<string, unknown>),
+              vitrineSettings: vitrinePayload,
+            },
+          })
+          .eq("id", storeId);
+      } catch (errDb) {
+        console.error("Erro ao gravar metadata no Supabase:", errDb);
+      }
+
+      // 3) Persiste as configs de estilo no localStorage isolado por loja como cache
+      saveVitrineSettings(storeId, vitrinePayload);
+
+      // 4) Sincroniza nome e WhatsApp no Theme Engine (assim os templates ficam atualizados)
       const currentTheme = loadTheme();
       saveTheme({
         ...currentTheme,
@@ -129,7 +148,7 @@ function AparenciaPage() {
         },
       });
 
-      // 4) Invalida o cache do store para o AppShell/header exibir o nome novo
+      // 5) Invalida o cache do store para o AppShell/header exibir o nome novo
       await queryClient.invalidateQueries({ queryKey: ["active_store"] });
       window.dispatchEvent(new Event("vitrine-settings-changed"));
 

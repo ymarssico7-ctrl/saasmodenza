@@ -37,6 +37,7 @@ export type Store = {
   store_trial_offered_at: string | null;
   store_trial_accepted: boolean | null;
   store_trial_expires_at: string | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };
@@ -62,6 +63,7 @@ export const DEMO_STORE: Store = {
   store_trial_offered_at: null,
   store_trial_accepted: null,
   store_trial_expires_at: null,
+  metadata: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };

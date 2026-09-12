@@ -456,6 +456,7 @@ export type Database = {
           store_trial_accepted: boolean | null;
           store_trial_expires_at: string | null;
           store_trial_offered_at: string | null;
+          metadata: Json | null;
           updated_at: string;
         };
         Insert: {
@@ -477,6 +478,7 @@ export type Database = {
           store_trial_accepted?: boolean | null;
           store_trial_expires_at?: string | null;
           store_trial_offered_at?: string | null;
+          metadata?: Json | null;
           updated_at?: string;
         };
         Update: {
@@ -498,6 +500,7 @@ export type Database = {
           store_trial_accepted?: boolean | null;
           store_trial_expires_at?: string | null;
           store_trial_offered_at?: string | null;
+          metadata?: Json | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -548,7 +551,12 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      generate_order_number: {
+        Args: {
+          p_store_id: string;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;
