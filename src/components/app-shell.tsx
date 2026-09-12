@@ -57,6 +57,7 @@ const GESTAO_NAV: NavItem[] = [
 const LOJA_NAV: NavItem[] = [
   { to: "/loja", label: "Visão geral", icon: LayoutDashboard },
   { to: "/loja/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { to: "/loja/recebimentos", label: "Recebimentos", icon: Wallet },
   { to: "/loja/produtos", label: "Vitrine", icon: Package },
   { to: "/loja/clientes", label: "Clientes", icon: Users },
   { to: "/loja/cupons", label: "Cupons", icon: BadgePercent },

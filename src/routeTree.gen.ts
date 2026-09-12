@@ -38,6 +38,7 @@ import { Route as AuthenticatedLojaIntegracoesRouteImport } from './routes/_auth
 import { Route as AuthenticatedLojaPedidosRouteImport } from './routes/_authenticated/loja.pedidos'
 import { Route as AuthenticatedLojaPersonalizarRouteImport } from './routes/_authenticated/loja.personalizar'
 import { Route as AuthenticatedLojaProdutosRouteImport } from './routes/_authenticated/loja.produtos'
+import { Route as AuthenticatedLojaRecebimentosRouteImport } from './routes/_authenticated/loja.recebimentos'
 import { Route as AuthenticatedLojaRelatoriosRouteImport } from './routes/_authenticated/loja.relatorios'
 import { Route as AuthenticatedLojaTemplatesRouteImport } from './routes/_authenticated/loja.templates'
 
@@ -194,6 +195,12 @@ const AuthenticatedLojaProdutosRoute =
     path: '/produtos',
     getParentRoute: () => AuthenticatedLojaRoute,
   } as any)
+const AuthenticatedLojaRecebimentosRoute =
+  AuthenticatedLojaRecebimentosRouteImport.update({
+    id: '/recebimentos',
+    path: '/recebimentos',
+    getParentRoute: () => AuthenticatedLojaRoute,
+  } as any)
 const AuthenticatedLojaRelatoriosRoute =
   AuthenticatedLojaRelatoriosRouteImport.update({
     id: '/relatorios',
@@ -235,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
   '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
+  '/loja/recebimentos': typeof AuthenticatedLojaRecebimentosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/loja/templates': typeof AuthenticatedLojaTemplatesRoute
   '/loja/': typeof AuthenticatedLojaIndexRoute
@@ -266,6 +274,7 @@ export interface FileRoutesByTo {
   '/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
   '/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/loja/produtos': typeof AuthenticatedLojaProdutosRoute
+  '/loja/recebimentos': typeof AuthenticatedLojaRecebimentosRoute
   '/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/loja/templates': typeof AuthenticatedLojaTemplatesRoute
   '/loja': typeof AuthenticatedLojaIndexRoute
@@ -300,6 +309,7 @@ export interface FileRoutesById {
   '/_authenticated/loja/pedidos': typeof AuthenticatedLojaPedidosRoute
   '/_authenticated/loja/personalizar': typeof AuthenticatedLojaPersonalizarRoute
   '/_authenticated/loja/produtos': typeof AuthenticatedLojaProdutosRoute
+  '/_authenticated/loja/recebimentos': typeof AuthenticatedLojaRecebimentosRoute
   '/_authenticated/loja/relatorios': typeof AuthenticatedLojaRelatoriosRoute
   '/_authenticated/loja/templates': typeof AuthenticatedLojaTemplatesRoute
   '/_authenticated/loja/': typeof AuthenticatedLojaIndexRoute
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/loja/pedidos'
     | '/loja/personalizar'
     | '/loja/produtos'
+    | '/loja/recebimentos'
     | '/loja/relatorios'
     | '/loja/templates'
     | '/loja/'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/loja/pedidos'
     | '/loja/personalizar'
     | '/loja/produtos'
+    | '/loja/recebimentos'
     | '/loja/relatorios'
     | '/loja/templates'
     | '/loja'
@@ -398,6 +410,7 @@ export interface FileRouteTypes {
     | '/_authenticated/loja/pedidos'
     | '/_authenticated/loja/personalizar'
     | '/_authenticated/loja/produtos'
+    | '/_authenticated/loja/recebimentos'
     | '/_authenticated/loja/relatorios'
     | '/_authenticated/loja/templates'
     | '/_authenticated/loja/'
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLojaProdutosRouteImport
       parentRoute: typeof AuthenticatedLojaRoute
     }
+    '/_authenticated/loja/recebimentos': {
+      id: '/_authenticated/loja/recebimentos'
+      path: '/recebimentos'
+      fullPath: '/loja/recebimentos'
+      preLoaderRoute: typeof AuthenticatedLojaRecebimentosRouteImport
+      parentRoute: typeof AuthenticatedLojaRoute
+    }
     '/_authenticated/loja/relatorios': {
       id: '/_authenticated/loja/relatorios'
       path: '/relatorios'
@@ -645,6 +665,7 @@ interface AuthenticatedLojaRouteChildren {
   AuthenticatedLojaPedidosRoute: typeof AuthenticatedLojaPedidosRoute
   AuthenticatedLojaPersonalizarRoute: typeof AuthenticatedLojaPersonalizarRoute
   AuthenticatedLojaProdutosRoute: typeof AuthenticatedLojaProdutosRoute
+  AuthenticatedLojaRecebimentosRoute: typeof AuthenticatedLojaRecebimentosRoute
   AuthenticatedLojaRelatoriosRoute: typeof AuthenticatedLojaRelatoriosRoute
   AuthenticatedLojaTemplatesRoute: typeof AuthenticatedLojaTemplatesRoute
   AuthenticatedLojaIndexRoute: typeof AuthenticatedLojaIndexRoute
@@ -660,6 +681,7 @@ const AuthenticatedLojaRouteChildren: AuthenticatedLojaRouteChildren = {
   AuthenticatedLojaPedidosRoute: AuthenticatedLojaPedidosRoute,
   AuthenticatedLojaPersonalizarRoute: AuthenticatedLojaPersonalizarRoute,
   AuthenticatedLojaProdutosRoute: AuthenticatedLojaProdutosRoute,
+  AuthenticatedLojaRecebimentosRoute: AuthenticatedLojaRecebimentosRoute,
   AuthenticatedLojaRelatoriosRoute: AuthenticatedLojaRelatoriosRoute,
   AuthenticatedLojaTemplatesRoute: AuthenticatedLojaTemplatesRoute,
   AuthenticatedLojaIndexRoute: AuthenticatedLojaIndexRoute,

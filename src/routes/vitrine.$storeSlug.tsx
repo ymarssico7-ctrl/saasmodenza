@@ -110,6 +110,8 @@ function VitrineLayout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
+        // SEGURANÇA: metadata contém chavePix (PII da lojista) — NÃO incluir em queries públicas.
+        // vitrineSettings (cor, logo, etc.) vêm via campo dedicado sem PII.
         .select("id, name, phone, city, owner_id, metadata")
         .eq("slug", storeSlug)
         .maybeSingle();
@@ -847,12 +849,28 @@ function CartDrawer({
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "retirada">("pix");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ── Estado do Pix Dinâmico Asaas ────────────────────────────────────────────
+  type PixAsaasStatus = "idle" | "gerando" | "aguardando" | "confirmado" | "expirado" | "erro";
+  const [pixAsaasStatus, setPixAsaasStatus] = useState<PixAsaasStatus>("idle");
+  const [pixChargeData, setPixChargeData] = useState<{
+    chargeId: string;
+    pixCode: string;
+    encodedImage: string; // QR Code base64 do Asaas (sem API externa)
+    expiresAt: string;
+  } | null>(null);
+  const [pixCountdown, setPixCountdown] = useState(0); // segundos restantes
+  const [pixOrderId, setPixOrderId] = useState<string | null>(null); // UUID do pedido criado
+
+
   function resetCheckout() {
     setCheckoutStep("cart");
     setCustomerName(""); setCustomerPhone(""); setCustomerEmail("");
     setCustomerRua(""); setCustomerNumero(""); setCustomerBairro("");
     setCustomerCep(""); setCustomerComplemento("");
     setPaymentMethod("pix"); setIsSubmitting(false);
+    // Reset Pix dinâmico
+    setPixAsaasStatus("idle"); setPixChargeData(null);
+    setPixCountdown(0); setPixOrderId(null);
   }
 
   // Fix 3: Opções de frete lidas do localStorage (mesma config do loja.frete.tsx)
@@ -949,7 +967,104 @@ function CartDrawer({
     setCupomErro("");
   };
 
+  // ── Inicia o Pix Dinâmico via Edge Function Asaas ───────────────────────────
+  // Chamado quando a cliente clica "Confirmar" com Pix selecionado
+  // e a loja tem Vestui Pay ativo (gateway_provider = 'asaas').
+  async function handlePixDinamico(orderId: string): Promise<"asaas" | "manual"> {
+    setPixAsaasStatus("gerando");
+    setPixOrderId(orderId);
+    try {
+      const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl
+        || import.meta.env["VITE_SUPABASE_URL"]
+        || "";
+      const fnUrl = `${supabaseUrl}/functions/v1/asaas-create-pix`;
+      const res = await fetch(fnUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId,
+          orderId,
+          amount: totalFinal,
+          customerName: customerName.trim(),
+        }),
+      });
+      const data = await res.json() as {
+        chargeId?: string;
+        pixCode?: string;
+        encodedImage?: string;
+        expiresAt?: string;
+        error?: string;
+      };
+
+      if (!res.ok || data.error === "vestui_pay_inactive" || !data.chargeId) {
+        // Vestui Pay não ativado → cai para o fluxo manual (Pix estático)
+        setPixAsaasStatus("idle");
+        return "manual";
+      }
+
+      setPixChargeData({
+        chargeId:     data.chargeId!,
+        pixCode:      data.pixCode!,
+        encodedImage: data.encodedImage!,
+        expiresAt:    data.expiresAt!,
+      });
+      const secsLeft = Math.floor(
+        (new Date(data.expiresAt!).getTime() - Date.now()) / 1000
+      );
+      setPixCountdown(Math.max(secsLeft, 0));
+      setPixAsaasStatus("aguardando");
+      return "asaas";
+    } catch {
+      setPixAsaasStatus("idle");
+      return "manual";
+    }
+  }
+
+  // ── Countdown timer do Pix ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (pixAsaasStatus !== "aguardando" || pixCountdown <= 0) return;
+    const t = setInterval(() => {
+      setPixCountdown((s) => {
+        if (s <= 1) {
+          setPixAsaasStatus("expirado");
+          clearInterval(t);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [pixAsaasStatus, pixCountdown]);
+
+  // ── Polling de status Pix (a cada 4 segundos) ───────────────────────────────
+  useEffect(() => {
+    if (pixAsaasStatus !== "aguardando" || !pixChargeData?.chargeId) return;
+    const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl
+      || import.meta.env["VITE_SUPABASE_URL"]
+      || "";
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/asaas-charge-status?chargeId=${pixChargeData.chargeId}&storeId=${storeId}`,
+        );
+        const { status } = await res.json() as { status: string };
+        if (status === "RECEIVED" || status === "CONFIRMED") {
+          setPixAsaasStatus("confirmado");
+          clearInterval(interval);
+          // Limpa carrinho após confirmação automática
+          clear();
+          setCupomAplicado(null);
+          setCodigoCupom("");
+          setFreteSelecionadoId("");
+        }
+      } catch { /* polling falha silenciosamente */ }
+    }, 4000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pixAsaasStatus, pixChargeData?.chargeId]);
+
   async function handleCheckout() {
+
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -996,7 +1111,7 @@ function CartDrawer({
     const netAmount = Math.max(totalFinal - taxaCartao, 0);
 
     try {
-      const { error } = await supabase.from("orders").insert({
+      const { data: insertedOrder, error } = await supabase.from("orders").insert({
         store_id: storeId,
         numero: numeroPedido,
         customer_name: customerName.trim(),
@@ -1028,8 +1143,24 @@ function CartDrawer({
         net_amount: parseFloat(netAmount.toFixed(2)),
         payment_status: "pendente",
         status: "novo",
-      });
+        // gateway_provider, gateway_charge_id, escrow_status definidos pela migration
+        // 20260912_vestui_pay_foundation.sql — tipos gerados serão atualizados após apply
+      }).select("id").maybeSingle();
       if (error) throw error;
+
+      // ── Pix Dinâmico Asaas: tenta criar cobrança automática ────────────────
+      // Se a loja tem Vestui Pay ativo, o Pix dinâmico assume o controle:
+      // exibe QR + timer + polling e NÃO abre WhatsApp automaticamente.
+      if (paymentMethod === "pix" && insertedOrder?.id) {
+        const pixMode = await handlePixDinamico(insertedOrder.id);
+        if (pixMode === "asaas") {
+          // Pix dinâmico ativo: a vitrine exibe QR Code + aguarda confirmação via webhook
+          // NÃO segue para o fluxo WhatsApp
+          setIsSubmitting(false);
+          return;
+        }
+        // pixMode === "manual": Vestui Pay inativo → segue para Pix manual com WhatsApp
+      }
     } catch (err) {
       console.error("Erro ao salvar pedido no Supabase:", err);
       // fallback: salva no localStorage para não bloquear o checkout
@@ -1494,130 +1625,212 @@ function CartDrawer({
                 </button>
               ))}
 
+              {/* ── Bloco Pix: Dinâmico (Vestui Pay) ou Manual (fallback) ─── */}
               {paymentMethod === "pix" && (() => {
-                // ── Usa vitrineSettings da prop (vindas do Supabase) —
-                // NUNCA chama getVitrineSettings(storeId) aqui, pois o
-                // localStorage da CLIENTE está vazio (ela não é a lojista).
-                const pixKey = vs?.chavePix ?? "";
-                const pixTipo = vs?.tipoChavePix ?? "cpf";
+                // ── Estado: Gerando cobrança ─────────────────────────────────
+                if (pixAsaasStatus === "gerando") {
+                  return (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 flex flex-col items-center gap-3 text-xs">
+                      <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
+                      <p className="font-semibold text-emerald-800">Gerando QR Code Pix...</p>
+                      <p className="text-emerald-600 text-center">Conectando com o sistema de pagamento. Aguarde um instante.</p>
+                    </div>
+                  );
+                }
+
+                // ── Estado: Aguardando pagamento (QR Code dinâmico ativo) ────
+                if (pixAsaasStatus === "aguardando" && pixChargeData) {
+                  const mins = String(Math.floor(pixCountdown / 60)).padStart(2, "0");
+                  const secs = String(pixCountdown % 60).padStart(2, "0");
+                  return (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
+                          💠 Pix — Pagamento Automático
+                        </span>
+                        <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+                          ⏱ {mins}:{secs}
+                        </span>
+                      </div>
+
+                      {/* QR Code base64 do Asaas — sem dependência de API externa */}
+                      <div className="flex flex-col items-center gap-2">
+                        {pixChargeData.encodedImage ? (
+                          <img
+                            src={`data:image/png;base64,${pixChargeData.encodedImage}`}
+                            alt="QR Code Pix"
+                            width={160}
+                            height={160}
+                            className="rounded-xl border-2 border-emerald-200 bg-white p-2 shadow-sm"
+                          />
+                        ) : null}
+                        <p className="text-[10px] font-semibold text-emerald-700">
+                          Valor: <span className="font-bold text-emerald-900">{brl(totalFinal)}</span>
+                        </p>
+                      </div>
+
+                      {/* Pix Copia e Cola */}
+                      <div>
+                        <p className="text-[10px] font-semibold text-emerald-700 mb-1">Pix Copia e Cola</p>
+                        <div className="flex gap-2 items-stretch">
+                          <div className="flex-1 h-[52px] overflow-hidden rounded-lg border border-emerald-100 bg-white px-2 py-1.5">
+                            <p className="break-all font-mono text-[9px] leading-tight text-gray-700 select-all">
+                              {pixChargeData.pixCode}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard?.writeText(pixChargeData.pixCode);
+                              toast.success("Pix Copia e Cola copiado! ✅", {
+                                description: "Abra seu banco → Pix → Copia e Cola.",
+                              });
+                            }}
+                            className="shrink-0 px-3 rounded-lg text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: "#00A857" }}
+                          >
+                            📋 Copiar
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Instrução */}
+                      <div className="rounded-lg bg-emerald-100/60 px-3 py-2">
+                        <p className="text-[10px] leading-relaxed text-emerald-800">
+                          <strong>Como pagar:</strong> Escaneie o QR Code ou copie o código acima → abra o app do seu banco → escolha <em>Pix → Copia e Cola</em> → confirme. O pedido é confirmado <strong>automaticamente</strong> — sem precisar enviar comprovante! 🎉
+                        </p>
+                      </div>
+
+                      {/* Polling indicator */}
+                      <div className="flex items-center justify-center gap-2 text-[10px] text-emerald-600">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Verificando pagamento automaticamente...
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ── Estado: Pagamento Confirmado ─────────────────────────────
+                if (pixAsaasStatus === "confirmado") {
+                  return (
+                    <div className="rounded-xl border-2 border-emerald-400 bg-emerald-50 p-5 space-y-3 text-center">
+                      <div className="flex justify-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                          <CheckCircle className="h-8 w-8 text-emerald-600" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-bold text-emerald-900 text-base">Pagamento confirmado! 🎉</p>
+                        <p className="text-xs text-emerald-700 mt-0.5">Seu pedido foi registrado com sucesso.</p>
+                      </div>
+                      <div className="rounded-lg bg-white border border-emerald-200 px-3 py-2 text-xs text-left space-y-0.5">
+                        <p className="text-gray-500">Valor pago:</p>
+                        <p className="font-bold text-gray-900 text-base">{brl(totalFinal)}</p>
+                      </div>
+                      <p className="text-[11px] text-emerald-700">
+                        📦 A boutique foi notificada e já está separando seu pedido.
+                      </p>
+                      {whatsapp && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const digits = whatsapp.replace(/\D/g, "");
+                            const phone = digits.startsWith("55") ? digits : `55${digits}`;
+                            window.open(`https://wa.me/${phone}`, "_blank", "noopener,noreferrer");
+                          }}
+                          className="flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+                          style={{ backgroundColor: "#25D366" }}
+                        >
+                          <MessageCircle className="h-4 w-4" /> Falar com a boutique
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
+                // ── Estado: Expirado ──────────────────────────────────────────
+                if (pixAsaasStatus === "expirado") {
+                  return (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center space-y-2 text-xs">
+                      <p className="font-semibold text-red-700">⏰ QR Code expirado</p>
+                      <p className="text-red-600">O tempo de pagamento encerrou. Inicie um novo pedido.</p>
+                      <button
+                        type="button"
+                        onClick={resetCheckout}
+                        className="mt-1 px-4 py-2 rounded-lg text-white text-xs font-semibold"
+                        style={{ backgroundColor: cor }}
+                      >
+                        Novo pedido
+                      </button>
+                    </div>
+                  );
+                }
+
+                // ── Estado: idle — Pix Manual (fallback / Vestui Pay inativo) ─
+                const pixKey     = vs?.chavePix ?? "";
+                const pixTipo    = vs?.tipoChavePix ?? "cpf";
                 const pixTitular = vs?.titularPix ?? "";
-                const pixCidade = vs?.estado ?? "Brasil";
-
-                // Gera o BR Code padrão BACEN se houver chave cadastrada
+                const pixCidade  = vs?.estado ?? "Brasil";
                 const pixPayload = pixKey
-                  ? generatePixPayload({
-                      key: pixKey,
-                      amount: totalFinal,
-                      merchantName: pixTitular || storeName,
-                      merchantCity: pixCidade,
-                      txId: "VESTUI",
-                    })
+                  ? generatePixPayload({ key: pixKey, amount: totalFinal,
+                      merchantName: pixTitular || storeName, merchantCity: pixCidade, txId: "VESTUI" })
                   : "";
-                const pixQrUrl = pixPayload
-                  ? generatePixQrCodeUrl(pixPayload, 160)
-                  : "";
-
+                const pixQrUrl = pixPayload ? generatePixQrCodeUrl(pixPayload, 160) : "";
                 const tipoLabel: Record<string, string> = {
-                  cpf: "CPF",
-                  cnpj: "CNPJ",
-                  telefone: "Celular",
-                  email: "E-mail",
-                  aleatoria: "Chave Aleatória",
+                  cpf: "CPF", cnpj: "CNPJ", telefone: "Celular",
+                  email: "E-mail", aleatoria: "Chave Aleatória",
                 };
-
                 return (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 space-y-3 text-xs">
-                    {/* Header */}
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
-                        💠 Pagamento via Pix
-                      </span>
+                      <span className="font-semibold text-emerald-800">💠 Pagamento via Pix</span>
                       {pixKey && (
                         <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                           {tipoLabel[pixTipo] ?? "Pix"}
                         </span>
                       )}
                     </div>
-
                     {pixKey ? (
                       <>
-                        {/* Linha 1: Chave Pix + Botão Copiar Chave */}
                         <div>
                           <p className="text-[10px] font-semibold text-emerald-700 mb-1">Chave Pix</p>
                           <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-emerald-100 font-mono text-gray-800">
                             <span className="truncate mr-2 font-semibold text-[12px]">{pixKey}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void navigator.clipboard?.writeText(pixKey);
-                                toast.success("Chave Pix copiada! ✅", { description: "Cole no app do seu banco." });
-                              }}
-                              className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-                              style={{ backgroundColor: cor }}
-                            >
-                              Copiar chave
-                            </button>
+                            <button type="button"
+                              onClick={() => { void navigator.clipboard?.writeText(pixKey); toast.success("Chave Pix copiada! ✅"); }}
+                              className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white"
+                              style={{ backgroundColor: cor }}>Copiar chave</button>
                           </div>
-                          {pixTitular && (
-                            <p className="mt-1 text-[11px] text-emerald-700">
-                              Favorecido: <span className="font-semibold">{pixTitular}</span>
-                            </p>
-                          )}
+                          {pixTitular && <p className="mt-1 text-[11px] text-emerald-700">Favorecido: <span className="font-semibold">{pixTitular}</span></p>}
                         </div>
-
-                        {/* Linha 2: Pix Copia e Cola (BR Code BACEN) */}
                         {pixPayload && (
-                          <div>
-                            <p className="text-[10px] font-semibold text-emerald-700 mb-1">Pix Copia e Cola — Valor já incluído: <span className="font-bold">{brl(totalFinal)}</span></p>
-                            <div className="flex gap-2">
-                              {/* QR Code */}
-                              <img
-                                src={pixQrUrl}
-                                alt="QR Code Pix"
-                                width={80}
-                                height={80}
-                                className="rounded-lg border border-emerald-100 bg-white p-1 shrink-0"
-                              />
-                              {/* Código + botão copiar */}
-                              <div className="flex flex-1 flex-col justify-between">
-                                <div className="h-[60px] overflow-hidden rounded-lg border border-emerald-100 bg-white px-2 py-1.5">
-                                  <p className="break-all font-mono text-[9px] leading-tight text-gray-700 select-all">
-                                    {pixPayload}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    void navigator.clipboard?.writeText(pixPayload);
-                                    toast.success("Pix Copia e Cola copiado! ✅", {
-                                      description: "Abra seu banco, escolha Pix > Copia e Cola.",
-                                    });
-                                  }}
-                                  className="mt-1 flex h-8 w-full items-center justify-center gap-1 rounded-lg text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-                                  style={{ backgroundColor: "#00A857" }}
-                                >
-                                  📋 Copiar Pix Copia e Cola
-                                </button>
+                          <div className="flex gap-2">
+                            <img src={pixQrUrl} alt="QR Code Pix" width={80} height={80}
+                              className="rounded-lg border border-emerald-100 bg-white p-1 shrink-0" />
+                            <div className="flex flex-1 flex-col justify-between">
+                              <div className="h-[60px] overflow-hidden rounded-lg border border-emerald-100 bg-white px-2 py-1.5">
+                                <p className="break-all font-mono text-[9px] leading-tight text-gray-700 select-all">{pixPayload}</p>
                               </div>
+                              <button type="button"
+                                onClick={() => { void navigator.clipboard?.writeText(pixPayload); toast.success("Pix Copia e Cola copiado! ✅"); }}
+                                className="mt-1 flex h-8 w-full items-center justify-center gap-1 rounded-lg text-[11px] font-semibold text-white"
+                                style={{ backgroundColor: "#00A857" }}>📋 Copiar Pix Copia e Cola</button>
                             </div>
                           </div>
                         )}
-
-                        {/* Instrução final */}
                         <div className="rounded-lg bg-emerald-100/60 px-3 py-2">
                           <p className="text-[10px] leading-relaxed text-emerald-800">
-                            <strong>Como pagar:</strong> Copie a chave ou o código Pix acima → abra o app do seu banco → escolha <em>Pix Copia e Cola</em> → confirme o pagamento → clique em <em>"Confirmar e abrir WhatsApp"</em> para enviar o comprovante à loja.
+                            <strong>Como pagar:</strong> Copie a chave ou código → abra seu banco → Pix Copia e Cola → confirme → clique em <em>"Confirmar e abrir WhatsApp"</em> para enviar o comprovante à loja.
                           </p>
                         </div>
                       </>
                     ) : (
-                      <p className="text-[11px] text-emerald-700 leading-relaxed">
-                        A chave Pix e as instruções de pagamento serão enviadas no WhatsApp da boutique após você confirmar o pedido.
-                      </p>
+                      <p className="text-[11px] text-emerald-700">A chave Pix será enviada no WhatsApp da boutique após você confirmar o pedido.</p>
                     )}
                   </div>
                 );
               })()}
+
 
               {paymentMethod === "cartao" && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
