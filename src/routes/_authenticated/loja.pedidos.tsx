@@ -141,6 +141,25 @@ function PedidosPage() {
   // Supabase Realtime: escuta novos pedidos ou atualizações em tempo real
   useEffect(() => {
     if (!storeId) return;
+
+    /** Som de notificação via Web Audio API (sem assets externos) */
+    function playNotificationSound() {
+      try {
+        const ctx = new AudioContext();
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0.18, ctx.currentTime);
+        gainNode.connect(ctx.destination);
+        [440, 554, 660].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          osc.connect(gainNode);
+          osc.start(ctx.currentTime + i * 0.12);
+          osc.stop(ctx.currentTime + i * 0.12 + 0.15);
+        });
+      } catch { /* Safari / permissão negada: ignora silenciosamente */ }
+    }
+
     const channel = supabase
       .channel(`orders_realtime_${storeId}`)
       .on(
@@ -151,8 +170,32 @@ function PedidosPage() {
           table: "orders",
           filter: `store_id=eq.${storeId}`,
         },
-        () => {
+        (payload) => {
           void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+
+          // Notificação apenas em novos pedidos (INSERT)
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as Record<string, unknown>;
+            const numero = (row["numero"] as string | undefined) ?? "#--";
+            const pagamento = (row["payment_method"] as string | undefined) ?? "";
+            const metodosLabel: Record<string, string> = {
+              pix: "Pix",
+              cartao: "Cartão",
+              dinheiro: "Dinheiro",
+              boleto: "Boleto",
+            };
+            const metodoLabel = metodosLabel[pagamento] ?? pagamento;
+
+            playNotificationSound();
+            toast.success(`🛍️ Novo Pedido ${numero} recebido!`, {
+              description: metodoLabel ? `Forma de pagamento: ${metodoLabel}` : "Acesse os pedidos para ver detalhes.",
+              duration: 6000,
+              action: {
+                label: "Ver agora",
+                onClick: () => setAberto(row["id"] as string),
+              },
+            });
+          }
         },
       )
       .subscribe();

@@ -35,6 +35,7 @@ import {
   type ShowcaseProduct,
 } from "@/lib/showcase-store";
 import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings";
+import { generatePixPayload, generatePixQrCodeUrl } from "@/lib/pix";
 
 // ─── Route ───────────────────────────────────────────────────────
 export const Route = createFileRoute("/vitrine/$storeSlug")({
@@ -574,6 +575,7 @@ function VitrineLayout() {
         whatsapp={storeWhatsapp}
         storeId={storeId}
         allProducts={allProducts}
+        vitrineSettings={vitrineSettings}
       />
     </div>
   );
@@ -809,6 +811,7 @@ function CartDrawer({
   whatsapp,
   storeId,
   allProducts = [],
+  vitrineSettings: vs,
 }: {
   open: boolean;
   onClose: () => void;
@@ -817,6 +820,8 @@ function CartDrawer({
   whatsapp: string;
   storeId: string;
   allProducts?: ShowcaseProduct[];
+  /** Configurações da loja vindas do Supabase (inclui dadosPix). Nunca leia localStorage da cliente aqui! */
+  vitrineSettings?: VitrineSettings;
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
   const [codigoCupom, setCodigoCupom] = useState("");
@@ -1490,52 +1495,144 @@ function CartDrawer({
               ))}
 
               {paymentMethod === "pix" && (() => {
-                const pixConfig = getVitrineSettings(storeId);
+                // ── Usa vitrineSettings da prop (vindas do Supabase) —
+                // NUNCA chama getVitrineSettings(storeId) aqui, pois o
+                // localStorage da CLIENTE está vazio (ela não é a lojista).
+                const pixKey = vs?.chavePix ?? "";
+                const pixTipo = vs?.tipoChavePix ?? "cpf";
+                const pixTitular = vs?.titularPix ?? "";
+                const pixCidade = vs?.estado ?? "Brasil";
+
+                // Gera o BR Code padrão BACEN se houver chave cadastrada
+                const pixPayload = pixKey
+                  ? generatePixPayload({
+                      key: pixKey,
+                      amount: totalFinal,
+                      merchantName: pixTitular || storeName,
+                      merchantCity: pixCidade,
+                      txId: "VESTUI",
+                    })
+                  : "";
+                const pixQrUrl = pixPayload
+                  ? generatePixQrCodeUrl(pixPayload, 160)
+                  : "";
+
+                const tipoLabel: Record<string, string> = {
+                  cpf: "CPF",
+                  cnpj: "CNPJ",
+                  telefone: "Celular",
+                  email: "E-mail",
+                  aleatoria: "Chave Aleatória",
+                };
+
                 return (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 space-y-2 text-xs">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 space-y-3 text-xs">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
                         💠 Pagamento via Pix
                       </span>
-                      {pixConfig.chavePix && (
+                      {pixKey && (
                         <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          {pixConfig.tipoChavePix || "Pix"}
+                          {tipoLabel[pixTipo] ?? "Pix"}
                         </span>
                       )}
                     </div>
-                    {pixConfig.chavePix ? (
+
+                    {pixKey ? (
                       <>
-                        <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-emerald-100 font-mono text-xs text-gray-800">
-                          <span className="truncate mr-2 font-semibold">{pixConfig.chavePix}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void navigator.clipboard?.writeText(pixConfig.chavePix || "");
-                              toast.success("Chave Pix copiada!");
-                            }}
-                            className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-                            style={{ backgroundColor: cor }}
-                          >
-                            Copiar
-                          </button>
+                        {/* Linha 1: Chave Pix + Botão Copiar Chave */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-emerald-700 mb-1">Chave Pix</p>
+                          <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-emerald-100 font-mono text-gray-800">
+                            <span className="truncate mr-2 font-semibold text-[12px]">{pixKey}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void navigator.clipboard?.writeText(pixKey);
+                                toast.success("Chave Pix copiada! ✅", { description: "Cole no app do seu banco." });
+                              }}
+                              className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                              style={{ backgroundColor: cor }}
+                            >
+                              Copiar chave
+                            </button>
+                          </div>
+                          {pixTitular && (
+                            <p className="mt-1 text-[11px] text-emerald-700">
+                              Favorecido: <span className="font-semibold">{pixTitular}</span>
+                            </p>
+                          )}
                         </div>
-                        {pixConfig.titularPix && (
-                          <p className="text-[11px] text-emerald-700">
-                            Favorecido: <span className="font-semibold">{pixConfig.titularPix}</span>
-                          </p>
+
+                        {/* Linha 2: Pix Copia e Cola (BR Code BACEN) */}
+                        {pixPayload && (
+                          <div>
+                            <p className="text-[10px] font-semibold text-emerald-700 mb-1">Pix Copia e Cola — Valor já incluído: <span className="font-bold">{brl(totalFinal)}</span></p>
+                            <div className="flex gap-2">
+                              {/* QR Code */}
+                              <img
+                                src={pixQrUrl}
+                                alt="QR Code Pix"
+                                width={80}
+                                height={80}
+                                className="rounded-lg border border-emerald-100 bg-white p-1 shrink-0"
+                              />
+                              {/* Código + botão copiar */}
+                              <div className="flex flex-1 flex-col justify-between">
+                                <div className="h-[60px] overflow-hidden rounded-lg border border-emerald-100 bg-white px-2 py-1.5">
+                                  <p className="break-all font-mono text-[9px] leading-tight text-gray-700 select-all">
+                                    {pixPayload}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void navigator.clipboard?.writeText(pixPayload);
+                                    toast.success("Pix Copia e Cola copiado! ✅", {
+                                      description: "Abra seu banco, escolha Pix > Copia e Cola.",
+                                    });
+                                  }}
+                                  className="mt-1 flex h-8 w-full items-center justify-center gap-1 rounded-lg text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                                  style={{ backgroundColor: "#00A857" }}
+                                >
+                                  📋 Copiar Pix Copia e Cola
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         )}
-                        <p className="text-[10px] text-emerald-600">
-                          Abra o app do seu banco, escolha Pix Copia e Cola e faça o pagamento.
-                        </p>
+
+                        {/* Instrução final */}
+                        <div className="rounded-lg bg-emerald-100/60 px-3 py-2">
+                          <p className="text-[10px] leading-relaxed text-emerald-800">
+                            <strong>Como pagar:</strong> Copie a chave ou o código Pix acima → abra o app do seu banco → escolha <em>Pix Copia e Cola</em> → confirme o pagamento → clique em <em>"Confirmar e abrir WhatsApp"</em> para enviar o comprovante à loja.
+                          </p>
+                        </div>
                       </>
                     ) : (
                       <p className="text-[11px] text-emerald-700 leading-relaxed">
-                        Ao confirmar, o comprovante e a chave Pix serão combinados diretamente no WhatsApp da boutique.
+                        A chave Pix e as instruções de pagamento serão enviadas no WhatsApp da boutique após você confirmar o pedido.
                       </p>
                     )}
                   </div>
                 );
               })()}
+
+              {paymentMethod === "cartao" && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
+                  <p className="font-semibold text-blue-800">Detalhamento financeiro</p>
+                  <div className="flex justify-between text-blue-700"><span>Total pago pela cliente</span><span>{brl(totalFinal)}</span></div>
+                  <div className="flex justify-between text-blue-600"><span>Taxa operadora (3,5%)</span><span>- {brl(totalFinal * 0.035)}</span></div>
+                  <div className="flex justify-between font-bold text-blue-900 border-t border-blue-200 pt-1"><span>Líquido para a loja</span><span>{brl(Math.max(totalFinal - totalFinal * 0.035, 0))}</span></div>
+                  <p className="text-[10px] text-blue-500 pt-0.5">Taxa cobrada pela operadora de cartão, não pela Vestui.</p>
+                  <div className="mt-2 rounded-lg border border-blue-200 bg-white/70 px-3 py-2">
+                    <p className="text-[10px] leading-relaxed text-blue-700">
+                      <strong>Como pagar:</strong> Clique em <em>"Confirmar e abrir WhatsApp"</em> → a loja enviará o link ou combinará o pagamento na maquininha.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {paymentMethod === "cartao" && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
