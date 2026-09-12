@@ -14,6 +14,7 @@ import {
   MapPin,
   Globe,
   FileText,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,10 +36,10 @@ import { updateStoreDetails } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
     meta: [
-      { title: "Aparência da loja — Modaly" },
+      { title: "Aparência e Configurações — Vestui" },
       {
         name: "description",
-        content: "Personalize o layout e as configurações da sua vitrine online.",
+        content: "Personalize o layout, dados de recebimento Pix e configurações da sua vitrine online.",
       },
     ],
   }),
@@ -69,6 +70,11 @@ function AparenciaPage() {
   const [mostrarEstoque, setMostrarEstoque] = useState(vitrineSettings.mostrarEstoque);
   const [logoUrl, setLogoUrl] = useState(vitrineSettings.logoUrl ?? "");
   const [capaUrl, setCapaUrl] = useState(vitrineSettings.capaUrl ?? "");
+  const [chavePix, setChavePix] = useState(vitrineSettings.chavePix ?? "");
+  const [tipoChavePix, setTipoChavePix] = useState<"cpf" | "cnpj" | "telefone" | "email" | "aleatoria">(
+    vitrineSettings.tipoChavePix ?? "cpf"
+  );
+  const [titularPix, setTitularPix] = useState(vitrineSettings.titularPix ?? "");
   const [salvando, setSalvando] = useState(false);
 
   // Sincroniza se o store mudar (ex: após refetch).
@@ -107,6 +113,9 @@ function AparenciaPage() {
         estado,
         logoUrl,
         capaUrl,
+        chavePix: chavePix.trim(),
+        tipoChavePix,
+        titularPix: titularPix.trim(),
       });
 
       // 3) Sincroniza nome e WhatsApp no Theme Engine (assim os templates ficam atualizados)
@@ -401,7 +410,7 @@ function AparenciaPage() {
                   <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     readOnly
-                    value={`modaly.app/vitrine/${store?.slug ?? storeId}`}
+                    value={`vestui.com.br/vitrine/${store?.slug ?? storeId}`}
                     className="h-11 rounded-xl pl-9 text-muted-foreground"
                   />
                 </div>
@@ -415,6 +424,72 @@ function AparenciaPage() {
 
         {/* ── Coluna Direita ──────────────────────────────────────────────────── */}
         <div className="space-y-4">
+          {/* Recebimento via Pix */}
+          <SectionCard
+            title="Recebimento via Pix (Direto para você)"
+            description="Receba o valor total das vendas instantaneamente na sua conta. Taxa 0%."
+          >
+            <div className="space-y-4">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <QrCode className="h-4 w-4 shrink-0" /> Venda sem taxas e receba na hora
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed opacity-90">
+                  Esta chave Pix será apresentada na vitrine quando a cliente escolher pagamento via Pix. O dinheiro entra direto na sua conta bancária.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Campo label="Tipo da chave">
+                  <select
+                    value={tipoChavePix}
+                    onChange={(e) => setTipoChavePix(e.target.value as typeof tipoChavePix)}
+                    className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="telefone">Celular</option>
+                    <option value="email">E-mail</option>
+                    <option value="aleatoria">Chave aleatória</option>
+                  </select>
+                </Campo>
+
+                <div className="sm:col-span-2">
+                  <Campo label="Sua Chave Pix">
+                    <div className="relative">
+                      <QrCode className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={chavePix}
+                        onChange={(e) => setChavePix(e.target.value)}
+                        className="h-11 rounded-xl pl-9 font-mono text-sm"
+                        placeholder={
+                          tipoChavePix === "cpf"
+                            ? "000.000.000-00"
+                            : tipoChavePix === "cnpj"
+                            ? "00.000.000/0001-00"
+                            : tipoChavePix === "telefone"
+                            ? "(11) 99999-9999"
+                            : tipoChavePix === "email"
+                            ? "seu-pix@email.com"
+                            : "Chave aleatória (EVP)"
+                        }
+                      />
+                    </div>
+                  </Campo>
+                </div>
+              </div>
+
+              <Campo label="Nome do Titular da Conta (para conferência da cliente)">
+                <Input
+                  value={titularPix}
+                  onChange={(e) => setTitularPix(e.target.value)}
+                  className="h-11 rounded-xl"
+                  placeholder="Nome completo ou Razão Social que aparece no Pix"
+                />
+              </Campo>
+            </div>
+          </SectionCard>
+
           {/* Contato e confiança */}
           <SectionCard title="Contato e confiança" description="Aparece na vitrine para a cliente.">
             <div className="grid gap-4 sm:grid-cols-2">

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -1473,6 +1473,55 @@ function CartDrawer({
                   {paymentMethod === opt.id && <CheckCircle className="h-5 w-5 flex-shrink-0" style={{ color: cor }} />}
                 </button>
               ))}
+
+              {paymentMethod === "pix" && (() => {
+                const pixConfig = getVitrineSettings(storeId);
+                return (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
+                        💠 Pagamento via Pix
+                      </span>
+                      {pixConfig.chavePix && (
+                        <span className="text-[10px] uppercase font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          {pixConfig.tipoChavePix || "Pix"}
+                        </span>
+                      )}
+                    </div>
+                    {pixConfig.chavePix ? (
+                      <>
+                        <div className="flex items-center justify-between bg-white rounded-lg p-2 border border-emerald-100 font-mono text-xs text-gray-800">
+                          <span className="truncate mr-2 font-semibold">{pixConfig.chavePix}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard?.writeText(pixConfig.chavePix || "");
+                              toast.success("Chave Pix copiada!");
+                            }}
+                            className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: cor }}
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                        {pixConfig.titularPix && (
+                          <p className="text-[11px] text-emerald-700">
+                            Favorecido: <span className="font-semibold">{pixConfig.titularPix}</span>
+                          </p>
+                        )}
+                        <p className="text-[10px] text-emerald-600">
+                          Abra o app do seu banco, escolha Pix Copia e Cola e faça o pagamento.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-emerald-700 leading-relaxed">
+                        Ao confirmar, o comprovante e a chave Pix serão combinados diretamente no WhatsApp da boutique.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
               {paymentMethod === "cartao" && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
                   <p className="font-semibold text-blue-800">Detalhamento financeiro</p>

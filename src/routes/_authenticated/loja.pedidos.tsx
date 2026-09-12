@@ -1,9 +1,22 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { CalendarDays, MessageCircle, PackageSearch, Trash2, Truck, X } from "lucide-react";
+import {
+  CalendarDays,
+  MessageCircle,
+  PackageSearch,
+  Trash2,
+  Truck,
+  X,
+  ExternalLink,
+  RefreshCw,
+  CreditCard,
+  QrCode,
+  CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
@@ -79,10 +92,18 @@ function legacyPedidosKey(storeId: string) {
   return `vestuli_orders_${storeId}`;
 }
 
+type CustomerAddressObj = {
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cep?: string;
+  complemento?: string;
+  cidade?: string;
+};
+
 function PedidosPage() {
   const { storeId, store } = useStore();
   const queryClient = useQueryClient();
-  const [lista, setLista] = useState<Pedido[]>([]);
   const [filtro, setFiltro] = useState<StatusPedido | "todos">("todos");
   const [data, setData] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
@@ -98,6 +119,49 @@ function PedidosPage() {
     sizes: Record<string, number> | null;
   }>;
 
+  // Consulta reativa aos pedidos gravados no Supabase
+  const { data: dbOrders = [], refetch: recarregarPedidos } = useQuery({
+    queryKey: ["orders", storeId],
+    queryFn: async () => {
+      if (!storeId) return [];
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("Erro ao buscar pedidos no Supabase:", error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!storeId,
+  });
+
+  // Supabase Realtime: escuta novos pedidos ou atualizações em tempo real
+  useEffect(() => {
+    if (!storeId) return;
+    const channel = supabase
+      .channel(`orders_realtime_${storeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `store_id=eq.${storeId}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [storeId, queryClient]);
+
   // Consulta o saldo atual de um produto e tamanho
   const getItemStock = (produtoId: string, tamanho: string): number | null => {
     const prod = inventoryItems.find((p) => p.id === produtoId);
@@ -105,27 +169,86 @@ function PedidosPage() {
     return prod.sizes[tamanho] ?? 0;
   };
 
-  // Carrega pedidos isolados por loja do localStorage
-  useEffect(() => {
-    if (!storeId) return;
+  // Mapeia os pedidos do Supabase e mescla com cache local se houver
+  const lista = useMemo(() => {
+    const doBanco: Pedido[] = dbOrders.map((row) => {
+      const addr =
+        typeof row.customer_address === "object" && row.customer_address
+          ? (row.customer_address as CustomerAddressObj)
+          : {};
+      const enderecoFormatado =
+        [
+          addr.rua,
+          addr.numero && `nº ${addr.numero}`,
+          addr.bairro,
+          addr.cep && `CEP ${addr.cep}`,
+          addr.complemento,
+        ]
+          .filter(Boolean)
+          .join(", ") ||
+        (typeof row.customer_address === "string" ? row.customer_address : "");
+
+      const itens = Array.isArray(row.items)
+        ? (row.items as Array<{
+            produtoId: string;
+            nome: string;
+            tamanho: string;
+            cor: string;
+            qtd: number;
+            preco: number;
+          }>)
+        : [];
+
+      const metodoPagamento =
+        row.payment_method === "pix"
+          ? "Pix"
+          : row.payment_method === "cartao"
+          ? "Cartão de crédito"
+          : "Dinheiro na entrega";
+
+      return {
+        id: row.id,
+        numero: row.numero || `#${row.id.slice(0, 6)}`,
+        cliente: row.customer_name || "Cliente",
+        telefone: row.customer_phone || "",
+        email: row.customer_email || undefined,
+        cidade: addr.bairro || "",
+        criadoEm: row.created_at,
+        status: (row.status || "novo") as StatusPedido,
+        origem: "Checkout" as const,
+        pagamento: metodoPagamento,
+        entrega: row.frete_tipo || "Entrega",
+        endereco: enderecoFormatado,
+        rastreio: row.tracking_code || undefined,
+        frete: Number(row.frete_valor || 0),
+        desconto: Number(row.desconto || 0),
+        cupom: row.cupom || undefined,
+        taxaOperadora: Number(row.payment_fee || 0),
+        valorLiquido: Number(
+          row.net_amount ||
+            Math.max(Number(row.total || 0) - Number(row.payment_fee || 0), 0),
+        ),
+        itens,
+      };
+    });
+
+    if (!storeId) return doBanco;
     try {
       const stored =
         localStorage.getItem(pedidosKey(storeId)) ||
         localStorage.getItem(legacyPedidosKey(storeId));
-      if (stored) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setLista(JSON.parse(stored) as any as Pedido[]);
-      } else {
-        setLista([]);
-      }
+      if (!stored) return doBanco;
+      const locais = JSON.parse(stored) as Pedido[];
+      const idsBanco = new Set(doBanco.map((p) => p.id));
+      const apenasLocais = locais.filter((p) => !idsBanco.has(p.id));
+      return [...doBanco, ...apenasLocais];
     } catch {
-      setLista([]);
+      return doBanco;
     }
-  }, [storeId]);
+  }, [dbOrders, storeId]);
 
-  // Persiste mudanças no localStorage
+  // Persiste cache local como fallback
   const persistir = (novaLista: Pedido[]) => {
-    setLista(novaLista);
     localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
   };
 
@@ -141,19 +264,36 @@ function PedidosPage() {
 
   const pedidoAberto = lista.find((p) => p.id === aberto) ?? null;
 
-  const executarAvancoStatus = (pedido: Pedido) => {
+  const executarAvancoStatus = async (pedido: Pedido) => {
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
     const proximo = fluxoStatus[atual + 1]!;
+
+    // 1) Atualiza no Supabase
+    try {
+      const payload: { status: StatusPedido; payment_status?: string } = {
+        status: proximo,
+      };
+      if (proximo === "confirmado") {
+        payload.payment_status = "pago";
+      }
+      await supabase
+        .from("orders")
+        .update(payload)
+        .eq("id", pedido.id);
+      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+    } catch (err) {
+      console.error("Erro ao atualizar status no Supabase:", err);
+    }
+
+    // 2) Cache local
     const novaLista = lista.map((p) =>
       p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p,
     );
     persistir(novaLista);
 
-    // ── Automação ao CONFIRMAR um pedido (novo → confirmado) ───────────────
-    // Baixa as quantidades do estoque e registra a entrada no Caixa automaticamente.
+    // 3) Se novo -> confirmado: baixa estoque e lança no caixa
     if (pedido.status === "novo" && proximo === "confirmado") {
-      // 1) Baixa de Estoque: reduz por produto e tamanho exato do item comprado
       if (pedido.itens?.length) {
         const deducoes = pedido.itens.map((item) =>
           adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
@@ -163,7 +303,6 @@ function PedidosPage() {
         });
       }
 
-      // 2) Lançamento no Caixa: entrada no valor total do pedido
       const valorTotal = totalPedido(pedido);
       void insertTransaction({
         storeId,
@@ -212,30 +351,43 @@ function PedidosPage() {
         return;
       }
     }
-    executarAvancoStatus(pedido);
+    void executarAvancoStatus(pedido);
     setAberto(null);
   };
 
-
-  const cancelar = (id: string) => {
+  const cancelar = async (id: string) => {
     const pedido = lista.find((p) => p.id === id);
     if (!pedido) return;
     const statusAnterior = pedido.status;
+
+    // 1) Atualiza no Supabase
+    try {
+      await supabase
+        .from("orders")
+        .update({
+          status: "cancelado",
+          payment_status: "cancelado",
+        })
+        .eq("id", id);
+      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+    } catch (err) {
+      console.error("Erro ao cancelar no Supabase:", err);
+    }
+
+    // 2) Cache local
     const novaLista = lista.map((p) =>
       p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p,
     );
     persistir(novaLista);
     setAberto(null);
 
-    // Se o pedido já havia sido confirmado (baixou estoque e entrou no caixa), estorna ambos
+    // 3) Se o pedido já havia baixado estoque, estorna
     if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
-      // 1. Devolve estoque das peças
       if (pedido.itens?.length) {
         void restoreOrderStock(storeId, pedido.itens).then(() => {
           void queryClient.invalidateQueries({ queryKey: ["inventory"] });
         });
       }
-      // 2. Lança saída de estorno no Caixa
       const valorTotal = totalPedido(pedido);
       if (valorTotal > 0) {
         void insertTransaction({
@@ -256,8 +408,14 @@ function PedidosPage() {
     }
   };
 
-  const excluirPedido = (id: string) => {
+  const excluirPedido = async (id: string) => {
     const pedido = lista.find((p) => p.id === id);
+    try {
+      await supabase.from("orders").delete().eq("id", id);
+      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+    } catch (err) {
+      console.error("Erro ao excluir do Supabase:", err);
+    }
     const novaLista = lista.filter((p) => p.id !== id);
     persistir(novaLista);
     setAberto(null);
@@ -266,12 +424,23 @@ function PedidosPage() {
     });
   };
 
-  const salvarRastreio = (pedidoId: string) => {
+  const salvarRastreio = async (pedidoId: string) => {
     if (!codigoRastreio.trim()) {
       toast.error("Informe o código de rastreio.");
       return;
     }
     const cod = codigoRastreio.trim().toUpperCase();
+
+    try {
+      await supabase
+        .from("orders")
+        .update({ tracking_code: cod })
+        .eq("id", pedidoId);
+      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+    } catch (err) {
+      console.error("Erro ao salvar rastreio no Supabase:", err);
+    }
+
     const novaLista = lista.map((p) =>
       p.id === pedidoId ? { ...p, rastreio: cod } : p,
     );
@@ -288,6 +457,19 @@ function PedidosPage() {
         eyebrow="Loja online"
         title="Pedidos"
         description="Todo pedido aceito baixa o estoque e registra automaticamente no caixa da gestão."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void recarregarPedidos();
+              toast.success("Pedidos atualizados em tempo real!");
+            }}
+            className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+          >
+            <RefreshCw className="mr-2 h-3.5 w-3.5" /> Sincronizar pedidos
+          </Button>
+        }
       />
 
       <div className="flex flex-wrap gap-2">
@@ -409,15 +591,15 @@ function PedidosPage() {
                     );
                   })}
                 </ul>
-                <div className="mt-3 flex flex-col gap-1 border-t border-border/70 pt-3 text-sm">
+                <div className="mt-3 flex flex-col gap-1.5 border-t border-border/70 pt-3 text-sm">
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal</span>
+                    <span>Subtotal das peças</span>
                     <span className="num-display">
                       {brl(pedidoAberto.itens.reduce((a, i) => a + i.preco * i.qtd, 0))}
                     </span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Frete</span>
+                    <span>Frete ({pedidoAberto.entrega})</span>
                     <span className="num-display">
                       {pedidoAberto.frete > 0 ? `+ ${brl(pedidoAberto.frete)}` : "Grátis"}
                     </span>
@@ -430,30 +612,82 @@ function PedidosPage() {
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between text-base font-semibold">
-                    <span>Total</span>
-                    <span className="num-display">{brl(totalPedido(pedidoAberto))}</span>
+                  <div className="flex justify-between text-base font-semibold border-t border-border/40 pt-1.5">
+                    <span>Total pago pela cliente</span>
+                    <span className="num-display font-bold">{brl(totalPedido(pedidoAberto))}</span>
+                  </div>
+
+                  {/* Extrato contábil transparente */}
+                  <div className="mt-2 rounded-xl border border-border/80 bg-secondary/40 p-3 space-y-1 text-xs">
+                    <p className="font-semibold text-foreground">Extrato líquido da venda</p>
+                    {pedidoAberto.taxaOperadora !== undefined && pedidoAberto.taxaOperadora > 0 ? (
+                      <>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Taxa operadora de cartão (3,5%)</span>
+                          <span className="text-destructive font-medium">− {brl(pedidoAberto.taxaOperadora)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
+                          <span>Líquido a receber na conta</span>
+                          <span>{brl(pedidoAberto.valorLiquido ?? Math.max(totalPedido(pedidoAberto) - pedidoAberto.taxaOperadora, 0))}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground pt-0.5">
+                          A taxa é descontada da venda pela operadora de cartão. Custo Vestui: R$ 0,00.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Taxa de processamento ({pedidoAberto.pagamento})</span>
+                          <span className="text-emerald-600 font-medium">R$ 0,00 (Grátis)</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
+                          <span>Líquido a receber na conta</span>
+                          <span>{brl(totalPedido(pedidoAberto))}</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 pt-0.5">
+                          ✓ Venda direta com 100% do valor limpo para sua boutique.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </SectionCard>
 
-              {/* Entrega */}
+              {/* Entrega & Rastreio */}
               <SectionCard title="Entrega" bodyClassName="p-4">
-                <div className="space-y-1.5 text-sm">
+                <div className="space-y-2 text-sm">
                   <div className="flex gap-2">
                     <Truck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <p>{pedidoAberto.entrega}</p>
+                    <p className="font-medium">{pedidoAberto.entrega}</p>
                   </div>
-                  <p className="pl-6 text-xs text-muted-foreground">{pedidoAberto.endereco}</p>
+                  <p className="pl-6 text-xs text-muted-foreground leading-relaxed">{pedidoAberto.endereco}</p>
+
                   {pedidoAberto.rastreio ? (
-                    <div className="mt-2 flex items-center gap-2 rounded-xl bg-secondary/50 px-3 py-2">
-                      <span className="text-xs text-muted-foreground">Cód. rastreio</span>
-                      <span className="num-display text-xs font-semibold">
-                        {pedidoAberto.rastreio}
-                      </span>
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
+                        <span className="text-xs text-muted-foreground">Cód. rastreio</span>
+                        <span className="num-display text-xs font-bold font-mono text-primary">
+                          {pedidoAberto.rastreio}
+                        </span>
+                      </div>
+                      {pedidoAberto.telefone && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 w-full rounded-xl text-xs font-semibold text-green-700 border-green-200 bg-green-50 hover:bg-green-100 flex items-center justify-center gap-1.5"
+                          onClick={() => {
+                            const phoneDigits = pedidoAberto.telefone.replace(/\D/g, "");
+                            const phone = phoneDigits.startsWith("55") ? phoneDigits : `55${phoneDigits}`;
+                            const msg = `Olá, ${pedidoAberto.cliente}! 👋\n\nSeu pedido *${pedidoAberto.numero}* foi enviado! 📦\n\nCódigo de rastreamento: *${pedidoAberto.rastreio}*\n\nAcompanhe nos Correios:\nhttps://rastreamento.correios.com.br/app/index.php?codigo=${pedidoAberto.rastreio}`;
+                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+                          }}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" /> Avisar rastreio no WhatsApp da cliente
+                        </Button>
+                      )}
                     </div>
                   ) : (
-                    <div className="mt-2 space-y-1.5">
+                    <div className="mt-3 space-y-1.5">
                       <Input
                         placeholder="Inserir código de rastreio (ex: BR849201773BR)"
                         value={codigoRastreio}
@@ -464,7 +698,7 @@ function PedidosPage() {
                         variant="outline"
                         size="sm"
                         className="h-9 w-full rounded-xl text-xs font-semibold"
-                        onClick={() => salvarRastreio(pedidoAberto.id)}
+                        onClick={() => void salvarRastreio(pedidoAberto.id)}
                       >
                         Salvar rastreio
                       </Button>

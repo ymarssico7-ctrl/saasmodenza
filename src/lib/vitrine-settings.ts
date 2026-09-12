@@ -15,6 +15,9 @@ export type VitrineSettings = {
   estado: string;
   logoUrl?: string;
   capaUrl?: string;
+  chavePix?: string;
+  tipoChavePix?: "cpf" | "cnpj" | "telefone" | "email" | "aleatoria";
+  titularPix?: string;
 };
 
 const DEFAULT_SETTINGS: VitrineSettings = {
@@ -27,6 +30,9 @@ const DEFAULT_SETTINGS: VitrineSettings = {
   estado: "",
   logoUrl: "",
   capaUrl: "",
+  chavePix: "",
+  tipoChavePix: "cpf",
+  titularPix: "",
 };
 
 export function getVitrineSettings(storeId: string): VitrineSettings {

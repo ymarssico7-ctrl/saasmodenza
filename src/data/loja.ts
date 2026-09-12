@@ -56,13 +56,16 @@ export type Pedido = {
   criadoEm: string;
   status: StatusPedido;
   origem: "WhatsApp" | "Checkout";
-  pagamento: "Pix" | "Cartão de crédito" | "Cartão de débito" | "Dinheiro na entrega";
-  entrega: "Retirada na loja" | "Entrega local" | "Correios PAC" | "Correios SEDEX";
+  pagamento: "Pix" | "Cartão de crédito" | "Cartão de débito" | "Dinheiro na entrega" | string;
+  entrega: "Retirada na loja" | "Entrega local" | "Correios PAC" | "Correios SEDEX" | string;
   endereco: string;
-  rastreio?: string;
+  rastreio?: string | undefined;
   frete: number;
   desconto: number;
-  cupom?: string;
+  cupom?: string | undefined;
+  email?: string | undefined;
+  taxaOperadora?: number | undefined;
+  valorLiquido?: number | undefined;
   itens: {
     produtoId: string;
     nome: string;
