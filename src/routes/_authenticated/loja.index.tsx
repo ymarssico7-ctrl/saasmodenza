@@ -12,8 +12,10 @@ import {
 } from "recharts";
 import {
   ArrowUpRight,
+  CheckCircle2,
   Copy,
   ExternalLink,
+  Plus,
   Receipt,
   ShoppingBag,
   Sparkles,
@@ -312,10 +314,10 @@ function VisaoGeral() {
           <Button
             asChild
             size="sm"
-            className="gradient-primary h-8 rounded-full px-3.5 text-xs font-semibold shadow-sm cursor-pointer"
+            className="gradient-primary h-8 rounded-full px-3.5 text-xs font-semibold shadow-xs cursor-pointer"
           >
-            <Link to="/loja/produtos">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Gerenciar vitrine
+            <Link to="/loja/pedidos">
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Novo pedido
             </Link>
           </Button>
         </div>
@@ -407,27 +409,78 @@ function VisaoGeral() {
           bodyClassName="px-2 pb-4 pt-5 sm:px-4"
         >
           {totalVendasPeriodo === 0 ? (
-            <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
-                <ShoppingBag className="h-6 w-6 opacity-40" />
+            <div className="flex flex-col justify-between p-4 sm:p-5">
+              <div className="flex items-center justify-between border-b border-border/50 pb-3">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Como realizar suas primeiras vendas</p>
+                  <p className="text-[11px] text-muted-foreground">3 ações simples e práticas para lojistas</p>
+                </div>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary">
+                  Guia Rápido
+                </span>
               </div>
-              <div className="max-w-md">
-                <p className="text-sm font-semibold text-foreground">
-                  Nenhuma venda registrada nos últimos {periodoDias} dias
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Assim que suas clientes realizarem compras pela vitrine ou WhatsApp, a curva de
-                  faturamento e o ticket médio aparecerão aqui em tempo real.
-                </p>
+
+              <div className="grid gap-3 pt-3 sm:grid-cols-3">
+                {/* Passo 1: Fotos e Grade */}
+                <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 flex flex-col justify-between hover:bg-secondary/50 transition-colors">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">1</span>
+                      <span>Grade & Fotos</span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
+                      {esgotados > 0
+                        ? `Você tem ${esgotados} peça esgotada. Atualize o estoque para liberar na vitrine.`
+                        : "Defina tamanhos e cadastre fotos nítidas para as peças."}
+                    </p>
+                  </div>
+                  <Link
+                    to="/loja/produtos"
+                    className="mt-3 inline-flex items-center text-[11px] font-medium text-primary hover:underline"
+                  >
+                    Ajustar vitrine <ArrowUpRight className="ml-1 size-3" />
+                  </Link>
+                </div>
+
+                {/* Passo 2: Divulgação */}
+                <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 flex flex-col justify-between hover:bg-secondary/50 transition-colors">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">2</span>
+                      <span>Link na Bio</span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
+                      Coloque seu link na bio do Instagram ou envie no WhatsApp para suas clientes.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copiarLink}
+                    className="mt-3 inline-flex items-center text-[11px] font-medium text-primary hover:underline cursor-pointer"
+                  >
+                    Copiar link da vitrine <Copy className="ml-1 size-3" />
+                  </button>
+                </div>
+
+                {/* Passo 3: Cupom de Boas-Vindas */}
+                <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 flex flex-col justify-between hover:bg-secondary/50 transition-colors">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">3</span>
+                      <span>Incentivo 10% OFF</span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
+                      Crie um cupom de boas-vindas para acelerar as primeiras compras da sua vitrine.
+                    </p>
+                  </div>
+                  <Link
+                    to="/loja/cupons"
+                    className="mt-3 inline-flex items-center text-[11px] font-medium text-primary hover:underline"
+                  >
+                    Criar cupom <ArrowUpRight className="ml-1 size-3" />
+                  </Link>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copiarLink}
-                className="mt-2 rounded-full text-xs"
-              >
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> Compartilhar link da vitrine
-              </Button>
             </div>
           ) : (
             <div className="h-[240px] w-full">
@@ -480,34 +533,52 @@ function VisaoGeral() {
         </SectionCard>
 
         {/* Coluna Lateral: Atenção no Estoque & Canais de Venda */}
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col justify-between">
           <SectionCard
             title="Atenção no estoque"
             description="Reflete direto na sua vitrine online."
           >
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-3 py-2.5 border border-amber-500/15">
-                <span className="text-muted-foreground text-xs">Últimas unidades</span>
-                <span className="font-semibold text-amber-700 dark:text-amber-400">
-                  {ultimasUnidades} {ultimasUnidades === 1 ? "peça" : "peças"}
-                </span>
-              </div>
+            <div className="space-y-2.5 text-sm">
+              {ultimasUnidades > 0 ? (
+                <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-3 py-2 border border-amber-500/20 text-xs">
+                  <span className="text-amber-800 dark:text-amber-300 font-medium">Últimas unidades</span>
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                    {ultimasUnidades} {ultimasUnidades === 1 ? "peça" : "peças"}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Estoque crítico</span>
+                  <span className="text-muted-foreground font-medium flex items-center gap-1">
+                    <CheckCircle2 className="size-3 text-emerald-500" /> Nenhuma peça acabando
+                  </span>
+                </div>
+              )}
 
-              <div className="flex items-center justify-between rounded-xl bg-rose-500/10 px-3 py-2.5 border border-rose-500/15">
-                <span className="text-muted-foreground text-xs">Esgotadas na vitrine</span>
-                <span className="font-semibold text-rose-700 dark:text-rose-400">
-                  {esgotados} {esgotados === 1 ? "peça" : "peças"}
-                </span>
-              </div>
+              {esgotados > 0 ? (
+                <div className="flex items-center justify-between rounded-xl bg-rose-500/10 px-3 py-2 border border-rose-500/20 text-xs">
+                  <span className="text-rose-800 dark:text-rose-300 font-medium">Esgotadas na vitrine</span>
+                  <span className="font-semibold text-rose-700 dark:text-rose-400">
+                    {esgotados} {esgotados === 1 ? "peça" : "peças"}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Esgotadas</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="size-3 text-emerald-500" /> Todas ativas
+                  </span>
+                </div>
+              )}
 
-              <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2.5">
-                <span className="text-muted-foreground text-xs">Total cadastrado</span>
+              <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs">
+                <span className="text-muted-foreground">Total cadastrado</span>
                 <span className="font-semibold text-foreground">
-                  {inventoryItems.length} produtos
+                  {inventoryItems.length} {inventoryItems.length === 1 ? "produto" : "produtos"}
                 </span>
               </div>
 
-              <Button asChild variant="ghost" className="h-9 w-full rounded-xl text-xs">
+              <Button asChild variant="ghost" className="h-8 w-full rounded-xl text-xs font-medium text-primary hover:text-primary hover:bg-primary/5 cursor-pointer">
                 <Link to="/loja/produtos">
                   Gerenciar estoque da vitrine <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                 </Link>
@@ -517,11 +588,22 @@ function VisaoGeral() {
 
           <SectionCard
             title="Origem dos pedidos"
-            description="Como suas clientes compram."
+            description="Distribuição por método de pagamento."
           >
             {orders.length === 0 ? (
-              <div className="flex h-24 items-center justify-center text-xs text-muted-foreground">
-                Nenhum pedido registrado ainda.
+              <div className="space-y-1.5 py-0.5 text-xs">
+                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-1.5 text-muted-foreground">
+                  <span>Pix Vestui Pay</span>
+                  <span className="font-mono text-[11px]">0 pedidos</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-1.5 text-muted-foreground">
+                  <span>Cartão de Crédito</span>
+                  <span className="font-mono text-[11px]">0 pedidos</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-1.5 text-muted-foreground">
+                  <span>WhatsApp / Balcão</span>
+                  <span className="font-mono text-[11px]">0 pedidos</span>
+                </div>
               </div>
             ) : (
               <div className="space-y-2 text-sm">
@@ -561,19 +643,33 @@ function VisaoGeral() {
         title="Últimos pedidos recebidos"
         description="Pedidos confirmados sincronizam o estoque e dão entrada no caixa automaticamente."
         actions={
-          <Button asChild variant="ghost" className="h-9 rounded-full text-xs">
+          <Button asChild variant="outline" size="sm" className="h-8 rounded-full text-xs font-medium border-border cursor-pointer">
             <Link to="/loja/pedidos">Ver todos os pedidos</Link>
           </Button>
         }
         bodyClassName="p-0"
       >
         {ultimosPedidos.length === 0 ? (
-          <div className="flex h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-            <ShoppingBag className="h-8 w-8 opacity-30" />
-            <p className="font-medium">Nenhum pedido recebido ainda.</p>
-            <p className="text-xs">
-              Assim que uma cliente finalizar uma compra na sua vitrine, ela aparecerá aqui.
-            </p>
+          <div className="flex h-36 flex-col items-center justify-center gap-2 text-center p-6 text-muted-foreground">
+            <div className="grid size-9 place-items-center rounded-xl bg-secondary/60 text-muted-foreground">
+              <ShoppingBag className="size-4.5 opacity-40" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">Nenhum pedido recebido ainda</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground max-w-sm">
+                Assim que uma cliente finalizar uma compra na sua vitrine, o pedido aparecerá aqui com status e baixa automática.
+              </p>
+            </div>
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="mt-1 h-7.5 rounded-full text-xs font-medium border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
+            >
+              <Link to="/loja/pedidos">
+                <Plus className="mr-1 size-3" /> Registrar Venda Manual
+              </Link>
+            </Button>
           </div>
         ) : (
           <ul className="divide-y divide-border">

@@ -36,7 +36,7 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
                 <strong>
                   {daysLeft} {dayLabel}
                 </strong>
-                .{isUrgent ? " Não perca seus dados!" : ""}
+                .{isUrgent ? " Aproveite todas as funcionalidades da sua loja online sem interrupções." : ""}
               </>
             )}
           </span>
@@ -45,8 +45,7 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
         <Button
           id="trial-subscribe-btn"
           size="sm"
-          variant={isUrgent ? "default" : "outline"}
-          className="h-6.5 shrink-0 rounded-full px-3 text-[11px] font-semibold cursor-pointer shadow-none"
+          className="h-6.5 shrink-0 rounded-full px-3 text-[11px] font-semibold cursor-pointer shadow-none bg-foreground text-background hover:bg-foreground/90 transition-colors"
           onClick={() => setModalOpen(true)}
         >
           <Zap className="size-3 mr-1" />
