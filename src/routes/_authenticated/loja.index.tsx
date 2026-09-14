@@ -446,6 +446,14 @@ function VisaoGeral() {
       {/* ── 1. Header Minimalista Padrão Apple HIG (Smart Chip + Toolbar Compacta) ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          {/* Eyebrow / Seção com Identidade Vestui */}
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Loja Online · Visão Geral
+            </span>
+          </div>
+
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Bom te ver, {primeiroNome}
           </h1>
@@ -523,11 +531,12 @@ function VisaoGeral() {
 
       {/* ── 2. 4 KPIs com Contenção Cromática & Tipografia Apple ───────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {/* KPI 1: Vendas no Mês */}
+        {/* KPI 1: Vendas no Mês (Hero com sutil acento de borda Vestui) */}
         <KpiCard
           label="Vendas no mês"
           value={vendasMesBruto}
           format={(v) => mascaraSaldo(v)}
+          className="border-l-[3px] border-l-primary/60"
           hint={
             ocultarSaldos
               ? "••••••"

@@ -29,6 +29,7 @@ export function KpiCard({
   hint,
   icon,
   accent = false,
+  className,
 }: {
   label: string;
   value: number;
@@ -37,6 +38,7 @@ export function KpiCard({
   hint?: string;
   icon?: React.ReactNode;
   accent?: boolean;
+  className?: string;
 }) {
   const animated = useAnimatedNumber(value);
   const positivo = (delta ?? 0) >= 0;
@@ -45,6 +47,7 @@ export function KpiCard({
     <div
       className={cn(
         "surface-card surface-card-hover relative overflow-hidden rounded-2xl p-4 transition-all duration-200 border border-border/70 bg-card text-card-foreground",
+        className,
       )}
     >
       <div className="flex items-start justify-between gap-2">
