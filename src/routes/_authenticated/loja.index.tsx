@@ -22,9 +22,11 @@ import {
   Flame,
   PackageCheck,
   PackageSearch,
+  Plus,
   Receipt,
-  ShieldCheck,
+  Share2,
   ShoppingBag,
+  Tag,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -146,6 +148,18 @@ function VisaoGeral() {
     toast.success("Link da vitrine copiado!", {
       description: `${vitrineDisplay} (pronto para colocar na Bio do Instagram ou WhatsApp)`,
     });
+  };
+
+  const compartilharWhatsApp = () => {
+    if (!vitrineUrl) {
+      toast.error("Configure o link da sua loja nas Configurações");
+      return;
+    }
+    const texto = encodeURIComponent(
+      `Olá! Conheça as peças da nossa vitrine online com compra rápida e segura: ${vitrineUrl}`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${texto}`, "_blank");
+    toast.success("Abrindo WhatsApp com link da vitrine...");
   };
 
   // ── 1. Status da Subconta Vestui Pay ───────────────────────────────────────
@@ -298,9 +312,11 @@ function VisaoGeral() {
       const fee =
         typeof p.payment_fee === "number"
           ? p.payment_fee
-          : p.gateway_charge_id
-            ? 0.99
-            : 0;
+          : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
+            ? Number(p.payment_fee)
+            : p.gateway_charge_id
+              ? 0.99
+              : 0;
       return acc + Math.max(0, bruto - fee);
     }, 0);
   }, [pedidosMes]);
@@ -332,7 +348,14 @@ function VisaoGeral() {
       .filter((p) => isPedidoPago(p) && !p.created_at.startsWith(hojeStr))
       .reduce((acc, p) => {
         const bruto = Number(p.total) || 0;
-        const fee = typeof p.payment_fee === "number" ? p.payment_fee : p.gateway_charge_id ? 0.99 : 0;
+        const fee =
+          typeof p.payment_fee === "number"
+            ? p.payment_fee
+            : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
+              ? Number(p.payment_fee)
+              : p.gateway_charge_id
+                ? 0.99
+                : 0;
         return acc + Math.max(0, bruto - fee);
       }, 0);
   }, [asaasLiveBalance, orders, hojeStr]);
@@ -346,10 +369,31 @@ function VisaoGeral() {
       .filter((p) => isPedidoPago(p) && p.created_at.startsWith(hojeStr))
       .reduce((acc, p) => {
         const bruto = Number(p.total) || 0;
-        const fee = typeof p.payment_fee === "number" ? p.payment_fee : p.gateway_charge_id ? 0.99 : 0;
+        const fee =
+          typeof p.payment_fee === "number"
+            ? p.payment_fee
+            : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
+              ? Number(p.payment_fee)
+              : p.gateway_charge_id
+                ? 0.99
+                : 0;
         return acc + Math.max(0, bruto - fee);
       }, 0);
   }, [asaasLiveBalance, orders, hojeStr]);
+
+  // Regra de Dias Úteis BACEN para Repasse D+1
+  const diaSemanaHoje = now.getDay(); // 0=Dom, 5=Sex, 6=Sáb
+  const labelRepasseD1 =
+    diaSemanaHoje === 5 || diaSemanaHoje === 6 || diaSemanaHoje === 0
+      ? "Repasse D+1 (Segunda)"
+      : "Repasse D+1 (Amanhã)";
+
+  const hintRepasseD1 =
+    saldoRetidoD1 > 0
+      ? diaSemanaHoje === 5 || diaSemanaHoje === 6 || diaSemanaHoje === 0
+        ? "Compensação segunda às 07:00"
+        : "Depósito automático às 07:00"
+      : "Nenhum repasse retido hoje";
 
   // ── Pedidos que Exigem Ação Imediata (Fulfillment / Despacho) ─────────────
   const pedidosPendentesAcao = useMemo(() => {
@@ -496,36 +540,40 @@ function VisaoGeral() {
           icon={<Wallet className="h-4 w-4" />}
         />
 
-        {/* KPI 2: Saldo Disponível para Saque / Repasse */}
-        <KpiCard
-          label="Saldo Disponível"
-          value={saldoDisponivel}
-          format={(v) => mascaraSaldo(v)}
-          hint={
-            payAccount?.status === "ativa"
-              ? "Liberado na Subconta Asaas"
-              : "Disponível para movimentação"
-          }
-          icon={<Banknote className="h-4 w-4 text-emerald-600" />}
-        />
+        {/* KPI 2: Saldo Disponível para Saque / Repasse (Com Link direto para Recebimentos) */}
+        <Link to="/loja/recebimentos" className="group block focus:outline-none">
+          <KpiCard
+            label="Saldo Disponível"
+            value={saldoDisponivel}
+            format={(v) => mascaraSaldo(v)}
+            hint={
+              payAccount?.status === "ativa"
+                ? "Liberado na Subconta Asaas →"
+                : "Disponível para movimentação →"
+            }
+            icon={<Banknote className="h-4 w-4 text-emerald-600 transition-transform group-hover:scale-110" />}
+          />
+        </Link>
 
-        {/* KPI 3: Repasse em Custódia D+1 (Compensação Matinal) */}
-        <KpiCard
-          label="Repasse D+1 (Amanhã)"
-          value={saldoRetidoD1}
-          format={(v) => mascaraSaldo(v)}
-          hint={saldoRetidoD1 > 0 ? "Depósito automático às 07:00" : "Nenhum repasse retido hoje"}
-          icon={<Clock className="h-4 w-4 text-amber-500" />}
-        />
+        {/* KPI 3: Repasse em Custódia D+1 (Compensação BACEN por dia útil com Link direto) */}
+        <Link to="/loja/recebimentos" className="group block focus:outline-none">
+          <KpiCard
+            label={labelRepasseD1}
+            value={saldoRetidoD1}
+            format={(v) => mascaraSaldo(v)}
+            hint={hintRepasseD1}
+            icon={<Clock className="h-4 w-4 text-amber-500 transition-transform group-hover:scale-110" />}
+          />
+        </Link>
 
-        {/* KPI 4: Pedidos Recebidos & Ticket Médio */}
+        {/* KPI 4: Pedidos Recebidos & Ticket Médio (Contador sempre legível no balcão) */}
         <KpiCard
           label="Pedidos no mês"
           value={totalPedidosMes}
-          format={(n) => (ocultarSaldos ? "••" : Math.round(n).toString())}
+          format={(n) => Math.round(n).toString()}
           hint={
             ocultarSaldos
-              ? "••••••"
+              ? "Ticket: ••••••"
               : ticketMedio > 0
                 ? `Ticket médio: ${brl(ticketMedio)}`
                 : "Pronto para os primeiros pedidos"
@@ -572,16 +620,16 @@ function VisaoGeral() {
             bodyClassName="px-2 pb-4 pt-5 sm:px-4"
           >
             {totalVendasPeriodo === 0 ? (
-              <div className="flex h-[200px] flex-col items-center justify-center gap-2 text-center p-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
-                  <ShoppingBag className="h-4 w-4 opacity-40" />
+              <div className="flex h-[200px] flex-col items-center justify-center gap-2.5 text-center p-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary/70 text-muted-foreground">
+                  <ShoppingBag className="h-5 w-5 opacity-40" />
                 </div>
-                <div className="max-w-xs">
-                  <p className="text-sm font-medium text-foreground">
+                <div className="max-w-xs space-y-1">
+                  <p className="text-sm font-semibold text-foreground">
                     Nenhuma venda nos últimos {periodoDias} dias
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    As vendas aparecem aqui em tempo real assim que confirmadas.
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    As vendas confirmadas aparecem aqui em tempo real. Divulgue sua vitrine para acelerar as primeiras compras!
                   </p>
                 </div>
               </div>
@@ -641,16 +689,18 @@ function VisaoGeral() {
             description="Pedidos confirmados sincronizam o estoque e entram no caixa automaticamente."
             actions={
               <Button asChild variant="outline" size="sm" className="h-7 rounded-full text-xs font-medium border-border cursor-pointer">
-                <Link to="/loja/pedidos">Ver todos ({orders.length})</Link>
+                <Link to="/loja/pedidos">
+                  Ver todos {orders.length > 0 && <span className="ml-1 text-[11px] text-muted-foreground font-mono">({orders.length})</span>}
+                </Link>
               </Button>
             }
             bodyClassName="p-0"
           >
             {ultimosPedidos.length === 0 ? (
-              <div className="flex h-24 flex-col items-center justify-center gap-1.5 text-center p-4">
+              <div className="flex h-28 flex-col items-center justify-center gap-1.5 text-center p-4">
                 <p className="text-sm font-medium text-foreground">Nenhum pedido recebido ainda</p>
-                <p className="text-xs text-muted-foreground">
-                  Aparece aqui assim que uma compra for finalizada na vitrine.
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  Assim que uma cliente finalizar o checkout ou enviar o pedido pela vitrine, ele entrará aqui instantaneamente.
                 </p>
               </div>
             ) : (
@@ -681,10 +731,10 @@ function VisaoGeral() {
           </SectionCard>
         </div>
 
-        {/* ── Coluna Direita: Ações do Dia, Estoque & Centro de Recebimentos (35%) ── */}
+        {/* ── Coluna Direita: Ações do Dia, Estoque & Ações Rápidas (35%) ─────────── */}
         <div className="flex flex-col gap-4">
 
-          {/* 1. NOVO CARD: Ações do Dia & Despacho (Fulfillment Operacional) */}
+          {/* 1. CARD: Ações do Dia & Despacho (Fulfillment Operacional) */}
           <SectionCard
             title="Ações do Dia & Despacho"
             description="Pedidos que exigem separação e envio imediato."
@@ -816,31 +866,76 @@ function VisaoGeral() {
             </div>
           </SectionCard>
 
-          {/* 3. NOVO CARD: Centro de Recebimentos & Status Vestui Pay */}
+          {/* 3. CARD: Ações Rápidas da Loja (Substitui o card estático por cockpit de atalhos) */}
           <SectionCard
-            title="Centro de Recebimentos"
-            description="Custódia BACEN e liquidações automáticas."
+            title="Ações Rápidas"
+            description="Atalhos frequentes para a rotina da sua loja."
           >
-            <div className="space-y-3">
-              <div className="flex items-start gap-2.5 rounded-2xl bg-secondary/40 p-3 border border-border">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
-                <div className="text-xs">
-                  <p className="font-semibold text-foreground">
-                    {payAccount?.status === "ativa" ? "Vestui Pay Operacional" : "Recebimento via Pix"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                    {payAccount?.status === "ativa"
-                      ? "Repasses automáticos em D+1 na sua conta bancária sem tarifas abusivas."
-                      : "Receba na sua chave Pix própria ou ative a subconta Vestui Pay para repasses automáticos."}
-                  </p>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              {/* 1. Nova Peça */}
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto flex-col items-start gap-1.5 rounded-2xl border-border bg-card p-3 text-left hover:bg-secondary/60 transition-all cursor-pointer group"
+              >
+                <Link to="/loja/produtos">
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Nova Peça</p>
+                    <p className="text-[10px] text-muted-foreground">Adicionar ao catálogo</p>
+                  </div>
+                </Link>
+              </Button>
 
-              <Button asChild variant="outline" size="sm" className="h-8 w-full rounded-xl text-xs font-medium border-border cursor-pointer">
+              {/* 2. Criar Cupom */}
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto flex-col items-start gap-1.5 rounded-2xl border-border bg-card p-3 text-left hover:bg-secondary/60 transition-all cursor-pointer group"
+              >
+                <Link to="/loja/cupons">
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-amber-500/10 text-amber-600 group-hover:scale-105 transition-transform">
+                    <Tag className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Criar Cupom</p>
+                    <p className="text-[10px] text-muted-foreground">Promover vendas</p>
+                  </div>
+                </Link>
+              </Button>
+
+              {/* 3. Divulgar WhatsApp */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={compartilharWhatsApp}
+                className="h-auto flex-col items-start gap-1.5 rounded-2xl border-border bg-card p-3 text-left hover:bg-secondary/60 transition-all cursor-pointer group"
+              >
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 group-hover:scale-105 transition-transform">
+                  <Share2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Divulgar</p>
+                  <p className="text-[10px] text-muted-foreground">Enviar no WhatsApp</p>
+                </div>
+              </Button>
+
+              {/* 4. Extrato Vestui Pay */}
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto flex-col items-start gap-1.5 rounded-2xl border-border bg-card p-3 text-left hover:bg-secondary/60 transition-all cursor-pointer group"
+              >
                 <Link to="/loja/recebimentos">
-                  <Receipt className="mr-1.5 h-3.5 w-3.5" /> Acessar extrato & repasses
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-blue-500/10 text-blue-600 group-hover:scale-105 transition-transform">
+                    <Receipt className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Extrato Pay</p>
+                    <p className="text-[10px] text-muted-foreground">Repasses e saldo</p>
+                  </div>
                 </Link>
               </Button>
             </div>
