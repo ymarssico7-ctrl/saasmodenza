@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -13,6 +13,7 @@ import {
   CreditCard,
   QrCode,
   CheckCircle2,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery } from "@/lib/db";
@@ -692,6 +693,15 @@ function PedidosPage() {
                         </p>
                       </>
                     )}
+                    <div className="pt-2 border-t border-border/60 flex justify-end">
+                      <Link
+                        to="/loja/recebimentos"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors"
+                      >
+                        <Wallet className="h-3.5 w-3.5" />
+                        Ver liquidação no Vestui Pay →
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </SectionCard>

@@ -39,6 +39,7 @@ type NavItem = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  section?: string;
 };
 
 const GESTAO_NAV: NavItem[] = [
@@ -55,14 +56,17 @@ const GESTAO_NAV: NavItem[] = [
 ];
 
 const LOJA_NAV: NavItem[] = [
+  // ── Operação & Vendas ──
   { to: "/loja", label: "Visão geral", icon: LayoutDashboard },
   { to: "/loja/pedidos", label: "Pedidos", icon: ShoppingBag },
-  { to: "/loja/recebimentos", label: "Recebimentos", icon: Wallet },
   { to: "/loja/produtos", label: "Vitrine", icon: Package },
   { to: "/loja/clientes", label: "Clientes", icon: Users },
+  // ── Finanças (Vestui Pay) ──
+  { to: "/loja/recebimentos", label: "Recebimentos", icon: Wallet, section: "Finanças" },
   { to: "/loja/cupons", label: "Cupons", icon: BadgePercent },
-  { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
   { to: "/loja/relatorios", label: "Relatórios", icon: BarChart3 },
+  // ── Loja & Canais ──
+  { to: "/loja/frete", label: "Frete & Entrega", icon: Truck, section: "Loja & Canais" },
   { to: "/loja/templates", label: "Galeria de Temas", icon: Palette },
   { to: "/loja/configuracao", label: "Aparência", icon: Settings },
   { to: "/loja/compartilhar", label: "Compartilhar", icon: Share2 },
@@ -77,11 +81,11 @@ const GESTAO_MOBILE: NavItem[] = [
   GESTAO_NAV[9]!,
 ];
 const LOJA_MOBILE: NavItem[] = [
-  LOJA_NAV[0]!,
-  LOJA_NAV[1]!,
-  LOJA_NAV[2]!,
-  LOJA_NAV[6]!,
-  LOJA_NAV[7]!,
+  LOJA_NAV[0]!, // Visão geral
+  LOJA_NAV[1]!, // Pedidos
+  LOJA_NAV[4]!, // Recebimentos (Vestui Pay)
+  LOJA_NAV[2]!, // Vitrine
+  LOJA_NAV[6]!, // Relatórios
 ];
 
 // ─── Mode Switcher ────────────────────────────────────────────────────────────
@@ -215,19 +219,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav links */}
-        <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto">
+        <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1">
           {activeNav.map((item) => (
-            <NavItem
-              key={item.to}
-              {...item}
-              active={
-                item.to === "/loja"
-                  ? pathname === "/loja"
-                  : pathname.startsWith(item.to) && item.to !== "/painel"
-                    ? true
-                    : pathname === item.to
-              }
-            />
+            <div key={item.to} className="flex flex-col">
+              {item.section && (
+                <div className="px-4 pt-4 pb-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                    {item.section}
+                  </p>
+                </div>
+              )}
+              <NavItem
+                {...item}
+                active={
+                  item.to === "/loja"
+                    ? pathname === "/loja"
+                    : pathname.startsWith(item.to) && item.to !== "/painel"
+                      ? true
+                      : pathname === item.to
+                }
+              />
+            </div>
           ))}
         </nav>
 
@@ -283,15 +295,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile overlay menu */}
       {open ? (
-        <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-6 backdrop-blur-xl lg:hidden">
+        <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-6 backdrop-blur-xl lg:hidden overflow-y-auto">
           <nav className="flex flex-col gap-0.5">
             {activeNav.map((item) => (
-              <NavItem
-                key={item.to}
-                {...item}
-                active={pathname === item.to}
-                onClick={() => setOpen(false)}
-              />
+              <div key={item.to} className="flex flex-col">
+                {item.section && (
+                  <div className="px-4 pt-3 pb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                      {item.section}
+                    </p>
+                  </div>
+                )}
+                <NavItem
+                  {...item}
+                  active={pathname === item.to}
+                  onClick={() => setOpen(false)}
+                />
+              </div>
             ))}
           </nav>
           <button

@@ -1,19 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
   Banknote,
   Building2,
+  Calendar,
+  Check,
   CheckCircle2,
   Clock,
+  Copy,
   Download,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  Info,
   Lock,
+  MessageCircle,
+  Printer,
+  Receipt,
   RefreshCw,
   Search,
+  Share2,
   ShieldCheck,
   Sparkles,
   Wallet,
+  X,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/loja/recebimentos")({
       {
         name: "description",
         content:
-          "Acompanhe suas vendas, saldo em custódia e repasses bancários em tempo real.",
+          "Centro financeiro da sua loja: acompanhe saldo em tempo real, liquidações D+1 e extrato com comprovantes BACEN.",
       },
     ],
   }),
@@ -42,16 +55,55 @@ function brl(val: number) {
   return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// ── Tipos ────────────────────────────────────────────────────────────────────
+type OrderRecord = {
+  id: string;
+  numero: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  total: number | string;
+  payment_method: string;
+  payment_fee: number | string;
+  net_amount: number | string;
+  payment_status: string;
+  status: string;
+  created_at: string;
+  gateway_charge_id?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
 function RecebimentosPage() {
   const { storeId } = useStore();
   const [filtroMetodo, setFiltroMetodo] = useState<"todos" | "pix" | "cartao">("todos");
   const [busca, setBusca] = useState("");
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<OrderRecord | null>(null);
+  const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
-  // ── 1. Busca status da subconta Vestui Pay / Asaas ────────────────────────
+  // ── Privacidade de Balcão (Ocultar Saldos) ──────────────────────────────────
+  const [ocultarSaldos, setOcultarSaldos] = useState<boolean>(() => {
+    if (typeof localStorage === "undefined") return false;
+    return localStorage.getItem("vestui_privacy_mode") === "true";
+  });
+
+  const togglePrivacidade = () => {
+    const nextVal = !ocultarSaldos;
+    setOcultarSaldos(nextVal);
+    localStorage.setItem("vestui_privacy_mode", String(nextVal));
+    toast.info(nextVal ? "Modo Privacidade Ativado" : "Modo Privacidade Desativado", {
+      description: nextVal ? "Valores monetários ocultados na tela." : "Valores visíveis.",
+    });
+  };
+
+  const mascaraSaldo = (valor: number) => {
+    return ocultarSaldos ? "R$ ••••••" : brl(valor);
+  };
+
+  // ── 1. Busca status da subconta Vestui Pay no banco local ──────────────────
   const {
     data: payAccount,
     refetch: refetchAccount,
-    isRefetching,
+    isRefetching: isRefetchingAccount,
   } = useQuery({
     queryKey: ["vestui-pay-account-detail", storeId],
     queryFn: async () => {
@@ -72,10 +124,46 @@ function RecebimentosPage() {
     enabled: !!storeId,
   });
 
-  // ── 2. Busca pedidos com pagamento para compor o saldo e extrato ──────────
+  // ── 2. Consulta Saldo Real na Edge Function (API Asaas) ────────────────────
+  const {
+    data: asaasLiveBalance,
+    refetch: refetchAsaasBalance,
+    isRefetching: isRefetchingBalance,
+  } = useQuery({
+    queryKey: ["vestui-pay-live-balance", storeId],
+    queryFn: async () => {
+      const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl ?? "";
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token || !storeId) return null;
+
+      const res = await fetch(
+        `${supabaseUrl}/functions/v1/asaas-get-balance?storeId=${storeId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!res.ok) return null;
+      return (await res.json()) as {
+        hasAccount: boolean;
+        status: string;
+        balance: number;
+        pending: number;
+        transferred: number;
+        updatedAt: string;
+      };
+    },
+    enabled: !!storeId && payAccount?.status === "ativa",
+    staleTime: 30_000,
+  });
+
+  // ── 3. Busca lista de pedidos para conciliação e extrato ──────────────────
   const {
     data: orders = [],
     refetch: refetchOrders,
+    isRefetching: isRefetchingOrders,
   } = useQuery({
     queryKey: ["vestui-pay-orders-ledger", storeId],
     queryFn: async () => {
@@ -85,46 +173,54 @@ function RecebimentosPage() {
         .eq("store_id", storeId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as OrderRecord[];
     },
     enabled: !!storeId,
   });
 
+  const isSyncing = isRefetchingAccount || isRefetchingBalance || isRefetchingOrders;
+
   const handleRefresh = async () => {
-    await Promise.all([refetchAccount(), refetchOrders()]);
-    toast.success("Dados sincronizados com o Asaas", {
-      description: "Saldo e transações atualizados em tempo real.",
+    await Promise.all([refetchAccount(), refetchAsaasBalance(), refetchOrders()]);
+    toast.success("Financeiro sincronizado", {
+      description: "Saldo oficial do Asaas e transações atualizados em tempo real.",
     });
   };
 
-  // ── Cálculos financeiros do Dashboard ──────────────────────────────────────
+  // ── Cálculos Financeiros ───────────────────────────────────────────────────
   const isPayAtivo = payAccount?.status === "ativa";
-
-  // Pedidos pagos
   const pedidosPagos = orders.filter((o) => o.payment_status === "pago");
 
   // Total processado geral
   const totalProcessado = pedidosPagos.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
 
-  // Total de taxas da plataforma/gateway
+  // Total de taxas descontadas
   const totalTaxas = pedidosPagos.reduce(
     (acc, o) => acc + (Number(o.payment_fee) || 0.99),
     0,
   );
 
-  // Líquido disponível para a lojista
-  const totalLiquido = totalProcessado > 0 ? totalProcessado - totalTaxas : 0;
+  const totalLiquidoCalculado = totalProcessado > 0 ? totalProcessado - totalTaxas : 0;
 
-  // Saldo em custódia (D+1) vs Saldo Liberado
+  // Se a API do Asaas retornou saldo real, usamos ele como verdade absoluta;
+  // senão fazemos fallback para o cálculo seguro local.
+  const saldoDisponivelReal =
+    asaasLiveBalance && typeof asaasLiveBalance.balance === "number"
+      ? asaasLiveBalance.balance
+      : totalLiquidoCalculado;
+
   const agora = new Date();
   const pedidosHoje = pedidosPagos.filter((o) => {
     const dataPedido = new Date(o.created_at);
     return dataPedido.toDateString() === agora.toDateString();
   });
-  const saldoRetidoD1 = pedidosHoje.reduce((acc, o) => acc + (Number(o.net_amount) || Number(o.total) - 0.99), 0);
-  const saldoDisponivel = Math.max(0, totalLiquido - saldoRetidoD1);
 
-  // Filtro da lista de transações
+  const saldoRetidoD1 =
+    asaasLiveBalance && typeof asaasLiveBalance.pending === "number"
+      ? asaasLiveBalance.pending
+      : pedidosHoje.reduce((acc, o) => acc + (Number(o.net_amount) || Math.max(0, Number(o.total) - 0.99)), 0);
+
+  // Filtro de Transações
   const transacoesFiltradas = orders.filter((o) => {
     const matchMetodo =
       filtroMetodo === "todos"
@@ -139,11 +235,32 @@ function RecebimentosPage() {
     return matchMetodo && matchBusca;
   });
 
-  // Dados bancários cadastrados (se houver no KYC)
+  // Dados bancários cadastrados
   const kyc = (payAccount?.kyc_data || {}) as Record<string, string>;
   const bancoPreview = kyc["bankCode"]
-    ? `${kyc["bankCode"]} • Ag ${kyc["agency"] || "0001"} • CC ${kyc["account"] || "••••"}`
+    ? `Banco ${kyc["bankCode"]} • Ag ${kyc["agency"] || "0001"} • CC ${kyc["account"] || "••••"}`
     : "Conta bancária vinculada";
+
+  const copiarTexto = (texto: string, label: string) => {
+    navigator.clipboard.writeText(texto);
+    setCopiadoId(texto);
+    toast.success(`${label} copiado!`);
+    setTimeout(() => setCopiadoId(null), 2000);
+  };
+
+  // ── Próximos 7 Dias de Liquidação (Payout Calendar) ────────────────────────
+  const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const calendarioProjecao = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const isHoje = i === 0;
+    const isAmanha = i === 1;
+    const diaNome = isHoje ? "Hoje" : isAmanha ? "Amanhã" : diasDaSemana[d.getDay()];
+    const diaNum = d.getDate();
+    // Vendas de hoje caem amanhã (D+1)
+    const valorDia = isAmanha ? saldoRetidoD1 : 0;
+    return { diaNome, diaNum, valorDia, isAmanha, isHoje };
+  });
 
   return (
     <div className="space-y-8 pb-16">
@@ -152,23 +269,35 @@ function RecebimentosPage() {
         <PageHeader
           eyebrow="Fintech & Repasses"
           title="Recebimentos"
-          description="Acompanhe suas entradas do Vestui Pay, saldo em custódia e liquidações bancárias em D+1."
+          description="Centro financeiro Vestui Pay: saldo em tempo real, liquidações D+1 e conciliação BACEN."
         />
         <div className="flex items-center gap-2">
+          {/* Botão de Privacidade estilo Apple */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={togglePrivacidade}
+            title={ocultarSaldos ? "Exibir valores na tela" : "Ocultar valores para privacidade"}
+            className="h-9 gap-1.5 rounded-full border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-xs transition-all hover:bg-zinc-50"
+          >
+            {ocultarSaldos ? <EyeOff className="h-3.5 w-3.5 text-zinc-500" /> : <Eye className="h-3.5 w-3.5 text-emerald-600" />}
+            <span className="hidden sm:inline">{ocultarSaldos ? "Mostrar Saldos" : "Ocultar Saldos"}</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={isRefetching}
+            disabled={isSyncing}
             className="h-9 gap-1.5 rounded-full border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-xs transition-all hover:bg-zinc-50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin text-emerald-600" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-emerald-600" : ""}`} />
             Sincronizar
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => toast.info("Relatório Financeiro", { description: "O extrato em CSV/PDF estará disponível em breve." })}
+            onClick={() => toast.info("Relatório Financeiro", { description: "O extrato consolidado em CSV/PDF estará disponível no fechamento do ciclo." })}
             className="h-9 gap-1.5 rounded-full border-zinc-200 bg-white px-3.5 text-xs font-medium text-zinc-700 shadow-xs transition-all hover:bg-zinc-50"
           >
             <Download className="h-3.5 w-3.5" />
@@ -203,15 +332,15 @@ function RecebimentosPage() {
         </div>
       )}
 
-      {/* ── BENTO GRID (Apple Style Financial Cards) ────────────────────────── */}
+      {/* ── BENTO GRID (Apple Card & Financial Bento) ───────────────────────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Card 1: THE VESTUI PLATINUM CARD (7 Colunas) */}
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-7 text-white shadow-2xl shadow-zinc-950/20 ring-1 ring-white/10 lg:col-span-7 min-h-[260px]">
-          {/* Efeito de brilho de luz superior estilo Apple */}
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-7 text-white shadow-2xl shadow-zinc-950/20 ring-1 ring-white/10 lg:col-span-7 min-h-[280px]">
+          {/* Luzes difusas de fundo */}
           <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-emerald-500/15 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-teal-400/10 blur-3xl" />
 
-          {/* Top: Logo & Chip */}
+          {/* Top: Logo, Chip Holográfico e Status */}
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/20">
@@ -223,8 +352,8 @@ function RecebimentosPage() {
               </div>
             </div>
 
-            {/* Chip Holográfico */}
-            <div className="flex items-center gap-2">
+            {/* Chip Holográfico SVG Realista */}
+            <div className="flex items-center gap-2.5">
               <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold backdrop-blur-md ring-1 ${
                 isPayAtivo
                   ? "bg-emerald-500/20 text-emerald-300 ring-emerald-400/30"
@@ -233,29 +362,46 @@ function RecebimentosPage() {
                 <span className={`h-1.5 w-1.5 rounded-full ${isPayAtivo ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
                 {isPayAtivo ? "Operação Ativa" : "Aguardando Ativação"}
               </span>
-              <div className="h-6 w-8 rounded-md bg-gradient-to-tr from-amber-200/40 via-amber-100/60 to-amber-300/30 border border-amber-200/40 opacity-80" />
+
+              {/* Microchip Dourado com trilhas de circuito */}
+              <div className="relative h-7 w-9 rounded-md bg-gradient-to-tr from-amber-300/40 via-amber-200/70 to-amber-400/30 border border-amber-200/50 p-1 flex items-center justify-center shadow-xs">
+                <div className="h-full w-full border border-amber-300/40 rounded-xs flex flex-col justify-between py-0.5">
+                  <div className="h-px bg-amber-400/50 w-full" />
+                  <div className="h-px bg-amber-400/50 w-full" />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Middle: Saldo Disponível */}
           <div className="relative z-10 my-6 space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wider text-white/60">
-              Saldo Disponível para Repasse
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-white/60">
+                Saldo Disponível na Subconta
+              </p>
+              <button
+                onClick={togglePrivacidade}
+                className="text-white/40 hover:text-white/80 transition-colors p-0.5 rounded-sm"
+              >
+                {ocultarSaldos ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+
             <div className="flex items-baseline gap-3">
               <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white font-mono">
-                {brl(saldoDisponivel)}
+                {mascaraSaldo(saldoDisponivelReal)}
               </h2>
             </div>
+
             {saldoRetidoD1 > 0 && (
-              <p className="text-[11px] text-emerald-400/90 flex items-center gap-1 pt-1">
-                <Clock className="h-3 w-3 inline" />
-                + {brl(saldoRetidoD1)} em liquidação D+1 (vendas de hoje)
+              <p className="text-[11px] text-emerald-400/90 flex items-center gap-1.5 pt-1 font-medium">
+                <Clock className="h-3.5 w-3.5 inline text-emerald-400 shrink-0" />
+                + {mascaraSaldo(saldoRetidoD1)} em liquidação D+1 (compensação matinal)
               </p>
             )}
           </div>
 
-          {/* Bottom: Conta Bancária e Ações */}
+          {/* Bottom: Conta Bancária e Ações Rápidas */}
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10 text-xs text-white/70">
             <div className="flex items-center gap-2">
               <Building2 className="h-3.5 w-3.5 text-white/50" />
@@ -264,57 +410,65 @@ function RecebimentosPage() {
             <div className="flex items-center gap-2">
               <Link to="/loja/integracoes">
                 <button className="rounded-xl bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-[11px] font-medium backdrop-blur-md transition-all">
-                  Configurações do Pay
+                  Configurar Conta
                 </button>
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Card 2: LIQUIDAÇÃO & PRÓXIMO REPASSE D+1 (5 Colunas) */}
+        {/* Card 2: CALENDÁRIO SEMANAL DE REPASSES D+1 (5 Colunas) */}
         <div className="flex flex-col justify-between rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-xs lg:col-span-5">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                <Clock className="h-3.5 w-3.5 text-emerald-600" />
-                Ciclo de Liquidação
+                <Calendar className="h-3.5 w-3.5 text-emerald-600" />
+                Agenda de Repasses D+1
               </div>
               <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                Regra D+1
+                Bancário BACEN
               </span>
             </div>
 
-            <div className="rounded-2xl bg-zinc-50/80 p-4 border border-zinc-100 space-y-2">
+            {/* Pílulas dos Próximos Dias */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] text-zinc-400">Previsão semanal de depósitos automáticos:</p>
+              <div className="grid grid-cols-6 gap-1.5">
+                {calendarioProjecao.map((dia) => (
+                  <div
+                    key={dia.diaNome}
+                    className={`flex flex-col items-center justify-center p-2 rounded-2xl border text-center transition-all ${
+                      dia.isAmanha && dia.valorDia > 0
+                        ? "bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500/20 text-emerald-900"
+                        : dia.isHoje
+                          ? "bg-zinc-100 border-zinc-200 text-zinc-900"
+                          : "bg-zinc-50/50 border-zinc-100 text-zinc-500"
+                    }`}
+                  >
+                    <span className="text-[10px] font-semibold">{dia.diaNome}</span>
+                    <span className="text-xs font-bold font-mono my-0.5">{dia.diaNum}</span>
+                    <span className="text-[9px] font-mono text-emerald-700 font-semibold truncate max-w-full">
+                      {dia.valorDia > 0 ? (ocultarSaldos ? "•••" : brl(dia.valorDia)) : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Próxima Liquidação */}
+            <div className="rounded-2xl bg-zinc-50/80 p-3.5 border border-zinc-100 space-y-1.5">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-500">Próximo repasse programado:</span>
                 <span className="font-bold text-zinc-900">Amanhã às 07:00</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-500">Valor em compensação:</span>
-                <span className="font-bold font-mono text-emerald-700 text-sm">{brl(saldoRetidoD1)}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-500">Destino:</span>
-                <span className="text-zinc-700 font-medium truncate max-w-[160px]">{bancoPreview}</span>
-              </div>
-            </div>
-
-            {/* Micro KPIs */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="rounded-2xl border border-zinc-100 bg-white p-3 shadow-2xs">
-                <p className="text-[11px] text-zinc-500">Total Faturado</p>
-                <p className="text-base font-bold text-zinc-900 font-mono mt-0.5">{brl(totalProcessado)}</p>
-                <span className="text-[10px] text-emerald-600 font-medium">via Vestui Pay</span>
-              </div>
-              <div className="rounded-2xl border border-zinc-100 bg-white p-3 shadow-2xs">
-                <p className="text-[11px] text-zinc-500">Vendas Aprovadas</p>
-                <p className="text-base font-bold text-zinc-900 font-mono mt-0.5">{pedidosPagos.length}</p>
-                <span className="text-[10px] text-zinc-400 font-medium">100% compensadas</span>
+                <span className="font-bold font-mono text-emerald-700 text-sm">{mascaraSaldo(saldoRetidoD1)}</span>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 mt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+          <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
             <span className="flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
               Custódia regulada pelo BACEN
@@ -328,9 +482,9 @@ function RecebimentosPage() {
       <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold tracking-wide uppercase text-zinc-500">
-            Fluxo de Pagamento & Liquidação em Tempo Real
+            Esteira de Liquidação em Tempo Real
           </p>
-          <span className="text-[11px] text-zinc-400">Como seu dinheiro se move</span>
+          <span className="text-[11px] text-zinc-400">Como seu faturamento se move com 100% de segurança</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -359,7 +513,7 @@ function RecebimentosPage() {
             {
               step: "04",
               title: "Na sua Conta Bancária",
-              desc: "Transferência automática realizada no dia seguinte.",
+              desc: "Depósito automático via Pix/TED no dia seguinte.",
               icon: Building2,
               active: isPayAtivo,
             },
@@ -392,7 +546,7 @@ function RecebimentosPage() {
             <div>
               <h3 className="text-base font-bold text-zinc-900">Extrato de Vendas & Liquidações</h3>
               <p className="text-xs text-zinc-500">
-                Histórico de entradas com detalhamento de taxas e valor líquido.
+                Histórico de entradas com detalhamento centavo por centavo e comprovantes BACEN.
               </p>
             </div>
 
@@ -439,23 +593,36 @@ function RecebimentosPage() {
                 <th className="px-6 py-3">Cliente</th>
                 <th className="px-6 py-3">Método</th>
                 <th className="px-6 py-3 text-right">Valor Bruto</th>
-                <th className="px-6 py-3 text-right">Taxa Gateway</th>
+                <th className="px-6 py-3 text-right">Taxa Asaas</th>
                 <th className="px-6 py-3 text-right">Valor Líquido</th>
                 <th className="px-6 py-3 text-center">Status</th>
+                <th className="px-6 py-3 text-center">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {transacoesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-zinc-400">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400">
-                        <Search className="h-5 w-5" />
+                  <td colSpan={8} className="px-6 py-12 text-center text-zinc-400">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="h-12 w-12 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400">
+                        <Receipt className="h-6 w-6" />
                       </div>
-                      <p className="font-medium text-zinc-600 text-sm">Nenhuma transação encontrada</p>
-                      <p className="text-xs text-zinc-400">
-                        Quando você realizar vendas via Pix no checkout, elas aparecerão aqui automaticamente.
-                      </p>
+                      <div className="space-y-1">
+                        <p className="font-medium text-zinc-700 text-sm">Nenhuma transação encontrada</p>
+                        <p className="text-xs text-zinc-400 max-w-md mx-auto">
+                          Quando uma cliente concluir um pedido via Pix no checkout, a confirmação bancária aparecerá aqui instantaneamente.
+                        </p>
+                      </div>
+                      {/* Simulador de Economia Zero-State */}
+                      <div className="mt-4 p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 max-w-md text-left text-xs space-y-1.5">
+                        <p className="font-bold text-emerald-900 flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                          Simulador de Economia da Vestui Pay
+                        </p>
+                        <p className="text-emerald-700">
+                          Em <strong>R$ 5.000</strong> em vendas Pix: você paga apenas <strong>R$ 0,99</strong> por transação, economizando até <strong>R$ 140/mês</strong> em comparação com taxas de 2,99% de maquininhas físicas!
+                        </p>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -474,7 +641,11 @@ function RecebimentosPage() {
                   });
 
                   return (
-                    <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
+                    <tr
+                      key={order.id}
+                      onClick={() => setPedidoSelecionado(order)}
+                      className="hover:bg-zinc-50/80 transition-colors cursor-pointer group"
+                    >
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
@@ -483,7 +654,9 @@ function RecebimentosPage() {
                             {isPago ? <ArrowDownRight className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                           </div>
                           <div>
-                            <span className="font-bold text-zinc-900 font-mono">{order.numero}</span>
+                            <span className="font-bold text-zinc-900 font-mono group-hover:text-emerald-600 transition-colors">
+                              {order.numero}
+                            </span>
                             <p className="text-[10px] text-zinc-400">{dataFormatada}</p>
                           </div>
                         </div>
@@ -499,13 +672,13 @@ function RecebimentosPage() {
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-right font-mono font-medium text-zinc-700">
-                        {brl(bruto)}
+                        {mascaraSaldo(bruto)}
                       </td>
                       <td className="px-6 py-3.5 text-right font-mono text-zinc-400">
                         {isPago ? `- ${brl(taxa)}` : "—"}
                       </td>
                       <td className="px-6 py-3.5 text-right font-mono font-bold text-emerald-700">
-                        {isPago ? brl(liquido) : brl(bruto)}
+                        {isPago ? mascaraSaldo(liquido) : mascaraSaldo(bruto)}
                       </td>
                       <td className="px-6 py-3.5 text-center">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
@@ -518,6 +691,19 @@ function RecebimentosPage() {
                           {isPago ? "Pago" : order.payment_status === "pendente" ? "Aguardando Pix" : order.payment_status}
                         </span>
                       </td>
+                      <td className="px-6 py-3.5 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPedidoSelecionado(order);
+                          }}
+                          className="rounded-lg p-1 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors"
+                          title="Ver comprovante da transação"
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -526,6 +712,119 @@ function RecebimentosPage() {
           </table>
         </div>
       </div>
+
+      {/* ── MODAL / DRAWER DE DETALHES DA TRANSAÇÃO (Apple Sheet Style) ─────── */}
+      {pedidoSelecionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header com Fechar */}
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <Receipt className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-900">Comprovante de Liquidação</h4>
+                  <p className="text-[10px] text-zinc-400 font-mono">Pedido {pedidoSelecionado.numero}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPedidoSelecionado(null)}
+                className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Valor Display Grande */}
+            <div className="text-center py-2 space-y-1">
+              <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Valor Líquido Creditado</p>
+              <h3 className="text-3xl font-extrabold text-emerald-700 font-mono">
+                {brl(
+                  pedidoSelecionado.payment_status === "pago"
+                    ? Math.max(0, Number(pedidoSelecionado.total) - (Number(pedidoSelecionado.payment_fee) || 0.99))
+                    : Number(pedidoSelecionado.total),
+                )}
+              </h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                <CheckCircle2 className="h-3 w-3" /> Confirmado via BACEN
+              </span>
+            </div>
+
+            {/* Discriminação Centavo por Centavo */}
+            <div className="rounded-2xl bg-zinc-50 p-4 border border-zinc-100 space-y-2.5 text-xs">
+              <div className="flex justify-between text-zinc-600">
+                <span>Valor pago pela cliente (Bruto):</span>
+                <span className="font-mono font-bold text-zinc-900">{brl(Number(pedidoSelecionado.total))}</span>
+              </div>
+              <div className="flex justify-between text-zinc-500">
+                <span>Tarifa Pix Asaas / Gateway:</span>
+                <span className="font-mono text-zinc-500">- {brl(Number(pedidoSelecionado.payment_fee) || 0.99)}</span>
+              </div>
+              <div className="h-px bg-zinc-200/80 my-1" />
+              <div className="flex justify-between font-bold text-zinc-900">
+                <span>Total Líquido da Lojista:</span>
+                <span className="font-mono text-emerald-700">
+                  {brl(
+                    pedidoSelecionado.payment_status === "pago"
+                      ? Math.max(0, Number(pedidoSelecionado.total) - (Number(pedidoSelecionado.payment_fee) || 0.99))
+                      : Number(pedidoSelecionado.total),
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Metadados e IDs Técnicos */}
+            <div className="space-y-2 text-[11px]">
+              <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+                <span className="text-zinc-400">Cliente:</span>
+                <span className="font-medium text-zinc-800">{pedidoSelecionado.customer_name}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+                <span className="text-zinc-400">Telefone:</span>
+                <span className="font-mono text-zinc-800">{pedidoSelecionado.customer_phone}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+                <span className="text-zinc-400">Data e Hora:</span>
+                <span className="text-zinc-700">
+                  {new Date(pedidoSelecionado.created_at).toLocaleString("pt-BR")}
+                </span>
+              </div>
+              {pedidoSelecionado.gateway_charge_id && (
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-zinc-400">ID Asaas:</span>
+                  <button
+                    onClick={() => copiarTexto(pedidoSelecionado.gateway_charge_id!, "ID da transação")}
+                    className="flex items-center gap-1 font-mono text-emerald-700 hover:underline"
+                  >
+                    {pedidoSelecionado.gateway_charge_id.slice(0, 14)}...
+                    {copiadoId === pedidoSelecionado.gateway_charge_id ? (
+                      <Check className="h-3 w-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Ações do Comprovante */}
+            <div className="flex gap-2 pt-2">
+              <Link to="/loja/pedidos" className="flex-1">
+                <Button variant="outline" className="w-full text-xs gap-1.5 rounded-xl h-9">
+                  <ExternalLink className="h-3.5 w-3.5" /> Ver Pedido
+                </Button>
+              </Link>
+              <Button
+                onClick={() => window.print()}
+                className="flex-1 text-xs gap-1.5 rounded-xl h-9 bg-zinc-900 hover:bg-zinc-800 text-white"
+              >
+                <Printer className="h-3.5 w-3.5" /> Imprimir
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
