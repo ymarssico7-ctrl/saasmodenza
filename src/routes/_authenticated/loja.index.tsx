@@ -23,10 +23,7 @@ import {
   PackageCheck,
   PackageSearch,
   Plus,
-  Receipt,
-  Share2,
   ShoppingBag,
-  Tag,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -148,18 +145,6 @@ function VisaoGeral() {
     toast.success("Link da vitrine copiado!", {
       description: `${vitrineDisplay} (pronto para colar na Bio do Instagram ou WhatsApp)`,
     });
-  };
-
-  const compartilharWhatsApp = () => {
-    if (!vitrineUrl) {
-      toast.error("Configure o link da sua loja nas Configurações");
-      return;
-    }
-    const texto = encodeURIComponent(
-      `Olá! Conheça as peças da nossa vitrine online com compra rápida e segura: ${vitrineUrl}`
-    );
-    window.open(`https://api.whatsapp.com/send?text=${texto}`, "_blank");
-    toast.success("Abrindo WhatsApp com link da vitrine...");
   };
 
   // ── 1. Status da Subconta Vestui Pay ───────────────────────────────────────
@@ -457,8 +442,8 @@ function VisaoGeral() {
   const ultimosPedidos = useMemo(() => orders.slice(0, 5), [orders]);
 
   return (
-    <div className="space-y-5 pb-12">
-      {/* ── 1. Header com Hierarquia Padrão Apple ────────────────────────────── */}
+    <div className="space-y-6 pb-12">
+      {/* ── 1. Header com Hierarquia Apple (Ação Primária + Controles Limpos) ──── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -483,14 +468,14 @@ function VisaoGeral() {
           </p>
         </div>
 
-        {/* Toolbar de Ações com Hierarquia Clara (Apple HIG) */}
+        {/* Toolbar de Ações com Hierarquia Apple */}
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* Utilitário: Modo Balcão (Privacidade) */}
           <button
             type="button"
             onClick={togglePrivacidade}
             title={ocultarSaldos ? "Exibir valores na tela" : "Ocultar valores para privacidade no balcão"}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 shadow-2xs transition-all cursor-pointer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 shadow-2xs transition-all cursor-pointer"
           >
             {ocultarSaldos ? (
               <EyeOff className="h-3.5 w-3.5 text-amber-500" />
@@ -506,31 +491,44 @@ function VisaoGeral() {
           <button
             type="button"
             onClick={copiarLink}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3.5 text-xs font-medium text-foreground hover:bg-secondary/60 shadow-2xs transition-all cursor-pointer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 text-xs font-medium text-foreground hover:bg-secondary/60 shadow-2xs transition-all cursor-pointer"
           >
             <Copy className="h-3.5 w-3.5 text-muted-foreground" />
             <span>Copiar link</span>
           </button>
 
-          {/* Primário: Ver Vitrine */}
+          {/* Secundário: Ver Vitrine */}
           {vitrinePath && (
             <Button
               asChild
+              variant="outline"
               size="sm"
-              className="h-9 gap-1.5 rounded-full bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white px-4 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              className="h-9 gap-1.5 rounded-full border-border/70 bg-card px-3.5 text-xs font-medium text-foreground hover:bg-secondary/60 shadow-2xs transition-all cursor-pointer"
             >
               <a href={vitrinePath} target="_blank" rel="noopener noreferrer">
                 <span>Ver vitrine</span>
-                <ExternalLink className="h-3 w-3 opacity-70" />
+                <ExternalLink className="h-3 w-3 opacity-60" />
               </a>
             </Button>
           )}
+
+          {/* AÇÃO PRIMÁRIA APPLE: + Nova Peça no Estoque */}
+          <Button
+            asChild
+            size="sm"
+            className="h-9 gap-1.5 rounded-full bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white px-4 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+          >
+            <Link to="/loja/produtos">
+              <Plus className="h-3.5 w-3.5" />
+              <span>Nova Peça</span>
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* ── 2. 4 KPIs com Contenção Cromática & Tipografia Apple ───────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {/* KPI 1: Vendas no Mês (Valor em preto de alto contraste, sem azul arbitrário) */}
+        {/* KPI 1: Vendas no Mês (Tipografia limpa e consistente em grafite) */}
         <KpiCard
           label="Vendas no mês"
           value={vendasMesBruto}
@@ -589,77 +587,7 @@ function VisaoGeral() {
         />
       </div>
 
-      {/* ── 3. Barra de Ações Rápidas (Apple Quick Dock — Above-the-Fold) ──────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {/* 1. Nova Peça */}
-        <Button
-          asChild
-          variant="outline"
-          className="group h-auto flex-row sm:flex-col items-center sm:items-start justify-start gap-2.5 rounded-2xl border-border/80 bg-card p-3.5 text-left shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-secondary/40 hover:shadow-xs cursor-pointer"
-        >
-          <Link to="/loja/produtos">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-secondary/80 text-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-              <Plus className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground tracking-tight">Nova Peça</p>
-              <p className="text-[10px] text-muted-foreground truncate">Cadastrar no estoque</p>
-            </div>
-          </Link>
-        </Button>
-
-        {/* 2. Criar Cupom */}
-        <Button
-          asChild
-          variant="outline"
-          className="group h-auto flex-row sm:flex-col items-center sm:items-start justify-start gap-2.5 rounded-2xl border-border/80 bg-card p-3.5 text-left shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-secondary/40 hover:shadow-xs cursor-pointer"
-        >
-          <Link to="/loja/cupons">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-secondary/80 text-foreground transition-colors group-hover:bg-amber-500/10 group-hover:text-amber-600">
-              <Tag className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground tracking-tight">Criar Cupom</p>
-              <p className="text-[10px] text-muted-foreground truncate">Promover vendas</p>
-            </div>
-          </Link>
-        </Button>
-
-        {/* 3. Divulgar WhatsApp */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={compartilharWhatsApp}
-          className="group h-auto flex-row sm:flex-col items-center sm:items-start justify-start gap-2.5 rounded-2xl border-border/80 bg-card p-3.5 text-left shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-secondary/40 hover:shadow-xs cursor-pointer"
-        >
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-secondary/80 text-foreground transition-colors group-hover:bg-emerald-500/10 group-hover:text-emerald-600">
-            <Share2 className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground tracking-tight">Divulgar Vitrine</p>
-            <p className="text-[10px] text-muted-foreground truncate">Enviar no WhatsApp</p>
-          </div>
-        </Button>
-
-        {/* 4. Extrato Vestui Pay */}
-        <Button
-          asChild
-          variant="outline"
-          className="group h-auto flex-row sm:flex-col items-center sm:items-start justify-start gap-2.5 rounded-2xl border-border/80 bg-card p-3.5 text-left shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-secondary/40 hover:shadow-xs cursor-pointer"
-        >
-          <Link to="/loja/recebimentos">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-secondary/80 text-foreground transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-600">
-              <Receipt className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground tracking-tight">Extrato Pay</p>
-              <p className="text-[10px] text-muted-foreground truncate">Repasses e custódia</p>
-            </div>
-          </Link>
-        </Button>
-      </div>
-
-      {/* ── 4. Bento Grid 2x2 Perfeitamente Simétrico (60% / 40%) ──────────────── */}
+      {/* ── 3. Bento Grid 2x2 Perfeitamente Simétrico (60% / 40%) ──────────────── */}
       <div className="grid gap-4 lg:grid-cols-12">
 
         {/* ── Coluna Esquerda: Gráfico de Vendas + Pedidos (7 Colunas = ~60%) ──── */}
@@ -706,7 +634,7 @@ function VisaoGeral() {
                     Nenhuma venda nos últimos {periodoDias} dias
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Suas vendas confirmadas entrarão no gráfico em tempo real. Divulgue sua vitrine para gerar pedidos hoje!
+                    Suas vendas confirmadas entrarão no gráfico em tempo real. Divulgue sua vitrine para acelerar seus pedidos!
                   </p>
                 </div>
               </div>
