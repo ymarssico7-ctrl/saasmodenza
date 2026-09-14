@@ -44,15 +44,15 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "surface-card surface-card-hover relative overflow-hidden p-5",
+        "surface-card surface-card-hover relative overflow-hidden rounded-2xl p-4",
         accent && "gradient-primary border-transparent text-primary-foreground shadow-glow",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <p
           className={cn(
-            "text-xs font-medium uppercase tracking-[0.12em]",
-            accent ? "text-primary-foreground/75" : "text-muted-foreground",
+            "text-[11px] font-medium uppercase tracking-[0.08em]",
+            accent ? "text-primary-foreground/80" : "text-muted-foreground",
           )}
         >
           {label}
@@ -60,7 +60,7 @@ export function KpiCard({
         {icon ? (
           <span
             className={cn(
-              "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+              "grid h-7 w-7 shrink-0 place-items-center rounded-lg",
               accent
                 ? "bg-primary-foreground/15 text-primary-foreground"
                 : "bg-primary-soft text-accent-foreground",
@@ -71,13 +71,13 @@ export function KpiCard({
         ) : null}
       </div>
 
-      <p className="num-display mt-4 text-3xl font-semibold sm:text-[2rem]">{format(animated)}</p>
+      <p className="num-display mt-2.5 text-2xl font-bold tracking-tight sm:text-[1.65rem]">{format(animated)}</p>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {delta !== undefined ? (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
               accent
                 ? "bg-primary-foreground/15 text-primary-foreground"
                 : positivo
@@ -96,8 +96,8 @@ export function KpiCard({
         {hint ? (
           <span
             className={cn(
-              "text-xs",
-              accent ? "text-primary-foreground/75" : "text-muted-foreground",
+              "text-[11px]",
+              accent ? "text-primary-foreground/80" : "text-muted-foreground",
             )}
           >
             {hint}

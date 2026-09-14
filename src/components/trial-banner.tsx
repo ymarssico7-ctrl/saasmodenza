@@ -17,26 +17,26 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
     <>
       <div
         className={cn(
-          "flex items-center justify-between gap-4 rounded-2xl px-5 py-3.5 text-sm font-medium mb-6 border transition-colors",
+          "flex items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-xs font-medium mb-4 border transition-colors",
           isUrgent
-            ? "bg-warning-soft border-warning/40 text-warning-foreground"
-            : "bg-primary-soft border-primary/20 text-accent-foreground",
+            ? "bg-warning-soft/80 border-warning/40 text-warning-foreground"
+            : "bg-primary-soft/60 border-primary/20 text-accent-foreground",
         )}
       >
-        <div className="flex items-center gap-2.5">
-          <Clock className={cn("size-4 shrink-0", isUrgent ? "text-warning" : "text-primary")} />
-          <span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Clock className={cn("size-3.5 shrink-0", isUrgent ? "text-warning" : "text-primary")} />
+          <span className="truncate">
             {daysLeft === 0 ? (
               <>
-                <strong>Hoje é o último dia</strong> do seu período gratuito da Loja Online.
+                <strong>Hoje é o último dia</strong> do período gratuito.
               </>
             ) : (
               <>
-                Seu período gratuito termina em{" "}
+                Período gratuito termina em{" "}
                 <strong>
                   {daysLeft} {dayLabel}
                 </strong>
-                . {isUrgent ? "Não perca seus dados!" : ""}
+                .{isUrgent ? " Não perca seus dados!" : ""}
               </>
             )}
           </span>
@@ -46,10 +46,10 @@ export function TrialBanner({ daysLeft, isUrgent }: Props) {
           id="trial-subscribe-btn"
           size="sm"
           variant={isUrgent ? "default" : "outline"}
-          className="h-8 shrink-0 rounded-full px-4 text-xs font-semibold cursor-pointer"
+          className="h-6.5 shrink-0 rounded-full px-3 text-[11px] font-semibold cursor-pointer shadow-none"
           onClick={() => setModalOpen(true)}
         >
-          <Zap className="size-3.5 mr-1.5" />
+          <Zap className="size-3 mr-1" />
           Assinar por R$67/mês
         </Button>
       </div>

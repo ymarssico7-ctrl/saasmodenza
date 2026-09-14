@@ -15,7 +15,6 @@ import {
   Copy,
   ExternalLink,
   Receipt,
-  Rocket,
   ShoppingBag,
   Sparkles,
   Wallet,
@@ -24,7 +23,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { inventoryQuery, profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
-import { hasAnyActiveProduct, bulkActivateAll } from "@/lib/showcase-store";
 import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
 import { StatusBadge } from "@/components/loja/badges";
@@ -263,90 +261,28 @@ function VisaoGeral() {
     [chartData],
   );
 
-  // ── Onboarding / Publicação de Estoque ────────────────────────────────────
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  useEffect(() => {
-    if (inventoryItems.length > 0 && !hasAnyActiveProduct()) {
-      setShowOnboarding(true);
-    } else {
-      setShowOnboarding(false);
-    }
-  }, [inventoryItems]);
-
-  const ativarTodasNaVitrine = () => {
-    bulkActivateAll(inventoryItems.map((i) => i.id));
-    setShowOnboarding(false);
-    toast.success(
-      `${inventoryItems.length} ${inventoryItems.length === 1 ? "peça publicada" : "peças publicadas"} na vitrine!`,
-      { description: 'Acesse "Produtos" para personalizar a ordem e destaques.' },
-    );
-  };
-
   const ultimosPedidos = useMemo(() => orders.slice(0, 5), [orders]);
 
   return (
-    <div className="space-y-6">
-      {/* Alerta de Onboarding: Estoque pronto para vitrine */}
-      {showOnboarding && (
-        <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary-soft via-primary-soft/60 to-transparent p-6 shadow-glow">
-          <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-primary/10 blur-2xl" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
-                <Rocket className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Sua loja está pronta para decolar!</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Encontramos{" "}
-                  <span className="font-semibold text-foreground">
-                    {inventoryItems.length} {inventoryItems.length === 1 ? "peça" : "peças"}
-                  </span>{" "}
-                  no seu estoque de gestão. Publique tudo na vitrine com um clique.
-                </p>
-              </div>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full text-xs"
-                onClick={() => setShowOnboarding(false)}
-              >
-                Agora não
-              </Button>
-              <Button
-                size="sm"
-                className="gradient-primary rounded-full text-xs shadow-glow"
-                onClick={ativarTodasNaVitrine}
-              >
-                Publicar na Vitrine
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header Limpo e Elegante (Padrão Apple) */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-4">
+      {/* Header Limpo e Calibrado (Padrão Apple) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
-              Vitrine Online · Pronta para Vender
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
+              Vitrine Online Ativa
             </span>
           </div>
-          <h1 className="mt-1.5 text-2xl font-semibold sm:text-3xl">
+          <h1 className="mt-1 text-xl font-semibold sm:text-2xl tracking-tight text-foreground">
             Bom te ver, {primeiroNome}
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
+          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
             Sua vitrine está no ar em{" "}
-            <span className="font-medium text-foreground">{vitrineDisplay}</span>. Tudo cadastrado no
-            estoque sincroniza automaticamente.
+            <span className="font-medium text-foreground">{vitrineDisplay}</span> · Sincronização automática com o estoque.
           </p>
         </div>
 
@@ -355,9 +291,9 @@ function VisaoGeral() {
             variant="outline"
             size="sm"
             onClick={copiarLink}
-            className="h-10 rounded-full border-border bg-card px-4 text-sm cursor-pointer"
+            className="h-8 rounded-full border-border bg-card px-3 text-xs font-medium cursor-pointer"
           >
-            <Copy className="mr-2 h-4 w-4" /> Copiar link
+            <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar link
           </Button>
 
           {vitrinePath && (
@@ -365,10 +301,10 @@ function VisaoGeral() {
               asChild
               variant="outline"
               size="sm"
-              className="h-10 rounded-full border-border bg-card px-4 text-sm cursor-pointer"
+              className="h-8 rounded-full border-border bg-card px-3 text-xs font-medium cursor-pointer"
             >
               <a href={vitrinePath} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" /> Ver vitrine
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver vitrine
               </a>
             </Button>
           )}
@@ -376,10 +312,10 @@ function VisaoGeral() {
           <Button
             asChild
             size="sm"
-            className="gradient-primary h-10 rounded-full px-5 text-sm shadow-glow cursor-pointer"
+            className="gradient-primary h-8 rounded-full px-3.5 text-xs font-semibold shadow-sm cursor-pointer"
           >
             <Link to="/loja/produtos">
-              <Sparkles className="mr-2 h-4 w-4" /> Gerenciar vitrine
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Gerenciar vitrine
             </Link>
           </Button>
         </div>
@@ -471,7 +407,7 @@ function VisaoGeral() {
           bodyClassName="px-2 pb-4 pt-5 sm:px-4"
         >
           {totalVendasPeriodo === 0 ? (
-            <div className="flex h-[280px] flex-col items-center justify-center gap-3 text-center p-6">
+            <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
                 <ShoppingBag className="h-6 w-6 opacity-40" />
               </div>
@@ -494,7 +430,7 @@ function VisaoGeral() {
               </Button>
             </div>
           ) : (
-            <div className="h-[280px] w-full">
+            <div className="h-[240px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
                   <defs>
