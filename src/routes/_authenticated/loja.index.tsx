@@ -12,12 +12,20 @@ import {
 } from "recharts";
 import {
   ArrowUpRight,
+  Banknote,
   CheckCircle2,
+  Clock,
   Copy,
   ExternalLink,
+  Eye,
+  EyeOff,
   Flame,
+  PackageCheck,
+  PackageSearch,
   Receipt,
+  ShieldCheck,
   ShoppingBag,
+  Truck,
   Wallet,
 } from "lucide-react";
 
@@ -39,7 +47,7 @@ export const Route = createFileRoute("/_authenticated/loja/")({
       {
         name: "description",
         content:
-          "Centro de comando da sua loja online: acompanhe faturamento real, pedidos e estoque em tempo real.",
+          "Centro de comando da sua loja online: acompanhe faturamento real, pedidos, repasses D+1 e estoque em tempo real.",
       },
     ],
   }),
@@ -75,6 +83,7 @@ interface OrderRecord {
   items?: DbOrderItem[] | null;
   frete_tipo?: string | null;
   origem?: string | null;
+  gateway_charge_id?: string | null;
 }
 
 function normalizeStatus(s?: string): StatusPedido {
@@ -91,6 +100,34 @@ function VisaoGeral() {
   const { data: profile } = useQuery(profileQuery());
   const { store, storeId } = useStore();
   const primeiroNome = (profile?.owner_name || store?.name || "Lojista").split(" ")[0] ?? "Lojista";
+
+  // ── Privacidade de Balcão (Ocultar Saldos) ──────────────────────────────────
+  const [ocultarSaldos, setOcultarSaldos] = useState<boolean>(() => {
+    if (typeof localStorage === "undefined") return false;
+    return localStorage.getItem("vestui_privacy_mode") === "true";
+  });
+
+  useEffect(() => {
+    const handlePrivacyChange = () => {
+      setOcultarSaldos(localStorage.getItem("vestui_privacy_mode") === "true");
+    };
+    window.addEventListener("vestui_privacy_changed", handlePrivacyChange);
+    return () => window.removeEventListener("vestui_privacy_changed", handlePrivacyChange);
+  }, []);
+
+  const togglePrivacidade = () => {
+    const nextVal = !ocultarSaldos;
+    setOcultarSaldos(nextVal);
+    localStorage.setItem("vestui_privacy_mode", String(nextVal));
+    window.dispatchEvent(new Event("vestui_privacy_changed"));
+    toast.info(nextVal ? "Modo Privacidade Ativado" : "Modo Privacidade Desativado", {
+      description: nextVal ? "Valores monetários ocultados para proteção no balcão." : "Valores visíveis.",
+    });
+  };
+
+  const mascaraSaldo = (valor: number) => {
+    return ocultarSaldos ? "R$ ••••••" : brl(valor);
+  };
 
   const origin =
     typeof window !== "undefined" && window.location.origin
@@ -111,7 +148,59 @@ function VisaoGeral() {
     });
   };
 
-  // ── 1. Busca de Pedidos Nativos no Supabase ───────────────────────────────
+  // ── 1. Status da Subconta Vestui Pay ───────────────────────────────────────
+  const { data: payAccount } = useQuery({
+    queryKey: ["vestui-pay-account-detail", storeId],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("store_payment_accounts")
+        .select("status, account_id, wallet_id, kyc_data, created_at")
+        .eq("store_id", storeId)
+        .maybeSingle();
+      return data as {
+        status: string;
+        account_id: string | null;
+        wallet_id: string | null;
+        kyc_data: Record<string, unknown> | null;
+        created_at: string;
+      } | null;
+    },
+    enabled: !!storeId,
+  });
+
+  // ── 2. Consulta Saldo Real na Edge Function (API Asaas) ────────────────────
+  const { data: asaasLiveBalance } = useQuery({
+    queryKey: ["vestui-pay-live-balance", storeId],
+    queryFn: async () => {
+      const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl ?? "";
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token || !storeId) return null;
+
+      const res = await fetch(
+        `${supabaseUrl}/functions/v1/asaas-get-balance?storeId=${storeId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!res.ok) return null;
+      return (await res.json()) as {
+        hasAccount: boolean;
+        status: string;
+        balance: number;
+        pending: number;
+        transferred: number;
+        updatedAt: string;
+      };
+    },
+    enabled: !!storeId && payAccount?.status === "ativa",
+    staleTime: 30_000,
+  });
+
+  // ── 3. Busca de Pedidos Nativos no Supabase ───────────────────────────────
   const { data: orders = [] } = useQuery({
     queryKey: ["orders", storeId],
     queryFn: async () => {
@@ -155,7 +244,7 @@ function VisaoGeral() {
     };
   }, [storeId, queryClient]);
 
-  // ── 2. Consulta de Estoque ────────────────────────────────────────────────
+  // ── 4. Consulta de Estoque ────────────────────────────────────────────────
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
 
   const esgotados = useMemo(() => {
@@ -174,7 +263,7 @@ function VisaoGeral() {
     }).length;
   }, [inventoryItems]);
 
-  // ── 3. Métricas e KPIs Financeiros Reais ──────────────────────────────────
+  // ── 5. Métricas e KPIs Financeiros Reais ──────────────────────────────────
   const now = new Date();
   const thisMonthPrefix = now.toISOString().slice(0, 7);
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -198,10 +287,23 @@ function VisaoGeral() {
     [orders, lastMonthPrefix],
   );
 
-  const vendasMes = useMemo(
+  const vendasMesBruto = useMemo(
     () => pedidosMes.reduce((acc, p) => acc + (Number(p.total) || 0), 0),
     [pedidosMes],
   );
+
+  const vendasMesLiquido = useMemo(() => {
+    return pedidosMes.reduce((acc, p) => {
+      const bruto = Number(p.total) || 0;
+      const fee =
+        typeof p.payment_fee === "number"
+          ? p.payment_fee
+          : p.gateway_charge_id
+            ? 0.99
+            : 0;
+      return acc + Math.max(0, bruto - fee);
+    }, 0);
+  }, [pedidosMes]);
 
   const vendasMesAnterior = useMemo(
     () => pedidosMesAnterior.reduce((acc, p) => acc + (Number(p.total) || 0), 0),
@@ -210,13 +312,58 @@ function VisaoGeral() {
 
   const variacaoMes = useMemo(() => {
     if (vendasMesAnterior > 0) {
-      return ((vendasMes - vendasMesAnterior) / vendasMesAnterior) * 100;
+      return ((vendasMesBruto - vendasMesAnterior) / vendasMesAnterior) * 100;
     }
-    return vendasMes > 0 ? 100 : null;
-  }, [vendasMes, vendasMesAnterior]);
+    return vendasMesBruto > 0 ? 100 : null;
+  }, [vendasMesBruto, vendasMesAnterior]);
 
   const totalPedidosMes = pedidosMes.length;
-  const ticketMedio = totalPedidosMes > 0 ? vendasMes / totalPedidosMes : 0;
+  const ticketMedio = totalPedidosMes > 0 ? vendasMesBruto / totalPedidosMes : 0;
+
+  // ── Saldo Disponível & Retido D+1 (Liquidez da Lojista) ───────────────────
+  const hojeStr = now.toISOString().slice(0, 10);
+
+  const saldoDisponivel = useMemo(() => {
+    if (asaasLiveBalance && typeof asaasLiveBalance.balance === "number") {
+      return asaasLiveBalance.balance;
+    }
+    // Fallback: soma dos pedidos pagos em dias anteriores a hoje
+    return orders
+      .filter((p) => isPedidoPago(p) && !p.created_at.startsWith(hojeStr))
+      .reduce((acc, p) => {
+        const bruto = Number(p.total) || 0;
+        const fee = typeof p.payment_fee === "number" ? p.payment_fee : p.gateway_charge_id ? 0.99 : 0;
+        return acc + Math.max(0, bruto - fee);
+      }, 0);
+  }, [asaasLiveBalance, orders, hojeStr]);
+
+  const saldoRetidoD1 = useMemo(() => {
+    if (asaasLiveBalance && typeof asaasLiveBalance.pending === "number") {
+      return asaasLiveBalance.pending;
+    }
+    // Fallback: pedidos pagos hoje que compensam no próximo dia útil (D+1)
+    return orders
+      .filter((p) => isPedidoPago(p) && p.created_at.startsWith(hojeStr))
+      .reduce((acc, p) => {
+        const bruto = Number(p.total) || 0;
+        const fee = typeof p.payment_fee === "number" ? p.payment_fee : p.gateway_charge_id ? 0.99 : 0;
+        return acc + Math.max(0, bruto - fee);
+      }, 0);
+  }, [asaasLiveBalance, orders, hojeStr]);
+
+  // ── Pedidos que Exigem Ação Imediata (Fulfillment / Despacho) ─────────────
+  const pedidosPendentesAcao = useMemo(() => {
+    return orders.filter(
+      (p) =>
+        p.status !== "cancelado" &&
+        p.status !== "entregue" &&
+        p.status !== "enviado" &&
+        (p.status === "confirmado" ||
+          p.status === "em_separacao" ||
+          p.status === "preparando" ||
+          (p.status === "novo" && (p.payment_status === "pago" || p.payment_method === "pix"))),
+    );
+  }, [orders]);
 
   // Peça mais vendida calculada dos itens reais do Supabase
   const melhorProduto = useMemo(() => {
@@ -235,7 +382,7 @@ function VisaoGeral() {
     return Object.values(contagem).sort((a, b) => b.qtd - a.qtd)[0] ?? null;
   }, [pedidosMes]);
 
-  // ── 4. Gráfico de Vendas Dinâmico (7d / 30d) ──────────────────────────────
+  // ── 6. Gráfico de Vendas Dinâmico (7d / 30d) ──────────────────────────────
   const [periodoDias, setPeriodoDias] = useState<7 | 30>(7);
 
   const chartData = useMemo(() => {
@@ -266,8 +413,8 @@ function VisaoGeral() {
   const ultimosPedidos = useMemo(() => orders.slice(0, 5), [orders]);
 
   return (
-    <div className="space-y-4">
-      {/* Header Limpo e Calibrado (Padrão Apple) */}
+    <div className="space-y-5 pb-10">
+      {/* ── Header Limpo, Calibrado e com Modo Privacidade (Padrão Apple) ─────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-1.5">
@@ -289,6 +436,22 @@ function VisaoGeral() {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {/* Botão de Privacidade de Balcão */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={togglePrivacidade}
+            title={ocultarSaldos ? "Exibir valores na tela" : "Ocultar valores para privacidade"}
+            className="h-8 gap-1.5 rounded-full border-border bg-card px-3 text-xs font-medium cursor-pointer transition-all hover:bg-secondary"
+          >
+            {ocultarSaldos ? (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <Eye className="h-3.5 w-3.5 text-emerald-600" />
+            )}
+            <span className="hidden sm:inline">{ocultarSaldos ? "Mostrar Saldos" : "Ocultar Saldos"}</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -311,64 +474,70 @@ function VisaoGeral() {
             </Button>
           )}
         </div>
-
       </div>
 
-      {/* ── 4 KPIs Clássicos e Harmoniosos (Conectados ao Supabase) ─────────────── */}
+      {/* ── 4 KPIs Estratégicos & Financeiros (Conectados ao Supabase & Asaas) ──── */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {/* KPI 1: Vendas no Mês (Bruto com Líquido no Hint) */}
         <KpiCard
           accent
           label="Vendas no mês"
-          value={vendasMes}
-          format={brl}
+          value={vendasMesBruto}
+          format={(v) => mascaraSaldo(v)}
           hint={
-            totalPedidosMes > 0
-              ? `${totalPedidosMes} pedido${totalPedidosMes > 1 ? "s" : ""} pago${totalPedidosMes > 1 ? "s" : ""}${
-                  variacaoMes !== null ? ` (${variacaoMes >= 0 ? "+" : ""}${variacaoMes.toFixed(0)}% vs mês ant.)` : ""
-                }`
-              : "Aguardando vendas do ciclo"
+            ocultarSaldos
+              ? "••••••"
+              : totalPedidosMes > 0
+                ? `Líq: ${brl(vendasMesLiquido)}${
+                    variacaoMes !== null ? ` (${variacaoMes >= 0 ? "+" : ""}${variacaoMes.toFixed(0)}% vs ant.)` : ""
+                  }`
+                : "Aguardando vendas do ciclo"
           }
           icon={<Wallet className="h-4 w-4" />}
         />
 
+        {/* KPI 2: Saldo Disponível para Saque / Repasse */}
         <KpiCard
-          label="Pedidos recebidos"
-          value={totalPedidosMes}
-          format={(n) => Math.round(n).toString()}
+          label="Saldo Disponível"
+          value={saldoDisponivel}
+          format={(v) => mascaraSaldo(v)}
           hint={
-            totalPedidosMes === 0
-              ? "Pronto para os primeiros pedidos"
-              : `${orders.length} pedidos no histórico total`
+            payAccount?.status === "ativa"
+              ? "Liberado na Subconta Asaas"
+              : "Disponível para movimentação"
+          }
+          icon={<Banknote className="h-4 w-4 text-emerald-600" />}
+        />
+
+        {/* KPI 3: Repasse em Custódia D+1 (Compensação Matinal) */}
+        <KpiCard
+          label="Repasse D+1 (Amanhã)"
+          value={saldoRetidoD1}
+          format={(v) => mascaraSaldo(v)}
+          hint={saldoRetidoD1 > 0 ? "Depósito automático às 07:00" : "Nenhum repasse retido hoje"}
+          icon={<Clock className="h-4 w-4 text-amber-500" />}
+        />
+
+        {/* KPI 4: Pedidos Recebidos & Ticket Médio */}
+        <KpiCard
+          label="Pedidos no mês"
+          value={totalPedidosMes}
+          format={(n) => (ocultarSaldos ? "••" : Math.round(n).toString())}
+          hint={
+            ocultarSaldos
+              ? "••••••"
+              : ticketMedio > 0
+                ? `Ticket médio: ${brl(ticketMedio)}`
+                : "Pronto para os primeiros pedidos"
           }
           icon={<ShoppingBag className="h-4 w-4" />}
         />
-
-        <KpiCard
-          label="Ticket médio"
-          value={ticketMedio}
-          format={brl}
-          hint={ticketMedio > 0 ? "Média por pedido concluído" : "Calculado após a 1ª venda"}
-          icon={<Receipt className="h-4 w-4" />}
-        />
-
-        <KpiCard
-          label="Peça em destaque"
-          value={0}
-          format={() => melhorProduto?.nome ?? "—"}
-          hint={
-            melhorProduto
-              ? `${melhorProduto.qtd} unid. vendida${melhorProduto.qtd > 1 ? "s" : ""}`
-              : "Aparece após a 1ª venda"
-          }
-          icon={<Flame className="h-4 w-4" />}
-        />
       </div>
 
-
-      {/* ── Grid Principal 65 / 35 — Vendas & Operação ───────────────────────────── */}
+      {/* ── Grid Principal 65 / 35 — Operação & Cockpit ─────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-3">
 
-        {/* ── Coluna Esquerda: Faturamento + Pedidos (65%) ────────────────────── */}
+        {/* ── Coluna Esquerda: Faturamento Gráfico + Pedidos (65%) ────────────── */}
         <div className="flex flex-col gap-4 lg:col-span-2">
           {/* Gráfico de Vendas */}
           <SectionCard
@@ -379,9 +548,9 @@ function VisaoGeral() {
                 <button
                   type="button"
                   onClick={() => setPeriodoDias(7)}
-                  className={`rounded-full px-3 py-1 font-medium transition-all ${
+                  className={`rounded-full px-3 py-1 font-medium transition-all cursor-pointer ${
                     periodoDias === 7
-                      ? "bg-card text-foreground shadow-sm"
+                      ? "bg-card text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -390,9 +559,9 @@ function VisaoGeral() {
                 <button
                   type="button"
                   onClick={() => setPeriodoDias(30)}
-                  className={`rounded-full px-3 py-1 font-medium transition-all ${
+                  className={`rounded-full px-3 py-1 font-medium transition-all cursor-pointer ${
                     periodoDias === 30
-                      ? "bg-card text-foreground shadow-sm"
+                      ? "bg-card text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -403,7 +572,7 @@ function VisaoGeral() {
             bodyClassName="px-2 pb-4 pt-5 sm:px-4"
           >
             {totalVendasPeriodo === 0 ? (
-              <div className="flex h-[180px] flex-col items-center justify-center gap-2 text-center p-4">
+              <div className="flex h-[200px] flex-col items-center justify-center gap-2 text-center p-4">
                 <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
                   <ShoppingBag className="h-4 w-4 opacity-40" />
                 </div>
@@ -417,7 +586,7 @@ function VisaoGeral() {
                 </div>
               </div>
             ) : (
-              <div className="h-[220px] w-full">
+              <div className="h-[230px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
                     <defs>
@@ -439,11 +608,11 @@ function VisaoGeral() {
                       width={60}
                       domain={[0, "auto"]}
                       allowDecimals={false}
-                      tickFormatter={(v: number) => brlCompact(v)}
+                      tickFormatter={(v: number) => (ocultarSaldos ? "••••" : brlCompact(v))}
                       tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
                     />
                     <Tooltip
-                      formatter={(v) => [brl(Number(v)), "Vendas"]}
+                      formatter={(v) => [ocultarSaldos ? "R$ ••••••" : brl(Number(v)), "Vendas"]}
                       contentStyle={{
                         borderRadius: 16,
                         border: "1px solid var(--color-border)",
@@ -472,7 +641,7 @@ function VisaoGeral() {
             description="Pedidos confirmados sincronizam o estoque e entram no caixa automaticamente."
             actions={
               <Button asChild variant="outline" size="sm" className="h-7 rounded-full text-xs font-medium border-border cursor-pointer">
-                <Link to="/loja/pedidos">Ver todos</Link>
+                <Link to="/loja/pedidos">Ver todos ({orders.length})</Link>
               </Button>
             }
             bodyClassName="p-0"
@@ -487,13 +656,13 @@ function VisaoGeral() {
             ) : (
               <ul className="divide-y divide-border">
                 {ultimosPedidos.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-secondary/30 transition-colors">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{p.customer_name || "Cliente"}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{p.customer_name || "Cliente"}</p>
                       <p className="text-xs text-muted-foreground">
                         {p.numero || `#${p.id.slice(0, 6)}`} · {dateBR(p.created_at)} ·{" "}
                         {p.payment_method === "pix"
-                          ? "Pix"
+                          ? "Pix Dinâmico"
                           : p.payment_method === "cartao"
                           ? "Cartão"
                           : "Manual"}
@@ -501,8 +670,8 @@ function VisaoGeral() {
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
                       <StatusBadge status={normalizeStatus(p.status)} />
-                      <span className="text-sm font-semibold text-foreground">
-                        {brl(Number(p.total) || 0)}
+                      <span className="text-sm font-semibold font-mono text-foreground">
+                        {mascaraSaldo(Number(p.total) || 0)}
                       </span>
                     </div>
                   </li>
@@ -512,14 +681,94 @@ function VisaoGeral() {
           </SectionCard>
         </div>
 
-        {/* ── Coluna Direita: Estoque + Divulgação da Vitrine (35%) ───────────── */}
+        {/* ── Coluna Direita: Ações do Dia, Estoque & Centro de Recebimentos (35%) ── */}
         <div className="flex flex-col gap-4">
-          {/* Saúde do Estoque */}
+
+          {/* 1. NOVO CARD: Ações do Dia & Despacho (Fulfillment Operacional) */}
           <SectionCard
-            title="Estoque & Vitrine"
-            description="Status em tempo real do seu catálogo."
+            title="Ações do Dia & Despacho"
+            description="Pedidos que exigem separação e envio imediato."
           >
-            <div className="space-y-2 text-sm">
+            <div className="space-y-3">
+              {pedidosPendentesAcao.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-2xl bg-amber-500/10 p-3.5 border border-amber-500/25">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                        <PackageSearch className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                          {pedidosPendentesAcao.length} {pedidosPendentesAcao.length === 1 ? "pedido aguarda" : "pedidos aguardam"} envio
+                        </p>
+                        <p className="text-[11px] text-amber-700/90 dark:text-amber-300/80">
+                          Prontos para separar na arara e embalar.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {pedidosPendentesAcao.slice(0, 3).map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground">{p.customer_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{p.numero} · {p.frete_tipo || "Entrega"}</p>
+                        </div>
+                        <span className="font-semibold font-mono text-emerald-600">
+                          {mascaraSaldo(Number(p.total) || 0)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button asChild size="sm" className="h-8 w-full rounded-xl text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-xs">
+                    <Link to="/loja/pedidos">
+                      <Truck className="mr-1.5 h-3.5 w-3.5" /> Ir para separação e envio
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-emerald-500/5 p-4 border border-emerald-500/15 text-center">
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    <PackageCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-900 dark:text-emerald-300">Tudo despachado!</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Nenhum pedido pendente de separação ou embalagem no momento.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* 2. Saúde do Estoque & Peça Mais Vendida Integrada */}
+          <SectionCard
+            title="Estoque & Catálogo"
+            description="Status do estoque e produto mais desejado."
+          >
+            <div className="space-y-2.5 text-sm">
+              {/* Peça mais vendida do mês em destaque no Estoque */}
+              {melhorProduto && (
+                <div className="flex items-center gap-2.5 rounded-2xl bg-secondary/60 p-2.5 border border-border">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600">
+                    <Flame className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Top Vendas do Mês</p>
+                    <p className="truncate text-xs font-semibold text-foreground">{melhorProduto.nome}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-card px-2 py-0.5 text-[11px] font-bold font-mono text-foreground border border-border">
+                    {melhorProduto.qtd} un.
+                  </span>
+                </div>
+              )}
+
               {ultimasUnidades > 0 ? (
                 <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-3 py-2 border border-amber-500/20 text-xs">
                   <span className="text-amber-800 dark:text-amber-300 font-medium">Últimas unidades</span>
@@ -537,9 +786,9 @@ function VisaoGeral() {
               )}
 
               {esgotados > 0 ? (
-                <div className="flex items-center justify-between rounded-xl bg-amber-500/8 px-3 py-2 border border-amber-500/15 text-xs">
-                  <span className="text-amber-800 dark:text-amber-300 font-medium">Esgotadas</span>
-                  <span className="font-medium text-amber-700 dark:text-amber-400">
+                <div className="flex items-center justify-between rounded-xl bg-rose-500/10 px-3 py-2 border border-rose-500/20 text-xs">
+                  <span className="text-rose-800 dark:text-rose-300 font-medium">Esgotadas na vitrine</span>
+                  <span className="font-medium text-rose-700 dark:text-rose-400">
                     {esgotados} {esgotados === 1 ? "peça" : "peças"}
                   </span>
                 </div>
@@ -567,49 +816,39 @@ function VisaoGeral() {
             </div>
           </SectionCard>
 
-          {/* Card de Divulgação da Vitrine */}
+          {/* 3. NOVO CARD: Centro de Recebimentos & Status Vestui Pay */}
           <SectionCard
-            title="Divulgue sua vitrine"
-            description="Compartilhe o link nas redes e atraia mais clientes."
+            title="Centro de Recebimentos"
+            description="Custódia BACEN e liquidações automáticas."
           >
             <div className="space-y-3">
-              {/* URL em caixa de código elegante */}
-              <div className="flex items-center gap-2 rounded-xl bg-secondary/40 px-3 py-2.5 text-xs">
-                <span className="truncate font-mono text-muted-foreground flex-1">{vitrineDisplay}</span>
-                <button
-                  type="button"
-                  onClick={copiarLink}
-                  className="shrink-0 text-primary hover:text-primary/80 transition-colors cursor-pointer"
-                  title="Copiar link"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
+              <div className="flex items-start gap-2.5 rounded-2xl bg-secondary/40 p-3 border border-border">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div className="text-xs">
+                  <p className="font-semibold text-foreground">
+                    {payAccount?.status === "ativa" ? "Vestui Pay Operacional" : "Recebimento via Pix"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                    {payAccount?.status === "ativa"
+                      ? "Repasses automáticos em D+1 na sua conta bancária sem tarifas abusivas."
+                      : "Receba na sua chave Pix própria ou ative a subconta Vestui Pay para repasses automáticos."}
+                  </p>
+                </div>
               </div>
 
-              {/* Botão principal de cópia */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copiarLink}
-                className="h-8 w-full rounded-xl border-border text-xs font-medium cursor-pointer"
-              >
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar link da vitrine
+              <Button asChild variant="outline" size="sm" className="h-8 w-full rounded-xl text-xs font-medium border-border cursor-pointer">
+                <Link to="/loja/recebimentos">
+                  <Receipt className="mr-1.5 h-3.5 w-3.5" /> Acessar extrato & repasses
+                </Link>
               </Button>
-
-              {/* Botão ver vitrine */}
-              {vitrinePath && (
-                <Button asChild variant="ghost" size="sm" className="h-8 w-full rounded-xl text-xs font-medium text-primary hover:text-primary hover:bg-primary/5 cursor-pointer">
-                  <a href={vitrinePath} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver vitrine ao vivo
-                  </a>
-                </Button>
-              )}
             </div>
           </SectionCard>
+
         </div>
 
       </div>
     </div>
   );
 }
-

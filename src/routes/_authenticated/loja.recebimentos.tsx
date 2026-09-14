@@ -86,10 +86,19 @@ function RecebimentosPage() {
     return localStorage.getItem("vestui_privacy_mode") === "true";
   });
 
+  useEffect(() => {
+    const handlePrivacyChange = () => {
+      setOcultarSaldos(localStorage.getItem("vestui_privacy_mode") === "true");
+    };
+    window.addEventListener("vestui_privacy_changed", handlePrivacyChange);
+    return () => window.removeEventListener("vestui_privacy_changed", handlePrivacyChange);
+  }, []);
+
   const togglePrivacidade = () => {
     const nextVal = !ocultarSaldos;
     setOcultarSaldos(nextVal);
     localStorage.setItem("vestui_privacy_mode", String(nextVal));
+    window.dispatchEvent(new Event("vestui_privacy_changed"));
     toast.info(nextVal ? "Modo Privacidade Ativado" : "Modo Privacidade Desativado", {
       description: nextVal ? "Valores monetários ocultados na tela." : "Valores visíveis.",
     });
@@ -194,9 +203,19 @@ function RecebimentosPage() {
   // Total processado geral
   const totalProcessado = pedidosPagos.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
 
-  // Total de taxas descontadas
+  // Total de taxas descontadas (Pix próprio não cobra taxa de gateway; Asaas cobra 0.99)
   const totalTaxas = pedidosPagos.reduce(
-    (acc, o) => acc + (Number(o.payment_fee) || 0.99),
+    (acc, o) => {
+      const taxa =
+        typeof o.payment_fee === "number"
+          ? o.payment_fee
+          : typeof o.payment_fee === "string" && o.payment_fee.trim() !== ""
+            ? Number(o.payment_fee)
+            : o.gateway_charge_id
+              ? 0.99
+              : 0;
+      return acc + taxa;
+    },
     0,
   );
 
@@ -218,7 +237,18 @@ function RecebimentosPage() {
   const saldoRetidoD1 =
     asaasLiveBalance && typeof asaasLiveBalance.pending === "number"
       ? asaasLiveBalance.pending
-      : pedidosHoje.reduce((acc, o) => acc + (Number(o.net_amount) || Math.max(0, Number(o.total) - 0.99)), 0);
+      : pedidosHoje.reduce((acc, o) => {
+          const bruto = Number(o.total) || 0;
+          const fee =
+            typeof o.payment_fee === "number"
+              ? o.payment_fee
+              : typeof o.payment_fee === "string" && o.payment_fee.trim() !== ""
+                ? Number(o.payment_fee)
+                : o.gateway_charge_id
+                  ? 0.99
+                  : 0;
+          return acc + (Number(o.net_amount) || Math.max(0, bruto - fee));
+        }, 0);
 
   // Filtro de Transações
   const transacoesFiltradas = orders.filter((o) => {
@@ -248,18 +278,23 @@ function RecebimentosPage() {
     setTimeout(() => setCopiadoId(null), 2000);
   };
 
-  // ── Próximos 7 Dias de Liquidação (Payout Calendar) ────────────────────────
+  // ── Próximos 6 Dias de Liquidação Bancária BACEN (Regra de Dias Úteis) ──────
   const diasDaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const diaSemanaHoje = agora.getDay(); // 0=Dom, 5=Sex, 6=Sáb
+  // Compensação D+1 bancária BACEN ocorre no próximo dia útil
+  const offsetCompensacao = diaSemanaHoje === 5 ? 3 : diaSemanaHoje === 6 ? 2 : diaSemanaHoje === 0 ? 2 : 1;
+  const textoProximaLiquidacao = diaSemanaHoje === 5 ? "Segunda às 07:00" : diaSemanaHoje === 6 ? "Segunda às 07:00" : "Amanhã às 07:00";
+
   const calendarioProjecao = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
     const isHoje = i === 0;
-    const isAmanha = i === 1;
-    const diaNome = isHoje ? "Hoje" : isAmanha ? "Amanhã" : diasDaSemana[d.getDay()];
+    const isDiaCompensacao = i === offsetCompensacao;
+    const diaNome = isHoje ? "Hoje" : i === 1 ? "Amanhã" : diasDaSemana[d.getDay()];
     const diaNum = d.getDate();
-    // Vendas de hoje caem amanhã (D+1)
-    const valorDia = isAmanha ? saldoRetidoD1 : 0;
-    return { diaNome, diaNum, valorDia, isAmanha, isHoje };
+    // Vendas de hoje caem no próximo dia útil D+1
+    const valorDia = isDiaCompensacao ? saldoRetidoD1 : 0;
+    return { diaNome, diaNum, valorDia, isDiaCompensacao, isHoje };
   });
 
   return (
@@ -438,7 +473,7 @@ function RecebimentosPage() {
                   <div
                     key={dia.diaNome}
                     className={`flex flex-col items-center justify-center p-2 rounded-2xl border text-center transition-all ${
-                      dia.isAmanha && dia.valorDia > 0
+                      dia.isDiaCompensacao && dia.valorDia > 0
                         ? "bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500/20 text-emerald-900"
                         : dia.isHoje
                           ? "bg-zinc-100 border-zinc-200 text-zinc-900"
@@ -459,7 +494,7 @@ function RecebimentosPage() {
             <div className="rounded-2xl bg-zinc-50/80 p-3.5 border border-zinc-100 space-y-1.5">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-500">Próximo repasse programado:</span>
-                <span className="font-bold text-zinc-900">Amanhã às 07:00</span>
+                <span className="font-bold text-zinc-900">{textoProximaLiquidacao}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-500">Valor em compensação:</span>
@@ -629,7 +664,14 @@ function RecebimentosPage() {
               ) : (
                 transacoesFiltradas.map((order) => {
                   const isPago = order.payment_status === "pago";
-                  const taxa = Number(order.payment_fee) || 0.99;
+                  const taxa =
+                    typeof order.payment_fee === "number"
+                      ? order.payment_fee
+                      : typeof order.payment_fee === "string" && order.payment_fee.trim() !== ""
+                        ? Number(order.payment_fee)
+                        : order.gateway_charge_id
+                          ? 0.99
+                          : 0;
                   const bruto = Number(order.total) || 0;
                   const liquido = isPago ? Math.max(0, bruto - taxa) : bruto;
                   const isPix = order.payment_method === "pix";
@@ -736,43 +778,54 @@ function RecebimentosPage() {
               </button>
             </div>
 
-            {/* Valor Display Grande */}
-            <div className="text-center py-2 space-y-1">
-              <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Valor Líquido Creditado</p>
-              <h3 className="text-3xl font-extrabold text-emerald-700 font-mono">
-                {brl(
-                  pedidoSelecionado.payment_status === "pago"
-                    ? Math.max(0, Number(pedidoSelecionado.total) - (Number(pedidoSelecionado.payment_fee) || 0.99))
-                    : Number(pedidoSelecionado.total),
-                )}
-              </h3>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" /> Confirmado via BACEN
-              </span>
-            </div>
+            {(() => {
+              const taxaPedido =
+                typeof pedidoSelecionado.payment_fee === "number"
+                  ? pedidoSelecionado.payment_fee
+                  : typeof pedidoSelecionado.payment_fee === "string" && pedidoSelecionado.payment_fee.trim() !== ""
+                    ? Number(pedidoSelecionado.payment_fee)
+                    : pedidoSelecionado.gateway_charge_id
+                      ? 0.99
+                      : 0;
+              const liquidoPedido =
+                pedidoSelecionado.payment_status === "pago"
+                  ? Math.max(0, Number(pedidoSelecionado.total) - taxaPedido)
+                  : Number(pedidoSelecionado.total);
 
-            {/* Discriminação Centavo por Centavo */}
-            <div className="rounded-2xl bg-zinc-50 p-4 border border-zinc-100 space-y-2.5 text-xs">
-              <div className="flex justify-between text-zinc-600">
-                <span>Valor pago pela cliente (Bruto):</span>
-                <span className="font-mono font-bold text-zinc-900">{brl(Number(pedidoSelecionado.total))}</span>
-              </div>
-              <div className="flex justify-between text-zinc-500">
-                <span>Tarifa Pix Asaas / Gateway:</span>
-                <span className="font-mono text-zinc-500">- {brl(Number(pedidoSelecionado.payment_fee) || 0.99)}</span>
-              </div>
-              <div className="h-px bg-zinc-200/80 my-1" />
-              <div className="flex justify-between font-bold text-zinc-900">
-                <span>Total Líquido da Lojista:</span>
-                <span className="font-mono text-emerald-700">
-                  {brl(
-                    pedidoSelecionado.payment_status === "pago"
-                      ? Math.max(0, Number(pedidoSelecionado.total) - (Number(pedidoSelecionado.payment_fee) || 0.99))
-                      : Number(pedidoSelecionado.total),
-                  )}
-                </span>
-              </div>
-            </div>
+              return (
+                <>
+                  {/* Valor Display Grande */}
+                  <div className="text-center py-2 space-y-1">
+                    <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Valor Líquido Creditado</p>
+                    <h3 className="text-3xl font-extrabold text-emerald-700 font-mono">
+                      {brl(liquidoPedido)}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                      <CheckCircle2 className="h-3 w-3" /> Confirmado via BACEN
+                    </span>
+                  </div>
+
+                  {/* Discriminação Centavo por Centavo */}
+                  <div className="rounded-2xl bg-zinc-50 p-4 border border-zinc-100 space-y-2.5 text-xs">
+                    <div className="flex justify-between text-zinc-600">
+                      <span>Valor pago pela cliente (Bruto):</span>
+                      <span className="font-mono font-bold text-zinc-900">{brl(Number(pedidoSelecionado.total))}</span>
+                    </div>
+                    <div className="flex justify-between text-zinc-500">
+                      <span>{taxaPedido > 0 ? "Tarifa Pix Asaas / Gateway:" : "Pix Direto Lojista (Sem Tarifa):"}</span>
+                      <span className="font-mono text-zinc-500">{taxaPedido > 0 ? `- ${brl(taxaPedido)}` : "R$ 0,00"}</span>
+                    </div>
+                    <div className="h-px bg-zinc-200/80 my-1" />
+                    <div className="flex justify-between font-bold text-zinc-900">
+                      <span>Total Líquido da Lojista:</span>
+                      <span className="font-mono text-emerald-700">
+                        {brl(liquidoPedido)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Metadados e IDs Técnicos */}
             <div className="space-y-2 text-[11px]">
