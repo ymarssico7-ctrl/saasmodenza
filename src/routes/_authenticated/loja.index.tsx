@@ -36,6 +36,7 @@ import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
 import { StatusBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { brl, brlCompact, toNumber } from "@/lib/format";
 import { dateBR, type StatusPedido } from "@/data/loja";
 
@@ -443,83 +444,83 @@ function VisaoGeral() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── 1. Header Minimalista Padrão Apple HIG (Smart Chip + Toolbar Compacta) ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* ── 1. Header Padrão Apple HIG & Identidade Visual Vestui ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          {/* Eyebrow / Seção com Identidade Vestui */}
-          <div className="mb-2 flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Loja Online · Visão Geral
-            </span>
-          </div>
+          {/* Eyebrow Nobre Padrão Vestui */}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            Loja Online
+          </p>
 
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Bom te ver, {primeiroNome}
           </h1>
 
-          {/* Apple Vitrine Smart Chip: Status + URL + Copiar + Abrir num único elemento */}
-          <div className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-full border border-border/80 bg-card px-3 py-1 shadow-2xs text-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span className="font-mono text-[11px] font-medium text-foreground tracking-tight">
-              {vitrineDisplay}
-            </span>
+          {/* Status e Ações da Vitrine — Padrão Apple HIG (Tipografia natural + Micro-ações elegantes) */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-2.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-muted-foreground">Vitrine ativa:</span>
+              <span className="font-medium text-foreground">
+                {vitrineDisplay}
+              </span>
+            </div>
 
-            <div className="h-3.5 w-px bg-border/80 mx-0.5" />
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={copiarLink}
+                title="Copiar link da vitrine"
+                className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 text-[11px] font-medium text-foreground transition-all hover:bg-secondary/80 hover:border-border cursor-pointer shadow-2xs"
+              >
+                <Copy className="h-3 w-3 text-muted-foreground" />
+                <span>Copiar</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={copiarLink}
-              title="Copiar link da vitrine"
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <Copy className="h-3 w-3" />
-              <span>Copiar</span>
-            </button>
-
-            {vitrinePath && (
-              <>
-                <div className="h-3.5 w-px bg-border/80 mx-0.5" />
+              {vitrinePath && (
                 <a
                   href={vitrinePath}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Abrir vitrine em nova aba"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2.5 text-[11px] font-medium text-primary transition-all hover:bg-primary/15 cursor-pointer"
                 >
                   <span>Ver vitrine</span>
-                  <ExternalLink className="h-3 w-3 opacity-70" />
+                  <ExternalLink className="h-3 w-3 opacity-80" />
                 </a>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Toolbar de Ações: Apenas 2 Controles Limpos na Direita */}
-        <div className="flex shrink-0 items-center gap-2.5">
-          {/* Utilitário de Balcão (Apple Icon Toggle Button) */}
-          <button
+        {/* Toolbar de Ações: Padrão Vestui & Apple HIG */}
+        <div className="flex shrink-0 items-center gap-2 pt-1 sm:pt-0">
+          {/* Modo Balcão com Rótulo Claro e Acessível */}
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={togglePrivacidade}
             title={ocultarSaldos ? "Modo Balcão ativo: clique para exibir saldos" : "Ocultar saldos para privacidade no balcão"}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all cursor-pointer shadow-2xs ${
+            className={cn(
+              "h-9 gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-all shadow-2xs cursor-pointer",
               ocultarSaldos
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
-                : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-            }`}
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+            )}
           >
-            {ocultarSaldos ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <span className="sr-only">{ocultarSaldos ? "Exibir saldos" : "Ocultar saldos"}</span>
-          </button>
+            {ocultarSaldos ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
+          </Button>
 
-          {/* Ação Primária Apple: + Nova Peça */}
+          {/* Ação Primária Oficial Vestui: + Nova Peça (gradient-primary + shadow-glow) */}
           <Button
             asChild
             size="sm"
-            className="h-9 gap-1.5 rounded-full bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white px-4 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            className="gradient-primary h-9 gap-1.5 rounded-full px-4 text-xs font-semibold text-primary-foreground shadow-glow transition-all hover:opacity-95 cursor-pointer"
           >
             <Link to="/loja/produtos">
               <Plus className="h-3.5 w-3.5" />
@@ -801,7 +802,7 @@ function VisaoGeral() {
                     ))}
                   </div>
 
-                  <Button asChild size="sm" className="h-8 w-full rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white cursor-pointer shadow-xs">
+                  <Button asChild size="sm" className="gradient-primary h-8 w-full rounded-xl text-xs font-medium text-primary-foreground shadow-xs transition-all hover:opacity-95 cursor-pointer">
                     <Link to="/loja/pedidos">
                       <Truck className="mr-1.5 h-3.5 w-3.5" /> Ir para separação e envio
                     </Link>
