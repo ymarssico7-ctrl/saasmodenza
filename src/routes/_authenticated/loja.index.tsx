@@ -11,23 +11,14 @@ import {
   YAxis,
 } from "recharts";
 import {
-  AlertTriangle,
-  ArrowRight,
   ArrowUpRight,
-  CheckCircle2,
-  Clock,
   Copy,
   ExternalLink,
-  Eye,
-  EyeOff,
-  Package,
   Receipt,
   Rocket,
-  ShieldCheck,
   ShoppingBag,
   Sparkles,
   Wallet,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/loja/")({
       {
         name: "description",
         content:
-          "Centro de comando da sua loja online: acompanhe faturamento real, saldo Vestui Pay, pedidos e estoque em tempo real.",
+          "Centro de comando da sua loja online: acompanhe faturamento real, pedidos e estoque em tempo real.",
       },
     ],
   }),
@@ -116,84 +107,11 @@ function VisaoGeral() {
     }
     void navigator.clipboard?.writeText(vitrineUrl);
     toast.success("Link da vitrine copiado!", {
-      description: `${vitrineDisplay} (pronto para colocar na Bio do Instagram ou enviar no WhatsApp)`,
+      description: `${vitrineDisplay} (pronto para colocar na Bio do Instagram ou WhatsApp)`,
     });
   };
 
-  // ── Modo Privacidade de Balcão (Persistido) ─────────────────────────────────
-  const [ocultarSaldos, setOcultarSaldos] = useState<boolean>(() => {
-    if (typeof localStorage === "undefined") return false;
-    return localStorage.getItem("vestui_privacy_mode") === "true";
-  });
-
-  const togglePrivacidade = () => {
-    const nextVal = !ocultarSaldos;
-    setOcultarSaldos(nextVal);
-    localStorage.setItem("vestui_privacy_mode", String(nextVal));
-    toast.info(nextVal ? "Modo Privacidade Ativado" : "Modo Privacidade Desativado", {
-      description: nextVal ? "Valores monetários ocultados na tela." : "Valores visíveis.",
-    });
-  };
-
-  const mascaraSaldo = (valor: number) => {
-    return ocultarSaldos ? "R$ ••••••" : brl(valor);
-  };
-
-  // ── 1. Status da Subconta Vestui Pay ──────────────────────────────────────
-  const { data: payAccount } = useQuery({
-    queryKey: ["vestui-pay-account-detail", storeId],
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
-        .from("store_payment_accounts")
-        .select("status, account_id, wallet_id, kyc_data, created_at")
-        .eq("store_id", storeId)
-        .maybeSingle();
-      return data as {
-        status: string;
-        account_id: string | null;
-        wallet_id: string | null;
-        kyc_data: Record<string, unknown> | null;
-        created_at: string;
-      } | null;
-    },
-    enabled: !!storeId,
-  });
-
-  // ── 2. Consulta Saldo Real na Edge Function Asaas ─────────────────────────
-  const { data: asaasLiveBalance } = useQuery({
-    queryKey: ["vestui-pay-live-balance", storeId],
-    queryFn: async () => {
-      const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl ?? "";
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token || !storeId) return null;
-
-      const res = await fetch(
-        `${supabaseUrl}/functions/v1/asaas-get-balance?storeId=${storeId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      if (!res.ok) return null;
-      return (await res.json()) as {
-        hasAccount: boolean;
-        status: string;
-        balance: number;
-        pending: number;
-        transferred: number;
-        updatedAt: string;
-      };
-    },
-    enabled: !!storeId && payAccount?.status === "ativa",
-    staleTime: 30_000,
-  });
-
-  // ── 3. Busca de Pedidos Nativos no Supabase ───────────────────────────────
+  // ── 1. Busca de Pedidos Nativos no Supabase ───────────────────────────────
   const { data: orders = [] } = useQuery({
     queryKey: ["orders", storeId],
     queryFn: async () => {
@@ -228,7 +146,6 @@ function VisaoGeral() {
         },
         () => {
           void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-          void queryClient.invalidateQueries({ queryKey: ["vestui-pay-live-balance", storeId] });
         },
       )
       .subscribe();
@@ -238,7 +155,7 @@ function VisaoGeral() {
     };
   }, [storeId, queryClient]);
 
-  // ── 4. Consulta de Estoque ────────────────────────────────────────────────
+  // ── 2. Consulta de Estoque ────────────────────────────────────────────────
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
 
   const esgotados = useMemo(() => {
@@ -257,7 +174,7 @@ function VisaoGeral() {
     }).length;
   }, [inventoryItems]);
 
-  // ── 5. Métricas e KPIs Financeiros Reais ──────────────────────────────────
+  // ── 3. Métricas e KPIs Financeiros Reais ──────────────────────────────────
   const now = new Date();
   const thisMonthPrefix = now.toISOString().slice(0, 7);
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -318,42 +235,7 @@ function VisaoGeral() {
     return Object.values(contagem).sort((a, b) => b.qtd - a.qtd)[0] ?? null;
   }, [pedidosMes]);
 
-  // Saldo real e D+1 do Vestui Pay
-  const totalProcessadoGeral = useMemo(() => {
-    return orders
-      .filter((p) => isPedidoPago(p))
-      .reduce((acc, p) => acc + (Number(p.total) || 0), 0);
-  }, [orders]);
-
-  const saldoDisponivel = useMemo(() => {
-    if (asaasLiveBalance && typeof asaasLiveBalance.balance === "number") {
-      return asaasLiveBalance.balance;
-    }
-    return Math.max(totalProcessadoGeral * 0.985, 0);
-  }, [asaasLiveBalance, totalProcessadoGeral]);
-
-  const saldoPendente = useMemo(() => {
-    if (asaasLiveBalance && typeof asaasLiveBalance.pending === "number") {
-      return asaasLiveBalance.pending;
-    }
-    const hojeStr = now.toISOString().slice(0, 10);
-    return orders
-      .filter((p) => isPedidoPago(p) && p.created_at.startsWith(hojeStr))
-      .reduce((acc, p) => acc + (Number(p.total) || 0), 0);
-  }, [asaasLiveBalance, orders]);
-
-  // Pedidos que precisam de ação imediata (separar/embalar)
-  const pedidosParaSeparar = useMemo(() => {
-    return orders.filter(
-      (p) =>
-        p.status !== "cancelado" &&
-        (p.status === "novo" || p.status === "pendente" || p.payment_status === "pago") &&
-        p.status !== "enviado" &&
-        p.status !== "entregue",
-    );
-  }, [orders]);
-
-  // ── 6. Gráfico Dinâmico com Seletor de Período ─────────────────────────────
+  // ── 4. Gráfico de Vendas Dinâmico (7d / 30d) ──────────────────────────────
   const [periodoDias, setPeriodoDias] = useState<7 | 30>(7);
 
   const chartData = useMemo(() => {
@@ -446,7 +328,7 @@ function VisaoGeral() {
         </div>
       )}
 
-      {/* Header com Status Pulsante da Vitrine Online */}
+      {/* Header Limpo e Elegante (Padrão Apple) */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -469,17 +351,6 @@ function VisaoGeral() {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={togglePrivacidade}
-            className="h-10 rounded-full border-border bg-card px-3 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            title={ocultarSaldos ? "Mostrar valores" : "Ocultar valores (Modo Balcão)"}
-          >
-            {ocultarSaldos ? <EyeOff className="h-4 w-4 mr-1.5 text-amber-500" /> : <Eye className="h-4 w-4 mr-1.5" />}
-            {ocultarSaldos ? "Valores ocultos" : "Privacidade"}
-          </Button>
-
           <Button
             variant="outline"
             size="sm"
@@ -514,138 +385,7 @@ function VisaoGeral() {
         </div>
       </div>
 
-      {/* ── Smart Action Bar (Alertas Acionáveis) ─────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-border/80 bg-card/60 p-3 text-xs backdrop-blur-md">
-        <div className="flex items-center gap-1.5 font-semibold text-foreground pr-2 border-r border-border">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          <span>Ações de hoje:</span>
-        </div>
-
-        {pedidosParaSeparar.length > 0 ? (
-          <Link
-            to="/loja/pedidos"
-            className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 px-3 py-1 font-medium transition-colors cursor-pointer border border-amber-500/20"
-          >
-            <Package className="h-3.5 w-3.5" />
-            <span>
-              {pedidosParaSeparar.length}{" "}
-              {pedidosParaSeparar.length === 1 ? "pedido para separar" : "pedidos para separar"}
-            </span>
-            <ArrowRight className="h-3 w-3 ml-0.5" />
-          </Link>
-        ) : (
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-3 py-1 font-medium border border-emerald-500/20">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            <span>Nenhum pedido pendente de separação</span>
-          </div>
-        )}
-
-        {esgotados > 0 && (
-          <Link
-            to="/loja/produtos"
-            className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 px-3 py-1 font-medium transition-colors cursor-pointer border border-rose-500/20"
-          >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span>
-              {esgotados} {esgotados === 1 ? "peça esgotada na vitrine" : "peças esgotadas na vitrine"}
-            </span>
-            <ArrowRight className="h-3 w-3 ml-0.5" />
-          </Link>
-        )}
-
-        {ultimasUnidades > 0 && (
-          <Link
-            to="/loja/produtos"
-            className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 px-3 py-1 font-medium transition-colors cursor-pointer border border-blue-500/20"
-          >
-            <Clock className="h-3.5 w-3.5" />
-            <span>{ultimasUnidades} com estoque baixo</span>
-          </Link>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <Link
-            to="/loja/recebimentos"
-            className="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-          >
-            Ver extrato completo <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Hero Financeiro: Vestui Pay Bento Widget ─────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-card via-card to-emerald-950/20 p-6 shadow-sm">
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl" />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                VESTUI PAY · CONTA OFICIAL
-              </span>
-              <span className="text-xs text-muted-foreground">Liquidação D+1 Integrada</span>
-            </div>
-
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Saldo Disponível para Saque / Transferência
-              </p>
-              <div className="mt-1 flex items-baseline gap-3">
-                <span className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-                  {mascaraSaldo(saldoDisponivel)}
-                </span>
-                {payAccount?.status === "ativa" && (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Liberado
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button
-                asChild
-                size="sm"
-                className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-4 h-9 shadow-sm"
-              >
-                <Link to="/loja/recebimentos">
-                  <Wallet className="mr-1.5 h-3.5 w-3.5" /> Acessar Recebimentos & Extrato
-                </Link>
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                {orders.filter((o) => isPedidoPago(o)).length} transações confirmadas
-              </span>
-            </div>
-          </div>
-
-          {/* Card Lateral: Próximo Repasse Bancário */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-secondary/40 p-4 lg:min-w-[280px]">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground">
-                Próximo Repasse Bancário
-              </span>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                D+1 Automático
-              </span>
-            </div>
-            <div className="my-2">
-              <p className="text-2xl font-bold tracking-tight text-foreground">
-                {mascaraSaldo(saldoPendente)}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Previsão de crédito: Próximo dia útil
-              </p>
-            </div>
-            <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
-              <span>Custódia Asaas / BACEN</span>
-              <span className="font-semibold text-foreground">Taxa Pix 0,99%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── 4 KPIs Nativos Conectados ao Supabase ─────────────────────────────── */}
+      {/* ── 4 KPIs Clássicos e Harmoniosos (Conectados ao Supabase) ─────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           accent
@@ -917,7 +657,7 @@ function VisaoGeral() {
                 <div className="flex items-center gap-3 shrink-0">
                   <StatusBadge status={normalizeStatus(p.status)} />
                   <span className="text-sm font-semibold text-foreground">
-                    {mascaraSaldo(Number(p.total) || 0)}
+                    {brl(Number(p.total) || 0)}
                   </span>
                 </div>
               </li>

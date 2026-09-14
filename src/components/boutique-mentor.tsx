@@ -34,14 +34,14 @@ export function BoutiqueMentor() {
           type="button"
           onClick={toggleCoach}
           className="group inline-flex items-center gap-2 rounded-full border border-primary/30 bg-card/95 px-3.5 py-2 text-xs font-semibold text-foreground shadow-lift backdrop-blur-2xl transition-all duration-300 hover:border-primary/60 hover:bg-primary/5 hover:scale-105 active:scale-95 cursor-pointer ring-1 ring-white/10 dark:ring-white/5"
-          title="Abrir Coach Financeiro da Boutique"
-          aria-label="Abrir Coach Financeiro da Boutique"
+          title="Abrir Assistente da Loja"
+          aria-label="Abrir Assistente da Loja"
         >
           <span className="flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-200">
             <Sparkles className="size-3 animate-pulse" />
           </span>
           <span className="text-xs font-semibold tracking-tight">
-            Coach da Boutique
+            Assistente Vestui
           </span>
           <span className="flex size-2 rounded-full bg-emerald-500 animate-ping" />
         </button>
@@ -88,7 +88,7 @@ export function BoutiqueMentor() {
               <div className="space-y-3">
                 <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <TrendingUp className="size-3.5 text-primary" />
-                  <span>A Matemática Prática na sua Boutique</span>
+                  <span>A Matemática Prática na sua Loja</span>
                 </div>
 
                 <div className="space-y-2 rounded-2xl border border-border/80 bg-surface/80 p-3.5 shadow-2xs">
