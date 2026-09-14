@@ -15,10 +15,12 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
+  Flame,
   Receipt,
   ShoppingBag,
   Wallet,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { inventoryQuery, profileQuery } from "@/lib/db";
@@ -313,7 +315,7 @@ function VisaoGeral() {
       </div>
 
       {/* ── 4 KPIs Clássicos e Harmoniosos (Conectados ao Supabase) ─────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           accent
           label="Vendas no mês"
@@ -324,7 +326,7 @@ function VisaoGeral() {
               ? `${totalPedidosMes} pedido${totalPedidosMes > 1 ? "s" : ""} pago${totalPedidosMes > 1 ? "s" : ""}${
                   variacaoMes !== null ? ` (${variacaoMes >= 0 ? "+" : ""}${variacaoMes.toFixed(0)}% vs mês ant.)` : ""
                 }`
-              : "Nenhuma venda neste mês"
+              : "Aguardando vendas do ciclo"
           }
           icon={<Wallet className="h-4 w-4" />}
         />
@@ -335,7 +337,7 @@ function VisaoGeral() {
           format={(n) => Math.round(n).toString()}
           hint={
             totalPedidosMes === 0
-              ? "Nenhum pedido no mês"
+              ? "Pronto para os primeiros pedidos"
               : `${orders.length} pedidos no histórico total`
           }
           icon={<ShoppingBag className="h-4 w-4" />}
@@ -345,130 +347,179 @@ function VisaoGeral() {
           label="Ticket médio"
           value={ticketMedio}
           format={brl}
-          hint={ticketMedio > 0 ? "Média por pedido concluído" : "Aguardando primeiros pedidos"}
+          hint={ticketMedio > 0 ? "Média por pedido concluído" : "Calculado após a 1ª venda"}
           icon={<Receipt className="h-4 w-4" />}
         />
 
         <KpiCard
-          label="Peça mais vendida"
+          label="Peça em destaque"
           value={0}
           format={() => melhorProduto?.nome ?? "—"}
           hint={
             melhorProduto
               ? `${melhorProduto.qtd} unid. vendida${melhorProduto.qtd > 1 ? "s" : ""}`
-              : "Nenhum item vendido ainda"
+              : "Aparece após a 1ª venda"
           }
-          icon={<ShoppingBag className="h-4 w-4" />}
+          icon={<Flame className="h-4 w-4" />}
         />
       </div>
 
-      {/* ── Gráficos e Gestão Operacional ────────────────────────────────────── */}
+
+      {/* ── Grid Principal 65 / 35 — Vendas & Operação ───────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Gráfico de Vendas */}
-        <SectionCard
-          className="lg:col-span-2"
-          title={`Faturamento — Últimos ${periodoDias} dias`}
-          description="Receitas confirmadas via Pix, Cartão ou pedidos na vitrine."
-          actions={
-            <div className="flex items-center gap-1 rounded-full border border-border bg-secondary/50 p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setPeriodoDias(7)}
-                className={`rounded-full px-3 py-1 font-medium transition-all ${
-                  periodoDias === 7
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                7 dias
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriodoDias(30)}
-                className={`rounded-full px-3 py-1 font-medium transition-all ${
-                  periodoDias === 30
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                30 dias
-              </button>
-            </div>
-          }
-          bodyClassName="px-2 pb-4 pt-5 sm:px-4"
-        >
-          {totalVendasPeriodo === 0 ? (
-            <div className="flex h-[200px] flex-col items-center justify-center gap-2 text-center p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
-                <ShoppingBag className="h-4 w-4 opacity-40" />
-              </div>
-              <div className="max-w-xs">
-                <p className="text-sm font-medium text-foreground">
-                  Nenhuma venda nos últimos {periodoDias} dias
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  As vendas aparecerão aqui em tempo real assim que confirmadas.
-                </p>
-              </div>
-            </div>
 
-          ) : (
-            <div className="h-[240px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="fillVendas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="dia"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={60}
-                    domain={[0, "auto"]}
-                    allowDecimals={false}
-                    tickFormatter={(v: number) => brlCompact(v)}
-                    tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
-                  />
-                  <Tooltip
-                    formatter={(v) => [brl(Number(v)), "Vendas"]}
-                    contentStyle={{
-                      borderRadius: 16,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-popover)",
-                      color: "var(--color-popover-foreground)",
-                      boxShadow: "var(--shadow-lifted)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="vendas"
-                    stroke="var(--color-chart-1)"
-                    strokeWidth={2.5}
-                    fill="url(#fillVendas)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </SectionCard>
-
-        {/* Coluna Lateral: Atenção no Estoque */}
-        <div className="space-y-4">
+        {/* ── Coluna Esquerda: Faturamento + Pedidos (65%) ────────────────────── */}
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          {/* Gráfico de Vendas */}
           <SectionCard
-            title="Atenção no estoque"
-            description="Reflete direto na sua vitrine online."
+            title={`Faturamento — Últimos ${periodoDias} dias`}
+            description="Receitas confirmadas via Pix, Cartão ou pedidos na vitrine."
+            actions={
+              <div className="flex items-center gap-1 rounded-full border border-border bg-secondary/50 p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPeriodoDias(7)}
+                  className={`rounded-full px-3 py-1 font-medium transition-all ${
+                    periodoDias === 7
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  7 dias
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodoDias(30)}
+                  className={`rounded-full px-3 py-1 font-medium transition-all ${
+                    periodoDias === 30
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  30 dias
+                </button>
+              </div>
+            }
+            bodyClassName="px-2 pb-4 pt-5 sm:px-4"
           >
-            <div className="space-y-2.5 text-sm">
+            {totalVendasPeriodo === 0 ? (
+              <div className="flex h-[180px] flex-col items-center justify-center gap-2 text-center p-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
+                  <ShoppingBag className="h-4 w-4 opacity-40" />
+                </div>
+                <div className="max-w-xs">
+                  <p className="text-sm font-medium text-foreground">
+                    Nenhuma venda nos últimos {periodoDias} dias
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    As vendas aparecem aqui em tempo real assim que confirmadas.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="fillVendas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="dia"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      width={60}
+                      domain={[0, "auto"]}
+                      allowDecimals={false}
+                      tickFormatter={(v: number) => brlCompact(v)}
+                      tick={{ fontSize: 12, fill: "var(--color-muted-foreground)" }}
+                    />
+                    <Tooltip
+                      formatter={(v) => [brl(Number(v)), "Vendas"]}
+                      contentStyle={{
+                        borderRadius: 16,
+                        border: "1px solid var(--color-border)",
+                        background: "var(--color-popover)",
+                        color: "var(--color-popover-foreground)",
+                        boxShadow: "var(--shadow-lifted)",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="vendas"
+                      stroke="var(--color-chart-1)"
+                      strokeWidth={2.5}
+                      fill="url(#fillVendas)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Últimos Pedidos Recebidos */}
+          <SectionCard
+            title="Últimos pedidos recebidos"
+            description="Pedidos confirmados sincronizam o estoque e entram no caixa automaticamente."
+            actions={
+              <Button asChild variant="outline" size="sm" className="h-7 rounded-full text-xs font-medium border-border cursor-pointer">
+                <Link to="/loja/pedidos">Ver todos</Link>
+              </Button>
+            }
+            bodyClassName="p-0"
+          >
+            {ultimosPedidos.length === 0 ? (
+              <div className="flex h-24 flex-col items-center justify-center gap-1.5 text-center p-4">
+                <p className="text-sm font-medium text-foreground">Nenhum pedido recebido ainda</p>
+                <p className="text-xs text-muted-foreground">
+                  Aparece aqui assim que uma compra for finalizada na vitrine.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {ultimosPedidos.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{p.customer_name || "Cliente"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.numero || `#${p.id.slice(0, 6)}`} · {dateBR(p.created_at)} ·{" "}
+                        {p.payment_method === "pix"
+                          ? "Pix"
+                          : p.payment_method === "cartao"
+                          ? "Cartão"
+                          : "Manual"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <StatusBadge status={normalizeStatus(p.status)} />
+                      <span className="text-sm font-semibold text-foreground">
+                        {brl(Number(p.total) || 0)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
+
+        {/* ── Coluna Direita: Estoque + Divulgação da Vitrine (35%) ───────────── */}
+        <div className="flex flex-col gap-4">
+          {/* Saúde do Estoque */}
+          <SectionCard
+            title="Estoque & Vitrine"
+            description="Status em tempo real do seu catálogo."
+          >
+            <div className="space-y-2 text-sm">
               {ultimasUnidades > 0 ? (
                 <div className="flex items-center justify-between rounded-xl bg-amber-500/10 px-3 py-2 border border-amber-500/20 text-xs">
                   <span className="text-amber-800 dark:text-amber-300 font-medium">Últimas unidades</span>
@@ -480,15 +531,15 @@ function VisaoGeral() {
                 <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-2 text-xs">
                   <span className="text-muted-foreground">Estoque crítico</span>
                   <span className="text-muted-foreground font-medium flex items-center gap-1">
-                    <CheckCircle2 className="size-3 text-emerald-500" /> Nenhuma peça acabando
+                    <CheckCircle2 className="size-3 text-emerald-500" /> Tudo em ordem
                   </span>
                 </div>
               )}
 
               {esgotados > 0 ? (
-                <div className="flex items-center justify-between rounded-xl bg-rose-500/10 px-3 py-2 border border-rose-500/20 text-xs">
-                  <span className="text-rose-800 dark:text-rose-300 font-medium">Esgotadas na vitrine</span>
-                  <span className="font-semibold text-rose-700 dark:text-rose-400">
+                <div className="flex items-center justify-between rounded-xl bg-amber-500/8 px-3 py-2 border border-amber-500/15 text-xs">
+                  <span className="text-amber-800 dark:text-amber-300 font-medium">Esgotadas</span>
+                  <span className="font-medium text-amber-700 dark:text-amber-400">
                     {esgotados} {esgotados === 1 ? "peça" : "peças"}
                   </span>
                 </div>
@@ -502,7 +553,7 @@ function VisaoGeral() {
               )}
 
               <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs">
-                <span className="text-muted-foreground">Total cadastrado</span>
+                <span className="text-muted-foreground">Total no catálogo</span>
                 <span className="font-semibold text-foreground">
                   {inventoryItems.length} {inventoryItems.length === 1 ? "produto" : "produtos"}
                 </span>
@@ -510,60 +561,55 @@ function VisaoGeral() {
 
               <Button asChild variant="ghost" className="h-8 w-full rounded-xl text-xs font-medium text-primary hover:text-primary hover:bg-primary/5 cursor-pointer">
                 <Link to="/loja/produtos">
-                  Gerenciar estoque da vitrine <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  Gerenciar catálogo <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                 </Link>
               </Button>
+            </div>
+          </SectionCard>
+
+          {/* Card de Divulgação da Vitrine */}
+          <SectionCard
+            title="Divulgue sua vitrine"
+            description="Compartilhe o link nas redes e atraia mais clientes."
+          >
+            <div className="space-y-3">
+              {/* URL em caixa de código elegante */}
+              <div className="flex items-center gap-2 rounded-xl bg-secondary/40 px-3 py-2.5 text-xs">
+                <span className="truncate font-mono text-muted-foreground flex-1">{vitrineDisplay}</span>
+                <button
+                  type="button"
+                  onClick={copiarLink}
+                  className="shrink-0 text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                  title="Copiar link"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {/* Botão principal de cópia */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copiarLink}
+                className="h-8 w-full rounded-xl border-border text-xs font-medium cursor-pointer"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" /> Copiar link da vitrine
+              </Button>
+
+              {/* Botão ver vitrine */}
+              {vitrinePath && (
+                <Button asChild variant="ghost" size="sm" className="h-8 w-full rounded-xl text-xs font-medium text-primary hover:text-primary hover:bg-primary/5 cursor-pointer">
+                  <a href={vitrinePath} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Ver vitrine ao vivo
+                  </a>
+                </Button>
+              )}
             </div>
           </SectionCard>
         </div>
 
       </div>
-
-      {/* ── Últimos Pedidos Recebidos ────────────────────────────────────────── */}
-      <SectionCard
-        title="Últimos pedidos recebidos"
-        description="Pedidos confirmados sincronizam o estoque e dão entrada no caixa automaticamente."
-        actions={
-          <Button asChild variant="outline" size="sm" className="h-8 rounded-full text-xs font-medium border-border cursor-pointer">
-            <Link to="/loja/pedidos">Ver todos os pedidos</Link>
-          </Button>
-        }
-        bodyClassName="p-0"
-      >
-        {ultimosPedidos.length === 0 ? (
-          <div className="flex h-32 flex-col items-center justify-center gap-2 text-center p-6 text-muted-foreground">
-            <ShoppingBag className="h-8 w-8 opacity-30" />
-            <p className="text-sm font-medium text-foreground">Nenhum pedido recebido ainda</p>
-            <p className="text-xs text-muted-foreground">
-              Assim que uma cliente finalizar uma compra na sua vitrine, ela aparecerá aqui.
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-border">
-            {ultimosPedidos.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 px-6 py-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{p.customer_name || "Cliente"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.numero || `#${p.id.slice(0, 6)}`} · {dateBR(p.created_at)} ·{" "}
-                    {p.payment_method === "pix"
-                      ? "Pix Automático"
-                      : p.payment_method === "cartao"
-                      ? "Cartão"
-                      : "Manual"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <StatusBadge status={normalizeStatus(p.status)} />
-                  <span className="text-sm font-semibold text-foreground">
-                    {brl(Number(p.total) || 0)}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionCard>
     </div>
   );
 }
+

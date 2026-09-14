@@ -50,7 +50,7 @@ export function KpiCard({
       <div className="flex items-start justify-between gap-2">
         <p
           className={cn(
-            "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
+            "text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground",
           )}
         >
           {label}
@@ -71,7 +71,7 @@ export function KpiCard({
 
       <p
         className={cn(
-          "num-display mt-2.5 text-2xl font-bold tracking-tight sm:text-[1.65rem]",
+          "num-display mt-2 text-2xl font-semibold tracking-tight sm:text-[1.6rem]",
           accent ? "text-primary" : "text-foreground",
         )}
       >
