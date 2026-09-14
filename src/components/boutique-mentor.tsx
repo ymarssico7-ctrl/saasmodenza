@@ -23,10 +23,27 @@ import { Button } from "@/components/ui/button";
 import { useGuideTour } from "@/lib/guide-context";
 
 export function BoutiqueMentor() {
-  const { isCoachOpen, closeCoach, currentEducation } = useGuideTour();
+  const { isCoachOpen, closeCoach, toggleCoach, currentEducation } = useGuideTour();
 
   return (
     <>
+      {/* ── Ícone Flutuante Compacto Apple (Design de Alto Padrão - 40px) ── */}
+      <div className="fixed bottom-5 right-5 z-40">
+        <button
+          type="button"
+          onClick={toggleCoach}
+          className="group relative grid size-10 place-items-center rounded-full border border-primary/30 bg-card/90 text-primary shadow-lift backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:border-primary/60 hover:bg-primary/10 active:scale-95 cursor-pointer ring-1 ring-white/10 dark:ring-white/5"
+          title="Assistente Vestui — Dicas e Mentoria"
+          aria-label="Abrir Assistente Vestui"
+        >
+          <Sparkles className="size-4.5 transition-transform duration-300 group-hover:rotate-12" />
+          <span className="absolute top-0 right-0 flex size-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500 border-2 border-card" />
+          </span>
+        </button>
+      </div>
+
       {/* ── Painel Lateral de Mentoria (Sheet Deslizante Apple) ── */}
       <Sheet open={isCoachOpen} onOpenChange={(open) => !open && closeCoach()}>
         <SheetContent

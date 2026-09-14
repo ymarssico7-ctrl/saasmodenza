@@ -17,7 +17,6 @@ import {
   Settings,
   Share2,
   ShoppingBag,
-  Sparkles,
   Store,
   Target,
   Truck,
@@ -32,7 +31,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
-import { useGuideTour } from "@/lib/guide-context";
 import { cn } from "@/lib/utils";
 
 // ─── Navigation config ─────────────────────────────────────────────────────────
@@ -157,7 +155,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hasLoja, trialStatus } = useAccess(profile, store);
-  const { toggleCoach } = useGuideTour();
 
   // Derive active mode from pathname
   const isLojaRoute = pathname.startsWith("/loja");
@@ -246,24 +243,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Assistente Vestui — Integrado à barra lateral (Sem colisão flutuante) */}
-        <button
-          type="button"
-          onClick={toggleCoach}
-          className="mt-4 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary-soft/40 px-3 py-2 text-xs font-medium text-foreground transition-all hover:bg-primary-soft hover:border-primary/40 cursor-pointer"
-          title="Abrir Assistente da Loja"
-        >
-          <div className="flex items-center gap-2">
-            <span className="grid size-6 place-items-center rounded-lg bg-primary/15 text-primary">
-              <Sparkles className="size-3.5" />
-            </span>
-            <span className="font-semibold text-xs tracking-tight">Assistente Vestui</span>
-          </div>
-          <span className="flex size-1.5 rounded-full bg-emerald-500" />
-        </button>
-
         {/* Profile card */}
-        <div className="mt-4 rounded-2xl bg-surface-muted p-4">
+        <div className="mt-6 rounded-2xl bg-surface-muted p-4">
           <div className="flex items-center justify-between">
             {isProfileLoading ? (
               <div className="flex-1 space-y-1.5 min-w-0 pr-2">
@@ -298,17 +279,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link to="/painel">
           <Logo />
         </Link>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 rounded-full px-2.5 text-xs text-primary gap-1 cursor-pointer"
-            onClick={toggleCoach}
-            title="Assistente Vestui"
-          >
-            <Sparkles className="size-3.5" />
-            <span className="hidden sm:inline">Assistente</span>
-          </Button>
+        <div className="flex items-center gap-2">
           <ModeSwitcher mode={mode} onChange={handleModeChange} onHover={handleHoverMode} lojaLocked={lojaLocked} />
           <Button
             variant="ghost"
@@ -343,24 +314,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             ))}
           </nav>
-          <div className="mt-6 pt-4 border-t border-border/40 flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                toggleCoach();
-              }}
-              className="flex items-center gap-2.5 px-4 text-sm font-semibold text-primary"
-            >
-              <Sparkles className="size-4" /> Assistente Vestui
-            </button>
-            <button
-              onClick={() => void signOut()}
-              className="flex items-center gap-2 px-4 text-sm font-medium text-muted-foreground"
-            >
-              <LogOut className="size-4" /> Sair da conta
-            </button>
-          </div>
+          <button
+            onClick={() => void signOut()}
+            className="mt-6 flex items-center gap-2 px-4 text-sm font-medium text-muted-foreground"
+          >
+            <LogOut className="size-4" /> Sair da conta
+          </button>
         </div>
       ) : null}
 
