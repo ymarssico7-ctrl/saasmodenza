@@ -44,17 +44,13 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "surface-card surface-card-hover relative overflow-hidden rounded-2xl p-4 transition-all duration-200",
-        accent
-          ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-          : "border border-border/70 bg-card text-card-foreground",
+        "surface-card surface-card-hover relative overflow-hidden rounded-2xl p-4 transition-all duration-200 border border-border/70 bg-card text-card-foreground",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <p
           className={cn(
-            "text-[11px] font-semibold uppercase tracking-[0.08em]",
-            accent ? "text-primary-foreground/85" : "text-muted-foreground",
+            "text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
           )}
         >
           {label}
@@ -64,7 +60,7 @@ export function KpiCard({
             className={cn(
               "grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-colors",
               accent
-                ? "bg-primary-foreground/15 text-primary-foreground"
+                ? "bg-primary/10 text-primary"
                 : "bg-secondary/80 text-muted-foreground",
             )}
           >
@@ -76,22 +72,21 @@ export function KpiCard({
       <p
         className={cn(
           "num-display mt-2.5 text-2xl font-bold tracking-tight sm:text-[1.65rem]",
-          accent ? "text-primary-foreground" : "text-foreground",
+          accent ? "text-primary" : "text-foreground",
         )}
       >
         {format(animated)}
       </p>
+
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {delta !== undefined ? (
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              accent
-                ? "bg-primary-foreground/15 text-primary-foreground"
-                : positivo
-                  ? "bg-success-soft text-success"
-                  : "bg-danger-soft text-danger",
+              positivo
+                ? "bg-success-soft text-success"
+                : "bg-danger-soft text-danger",
             )}
           >
             {positivo ? (
@@ -104,14 +99,12 @@ export function KpiCard({
         ) : null}
         {hint ? (
           <span
-            className={cn(
-              "text-[11px]",
-              accent ? "text-primary-foreground/80" : "text-muted-foreground",
-            )}
+            className="text-[11px] text-muted-foreground"
           >
             {hint}
           </span>
         ) : null}
+
       </div>
     </div>
   );

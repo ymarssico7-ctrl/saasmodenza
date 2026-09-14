@@ -17,7 +17,6 @@ import {
   ExternalLink,
   Receipt,
   ShoppingBag,
-  Sparkles,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -309,17 +308,8 @@ function VisaoGeral() {
               </a>
             </Button>
           )}
-
-          <Button
-            asChild
-            size="sm"
-            className="gradient-primary h-8 rounded-full px-3.5 text-xs font-semibold shadow-xs cursor-pointer hover:opacity-95 transition-opacity"
-          >
-            <Link to="/loja/produtos">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Gerenciar vitrine
-            </Link>
-          </Button>
         </div>
+
       </div>
 
       {/* ── 4 KPIs Clássicos e Harmoniosos (Conectados ao Supabase) ─────────────── */}
@@ -368,7 +358,7 @@ function VisaoGeral() {
               ? `${melhorProduto.qtd} unid. vendida${melhorProduto.qtd > 1 ? "s" : ""}`
               : "Nenhum item vendido ainda"
           }
-          icon={<Sparkles className="h-4 w-4" />}
+          icon={<ShoppingBag className="h-4 w-4" />}
         />
       </div>
 
@@ -408,28 +398,20 @@ function VisaoGeral() {
           bodyClassName="px-2 pb-4 pt-5 sm:px-4"
         >
           {totalVendasPeriodo === 0 ? (
-            <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center p-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
-                <ShoppingBag className="h-5 w-5 opacity-40" />
+            <div className="flex h-[200px] flex-col items-center justify-center gap-2 text-center p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
+                <ShoppingBag className="h-4 w-4 opacity-40" />
               </div>
-              <div className="max-w-md">
-                <p className="text-sm font-semibold text-foreground">
-                  Nenhuma venda registrada nos últimos {periodoDias} dias
+              <div className="max-w-xs">
+                <p className="text-sm font-medium text-foreground">
+                  Nenhuma venda nos últimos {periodoDias} dias
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                  Assim que suas clientes realizarem compras pela vitrine ou WhatsApp, a curva de
-                  faturamento e o ticket médio aparecerão aqui em tempo real.
+                  As vendas aparecerão aqui em tempo real assim que confirmadas.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copiarLink}
-                className="mt-2 h-8 rounded-full text-xs font-medium border-border cursor-pointer hover:bg-secondary"
-              >
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> Compartilhar link da vitrine
-              </Button>
             </div>
+
           ) : (
             <div className="h-[240px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -480,8 +462,8 @@ function VisaoGeral() {
           )}
         </SectionCard>
 
-        {/* Coluna Lateral: Atenção no Estoque & Canais de Venda */}
-        <div className="space-y-4 flex flex-col justify-between">
+        {/* Coluna Lateral: Atenção no Estoque */}
+        <div className="space-y-4">
           <SectionCard
             title="Atenção no estoque"
             description="Reflete direto na sua vitrine online."
@@ -533,57 +515,8 @@ function VisaoGeral() {
               </Button>
             </div>
           </SectionCard>
-
-          <SectionCard
-            title="Origem dos pedidos"
-            description="Distribuição por método de pagamento."
-          >
-            {orders.length === 0 ? (
-              <div className="space-y-1.5 py-0.5 text-xs">
-                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-1.5 text-muted-foreground">
-                  <span>Pix Vestui Pay</span>
-                  <span className="font-mono text-[11px]">0 pedidos</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-1.5 text-muted-foreground">
-                  <span>Cartão de Crédito</span>
-                  <span className="font-mono text-[11px]">0 pedidos</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-secondary/30 px-3 py-1.5 text-muted-foreground">
-                  <span>WhatsApp / Balcão</span>
-                  <span className="font-mono text-[11px]">0 pedidos</span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2 text-sm">
-                {(["Pix Vestui Pay", "Cartão de Crédito", "WhatsApp / Outros"] as const).map(
-                  (origem) => {
-                    let count = 0;
-                    if (origem === "Pix Vestui Pay") {
-                      count = orders.filter((p) => p.payment_method === "pix").length;
-                    } else if (origem === "Cartão de Crédito") {
-                      count = orders.filter((p) => p.payment_method === "cartao").length;
-                    } else {
-                      count = orders.filter(
-                        (p) => p.payment_method !== "pix" && p.payment_method !== "cartao",
-                      ).length;
-                    }
-
-                    if (count === 0) return null;
-                    return (
-                      <div
-                        key={origem}
-                        className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs"
-                      >
-                        <span className="text-muted-foreground">{origem}</span>
-                        <span className="font-semibold text-foreground">{count}</span>
-                      </div>
-                    );
-                  },
-                )}
-              </div>
-            )}
-          </SectionCard>
         </div>
+
       </div>
 
       {/* ── Últimos Pedidos Recebidos ────────────────────────────────────────── */}

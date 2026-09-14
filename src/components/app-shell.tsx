@@ -219,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav links */}
-        <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1">
+        <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {activeNav.map((item) => (
             <div key={item.to} className="flex flex-col">
               {item.section && (
