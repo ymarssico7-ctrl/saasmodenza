@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Plus,
   Receipt,
   ShoppingBag,
   Sparkles,
@@ -314,10 +313,10 @@ function VisaoGeral() {
           <Button
             asChild
             size="sm"
-            className="gradient-primary h-8 rounded-full px-3.5 text-xs font-semibold shadow-xs cursor-pointer"
+            className="gradient-primary h-8 rounded-full px-3.5 text-xs font-semibold shadow-xs cursor-pointer hover:opacity-95 transition-opacity"
           >
-            <Link to="/loja/pedidos">
-              <Plus className="mr-1.5 h-3.5 w-3.5" /> Novo pedido
+            <Link to="/loja/produtos">
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Gerenciar vitrine
             </Link>
           </Button>
         </div>
@@ -409,78 +408,27 @@ function VisaoGeral() {
           bodyClassName="px-2 pb-4 pt-5 sm:px-4"
         >
           {totalVendasPeriodo === 0 ? (
-            <div className="flex flex-col justify-between p-4 sm:p-5">
-              <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                <div>
-                  <p className="text-xs font-semibold text-foreground">Como realizar suas primeiras vendas</p>
-                  <p className="text-[11px] text-muted-foreground">3 ações simples e práticas para lojistas</p>
-                </div>
-                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary">
-                  Guia Rápido
-                </span>
+            <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center p-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
+                <ShoppingBag className="h-5 w-5 opacity-40" />
               </div>
-
-              <div className="grid gap-3 pt-3 sm:grid-cols-3">
-                {/* Passo 1: Fotos e Grade */}
-                <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 flex flex-col justify-between hover:bg-secondary/50 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                      <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">1</span>
-                      <span>Grade & Fotos</span>
-                    </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
-                      {esgotados > 0
-                        ? `Você tem ${esgotados} peça esgotada. Atualize o estoque para liberar na vitrine.`
-                        : "Defina tamanhos e cadastre fotos nítidas para as peças."}
-                    </p>
-                  </div>
-                  <Link
-                    to="/loja/produtos"
-                    className="mt-3 inline-flex items-center text-[11px] font-medium text-primary hover:underline"
-                  >
-                    Ajustar vitrine <ArrowUpRight className="ml-1 size-3" />
-                  </Link>
-                </div>
-
-                {/* Passo 2: Divulgação */}
-                <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 flex flex-col justify-between hover:bg-secondary/50 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                      <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">2</span>
-                      <span>Link na Bio</span>
-                    </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
-                      Coloque seu link na bio do Instagram ou envie no WhatsApp para suas clientes.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={copiarLink}
-                    className="mt-3 inline-flex items-center text-[11px] font-medium text-primary hover:underline cursor-pointer"
-                  >
-                    Copiar link da vitrine <Copy className="ml-1 size-3" />
-                  </button>
-                </div>
-
-                {/* Passo 3: Cupom de Boas-Vindas */}
-                <div className="rounded-xl border border-border/60 bg-secondary/30 p-3.5 flex flex-col justify-between hover:bg-secondary/50 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                      <span className="grid size-5 place-items-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">3</span>
-                      <span>Incentivo 10% OFF</span>
-                    </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
-                      Crie um cupom de boas-vindas para acelerar as primeiras compras da sua vitrine.
-                    </p>
-                  </div>
-                  <Link
-                    to="/loja/cupons"
-                    className="mt-3 inline-flex items-center text-[11px] font-medium text-primary hover:underline"
-                  >
-                    Criar cupom <ArrowUpRight className="ml-1 size-3" />
-                  </Link>
-                </div>
+              <div className="max-w-md">
+                <p className="text-sm font-semibold text-foreground">
+                  Nenhuma venda registrada nos últimos {periodoDias} dias
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Assim que suas clientes realizarem compras pela vitrine ou WhatsApp, a curva de
+                  faturamento e o ticket médio aparecerão aqui em tempo real.
+                </p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copiarLink}
+                className="mt-2 h-8 rounded-full text-xs font-medium border-border cursor-pointer hover:bg-secondary"
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" /> Compartilhar link da vitrine
+              </Button>
             </div>
           ) : (
             <div className="h-[240px] w-full">
@@ -650,26 +598,12 @@ function VisaoGeral() {
         bodyClassName="p-0"
       >
         {ultimosPedidos.length === 0 ? (
-          <div className="flex h-36 flex-col items-center justify-center gap-2 text-center p-6 text-muted-foreground">
-            <div className="grid size-9 place-items-center rounded-xl bg-secondary/60 text-muted-foreground">
-              <ShoppingBag className="size-4.5 opacity-40" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-foreground">Nenhum pedido recebido ainda</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground max-w-sm">
-                Assim que uma cliente finalizar uma compra na sua vitrine, o pedido aparecerá aqui com status e baixa automática.
-              </p>
-            </div>
-            <Button
-              asChild
-              size="sm"
-              variant="outline"
-              className="mt-1 h-7.5 rounded-full text-xs font-medium border-primary/30 text-primary hover:bg-primary/5 cursor-pointer"
-            >
-              <Link to="/loja/pedidos">
-                <Plus className="mr-1 size-3" /> Registrar Venda Manual
-              </Link>
-            </Button>
+          <div className="flex h-32 flex-col items-center justify-center gap-2 text-center p-6 text-muted-foreground">
+            <ShoppingBag className="h-8 w-8 opacity-30" />
+            <p className="text-sm font-medium text-foreground">Nenhum pedido recebido ainda</p>
+            <p className="text-xs text-muted-foreground">
+              Assim que uma cliente finalizar uma compra na sua vitrine, ela aparecerá aqui.
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
