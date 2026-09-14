@@ -198,8 +198,8 @@ function Painel() {
         title={`Olá, ${greetingName}`}
         description={
           hasCustomStore
-            ? `Aqui está o resumo financeiro da sua boutique (${rawStore}) hoje.`
-            : "Aqui está o resumo financeiro da sua boutique hoje."
+            ? `Aqui está o resumo financeiro da sua loja (${rawStore}) hoje.`
+            : "Aqui está o resumo financeiro da sua loja hoje."
         }
         action={
           <Button asChild className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all">

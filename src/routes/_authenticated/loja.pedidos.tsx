@@ -689,7 +689,7 @@ function PedidosPage() {
                           <span>{brl(totalPedido(pedidoAberto))}</span>
                         </div>
                         <p className="text-[10px] text-emerald-600 dark:text-emerald-400 pt-0.5">
-                          ✓ Venda direta com 100% do valor limpo para sua boutique.
+                          ✓ Venda direta com 100% do valor limpo para sua loja.
                         </p>
                       </>
                     )}
