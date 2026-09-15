@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bar,
@@ -14,8 +14,10 @@ import {
   YAxis,
 } from "recharts";
 import {
+  BadgeDollarSign,
   BadgePercent,
   BarChart3,
+  ExternalLink,
   PackageSearch,
   Receipt,
   ShoppingBag,
@@ -25,10 +27,12 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { transactionsQuery, inventoryQuery } from "@/lib/db";
 import { brl, brlCompact, monthLabel, monthLabelShort, monthStart, pct } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
+import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import {
   EXIT_CATEGORIES,
   REFUND_CATEGORIES,
@@ -66,7 +70,8 @@ const COLORS = [
 ];
 
 function Relatorio() {
-  const { storeId } = useStore();
+  const { store, storeId } = useStore();
+  const vitrineAtiva = isVitrineAtiva(storeId, store?.metadata);
   const { data: all = [] } = useQuery(transactionsQuery());
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
   const txs = all as unknown as Transaction[];
@@ -169,6 +174,11 @@ function Relatorio() {
           <TabsTrigger value="produtos" className="rounded-full px-5 text-xs font-semibold">
             Peças Mais Vendidas & Canais
           </TabsTrigger>
+          {vitrineAtiva && (
+            <TabsTrigger value="vestui-pay" className="rounded-full px-5 text-xs font-semibold">
+              Vestui Pay & Vendas Online
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ─── ABA 1: DRE & FINANCEIRO ──────────────────────────────────────── */}
@@ -394,6 +404,56 @@ function Relatorio() {
             )}
           </section>
         </TabsContent>
+
+        {/* ─── ABA 3: VESTUI PAY & RECEBIMENTOS DIGITAIS ─────────────────────── */}
+        {vitrineAtiva && (
+          <TabsContent value="vestui-pay" className="space-y-6 mt-0">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <StatCard
+                label="Faturamento na Vitrine"
+                value={brl(onlineRevenue)}
+                tone="primary"
+                hint="Total líquido conciliado das vendas online"
+                icon={<BadgeDollarSign className="size-4" />}
+              />
+              <StatCard
+                label="Pedidos da Vitrine"
+                value={String(totalVendasOnlineQtd)}
+                hint="Pedidos confirmados"
+                icon={<ShoppingBag className="size-4" />}
+              />
+              <StatCard
+                label="Ticket Médio Online"
+                value={brl(ticketMedioOnline)}
+                hint="Média por pedido fechado"
+                icon={<Receipt className="size-4" />}
+              />
+            </div>
+
+            <section className="panel p-6 sm:p-7">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <BadgeDollarSign className="size-4" />
+                    </span>
+                    <h2 className="text-base font-semibold">Extrato, Taxas & Liquidações D+1</h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
+                    Todas as vendas pelo Pix e Cartão na sua Vitrine Online são conciliadas automaticamente com o caixa da loja, com comprovantes do Banco Central.
+                  </p>
+                </div>
+
+                <Button asChild className="gradient-primary h-10 rounded-full px-5 text-xs font-semibold shadow-glow shrink-0">
+                  <Link to="/loja/recebimentos">
+                    Acessar Extrato Completo
+                    <ExternalLink className="ml-2 size-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </section>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

@@ -50,12 +50,10 @@ type NavItem = {
 // Se a vitrine estiver ativada: o Canal Digital surge de forma limpa e organizada.
 function getMainNav(vitrineAtiva: boolean): NavItem[] {
   const items: NavItem[] = [
-    // ROTINA DA LOJA (100% Física e Essencial)
     {
       to: "/painel",
       label: "Início",
       icon: LayoutDashboard,
-      section: "Rotina da Loja",
       isMatch: (p) => p === "/painel",
     },
     {
@@ -64,6 +62,29 @@ function getMainNav(vitrineAtiva: boolean): NavItem[] {
       icon: Wallet,
       isMatch: (p) => p === "/caixa",
     },
+  ];
+
+  if (vitrineAtiva) {
+    items.push({
+      to: "/loja/pedidos",
+      label: "Pedidos da Vitrine",
+      icon: ShoppingBag,
+      badgeKey: "pedidos",
+      isMatch: (p) =>
+        p.startsWith("/loja/pedidos") ||
+        p.startsWith("/loja/produtos") ||
+        p.startsWith("/loja/configuracao") ||
+        p.startsWith("/loja/templates") ||
+        p.startsWith("/loja/personalizar") ||
+        p.startsWith("/loja/compartilhar") ||
+        p.startsWith("/loja/frete") ||
+        p.startsWith("/loja/cupons") ||
+        p.startsWith("/loja/integracoes") ||
+        p === "/loja",
+    });
+  }
+
+  items.push(
     {
       to: "/estoque",
       label: "Roupas & Estoque",
@@ -82,104 +103,24 @@ function getMainNav(vitrineAtiva: boolean): NavItem[] {
       icon: HandCoins,
       isMatch: (p) => p.startsWith("/fiado"),
     },
-  ];
-
-  if (vitrineAtiva) {
-    // CANAL DIGITAL (ATIVADO — 1 CLIQUE DIRETO)
-    items.push(
-      {
-        to: "/loja/pedidos",
-        label: "Pedidos da Vitrine",
-        icon: ShoppingBag,
-        section: "Canal Digital",
-        badgeKey: "pedidos",
-        isMatch: (p) => p.startsWith("/loja/pedidos"),
-      },
-      {
-        to: "/loja/produtos",
-        label: "Catálogo da Vitrine",
-        icon: Store,
-        isMatch: (p) => p.startsWith("/loja/produtos"),
-      },
-      {
-        to: "/loja/configuracao",
-        label: "Configurar Vitrine",
-        icon: Sparkles,
-        isMatch: (p) =>
-          p.startsWith("/loja/configuracao") ||
-          p.startsWith("/loja/templates") ||
-          p.startsWith("/loja/personalizar") ||
-          p.startsWith("/loja/compartilhar") ||
-          p.startsWith("/loja/frete") ||
-          p.startsWith("/loja/cupons") ||
-          p.startsWith("/loja/integracoes") ||
-          p === "/loja",
-      },
-    );
-
-    // FINANCEIRO (COM VESTUI PAY)
-    items.push(
-      {
-        to: "/loja/recebimentos",
-        label: "Vestui Pay",
-        icon: BadgeDollarSign,
-        section: "Financeiro",
-        isMatch: (p) => p.startsWith("/loja/recebimentos"),
-      },
-      {
-        to: "/relatorio",
-        label: "Lucro Real & DRE",
-        icon: CircleDollarSign,
-        isMatch: (p) =>
-          p.startsWith("/relatorio") ||
-          p.startsWith("/precificacao") ||
-          p.startsWith("/prolabore"),
-      },
-      {
-        to: "/metas",
-        label: "Metas & Planejamento",
-        icon: Target,
-        isMatch: (p) => p.startsWith("/metas"),
-      },
-    );
-  } else {
-    // FINANCEIRO (LOJA FÍSICA)
-    items.push(
-      {
-        to: "/relatorio",
-        label: "Lucro Real & DRE",
-        icon: CircleDollarSign,
-        section: "Financeiro",
-        isMatch: (p) =>
-          p.startsWith("/relatorio") ||
-          p.startsWith("/precificacao") ||
-          p.startsWith("/prolabore"),
-      },
-      {
-        to: "/metas",
-        label: "Metas & Planejamento",
-        icon: Target,
-        isMatch: (p) => p.startsWith("/metas"),
-      },
-    );
-
-    // CANAL DIGITAL (CONVITE SUTIL E NÃO POLUENTE)
-    items.push({
-      to: "/loja/configuracao",
-      label: "✨ Ativar Vitrine Online",
-      icon: Sparkles,
-      section: "Canal Digital",
+    {
+      to: "/relatorio",
+      label: "Lucro Real & DRE",
+      icon: CircleDollarSign,
+      section: "Financeiro",
       isMatch: (p) =>
-        p.startsWith("/loja/configuracao") ||
-        p.startsWith("/loja/templates") ||
-        p.startsWith("/loja/personalizar") ||
-        p.startsWith("/loja/compartilhar") ||
-        p.startsWith("/loja/frete") ||
-        p.startsWith("/loja/cupons") ||
-        p.startsWith("/loja/integracoes") ||
-        p === "/loja",
-    });
-  }
+        p.startsWith("/relatorio") ||
+        p.startsWith("/precificacao") ||
+        p.startsWith("/prolabore") ||
+        p.startsWith("/loja/recebimentos"),
+    },
+    {
+      to: "/metas",
+      label: "Metas & Planejamento",
+      icon: Target,
+      isMatch: (p) => p.startsWith("/metas"),
+    },
+  );
 
   return items;
 }
@@ -210,24 +151,8 @@ function getMobilePrimary(vitrineAtiva: boolean): NavItem[] {
 function getMobileMoreNav(vitrineAtiva: boolean): NavItem[] {
   if (vitrineAtiva) {
     return [
-      { to: "/clientes", label: "Clientes & CRM", icon: Users, section: "Rotina da Loja", isMatch: (p) => p.startsWith("/clientes") },
+      { to: "/clientes", label: "Clientes & CRM", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
       { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
-      { to: "/loja/produtos", label: "Catálogo da Vitrine", icon: Store, section: "Canal Digital", isMatch: (p) => p.startsWith("/loja/produtos") },
-      {
-        to: "/loja/configuracao",
-        label: "Configurar Vitrine",
-        icon: Sparkles,
-        isMatch: (p) =>
-          p.startsWith("/loja/configuracao") ||
-          p.startsWith("/loja/templates") ||
-          p.startsWith("/loja/personalizar") ||
-          p.startsWith("/loja/compartilhar") ||
-          p.startsWith("/loja/frete") ||
-          p.startsWith("/loja/cupons") ||
-          p.startsWith("/loja/integracoes") ||
-          p === "/loja",
-      },
-      { to: "/loja/recebimentos", label: "Vestui Pay", icon: BadgeDollarSign, section: "Financeiro", isMatch: (p) => p.startsWith("/loja/recebimentos") },
       {
         to: "/relatorio",
         label: "Lucro Real & DRE",
@@ -241,22 +166,7 @@ function getMobileMoreNav(vitrineAtiva: boolean): NavItem[] {
     ];
   }
   return [
-    { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, section: "Rotina da Loja", isMatch: (p) => p.startsWith("/fiado") },
-    {
-      to: "/loja/configuracao",
-      label: "✨ Ativar Vitrine Online",
-      icon: Sparkles,
-      section: "Canal Digital",
-      isMatch: (p) =>
-        p.startsWith("/loja/configuracao") ||
-        p.startsWith("/loja/templates") ||
-        p.startsWith("/loja/personalizar") ||
-        p.startsWith("/loja/compartilhar") ||
-        p.startsWith("/loja/frete") ||
-        p.startsWith("/loja/cupons") ||
-        p.startsWith("/loja/integracoes") ||
-        p === "/loja",
-    },
+    { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
     {
       to: "/relatorio",
       label: "Lucro Real & DRE",

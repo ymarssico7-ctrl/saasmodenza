@@ -1,8 +1,8 @@
-﻿import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Minus, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Boxes, Calculator, Minus, Pencil, Plus, Sparkles, Store, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -32,6 +32,7 @@ import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf, computePricing } from "@/lib/
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@/lib/mutations";
+import { isVitrineAtiva } from "@/lib/vitrine-settings";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -55,7 +56,8 @@ type Sizes = Record<string, number>;
 
 function Estoque() {
   const queryClient = useQueryClient();
-  const { storeId } = useStore();
+  const { store, storeId } = useStore();
+  const vitrineAtiva = isVitrineAtiva(storeId, store?.metadata);
   const { data: items = [] } = useQuery(inventoryQuery());
   const { data: pricings = [] } = useQuery(pricingsQuery());
 
@@ -250,6 +252,20 @@ function Estoque() {
         eyebrow="Estoque"
         title="Suas peças, tamanho por tamanho"
         description="Saiba quanto você tem parado em estoque e quanto isso pode virar em vendas."
+        action={
+          vitrineAtiva ? (
+            <Button
+              asChild
+              variant="outline"
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold shadow-2xs hover:bg-secondary"
+            >
+              <Link to="/loja/produtos">
+                <Store className="mr-2 size-3.5 text-primary" />
+                Catálogo da Vitrine Online
+              </Link>
+            </Button>
+          ) : null
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

@@ -13,6 +13,8 @@ import {
   CreditCard,
   QrCode,
   CheckCircle2,
+  Settings,
+  Store,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -506,17 +508,39 @@ function PedidosPage() {
         title="Pedidos da Vitrine & Insta"
         description="Todo pedido confirmado baixa o estoque automaticamente e registra a entrada no seu caixa."
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void recarregarPedidos();
-              toast.success("Pedidos atualizados em tempo real!");
-            }}
-            className="h-10 rounded-full border-border bg-card text-xs font-semibold"
-          >
-            <RefreshCw className="mr-2 h-3.5 w-3.5" /> Sincronizar pedidos
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void recarregarPedidos();
+                toast.success("Pedidos atualizados em tempo real!");
+              }}
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+            >
+              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Sincronizar
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+            >
+              <Link to="/loja/produtos">
+                <Store className="mr-2 h-3.5 w-3.5 text-primary" /> Catálogo da Vitrine
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+            >
+              <Link to="/loja/configuracao">
+                <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Configurar Vitrine
+              </Link>
+            </Button>
+          </div>
         }
       />
 

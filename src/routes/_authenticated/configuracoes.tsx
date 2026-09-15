@@ -1,8 +1,8 @@
-﻿import { useCallback, useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { LogOut, Pencil, Plus, Settings, Sparkles, Tags, Trash2, Users } from "lucide-react";
+import { ArrowRight, LogOut, Pencil, Plus, Settings, Sparkles, Store, Tags, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { SubscriptionModal } from "@/components/subscription-modal";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ import {
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
 import { insertMember, deleteMember } from "@/lib/mutations";
+import { isVitrineAtiva, setVitrineAtiva } from "@/lib/vitrine-settings";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -58,9 +60,39 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 function Configuracoes() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { storeId, isDemoMode } = useStore();
+  const { store, storeId, isDemoMode } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
+
+  const [vitrineAtiva, setVitrineAtivaState] = useState(() => isVitrineAtiva(storeId, store?.metadata));
+
+  useEffect(() => {
+    setVitrineAtivaState(isVitrineAtiva(storeId, store?.metadata));
+  }, [storeId, store?.metadata]);
+
+  const handleToggleVitrine = async (ativa: boolean) => {
+    setVitrineAtivaState(ativa);
+    setVitrineAtiva(storeId, ativa);
+    try {
+      const currentMeta = (store?.metadata && typeof store.metadata === "object" ? store.metadata : {}) as Record<string, any>;
+      const updatedMeta = {
+        ...currentMeta,
+        vitrine_ativa: ativa,
+        vitrineSettings: {
+          ...((currentMeta["vitrineSettings"] as Record<string, unknown>) || {}),
+          ativa,
+        },
+      };
+      await supabase.from("stores").update({ metadata: updatedMeta }).eq("id", storeId);
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("vitrine-settings-changed"));
+      }
+    } catch (err) {
+      console.error("Erro ao salvar status da vitrine:", err);
+    }
+    toast.success(ativa ? "Vitrine online ativada! 🛍️" : "Vitrine online desativada");
+  };
 
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -253,6 +285,44 @@ function Configuracoes() {
         >
           Salvar alterações
         </Button>
+      </section>
+
+      {/* ── Vitrine Online & Catálogo Digital ── */}
+      <section className="panel p-6 sm:p-7">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Store className="size-4" />
+              </span>
+              <h2 className="text-base font-semibold">Vitrine Online & Catálogo Digital</h2>
+              <Badge variant={vitrineAtiva ? "default" : "secondary"} className="text-[10px] uppercase font-bold tracking-wider">
+                {vitrineAtiva ? "No Ar" : "Desativada"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
+              Venda pelo Instagram, WhatsApp e internet com catálogo fotográfico, sacola de pedidos e pagamentos online integrados ao estoque físico.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3.5 py-2">
+              <Switch
+                id="toggle-vitrine-config"
+                checked={vitrineAtiva}
+                onCheckedChange={handleToggleVitrine}
+              />
+              <Label htmlFor="toggle-vitrine-config" className="text-xs font-semibold cursor-pointer">
+                {vitrineAtiva ? "Ativa" : "Desativada"}
+              </Label>
+            </div>
+            <Button asChild variant="outline" className="h-10 rounded-full px-4 text-xs font-semibold shadow-2xs hover:bg-secondary">
+              <Link to="/loja/configuracao">
+                Configurar Vitrine <ArrowRight className="ml-1.5 size-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
       </section>
 
       <section className="panel p-6 sm:p-7">
