@@ -1858,8 +1858,15 @@ function Caixa() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{t.description}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary" className="rounded-full text-[10px] font-medium">
-                          {resolveCategory(t)}
+                        <Badge
+                          variant={t.category === "venda_online" ? "outline" : "secondary"}
+                          className={`rounded-full text-[10px] font-medium ${
+                            t.category === "venda_online"
+                              ? "border-primary/30 bg-primary/10 text-primary font-semibold"
+                              : ""
+                          }`}
+                        >
+                          {t.category === "venda_online" ? "🌐 Venda Online" : resolveCategory(t)}
                         </Badge>
                         <Badge variant="outline" className="rounded-full text-[10px] font-medium">
                           {resolvePayment(t)}

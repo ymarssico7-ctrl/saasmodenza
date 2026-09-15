@@ -424,7 +424,8 @@ export function formatVariationHint(current: number, previous: number): string {
 }
 
 export const ENTRY_CATEGORIES = [
-  { value: "venda_produto", label: "Venda de produto" },
+  { value: "venda_produto", label: "Venda física (Balcão)" },
+  { value: "venda_online", label: "Venda online (Vitrine)" },
   { value: "outro", label: "Outro" },
 ] as const;
 

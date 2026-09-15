@@ -78,6 +78,7 @@ function Painel() {
   const previous = inMonth(prevMonth);
 
   const revenue = sumBy(current, "entrada");
+  const onlineRevenue = sumByCategories(current, "entrada", new Set(["venda_online"]));
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   const netRevenue = revenue - refunds;
   // Segregação contábil homogênea com relatorio.tsx:
@@ -231,7 +232,9 @@ function Painel() {
           hint={
             refunds > 0
               ? `Líquido: ${brl(netRevenue)} (−${brl(refunds)} em devoluções)`
-              : formatVariationHint(revenue, prevRevenue)
+              : onlineRevenue > 0
+                ? `${formatVariationHint(revenue, prevRevenue)} · ${brl(onlineRevenue)} online`
+                : formatVariationHint(revenue, prevRevenue)
           }
         />
         <StatCard
@@ -397,7 +400,14 @@ function Painel() {
               {recent.map((t) => (
                 <li key={t.id} className="flex items-center justify-between gap-4 py-3.5">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{t.description}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-medium">{t.description}</p>
+                      {t.category === "venda_online" && (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                          Online
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {formatDate(t.occurred_on)}
                     </p>

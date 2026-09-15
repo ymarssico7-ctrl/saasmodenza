@@ -353,7 +353,7 @@ function PedidosPage() {
         kind: "entrada",
         description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
         amount: valorTotal,
-        category: "venda_produto",
+        category: "venda_online",
         payment_method: mapPedidoPaymentMethod(pedido.pagamento),
         occurred_on: new Date().toISOString().slice(0, 10),
       }).then(() => {
