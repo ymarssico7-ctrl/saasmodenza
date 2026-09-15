@@ -37,6 +37,7 @@ import { inventoryQuery, profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { calculateOrderNet } from "@/lib/fees";
+import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
 import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
 import { StatusBadge } from "@/components/loja/badges";
@@ -108,20 +109,6 @@ function VisaoGeral() {
 
   // ── Privacidade de Balcão Compartilhada (Modo Balcão) ───────────────────────
   const { ocultarSaldos, togglePrivacidade, mascaraSaldo } = usePrivacyMode();
-
-  // ── Playbook de Aceleração da Vitrine ───────────────────────────────────────
-  const sid = storeId || "default";
-  const [playbookDismissed, setPlaybookDismissed] = useState<boolean>(() => {
-    if (typeof window === "undefined" || typeof localStorage === "undefined") return false;
-    return localStorage.getItem(`vestui_loja_playbook_dismissed_${sid}`) === "true";
-  });
-
-  const dismissPlaybook = () => {
-    setPlaybookDismissed(true);
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(`vestui_loja_playbook_dismissed_${sid}`, "true");
-    }
-  };
 
   const origin =
     typeof window !== "undefined" && window.location.origin
@@ -418,12 +405,6 @@ function VisaoGeral() {
 
   const ultimosPedidos = useMemo(() => orders.slice(0, 5), [orders]);
 
-  const step1Done = inventoryItems.length > 0;
-  const step2Done = Boolean(store?.slug);
-  const step3Done = orders.length > 0;
-  const playbookProgress = (step1Done ? 1 : 0) + (step2Done ? 1 : 0) + (step3Done ? 1 : 0);
-  const showPlaybook = !playbookDismissed && playbookProgress < 3;
-
   return (
     <div className="space-y-6 pb-12">
       {/* ── 1. Header Padrão Apple HIG & Identidade Visual Vestui ── */}
@@ -512,125 +493,17 @@ function VisaoGeral() {
         </div>
       </div>
 
-      {/* ── Playbook de Aceleração Comercial da Vitrine ── */}
-      {showPlaybook && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5 relative transition-all">
-          <button
-            type="button"
-            onClick={dismissPlaybook}
-            title="Dispensar guia"
-            className="absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pr-6">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider">
-                  Guia de Vendas Online
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {playbookProgress}/3 passos concluídos
-                </span>
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Como acelerar suas vendas na Vitrine Online
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
-                Complete estes passos estratégicos para colocar sua vitrine para rodar e atrair os primeiros pedidos.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
-            {/* Passo 1: Catálogo com Fotos */}
-            <Link
-              to="/loja/produtos"
-              className={cn(
-                "flex items-start gap-3 rounded-xl p-3 border transition-all",
-                step1Done
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
-                  : "border-border/80 bg-card hover:bg-secondary/60 text-foreground",
-              )}
-            >
-              <div className="mt-0.5">
-                {step1Done ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                ) : (
-                  <div className="grid h-4 w-4 place-items-center rounded-full border border-primary text-[10px] font-bold text-primary">
-                    1
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 text-xs">
-                <p className="font-semibold">Cadastre peças com fotos</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {inventoryItems.length > 0
-                    ? `${inventoryItems.length} peça(s) no catálogo`
-                    : "Coloque fotos atrativas"}
-                </p>
-              </div>
-            </Link>
-
-            {/* Passo 2: Link na Bio */}
-            <button
-              type="button"
-              onClick={copiarLink}
-              className={cn(
-                "flex items-start gap-3 rounded-xl p-3 border transition-all text-left cursor-pointer",
-                step2Done
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
-                  : "border-border/80 bg-card hover:bg-secondary/60 text-foreground",
-              )}
-            >
-              <div className="mt-0.5">
-                {step2Done ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                ) : (
-                  <div className="grid h-4 w-4 place-items-center rounded-full border border-primary text-[10px] font-bold text-primary">
-                    2
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 text-xs">
-                <p className="font-semibold">Divulgue seu link</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Copie e cole na Bio do Instagram
-                </p>
-              </div>
-            </button>
-
-            {/* Passo 3: Primeiro Pedido */}
-            <Link
-              to="/loja/pedidos"
-              className={cn(
-                "flex items-start gap-3 rounded-xl p-3 border transition-all",
-                step3Done
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
-                  : "border-border/80 bg-card hover:bg-secondary/60 text-foreground",
-              )}
-            >
-              <div className="mt-0.5">
-                {step3Done ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                ) : (
-                  <div className="grid h-4 w-4 place-items-center rounded-full border border-primary text-[10px] font-bold text-primary">
-                    3
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 text-xs">
-                <p className="font-semibold">Primeira venda</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {orders.length > 0
-                    ? `${orders.length} pedido(s) recebido(s)`
-                    : "Simule ou receba um pedido"}
-                </p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      )}
+      {/* ── Guia de Aceleração Comercial da Vitrine (Padrão Apple HIG) ── */}
+      <VestuiGuideBanner
+        mode="loja"
+        storeId={storeId}
+        storeSlug={store?.slug}
+        inventoryCount={inventoryItems.length}
+        hasSales={orders.length > 0}
+        salesCount={orders.length}
+        hasStorefront={Boolean(store?.slug)}
+        onCopyLink={copiarLink}
+      />
 
       {/* ── 2. 4 KPIs com Contenção Cromática & Tipografia Apple ───────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
