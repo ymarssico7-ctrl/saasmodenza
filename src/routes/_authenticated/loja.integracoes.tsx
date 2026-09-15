@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -629,7 +629,7 @@ function IntegracoesPage() {
     try {
       const raw =
         localStorage.getItem(`vestui_integrations_${storeId}`) ||
-        localStorage.getItem(`modaly_integrations_${storeId}`) ||
+        localStorage.getItem(`vestui_integrations_${storeId}`) ||
         localStorage.getItem(`vestuli_integrations_${storeId}`);
       return raw ? { ...defaultMap, ...(JSON.parse(raw) as Record<string, boolean>) } : defaultMap;
     } catch {
@@ -643,7 +643,7 @@ function IntegracoesPage() {
     try {
       const raw =
         localStorage.getItem(`vestui_integrations_${storeId}`) ||
-        localStorage.getItem(`modaly_integrations_${storeId}`) ||
+        localStorage.getItem(`vestui_integrations_${storeId}`) ||
         localStorage.getItem(`vestuli_integrations_${storeId}`);
       if (raw) {
         setStatusMap((prev) => ({ ...prev, ...(JSON.parse(raw) as Record<string, boolean>) }));

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -89,12 +89,12 @@ import {
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
     meta: [
-      { title: "Controle de caixa — Modaly" },
+      { title: "Controle de caixa — Vestui" },
       {
         name: "description",
         content: "Registre entradas e saídas da loja e acompanhe o saldo do dia e do mês.",
       },
-      { property: "og:title", content: "Controle de caixa — Modaly" },
+      { property: "og:title", content: "Controle de caixa — Vestui" },
       { property: "og:description", content: "Entradas, saídas e saldo sempre atualizados." },
     ],
   }),

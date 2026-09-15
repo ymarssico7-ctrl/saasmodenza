@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Instagram, Link2, QrCode, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { loadShowcaseConfigs } from "@/lib/showcase-store";
 export const Route = createFileRoute("/_authenticated/loja/compartilhar")({
   head: () => ({
     meta: [
-      { title: "Compartilhar a loja — Modaly" },
+      { title: "Compartilhar a loja — Vestui" },
       {
         name: "description",
         content:
@@ -33,7 +33,7 @@ function CompartilharPage() {
 
   // Slug real da loja
   const slug = store?.slug ?? storeId ?? "minha-loja";
-  const baseUrl = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://modaly.app";
+  const baseUrl = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://vestui.app";
   const linkLoja = (path = "") => `${baseUrl}/vitrine/${slug}${path}`;
 
   // Produtos reais do inventário

@@ -1,14 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { ThemeBuilder } from "@/components/theme/builder/theme-builder";
 
 export const Route = createFileRoute("/_authenticated/loja/personalizar")({
   head: () => ({
     meta: [
-      { title: "Personalizar Loja — Modaly" },
+      { title: "Personalizar Loja — Vestui" },
       {
         name: "description",
         content:
-          "Monte e personalize o visual da sua vitrine online com o construtor de lojas Modaly.",
+          "Monte e personalize o visual da sua vitrine online com o construtor de lojas Vestui.",
       },
     ],
   }),

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
@@ -16,11 +16,11 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/templates")({
   head: () => ({
     meta: [
-      { title: "Galeria de Temas — Modaly" },
+      { title: "Galeria de Temas — Vestui" },
       {
         name: "description",
         content:
-          "Escolha o visual perfeito para sua vitrine. Explore os templates premium do Modaly e aplique com um clique.",
+          "Escolha o visual perfeito para sua vitrine. Explore os templates premium do Vestui e aplique com um clique.",
       },
     ],
   }),
@@ -249,7 +249,7 @@ function TemplateCard({
               style={{ borderColor: palette.border, backgroundColor: palette.background }}
             >
               <span className="truncate text-[8px]" style={{ color: palette.foreground + "60" }}>
-                {store?.slug ? `modaly.app/vitrine/${store.slug}` : "modaly.app/vitrine/sua-loja"}
+                {store?.slug ? `vestui.app/vitrine/${store.slug}` : "vestui.app/vitrine/sua-loja"}
               </span>
             </div>
           </div>
@@ -453,7 +453,7 @@ function ComingSoonCard() {
       <div>
         <p className="font-display text-sm font-semibold text-foreground">Mais temas em breve</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Novos templates são adicionados com atualizações do Modaly. Fique de olho!
+          Novos templates são adicionados com atualizações do Vestui. Fique de olho!
         </p>
       </div>
     </div>

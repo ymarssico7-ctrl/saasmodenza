@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -36,12 +36,12 @@ import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
     meta: [
-      { title: "Estoque por grade — Modaly" },
+      { title: "Estoque por grade — Vestui" },
       {
         name: "description",
         content: "Controle peças, tamanhos, custo e preço de venda do estoque da sua loja.",
       },
-      { property: "og:title", content: "Estoque por grade — Modaly" },
+      { property: "og:title", content: "Estoque por grade — Vestui" },
       {
         property: "og:description",
         content: "Peças e tamanhos organizados, com valor total em estoque.",
@@ -521,7 +521,7 @@ function Estoque() {
                       Modo Playground · Peça de Demonstração
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Veja como o Modaly organiza fotos, grade e calcula lucros e margens
+                      Veja como o Vestui organiza fotos, grade e calcula lucros e margens
                     </p>
                   </div>
                 </div>

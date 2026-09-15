@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Template01Store — Vitrine "Atelier Nove"
  *
- * FONTE DA VERDADE: c:\Users\yande\Downloads\Modaly 2.0\template 01\
+ * FONTE DA VERDADE: c:\Users\yande\Downloads\Vestui 2.0\template 01\
  *   ├── src/routes/index.tsx     — JSX exato da página
  *   ├── src/components/ProductCard.tsx — Card de produto
  *   └── src/styles.css          — tokens de cor e fontes

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,13 +20,13 @@ import { insertProlabore, deleteProlabore, updateProlaboreTarget } from "@/lib/m
 export const Route = createFileRoute("/_authenticated/prolabore")({
   head: () => ({
     meta: [
-      { title: "Pró-labore da lojista — Modaly" },
+      { title: "Pró-labore da lojista — Vestui" },
       {
         name: "description",
         content:
           "Separe o dinheiro da loja do seu dinheiro pessoal com o controle de pró-labore mensal.",
       },
-      { property: "og:title", content: "Pró-labore da lojista — Modaly" },
+      { property: "og:title", content: "Pró-labore da lojista — Vestui" },
       {
         property: "og:description",
         content: "Defina sua retirada mensal e acompanhe o quanto já retirou.",

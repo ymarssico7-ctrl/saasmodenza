@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -898,7 +898,7 @@ function CartDrawer({
     try {
       const raw =
         localStorage.getItem(`vestui_frete_config_${storeId}`) ||
-        localStorage.getItem(`modaly_frete_config_${storeId}`) ||
+        localStorage.getItem(`vestui_frete_config_${storeId}`) ||
         localStorage.getItem(`vestuli_frete_config_${storeId}`);
       if (!raw) return [];
       const cfg = JSON.parse(raw) as {
@@ -936,7 +936,7 @@ function CartDrawer({
     try {
       const raw =
         localStorage.getItem(`vestui_cupons_${storeId}`) ||
-        localStorage.getItem(`modaly_cupons_${storeId}`) ||
+        localStorage.getItem(`vestui_cupons_${storeId}`) ||
         localStorage.getItem(`vestuli_cupons_${storeId}`);
       const lista = raw ? (JSON.parse(raw) as Array<{
         id: string; codigo: string; tipo: "percentual" | "fixo"; valor: number;
@@ -1082,7 +1082,7 @@ function CartDrawer({
         const chave = `vestui_cupons_${storeId}`;
         const raw =
           localStorage.getItem(chave) ||
-          localStorage.getItem(`modaly_cupons_${storeId}`) ||
+          localStorage.getItem(`vestui_cupons_${storeId}`) ||
           localStorage.getItem(`vestuli_cupons_${storeId}`);
         if (raw) {
           const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;

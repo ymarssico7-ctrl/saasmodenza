@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -15,9 +15,9 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
     meta: [
-      { title: "Configurar sua loja — Modaly" },
-      { name: "description", content: "Configure os dados da sua loja para começar no Modaly." },
-      { property: "og:title", content: "Configurar sua loja — Modaly" },
+      { title: "Configurar sua loja — Vestui" },
+      { name: "description", content: "Configure os dados da sua loja para começar no Vestui." },
+      { property: "og:title", content: "Configurar sua loja — Vestui" },
       { property: "og:description", content: "Três passos rápidos para começar." },
     ],
   }),
@@ -234,7 +234,7 @@ function Onboarding() {
       });
 
       toast.success(
-        `Tudo pronto! Sua vitrine já está em modaly.app/vitrine/${uniqueSlug} 🎉`,
+        `Tudo pronto! Sua vitrine já está em vestui.app/vitrine/${uniqueSlug} 🎉`,
         { duration: 6000 },
       );
       navigate({ to: "/painel" });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Tag as TagIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ import { dateBR, type Cupom } from "@/data/loja";
 export const Route = createFileRoute("/_authenticated/loja/cupons")({
   head: () => ({
     meta: [
-      { title: "Cupons de desconto — Modaly" },
+      { title: "Cupons de desconto — Vestui" },
       {
         name: "description",
         content: "Crie cupons em percentual ou valor fixo, com validade e limite de uso.",
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/loja/cupons")({
 });
 
 function cuponsKey(storeId: string) {
-  return `modaly_cupons_${storeId}`;
+  return `vestui_cupons_${storeId}`;
 }
 
 function legacyCuponsKey(storeId: string) {

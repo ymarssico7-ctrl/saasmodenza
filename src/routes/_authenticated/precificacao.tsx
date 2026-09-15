@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+﻿import { useMemo, useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -79,13 +79,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
     meta: [
-      { title: "Precificação Estratégica & Inteligência de Margem — Modaly" },
+      { title: "Precificação Estratégica & Inteligência de Margem — Vestui" },
       {
         name: "description",
         content:
           "Calcule o preço de venda das suas peças com margem real, controle unificado por variante de tamanho e cor, simulador de taxas e ponto de equilíbrio do lote.",
       },
-      { property: "og:title", content: "Precificação Estratégica — Modaly" },
+      { property: "og:title", content: "Precificação Estratégica — Vestui" },
       {
         name: "og:description",
         content: "Descubra o preço ideal por grade ou peça única, simulando perdas e margem real líquida.",

@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Template02Store — "Atelie Minimalist"
  *
- * FONTE DA VERDADE: c:\Users\yande\Downloads\Modaly 2.0\atelie-loja\
+ * FONTE DA VERDADE: c:\Users\yande\Downloads\Vestui 2.0\atelie-loja\
  *   ├── src/routes/index.tsx        — Home page (Hero + Categorias + Novidades + Lookbook + Features)
  *   ├── src/routes/loja.tsx         — Página da loja com filtros
  *   ├── src/components/store/       — Navbar, Footer, CartDrawer, ProductCard, Icons, AnnouncementBar

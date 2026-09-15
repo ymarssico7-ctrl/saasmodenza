@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Check,
@@ -197,7 +197,7 @@ function AparenciaPage() {
               </div>
               <div className="mx-auto flex h-4 w-56 items-center rounded-full border border-stone-200 bg-white px-2">
                 <span className="truncate text-[9px] text-stone-400">
-                  modaly.app/vitrine/{store?.slug ?? "sua-loja"}
+                  vestui.app/vitrine/{store?.slug ?? "sua-loja"}
                 </span>
               </div>
             </div>

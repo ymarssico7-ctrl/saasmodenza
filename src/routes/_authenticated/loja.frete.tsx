@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Package, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -14,14 +14,14 @@ import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 
 function freteKey(storeId: string) {
-  return `modaly_frete_config_${storeId}`;
+  return `vestui_frete_config_${storeId}`;
 }
 
 function legacyFreteKey(storeId: string) {
   return `vestuli_frete_config_${storeId}`;
 }
 
-const GLOBAL_FRETE_KEY = "modaly_frete_config";
+const GLOBAL_FRETE_KEY = "vestui_frete_config";
 
 type FreteConfig = {
   cep: string;
@@ -34,7 +34,7 @@ type FreteConfig = {
 export const Route = createFileRoute("/_authenticated/loja/frete")({
   head: () => ({
     meta: [
-      { title: "Frete & Entrega — Modaly" },
+      { title: "Frete & Entrega — Vestui" },
       {
         name: "description",
         content:

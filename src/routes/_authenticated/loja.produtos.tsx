@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+﻿import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -47,7 +47,7 @@ import { PlanGuard } from "@/components/plan-guard";
 export const Route = createFileRoute("/_authenticated/loja/produtos")({
   head: () => ({
     meta: [
-      { title: "Vitrine — Modaly" },
+      { title: "Vitrine — Vestui" },
       {
         name: "description",
         content:

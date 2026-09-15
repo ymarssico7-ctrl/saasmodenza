@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -19,12 +19,12 @@ import { upsertGoal, deleteGoal } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({
     meta: [
-      { title: "Metas mensais — Modaly" },
+      { title: "Metas mensais — Vestui" },
       {
         name: "description",
         content: "Defina a meta de faturamento do mês e acompanhe o progresso da sua loja.",
       },
-      { property: "og:title", content: "Metas mensais — Modaly" },
+      { property: "og:title", content: "Metas mensais — Vestui" },
       { property: "og:description", content: "Meta, progresso e projeção de fechamento do mês." },
     ],
   }),

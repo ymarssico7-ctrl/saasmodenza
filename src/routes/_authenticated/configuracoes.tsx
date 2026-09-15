@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -43,12 +43,12 @@ import { insertMember, deleteMember } from "@/lib/mutations";
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações da loja — Modaly" },
+      { title: "Configurações da loja — Vestui" },
       {
         name: "description",
         content: "Ajuste os dados da loja, sua retirada mensal e a equipe com acesso.",
       },
-      { property: "og:title", content: "Configurações da loja — Modaly" },
+      { property: "og:title", content: "Configurações da loja — Vestui" },
       { property: "og:description", content: "Dados da loja, pró-labore e equipe." },
     ],
   }),
@@ -131,7 +131,7 @@ function Configuracoes() {
       // garantindo que a vitrine pública reflita imediatamente o nome correto
       // independente do modo (demo ou real).
       try {
-        const themeKey = `modaly_theme_config_${storeId}`;
+        const themeKey = `vestui_theme_config_${storeId}`;
         const raw = localStorage.getItem(themeKey) || localStorage.getItem(`vestuli_theme_config_${storeId}`);
         const theme = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
         theme['nome'] = profilePatch.store_name;
@@ -196,7 +196,7 @@ function Configuracoes() {
     <div className="space-y-10">
       <PageHeader
         eyebrow="Configurações"
-        title="Sua loja no Modaly"
+        title="Sua loja no Vestui"
         description="Ajuste os dados da loja, sua retirada mensal e quem trabalha com você."
       />
 

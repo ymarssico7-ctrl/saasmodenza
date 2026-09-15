@@ -1,42 +1,19 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { SubscriptionModal } from "@/components/subscription-modal";
 
-type Plan = "lojista" | "digital" | "crescimento" | "gestao_anual";
-
-const planRank: Record<Plan, number> = {
-  lojista: 0,
-  digital: 1,
-  crescimento: 2,
-  gestao_anual: 2, // Equivalente ao plano de maior acesso
-};
-
-const planNames: Record<Plan, string> = {
-  lojista: "Plano Lojista",
-  digital: "Plano Digital",
-  crescimento: "Plano Crescimento",
-  gestao_anual: "Plano Gestão Anual",
-};
-
-const planPrices: Record<Plan, string> = {
-  lojista: "R$ 127/ano",
-  digital: "R$ 67/mês",
-  crescimento: "R$ 147/mês",
-  gestao_anual: "R$ 49/mês (no plano anual)",
-};
-
 export function PlanGuard({
-  requires,
+  requires = "digital",
   children,
   featureName,
   featureDescription,
 }: {
-  requires: Plan;
+  requires?: string;
   children: React.ReactNode;
   featureName?: string;
   featureDescription?: string;
@@ -44,14 +21,10 @@ export function PlanGuard({
   const [subModalOpen, setSubModalOpen] = useState(false);
   const { data: profile } = useQuery(profileQuery());
   const { store } = useStore();
-  const { hasLoja } = useAccess(profile, store);
+  const { isActive } = useAccess(profile, store);
 
-  const currentPlan = (store?.plan || profile?.plan || "lojista") as Plan;
-  // Se o recurso requer o plano digital e o usuário tem loja ativa (seja por assinatura ou trial ativo), libera!
-  const hasAccess =
-    (requires === "digital" && hasLoja) || (planRank[currentPlan] ?? 0) >= planRank[requires];
-
-  if (hasAccess) return <>{children}</>;
+  // No modelo unificado, se a assinatura ou trial está ativo, tudo está liberado!
+  if (isActive) return <>{children}</>;
 
   return (
     <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
@@ -62,28 +35,22 @@ export function PlanGuard({
         </div>
       </div>
 
-      <h2 className="mt-6 text-xl font-semibold">{featureName ?? "Recurso exclusivo"}</h2>
+      <h2 className="mt-6 text-xl font-semibold">{featureName ?? "Recurso exclusivo Vestui"}</h2>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
         {featureDescription ??
-          `Este recurso está disponível no ${planNames[requires]}. Faça o upgrade para desbloquear.`}
+          "Tenha acesso a esse e todos os outros recursos do sistema com o plano Vestui Completo."}
       </p>
 
-      <div className="mt-8 rounded-2xl border border-primary/20 bg-primary-soft px-6 py-4 text-center">
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent-foreground">
-          {planNames[requires]}
-        </p>
-        <p className="num-display mt-1 text-2xl font-semibold text-primary">
-          {planPrices[requires]}
-        </p>
+      <div className="mt-6 flex flex-col items-center gap-2">
+        <Button
+          onClick={() => setSubModalOpen(true)}
+          className="h-11 rounded-full px-6 text-sm font-semibold shadow-glow cursor-pointer"
+        >
+          <Zap className="size-4 mr-2" />
+          Ativar assinatura por R$ 57/mês
+        </Button>
+        <span className="text-xs text-muted-foreground">ou R$ 497 no plano anual (28% de economia)</span>
       </div>
-
-      <Button
-        onClick={() => setSubModalOpen(true)}
-        className="mt-6 h-11 rounded-full px-8 font-semibold shadow-glow cursor-pointer"
-      >
-        <Sparkles className="mr-2 size-4" />
-        Fazer upgrade agora
-      </Button>
 
       <SubscriptionModal open={subModalOpen} onOpenChange={setSubModalOpen} />
     </div>

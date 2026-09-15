@@ -1,13 +1,17 @@
+import React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
   ArrowUpRight,
   Calculator,
+  Copy,
+  ExternalLink,
   Eye,
   EyeOff,
   HandCoins,
   Plus,
+  ShoppingBag,
   Target,
   TrendingUp,
   Users,
@@ -51,17 +55,79 @@ import {
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
-      { title: "Painel financeiro — Modaly" },
+      { title: "Painel — Vestui" },
       {
         name: "description",
         content: "Visão geral do faturamento, despesas, lucro, meta e fiado da sua loja de moda.",
       },
-      { property: "og:title", content: "Painel financeiro — Modaly" },
+      { property: "og:title", content: "Painel — Vestui" },
       { property: "og:description", content: "Faturamento, lucro, meta e fiado em um só lugar." },
     ],
   }),
   component: Painel,
 });
+
+// ─── Vitrine Link + Pedidos Pendentes bar ────────────────────────────────────
+function PainelDigitalBar({
+  storeSlug,
+  storeId,
+}: {
+  storeSlug: string | null | undefined;
+  storeId: string;
+}) {
+  const [copied, setCopied] = React.useState(false);
+
+  const pendingCount = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem(`vestui_orders_${storeId}`);
+      if (!raw) return 0;
+      const orders: { status?: string }[] = JSON.parse(raw);
+      return orders.filter((o) => o.status === "novo").length;
+    } catch {
+      return 0;
+    }
+  }, [storeId]);
+
+  if (!storeSlug) return null;
+
+  const vitrineUrl = `vestui.app/vitrine/${storeSlug}`;
+  const fullUrl = `https://${vitrineUrl}`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Vitrine link */}
+      <div className="flex min-w-0 items-center gap-2">
+        <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
+        <span className="truncate text-sm text-muted-foreground">{vitrineUrl}</span>
+        <button
+          onClick={handleCopy}
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          <Copy className="size-3" />
+          {copied ? "Copiado!" : "Copiar link"}
+        </button>
+      </div>
+
+      {/* Pending orders badge */}
+      {pendingCount > 0 && (
+        <Link
+          to="/loja/pedidos"
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 transition-colors hover:bg-amber-500/20"
+        >
+          <ShoppingBag className="size-3.5" />
+          {pendingCount} pedido{pendingCount !== 1 ? "s" : ""} pendente{pendingCount !== 1 ? "s" : ""}
+        </Link>
+      )}
+    </div>
+  );
+}
 
 function Painel() {
   const { storeId, store } = useStore();
@@ -256,6 +322,8 @@ function Painel() {
         hasGoal={goalTarget > 0}
         hasStorefront={Boolean(store?.slug)}
       />
+
+      <PainelDigitalBar storeSlug={store?.slug} storeId={storeId} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
