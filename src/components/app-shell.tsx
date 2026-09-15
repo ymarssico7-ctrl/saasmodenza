@@ -48,32 +48,31 @@ type NavItem = {
   section?: string;
 };
 
-// ─── Unified Navigation ───────────────────────────────────────────────────────
-// Um sistema. Uma sidebar. Todas as superfícies do negócio em um mapa único.
+// ─── Unified Navigation: Gestão Financeira + Loja Online ───────────────────────
+// O sistema consagra a Gestão do Negócio e a Gestão Financeira como pilares mestres,
+// integrando a Loja Online e Vitrine como o canal digital nativo de vendas.
 
 const UNIFIED_NAV: NavItem[] = [
   // ── Visão Geral ──────────────────────────────────────────────────────────────
-  { to: "/painel", label: "Painel", icon: LayoutDashboard, section: "Visão Geral" },
+  { to: "/painel", label: "Painel de Gestão", icon: LayoutDashboard, section: "Visão Geral" },
 
-  // ── Vendas & Balcão ──────────────────────────────────────────────────────────
-  { to: "/caixa", label: "Caixa & PDV", icon: Wallet, section: "Vendas" },
-  { to: "/loja/pedidos", label: "Pedidos Online", icon: ShoppingBag },
+  // ── Gestão do Negócio ────────────────────────────────────────────────────────
+  { to: "/caixa", label: "Caixa & PDV", icon: Wallet, section: "Gestão do Negócio" },
+  { to: "/estoque", label: "Estoque & Grade", icon: Boxes },
+  { to: "/precificacao", label: "Precificação & Margem", icon: Calculator },
   { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/fiado", label: "Fiado", icon: HandCoins },
+  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins },
 
-  // ── Catálogo ─────────────────────────────────────────────────────────────────
-  { to: "/estoque", label: "Estoque & Grade", icon: Boxes, section: "Catálogo" },
-  { to: "/loja/produtos", label: "Vitrine Online", icon: Store },
-  { to: "/precificacao", label: "Precificação", icon: Calculator },
-
-  // ── Financeiro & Vestui Pay ──────────────────────────────────────────────────
-  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Financeiro & Vestui Pay" },
+  // ── Gestão Financeira & Vestui Pay ──────────────────────────────────────────
+  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Gestão Financeira" },
   { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
   { to: "/metas", label: "Metas & Faturamento", icon: Target },
   { to: "/prolabore", label: "Pró-labore", icon: HandCoins },
 
-  // ── Canal Digital ────────────────────────────────────────────────────────────
-  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette, section: "Canal Digital" },
+  // ── Loja Online & Vitrine ────────────────────────────────────────────────────
+  { to: "/loja/pedidos", label: "Pedidos Online", icon: ShoppingBag, section: "Loja Online & Vitrine" },
+  { to: "/loja/produtos", label: "Vitrine Online", icon: Store },
+  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette },
   { to: "/loja/configuracao", label: "Aparência da Loja", icon: Settings },
   { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
   { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
@@ -81,9 +80,9 @@ const UNIFIED_NAV: NavItem[] = [
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
 ];
 
-// ─── Mobile Tab Bar — 5 âncoras fixas (Regra de Ouro iOS) ────────────────────
+// ─── Mobile Tab Bar — 4 âncoras fixas + Mais ──────────────────────────────────
 const MOBILE_PRIMARY: NavItem[] = [
-  { to: "/painel", label: "Painel", icon: LayoutDashboard },
+  { to: "/painel", label: "Gestão", icon: LayoutDashboard },
   { to: "/caixa", label: "Caixa", icon: Wallet },
   { to: "/estoque", label: "Estoque", icon: Boxes },
   { to: "/loja/pedidos", label: "Pedidos", icon: ShoppingBag },
@@ -91,21 +90,28 @@ const MOBILE_PRIMARY: NavItem[] = [
 
 // ─── Mobile "Mais" Sheet ──────────────────────────────────────────────────────
 const MOBILE_MORE_NAV: NavItem[] = [
-  { to: "/clientes", label: "Clientes", icon: Users, section: "Vendas" },
-  { to: "/fiado", label: "Fiado", icon: HandCoins },
-  { to: "/loja/produtos", label: "Vitrine Online", icon: Store, section: "Catálogo" },
-  { to: "/precificacao", label: "Precificação", icon: Calculator },
-  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Financeiro & Vestui Pay" },
+  // Gestão do Negócio
+  { to: "/precificacao", label: "Precificação & Margem", icon: Calculator, section: "Gestão do Negócio" },
+  { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins },
+
+  // Gestão Financeira
+  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Gestão Financeira" },
   { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
-  { to: "/metas", label: "Metas", icon: Target },
+  { to: "/metas", label: "Metas & Faturamento", icon: Target },
   { to: "/prolabore", label: "Pró-labore", icon: HandCoins },
-  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette, section: "Canal Digital" },
+
+  // Loja Online & Vitrine
+  { to: "/loja/produtos", label: "Vitrine Online", icon: Store, section: "Loja Online & Vitrine" },
+  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette },
   { to: "/loja/configuracao", label: "Aparência da Loja", icon: Settings },
   { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
   { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
   { to: "/loja/compartilhar", label: "Compartilhar & Link", icon: Share2 },
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
+
+  // Conta
+  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Configurações da Loja" },
 ];
 
 // ─── Main AppShell ────────────────────────────────────────────────────────────
@@ -161,11 +167,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
         </Link>
 
-        <nav className="mt-7 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav className="mt-6 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {UNIFIED_NAV.map((item) => (
             <div key={item.to} className="flex flex-col">
               {item.section && (
-                <div className="px-4 pt-5 pb-1.5">
+                <div className="px-4 pt-4 pb-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
                     {item.section}
                   </p>
@@ -175,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
 
-          <div className="mt-2 border-t border-sidebar-border/60 pt-2">
+          <div className="mt-3 border-t border-sidebar-border/60 pt-2">
             <NavItemLink
               item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
               active={pathname === "/configuracoes"}
@@ -187,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {trialStatus === "active" && daysLeftInTrial !== null && (
           <div
             className={cn(
-              "mt-4 rounded-2xl px-4 py-3 text-xs transition-all",
+              "mt-3 rounded-2xl px-4 py-3 text-xs transition-all",
               isTrialUrgent
                 ? "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                 : "border border-primary/20 bg-primary/5 text-primary",
@@ -206,7 +212,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Profile card */}
-        <div className="mt-4 rounded-2xl bg-surface-muted p-4">
+        <div className="mt-3 rounded-2xl bg-surface-muted p-4">
           <div className="flex items-center justify-between">
             {isProfileLoading ? (
               <div className="flex-1 space-y-1.5 min-w-0 pr-2">
@@ -294,7 +300,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-6">{children}</div>
       </main>
 
-      {/* ─── Tab bar mobile — 5 âncoras + "Mais" ─────────────────────────── */}
+      {/* ─── Tab bar mobile — 4 âncoras + "Mais" ─────────────────────────── */}
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex h-[72px] items-center justify-around px-2 lg:hidden">
         {MOBILE_PRIMARY.map((item) => {
           const active = isNavActive(item);
@@ -332,7 +338,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <SheetHeader className="px-6 pb-3 pt-2 border-b border-border/40">
             <SheetTitle className="text-sm font-semibold text-foreground text-left">
-              Menu
+              Menu Completo
             </SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col gap-0.5 px-4 py-3">
