@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownRight,
   Banknote,
@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  HandCoins,
   HelpCircle,
   Info,
   Lock,
@@ -36,6 +37,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
+import { insertProlabore, insertTransaction } from "@/lib/mutations";
+import { monthStart, todayISO } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/loja/recebimentos")({
   head: () => ({
@@ -75,10 +78,54 @@ type OrderRecord = {
 
 function RecebimentosPage() {
   const { storeId } = useStore();
+  const queryClient = useQueryClient();
   const [filtroMetodo, setFiltroMetodo] = useState<"todos" | "pix" | "cartao">("todos");
   const [busca, setBusca] = useState("");
   const [pedidoSelecionado, setPedidoSelecionado] = useState<OrderRecord | null>(null);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
+
+  // ── Estado do Modal de Pró-labore ──────────────────────────────────────────
+  const [prolaboreOrder, setProlaboreOrder] = useState<OrderRecord | null>(null);
+
+  const prolaboreMutation = useMutation({
+    mutationFn: async (order: OrderRecord) => {
+      const taxa =
+        typeof order.payment_fee === "number"
+          ? order.payment_fee
+          : typeof order.payment_fee === "string" && order.payment_fee.trim() !== ""
+            ? Number(order.payment_fee)
+            : order.gateway_charge_id
+              ? 0.99
+              : 0;
+      const liquido = Math.max(0, Number(order.total) - taxa);
+      const month = monthStart(0);
+      const today = todayISO();
+      // 1) Registra no módulo de Pró-labore (meta mensal da dona)
+      await insertProlabore(storeId, month, liquido);
+      // 2) Já cria a saída no Caixa da Gestão com categoria prolabore
+      await insertTransaction({
+        storeId,
+        kind: "saida",
+        description: `Pró-labore — Repasse Vestui Pay Pedido ${order.numero}`,
+        amount: liquido,
+        category: "prolabore",
+        payment_method: "pix",
+        occurred_on: today,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["prolabore"] });
+      toast.success("Pró-labore registrado com sucesso! 🎉", {
+        description: "A retirada foi lançada no seu histórico de pró-labore e deduzida do Caixa.",
+        duration: 5000,
+      });
+      setProlaboreOrder(null);
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Erro ao registrar pró-labore.");
+    },
+  });
 
   // ── Privacidade de Balcão (Ocultar Saldos) ──────────────────────────────────
   const [ocultarSaldos, setOcultarSaldos] = useState<boolean>(() => {
@@ -734,17 +781,32 @@ function RecebimentosPage() {
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPedidoSelecionado(order);
-                          }}
-                          className="rounded-lg p-1 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors"
-                          title="Ver comprovante da transação"
-                        >
-                          <Receipt className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {isPago && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setProlaboreOrder(order);
+                              }}
+                              className="rounded-lg p-1 text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                              title="Destinar este repasse ao Pró-labore pessoal"
+                            >
+                              <HandCoins className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPedidoSelecionado(order);
+                            }}
+                            className="rounded-lg p-1 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors"
+                            title="Ver comprovante da transação"
+                          >
+                            <Receipt className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -754,6 +816,82 @@ function RecebimentosPage() {
           </table>
         </div>
       </div>
+
+      {/* ── MODAL DE CONFIRMAÇÃO DE PRÓ-LABORE ─────────────────────────────── */}
+      {prolaboreOrder && (() => {
+        const taxa =
+          typeof prolaboreOrder.payment_fee === "number"
+            ? prolaboreOrder.payment_fee
+            : typeof prolaboreOrder.payment_fee === "string" && prolaboreOrder.payment_fee.trim() !== ""
+              ? Number(prolaboreOrder.payment_fee)
+              : prolaboreOrder.gateway_charge_id
+                ? 0.99
+                : 0;
+        const liquido = Math.max(0, Number(prolaboreOrder.total) - taxa);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="flex items-center gap-3 border-b border-zinc-100 pb-4">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-50 text-violet-600">
+                  <HandCoins className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-900">Destinar ao Pró-labore</h4>
+                  <p className="text-[11px] text-zinc-400">Pedido {prolaboreOrder.numero} · {prolaboreOrder.customer_name}</p>
+                </div>
+                <button
+                  onClick={() => setProlaboreOrder(null)}
+                  className="ml-auto rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Valor */}
+              <div className="text-center py-2 space-y-1">
+                <p className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Valor Líquido da Retirada</p>
+                <h3 className="text-3xl font-extrabold text-violet-700 font-mono">{brl(liquido)}</h3>
+                <p className="text-[11px] text-zinc-400">
+                  (Bruto {brl(Number(prolaboreOrder.total))} − Taxa {brl(taxa)})
+                </p>
+              </div>
+
+              {/* Explicação */}
+              <div className="rounded-2xl bg-violet-50/60 border border-violet-100 p-4 text-xs text-violet-800 space-y-1.5">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <Wallet className="h-3.5 w-3.5" />
+                  O que vai acontecer:
+                </p>
+                <ul className="space-y-1 text-violet-700 list-disc list-inside">
+                  <li>Valor registrado no seu histórico de <strong>Pró-labore</strong></li>
+                  <li>Meta mensal de retirada da sócia atualizada</li>
+                  <li>Saída lançada no <strong>Caixa da Gestão</strong> (categoria: pró-labore)</li>
+                </ul>
+              </div>
+
+              {/* Ações */}
+              <div className="flex gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-xl h-9 text-xs"
+                  onClick={() => setProlaboreOrder(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 rounded-xl h-9 text-xs bg-violet-600 hover:bg-violet-700 text-white"
+                  disabled={prolaboreMutation.isPending}
+                  onClick={() => prolaboreMutation.mutate(prolaboreOrder)}
+                >
+                  <HandCoins className="h-3.5 w-3.5 mr-1.5" />
+                  {prolaboreMutation.isPending ? "Registrando..." : "Confirmar Pró-labore"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── MODAL / DRAWER DE DETALHES DA TRANSAÇÃO (Apple Sheet Style) ─────── */}
       {pedidoSelecionado && (

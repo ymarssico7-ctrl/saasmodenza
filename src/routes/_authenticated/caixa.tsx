@@ -729,6 +729,21 @@ function Caixa() {
     .reduce((acc, t) => acc + Number(t.amount), 0);
   const todayBalance = sumBy(todayTxs, "entrada") - sumBy(todayTxs, "saida");
 
+  // ── Vendas Online aguardando compensação D+1 BACEN ────────────────────────
+  // Calcula data de compensação D+1 (próximo dia útil) dado um occurred_on
+  const calcD1Date = (occurredOn: string): string => {
+    const d = new Date(occurredOn + "T12:00:00");
+    const dow = d.getDay(); // 0=Dom, 6=Sáb
+    const offset = dow === 5 ? 3 : dow === 6 ? 2 : dow === 0 ? 2 : 1;
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+  // Vendas online cuja data de compensação D+1 ainda não chegou (pendentes)
+  const onlinePendingTxs = monthTxs.filter(
+    (t) => t.kind === "entrada" && t.category === "venda_online" && calcD1Date(t.occurred_on) > today,
+  );
+  const onlinePendingD1 = onlinePendingTxs.reduce((acc, t) => acc + Number(t.amount), 0);
+
   // ── Mutações ──────────────────────────────────────────────────────────────
   const create = useMutation({
     mutationFn: async () => {
@@ -960,6 +975,26 @@ function Caixa() {
           hint={revenue > 0 ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%` : "Sem receita no mês"}
         />
       </div>
+
+      {/* ── Banner de Previsão D+1 (aparece apenas quando há vendas online pendentes) ── */}
+      {onlinePendingD1 > 0 && (
+        <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <div className="shrink-0 flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm">
+            ⏳
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              {brl(onlinePendingD1)} em trânsito via Vestui Pay
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Vendas online aguardando compensação D+1 BACEN. O depósito cai automaticamente no próximo dia útil às 07:00.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+            A compensar D+1
+          </span>
+        </div>
+      )}
 
       {/* ── Formulário ───────────────────────────────────────────────────── */}
       <section className="panel p-6 sm:p-7">
@@ -1871,6 +1906,17 @@ function Caixa() {
                         <Badge variant="outline" className="rounded-full text-[10px] font-medium">
                           {resolvePayment(t)}
                         </Badge>
+                        {t.category === "venda_online" && (
+                          calcD1Date(t.occurred_on) > today ? (
+                            <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                              ⏳ A compensar D+1
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              🟢 Liquidado em conta
+                            </span>
+                          )
+                        )}
                         <span className="text-xs text-muted-foreground">
                           {formatDate(t.occurred_on)}
                         </span>
