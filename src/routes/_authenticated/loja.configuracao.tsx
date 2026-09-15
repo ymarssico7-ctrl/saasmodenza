@@ -31,9 +31,10 @@ import { Switch } from "@/components/ui/switch";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
-import { getVitrineSettings, saveVitrineSettings } from "@/lib/vitrine-settings";
+import { getVitrineSettings, saveVitrineSettings, isVitrineAtiva, setVitrineAtiva } from "@/lib/vitrine-settings";
 import { updateStoreDetails } from "@/lib/mutations";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
@@ -63,6 +64,7 @@ function AparenciaPage() {
   const [activeTheme] = useState(() => loadTheme());
 
   // Campos que ficam no localStorage isolado por loja
+  const [ativa, setAtiva] = useState(() => isVitrineAtiva(storeId, store?.metadata));
   const [descricao, setDescricao] = useState(vitrineSettings.descricao);
   const [cor, setCor] = useState(vitrineSettings.corPrincipal);
   const [instagram, setInstagram] = useState(vitrineSettings.instagram);
@@ -90,6 +92,35 @@ function AparenciaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store]);
 
+  const handleToggleAtiva = async (novoStatus: boolean) => {
+    setAtiva(novoStatus);
+    setVitrineAtiva(storeId, novoStatus);
+    try {
+      const currentMeta = (typeof store?.metadata === "object" && store?.metadata) ? store.metadata : {};
+      await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...(currentMeta as Record<string, unknown>),
+            vitrine_ativa: novoStatus,
+            vitrineSettings: {
+              ...(getVitrineSettings(storeId)),
+              ativa: novoStatus,
+            },
+          },
+        })
+        .eq("id", storeId);
+      void queryClient.invalidateQueries();
+    } catch (e) {
+      console.error("Erro ao sincronizar status da vitrine:", e);
+    }
+    toast.success(
+      novoStatus
+        ? "Vitrine Online ativada! O Canal Digital agora está na barra lateral."
+        : "Vitrine Online pausada. Seu sistema agora foca 100% no balcão da loja física.",
+    );
+  };
+
   const salvar = async () => {
     if (!nome.trim()) {
       toast.error("Informe o nome da loja antes de salvar.");
@@ -105,6 +136,7 @@ function AparenciaPage() {
       });
 
       const vitrinePayload = {
+        ativa,
         descricao,
         corPrincipal: cor,
         boasVindas,
@@ -184,6 +216,50 @@ function AparenciaPage() {
       />
 
       <VitrineConfigNav />
+
+      {/* ── Status da Vitrine Online (Controle Mestre Liga/Desliga) ─────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-soft">
+        <div className="flex items-start gap-3.5">
+          <div
+            className={cn(
+              "grid size-11 shrink-0 place-items-center rounded-2xl transition-colors",
+              ativa ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground",
+            )}
+          >
+            <Globe className="size-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold">Vitrine Online (Link da Bio)</h2>
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                  ativa
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                {ativa ? "● Online no ar" : "○ Pausada / Desativada"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {ativa
+                ? "Sua vitrine está ativa e recebendo pedidos pelo Instagram e WhatsApp. O Canal Digital está ativo na barra lateral."
+                : "Ative para publicar seu catálogo no Instagram. Quando pausada, seu sistema foca 100% no balcão da loja física sem poluição."}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+          <span className="text-xs font-medium text-muted-foreground">
+            {ativa ? "Vitrine Ativada" : "Vitrine Desativada"}
+          </span>
+          <Switch
+            checked={ativa}
+            onCheckedChange={handleToggleAtiva}
+            aria-label="Ativar ou desativar vitrine online"
+          />
+        </div>
+      </div>
 
       {/* ── Layout Ativo — Banner Principal Full-Width ──────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">

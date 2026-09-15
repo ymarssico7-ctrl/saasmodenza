@@ -201,7 +201,7 @@ export function VestuiGuideBanner({
           </span>
           <span className="font-medium text-foreground truncate">
             {mode === "gestao"
-              ? "Boutique 100% configurada! Painel financeiro calibrado."
+              ? "Sua loja está 100% configurada! Painel financeiro calibrado."
               : "Vitrine 100% pronta! Pronta para faturar no digital."}
           </span>
         </div>

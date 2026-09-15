@@ -71,7 +71,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
           "Toda viagem ao atacado, frete de transportadora e embalagem bonita que sua cliente adora recebendo nos Stories tem um custo. O Vestui divide esse custo por cada peça para você nunca pagar isso do próprio bolso.",
       },
       {
-        title: "Margem Segura para Boutique de Moda",
+        title: "Margem Segura para Loja de Moda",
         explanation:
           "No varejo de moda feminina, a margem bruta saudável fica entre 50% e 65% (multiplicador de 2.0x a 2.5x sobre o custo total). Isso garante fôlego para fazer promoções de troca de coleção sem ter prejuízo.",
       },
@@ -133,7 +133,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
     headline: "Como transformar um alvo grande em vitórias diárias",
     financialBreakdown: [
       {
-        label: "Meta Mensal da Boutique",
+        label: "Meta Mensal da Loja",
         value: "Ex: R$ 25.000",
         description: "Faturamento necessário para cobrir despesas, compras e seu pró-labore.",
         tone: "primary",
@@ -141,7 +141,7 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
       {
         label: "Ritmo Diário Necessário",
         value: "R$ 1.041 / dia útil",
-        description: "Considerando 24 dias de funcionamento da boutique no mês.",
+        description: "Considerando 24 dias de funcionamento da loja no mês.",
         tone: "neutral",
       },
       {
@@ -241,12 +241,12 @@ export const ROUTE_EDUCATION: Record<string, EducationalGuide> = {
 };
 
 export const DEFAULT_EDUCATION: EducationalGuide = {
-  title: "Coach Financeiro & Operacional da Boutique",
+  title: "Coach Financeiro & Operacional da Loja de Moda",
   badge: "Mentoria Vestui",
-  headline: "Como gerenciar sua boutique no padrão de grandes marcas",
+  headline: "Como gerenciar sua loja de moda no padrão de grandes marcas",
   expertLessons: [
     {
-      title: "O Segredo da Boutique Lucrativa",
+      title: "O Segredo da Loja Lucrativa",
       explanation:
         "Gerenciar uma loja de moda com sucesso exige 3 pilares alinhados: Precificação com custos invisíveis, controle rigoroso de estoque e acompanhamento diário da meta de vendas.",
     },

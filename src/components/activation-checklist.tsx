@@ -167,7 +167,7 @@ export function ActivationChecklist({
             <CheckCircle2 className="size-3.5" />
           </span>
           <span className="font-semibold">
-            Sua boutique está 100% configurada e pronta para faturar! 🎉
+            Sua loja está 100% configurada e pronta para faturar! 🎉
           </span>
         </div>
         <button

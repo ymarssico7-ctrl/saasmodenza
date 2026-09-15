@@ -6,6 +6,7 @@
  */
 
 export type VitrineSettings = {
+  ativa: boolean;
   descricao: string;
   corPrincipal: string;
   boasVindas: string;
@@ -21,6 +22,7 @@ export type VitrineSettings = {
 };
 
 const DEFAULT_SETTINGS: VitrineSettings = {
+  ativa: false,
   descricao: "",
   corPrincipal: "#3A3AF0",
   boasVindas: "",
@@ -47,6 +49,38 @@ export function getVitrineSettings(storeId: string): VitrineSettings {
   } catch {
     return DEFAULT_SETTINGS;
   }
+}
+
+export function isVitrineAtiva(
+  storeId: string,
+  storeMetadata?: Record<string, unknown> | null,
+): boolean {
+  if (typeof localStorage !== "undefined" && storeId) {
+    try {
+      const explicit = localStorage.getItem(`vestui_vitrine_ativa_${storeId}`);
+      if (explicit !== null) return explicit === "true";
+      const settings = getVitrineSettings(storeId);
+      if (typeof settings.ativa === "boolean") return settings.ativa;
+    } catch {
+      // Fallback
+    }
+  }
+  if (storeMetadata && typeof storeMetadata === "object") {
+    const metaSettings = (storeMetadata as Record<string, any>)["vitrineSettings"];
+    if (metaSettings && typeof metaSettings["ativa"] === "boolean") return metaSettings["ativa"];
+    if (typeof (storeMetadata as Record<string, any>)["vitrine_ativa"] === "boolean") {
+      return (storeMetadata as Record<string, any>)["vitrine_ativa"];
+    }
+  }
+  return false;
+}
+
+export function setVitrineAtiva(storeId: string, ativa: boolean): void {
+  if (typeof localStorage === "undefined" || !storeId) return;
+  localStorage.setItem(`vestui_vitrine_ativa_${storeId}`, String(ativa));
+  const current = getVitrineSettings(storeId);
+  const updated: VitrineSettings = { ...current, ativa };
+  saveVitrineSettings(storeId, updated);
 }
 
 export function saveVitrineSettings(storeId: string, settings: VitrineSettings): void {

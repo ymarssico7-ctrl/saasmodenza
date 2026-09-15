@@ -12,6 +12,8 @@ import {
   HandCoins,
   Plus,
   ShoppingBag,
+  Sparkles,
+  Store,
   Target,
   TrendingUp,
   Users,
@@ -34,9 +36,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
 import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
+import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 import { creditsQuery, goalsQuery, inventoryQuery, profileQuery, transactionsQuery } from "@/lib/db";
-import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, todayISO } from "@/lib/format";
+import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, slugify, todayISO } from "@/lib/format";
 import {
   REFUND_CATEGORIES,
   STOCK_PURCHASE_CATEGORIES,
@@ -70,9 +73,11 @@ export const Route = createFileRoute("/_authenticated/painel")({
 // ─── Vitrine Link + Pedidos Pendentes bar ────────────────────────────────────
 function PainelDigitalBar({
   storeSlug,
+  storeName,
   storeId,
 }: {
   storeSlug: string | null | undefined;
+  storeName?: string | null | undefined;
   storeId: string;
 }) {
   const [copied, setCopied] = React.useState(false);
@@ -88,9 +93,19 @@ function PainelDigitalBar({
     }
   }, [storeId]);
 
-  if (!storeSlug) return null;
+  // Sanitização estrita: NUNCA exibir a palavra "boutique"
+  const cleanSlug = React.useMemo(() => {
+    if (storeSlug && storeSlug.toLowerCase() !== "boutique") {
+      return storeSlug;
+    }
+    if (storeName && storeName.trim()) {
+      const s = slugify(storeName);
+      if (s && s.toLowerCase() !== "boutique") return s;
+    }
+    return "minhaloja";
+  }, [storeSlug, storeName]);
 
-  const vitrineUrl = `vestui.app/vitrine/${storeSlug}`;
+  const vitrineUrl = `vestui.app/vitrine/${cleanSlug}`;
   const fullUrl = `https://${vitrineUrl}`;
 
   function handleCopy() {
@@ -101,14 +116,14 @@ function PainelDigitalBar({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
       {/* Vitrine link */}
       <div className="flex min-w-0 items-center gap-2">
         <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
         <span className="truncate text-sm text-muted-foreground">{vitrineUrl}</span>
         <button
           onClick={handleCopy}
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 cursor-pointer"
         >
           <Copy className="size-3" />
           {copied ? "Copiado!" : "Copiar link"}
@@ -119,7 +134,7 @@ function PainelDigitalBar({
       {pendingCount > 0 && (
         <Link
           to="/loja/pedidos"
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 transition-colors hover:bg-amber-500/20"
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-500/20"
         >
           <ShoppingBag className="size-3.5" />
           {pendingCount} pedido{pendingCount !== 1 ? "s" : ""} pendente{pendingCount !== 1 ? "s" : ""}
@@ -141,6 +156,25 @@ function Painel() {
   const today = todayISO();
   const thisMonth = monthStart(0);
   const prevMonth = monthStart(-1);
+
+  // ── Gestão de Canais & Ativação da Vitrine (Padrão Apple) ──────────────────
+  const [canalFiltro, setCanalFiltro] = React.useState<"todos" | "fisica" | "online">("todos");
+  const [vitrineAtiva, setVitrineAtiva] = React.useState(() => isVitrineAtiva(storeId, store?.metadata));
+
+  React.useEffect(() => {
+    setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
+    const handleChanged = () => {
+      setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
+    };
+    window.addEventListener("vitrine-settings-changed", handleChanged);
+    window.addEventListener("storage", handleChanged);
+    return () => {
+      window.removeEventListener("vitrine-settings-changed", handleChanged);
+      window.removeEventListener("storage", handleChanged);
+    };
+  }, [storeId, store?.metadata]);
+
+  const activeFilter = vitrineAtiva ? canalFiltro : "todos";
 
   const txs = all as unknown as Transaction[];
   const inMonth = (m: string) => txs.filter((t) => t.occurred_on.slice(0, 7) === m.slice(0, 7));
@@ -169,6 +203,37 @@ function Painel() {
 
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+  // Métricas dinamicamente segmentadas por Canal
+  const displayedRevenue = React.useMemo(() => {
+    if (activeFilter === "fisica") return Math.max(0, revenue - onlineRevenue);
+    if (activeFilter === "online") return onlineRevenue;
+    return revenue;
+  }, [activeFilter, revenue, onlineRevenue]);
+
+  const displayedNetRevenue = React.useMemo(() => {
+    if (activeFilter === "fisica") return Math.max(0, netRevenue - onlineRevenue);
+    if (activeFilter === "online") return onlineRevenue;
+    return netRevenue;
+  }, [activeFilter, netRevenue, onlineRevenue]);
+
+  const displayedExpenses = React.useMemo(() => {
+    if (activeFilter === "online") return 0;
+    return expenses;
+  }, [activeFilter, expenses]);
+
+  const displayedProfit = React.useMemo(() => {
+    if (activeFilter === "online") return onlineRevenue;
+    if (activeFilter === "fisica") {
+      return Math.max(0, netRevenue - onlineRevenue) - expenses - stockPurchases - prolaboreAmount;
+    }
+    return profit;
+  }, [activeFilter, onlineRevenue, netRevenue, expenses, stockPurchases, prolaboreAmount, profit]);
+
+  const displayedProjection = React.useMemo(() => {
+    return projectMonth(displayedNetRevenue, now.getDate(), daysInMonth);
+  }, [displayedNetRevenue, now, daysInMonth]);
+
   const projection = projectMonth(netRevenue, now.getDate(), daysInMonth);
 
   const goal = goals.find((g) => g.month.slice(0, 7) === thisMonth.slice(0, 7));
@@ -323,67 +388,166 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      <PainelDigitalBar storeSlug={store?.slug} storeId={storeId} />
+      {/* ── Vitrine Online (Ativação Progressiva & Seletor de Canais — Padrão Apple) ── */}
+      {vitrineAtiva ? (
+        <div className="space-y-3">
+          <PainelDigitalBar storeSlug={store?.slug} storeName={store?.name} storeId={storeId} />
+
+          {/* ── Seletor de Canais (Geral vs. Loja Física vs. Vitrine Online) ── */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center rounded-2xl border border-border bg-card p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setCanalFiltro("todos")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  activeFilter === "todos"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Store className="size-3.5" />
+                Toda a Loja (Geral)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCanalFiltro("fisica")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  activeFilter === "fisica"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Wallet className="size-3.5" />
+                Loja Física (Balcão)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCanalFiltro("online")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  activeFilter === "online"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <ShoppingBag className="size-3.5" />
+                Vitrine Online & Insta
+              </button>
+            </div>
+
+            {activeFilter !== "todos" && (
+              <span className="text-xs text-muted-foreground">
+                Visualizando métricas de:{" "}
+                <strong className="text-foreground">
+                  {activeFilter === "fisica" ? "Balcão da Loja Física" : "Vitrine Online & Instagram"}
+                </strong>
+              </span>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ── Banner de Ativação da Vitrine Online (quando inativa — zero poluição) ── */
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card to-background p-5 shadow-soft">
+          <div className="flex items-start gap-3.5">
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-foreground">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">Venda também pelo Instagram e WhatsApp</p>
+                <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-[10px] font-bold text-accent-foreground uppercase tracking-wider">
+                  Incluso no seu plano
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Crie seu Link da Bio em 2 minutos. Suas clientes escolhem as peças no catálogo e pagam no Pix ou cartão.
+              </p>
+            </div>
+          </div>
+          <Button asChild className="gradient-primary h-9 rounded-full px-4 text-xs shrink-0 self-end sm:self-center shadow-glow cursor-pointer">
+            <Link to="/loja/configuracao">
+              <Sparkles className="mr-1.5 size-3.5" />
+              Ativar Minha Vitrine
+            </Link>
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Faturamento do mês"
-          value={mascaraSaldo(revenue)}
+          label={
+            activeFilter === "online"
+              ? "Faturamento Online"
+              : activeFilter === "fisica"
+                ? "Faturamento da Loja Física"
+                : "Faturamento do mês"
+          }
+          value={mascaraSaldo(displayedRevenue)}
           icon={<ArrowUpRight className="size-4" />}
           tone="primary"
           hint={
             ocultarSaldos
               ? "••••••"
-              : refunds > 0
-                ? `Líquido: ${brl(netRevenue)} (−${brl(refunds)} em devoluções)`
-                : onlineRevenue > 0
-                  ? `${formatVariationHint(revenue, prevRevenue)} · ${brl(onlineRevenue)} online`
-                  : formatVariationHint(revenue, prevRevenue)
+              : activeFilter === "online"
+                ? "Vendas via link da bio e WhatsApp"
+                : activeFilter === "fisica"
+                  ? "Entradas registradas no Caixa & PDV"
+                  : refunds > 0
+                    ? `Líquido: ${brl(displayedNetRevenue)} (−${brl(refunds)} em devoluções)`
+                    : onlineRevenue > 0
+                      ? `${formatVariationHint(revenue, prevRevenue)} · ${brl(onlineRevenue)} online`
+                      : formatVariationHint(revenue, prevRevenue)
           }
         />
         <StatCard
-          label="Despesas da loja"
-          value={mascaraSaldo(expenses)}
+          label={activeFilter === "online" ? "Despesas do Canal" : "Despesas da loja"}
+          value={mascaraSaldo(displayedExpenses)}
           icon={<ArrowDownRight className="size-4" />}
           hint={
             ocultarSaldos
               ? "••••••"
-              : (() => {
-                  const opexCount = current.filter(
-                    (t) => t.kind === "saida" && !opexExclusions.has(t.category),
-                  ).length;
-                  const parts: string[] = [];
-                  if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
-                  if (stockPurchases > 0) parts.push(`reinvestiu ${brl(stockPurchases)} em roupas`);
-                  if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
-                  if (parts.length === 0) return "Nenhuma despesa registrada";
-                  return parts.join(" · ");
-                })()
+              : activeFilter === "online"
+                ? "Custos operacionais atribuídos à vitrine"
+                : (() => {
+                    const opexCount = current.filter(
+                      (t) => t.kind === "saida" && !opexExclusions.has(t.category),
+                    ).length;
+                    const parts: string[] = [];
+                    if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
+                    if (stockPurchases > 0) parts.push(`reinvestiu ${brl(stockPurchases)} em roupas`);
+                    if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
+                    if (parts.length === 0) return "Nenhuma despesa registrada";
+                    return parts.join(" · ");
+                  })()
           }
         />
         <StatCard
-          label="Sobra no caixa"
-          value={mascaraSaldo(profit)}
-          tone={profit >= 0 ? "positive" : "negative"}
+          label={activeFilter === "online" ? "Lucro das Vendas Online" : "Sobra no caixa"}
+          value={mascaraSaldo(displayedProfit)}
+          tone={displayedProfit >= 0 ? "positive" : "negative"}
           icon={<Wallet className="size-4" />}
           hint={
             ocultarSaldos
               ? "••••••"
-              : (() => {
-                  if (netRevenue <= 0) return "Sem vendas ainda";
-                  const marginStr = `Margem ${pct((operatingProfit / netRevenue) * 100)} na operação`;
-                  if (stockPurchases > 0 && prolaboreAmount > 0) {
-                    return `Após ${brl(stockPurchases)} estoque e ${brl(prolaboreAmount)} pró-labore`;
-                  }
-                  if (stockPurchases > 0) return `Após ${brl(stockPurchases)} em estoque novo`;
-                  if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore`;
-                  return marginStr;
-                })()
+              : activeFilter === "online"
+                ? "Receita líquida da vitrine"
+                : (() => {
+                    if (displayedNetRevenue <= 0) return "Sem vendas ainda";
+                    const marginStr = `Margem ${pct((operatingProfit / displayedNetRevenue) * 100)} na operação`;
+                    if (stockPurchases > 0 && prolaboreAmount > 0) {
+                      return `Após ${brl(stockPurchases)} estoque e ${brl(prolaboreAmount)} pró-labore`;
+                    }
+                    if (stockPurchases > 0) return `Após ${brl(stockPurchases)} em estoque novo`;
+                    if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore`;
+                    return marginStr;
+                  })()
           }
         />
         <StatCard
           label="Projeção de fechamento"
-          value={mascaraSaldo(projection)}
+          value={mascaraSaldo(displayedProjection)}
           icon={<TrendingUp className="size-4" />}
           hint={ocultarSaldos ? "••••••" : `Baseado no ritmo dos ${now.getDate()} primeiros dias`}
         />

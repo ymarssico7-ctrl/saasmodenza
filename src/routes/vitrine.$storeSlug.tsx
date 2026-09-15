@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -1245,7 +1245,7 @@ function CartDrawer({
     setIsSubmitting(false);
     onClose();
     toast.success(`Pedido ${numeroPedido} registrado!`, {
-      description: "Sua mensagem foi aberta no WhatsApp da boutique.",
+      description: "Sua mensagem foi aberta no WhatsApp da loja.",
     });
   }
 
@@ -1728,7 +1728,7 @@ function CartDrawer({
                         <p className="font-bold text-gray-900 text-base">{brl(totalFinal)}</p>
                       </div>
                       <p className="text-[11px] text-emerald-700">
-                        📦 A boutique foi notificada e já está separando seu pedido.
+                        📦 A loja foi notificada e já está separando seu pedido.
                       </p>
                       {whatsapp && (
                         <button
@@ -1741,7 +1741,7 @@ function CartDrawer({
                           className="flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
                           style={{ backgroundColor: "#25D366" }}
                         >
-                          <MessageCircle className="h-4 w-4" /> Falar com a boutique
+                          <MessageCircle className="h-4 w-4" /> Falar com a loja
                         </button>
                       )}
                     </div>
@@ -1870,7 +1870,7 @@ function CartDrawer({
                 }
               </button>
               <p className="mt-2 text-center text-[11px] text-gray-400">
-                Pedido de {customerName || "voce"} sera enviado para a boutique
+                Pedido de {customerName || "você"} será enviado para a loja
               </p>
             </div>
           </div>
