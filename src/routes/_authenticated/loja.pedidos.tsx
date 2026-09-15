@@ -347,12 +347,15 @@ function PedidosPage() {
         });
       }
 
-      const valorTotal = totalPedido(pedido);
+      const bruto = totalPedido(pedido);
+      const taxaGateway = pedido.pagamento === "Pix" ? 0.99 : pedido.pagamento.includes("Cartão") ? Number((bruto * 0.035).toFixed(2)) : 0;
+      const valorLiquido = Math.max(0, Number((bruto - taxaGateway).toFixed(2)));
+
       void insertTransaction({
         storeId,
         kind: "entrada",
         description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
-        amount: valorTotal,
+        amount: valorLiquido,
         category: "venda_online",
         payment_method: mapPedidoPaymentMethod(pedido.pagamento),
         occurred_on: new Date().toISOString().slice(0, 10),
@@ -361,7 +364,7 @@ function PedidosPage() {
       });
 
       toast.success("Pedido confirmado! ✅", {
-        description: `Estoque baixado e R$ ${valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa.`,
+        description: `Estoque baixado e R$ ${valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa (líquido).`,
         duration: 5000,
       });
     } else {

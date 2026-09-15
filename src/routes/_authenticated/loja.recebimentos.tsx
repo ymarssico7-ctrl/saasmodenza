@@ -37,8 +37,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
-import { insertProlabore, insertTransaction } from "@/lib/mutations";
-import { monthStart, todayISO } from "@/lib/format";
+import { insertProlabore } from "@/lib/mutations";
+import { monthStart } from "@/lib/format";
+import { transactionsQuery } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/loja/recebimentos")({
   head: () => ({
@@ -84,6 +85,16 @@ function RecebimentosPage() {
   const [pedidoSelecionado, setPedidoSelecionado] = useState<OrderRecord | null>(null);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
+  // ── Consulta transações para idempotência do Pró-labore ────────────────────
+  const { data: allTxs = [] } = useQuery(transactionsQuery());
+  const txsList = allTxs as Array<{ category: string; description: string }>;
+
+  const isProlaboreDestinado = (orderNumero: string) => {
+    return txsList.some(
+      (t) => t.category === "prolabore" && t.description.includes(orderNumero),
+    );
+  };
+
   // ── Estado do Modal de Pró-labore ──────────────────────────────────────────
   const [prolaboreOrder, setProlaboreOrder] = useState<OrderRecord | null>(null);
 
@@ -99,19 +110,13 @@ function RecebimentosPage() {
               : 0;
       const liquido = Math.max(0, Number(order.total) - taxa);
       const month = monthStart(0);
-      const today = todayISO();
-      // 1) Registra no módulo de Pró-labore (meta mensal da dona)
-      await insertProlabore(storeId, month, liquido);
-      // 2) Já cria a saída no Caixa da Gestão com categoria prolabore
-      await insertTransaction({
+      // Registra no módulo de Pró-labore E Caixa com descrição rastreável única (atômico)
+      await insertProlabore(
         storeId,
-        kind: "saida",
-        description: `Pró-labore — Repasse Vestui Pay Pedido ${order.numero}`,
-        amount: liquido,
-        category: "prolabore",
-        payment_method: "pix",
-        occurred_on: today,
-      });
+        month,
+        liquido,
+        `Pró-labore — Repasse Vestui Pay Pedido ${order.numero}`,
+      );
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -783,17 +788,26 @@ function RecebimentosPage() {
                       <td className="px-6 py-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           {isPago && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setProlaboreOrder(order);
-                              }}
-                              className="rounded-lg p-1 text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
-                              title="Destinar este repasse ao Pró-labore pessoal"
-                            >
-                              <HandCoins className="h-4 w-4" />
-                            </button>
+                            isProlaboreDestinado(order.numero) ? (
+                              <span
+                                className="rounded-lg p-1 text-emerald-600 bg-emerald-50 cursor-default"
+                                title="Este repasse já foi destinado ao Pró-labore da sócia"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProlaboreOrder(order);
+                                }}
+                                className="rounded-lg p-1 text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                                title="Destinar este repasse ao Pró-labore pessoal"
+                              >
+                                <HandCoins className="h-4 w-4" />
+                              </button>
+                            )
                           )}
                           <button
                             type="button"

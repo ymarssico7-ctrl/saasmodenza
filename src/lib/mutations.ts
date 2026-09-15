@@ -409,7 +409,13 @@ export async function deleteGoal(storeId: string, id: string) {
 // ============================================================
 // PROLABORE
 // ============================================================
-export async function insertProlabore(storeId: string, month: string, amount: number) {
+export async function insertProlabore(
+  storeId: string,
+  month: string,
+  amount: number,
+  customDescription?: string,
+) {
+  const desc = customDescription?.trim() || "Pró-labore";
   if (isDemoStore(storeId)) {
     localInsert("prolabore_withdrawals", { store_id: storeId, user_id: storeId, month, amount });
     // Also add to transactions demo
@@ -417,7 +423,7 @@ export async function insertProlabore(storeId: string, month: string, amount: nu
       store_id: storeId,
       user_id: storeId,
       kind: "saida",
-      description: "Pró-labore",
+      description: desc,
       amount,
       category: "prolabore",
       payment_method: "transferencia",
@@ -438,7 +444,7 @@ export async function insertProlabore(storeId: string, month: string, amount: nu
       store_id: storeId,
       user_id: userId,
       kind: "saida",
-      description: "Pró-labore",
+      description: desc,
       amount,
       category: "prolabore",
       payment_method: "transferencia",

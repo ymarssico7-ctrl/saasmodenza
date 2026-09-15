@@ -68,6 +68,8 @@ function Relatorio() {
   // ─── DRE Contábil em Camadas Transparentes (CPC 00 / IFRS 15 / Varejo de Moda) ──
   // 1. Receita Bruta: todas as entradas confirmadas
   const grossRevenue = sumBy(current, "entrada");
+  const onlineRevenue = sumByCategories(current, "entrada", new Set(["venda_online"]));
+  const physicalRevenue = Math.max(0, grossRevenue - onlineRevenue);
   // 2. Deduções da Receita: estornos e devoluções de clientes (NÃO são custos)
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   // 3. Receita Líquida Real: o que a loja realmente reteve após devoluções
@@ -139,7 +141,11 @@ function Relatorio() {
           label="Receita Bruta"
           value={brl(grossRevenue)}
           tone="primary"
-          hint={`${current.filter((t) => t.kind === "entrada").length} vendas confirmadas`}
+          hint={
+            onlineRevenue > 0
+              ? `${brl(physicalRevenue)} balcão · ${brl(onlineRevenue)} vitrine`
+              : `${current.filter((t) => t.kind === "entrada").length} vendas confirmadas`
+          }
         />
         <StatCard
           label="Estornos / Devoluções"
