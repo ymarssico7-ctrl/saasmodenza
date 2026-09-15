@@ -24,7 +24,6 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { StatCard } from "@/components/stat-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { transactionsQuery, inventoryQuery } from "@/lib/db";
@@ -161,8 +160,6 @@ function Relatorio() {
         title="Lucro Real da Loja"
         description="Acompanhe o faturamento líquido, custos e exatamente quanto sobrou no seu bolso."
       />
-
-      <FinanceiroTabs />
 
       <Tabs defaultValue="dre" className="space-y-6">
         <TabsList className="rounded-full bg-secondary/80 p-1 border border-border">

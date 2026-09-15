@@ -1,15 +1,20 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BadgeDollarSign,
   Boxes,
   CircleDollarSign,
+  HandCoins,
   LayoutDashboard,
   LogOut,
   Menu,
   MoreHorizontal,
   Settings,
+  ShoppingBag,
   Sparkles,
+  Store,
+  Target,
   Users,
   Wallet,
   X,
@@ -29,7 +34,7 @@ import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { cn } from "@/lib/utils";
 
-// ─── Nav item type ─────────────────────────────────────────────────────────────
+// Nav item type
 type NavItem = {
   to: string;
   label: string;
@@ -39,16 +44,11 @@ type NavItem = {
   isMatch?: (pathname: string) => boolean;
 };
 
-// ─── Os 5 Pilares da Vida Real (Padrão Apple — Zero Alternador) ─────────────────
-// Simplicidade extrema para a dona de loja:
-// 1. Início
-// 2. Vendas (Balcão + Pedidos do Insta juntos)
-// 3. Roupas & Estoque (Peças físicas e vitrine integradas)
-// 4. Clientes & Fiado (Quem compra e quem deve)
-// 5. Meu Financeiro (Vestui Pay, Lucro Real e Metas)
-// + Minha Vitrine (Simulador visual do link da bio)
+// NAVEGAÇÃO PLANA: 12 itens diretos, 1 clique para cada destino
+// Sem alternadores. Sem sub-tabs. Sem telas portal.
+// Inspirado no macOS Mail / iOS Settings: cada destino é uma linha direta.
 const MAIN_NAV: NavItem[] = [
-  // ── Rotina da Loja ──────────────────────────────────────────────────────────
+  // ROTINA DA LOJA
   {
     to: "/painel",
     label: "Início",
@@ -58,10 +58,16 @@ const MAIN_NAV: NavItem[] = [
   },
   {
     to: "/caixa",
-    label: "Vendas",
+    label: "Caixa & PDV",
     icon: Wallet,
+    isMatch: (p) => p === "/caixa",
+  },
+  {
+    to: "/loja/pedidos",
+    label: "Pedidos Online",
+    icon: ShoppingBag,
     badgeKey: "pedidos",
-    isMatch: (p) => p === "/caixa" || p.startsWith("/loja/pedidos"),
+    isMatch: (p) => p.startsWith("/loja/pedidos"),
   },
   {
     to: "/estoque",
@@ -71,78 +77,156 @@ const MAIN_NAV: NavItem[] = [
   },
   {
     to: "/clientes",
-    label: "Clientes & Fiado",
+    label: "Clientes & CRM",
     icon: Users,
-    isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
+    isMatch: (p) => p.startsWith("/clientes"),
   },
   {
-    to: "/loja/recebimentos",
-    label: "Meu Financeiro",
-    icon: CircleDollarSign,
-    isMatch: (p) =>
-      p.startsWith("/loja/recebimentos") ||
-      p.startsWith("/relatorio") ||
-      p.startsWith("/metas") ||
-      p.startsWith("/prolabore") ||
-      p.startsWith("/precificacao"),
+    to: "/fiado",
+    label: "Fiado & Cobranças",
+    icon: HandCoins,
+    isMatch: (p) => p.startsWith("/fiado"),
   },
 
-  // ── Canal Digital ───────────────────────────────────────────────────────────
+  // FINANCEIRO
+  {
+    to: "/loja/recebimentos",
+    label: "Vestui Pay",
+    icon: BadgeDollarSign,
+    section: "Financeiro",
+    isMatch: (p) => p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore"),
+  },
+  {
+    to: "/metas",
+    label: "Metas & Planejamento",
+    icon: Target,
+    isMatch: (p) => p.startsWith("/metas"),
+  },
+
+  // CANAL DIGITAL
+  {
+    to: "/loja/produtos",
+    label: "Vitrine Online",
+    icon: Store,
+    section: "Canal Digital",
+    isMatch: (p) => p.startsWith("/loja/produtos"),
+  },
   {
     to: "/loja/configuracao",
-    label: "Minha Vitrine (Link da Bio)",
+    label: "Configurar Vitrine",
     icon: Sparkles,
-    section: "Canal Digital",
     isMatch: (p) =>
       p.startsWith("/loja/configuracao") ||
       p.startsWith("/loja/templates") ||
+      p.startsWith("/loja/personalizar") ||
       p.startsWith("/loja/compartilhar") ||
       p.startsWith("/loja/frete") ||
       p.startsWith("/loja/cupons") ||
       p.startsWith("/loja/integracoes") ||
-      p.startsWith("/loja/produtos"),
+      p === "/loja",
   },
 ];
 
-// ─── Mobile Tab Bar — 4 âncoras da rotina + Mais ──────────────────────────────
+// Mobile Tab Bar: 4 âncoras de alta frequência + Mais
+// Pedidos Online tem badge direto aqui para alerta instantâneo
 const MOBILE_PRIMARY: NavItem[] = [
-  { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
-  { to: "/caixa", label: "Vendas", icon: Wallet, badgeKey: "pedidos", isMatch: (p) => p === "/caixa" || p.startsWith("/loja/pedidos") },
-  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
-  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado") },
+  {
+    to: "/painel",
+    label: "Início",
+    icon: LayoutDashboard,
+    isMatch: (p) => p === "/painel",
+  },
+  {
+    to: "/caixa",
+    label: "Caixa",
+    icon: Wallet,
+    isMatch: (p) => p === "/caixa",
+  },
+  {
+    to: "/loja/pedidos",
+    label: "Pedidos",
+    icon: ShoppingBag,
+    badgeKey: "pedidos",
+    isMatch: (p) => p.startsWith("/loja/pedidos"),
+  },
+  {
+    to: "/estoque",
+    label: "Roupas",
+    icon: Boxes,
+    isMatch: (p) => p.startsWith("/estoque"),
+  },
 ];
 
-// ─── Itens exibidos no menu "Mais" do celular ─────────────────────────────────
+// Menu "Mais" no mobile: todos os outros destinos
 const MOBILE_MORE_NAV: NavItem[] = [
   {
+    to: "/clientes",
+    label: "Clientes & CRM",
+    icon: Users,
+    section: "Rotina da Loja",
+    isMatch: (p) => p.startsWith("/clientes"),
+  },
+  {
+    to: "/fiado",
+    label: "Fiado & Cobranças",
+    icon: HandCoins,
+    isMatch: (p) => p.startsWith("/fiado"),
+  },
+  {
     to: "/loja/recebimentos",
-    label: "Meu Financeiro",
+    label: "Vestui Pay",
+    icon: BadgeDollarSign,
+    section: "Financeiro",
+    isMatch: (p) => p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
     icon: CircleDollarSign,
-    section: "Finanças & Lucro",
     isMatch: (p) =>
-      p.startsWith("/loja/recebimentos") ||
       p.startsWith("/relatorio") ||
-      p.startsWith("/metas") ||
-      p.startsWith("/prolabore") ||
-      p.startsWith("/precificacao"),
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore"),
+  },
+  {
+    to: "/metas",
+    label: "Metas & Planejamento",
+    icon: Target,
+    isMatch: (p) => p.startsWith("/metas"),
+  },
+  {
+    to: "/loja/produtos",
+    label: "Vitrine Online",
+    icon: Store,
+    section: "Canal Digital",
+    isMatch: (p) => p.startsWith("/loja/produtos"),
   },
   {
     to: "/loja/configuracao",
-    label: "Minha Vitrine (Link da Bio)",
+    label: "Configurar Vitrine",
     icon: Sparkles,
-    section: "Canal Digital",
     isMatch: (p) =>
       p.startsWith("/loja/configuracao") ||
       p.startsWith("/loja/templates") ||
+      p.startsWith("/loja/personalizar") ||
       p.startsWith("/loja/compartilhar") ||
       p.startsWith("/loja/frete") ||
       p.startsWith("/loja/cupons") ||
       p.startsWith("/loja/integracoes") ||
-      p.startsWith("/loja/produtos"),
+      p === "/loja",
   },
 ];
 
-// ─── Main AppShell ────────────────────────────────────────────────────────────
+// Main AppShell
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
@@ -153,7 +237,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
 
-  // ── Badge de pedidos pendentes da vitrine online ────────────────────────────
+  // Badge de pedidos pendentes — calculado uma vez, usado na sidebar e no tab bar
   const pendingOrderCount = useMemo(() => {
     if (!storeId) return 0;
     try {
@@ -179,7 +263,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const planLabel = (() => {
     if (!isActive) return "Sem plano";
     const p = profile?.plan;
-    if (p === "gestao_anual" || p === "anual") return "Anual ✦";
+    if (p === "gestao_anual" || p === "anual") return "Anual";
     return "Vestui";
   })();
 
@@ -188,15 +272,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return pathname.startsWith(item.to);
   }
 
+  function getBadge(item: NavItem): number | undefined {
+    if (item.badgeKey === "pedidos") return pendingOrderCount;
+    return undefined;
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* ─── Sidebar desktop (Padrão Apple: 5 Pilares da Vida Real) ──────── */}
+      {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
         <Link to="/painel" className="px-2">
           <Logo />
         </Link>
 
-        {/* ── Navegação Contínua e Limpa ──────────────────────────────────── */}
+        {/* Navegação plana com seções visuais */}
         <nav className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {MAIN_NAV.map((item) => (
             <div key={item.to} className="flex flex-col">
@@ -210,20 +299,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <NavItemLink
                 item={item}
                 active={isNavActive(item)}
-                badgeCount={item.badgeKey === "pedidos" ? pendingOrderCount : undefined}
+                badgeCount={getBadge(item)}
               />
             </div>
           ))}
 
           <div className="mt-4 border-t border-sidebar-border/60 pt-2">
             <NavItemLink
-              item={{ to: "/configuracoes", label: "Configurações Gerais", icon: Settings }}
+              item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
               active={pathname === "/configuracoes"}
             />
           </div>
         </nav>
 
-        {/* ── Banner de Trial Ativo ────────────────────────────────────────── */}
+        {/* Banner de Trial */}
         {trialStatus === "active" && daysLeftInTrial !== null && (
           <div
             className={cn(
@@ -245,7 +334,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* ── Profile card ────────────────────────────────────────────────── */}
+        {/* Profile card */}
         <div className="mt-3 rounded-2xl bg-surface-muted p-4">
           <div className="flex items-center justify-between">
             {isProfileLoading ? (
@@ -276,7 +365,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ─── Topbar mobile ────────────────────────────────────────────────── */}
+      {/* Topbar mobile */}
       <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between px-4 lg:hidden">
         <Link to="/painel">
           <Logo />
@@ -292,7 +381,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Button>
       </header>
 
-      {/* ─── Mobile overlay menu completo ─────────────────────────────────── */}
+      {/* Mobile overlay menu completo */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
           <nav className="flex flex-col gap-1">
@@ -308,14 +397,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <NavItemLink
                   item={item}
                   active={isNavActive(item)}
-                  badgeCount={item.badgeKey === "pedidos" ? pendingOrderCount : undefined}
+                  badgeCount={getBadge(item)}
                   onClick={() => setMobileMenuOpen(false)}
                 />
               </div>
             ))}
             <div className="mt-3 border-t border-border/60 pt-2">
               <NavItemLink
-                item={{ to: "/configuracoes", label: "Configurações Gerais", icon: Settings }}
+                item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
                 active={pathname === "/configuracoes"}
                 onClick={() => setMobileMenuOpen(false)}
               />
@@ -330,16 +419,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* ─── Main content ─────────────────────────────────────────────────── */}
+      {/* Main content */}
       <main className="pb-28 lg:pb-16 lg:pl-[268px]">
         <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-6">{children}</div>
       </main>
 
-      {/* ─── Tab bar mobile — 4 âncoras da rotina + Mais ─────────────────── */}
+      {/* Tab bar mobile */}
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex h-[72px] items-center justify-around px-2 lg:hidden">
         {MOBILE_PRIMARY.map((item) => {
           const active = isNavActive(item);
-          const isVendas = item.badgeKey === "pedidos";
+          const badge = getBadge(item);
           return (
             <Link
               key={item.to}
@@ -351,9 +440,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             >
               <item.icon className="size-5" />
-              {isVendas && pendingOrderCount > 0 && (
+              {badge !== undefined && badge > 0 && (
                 <span className="absolute top-1.5 right-2.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm animate-pulse">
-                  {pendingOrderCount > 9 ? "9+" : pendingOrderCount}
+                  {badge > 9 ? "9+" : badge}
                 </span>
               )}
               {item.label}
@@ -371,7 +460,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </button>
       </nav>
 
-      {/* ─── Sheet "Mais" (Mobile) ────────────────────────────────────────── */}
+      {/* Sheet "Mais" (Mobile) */}
       <Sheet open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
         <SheetContent
           side="bottom"
@@ -401,7 +490,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
             <div className="mt-3 border-t border-border/40 pt-2">
               <NavItemLink
-                item={{ to: "/configuracoes", label: "Configurações Gerais", icon: Settings }}
+                item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
                 active={pathname === "/configuracoes"}
                 onClick={() => setMoreSheetOpen(false)}
               />
@@ -424,7 +513,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── NavItemLink ──────────────────────────────────────────────────────────────
+// NavItemLink
 function NavItemLink({
   item,
   active,

@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Plus, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { ClientesTabs } from "@/components/clientes-tabs";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -147,8 +146,6 @@ function Fiado() {
         title="Caderninho de Fiado"
         description="Acompanhe quem deve, quanto deve e receba com 1 clique direto no WhatsApp."
       />
-
-      <ClientesTabs pendingCreditsCount={open.length} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard

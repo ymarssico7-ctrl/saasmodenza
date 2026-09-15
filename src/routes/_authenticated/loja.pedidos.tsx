@@ -20,7 +20,6 @@ import { inventoryQuery } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/loja/page-header";
-import { VendasTabs } from "@/components/vendas-tabs";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
 import { StatusBadge, Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
@@ -520,8 +519,6 @@ function PedidosPage() {
           </Button>
         }
       />
-
-      <VendasTabs pendingOrdersCount={lista.filter((p) => p.status === "novo").length} />
 
       <div className="flex flex-wrap gap-2">
         {filtros.map((f) => (

@@ -23,7 +23,6 @@ import {
   Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { VendasTabs } from "@/components/vendas-tabs";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -947,8 +946,6 @@ function Caixa() {
         title="Balcão & PDV"
         description="Registre cada venda física e despesas da sua loja. O saldo se atualiza na hora."
       />
-
-      <VendasTabs pendingOrdersCount={pendingOrdersCount} />
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
