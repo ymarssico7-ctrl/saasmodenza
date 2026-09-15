@@ -1,17 +1,18 @@
-﻿import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BadgePercent,
   Banknote,
   BarChart3,
   Boxes,
   Calculator,
-  BadgePercent,
   HandCoins,
   LayoutDashboard,
   LogOut,
   Menu,
   MoreHorizontal,
+  Package,
   Palette,
   Plug,
   Settings,
@@ -39,8 +40,7 @@ import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { cn } from "@/lib/utils";
 
-// ─── Nav item type ────────────────────────────────────────────────────────────
-
+// --- Nav item type ---
 type NavItem = {
   to: string;
   label: string;
@@ -48,83 +48,95 @@ type NavItem = {
   section?: string;
 };
 
-// ─── Unified Navigation: Gestão Financeira + Loja Online ───────────────────────
-// O sistema consagra a Gestão do Negócio e a Gestão Financeira como pilares mestres,
-// integrando a Loja Online e Vitrine como o canal digital nativo de vendas.
+type Workspace = "gestao" | "loja";
 
-const UNIFIED_NAV: NavItem[] = [
-  // ── Visão Geral ──────────────────────────────────────────────────────────────
+// --- Rotas que pertencem ao workspace Loja ---
+const LOJA_ROUTES = [
+  "/loja/pedidos",
+  "/loja/produtos",
+  "/loja/templates",
+  "/loja/configuracao",
+  "/loja/personalizar",
+  "/loja/frete",
+  "/loja/cupons",
+  "/loja/compartilhar",
+  "/loja/integracoes",
+  "/loja/recebimentos",
+];
+
+// --- Workspace: Gestão do Negócio ---
+const NAV_GESTAO: NavItem[] = [
   { to: "/painel", label: "Painel de Gestão", icon: LayoutDashboard, section: "Visão Geral" },
-
-  // ── Gestão do Negócio ────────────────────────────────────────────────────────
-  { to: "/caixa", label: "Caixa & PDV", icon: Wallet, section: "Gestão do Negócio" },
+  { to: "/caixa", label: "Caixa & PDV", icon: Wallet, section: "Operação Diária" },
   { to: "/estoque", label: "Estoque & Grade", icon: Boxes },
-  { to: "/precificacao", label: "Precificação & Margem", icon: Calculator },
-  { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/clientes", label: "Clientes & CRM", icon: Users },
   { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins },
-
-  // ── Gestão Financeira & Vestui Pay ──────────────────────────────────────────
-  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Gestão Financeira" },
+  { to: "/loja/recebimentos", label: "Recebimentos · Vestui Pay", icon: Banknote, section: "Finanças & Resultado" },
   { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
   { to: "/metas", label: "Metas & Faturamento", icon: Target },
-  { to: "/prolabore", label: "Pró-labore", icon: HandCoins },
+  { to: "/prolabore", label: "Pró-labore", icon: Package },
+  { to: "/precificacao", label: "Precificação & Margens", icon: Calculator },
+];
 
-  // ── Loja Online & Vitrine ────────────────────────────────────────────────────
-  { to: "/loja/pedidos", label: "Pedidos Online", icon: ShoppingBag, section: "Loja Online & Vitrine" },
-  { to: "/loja/produtos", label: "Vitrine Online", icon: Store },
-  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette },
+// --- Workspace: Loja Online & Vitrine ---
+const NAV_LOJA: NavItem[] = [
+  { to: "/loja/pedidos", label: "Pedidos Online", icon: ShoppingBag, section: "Vendas Online" },
+  { to: "/loja/produtos", label: "Vitrine · Catálogo", icon: Store },
+  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette, section: "Experiência & Marketing" },
   { to: "/loja/configuracao", label: "Aparência da Loja", icon: Settings },
-  { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
+  { to: "/loja/compartilhar", label: "Compartilhar & Link da Bio", icon: Share2 },
   { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
-  { to: "/loja/compartilhar", label: "Compartilhar & Link", icon: Share2 },
+  { to: "/loja/frete", label: "Frete & Entrega", icon: Truck, section: "Logística & Conexões" },
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
 ];
 
-// ─── Mobile Tab Bar — 4 âncoras fixas + Mais ──────────────────────────────────
-const MOBILE_PRIMARY: NavItem[] = [
-  { to: "/painel", label: "Gestão", icon: LayoutDashboard },
+// --- Mobile Tab Bar por Workspace ---
+const MOBILE_GESTAO_PRIMARY: NavItem[] = [
+  { to: "/painel", label: "Painel", icon: LayoutDashboard },
   { to: "/caixa", label: "Caixa", icon: Wallet },
   { to: "/estoque", label: "Estoque", icon: Boxes },
-  { to: "/loja/pedidos", label: "Pedidos", icon: ShoppingBag },
-];
-
-// ─── Mobile "Mais" Sheet ──────────────────────────────────────────────────────
-const MOBILE_MORE_NAV: NavItem[] = [
-  // Gestão do Negócio
-  { to: "/precificacao", label: "Precificação & Margem", icon: Calculator, section: "Gestão do Negócio" },
   { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins },
-
-  // Gestão Financeira
-  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Gestão Financeira" },
-  { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
-  { to: "/metas", label: "Metas & Faturamento", icon: Target },
-  { to: "/prolabore", label: "Pró-labore", icon: HandCoins },
-
-  // Loja Online & Vitrine
-  { to: "/loja/produtos", label: "Vitrine Online", icon: Store, section: "Loja Online & Vitrine" },
-  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette },
-  { to: "/loja/configuracao", label: "Aparência da Loja", icon: Settings },
-  { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
-  { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
-  { to: "/loja/compartilhar", label: "Compartilhar & Link", icon: Share2 },
-  { to: "/loja/integracoes", label: "Integrações", icon: Plug },
-
-  // Conta
-  { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Configurações da Loja" },
 ];
 
-// ─── Main AppShell ────────────────────────────────────────────────────────────
+const MOBILE_LOJA_PRIMARY: NavItem[] = [
+  { to: "/loja/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { to: "/loja/produtos", label: "Vitrine", icon: Store },
+  { to: "/loja/templates", label: "Temas", icon: Palette },
+  { to: "/loja/compartilhar", label: "Divulgar", icon: Share2 },
+];
 
+// --- Main AppShell ---
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
-  const { store } = useStore();
+  const { store, storeId } = useStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
+
+  const routeWorkspace: Workspace = useMemo(() => {
+    return LOJA_ROUTES.some((r) => pathname.startsWith(r)) ? "loja" : "gestao";
+  }, [pathname]);
+
+  const [workspace, setWorkspace] = useState<Workspace>(routeWorkspace);
+
+  useEffect(() => {
+    setWorkspace(routeWorkspace);
+  }, [routeWorkspace]);
+
+  const pendingOrderCount = useMemo(() => {
+    if (!storeId) return 0;
+    try {
+      const raw = localStorage.getItem(`vestui_orders_${storeId}`);
+      if (!raw) return 0;
+      const orders: { status?: string }[] = JSON.parse(raw);
+      return orders.filter((o) => o.status === "novo").length;
+    } catch {
+      return 0;
+    }
+  }, [storeId]);
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -147,28 +159,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const p = pathname;
     if (item.to === "/painel") return p === "/painel";
     if (item.to === "/loja") return p === "/loja";
-    if (item.to === "/loja/recebimentos") return p.startsWith("/loja/recebimentos");
-    if (item.to === "/loja/pedidos") return p.startsWith("/loja/pedidos");
-    if (item.to === "/loja/produtos") return p.startsWith("/loja/produtos");
-    if (item.to === "/loja/templates") return p.startsWith("/loja/templates");
-    if (item.to === "/loja/configuracao") return p.startsWith("/loja/configuracao");
-    if (item.to === "/loja/frete") return p.startsWith("/loja/frete");
-    if (item.to === "/loja/cupons") return p.startsWith("/loja/cupons");
-    if (item.to === "/loja/compartilhar") return p.startsWith("/loja/compartilhar");
-    if (item.to === "/loja/integracoes") return p.startsWith("/loja/integracoes");
     return p.startsWith(item.to);
   }
 
+  const activeNav = workspace === "loja" ? NAV_LOJA : NAV_GESTAO;
+  const mobilePrimary = workspace === "loja" ? MOBILE_LOJA_PRIMARY : MOBILE_GESTAO_PRIMARY;
+  const mobileMoreNav = workspace === "loja"
+    ? NAV_LOJA.filter((i) => !MOBILE_LOJA_PRIMARY.find((m) => m.to === i.to))
+    : NAV_GESTAO.filter((i) => !MOBILE_GESTAO_PRIMARY.find((m) => m.to === i.to));
+
   return (
     <div className="min-h-screen bg-background">
-      {/* ─── Sidebar desktop ──────────────────────────────────────────────── */}
+      {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
         <Link to="/painel" className="px-2">
           <Logo />
         </Link>
 
-        <nav className="mt-6 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {UNIFIED_NAV.map((item) => (
+        {/* Workspace Selector */}
+        <div className="mt-5 flex rounded-2xl bg-surface-muted p-1 gap-1">
+          <WorkspaceButton
+            label="Gestão"
+            active={workspace === "gestao"}
+            onClick={() => setWorkspace("gestao")}
+          />
+          <WorkspaceButton
+            label="Loja Online"
+            active={workspace === "loja"}
+            badge={pendingOrderCount}
+            onClick={() => setWorkspace("loja")}
+          />
+        </div>
+
+        <nav className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {activeNav.map((item) => (
             <div key={item.to} className="flex flex-col">
               {item.section && (
                 <div className="px-4 pt-4 pb-1.5">
@@ -180,7 +204,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <NavItemLink item={item} active={isNavActive(item)} />
             </div>
           ))}
-
           <div className="mt-3 border-t border-sidebar-border/60 pt-2">
             <NavItemLink
               item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
@@ -189,7 +212,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
 
-        {/* Banner de Trial Ativo */}
         {trialStatus === "active" && daysLeftInTrial !== null && (
           <div
             className={cn(
@@ -211,7 +233,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* Profile card */}
         <div className="mt-3 rounded-2xl bg-surface-muted p-4">
           <div className="flex items-center justify-between">
             {isProfileLoading ? (
@@ -242,7 +263,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ─── Topbar mobile ────────────────────────────────────────────────── */}
+      {/* Topbar mobile */}
       <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between px-4 lg:hidden">
         <Link to="/painel">
           <Logo />
@@ -260,9 +281,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile overlay menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-6 backdrop-blur-xl lg:hidden overflow-y-auto">
+        <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
+          <div className="flex rounded-2xl bg-surface-muted p-1 gap-1 mb-4">
+            <WorkspaceButton
+              label="Gestão"
+              active={workspace === "gestao"}
+              onClick={() => setWorkspace("gestao")}
+            />
+            <WorkspaceButton
+              label="Loja Online"
+              active={workspace === "loja"}
+              badge={pendingOrderCount}
+              onClick={() => setWorkspace("loja")}
+            />
+          </div>
           <nav className="flex flex-col gap-0.5">
-            {UNIFIED_NAV.map((item) => (
+            {activeNav.map((item) => (
               <div key={item.to} className="flex flex-col">
                 {item.section && (
                   <div className="px-4 pt-4 pb-1">
@@ -295,26 +329,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* ─── Main content ──────────────────────────────────────────────────── */}
+      {/* Main content */}
       <main className="pb-28 lg:pb-16 lg:pl-[268px]">
         <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-6">{children}</div>
       </main>
 
-      {/* ─── Tab bar mobile — 4 âncoras + "Mais" ─────────────────────────── */}
+      {/* Tab bar mobile */}
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex h-[72px] items-center justify-around px-2 lg:hidden">
-        {MOBILE_PRIMARY.map((item) => {
+        {mobilePrimary.map((item) => {
           const active = isNavActive(item);
+          const isPedidos = item.to === "/loja/pedidos";
           return (
             <Link
               key={item.to}
               to={item.to}
               preload="intent"
               className={cn(
-                "flex w-16 flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-medium transition-colors",
+                "relative flex w-16 flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-medium transition-colors",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
               <item.icon className="size-5" />
+              {isPedidos && pendingOrderCount > 0 && (
+                <span className="absolute top-1.5 right-2.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  {pendingOrderCount > 9 ? "9+" : pendingOrderCount}
+                </span>
+              )}
               {item.label}
             </Link>
           );
@@ -330,7 +370,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </button>
       </nav>
 
-      {/* ─── Sheet "Mais" (Mobile) ─────────────────────────────────────────── */}
+      {/* Sheet "Mais" Mobile */}
       <Sheet open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
         <SheetContent
           side="bottom"
@@ -338,11 +378,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <SheetHeader className="px-6 pb-3 pt-2 border-b border-border/40">
             <SheetTitle className="text-sm font-semibold text-foreground text-left">
-              Menu Completo
+              {workspace === "loja" ? "Loja Online & Vitrine" : "Gestão do Negócio"}
             </SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col gap-0.5 px-4 py-3">
-            {MOBILE_MORE_NAV.map((item) => (
+            {mobileMoreNav.map((item) => (
               <div key={item.to} className="flex flex-col">
                 {item.section && (
                   <div className="px-4 pt-4 pb-1">
@@ -358,6 +398,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 />
               </div>
             ))}
+            <div className="mt-2 border-t border-border/40 pt-2">
+              <NavItemLink
+                item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
+                active={pathname === "/configuracoes"}
+                onClick={() => setMoreSheetOpen(false)}
+              />
+            </div>
           </nav>
           <div className="px-8 py-4 border-t border-border/40">
             <button
@@ -376,8 +423,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── NavItemLink ──────────────────────────────────────────────────────────────
+// --- WorkspaceButton ---
+function WorkspaceButton({
+  label,
+  active,
+  badge,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
+        active
+          ? "bg-card text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+      {badge !== undefined && badge > 0 && (
+        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
+    </button>
+  );
+}
 
+// --- NavItemLink ---
 function NavItemLink({
   item,
   active,
