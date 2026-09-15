@@ -1,9 +1,10 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Tag as TagIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
 import { PlanoBadge, Tag } from "@/components/loja/badges";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -146,21 +147,20 @@ function CuponsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Vendas"
-        title="Cupons de desconto"
-        description="Ative campanhas pontuais sem mexer no preço das peças."
+        eyebrow="Configurar Vitrine"
+        title="Cupons de Desconto"
+        description="Ative campanhas promocionais com cupons fixos ou percentuais."
         actions={
-          <>
-            <PlanoBadge plan="crescimento" />
-            <Button
-              onClick={() => setNovo(true)}
-              className="gradient-primary h-10 rounded-full shadow-glow"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Novo cupom
-            </Button>
-          </>
+          <Button
+            onClick={() => setNovo(true)}
+            className="gradient-primary h-10 rounded-full shadow-glow"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Novo cupom
+          </Button>
         }
       />
+
+      <VitrineConfigNav />
 
       {lista.length === 0 ? (
         <EmptyState

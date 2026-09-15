@@ -1,10 +1,11 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Instagram, Link2, QrCode, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { SectionCard } from "@/components/loja/section-card";
 import { PlanoBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
@@ -56,10 +57,12 @@ function CompartilharPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Divulgação"
-        title="Compartilhar a loja"
+        eyebrow="Configurar Vitrine"
+        title="Link & Divulgação"
         description="Um link só para Instagram, WhatsApp e TikTok — e um QR Code para o balcão."
       />
+
+      <VitrineConfigNav />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <SectionCard title="Link da loja" description="Use na bio do Instagram e nos Stories.">

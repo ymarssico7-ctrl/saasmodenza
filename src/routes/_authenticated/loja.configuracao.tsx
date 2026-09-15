@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Check,
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { SectionCard } from "@/components/loja/section-card";
 import { PlanoBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
@@ -167,9 +168,9 @@ function AparenciaPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Design & Visual"
-        title="Aparência"
-        description="Personalize o layout e as configurações básicas da sua vitrine."
+        eyebrow="Configurar Vitrine"
+        title="Aparência & Identidade"
+        description="Personalize o layout, cores da marca e dados de recebimento da sua vitrine online."
         actions={
           <Button
             className="gradient-primary h-10 gap-2 rounded-full shadow-glow"
@@ -181,6 +182,8 @@ function AparenciaPage() {
           </Button>
         }
       />
+
+      <VitrineConfigNav />
 
       {/* ── Layout Ativo — Banner Principal Full-Width ──────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">

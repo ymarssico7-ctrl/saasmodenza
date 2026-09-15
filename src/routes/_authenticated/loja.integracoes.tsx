@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { SectionCard } from "@/components/loja/section-card";
 import { PlanoBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
@@ -680,10 +681,12 @@ function IntegracoesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Conectividade"
+        eyebrow="Configurar Vitrine"
         title="Integrações"
-        description="Conecte sua loja com as ferramentas que você já usa. Cada integração ativa enriquece a experiência das suas clientes."
+        description="Conecte sua loja com WhatsApp, Instagram, Pix e ferramentas de marketing."
       />
+
+      <VitrineConfigNav />
 
       {/* ── Card Vestui Pay (destaque) ───────────────────────────────────── */}
       <div className={`rounded-2xl border-2 p-5 transition-all

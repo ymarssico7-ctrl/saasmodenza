@@ -1,8 +1,9 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
 import {
@@ -114,6 +115,8 @@ function GaleriaTemplatesPage() {
           </a>
         </Button>
       </div>
+
+      <VitrineConfigNav />
 
       {/* ── Tema Ativo Banner ─────────────────────────────────────────────── */}
       {(() => {
