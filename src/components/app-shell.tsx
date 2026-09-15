@@ -2,6 +2,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Banknote,
   BarChart3,
   Boxes,
   Calculator,
@@ -54,7 +55,7 @@ const UNIFIED_NAV: NavItem[] = [
   // ── Visão Geral ──────────────────────────────────────────────────────────────
   { to: "/painel", label: "Painel", icon: LayoutDashboard, section: "Visão Geral" },
 
-  // ── Vendas ───────────────────────────────────────────────────────────────────
+  // ── Vendas & Balcão ──────────────────────────────────────────────────────────
   { to: "/caixa", label: "Caixa & PDV", icon: Wallet, section: "Vendas" },
   { to: "/loja/pedidos", label: "Pedidos Online", icon: ShoppingBag },
   { to: "/clientes", label: "Clientes", icon: Users },
@@ -65,15 +66,17 @@ const UNIFIED_NAV: NavItem[] = [
   { to: "/loja/produtos", label: "Vitrine Online", icon: Store },
   { to: "/precificacao", label: "Precificação", icon: Calculator },
 
-  // ── Financeiro ───────────────────────────────────────────────────────────────
-  { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3, section: "Financeiro" },
+  // ── Financeiro & Vestui Pay ──────────────────────────────────────────────────
+  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Financeiro & Vestui Pay" },
+  { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
   { to: "/metas", label: "Metas & Faturamento", icon: Target },
   { to: "/prolabore", label: "Pró-labore", icon: HandCoins },
 
   // ── Canal Digital ────────────────────────────────────────────────────────────
-  { to: "/loja/configuracao", label: "Aparência & Temas", icon: Palette, section: "Canal Digital" },
+  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette, section: "Canal Digital" },
+  { to: "/loja/configuracao", label: "Aparência da Loja", icon: Settings },
   { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
-  { to: "/loja/cupons", label: "Cupons", icon: BadgePercent },
+  { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
   { to: "/loja/compartilhar", label: "Compartilhar & Link", icon: Share2 },
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
 ];
@@ -92,12 +95,14 @@ const MOBILE_MORE_NAV: NavItem[] = [
   { to: "/fiado", label: "Fiado", icon: HandCoins },
   { to: "/loja/produtos", label: "Vitrine Online", icon: Store, section: "Catálogo" },
   { to: "/precificacao", label: "Precificação", icon: Calculator },
-  { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3, section: "Financeiro" },
+  { to: "/loja/recebimentos", label: "Recebimentos (Vestui Pay)", icon: Banknote, section: "Financeiro & Vestui Pay" },
+  { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
   { to: "/metas", label: "Metas", icon: Target },
   { to: "/prolabore", label: "Pró-labore", icon: HandCoins },
-  { to: "/loja/configuracao", label: "Aparência & Temas", icon: Palette, section: "Canal Digital" },
+  { to: "/loja/templates", label: "Galeria de Temas", icon: Palette, section: "Canal Digital" },
+  { to: "/loja/configuracao", label: "Aparência da Loja", icon: Settings },
   { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
-  { to: "/loja/cupons", label: "Cupons", icon: BadgePercent },
+  { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
   { to: "/loja/compartilhar", label: "Compartilhar & Link", icon: Share2 },
   { to: "/loja/integracoes", label: "Integrações", icon: Plug },
   { to: "/configuracoes", label: "Configurações", icon: Settings, section: "Conta" },
@@ -136,8 +141,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const p = pathname;
     if (item.to === "/painel") return p === "/painel";
     if (item.to === "/loja") return p === "/loja";
+    if (item.to === "/loja/recebimentos") return p.startsWith("/loja/recebimentos");
     if (item.to === "/loja/pedidos") return p.startsWith("/loja/pedidos");
     if (item.to === "/loja/produtos") return p.startsWith("/loja/produtos");
+    if (item.to === "/loja/templates") return p.startsWith("/loja/templates");
     if (item.to === "/loja/configuracao") return p.startsWith("/loja/configuracao");
     if (item.to === "/loja/frete") return p.startsWith("/loja/frete");
     if (item.to === "/loja/cupons") return p.startsWith("/loja/cupons");
