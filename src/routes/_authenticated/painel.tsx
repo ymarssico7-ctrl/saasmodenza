@@ -4,6 +4,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Calculator,
+  Eye,
+  EyeOff,
   HandCoins,
   Plus,
   Target,
@@ -27,6 +29,8 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActivationChecklist } from "@/components/activation-checklist";
 import { useStore } from "@/lib/store-context";
+import { usePrivacyMode } from "@/lib/usePrivacyMode";
+import { cn } from "@/lib/utils";
 import { creditsQuery, goalsQuery, inventoryQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, todayISO } from "@/lib/format";
 import {
@@ -61,6 +65,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
 
 function Painel() {
   const { storeId, store } = useStore();
+  const { ocultarSaldos, togglePrivacidade, mascaraSaldo } = usePrivacyMode();
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
   const { data: all = [], isLoading: isTxsLoading } = useQuery(transactionsQuery());
   const { data: inventory = [] } = useQuery(inventoryQuery());
@@ -135,6 +140,11 @@ function Painel() {
     };
   });
 
+  const totalHistorico = series.reduce(
+    (acc, s) => acc + (s.faturamento || 0) + Math.abs(s.lucro || 0),
+    0,
+  );
+
   // Fix 8: filtra pelo mês atual e ordena por data desc — exibe os lançamentos mais recentes
   const recent = [...current]
     .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
@@ -203,11 +213,36 @@ function Painel() {
             : "Aqui está o resumo financeiro da sua loja hoje."
         }
         action={
-          <Button asChild className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all">
-            <Link to="/caixa">
-              <Plus className="size-4" /> Novo lançamento
-            </Link>
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={togglePrivacidade}
+              title={
+                ocultarSaldos
+                  ? "Modo Balcão ativo: clique para exibir saldos"
+                  : "Ocultar saldos para privacidade no balcão"
+              }
+              className={cn(
+                "h-11 gap-1.5 rounded-full border px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer",
+                ocultarSaldos
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+              )}
+            >
+              {ocultarSaldos ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
+            </Button>
+            <Button
+              asChild
+              className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer"
+            >
+              <Link to="/caixa">
+                <Plus className="size-4" /> Novo lançamento
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -226,54 +261,64 @@ function Painel() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Faturamento do mês"
-          value={brl(revenue)}
+          value={mascaraSaldo(revenue)}
           icon={<ArrowUpRight className="size-4" />}
           tone="primary"
           hint={
-            refunds > 0
-              ? `Líquido: ${brl(netRevenue)} (−${brl(refunds)} em devoluções)`
-              : onlineRevenue > 0
-                ? `${formatVariationHint(revenue, prevRevenue)} · ${brl(onlineRevenue)} online`
-                : formatVariationHint(revenue, prevRevenue)
+            ocultarSaldos
+              ? "••••••"
+              : refunds > 0
+                ? `Líquido: ${brl(netRevenue)} (−${brl(refunds)} em devoluções)`
+                : onlineRevenue > 0
+                  ? `${formatVariationHint(revenue, prevRevenue)} · ${brl(onlineRevenue)} online`
+                  : formatVariationHint(revenue, prevRevenue)
           }
         />
         <StatCard
           label="Despesas da loja"
-          value={brl(expenses)}
+          value={mascaraSaldo(expenses)}
           icon={<ArrowDownRight className="size-4" />}
-          hint={(() => {
-            const opexCount = current.filter(
-              (t) => t.kind === "saida" && !opexExclusions.has(t.category),
-            ).length;
-            const parts: string[] = [];
-            if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
-            if (stockPurchases > 0) parts.push(`reinvestiu ${brl(stockPurchases)} em roupas`);
-            if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
-            if (parts.length === 0) return "Nenhuma despesa registrada";
-            return parts.join(" · ");
-          })()}
+          hint={
+            ocultarSaldos
+              ? "••••••"
+              : (() => {
+                  const opexCount = current.filter(
+                    (t) => t.kind === "saida" && !opexExclusions.has(t.category),
+                  ).length;
+                  const parts: string[] = [];
+                  if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
+                  if (stockPurchases > 0) parts.push(`reinvestiu ${brl(stockPurchases)} em roupas`);
+                  if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
+                  if (parts.length === 0) return "Nenhuma despesa registrada";
+                  return parts.join(" · ");
+                })()
+          }
         />
         <StatCard
           label="Sobra no caixa"
-          value={brl(profit)}
+          value={mascaraSaldo(profit)}
           tone={profit >= 0 ? "positive" : "negative"}
           icon={<Wallet className="size-4" />}
-          hint={(() => {
-            if (netRevenue <= 0) return "Sem vendas ainda";
-            const marginStr = `Margem ${pct((operatingProfit / netRevenue) * 100)} na operação`;
-            if (stockPurchases > 0 && prolaboreAmount > 0) {
-              return `Após ${brl(stockPurchases)} estoque e ${brl(prolaboreAmount)} pró-labore`;
-            }
-            if (stockPurchases > 0) return `Após ${brl(stockPurchases)} em estoque novo`;
-            if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore`;
-            return marginStr;
-          })()}
+          hint={
+            ocultarSaldos
+              ? "••••••"
+              : (() => {
+                  if (netRevenue <= 0) return "Sem vendas ainda";
+                  const marginStr = `Margem ${pct((operatingProfit / netRevenue) * 100)} na operação`;
+                  if (stockPurchases > 0 && prolaboreAmount > 0) {
+                    return `Após ${brl(stockPurchases)} estoque e ${brl(prolaboreAmount)} pró-labore`;
+                  }
+                  if (stockPurchases > 0) return `Após ${brl(stockPurchases)} em estoque novo`;
+                  if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore`;
+                  return marginStr;
+                })()
+          }
         />
         <StatCard
           label="Projeção de fechamento"
-          value={brl(projection)}
+          value={mascaraSaldo(projection)}
           icon={<TrendingUp className="size-4" />}
-          hint={`Baseado no ritmo dos ${now.getDate()} primeiros dias`}
+          hint={ocultarSaldos ? "••••••" : `Baseado no ritmo dos ${now.getDate()} primeiros dias`}
         />
       </div>
 
@@ -284,64 +329,90 @@ function Painel() {
               <h2 className="text-base font-semibold">Evolução dos últimos 6 meses</h2>
               <p className="mt-1 text-xs text-muted-foreground">Faturamento e lucro por mês</p>
             </div>
+            {onlineRevenue > 0 && !ocultarSaldos && (
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                {brl(onlineRevenue)} via vitrine
+              </span>
+            )}
           </div>
-          <div className="mt-6 h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series} margin={{ left: -18, right: 6, top: 6 }}>
-                <defs>
-                  <linearGradient id="fat" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="luc" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
-                <YAxis
-                  tickFormatter={(v) => brlCompact(Number(v))}
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={11}
-                  width={78}
-                />
-                <Tooltip
-                  formatter={(v: unknown, name: unknown) => [
-                    brl(Number(v)),
-                    name === "faturamento"
-                      ? "Faturamento"
-                      : name === "lucro"
-                        ? "Resultado líquido"
-                        : String(name ?? ""),
-                  ]}
-                  contentStyle={{
-                    borderRadius: 16,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-popover)",
-                    color: "var(--color-popover-foreground)",
-                    boxShadow: "var(--shadow-lifted)",
-                    fontSize: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="faturamento"
-                  stroke="var(--color-primary)"
-                  strokeWidth={2.5}
-                  fill="url(#fat)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="lucro"
-                  stroke="var(--color-success)"
-                  strokeWidth={2.5}
-                  fill="url(#luc)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {totalHistorico === 0 ? (
+            <div className="flex h-[260px] flex-col items-center justify-center gap-3 text-center p-6">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <div className="max-w-xs space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Sua evolução financeira aparecerá aqui
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Conforme suas vendas e despesas forem registradas, o gráfico traçará sua curva de faturamento e sobra de caixa.
+                </p>
+              </div>
+              <Button asChild variant="outline" size="sm" className="rounded-full text-xs font-medium mt-1">
+                <Link to="/caixa">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Registrar primeira movimentação
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-6 h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ left: -18, right: 6, top: 6 }}>
+                  <defs>
+                    <linearGradient id="fat" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="luc" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis
+                    tickFormatter={(v) => (ocultarSaldos ? "••••" : brlCompact(Number(v)))}
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={11}
+                    width={78}
+                  />
+                  <Tooltip
+                    formatter={(v: unknown, name: unknown) => [
+                      ocultarSaldos ? "R$ ••••••" : brl(Number(v)),
+                      name === "faturamento"
+                        ? "Faturamento"
+                        : name === "lucro"
+                          ? "Resultado líquido"
+                          : String(name ?? ""),
+                    ]}
+                    contentStyle={{
+                      borderRadius: 16,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-popover)",
+                      color: "var(--color-popover-foreground)",
+                      boxShadow: "var(--shadow-lifted)",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="faturamento"
+                    stroke="var(--color-primary)"
+                    strokeWidth={2.5}
+                    fill="url(#fat)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="lucro"
+                    stroke="var(--color-success)"
+                    strokeWidth={2.5}
+                    fill="url(#luc)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </section>
 
         <div className="space-y-4">
@@ -352,8 +423,8 @@ function Painel() {
             </div>
             {goalTarget > 0 ? (
               <>
-                <p className="numeric mt-4 text-2xl font-semibold">{brl(netRevenue)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">de {brl(goalTarget)}</p>
+                <p className="numeric mt-4 text-2xl font-semibold">{mascaraSaldo(netRevenue)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">de {mascaraSaldo(goalTarget)}</p>
                 <Progress value={goalProgress} className="mt-4 h-2" />
                 <p className="mt-3 text-xs text-muted-foreground">
                   {pct(goalProgress)} da meta alcançada
@@ -376,7 +447,7 @@ function Painel() {
               <Users className="size-4 text-primary" />
               <h2 className="text-sm font-semibold">Fiado em aberto</h2>
             </div>
-            <p className="numeric mt-4 text-2xl font-semibold">{brl(openCreditTotal)}</p>
+            <p className="numeric mt-4 text-2xl font-semibold">{mascaraSaldo(openCreditTotal)}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {openCredits.length} pendente(s)
               {overdue > 0 ? ` · ${overdue} vencido(s)` : ""}
@@ -390,11 +461,34 @@ function Painel() {
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <section className="panel p-6 sm:p-7">
-          <h2 className="text-base font-semibold">Últimos lançamentos</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Últimos lançamentos</h2>
+            <Button asChild variant="outline" size="sm" className="h-7 rounded-full text-xs font-medium border-border/80">
+              <Link to="/caixa">Ver todos</Link>
+            </Button>
+          </div>
           {recent.length === 0 ? (
-            <p className="mt-6 text-sm text-muted-foreground">
-              Nenhum lançamento ainda. Comece registrando a primeira venda do dia.
-            </p>
+            <div className="flex h-[180px] flex-col items-center justify-center gap-2.5 text-center p-6 mt-4">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <div className="max-w-sm space-y-1">
+                <p className="text-sm font-semibold text-foreground">Nenhum lançamento no mês</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Comece registrando uma venda no balcão ou uma despesa para movimentar seu caixa.
+                </p>
+              </div>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/5 rounded-full mt-1"
+              >
+                <Link to="/caixa">
+                  Registrar movimentação <ArrowUpRight className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
           ) : (
             <ul className="mt-5 divide-y divide-border">
               {recent.map((t) => (
@@ -418,7 +512,7 @@ function Painel() {
                     }`}
                   >
                     {t.kind === "entrada" ? "+" : "−"}
-                    {brl(Number(t.amount))}
+                    {mascaraSaldo(Number(t.amount))}
                   </p>
                 </li>
               ))}

@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import {
   ArrowUpRight,
+  BadgePercent,
   Banknote,
   CheckCircle2,
   Clock,
@@ -23,15 +24,19 @@ import {
   PackageCheck,
   PackageSearch,
   Plus,
+  Share2,
   ShoppingBag,
   Truck,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { inventoryQuery, profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
+import { usePrivacyMode } from "@/lib/usePrivacyMode";
+import { calculateOrderNet } from "@/lib/fees";
 import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
 import { StatusBadge } from "@/components/loja/badges";
@@ -101,32 +106,21 @@ function VisaoGeral() {
   const { store, storeId } = useStore();
   const primeiroNome = (profile?.owner_name || store?.name || "Lojista").split(" ")[0] ?? "Lojista";
 
-  // ── Privacidade de Balcão (Ocultar Saldos) ──────────────────────────────────
-  const [ocultarSaldos, setOcultarSaldos] = useState<boolean>(() => {
-    if (typeof localStorage === "undefined") return false;
-    return localStorage.getItem("vestui_privacy_mode") === "true";
+  // ── Privacidade de Balcão Compartilhada (Modo Balcão) ───────────────────────
+  const { ocultarSaldos, togglePrivacidade, mascaraSaldo } = usePrivacyMode();
+
+  // ── Playbook de Aceleração da Vitrine ───────────────────────────────────────
+  const sid = storeId || "default";
+  const [playbookDismissed, setPlaybookDismissed] = useState<boolean>(() => {
+    if (typeof window === "undefined" || typeof localStorage === "undefined") return false;
+    return localStorage.getItem(`vestui_loja_playbook_dismissed_${sid}`) === "true";
   });
 
-  useEffect(() => {
-    const handlePrivacyChange = () => {
-      setOcultarSaldos(localStorage.getItem("vestui_privacy_mode") === "true");
-    };
-    window.addEventListener("vestui_privacy_changed", handlePrivacyChange);
-    return () => window.removeEventListener("vestui_privacy_changed", handlePrivacyChange);
-  }, []);
-
-  const togglePrivacidade = () => {
-    const nextVal = !ocultarSaldos;
-    setOcultarSaldos(nextVal);
-    localStorage.setItem("vestui_privacy_mode", String(nextVal));
-    window.dispatchEvent(new Event("vestui_privacy_changed"));
-    toast.info(nextVal ? "Modo Balcão Ativado" : "Modo Balcão Desativado", {
-      description: nextVal ? "Valores monetários ocultados para proteção no balcão." : "Valores visíveis.",
-    });
-  };
-
-  const mascaraSaldo = (valor: number) => {
-    return ocultarSaldos ? "R$ ••••••" : brl(valor);
+  const dismissPlaybook = () => {
+    setPlaybookDismissed(true);
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(`vestui_loja_playbook_dismissed_${sid}`, "true");
+    }
   };
 
   const origin =
@@ -292,19 +286,23 @@ function VisaoGeral() {
     [pedidosMes],
   );
 
+  const getOrderNet = (p: OrderRecord) => {
+    const feeOverride =
+      typeof p.payment_fee === "number"
+        ? p.payment_fee
+        : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
+          ? Number(p.payment_fee)
+          : undefined;
+    const { netAmount } = calculateOrderNet(
+      Number(p.total) || 0,
+      p.payment_method || "pix",
+      feeOverride,
+    );
+    return netAmount;
+  };
+
   const vendasMesLiquido = useMemo(() => {
-    return pedidosMes.reduce((acc, p) => {
-      const bruto = Number(p.total) || 0;
-      const fee =
-        typeof p.payment_fee === "number"
-          ? p.payment_fee
-          : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
-            ? Number(p.payment_fee)
-            : p.gateway_charge_id
-              ? 0.99
-              : 0;
-      return acc + Math.max(0, bruto - fee);
-    }, 0);
+    return pedidosMes.reduce((acc, p) => acc + getOrderNet(p), 0);
   }, [pedidosMes]);
 
   const vendasMesAnterior = useMemo(
@@ -332,18 +330,7 @@ function VisaoGeral() {
     // Fallback: soma dos pedidos pagos em dias anteriores a hoje
     return orders
       .filter((p) => isPedidoPago(p) && !p.created_at.startsWith(hojeStr))
-      .reduce((acc, p) => {
-        const bruto = Number(p.total) || 0;
-        const fee =
-          typeof p.payment_fee === "number"
-            ? p.payment_fee
-            : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
-              ? Number(p.payment_fee)
-              : p.gateway_charge_id
-                ? 0.99
-                : 0;
-        return acc + Math.max(0, bruto - fee);
-      }, 0);
+      .reduce((acc, p) => acc + getOrderNet(p), 0);
   }, [asaasLiveBalance, orders, hojeStr]);
 
   const saldoRetidoD1 = useMemo(() => {
@@ -353,18 +340,7 @@ function VisaoGeral() {
     // Fallback: pedidos pagos hoje que compensam no próximo dia útil (D+1)
     return orders
       .filter((p) => isPedidoPago(p) && p.created_at.startsWith(hojeStr))
-      .reduce((acc, p) => {
-        const bruto = Number(p.total) || 0;
-        const fee =
-          typeof p.payment_fee === "number"
-            ? p.payment_fee
-            : typeof p.payment_fee === "string" && p.payment_fee.trim() !== ""
-              ? Number(p.payment_fee)
-              : p.gateway_charge_id
-                ? 0.99
-                : 0;
-        return acc + Math.max(0, bruto - fee);
-      }, 0);
+      .reduce((acc, p) => acc + getOrderNet(p), 0);
   }, [asaasLiveBalance, orders, hojeStr]);
 
   // Regra de Dias Úteis BACEN para Repasse D+1
@@ -441,6 +417,12 @@ function VisaoGeral() {
   );
 
   const ultimosPedidos = useMemo(() => orders.slice(0, 5), [orders]);
+
+  const step1Done = inventoryItems.length > 0;
+  const step2Done = Boolean(store?.slug);
+  const step3Done = orders.length > 0;
+  const playbookProgress = (step1Done ? 1 : 0) + (step2Done ? 1 : 0) + (step3Done ? 1 : 0);
+  const showPlaybook = !playbookDismissed && playbookProgress < 3;
 
   return (
     <div className="space-y-6 pb-12">
@@ -529,6 +511,126 @@ function VisaoGeral() {
           </Button>
         </div>
       </div>
+
+      {/* ── Playbook de Aceleração Comercial da Vitrine ── */}
+      {showPlaybook && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5 relative transition-all">
+          <button
+            type="button"
+            onClick={dismissPlaybook}
+            title="Dispensar guia"
+            className="absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pr-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider">
+                  Guia de Vendas Online
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {playbookProgress}/3 passos concluídos
+                </span>
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">
+                Como acelerar suas vendas na Vitrine Online
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
+                Complete estes passos estratégicos para colocar sua vitrine para rodar e atrair os primeiros pedidos.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+            {/* Passo 1: Catálogo com Fotos */}
+            <Link
+              to="/loja/produtos"
+              className={cn(
+                "flex items-start gap-3 rounded-xl p-3 border transition-all",
+                step1Done
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
+                  : "border-border/80 bg-card hover:bg-secondary/60 text-foreground",
+              )}
+            >
+              <div className="mt-0.5">
+                {step1Done ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <div className="grid h-4 w-4 place-items-center rounded-full border border-primary text-[10px] font-bold text-primary">
+                    1
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 text-xs">
+                <p className="font-semibold">Cadastre peças com fotos</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {inventoryItems.length > 0
+                    ? `${inventoryItems.length} peça(s) no catálogo`
+                    : "Coloque fotos atrativas"}
+                </p>
+              </div>
+            </Link>
+
+            {/* Passo 2: Link na Bio */}
+            <button
+              type="button"
+              onClick={copiarLink}
+              className={cn(
+                "flex items-start gap-3 rounded-xl p-3 border transition-all text-left cursor-pointer",
+                step2Done
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
+                  : "border-border/80 bg-card hover:bg-secondary/60 text-foreground",
+              )}
+            >
+              <div className="mt-0.5">
+                {step2Done ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <div className="grid h-4 w-4 place-items-center rounded-full border border-primary text-[10px] font-bold text-primary">
+                    2
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 text-xs">
+                <p className="font-semibold">Divulgue seu link</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Copie e cole na Bio do Instagram
+                </p>
+              </div>
+            </button>
+
+            {/* Passo 3: Primeiro Pedido */}
+            <Link
+              to="/loja/pedidos"
+              className={cn(
+                "flex items-start gap-3 rounded-xl p-3 border transition-all",
+                step3Done
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
+                  : "border-border/80 bg-card hover:bg-secondary/60 text-foreground",
+              )}
+            >
+              <div className="mt-0.5">
+                {step3Done ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <div className="grid h-4 w-4 place-items-center rounded-full border border-primary text-[10px] font-bold text-primary">
+                    3
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 text-xs">
+                <p className="font-semibold">Primeira venda</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {orders.length > 0
+                    ? `${orders.length} pedido(s) recebido(s)`
+                    : "Simule ou receba um pedido"}
+                </p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── 2. 4 KPIs com Contenção Cromática & Tipografia Apple ───────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -890,6 +992,59 @@ function VisaoGeral() {
                   Gerenciar catálogo <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                 </Link>
               </Button>
+            </div>
+          </SectionCard>
+
+          {/* Card 3: Atalhos Rápidos da Loja Online */}
+          <SectionCard
+            title="Atalhos da Loja"
+            description="Ações rápidas de vendas e configuração."
+          >
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={copiarLink}
+                className="flex items-center justify-between rounded-xl bg-secondary/40 px-3.5 py-2.5 text-xs font-medium text-foreground transition-all hover:bg-secondary/70 cursor-pointer"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Copy className="h-4 w-4 text-primary" />
+                  <span>Copiar link da vitrine</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground">Instagram / Bio</span>
+              </button>
+
+              <Link
+                to="/loja/cupons"
+                className="flex items-center justify-between rounded-xl bg-secondary/40 px-3.5 py-2.5 text-xs font-medium text-foreground transition-all hover:bg-secondary/70 cursor-pointer"
+              >
+                <span className="flex items-center gap-2.5">
+                  <BadgePercent className="h-4 w-4 text-emerald-600" />
+                  <span>Criar cupom de desconto</span>
+                </span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+
+              <Link
+                to="/loja/frete"
+                className="flex items-center justify-between rounded-xl bg-secondary/40 px-3.5 py-2.5 text-xs font-medium text-foreground transition-all hover:bg-secondary/70 cursor-pointer"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Truck className="h-4 w-4 text-amber-500" />
+                  <span>Calibrar frete e entrega</span>
+                </span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+
+              <Link
+                to="/loja/relatorios"
+                className="flex items-center justify-between rounded-xl bg-secondary/40 px-3.5 py-2.5 text-xs font-medium text-foreground transition-all hover:bg-secondary/70 cursor-pointer"
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShoppingBag className="h-4 w-4 text-indigo-500" />
+                  <span>Relatório de vendas online</span>
+                </span>
+                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
             </div>
           </SectionCard>
 

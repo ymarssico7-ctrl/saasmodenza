@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { restoreOrderStock, adjustInventoryStock, insertTransaction } from "@/lib/mutations";
+import { calculateOrderNet } from "@/lib/fees";
 import {
   fluxoStatus,
   statusPedidoLabel,
@@ -348,8 +349,7 @@ function PedidosPage() {
       }
 
       const bruto = totalPedido(pedido);
-      const taxaGateway = pedido.pagamento === "Pix" ? 0.99 : pedido.pagamento.includes("Cartão") ? Number((bruto * 0.035).toFixed(2)) : 0;
-      const valorLiquido = Math.max(0, Number((bruto - taxaGateway).toFixed(2)));
+      const { net: valorLiquido } = calculateOrderNet(bruto, pedido.pagamento);
 
       void insertTransaction({
         storeId,
@@ -435,13 +435,14 @@ function PedidosPage() {
           void queryClient.invalidateQueries({ queryKey: ["inventory"] });
         });
       }
-      const valorTotal = totalPedido(pedido);
-      if (valorTotal > 0) {
+      const bruto = totalPedido(pedido);
+      const { net: valorLiquido } = calculateOrderNet(bruto, pedido.pagamento);
+      if (valorLiquido > 0) {
         void insertTransaction({
           storeId,
           kind: "saida",
           description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
-          amount: valorTotal,
+          amount: valorLiquido,
           category: "estorno_devolucao",
           payment_method: mapPedidoPaymentMethod(pedido.pagamento),
           occurred_on: new Date().toISOString().slice(0, 10),
@@ -449,7 +450,7 @@ function PedidosPage() {
           void queryClient.invalidateQueries({ queryKey: ["transactions"] });
         });
       }
-      toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorTotal)} lançado no Caixa.`);
+      toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorLiquido)} lançado no Caixa.`);
     } else {
       toast.info(`Pedido ${pedido.numero} cancelado sem impacto no caixa.`);
     }

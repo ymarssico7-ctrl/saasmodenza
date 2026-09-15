@@ -58,7 +58,7 @@ function Clientes() {
     // Usa APENAS delimitadores estruturados para evitar falsos positivos (ex: "Ana" em "havaiANA").
     const sales = txs
       .filter((t) => {
-        if (t.kind !== "entrada" || t.category !== "venda_produto") return false;
+        if (t.kind !== "entrada" || (t.category !== "venda_produto" && t.category !== "venda_online")) return false;
         // Evita dupla contagem com fiadoPaid
         if (t.payment_method === "fiado" || t.description.toLowerCase().startsWith("recebimento fiado")) {
           return false;

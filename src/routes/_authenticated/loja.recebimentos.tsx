@@ -40,6 +40,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { insertProlabore } from "@/lib/mutations";
 import { monthStart } from "@/lib/format";
 import { transactionsQuery } from "@/lib/db";
+import { calculateOrderNet } from "@/lib/fees";
 
 export const Route = createFileRoute("/_authenticated/loja/recebimentos")({
   head: () => ({
@@ -100,15 +101,11 @@ function RecebimentosPage() {
 
   const prolaboreMutation = useMutation({
     mutationFn: async (order: OrderRecord) => {
-      const taxa =
-        typeof order.payment_fee === "number"
-          ? order.payment_fee
-          : typeof order.payment_fee === "string" && order.payment_fee.trim() !== ""
-            ? Number(order.payment_fee)
-            : order.gateway_charge_id
-              ? 0.99
-              : 0;
-      const liquido = Math.max(0, Number(order.total) - taxa);
+      const { net: liquido } = calculateOrderNet(
+        Number(order.total),
+        order.payment_method,
+        order.payment_fee,
+      );
       const month = monthStart(0);
       // Registra no módulo de Pró-labore E Caixa com descrição rastreável única (atômico)
       await insertProlabore(
@@ -255,21 +252,11 @@ function RecebimentosPage() {
   // Total processado geral
   const totalProcessado = pedidosPagos.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
 
-  // Total de taxas descontadas (Pix próprio não cobra taxa de gateway; Asaas cobra 0.99)
-  const totalTaxas = pedidosPagos.reduce(
-    (acc, o) => {
-      const taxa =
-        typeof o.payment_fee === "number"
-          ? o.payment_fee
-          : typeof o.payment_fee === "string" && o.payment_fee.trim() !== ""
-            ? Number(o.payment_fee)
-            : o.gateway_charge_id
-              ? 0.99
-              : 0;
-      return acc + taxa;
-    },
-    0,
-  );
+  // Total de taxas descontadas via motor de taxas centralizado
+  const totalTaxas = pedidosPagos.reduce((acc, o) => {
+    const { fee } = calculateOrderNet(Number(o.total), o.payment_method, o.payment_fee);
+    return acc + fee;
+  }, 0);
 
   const totalLiquidoCalculado = totalProcessado > 0 ? totalProcessado - totalTaxas : 0;
 
@@ -290,16 +277,8 @@ function RecebimentosPage() {
     asaasLiveBalance && typeof asaasLiveBalance.pending === "number"
       ? asaasLiveBalance.pending
       : pedidosHoje.reduce((acc, o) => {
-          const bruto = Number(o.total) || 0;
-          const fee =
-            typeof o.payment_fee === "number"
-              ? o.payment_fee
-              : typeof o.payment_fee === "string" && o.payment_fee.trim() !== ""
-                ? Number(o.payment_fee)
-                : o.gateway_charge_id
-                  ? 0.99
-                  : 0;
-          return acc + (Number(o.net_amount) || Math.max(0, bruto - fee));
+          const { net } = calculateOrderNet(Number(o.total), o.payment_method, o.payment_fee);
+          return acc + (Number(o.net_amount) || net);
         }, 0);
 
   // Filtro de Transações
@@ -716,16 +695,13 @@ function RecebimentosPage() {
               ) : (
                 transacoesFiltradas.map((order) => {
                   const isPago = order.payment_status === "pago";
-                  const taxa =
-                    typeof order.payment_fee === "number"
-                      ? order.payment_fee
-                      : typeof order.payment_fee === "string" && order.payment_fee.trim() !== ""
-                        ? Number(order.payment_fee)
-                        : order.gateway_charge_id
-                          ? 0.99
-                          : 0;
+                  const { fee: taxa, net: liquidoCalc } = calculateOrderNet(
+                    Number(order.total),
+                    order.payment_method,
+                    order.payment_fee,
+                  );
                   const bruto = Number(order.total) || 0;
-                  const liquido = isPago ? Math.max(0, bruto - taxa) : bruto;
+                  const liquido = isPago ? liquidoCalc : bruto;
                   const isPix = order.payment_method === "pix";
                   const dataFormatada = new Date(order.created_at).toLocaleDateString("pt-BR", {
                     day: "2-digit",
@@ -833,15 +809,11 @@ function RecebimentosPage() {
 
       {/* ── MODAL DE CONFIRMAÇÃO DE PRÓ-LABORE ─────────────────────────────── */}
       {prolaboreOrder && (() => {
-        const taxa =
-          typeof prolaboreOrder.payment_fee === "number"
-            ? prolaboreOrder.payment_fee
-            : typeof prolaboreOrder.payment_fee === "string" && prolaboreOrder.payment_fee.trim() !== ""
-              ? Number(prolaboreOrder.payment_fee)
-              : prolaboreOrder.gateway_charge_id
-                ? 0.99
-                : 0;
-        const liquido = Math.max(0, Number(prolaboreOrder.total) - taxa);
+        const { fee: taxa, net: liquido } = calculateOrderNet(
+          Number(prolaboreOrder.total),
+          prolaboreOrder.payment_method,
+          prolaboreOrder.payment_fee,
+        );
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
@@ -931,17 +903,15 @@ function RecebimentosPage() {
             </div>
 
             {(() => {
-              const taxaPedido =
-                typeof pedidoSelecionado.payment_fee === "number"
-                  ? pedidoSelecionado.payment_fee
-                  : typeof pedidoSelecionado.payment_fee === "string" && pedidoSelecionado.payment_fee.trim() !== ""
-                    ? Number(pedidoSelecionado.payment_fee)
-                    : pedidoSelecionado.gateway_charge_id
-                      ? 0.99
-                      : 0;
+              const { fee: taxaCalculada, net: liquidoCalculado } = calculateOrderNet(
+                Number(pedidoSelecionado.total),
+                pedidoSelecionado.payment_method,
+                pedidoSelecionado.payment_fee,
+              );
+              const taxaPedido = taxaCalculada;
               const liquidoPedido =
                 pedidoSelecionado.payment_status === "pago"
-                  ? Math.max(0, Number(pedidoSelecionado.total) - taxaPedido)
+                  ? liquidoCalculado
                   : Number(pedidoSelecionado.total);
 
               return (

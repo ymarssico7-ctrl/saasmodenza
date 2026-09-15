@@ -45,15 +45,16 @@ function Metas() {
     const mPrefix = m.slice(0, 7);
     const monthTransactions = txs.filter((t) => t.occurred_on.slice(0, 7) === mPrefix);
     const grossSales = sumBy(monthTransactions, "entrada");
+    const onlineSales = sumByCategories(monthTransactions, "entrada", new Set(["venda_online"]));
     const refunds = sumByCategories(monthTransactions, "saida", REFUND_CATEGORIES);
     const netRevenue = Math.max(grossSales - refunds, 0);
-    return { grossSales, refunds, netRevenue };
+    return { grossSales, onlineSales, refunds, netRevenue };
   };
 
   const revenueOf = (m: string) => revenueDetailsOf(m).netRevenue;
 
   const currentGoal = goals.find((g) => g.month.slice(0, 7) === month.slice(0, 7));
-  const { grossSales, refunds, netRevenue: revenue } = revenueDetailsOf(month);
+  const { grossSales, onlineSales, refunds, netRevenue: revenue } = revenueDetailsOf(month);
   const goalAmount = Number(currentGoal?.target_amount ?? 0);
   const progress = goalAmount > 0 ? Math.min((revenue / goalAmount) * 100, 100) : 0;
 
@@ -109,11 +110,15 @@ function Metas() {
                 <p className="text-primary-foreground/80">
                   Faturamento Líquido: <span className="numeric font-semibold">{brl(revenue)}</span>
                 </p>
-                {refunds > 0 && (
+                {onlineSales > 0 ? (
+                  <p className="text-[11px] text-primary-foreground/70 mt-0.5">
+                    ({brl(Math.max(0, revenue - onlineSales))} balcão · {brl(onlineSales)} vitrine)
+                  </p>
+                ) : refunds > 0 ? (
                   <p className="text-[11px] text-primary-foreground/70 mt-0.5">
                     ({brl(grossSales)} brutos − {brl(refunds)} estornos)
                   </p>
-                )}
+                ) : null}
               </div>
               <p className="text-primary-foreground/80">
                 Falta: <span className="numeric font-semibold">{brl(missing)}</span>

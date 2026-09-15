@@ -36,6 +36,7 @@ import {
 } from "@/lib/showcase-store";
 import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings";
 import { generatePixPayload, generatePixQrCodeUrl } from "@/lib/pix";
+import { calculateOrderNet } from "@/lib/fees";
 
 // ─── Route ───────────────────────────────────────────────────────
 export const Route = createFileRoute("/vitrine/$storeSlug")({
@@ -1107,8 +1108,7 @@ function CartDrawer({
     }
 
     // ── 3) Persiste no Supabase (tabela orders) ──────────────────────
-    const taxaCartao = paymentMethod === "cartao" ? totalFinal * 0.035 : 0;
-    const netAmount = Math.max(totalFinal - taxaCartao, 0);
+    const { fee: calculatedFee, net: calculatedNet } = calculateOrderNet(totalFinal, paymentMethod);
 
     try {
       const { data: insertedOrder, error } = await supabase.from("orders").insert({
@@ -1139,8 +1139,8 @@ function CartDrawer({
         cupom: cupomAplicado?.codigo ?? null,
         total: totalFinal,
         payment_method: paymentMethod,
-        payment_fee: parseFloat(taxaCartao.toFixed(2)),
-        net_amount: parseFloat(netAmount.toFixed(2)),
+        payment_fee: calculatedFee,
+        net_amount: calculatedNet,
         payment_status: "pendente",
         status: "novo",
         // gateway_provider, gateway_charge_id, escrow_status definidos pela migration
