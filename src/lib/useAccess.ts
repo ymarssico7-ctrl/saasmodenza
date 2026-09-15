@@ -1,7 +1,6 @@
-// ─── Hook Central de Acesso por Plano ──────────────────────────────────────
-// Este hook é a ÚNICA fonte de verdade sobre o que o cliente pode acessar.
-// Consulta prioritariamente a tabela `stores` (onde reside a assinatura e o trial)
-// e mantém fallback para `profile` para total resiliência e suporte a modo demo.
+﻿// ─── Hook Central de Acesso (Modelo Unificado) ─────────────────────────────
+// O Vestui é um produto único. Um plano libera 100% do sistema.
+// hasGestao e hasLoja são aliases retrocompatíveis de isActive.
 
 import type { Store } from "@/lib/store-context";
 
@@ -16,7 +15,6 @@ export type Profile = {
   plan?: string | null;
   plan_expires_at?: string | null;
   onboarding_done?: boolean | null;
-  // Campos legados mantidos para compatibilidade retroativa
   store_trial_offered_at?: string | null;
   store_trial_accepted?: boolean | null;
   store_trial_expires_at?: string | null;
@@ -25,18 +23,22 @@ export type Profile = {
 };
 
 export type TrialStatus =
-  | "not_offered" // ainda não foi oferecido (mostrar modal)
-  | "active" // trial ativo e no prazo
-  | "declined" // recusou o trial
-  | "expired" // aceitou mas expirou sem assinar
-  | "subscribed"; // assinante ativo do mensal ou anual
+  | "not_offered"
+  | "active"
+  | "declined"
+  | "expired"
+  | "subscribed";
 
 export type AccessInfo = {
+  /** Verdade única: true se o sistema está liberado por qualquer mecanismo */
+  isActive: boolean;
+  /** Alias retrocompatível de isActive */
   hasGestao: boolean;
+  /** Alias retrocompatível de isActive */
   hasLoja: boolean;
   trialStatus: TrialStatus;
   daysLeftInTrial: number | null;
-  isTrialUrgent: boolean; // últimos 7 dias
+  isTrialUrgent: boolean;
   isShouldShowTrialModal: boolean;
 };
 
@@ -48,6 +50,7 @@ export function useAccess(
 
   if (!profile && !store) {
     return {
+      isActive: false,
       hasGestao: false,
       hasLoja: false,
       trialStatus: "not_offered",
@@ -57,40 +60,38 @@ export function useAccess(
     };
   }
 
-  // ── Gestão: disponível se o plano estiver ativo ─────────────────────────
+  // ── Plano ─────────────────────────────────────────────────────────────────
   const rawPlan = store?.plan || profile?.plan;
   const rawPlanExpires = store?.plan_expires_at || profile?.plan_expires_at;
   const planExpiresAt = rawPlanExpires ? new Date(rawPlanExpires) : null;
-  const hasGestao = !!rawPlan && (planExpiresAt ? planExpiresAt > now : true);
+  const planAtivo = !!rawPlan && (planExpiresAt ? planExpiresAt > now : true);
 
-  // ── Trial ─────────────────────────────────────────────────────────────────
+  // ── Trial ──────────────────────────────────────────────────────────────────
   const storeTrialAccepted = store?.store_trial_accepted ?? profile?.store_trial_accepted;
   const storeTrialExpires = store?.store_trial_expires_at ?? profile?.store_trial_expires_at;
   const trialExpiresAt = storeTrialExpires ? new Date(storeTrialExpires) : null;
   const trialAtivo =
     storeTrialAccepted === true && trialExpiresAt !== null && trialExpiresAt > now;
 
-  // Dias restantes no trial
   let daysLeftInTrial: number | null = null;
   if (trialAtivo && trialExpiresAt) {
     const diffMs = trialExpiresAt.getTime() - now.getTime();
     daysLeftInTrial = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
   }
 
-  // ── Assinatura ativa (Digital ou Anual) ───────────────────────────────────
+  // ── Assinatura ativa ──────────────────────────────────────────────────────
   const storeSubActive = store?.store_subscription_active ?? profile?.store_subscription_active;
   const storeSubExpires = store?.store_subscription_expires_at ?? profile?.store_subscription_expires_at;
   const subExpiresAt = storeSubExpires ? new Date(storeSubExpires) : null;
   const assinanteAtivo =
     storeSubActive === true && (subExpiresAt !== null ? subExpiresAt > now : true);
 
-  // ── Acesso à Loja ─────────────────────────────────────────────────────────
-  const hasLoja = trialAtivo || assinanteAtivo;
+  // ── Acesso Unificado — Um plano cobre TUDO ────────────────────────────────
+  const isActive = planAtivo || trialAtivo || assinanteAtivo;
 
   // ── Estado do Trial ───────────────────────────────────────────────────────
   let trialStatus: TrialStatus;
-
-  if (assinanteAtivo) {
+  if (assinanteAtivo || planAtivo) {
     trialStatus = "subscribed";
   } else if (storeTrialAccepted === null || storeTrialAccepted === undefined) {
     trialStatus = "not_offered";
@@ -99,15 +100,16 @@ export function useAccess(
   } else if (trialAtivo) {
     trialStatus = "active";
   } else {
-    trialStatus = "expired"; // aceitou, mas venceu sem assinar
+    trialStatus = "expired";
   }
 
-  // Mostra modal se o cliente nunca foi perguntado ainda
-  const isShouldShowTrialModal = trialStatus === "not_offered" && hasGestao;
+  // Modal de trial: mostra para qualquer novo usuário sem plano ainda
+  const isShouldShowTrialModal = trialStatus === "not_offered";
 
   return {
-    hasGestao,
-    hasLoja,
+    isActive,
+    hasGestao: isActive,
+    hasLoja: isActive,
     trialStatus,
     daysLeftInTrial,
     isTrialUrgent: daysLeftInTrial !== null && daysLeftInTrial <= 7,

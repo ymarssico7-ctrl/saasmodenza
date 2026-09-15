@@ -1,30 +1,30 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Lock, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SubscriptionModal } from "@/components/subscription-modal";
 
 type Props = {
-  reason: "expired" | "declined" | "no_plan";
+  reason?: "expired" | "declined" | "no_plan";
 };
 
-export function LojaBloqueadaScreen({ reason }: Props) {
+export function LojaBloqueadaScreen({ reason = "no_plan" }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
 
   const messages = {
     expired: {
       title: "Seu período gratuito encerrou",
       description:
-        "Seus produtos, pedidos e configurações estão salvos e seguros. Para voltar a vender online, assine o plano mensal.",
+        "Seus produtos, pedidos e dados financeiros estão salvos e protegidos. Assine para voltar a usar o sistema completo.",
     },
     declined: {
-      title: "Sua loja online está pausada",
+      title: "Você ainda não tem uma assinatura ativa",
       description:
-        "Você optou por não ativar a loja online. Se mudou de ideia, é só assinar — seus dados de gestão já estão aqui.",
+        "Seus dados de gestão estão seguros. Quando estiver pronta, ative o Vestui Completo por menos de R$ 2 por dia.",
     },
     no_plan: {
-      title: "Recurso não disponível",
+      title: "Ative sua assinatura para continuar",
       description:
-        "A Loja Online é um módulo separado do plano de Gestão. Assine para começar a vender online.",
+        "Para usar o Vestui, escolha um plano. Gestão financeira, vitrine online e pedidos — tudo em um só lugar.",
     },
   };
 
@@ -46,18 +46,18 @@ export function LojaBloqueadaScreen({ reason }: Props) {
 
       <div className="mt-8 w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-left">
         <div className="flex items-baseline gap-1.5">
-          <span className="font-display text-3xl font-bold text-foreground">R$67</span>
+          <span className="font-display text-3xl font-bold text-foreground">R$57</span>
           <span className="text-sm text-muted-foreground">/mês</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">Cancele quando quiser</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">ou R$ 497/ano com 28% de desconto — Cancele quando quiser</p>
 
         <ul className="mt-4 space-y-2">
           {[
+            "Gestão financeira completa (DRE, caixa, metas)",
             "Vitrine online com link próprio",
             "Gestão de pedidos e clientes",
-            "Cupons de desconto",
-            "Frete e rastreio integrado",
-            "Relatórios de vendas online",
+            "Estoque por grade com fotos",
+            "Precificação com margem real",
           ].map((item) => (
             <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-success-soft text-success text-[10px] font-bold">
@@ -74,16 +74,21 @@ export function LojaBloqueadaScreen({ reason }: Props) {
           onClick={() => setModalOpen(true)}
         >
           <Zap className="size-4 mr-2" />
-          Reativar minha loja
+          Ativar Vestui Completo
         </Button>
       </div>
 
       <SubscriptionModal open={modalOpen} onOpenChange={setModalOpen} />
 
       <p className="mt-4 text-xs text-muted-foreground">
-        Quer continuar só com a Gestão?{" "}
-        <a href="/painel" className="underline hover:text-foreground transition-colors">
-          Voltar ao painel
+        Precisa de ajuda?{" "}
+        <a
+          href="https://wa.me/5511999999999"
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:text-foreground transition-colors"
+        >
+          Fale conosco no WhatsApp
         </a>
       </p>
     </div>

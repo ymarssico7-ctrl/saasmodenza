@@ -27,7 +27,7 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ActivationChecklist } from "@/components/activation-checklist";
+import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
 import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { cn } from "@/lib/utils";
@@ -246,11 +246,10 @@ function Painel() {
         }
       />
 
-      <ActivationChecklist
+      <VestuiGuideBanner
+        mode="gestao"
         storeId={storeId}
-        storeName={profile?.store_name || store?.name}
         storeSlug={store?.slug}
-        hasInventory={inventory.length > 0}
         inventoryCount={inventory.length}
         hasSales={txs.some((t) => t.kind === "entrada")}
         salesCount={txs.filter((t) => t.kind === "entrada").length}
