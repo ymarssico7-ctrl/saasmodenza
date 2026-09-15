@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { ClientesTabs } from "@/components/clientes-tabs";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -300,6 +301,8 @@ function Clientes() {
           </Dialog>
         }
       />
+
+      <ClientesTabs pendingCreditsCount={clientes.filter((c) => c.saldoDevedor > 0).length} />
 
       {/* Cards de Métricas do CRM */}
       <div className="grid gap-4 sm:grid-cols-3">

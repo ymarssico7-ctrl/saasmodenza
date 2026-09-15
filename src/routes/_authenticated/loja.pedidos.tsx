@@ -20,6 +20,7 @@ import { inventoryQuery } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { VendasTabs } from "@/components/vendas-tabs";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
 import { StatusBadge, Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
@@ -502,9 +503,9 @@ function PedidosPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Loja online"
-        title="Pedidos"
-        description="Todo pedido aceito baixa o estoque e registra automaticamente no caixa da gestão."
+        eyebrow="Vendas da Loja"
+        title="Pedidos da Vitrine & Insta"
+        description="Todo pedido confirmado baixa o estoque automaticamente e registra a entrada no seu caixa."
         actions={
           <Button
             variant="outline"
@@ -519,6 +520,8 @@ function PedidosPage() {
           </Button>
         }
       />
+
+      <VendasTabs pendingOrdersCount={lista.filter((p) => p.status === "novo").length} />
 
       <div className="flex flex-wrap gap-2">
         {filtros.map((f) => (

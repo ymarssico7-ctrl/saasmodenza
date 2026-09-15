@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { VendasTabs } from "@/components/vendas-tabs";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -331,6 +332,17 @@ function Caixa() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { storeId } = useStore();
+  const pendingOrdersCount = useMemo(() => {
+    if (!storeId) return 0;
+    try {
+      const raw = localStorage.getItem(`vestui_orders_${storeId}`);
+      if (!raw) return 0;
+      const orders: { status?: string }[] = JSON.parse(raw);
+      return orders.filter((o) => o.status === "novo").length;
+    } catch {
+      return 0;
+    }
+  }, [storeId]);
   const { data: all = [] } = useQuery(transactionsQuery());
   const { data: rawCustomers = [] } = useQuery(customersQuery());
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
@@ -931,10 +943,12 @@ function Caixa() {
   return (
     <div className="space-y-10">
       <PageHeader
-        eyebrow={monthLabel(month)}
-        title="Caixa"
-        description="Cada venda e cada despesa no lugar certo. O saldo se atualiza na hora."
+        eyebrow="Vendas da Loja"
+        title="Balcão & PDV"
+        description="Registre cada venda física e despesas da sua loja. O saldo se atualiza na hora."
       />
+
+      <VendasTabs pendingOrdersCount={pendingOrdersCount} />
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

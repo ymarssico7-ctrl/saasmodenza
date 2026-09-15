@@ -33,6 +33,7 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store-context";
@@ -371,6 +372,8 @@ function RecebimentosPage() {
           </Button>
         </div>
       </div>
+
+      <FinanceiroTabs />
 
       {/* ── Aviso se Vestui Pay estiver inativo ─────────────────────────────── */}
       {!isPayAtivo && (

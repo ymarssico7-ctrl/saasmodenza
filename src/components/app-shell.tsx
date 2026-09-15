@@ -1,24 +1,17 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Banknote,
-  BarChart3,
   Boxes,
-  Calculator,
-  HandCoins,
+  CircleDollarSign,
   LayoutDashboard,
   LogOut,
   Menu,
   MoreHorizontal,
-  Package,
   Settings,
-  ShoppingBag,
-  Store,
-  Target,
+  Sparkles,
   Users,
   Wallet,
-  Wrench,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -43,46 +36,111 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   section?: string;
   badgeKey?: "pedidos";
+  isMatch?: (pathname: string) => boolean;
 };
 
-// ─── Navegação Mestra Contínua — Padrão Apple (Zero Alternador) ─────────────────
-// Todos os recursos essenciais visíveis em um fluxo contínuo e lógico.
-// Pedidos Online e Caixa lado a lado no topo da operação diária.
+// ─── Os 5 Pilares da Vida Real (Padrão Apple — Zero Alternador) ─────────────────
+// Simplicidade extrema para a dona de loja:
+// 1. Início
+// 2. Vendas (Balcão + Pedidos do Insta juntos)
+// 3. Roupas & Estoque (Peças físicas e vitrine integradas)
+// 4. Clientes & Fiado (Quem compra e quem deve)
+// 5. Meu Financeiro (Vestui Pay, Lucro Real e Metas)
+// + Minha Vitrine (Simulador visual do link da bio)
 const MAIN_NAV: NavItem[] = [
-  // ── Visão Geral ──────────────────────────────────────────────────────────────
-  { to: "/painel", label: "Painel de Gestão", icon: LayoutDashboard, section: "Visão Geral" },
-
-  // ── Operação do Dia a Dia ───────────────────────────────────────────────────
-  { to: "/caixa", label: "Caixa & PDV", icon: Wallet, section: "Operação do Dia a Dia" },
-  { to: "/loja/pedidos", label: "Pedidos Online", icon: ShoppingBag, badgeKey: "pedidos" },
-  { to: "/estoque", label: "Estoque & Grade", icon: Boxes },
-  { to: "/clientes", label: "Clientes & CRM", icon: Users },
-  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins },
-
-  // ── Finanças & Resultados ───────────────────────────────────────────────────
-  { to: "/loja/recebimentos", label: "Recebimentos · Vestui Pay", icon: Banknote, section: "Finanças & Resultados" },
-  { to: "/relatorio", label: "Relatórios & DRE", icon: BarChart3 },
-  { to: "/metas", label: "Metas & Faturamento", icon: Target },
-  { to: "/prolabore", label: "Pró-labore", icon: Package },
-  { to: "/precificacao", label: "Precificação & Margens", icon: Calculator },
+  // ── Rotina da Loja ──────────────────────────────────────────────────────────
+  {
+    to: "/painel",
+    label: "Início",
+    icon: LayoutDashboard,
+    section: "Rotina da Loja",
+    isMatch: (p) => p === "/painel",
+  },
+  {
+    to: "/caixa",
+    label: "Vendas",
+    icon: Wallet,
+    badgeKey: "pedidos",
+    isMatch: (p) => p === "/caixa" || p.startsWith("/loja/pedidos"),
+  },
+  {
+    to: "/estoque",
+    label: "Roupas & Estoque",
+    icon: Boxes,
+    isMatch: (p) => p.startsWith("/estoque"),
+  },
+  {
+    to: "/clientes",
+    label: "Clientes & Fiado",
+    icon: Users,
+    isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
+  },
+  {
+    to: "/loja/recebimentos",
+    label: "Meu Financeiro",
+    icon: CircleDollarSign,
+    isMatch: (p) =>
+      p.startsWith("/loja/recebimentos") ||
+      p.startsWith("/relatorio") ||
+      p.startsWith("/metas") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/precificacao"),
+  },
 
   // ── Canal Digital ───────────────────────────────────────────────────────────
-  { to: "/loja/produtos", label: "Vitrine Online", icon: Store, section: "Canal Digital" },
-  { to: "/loja/configuracao", label: "Configurar Vitrine", icon: Wrench },
+  {
+    to: "/loja/configuracao",
+    label: "Minha Vitrine (Link da Bio)",
+    icon: Sparkles,
+    section: "Canal Digital",
+    isMatch: (p) =>
+      p.startsWith("/loja/configuracao") ||
+      p.startsWith("/loja/templates") ||
+      p.startsWith("/loja/compartilhar") ||
+      p.startsWith("/loja/frete") ||
+      p.startsWith("/loja/cupons") ||
+      p.startsWith("/loja/integracoes") ||
+      p.startsWith("/loja/produtos"),
+  },
 ];
 
-// ─── Mobile Tab Bar — 4 âncoras diárias vitais + Mais ─────────────────────────
+// ─── Mobile Tab Bar — 4 âncoras da rotina + Mais ──────────────────────────────
 const MOBILE_PRIMARY: NavItem[] = [
-  { to: "/painel", label: "Painel", icon: LayoutDashboard },
-  { to: "/caixa", label: "Caixa", icon: Wallet },
-  { to: "/loja/pedidos", label: "Pedidos", icon: ShoppingBag, badgeKey: "pedidos" },
-  { to: "/estoque", label: "Estoque", icon: Boxes },
+  { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
+  { to: "/caixa", label: "Vendas", icon: Wallet, badgeKey: "pedidos", isMatch: (p) => p === "/caixa" || p.startsWith("/loja/pedidos") },
+  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado") },
 ];
 
 // ─── Itens exibidos no menu "Mais" do celular ─────────────────────────────────
-const MOBILE_MORE_NAV: NavItem[] = MAIN_NAV.filter(
-  (item) => !MOBILE_PRIMARY.some((m) => m.to === item.to),
-);
+const MOBILE_MORE_NAV: NavItem[] = [
+  {
+    to: "/loja/recebimentos",
+    label: "Meu Financeiro",
+    icon: CircleDollarSign,
+    section: "Finanças & Lucro",
+    isMatch: (p) =>
+      p.startsWith("/loja/recebimentos") ||
+      p.startsWith("/relatorio") ||
+      p.startsWith("/metas") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/precificacao"),
+  },
+  {
+    to: "/loja/configuracao",
+    label: "Minha Vitrine (Link da Bio)",
+    icon: Sparkles,
+    section: "Canal Digital",
+    isMatch: (p) =>
+      p.startsWith("/loja/configuracao") ||
+      p.startsWith("/loja/templates") ||
+      p.startsWith("/loja/compartilhar") ||
+      p.startsWith("/loja/frete") ||
+      p.startsWith("/loja/cupons") ||
+      p.startsWith("/loja/integracoes") ||
+      p.startsWith("/loja/produtos"),
+  },
+];
 
 // ─── Main AppShell ────────────────────────────────────────────────────────────
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -126,32 +184,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   })();
 
   function isNavActive(item: NavItem): boolean {
-    const p = pathname;
-    if (item.to === "/painel") return p === "/painel";
-    if (item.to === "/loja") return p === "/loja";
-    if (item.to === "/loja/configuracao") {
-      return (
-        p.startsWith("/loja/configuracao") ||
-        p.startsWith("/loja/templates") ||
-        p.startsWith("/loja/compartilhar") ||
-        p.startsWith("/loja/frete") ||
-        p.startsWith("/loja/cupons") ||
-        p.startsWith("/loja/integracoes")
-      );
-    }
-    return p.startsWith(item.to);
+    if (item.isMatch) return item.isMatch(pathname);
+    return pathname.startsWith(item.to);
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ─── Sidebar desktop ──────────────────────────────────────────────── */}
+      {/* ─── Sidebar desktop (Padrão Apple: 5 Pilares da Vida Real) ──────── */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
         <Link to="/painel" className="px-2">
           <Logo />
         </Link>
 
-        {/* ── Navegação Contínua (Padrão Apple) ────────────────────────────── */}
-        <nav className="mt-6 flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* ── Navegação Contínua e Limpa ──────────────────────────────────── */}
+        <nav className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {MAIN_NAV.map((item) => (
             <div key={item.to} className="flex flex-col">
               {item.section && (
@@ -249,7 +295,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ─── Mobile overlay menu completo ─────────────────────────────────── */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
-          <nav className="flex flex-col gap-0.5">
+          <nav className="flex flex-col gap-1">
             {MAIN_NAV.map((item) => (
               <div key={item.to} className="flex flex-col">
                 {item.section && (
@@ -289,11 +335,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-6">{children}</div>
       </main>
 
-      {/* ─── Tab bar mobile — 4 âncoras diárias + Mais ────────────────────── */}
+      {/* ─── Tab bar mobile — 4 âncoras da rotina + Mais ─────────────────── */}
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex h-[72px] items-center justify-around px-2 lg:hidden">
         {MOBILE_PRIMARY.map((item) => {
           const active = isNavActive(item);
-          const isPedidos = item.badgeKey === "pedidos";
+          const isVendas = item.badgeKey === "pedidos";
           return (
             <Link
               key={item.to}
@@ -305,8 +351,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             >
               <item.icon className="size-5" />
-              {isPedidos && pendingOrderCount > 0 && (
-                <span className="absolute top-1.5 right-2.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm">
+              {isVendas && pendingOrderCount > 0 && (
+                <span className="absolute top-1.5 right-2.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm animate-pulse">
                   {pendingOrderCount > 9 ? "9+" : pendingOrderCount}
                 </span>
               )}
@@ -336,7 +382,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Menu Completo
             </SheetTitle>
           </SheetHeader>
-          <nav className="flex flex-col gap-0.5 px-4 py-3">
+          <nav className="flex flex-col gap-1 px-4 py-3">
             {MOBILE_MORE_NAV.map((item) => (
               <div key={item.to} className="flex flex-col">
                 {item.section && (
@@ -349,7 +395,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <NavItemLink
                   item={item}
                   active={isNavActive(item)}
-                  badgeCount={item.badgeKey === "pedidos" ? pendingOrderCount : undefined}
                   onClick={() => setMoreSheetOpen(false)}
                 />
               </div>
@@ -399,7 +444,7 @@ function NavItemLink({
       className={cn(
         "group relative flex items-center justify-between rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
           : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
       )}
     >

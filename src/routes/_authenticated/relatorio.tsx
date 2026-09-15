@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -24,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { StatCard } from "@/components/stat-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { transactionsQuery, inventoryQuery } from "@/lib/db";
@@ -156,10 +157,12 @@ function Relatorio() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={monthLabel(monthStart(0))}
-        title="Relatórios & Inteligência"
-        description="Acompanhe o DRE do seu negócio, lucro real na ponta do lápis e quais peças mais vendem."
+        eyebrow="Meu Financeiro"
+        title="Lucro Real da Loja"
+        description="Acompanhe o faturamento líquido, custos e exatamente quanto sobrou no seu bolso."
       />
+
+      <FinanceiroTabs />
 
       <Tabs defaultValue="dre" className="space-y-6">
         <TabsList className="rounded-full bg-secondary/80 p-1 border border-border">
