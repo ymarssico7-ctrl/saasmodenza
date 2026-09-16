@@ -5,12 +5,16 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Calculator,
+  ChevronRight,
   Copy,
   ExternalLink,
   Eye,
   EyeOff,
   HandCoins,
+  Package,
   Plus,
+  Receipt,
+  Shirt,
   ShoppingBag,
   Sparkles,
   Store,
@@ -34,12 +38,31 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
+import { PainelKpisBento } from "@/components/painel/painel-kpis-bento";
+import { PainelTopProducts, type TopProductItem } from "@/components/painel/painel-top-products";
 import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
-import { creditsQuery, goalsQuery, inventoryQuery, profileQuery, transactionsQuery } from "@/lib/db";
-import { brl, brlCompact, formatDate, monthLabel, monthLabelShort, monthStart, pct, slugify, todayISO } from "@/lib/format";
+import {
+  creditsQuery,
+  goalsQuery,
+  inventoryQuery,
+  ordersQuery,
+  profileQuery,
+  transactionsQuery,
+} from "@/lib/db";
+import {
+  brl,
+  brlCompact,
+  formatDate,
+  monthLabel,
+  monthLabelShort,
+  monthStart,
+  pct,
+  slugify,
+  todayISO,
+} from "@/lib/format";
 import {
   REFUND_CATEGORIES,
   STOCK_PURCHASE_CATEGORIES,
@@ -61,39 +84,31 @@ export const Route = createFileRoute("/_authenticated/painel")({
       { title: "Painel — Vestui" },
       {
         name: "description",
-        content: "Visão geral do faturamento, despesas, lucro, meta e fiado da sua loja de moda.",
+        content:
+          "Visão geral integrada do seu varejo de moda: faturamento, divisão físico e online, peças vendidas, pedidos e estoque.",
       },
       { property: "og:title", content: "Painel — Vestui" },
-      { property: "og:description", content: "Faturamento, lucro, meta e fiado em um só lugar." },
+      {
+        property: "og:description",
+        content: "Gestão completa da sua loja de moda e vitrine online em um só lugar.",
+      },
     ],
   }),
   component: Painel,
 });
 
-// ─── Vitrine Link + Pedidos Pendentes bar ────────────────────────────────────
-function PainelDigitalBar({
+// ─── Header Inline Pill: Link da Vitrine & Pedidos Pendentes ──────────────────
+function PainelVitrinePill({
   storeSlug,
   storeName,
-  storeId,
+  pendingCount,
 }: {
   storeSlug: string | null | undefined;
   storeName?: string | null | undefined;
-  storeId: string;
+  pendingCount: number;
 }) {
   const [copied, setCopied] = React.useState(false);
 
-  const pendingCount = React.useMemo(() => {
-    try {
-      const raw = localStorage.getItem(`vestui_orders_${storeId}`);
-      if (!raw) return 0;
-      const orders: { status?: string }[] = JSON.parse(raw);
-      return orders.filter((o) => o.status === "novo").length;
-    } catch {
-      return 0;
-    }
-  }, [storeId]);
-
-  // Sanitização estrita: NUNCA exibir a palavra "boutique"
   const cleanSlug = React.useMemo(() => {
     if (storeSlug && storeSlug.toLowerCase() !== "boutique") {
       return storeSlug;
@@ -108,7 +123,8 @@ function PainelDigitalBar({
   const vitrineUrl = `vestui.app/vitrine/${cleanSlug}`;
   const fullUrl = `https://${vitrineUrl}`;
 
-  function handleCopy() {
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
     navigator.clipboard.writeText(fullUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -116,28 +132,41 @@ function PainelDigitalBar({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
-      {/* Vitrine link */}
-      <div className="flex min-w-0 items-center gap-2">
-        <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
-        <span className="truncate text-sm text-muted-foreground">{vitrineUrl}</span>
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3.5 py-1 text-xs shadow-2xs backdrop-blur-sm">
+        <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+        <span className="text-muted-foreground font-medium truncate max-w-[180px] sm:max-w-none">
+          {vitrineUrl}
+        </span>
         <button
+          type="button"
           onClick={handleCopy}
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 cursor-pointer"
+          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+          title="Copiar link da vitrine"
         >
           <Copy className="size-3" />
-          {copied ? "Copiado!" : "Copiar link"}
+          <span>{copied ? "Copiado!" : "Copiar"}</span>
         </button>
+        <a
+          href={fullUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          title="Abrir vitrine em nova aba"
+        >
+          <ExternalLink className="size-3" />
+        </a>
       </div>
 
-      {/* Pending orders badge */}
       {pendingCount > 0 && (
         <Link
           to="/loja/pedidos"
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-500/20"
+          className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors shadow-2xs"
         >
           <ShoppingBag className="size-3.5" />
-          {pendingCount} pedido{pendingCount !== 1 ? "s" : ""} pendente{pendingCount !== 1 ? "s" : ""}
+          <span>
+            {pendingCount} {pendingCount === 1 ? "pedido pendente" : "pedidos pendentes"}
+          </span>
         </Link>
       )}
     </div>
@@ -149,17 +178,19 @@ function Painel() {
   const { ocultarSaldos, togglePrivacidade, mascaraSaldo } = usePrivacyMode();
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
   const { data: all = [], isLoading: isTxsLoading } = useQuery(transactionsQuery());
-  const { data: inventory = [] } = useQuery(inventoryQuery());
+  const { data: inventory = [], isLoading: isInventoryLoading } = useQuery(inventoryQuery());
   const { data: credits = [] } = useQuery(creditsQuery());
   const { data: goals = [] } = useQuery(goalsQuery());
+  const { data: rawOrders = [] } = useQuery(ordersQuery(storeId));
 
   const today = todayISO();
   const thisMonth = monthStart(0);
   const prevMonth = monthStart(-1);
 
-  // ── Gestão de Canais & Ativação da Vitrine (Padrão Apple) ──────────────────
-  const [canalFiltro, setCanalFiltro] = React.useState<"todos" | "fisica" | "online">("todos");
-  const [vitrineAtiva, setVitrineAtiva] = React.useState(() => isVitrineAtiva(storeId, store?.metadata));
+  // ── Gestão de Canais & Ativação da Vitrine ──────────────────────────────────
+  const [vitrineAtiva, setVitrineAtiva] = React.useState(() =>
+    isVitrineAtiva(storeId, store?.metadata),
+  );
 
   React.useEffect(() => {
     setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
@@ -174,8 +205,27 @@ function Painel() {
     };
   }, [storeId, store?.metadata]);
 
-  const activeFilter = vitrineAtiva ? canalFiltro : "todos";
+  // ── Normalização de Pedidos ───────────────────────────────────────────────
+  const orders = React.useMemo(() => {
+    return (rawOrders || []) as Array<{
+      id: string;
+      status?: string;
+      total?: number;
+      created_at?: string;
+      itens?: Array<{ produtoId?: string; nome?: string; qtd?: number; preco?: number }>;
+      items?: Array<{ produtoId?: string; nome?: string; qtd?: number; preco?: number }>;
+    }>;
+  }, [rawOrders]);
 
+  const pedidosNovosCount = React.useMemo(() => {
+    return orders.filter((o) => o.status === "novo").length;
+  }, [orders]);
+
+  const pedidosEmSeparacaoCount = React.useMemo(() => {
+    return orders.filter((o) => o.status === "em_separacao").length;
+  }, [orders]);
+
+  // ── Cálculos Financeiros (Consolidados) ────────────────────────────────────
   const txs = all as unknown as Transaction[];
   const inMonth = (m: string) => txs.filter((t) => t.occurred_on.slice(0, 7) === m.slice(0, 7));
 
@@ -184,61 +234,31 @@ function Painel() {
 
   const revenue = sumBy(current, "entrada");
   const onlineRevenue = sumByCategories(current, "entrada", new Set(["venda_online"]));
+  const fisicaRevenue = Math.max(0, revenue - onlineRevenue);
+
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   const netRevenue = revenue - refunds;
+
   // Segregação contábil homogênea com relatorio.tsx:
-  // OPEX puro exclui devoluções, pró-labore E compra de estoque (patrimônio em arara)
-  const opexExclusions = new Set([...REFUND_CATEGORIES, ...PROLABORE_CATEGORIES, ...STOCK_PURCHASE_CATEGORIES]);
+  const opexExclusions = new Set([
+    ...REFUND_CATEGORIES,
+    ...PROLABORE_CATEGORIES,
+    ...STOCK_PURCHASE_CATEGORIES,
+  ]);
   const expenses = sumByExcluding(current, "saida", opexExclusions);
-  // Lucro Operacional: resultado das vendas menos despesas correntes de manutenção da loja
   const operatingProfit = netRevenue - expenses;
-  // Pró-labore retirado no mês
   const prolaboreAmount = sumByCategories(current, "saida", PROLABORE_CATEGORIES);
-  // Compras de estoque no mês (investimento em novas coleções)
   const stockPurchases = sumByCategories(current, "saida", STOCK_PURCHASE_CATEGORIES);
-  // Sobra no Caixa: saldo líquido final retido na conta bancária/gaveta
   const profit = operatingProfit - stockPurchases - prolaboreAmount;
+
   const prevRevenue = sumBy(previous, "entrada");
-  const revVariation = variation(revenue, prevRevenue);
 
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-
-  // Métricas dinamicamente segmentadas por Canal
-  const displayedRevenue = React.useMemo(() => {
-    if (activeFilter === "fisica") return Math.max(0, revenue - onlineRevenue);
-    if (activeFilter === "online") return onlineRevenue;
-    return revenue;
-  }, [activeFilter, revenue, onlineRevenue]);
-
-  const displayedNetRevenue = React.useMemo(() => {
-    if (activeFilter === "fisica") return Math.max(0, netRevenue - onlineRevenue);
-    if (activeFilter === "online") return onlineRevenue;
-    return netRevenue;
-  }, [activeFilter, netRevenue, onlineRevenue]);
-
-  const displayedExpenses = React.useMemo(() => {
-    if (activeFilter === "online") return 0;
-    return expenses;
-  }, [activeFilter, expenses]);
-
-  const displayedProfit = React.useMemo(() => {
-    if (activeFilter === "online") return onlineRevenue;
-    if (activeFilter === "fisica") {
-      return Math.max(0, netRevenue - onlineRevenue) - expenses - stockPurchases - prolaboreAmount;
-    }
-    return profit;
-  }, [activeFilter, onlineRevenue, netRevenue, expenses, stockPurchases, prolaboreAmount, profit]);
-
-  const displayedProjection = React.useMemo(() => {
-    return projectMonth(displayedNetRevenue, now.getDate(), daysInMonth);
-  }, [displayedNetRevenue, now, daysInMonth]);
-
   const projection = projectMonth(netRevenue, now.getDate(), daysInMonth);
 
   const goal = goals.find((g) => g.month.slice(0, 7) === thisMonth.slice(0, 7));
   const goalTarget = Number(goal?.target_amount ?? 0);
-  // Fix 1: progresso da meta usa Receita Líquida (idêntico a metas.tsx — base homogênea)
   const goalProgress = goalTarget > 0 ? Math.min((netRevenue / goalTarget) * 100, 100) : 0;
 
   const openCredits = credits.filter(
@@ -254,20 +274,193 @@ function Painel() {
   );
   const overdue = openCredits.filter((c) => c.due_date < today).length;
 
-  // Série histórica — fórmula unificada com relatorio.tsx
+  // ── Peças Vendidas, Best Sellers & Saúde de Estoque ───────────────────────
+  const { totalPecasVendidas, topProducts, outOfStockCount, lowStockCount, totalCatalogItems } =
+    React.useMemo(() => {
+      type InvItem = {
+        id: string;
+        name: string;
+        category: string;
+        sale_price?: number;
+        cost_price?: number;
+        photo_url?: string | null;
+        image_url?: string | null;
+        sizes?: Record<string, number> | null;
+        sold_this_month?: number | null;
+      };
+
+      const invItems = (inventory.length > 0 ? inventory : []) as unknown as InvItem[];
+
+      let outOfStock = 0;
+      let lowStock = 0;
+
+      // Mapa acumulador por produto
+      const salesMap: Record<
+        string,
+        {
+          item: InvItem;
+          soldCount: number;
+          revenue: number;
+          totalStock: number;
+        }
+      > = {};
+
+      for (const item of invItems) {
+        const sizes = (item.sizes ?? {}) as Record<string, number>;
+        const stock = Object.values(sizes).reduce(
+          (a, b) => a + (Math.round(Number(b)) || 0),
+          0,
+        );
+        if (stock === 0) outOfStock++;
+        else if (stock < 3) lowStock++;
+
+        const price = Number(item.sale_price ?? 0);
+        const initialSold = Number(item.sold_this_month ?? 0);
+
+        salesMap[item.id] = {
+          item,
+          soldCount: initialSold,
+          revenue: initialSold * price,
+          totalStock: stock,
+        };
+      }
+
+      // Soma vendas dos pedidos da vitrine
+      for (const order of orders) {
+        if (order.status === "cancelado") continue;
+        const list = order.itens ?? order.items ?? [];
+        for (const it of list) {
+          const pId = it.produtoId;
+          const qtd = Number(it.qtd ?? 1);
+          const preco = Number(it.preco ?? 0);
+
+          if (pId && salesMap[pId]) {
+            salesMap[pId].soldCount += qtd;
+            salesMap[pId].revenue += qtd * preco;
+          } else if (it.nome) {
+            const matched = Object.values(salesMap).find(
+              (s) => s.item.name.toLowerCase() === it.nome?.toLowerCase(),
+            );
+            if (matched) {
+              matched.soldCount += qtd;
+              matched.revenue += qtd * preco;
+            }
+          }
+        }
+      }
+
+      // Soma transações do caixa com peças vinculadas
+      for (const t of current) {
+        if (t.kind === "entrada") {
+          const desc = (t.description || "").toLowerCase();
+          for (const s of Object.values(salesMap)) {
+            if (desc.includes(s.item.name.toLowerCase())) {
+              s.soldCount += 1;
+              s.revenue += Number(t.amount);
+              break;
+            }
+          }
+        }
+      }
+
+      let totalPecas = Object.values(salesMap).reduce((acc, s) => acc + s.soldCount, 0);
+
+      // Fallback: se houver entradas de venda no caixa mas sem vínculo de peça cadastrada
+      const totalEntradasVenda = current.filter(
+        (t) =>
+          t.kind === "entrada" &&
+          (t.category === "venda_produto" || t.category === "venda_online"),
+      ).length;
+      if (totalPecas === 0 && totalEntradasVenda > 0) {
+        totalPecas = totalEntradasVenda;
+      }
+
+      // Lista ordenada das mais vendidas
+      let listTop: TopProductItem[] = Object.values(salesMap)
+        .filter((s) => s.soldCount > 0)
+        .sort((a, b) => b.soldCount - a.soldCount || b.revenue - a.revenue)
+        .map((s) => {
+          const sizesObj = s.item.sizes ?? {};
+          const sizesList = Object.keys(sizesObj).filter((k) => (Number(sizesObj[k]) || 0) > 0);
+          return {
+            id: s.item.id,
+            name: s.item.name,
+            category: s.item.category,
+            price: Number(s.item.sale_price ?? 0),
+            photoUrl: s.item.photo_url ?? s.item.image_url ?? null,
+            soldCount: s.soldCount,
+            revenue: s.revenue,
+            totalStock: s.totalStock,
+            sizesSummary: sizesList.length > 0 ? `Tam: ${sizesList.join(", ")}` : undefined,
+          };
+        });
+
+      // Se for loja nova/demo sem histórico de vendas mas com produtos cadastrados, exibe primeiros itens com estoque
+      if (listTop.length === 0 && invItems.length > 0) {
+        listTop = invItems.slice(0, 5).map((item) => {
+          const sizes = (item.sizes ?? {}) as Record<string, number>;
+          const stock = Object.values(sizes).reduce(
+            (a, b) => a + (Math.round(Number(b)) || 0),
+            0,
+          );
+          const sizesList = Object.keys(sizes).filter((k) => (Number(sizes[k]) || 0) > 0);
+          return {
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            price: Number(item.sale_price ?? 0),
+            photoUrl: item.photo_url ?? item.image_url ?? null,
+            soldCount: 0,
+            revenue: 0,
+            totalStock: stock,
+            sizesSummary: sizesList.length > 0 ? `Tam: ${sizesList.join(", ")}` : undefined,
+          };
+        });
+      }
+
+      return {
+        totalPecasVendidas: totalPecas,
+        topProducts: listTop,
+        outOfStockCount: outOfStock,
+        lowStockCount: lowStock,
+        totalCatalogItems: invItems.length,
+      };
+    }, [inventory, orders, current]);
+
+  // ── Ticket Médio e Total de Vendas ────────────────────────────────────────
+  const totalVendasCount = React.useMemo(() => {
+    const entradasVendas = current.filter(
+      (t) =>
+        t.kind === "entrada" &&
+        (t.category === "venda_produto" || t.category === "venda_online"),
+    ).length;
+    const onlineOrdersCount = orders.filter((o) => o.status !== "cancelado").length;
+    return Math.max(entradasVendas, onlineOrdersCount);
+  }, [current, orders]);
+
+  const ticketMedio = React.useMemo(() => {
+    if (totalVendasCount > 0 && revenue > 0) {
+      return revenue / totalVendasCount;
+    }
+    if (totalPecasVendidas > 0 && revenue > 0) {
+      return revenue / totalPecasVendidas;
+    }
+    return 0;
+  }, [revenue, totalVendasCount, totalPecasVendidas]);
+
+  // ── Série Histórica de 6 meses ────────────────────────────────────────────
   const series = Array.from({ length: 6 }, (_, i) => {
     const m = monthStart(-(5 - i));
     const items = inMonth(m);
-    const mRevenue  = sumBy(items, "entrada");
-    const mRefunds  = sumByCategories(items, "saida", REFUND_CATEGORIES);
-    const mOpex     = sumByExcluding(items, "saida", opexExclusions);
-    const mStock    = sumByCategories(items, "saida", STOCK_PURCHASE_CATEGORIES);
-    const mPro      = sumByCategories(items, "saida", PROLABORE_CATEGORIES);
+    const mRevenue = sumBy(items, "entrada");
+    const mRefunds = sumByCategories(items, "saida", REFUND_CATEGORIES);
+    const mOpex = sumByExcluding(items, "saida", opexExclusions);
+    const mStock = sumByCategories(items, "saida", STOCK_PURCHASE_CATEGORIES);
+    const mPro = sumByCategories(items, "saida", PROLABORE_CATEGORIES);
     return {
       month: monthLabelShort(m),
       faturamento: mRevenue,
-      // Lucro retido no caixa = Receita Líquida − OPEX − Compras de Estoque − Pró-labore
-      lucro: (mRevenue - mRefunds) - mOpex - mStock - mPro,
+      lucro: mRevenue - mRefunds - mOpex - mStock - mPro,
     };
   });
 
@@ -276,20 +469,21 @@ function Painel() {
     0,
   );
 
-  // Fix 8: filtra pelo mês atual e ordena por data desc — exibe os lançamentos mais recentes
   const recent = [...current]
     .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
     .slice(0, 6);
 
-  if (isProfileLoading || isTxsLoading) {
+  // ── Skeletons com Geometria Exata (Apple Standard) ────────────────────────
+  if (isProfileLoading || isTxsLoading || isInventoryLoading) {
     return (
-      <div className="space-y-10">
+      <div className="space-y-8">
         <div className="space-y-2">
           <Skeleton className="h-4 w-28" />
           <Skeleton className="h-10 w-52 sm:h-12" />
           <Skeleton className="h-4 w-72" />
         </div>
 
+        {/* Bento KPIs Skeletons */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="panel p-6 space-y-4">
@@ -303,20 +497,23 @@ function Painel() {
           ))}
         </div>
 
+        {/* Top Products Bento Skeleton */}
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <div className="panel p-6 sm:p-7 space-y-4">
+          <div className="panel p-6 space-y-4">
             <Skeleton className="h-5 w-48" />
             <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-[260px] w-full mt-6" />
-          </div>
-          <div className="space-y-4">
-            <div className="panel p-6 space-y-3">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-48" />
+            <div className="space-y-3 mt-6">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
             </div>
-            <div className="panel p-6 space-y-3">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="panel p-6 space-y-4">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-28" />
+            <div className="space-y-3 mt-6">
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
             </div>
           </div>
         </div>
@@ -335,48 +532,63 @@ function Painel() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow={monthLabel(thisMonth)}
-        title={`Olá, ${greetingName}`}
-        description={
-          hasCustomStore
-            ? `Aqui está o resumo financeiro da sua loja (${rawStore}) hoje.`
-            : "Aqui está o resumo financeiro da sua loja hoje."
-        }
-        action={
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={togglePrivacidade}
-              title={
-                ocultarSaldos
-                  ? "Modo Balcão ativo: clique para exibir saldos"
-                  : "Ocultar saldos para privacidade no balcão"
-              }
-              className={cn(
-                "h-11 gap-1.5 rounded-full border px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer",
-                ocultarSaldos
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-              )}
-            >
-              {ocultarSaldos ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
-            </Button>
-            <Button
-              asChild
-              className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer"
-            >
-              <Link to="/caixa">
-                <Plus className="size-4" /> Novo lançamento
-              </Link>
-            </Button>
-          </div>
-        }
-      />
+      {/* ── CABEÇALHO UNIFICADO (Sem Empilhamento de Barras Cinzas) ────────────── */}
+      <div className="space-y-3">
+        <PageHeader
+          eyebrow={monthLabel(thisMonth)}
+          title={`Olá, ${greetingName}`}
+          description={
+            hasCustomStore
+              ? `Aqui está o centro de gestão da sua loja (${rawStore}) hoje.`
+              : "Aqui está o centro de gestão da sua loja hoje."
+          }
+          action={
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={togglePrivacidade}
+                title={
+                  ocultarSaldos
+                    ? "Modo Balcão ativo: clique para exibir saldos"
+                    : "Ocultar saldos para privacidade no balcão"
+                }
+                className={cn(
+                  "h-11 gap-1.5 rounded-full border px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer",
+                  ocultarSaldos
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                    : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                )}
+              >
+                {ocultarSaldos ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
+              </Button>
+              <Button
+                asChild
+                className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer"
+              >
+                <Link to="/caixa">
+                  <Plus className="size-4" /> Novo lançamento
+                </Link>
+              </Button>
+            </div>
+          }
+        />
 
+        {/* Pill Integrado da Vitrine Online (Substitui a antiga barra cinza isolada) */}
+        {vitrineAtiva && (
+          <div className="pt-1">
+            <PainelVitrinePill
+              storeSlug={store?.slug}
+              storeName={store?.name}
+              pendingCount={pedidosNovosCount}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Banner de Boas-Vindas / Guia Financeiro (Aparece se faltar concluir onboarding) */}
       <VestuiGuideBanner
         mode="gestao"
         storeId={storeId}
@@ -388,177 +600,44 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── Vitrine Online (Ativação Progressiva & Seletor de Canais — Padrão Apple) ── */}
-      {vitrineAtiva ? (
-        <div className="space-y-3">
-          <PainelDigitalBar storeSlug={store?.slug} storeName={store?.name} storeId={storeId} />
+      {/* ── 1. BENTO BOX KPIS (Faturamento, Split Físico x Online, Peças, Live Pedidos) ── */}
+      <PainelKpisBento
+        revenue={revenue}
+        netRevenue={netRevenue}
+        prevRevenue={prevRevenue}
+        refunds={refunds}
+        fisicaRevenue={fisicaRevenue}
+        onlineRevenue={onlineRevenue}
+        totalPecasVendidas={totalPecasVendidas}
+        ticketMedio={ticketMedio}
+        totalVendasCount={totalVendasCount}
+        vitrineAtiva={vitrineAtiva}
+        pedidosNovosCount={pedidosNovosCount}
+        pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
+        ocultarSaldos={ocultarSaldos}
+        mascaraSaldo={mascaraSaldo}
+      />
 
-          {/* ── Seletor de Canais (Geral vs. Loja Física vs. Vitrine Online) ── */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center rounded-2xl border border-border bg-card p-1 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setCanalFiltro("todos")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                  activeFilter === "todos"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Store className="size-3.5" />
-                Toda a Loja (Geral)
-              </button>
-              <button
-                type="button"
-                onClick={() => setCanalFiltro("fisica")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                  activeFilter === "fisica"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Wallet className="size-3.5" />
-                Loja Física (Balcão)
-              </button>
-              <button
-                type="button"
-                onClick={() => setCanalFiltro("online")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                  activeFilter === "online"
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <ShoppingBag className="size-3.5" />
-                Vitrine Online & Insta
-              </button>
-            </div>
+      {/* ── 2. BENTO BOX PRODUTOS (Peças Campeãs da Loja & Saúde de Estoque) ──── */}
+      <PainelTopProducts
+        topProducts={topProducts}
+        outOfStockCount={outOfStockCount}
+        lowStockCount={lowStockCount}
+        totalCatalogItems={totalCatalogItems}
+        ocultarSaldos={ocultarSaldos}
+        mascaraSaldo={mascaraSaldo}
+      />
 
-            {activeFilter !== "todos" && (
-              <span className="text-xs text-muted-foreground">
-                Visualizando métricas de:{" "}
-                <strong className="text-foreground">
-                  {activeFilter === "fisica" ? "Balcão da Loja Física" : "Vitrine Online & Instagram"}
-                </strong>
-              </span>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* ── Banner de Ativação da Vitrine Online (quando inativa — zero poluição) ── */
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card to-background p-5 shadow-soft">
-          <div className="flex items-start gap-3.5">
-            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-foreground">
-              <Sparkles className="size-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-foreground">Venda também pelo Instagram e WhatsApp</p>
-                <span className="rounded-full bg-primary-soft px-2.5 py-0.5 text-[10px] font-bold text-accent-foreground uppercase tracking-wider">
-                  Incluso no seu plano
-                </span>
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Crie seu Link da Bio em 2 minutos. Suas clientes escolhem as peças no catálogo e pagam no Pix ou cartão.
-              </p>
-            </div>
-          </div>
-          <Button asChild className="gradient-primary h-9 rounded-full px-4 text-xs shrink-0 self-end sm:self-center shadow-glow cursor-pointer">
-            <Link to="/loja/configuracao">
-              <Sparkles className="mr-1.5 size-3.5" />
-              Ativar Minha Vitrine
-            </Link>
-          </Button>
-        </div>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label={
-            activeFilter === "online"
-              ? "Faturamento Online"
-              : activeFilter === "fisica"
-                ? "Faturamento da Loja Física"
-                : "Faturamento do mês"
-          }
-          value={mascaraSaldo(displayedRevenue)}
-          icon={<ArrowUpRight className="size-4" />}
-          tone="primary"
-          hint={
-            ocultarSaldos
-              ? "••••••"
-              : activeFilter === "online"
-                ? "Vendas via link da bio e WhatsApp"
-                : activeFilter === "fisica"
-                  ? "Entradas registradas no Caixa & PDV"
-                  : refunds > 0
-                    ? `Líquido: ${brl(displayedNetRevenue)} (−${brl(refunds)} em devoluções)`
-                    : onlineRevenue > 0
-                      ? `${formatVariationHint(revenue, prevRevenue)} · ${brl(onlineRevenue)} online`
-                      : formatVariationHint(revenue, prevRevenue)
-          }
-        />
-        <StatCard
-          label={activeFilter === "online" ? "Despesas do Canal" : "Despesas da loja"}
-          value={mascaraSaldo(displayedExpenses)}
-          icon={<ArrowDownRight className="size-4" />}
-          hint={
-            ocultarSaldos
-              ? "••••••"
-              : activeFilter === "online"
-                ? "Custos operacionais atribuídos à vitrine"
-                : (() => {
-                    const opexCount = current.filter(
-                      (t) => t.kind === "saida" && !opexExclusions.has(t.category),
-                    ).length;
-                    const parts: string[] = [];
-                    if (opexCount > 0) parts.push(`${opexCount} despesa${opexCount !== 1 ? "s" : ""}`);
-                    if (stockPurchases > 0) parts.push(`reinvestiu ${brl(stockPurchases)} em roupas`);
-                    if (prolaboreAmount > 0) parts.push(`exclui ${brl(prolaboreAmount)} pró-labore`);
-                    if (parts.length === 0) return "Nenhuma despesa registrada";
-                    return parts.join(" · ");
-                  })()
-          }
-        />
-        <StatCard
-          label={activeFilter === "online" ? "Lucro das Vendas Online" : "Sobra no caixa"}
-          value={mascaraSaldo(displayedProfit)}
-          tone={displayedProfit >= 0 ? "positive" : "negative"}
-          icon={<Wallet className="size-4" />}
-          hint={
-            ocultarSaldos
-              ? "••••••"
-              : activeFilter === "online"
-                ? "Receita líquida da vitrine"
-                : (() => {
-                    if (displayedNetRevenue <= 0) return "Sem vendas ainda";
-                    const marginStr = `Margem ${pct((operatingProfit / displayedNetRevenue) * 100)} na operação`;
-                    if (stockPurchases > 0 && prolaboreAmount > 0) {
-                      return `Após ${brl(stockPurchases)} estoque e ${brl(prolaboreAmount)} pró-labore`;
-                    }
-                    if (stockPurchases > 0) return `Após ${brl(stockPurchases)} em estoque novo`;
-                    if (prolaboreAmount > 0) return `Após ${brl(prolaboreAmount)} pró-labore`;
-                    return marginStr;
-                  })()
-          }
-        />
-        <StatCard
-          label="Projeção de fechamento"
-          value={mascaraSaldo(displayedProjection)}
-          icon={<TrendingUp className="size-4" />}
-          hint={ocultarSaldos ? "••••••" : `Baseado no ritmo dos ${now.getDate()} primeiros dias`}
-        />
-      </div>
-
+      {/* ── 3. EVOLUÇÃO FINANCEIRA & METAS ────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        {/* Gráfico de Evolução 6 Meses */}
         <section className="panel p-6 sm:p-7">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold">Evolução dos últimos 6 meses</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Faturamento e lucro por mês</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Faturamento e lucro líquido retido por mês
+              </p>
             </div>
             {onlineRevenue > 0 && !ocultarSaldos && (
               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
@@ -646,6 +725,7 @@ function Painel() {
           )}
         </section>
 
+        {/* Coluna Direita: Meta do Mês + Fiados a Receber */}
         <div className="space-y-4">
           <section className="panel p-6">
             <div className="flex items-center gap-2">
@@ -690,14 +770,25 @@ function Painel() {
         </div>
       </div>
 
+      {/* ── 4. SOBRA NO CAIXA (DRE GERENCIAL) & ÚLTIMOS LANÇAMENTOS ────────────── */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        {/* Últimos Lançamentos com Identificação de Canal */}
         <section className="panel p-6 sm:p-7">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Últimos lançamentos</h2>
-            <Button asChild variant="outline" size="sm" className="h-7 rounded-full text-xs font-medium border-border/80">
-              <Link to="/caixa">Ver todos</Link>
+            <div>
+              <h2 className="text-base font-semibold">Últimos lançamentos</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Movimentações recentes no caixa</p>
+            </div>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-7 rounded-full text-xs font-medium border-border/80"
+            >
+              <Link to="/caixa">Ver extrato completo</Link>
             </Button>
           </div>
+
           {recent.length === 0 ? (
             <div className="flex h-[180px] flex-col items-center justify-center gap-2.5 text-center p-6 mt-4">
               <div className="grid h-10 w-10 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
@@ -727,11 +818,15 @@ function Painel() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="truncate text-sm font-medium">{t.description}</p>
-                      {t.category === "venda_online" && (
+                      {t.category === "venda_online" ? (
                         <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                           Online
                         </span>
-                      )}
+                      ) : t.kind === "entrada" ? (
+                        <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          Balcão
+                        </span>
+                      ) : null}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {formatDate(t.occurred_on)}
@@ -751,26 +846,87 @@ function Painel() {
           )}
         </section>
 
-        <section className="panel p-6">
-          <h2 className="text-sm font-semibold">Atalhos</h2>
-          <div className="mt-4 grid gap-2">
-            <Shortcut
-              to="/precificacao"
-              icon={<Calculator className="size-4" />}
-              label="Precificar peça"
-            />
-            <Shortcut
-              to="/prolabore"
-              icon={<HandCoins className="size-4" />}
-              label="Registrar pró-labore"
-            />
-            <Shortcut
-              to="/relatorio"
-              icon={<TrendingUp className="size-4" />}
-              label="Ver relatório"
-            />
-          </div>
-        </section>
+        {/* Sobra no Caixa & Atalhos */}
+        <div className="space-y-4">
+          {/* Card Resumo de Sobra no Caixa */}
+          <section className="panel p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="size-4 text-primary" />
+                <h2 className="text-sm font-semibold">Sobra no Caixa</h2>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  profit >= 0
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+                )}
+              >
+                {profit >= 0 ? "Positivo" : "Atenção"}
+              </span>
+            </div>
+
+            <p className="numeric mt-3 text-2xl sm:text-3xl font-bold">
+              {mascaraSaldo(profit)}
+            </p>
+
+            <div className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-3">
+              <div className="flex justify-between">
+                <span>Receita líquida:</span>
+                <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(netRevenue)}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Despesas operacionais:</span>
+                <span className="text-rose-600 dark:text-rose-400">
+                  −{ocultarSaldos ? "••••" : mascaraSaldo(expenses)}
+                </span>
+              </div>
+              {stockPurchases > 0 && (
+                <div className="flex justify-between">
+                  <span>Reinvestido em roupas:</span>
+                  <span className="text-blue-600 dark:text-blue-400">
+                    −{ocultarSaldos ? "••••" : mascaraSaldo(stockPurchases)}
+                  </span>
+                </div>
+              )}
+              {prolaboreAmount > 0 && (
+                <div className="flex justify-between">
+                  <span>Pró-labore retirado:</span>
+                  <span className="text-purple-600 dark:text-purple-400">
+                    −{ocultarSaldos ? "••••" : mascaraSaldo(prolaboreAmount)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between pt-1 border-t border-border/40 font-medium">
+                <span>Projeção final do mês:</span>
+                <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(projection)}</strong>
+              </div>
+            </div>
+          </section>
+
+          {/* Atalhos Rápidos */}
+          <section className="panel p-6">
+            <h2 className="text-sm font-semibold">Atalhos do Lojista</h2>
+            <div className="mt-4 grid gap-2">
+              <Shortcut
+                to="/precificacao"
+                icon={<Calculator className="size-4" />}
+                label="Precificar peça"
+              />
+              <Shortcut
+                to="/prolabore"
+                icon={<HandCoins className="size-4" />}
+                label="Registrar pró-labore"
+              />
+              <Shortcut
+                to="/relatorio"
+                icon={<TrendingUp className="size-4" />}
+                label="Ver relatório financeiro"
+              />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

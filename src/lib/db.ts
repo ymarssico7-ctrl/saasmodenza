@@ -249,6 +249,58 @@ export const membersQuery = () =>
     },
   });
 
+export const ordersQuery = (storeId?: string) =>
+  queryOptions({
+    queryKey: ["orders", storeId ?? "all"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    queryFn: async () => {
+      if (!(await hasSession()) || !storeId) {
+        if (storeId) {
+          try {
+            const stored =
+              localStorage.getItem(`vestui_orders_${storeId}`) ||
+              localStorage.getItem(`vestuli_orders_${storeId}`);
+            if (stored) return JSON.parse(stored);
+          } catch {}
+        }
+        return localGet<Tables<"orders">>("orders");
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("orders" as any)
+          .select("*")
+          .eq("store_id", storeId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        const doBanco = (data || []) as any[];
+
+        try {
+          const stored =
+            localStorage.getItem(`vestui_orders_${storeId}`) ||
+            localStorage.getItem(`vestuli_orders_${storeId}`);
+          if (!stored) return doBanco;
+          const locais = JSON.parse(stored) as any[];
+          const idsBanco = new Set(doBanco.map((p) => p.id));
+          const apenasLocais = locais.filter((p) => !idsBanco.has(p.id));
+          return [...doBanco, ...apenasLocais];
+        } catch {
+          return doBanco;
+        }
+      } catch {
+        try {
+          const stored =
+            localStorage.getItem(`vestui_orders_${storeId}`) ||
+            localStorage.getItem(`vestuli_orders_${storeId}`);
+          if (stored) return JSON.parse(stored);
+        } catch {}
+        return [];
+      }
+    },
+  });
+
 export async function currentUserId(): Promise<string> {
   const { data } = await supabase.auth.getUser();
   // Retorna um UUID zerado em modo demo/dev sem sessão ativa
