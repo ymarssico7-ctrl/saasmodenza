@@ -36,8 +36,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
-import { isVitrineAtiva } from "@/lib/vitrine-settings";
+import { isVitrineAtiva, getBusinessModel, type BusinessModel } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
+
+
 
 // Nav item type
 type NavItem = {
@@ -99,6 +101,46 @@ const GESTAO_NAV: NavItem[] = [
     isMatch: (p) => p.startsWith("/metas"),
   },
 ];
+
+// ─── Modo Gestão (para negócio 100% Online) — estoque, CRM e financeiro ───────
+const GESTAO_ONLINE_NAV: NavItem[] = [
+  {
+    to: "/painel",
+    label: "Início",
+    icon: LayoutDashboard,
+    isMatch: (p) => p === "/painel",
+  },
+  {
+    to: "/estoque",
+    label: "Roupas & Estoque",
+    icon: Boxes,
+    isMatch: (p) => p.startsWith("/estoque"),
+  },
+  {
+    to: "/clientes",
+    label: "Clientes & CRM",
+    icon: Users,
+    isMatch: (p) => p.startsWith("/clientes"),
+  },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    section: "Financeiro",
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/metas",
+    label: "Metas & Planejamento",
+    icon: Target,
+    isMatch: (p) => p.startsWith("/metas"),
+  },
+];
+
 
 // ─── Modo Loja Online — canal digital completo ────────────────────────────────
 const LOJA_ONLINE_NAV: NavItem[] = [
@@ -244,39 +286,63 @@ const MOBILE_MORE_LOJA: NavItem[] = [
   { to: "/loja/frete", label: "Frete", icon: Truck, isMatch: (p) => p.startsWith("/loja/frete") },
 ];
 
+// ─── Mobile (modo Gestão para negócio 100% Online) ────────────────────────────
+const MOBILE_PRIMARY_ONLINE_GESTAO: NavItem[] = [
+  { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
+  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
+  {
+    to: "/relatorio",
+    label: "Lucro Real",
+    icon: CircleDollarSign,
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore"),
+  },
+];
+
+const MOBILE_MORE_ONLINE_GESTAO: NavItem[] = [
+  { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
+];
+
 // ─── Componente Alternador de Modo (pílula Apple) ─────────────────────────────
 function ModeToggle({
   mode,
   onChange,
+  businessModel = "hibrida",
 }: {
   mode: "gestao" | "loja";
   onChange: (mode: "gestao" | "loja") => void;
+  businessModel?: BusinessModel;
 }) {
+  const isOnlineOnly = businessModel === "online";
+
   return (
     <div className="mx-1 mb-5 mt-1 flex rounded-2xl bg-surface-muted p-1 gap-1">
       <button
         type="button"
-        onClick={() => onChange("gestao")}
+        onClick={() => onChange(isOnlineOnly ? "loja" : "gestao")}
         className={cn(
           "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer",
-          mode === "gestao"
+          (isOnlineOnly ? mode === "loja" : mode === "gestao")
             ? "bg-white dark:bg-card shadow-sm text-foreground"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
-        🏢 Gestão
+        {isOnlineOnly ? "🌐 Loja Online" : "🏢 Gestão"}
       </button>
       <button
         type="button"
-        onClick={() => onChange("loja")}
+        onClick={() => onChange(isOnlineOnly ? "gestao" : "loja")}
         className={cn(
           "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer",
-          mode === "loja"
+          (isOnlineOnly ? mode === "gestao" : mode === "loja")
             ? "bg-white dark:bg-card shadow-sm text-foreground"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
-        🌐 Loja Online
+        {isOnlineOnly ? "📊 Gestão" : "🌐 Loja Online"}
       </button>
     </div>
   );
@@ -293,17 +359,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
 
-  // ── Estado reativo de ativação da Vitrine Online ───────────────────────────
+  // ── Modelo de atuação & ativação da Vitrine Online ─────────────────────────
+  const [businessModel, setBusinessModel] = useState<BusinessModel>(() =>
+    getBusinessModel(storeId, store?.metadata),
+  );
   const [vitrineAtiva, setVitrineAtiva] = useState(() => isVitrineAtiva(storeId, store?.metadata));
 
   useEffect(() => {
+    setBusinessModel(getBusinessModel(storeId, store?.metadata));
     setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
     const handleChanged = () => {
+      setBusinessModel(getBusinessModel(storeId, store?.metadata));
       setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
     };
+    window.addEventListener("business-model-changed", handleChanged);
     window.addEventListener("vitrine-settings-changed", handleChanged);
     window.addEventListener("storage", handleChanged);
     return () => {
+      window.removeEventListener("business-model-changed", handleChanged);
       window.removeEventListener("vitrine-settings-changed", handleChanged);
       window.removeEventListener("storage", handleChanged);
     };
@@ -312,7 +385,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // ── Modo do alternador: persistido no localStorage ─────────────────────────
   const [sidebarMode, setSidebarMode] = useState<"gestao" | "loja">(() => {
     if (typeof window === "undefined") return "gestao";
-    return (localStorage.getItem("vestui_sidebar_mode") as "gestao" | "loja") || "gestao";
+    const saved = localStorage.getItem("vestui_sidebar_mode") as "gestao" | "loja" | null;
+    if (saved) return saved;
+    const model = getBusinessModel(storeId, store?.metadata);
+    return model === "online" ? "loja" : "gestao";
   });
 
   function handleModeChange(mode: "gestao" | "loja") {
@@ -320,7 +396,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     localStorage.setItem("vestui_sidebar_mode", mode);
   }
 
-  // ── Se vitrine for desativada, volta pro modo gestão ───────────────────────
+  // ── Se o modelo for 'online' e não houver escolha explícita, abre em Loja Online
+  useEffect(() => {
+    if (businessModel === "online") {
+      const explicit = localStorage.getItem("vestui_sidebar_mode");
+      if (!explicit) {
+        setSidebarMode("loja");
+      }
+    }
+  }, [businessModel]);
+
+  // ── Se vitrine for desativada (ex: modelo física), volta pro modo gestão ───
   useEffect(() => {
     if (!vitrineAtiva && sidebarMode === "loja") {
       setSidebarMode("gestao");
@@ -328,21 +414,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [vitrineAtiva, sidebarMode]);
 
-  // ── Listas de navegação conforme modo e estado da vitrine ──────────────────
+  // ── Listas de navegação conforme modo e modelo de negócio ──────────────────
   const mainNav = useMemo<NavItem[]>(() => {
     if (!vitrineAtiva) return getMainNavFisica();
-    return sidebarMode === "loja" ? LOJA_ONLINE_NAV : GESTAO_NAV;
-  }, [vitrineAtiva, sidebarMode]);
+    if (sidebarMode === "loja") return LOJA_ONLINE_NAV;
+    return businessModel === "online" ? GESTAO_ONLINE_NAV : GESTAO_NAV;
+  }, [vitrineAtiva, sidebarMode, businessModel]);
 
   const mobilePrimary = useMemo<NavItem[]>(() => {
     if (!vitrineAtiva) return MOBILE_PRIMARY_FISICA;
-    return sidebarMode === "loja" ? MOBILE_PRIMARY_LOJA : MOBILE_PRIMARY_GESTAO;
-  }, [vitrineAtiva, sidebarMode]);
+    if (sidebarMode === "loja") return MOBILE_PRIMARY_LOJA;
+    return businessModel === "online" ? MOBILE_PRIMARY_ONLINE_GESTAO : MOBILE_PRIMARY_GESTAO;
+  }, [vitrineAtiva, sidebarMode, businessModel]);
 
   const mobileMoreNav = useMemo<NavItem[]>(() => {
     if (!vitrineAtiva) return MOBILE_MORE_FISICA;
-    return sidebarMode === "loja" ? MOBILE_MORE_LOJA : MOBILE_MORE_GESTAO;
-  }, [vitrineAtiva, sidebarMode]);
+    if (sidebarMode === "loja") return MOBILE_MORE_LOJA;
+    return businessModel === "online" ? MOBILE_MORE_ONLINE_GESTAO : MOBILE_MORE_GESTAO;
+  }, [vitrineAtiva, sidebarMode, businessModel]);
+
 
   // Badge de pedidos pendentes — calculado uma vez, usado na sidebar e no tab bar
   const pendingOrderCount = useMemo(() => {
@@ -395,9 +485,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Alternador de modo (pílula Apple) — visível apenas quando vitrine está ativa */}
         {vitrineAtiva && (
           <div className="mt-5">
-            <ModeToggle mode={sidebarMode} onChange={handleModeChange} />
+            <ModeToggle mode={sidebarMode} onChange={handleModeChange} businessModel={businessModel} />
           </div>
         )}
+
 
         {/* Navegação plana com seções visuais */}
         <nav className={cn("flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]", vitrineAtiva ? "mt-0" : "mt-6")}>
@@ -501,9 +592,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Alternador de modo no overlay mobile */}
           {vitrineAtiva && (
             <div className="mb-4">
-              <ModeToggle mode={sidebarMode} onChange={handleModeChange} />
+              <ModeToggle mode={sidebarMode} onChange={handleModeChange} businessModel={businessModel} />
             </div>
           )}
+
           <nav className="flex flex-col gap-1">
             {mainNav.map((item) => (
               <div key={item.to} className="flex flex-col">
@@ -595,9 +687,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Alternador no sheet "Mais" quando vitrine ativa */}
           {vitrineAtiva && (
             <div className="px-4 pt-4">
-              <ModeToggle mode={sidebarMode} onChange={handleModeChange} />
+              <ModeToggle mode={sidebarMode} onChange={handleModeChange} businessModel={businessModel} />
             </div>
           )}
+
 
           <nav className="flex flex-col gap-1 px-4 py-3">
             {mobileMoreNav.map((item) => (

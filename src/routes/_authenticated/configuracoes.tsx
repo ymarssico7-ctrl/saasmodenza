@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowRight, LogOut, Pencil, Plus, Settings, Sparkles, Store, Tags, Trash2, Users } from "lucide-react";
+import { ArrowRight, Building2, Check, Globe, LogOut, Pencil, Plus, Settings, ShoppingBag, Sparkles, Store, Tags, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { SubscriptionModal } from "@/components/subscription-modal";
@@ -40,7 +40,15 @@ import {
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
 import { insertMember, deleteMember } from "@/lib/mutations";
-import { isVitrineAtiva, setVitrineAtiva } from "@/lib/vitrine-settings";
+import {
+  isVitrineAtiva,
+  setVitrineAtiva,
+  getBusinessModel,
+  setBusinessModel,
+  type BusinessModel,
+} from "@/lib/vitrine-settings";
+import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -64,19 +72,37 @@ function Configuracoes() {
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
 
+  const [businessModel, setBusinessModelState] = useState<BusinessModel>(() =>
+    getBusinessModel(storeId, store?.metadata),
+  );
   const [vitrineAtiva, setVitrineAtivaState] = useState(() => isVitrineAtiva(storeId, store?.metadata));
 
   useEffect(() => {
+    setBusinessModelState(getBusinessModel(storeId, store?.metadata));
     setVitrineAtivaState(isVitrineAtiva(storeId, store?.metadata));
+    const handleModelChanged = () => {
+      setBusinessModelState(getBusinessModel(storeId, store?.metadata));
+      setVitrineAtivaState(isVitrineAtiva(storeId, store?.metadata));
+    };
+    window.addEventListener("business-model-changed", handleModelChanged);
+    window.addEventListener("vitrine-settings-changed", handleModelChanged);
+    return () => {
+      window.removeEventListener("business-model-changed", handleModelChanged);
+      window.removeEventListener("vitrine-settings-changed", handleModelChanged);
+    };
   }, [storeId, store?.metadata]);
 
-  const handleToggleVitrine = async (ativa: boolean) => {
+  const handleSelectBusinessModel = async (model: BusinessModel) => {
+    setBusinessModelState(model);
+    const ativa = model !== "fisica";
     setVitrineAtivaState(ativa);
-    setVitrineAtiva(storeId, ativa);
+    setBusinessModel(storeId, model);
+
     try {
       const currentMeta = (store?.metadata && typeof store.metadata === "object" ? store.metadata : {}) as Record<string, any>;
       const updatedMeta = {
         ...currentMeta,
+        business_model: model,
         vitrine_ativa: ativa,
         vitrineSettings: {
           ...((currentMeta["vitrineSettings"] as Record<string, unknown>) || {}),
@@ -86,13 +112,28 @@ function Configuracoes() {
       await supabase.from("stores").update({ metadata: updatedMeta }).eq("id", storeId);
       void queryClient.invalidateQueries({ queryKey: ["active_store"] });
       if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("business-model-changed"));
         window.dispatchEvent(new Event("vitrine-settings-changed"));
       }
     } catch (err) {
-      console.error("Erro ao salvar status da vitrine:", err);
+      console.error("Erro ao salvar modelo de negócio:", err);
     }
-    toast.success(ativa ? "Vitrine online ativada! 🛍️" : "Vitrine online desativada");
+
+    if (model === "fisica") {
+      toast.success("Modelo atualizado: Apenas Loja Física 🏢", {
+        description: "Menus ajustados para balcão, caixa diário e fiado.",
+      });
+    } else if (model === "hibrida") {
+      toast.success("Modelo atualizado: Loja Física + Online ✨", {
+        description: "Balcão físico + vitrine no ar com alternador na barra lateral.",
+      });
+    } else {
+      toast.success("Modelo atualizado: Apenas Loja Online 🌐", {
+        description: "100% digital: menus focados em pedidos, catálogo e Vestui Pay.",
+      });
+    }
   };
+
 
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -287,43 +328,143 @@ function Configuracoes() {
         </Button>
       </section>
 
-      {/* ── Vitrine Online & Catálogo Digital ── */}
+      {/* ── Modelo de Atuação & Canais de Venda ── */}
       <section className="panel p-6 sm:p-7">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Store className="size-4" />
               </span>
-              <h2 className="text-base font-semibold">Vitrine Online & Catálogo Digital</h2>
+              <h2 className="text-base font-semibold">Modelo de Atuação da Loja</h2>
               <Badge variant={vitrineAtiva ? "default" : "secondary"} className="text-[10px] uppercase font-bold tracking-wider">
-                {vitrineAtiva ? "No Ar" : "Desativada"}
+                {businessModel === "fisica"
+                  ? "Loja Física"
+                  : businessModel === "hibrida"
+                  ? "Física + Online"
+                  : "100% Loja Online"}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
-              Venda pelo Instagram, WhatsApp e internet com catálogo fotográfico, sacola de pedidos e pagamentos online integrados ao estoque físico.
+            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+              Defina como você vende. O Vestui adapta automaticamente os menus da barra lateral, as ferramentas e a rotina do sistema sob medida para o seu dia a dia.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3.5 py-2">
-              <Switch
-                id="toggle-vitrine-config"
-                checked={vitrineAtiva}
-                onCheckedChange={handleToggleVitrine}
-              />
-              <Label htmlFor="toggle-vitrine-config" className="text-xs font-semibold cursor-pointer">
-                {vitrineAtiva ? "Ativa" : "Desativada"}
-              </Label>
-            </div>
-            <Button asChild variant="outline" className="h-10 rounded-full px-4 text-xs font-semibold shadow-2xs hover:bg-secondary">
+          {vitrineAtiva && (
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-semibold shrink-0 shadow-2xs hover:bg-secondary">
               <Link to="/loja/configuracao">
                 Configurar Vitrine <ArrowRight className="ml-1.5 size-3.5" />
               </Link>
             </Button>
-          </div>
+          )}
+        </div>
+
+        {/* ── 3 Cards Interativos de Seleção (Padrão Apple) ── */}
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          {/* Card 1: Apenas Loja Física */}
+          <button
+            type="button"
+            onClick={() => void handleSelectBusinessModel("fisica")}
+            className={cn(
+              "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
+              businessModel === "fisica"
+                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50"
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className={cn(
+                "flex size-9 items-center justify-center rounded-xl transition-colors",
+                businessModel === "fisica" ? "bg-primary text-white shadow-sm" : "bg-surface-muted text-muted-foreground group-hover:text-foreground"
+              )}>
+                <Building2 className="size-4.5" />
+              </span>
+              {businessModel === "fisica" ? (
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                  <Check className="size-3 stroke-[3]" />
+                </span>
+              ) : (
+                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  Balcão
+                </span>
+              )}
+            </div>
+            <h3 className="mt-3.5 text-sm font-semibold text-foreground">Apenas Loja Física</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Vendas no balcão presencial, caixa diário e controle de fiado. Sem vitrine digital.
+            </p>
+          </button>
+
+          {/* Card 2: Física + Online (Híbrida) */}
+          <button
+            type="button"
+            onClick={() => void handleSelectBusinessModel("hibrida")}
+            className={cn(
+              "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
+              businessModel === "hibrida"
+                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50"
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className={cn(
+                "flex size-9 items-center justify-center rounded-xl transition-colors",
+                businessModel === "hibrida" ? "bg-primary text-white shadow-sm" : "bg-surface-muted text-muted-foreground group-hover:text-foreground"
+              )}>
+                <Store className="size-4.5" />
+              </span>
+              {businessModel === "hibrida" ? (
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                  <Check className="size-3 stroke-[3]" />
+                </span>
+              ) : (
+                <span className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  Mais escolhido
+                </span>
+              )}
+            </div>
+            <h3 className="mt-3.5 text-sm font-semibold text-foreground">Física + Loja Online</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Balcão físico com caixa e fiado + vitrine no WhatsApp e Instagram com alternador rápido.
+            </p>
+          </button>
+
+          {/* Card 3: Apenas Loja Online */}
+          <button
+            type="button"
+            onClick={() => void handleSelectBusinessModel("online")}
+            className={cn(
+              "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
+              businessModel === "online"
+                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50"
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className={cn(
+                "flex size-9 items-center justify-center rounded-xl transition-colors",
+                businessModel === "online" ? "bg-primary text-white shadow-sm" : "bg-surface-muted text-muted-foreground group-hover:text-foreground"
+              )}>
+                <Globe className="size-4.5" />
+              </span>
+              {businessModel === "online" ? (
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                  <Check className="size-3 stroke-[3]" />
+                </span>
+              ) : (
+                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  100% Digital
+                </span>
+              )}
+            </div>
+            <h3 className="mt-3.5 text-sm font-semibold text-foreground">Apenas Loja Online</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Vendas exclusivamente digitais. Foco total em pedidos, catálogo e Vestui Pay, sem balcão.
+            </p>
+          </button>
         </div>
       </section>
+
 
       <section className="panel p-6 sm:p-7">
         <h2 className="text-base font-semibold">Equipe</h2>

@@ -75,12 +75,67 @@ export function isVitrineAtiva(
   return false;
 }
 
+export type BusinessModel = "fisica" | "hibrida" | "online";
+
+export function getBusinessModel(
+  storeId: string,
+  storeMetadata?: Record<string, unknown> | null,
+): BusinessModel {
+  if (typeof localStorage !== "undefined" && storeId) {
+    try {
+      const explicit = localStorage.getItem(`vestui_business_model_${storeId}`);
+      if (explicit === "fisica" || explicit === "hibrida" || explicit === "online") {
+        return explicit;
+      }
+    } catch {
+      // Fallback
+    }
+  }
+  if (storeMetadata && typeof storeMetadata === "object") {
+    const metaModel = (storeMetadata as Record<string, any>)["business_model"];
+    if (metaModel === "fisica" || metaModel === "hibrida" || metaModel === "online") {
+      return metaModel;
+    }
+  }
+  return isVitrineAtiva(storeId, storeMetadata) ? "hibrida" : "fisica";
+}
+
+export function setBusinessModel(storeId: string, model: BusinessModel): void {
+  if (typeof localStorage === "undefined" || !storeId) return;
+  localStorage.setItem(`vestui_business_model_${storeId}`, model);
+  const ativa = model !== "fisica";
+  localStorage.setItem(`vestui_vitrine_ativa_${storeId}`, String(ativa));
+  const current = getVitrineSettings(storeId);
+  const updated: VitrineSettings = { ...current, ativa };
+  saveVitrineSettings(storeId, updated);
+  try {
+    window.dispatchEvent(
+      new CustomEvent("business-model-changed", { detail: { storeId, model } }),
+    );
+    window.dispatchEvent(new Event("vitrine-settings-changed"));
+  } catch {
+    // SSR / Node: ignore
+  }
+}
+
 export function setVitrineAtiva(storeId: string, ativa: boolean): void {
   if (typeof localStorage === "undefined" || !storeId) return;
   localStorage.setItem(`vestui_vitrine_ativa_${storeId}`, String(ativa));
   const current = getVitrineSettings(storeId);
   const updated: VitrineSettings = { ...current, ativa };
   saveVitrineSettings(storeId, updated);
+
+  try {
+    const currentModel = localStorage.getItem(`vestui_business_model_${storeId}`);
+    if (!ativa) {
+      localStorage.setItem(`vestui_business_model_${storeId}`, "fisica");
+    } else if (currentModel !== "online") {
+      localStorage.setItem(`vestui_business_model_${storeId}`, "hibrida");
+    }
+    window.dispatchEvent(new Event("business-model-changed"));
+  } catch {
+    // Silencia erros
+  }
 }
 
 export function saveVitrineSettings(storeId: string, settings: VitrineSettings): void {
@@ -94,3 +149,4 @@ export function saveVitrineSettings(storeId: string, settings: VitrineSettings):
     // SSR / Node: ignore
   }
 }
+
