@@ -6,10 +6,9 @@ import {
   ArrowUpRight,
   Calculator,
   ChevronRight,
-  Copy,
-  ExternalLink,
   Eye,
   EyeOff,
+  FileSpreadsheet,
   HandCoins,
   Package,
   Plus,
@@ -18,6 +17,7 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
+  Tag,
   Target,
   TrendingUp,
   Users,
@@ -33,7 +33,6 @@ import {
   YAxis,
 } from "recharts";
 import { PageHeader } from "@/components/page-header";
-import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,21 +59,17 @@ import {
   monthLabelShort,
   monthStart,
   pct,
-  slugify,
   todayISO,
 } from "@/lib/format";
 import {
   REFUND_CATEGORIES,
   STOCK_PURCHASE_CATEGORIES,
   PROLABORE_CATEGORIES,
-  OPEX_CATEGORIES,
   creditStatus,
-  formatVariationHint,
   projectMonth,
   sumBy,
   sumByCategories,
   sumByExcluding,
-  variation,
   type Transaction,
 } from "@/lib/finance";
 
@@ -96,82 +91,6 @@ export const Route = createFileRoute("/_authenticated/painel")({
   }),
   component: Painel,
 });
-
-// ─── Header Inline Pill: Link da Vitrine & Pedidos Pendentes ──────────────────
-function PainelVitrinePill({
-  storeSlug,
-  storeName,
-  pendingCount,
-}: {
-  storeSlug: string | null | undefined;
-  storeName?: string | null | undefined;
-  pendingCount: number;
-}) {
-  const [copied, setCopied] = React.useState(false);
-
-  const cleanSlug = React.useMemo(() => {
-    if (storeSlug && storeSlug.toLowerCase() !== "boutique") {
-      return storeSlug;
-    }
-    if (storeName && storeName.trim()) {
-      const s = slugify(storeName);
-      if (s && s.toLowerCase() !== "boutique") return s;
-    }
-    return "minhaloja";
-  }, [storeSlug, storeName]);
-
-  const vitrineUrl = `vestui.app/vitrine/${cleanSlug}`;
-  const fullUrl = `https://${vitrineUrl}`;
-
-  function handleCopy(e: React.MouseEvent) {
-    e.stopPropagation();
-    navigator.clipboard.writeText(fullUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3.5 py-1 text-xs shadow-2xs backdrop-blur-sm">
-        <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-        <span className="text-muted-foreground font-medium truncate max-w-[180px] sm:max-w-none">
-          {vitrineUrl}
-        </span>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-          title="Copiar link da vitrine"
-        >
-          <Copy className="size-3" />
-          <span>{copied ? "Copiado!" : "Copiar"}</span>
-        </button>
-        <a
-          href={fullUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          title="Abrir vitrine em nova aba"
-        >
-          <ExternalLink className="size-3" />
-        </a>
-      </div>
-
-      {pendingCount > 0 && (
-        <Link
-          to="/loja/pedidos"
-          className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors shadow-2xs"
-        >
-          <ShoppingBag className="size-3.5" />
-          <span>
-            {pendingCount} {pendingCount === 1 ? "pedido pendente" : "pedidos pendentes"}
-          </span>
-        </Link>
-      )}
-    </div>
-  );
-}
 
 function Painel() {
   const { storeId, store } = useStore();
@@ -282,7 +201,6 @@ function Painel() {
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, daysInMonth - now.getDate());
-  const projection = projectMonth(netRevenue, now.getDate(), daysInMonth);
 
   const goal = goals.find((g) => g.month.slice(0, 7) === thisMonth.slice(0, 7));
   const goalTarget = Number(goal?.target_amount ?? 0);
@@ -323,7 +241,6 @@ function Painel() {
       let outOfStock = 0;
       let lowStock = 0;
 
-      // Mapa acumulador por produto
       const salesMap: Record<
         string,
         {
@@ -374,7 +291,7 @@ function Painel() {
         }
       }
 
-      // 2) Peças vendidas no balcão físico do mês (evita duplicar com venda_online que já veio de orders)
+      // 2) Peças vendidas no balcão físico do mês
       for (const t of current) {
         if (t.kind === "entrada" && t.category !== "venda_online") {
           const desc = (t.description || "").toLowerCase();
@@ -403,7 +320,6 @@ function Painel() {
 
       let totalPecas = Object.values(salesMap).reduce((acc, s) => acc + s.soldCount, 0);
 
-      // Fallback: se houver entradas de venda no balcão sem vínculo de peça cadastrada
       const totalEntradasBalcao = current.filter(
         (t) => t.kind === "entrada" && t.category === "venda_produto",
       ).length;
@@ -411,7 +327,6 @@ function Painel() {
         totalPecas = totalEntradasBalcao;
       }
 
-      // Lista ordenada das peças mais vendidas (apenas com soldCount > 0 para integridade de dados)
       const listTop: TopProductItem[] = Object.values(salesMap)
         .filter((s) => s.soldCount > 0)
         .sort((a, b) => b.soldCount - a.soldCount || b.revenue - a.revenue)
@@ -542,64 +457,51 @@ function Painel() {
   const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
 
   return (
-    <div className="space-y-8">
-      {/* ── CABEÇALHO UNIFICADO (Sem Empilhamento de Barras Cinzas) ────────────── */}
-      <div className="space-y-3">
-        <PageHeader
-          eyebrow={monthLabel(thisMonth)}
-          title={`Olá, ${greetingName}`}
-          description={
-            hasCustomStore
-              ? `Aqui está o centro de comando da sua loja (${rawStore}) hoje.`
-              : "Aqui está o centro de comando da sua loja hoje."
-          }
-          action={
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={togglePrivacidade}
-                title={
-                  ocultarSaldos
-                    ? "Modo Balcão ativo: clique para exibir saldos"
-                    : "Ocultar saldos para privacidade no balcão"
-                }
-                className={cn(
-                  "h-11 gap-1.5 rounded-full border px-4 text-xs font-medium transition-all shadow-2xs cursor-pointer",
-                  ocultarSaldos
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-                    : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                )}
-              >
-                {ocultarSaldos ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
-              </Button>
-              <Button
-                asChild
-                className="h-11 rounded-full px-5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer"
-              >
-                <Link to="/caixa">
-                  <Plus className="size-4" /> Novo lançamento
-                </Link>
-              </Button>
-            </div>
-          }
-        />
-
-        {/* Pill Integrado da Vitrine Online */}
-        {vitrineAtiva && (
-          <div className="pt-1">
-            <PainelVitrinePill
-              storeSlug={store?.slug}
-              storeName={store?.name}
-              pendingCount={pedidosNovosCount}
-            />
+    <div className="space-y-7">
+      {/* ── CABEÇALHO ZEN (Sem Barras Soltas Empilhadas) ───────────────────────── */}
+      <PageHeader
+        eyebrow={monthLabel(thisMonth)}
+        title={`Olá, ${greetingName}`}
+        description={
+          hasCustomStore
+            ? `Aqui está o centro de comando da sua loja (${rawStore}) hoje.`
+            : "Aqui está o centro de comando da sua loja hoje."
+        }
+        action={
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={togglePrivacidade}
+              title={
+                ocultarSaldos
+                  ? "Modo Balcão ativo: clique para exibir saldos"
+                  : "Ocultar saldos para privacidade no balcão"
+              }
+              className={cn(
+                "h-10 gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-all shadow-2xs cursor-pointer",
+                ocultarSaldos
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+              )}
+            >
+              {ocultarSaldos ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
+            </Button>
+            <Button
+              asChild
+              className="h-10 rounded-full px-4 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer text-xs"
+            >
+              <Link to="/caixa">
+                <Plus className="size-3.5" /> Novo lançamento
+              </Link>
+            </Button>
           </div>
-        )}
-      </div>
+        }
+      />
 
-      {/* Banner de Boas-Vindas / Guia Financeiro (Aparece se faltar concluir onboarding) */}
+      {/* Banner de Boas-Vindas / Guia Financeiro */}
       <VestuiGuideBanner
         mode="gestao"
         storeId={storeId}
@@ -611,7 +513,7 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento, Sobra no Caixa, Peças, Omnichannel/Live) ── */}
+      {/* ── 1. BENTO BOX KPIS (Faturamento, Sobra no Caixa, Peças, Vitrine Online) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
@@ -626,6 +528,8 @@ function Painel() {
         ticketMedio={ticketMedio}
         totalVendasCount={totalVendasCount}
         vitrineAtiva={vitrineAtiva}
+        storeSlug={store?.slug}
+        storeName={store?.name}
         pedidosNovosCount={pedidosNovosCount}
         pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
         pedidosNovosValor={pedidosNovosValor}
@@ -633,7 +537,7 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── 2. BENTO BOX PRODUTOS (Peças Campeãs da Loja & Saúde de Estoque) ──── */}
+      {/* ── 2. O PULSO DA LOJA (Peças Campeãs da Arara & Saúde do Estoque) ────── */}
       <PainelTopProducts
         topProducts={topProducts}
         outOfStockCount={outOfStockCount}
@@ -646,15 +550,14 @@ function Painel() {
       {/* ── 3. EVOLUÇÃO FINANCEIRA & METAS ────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         {/* Gráfico de Evolução 6 Meses com Legenda Visual */}
-        <section className="panel p-6 sm:p-7">
+        <section className="panel p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold">Evolução dos últimos 6 meses</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <h2 className="text-sm sm:text-base font-semibold">Evolução dos últimos 6 meses</h2>
+              <p className="text-xs text-muted-foreground">
                 Faturamento e lucro líquido retido por mês
               </p>
             </div>
-            {/* Legenda visual elegante (Padrão Apple) */}
             <div className="flex items-center gap-3 self-start sm:self-auto">
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                 <span className="size-2 rounded-full bg-primary" /> Faturamento
@@ -665,26 +568,19 @@ function Painel() {
             </div>
           </div>
           {totalHistorico === 0 ? (
-            <div className="flex h-[260px] flex-col items-center justify-center gap-3 text-center p-6">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
-                <TrendingUp className="h-5 w-5 text-primary" />
+            <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center p-6">
+              <div className="grid size-10 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
+                <TrendingUp className="size-5 text-primary/70" />
               </div>
-              <div className="max-w-xs space-y-1">
-                <p className="text-sm font-semibold text-foreground">
-                  Sua evolução financeira aparecerá aqui
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Conforme suas vendas e despesas forem registradas, o gráfico traçará sua curva de faturamento e sobra de caixa.
-                </p>
-              </div>
-              <Button asChild variant="outline" size="sm" className="rounded-full text-xs font-medium mt-1">
-                <Link to="/caixa">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Registrar primeira movimentação
-                </Link>
-              </Button>
+              <p className="text-sm font-semibold text-foreground">
+                Sua evolução financeira aparecerá aqui
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+                O gráfico traçará a curva de faturamento e sobra de caixa conforme as movimentações forem registradas.
+              </p>
             </div>
           ) : (
-            <div className="mt-6 h-[260px]">
+            <div className="mt-5 h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={series} margin={{ left: -18, right: 6, top: 6 }}>
                   <defs>
@@ -744,9 +640,9 @@ function Painel() {
           )}
         </section>
 
-        {/* Coluna Direita: Meta Comercial Ativa + Fiados a Receber */}
+        {/* Coluna Direita: Metas Comerciais + Fiados a Receber */}
         <div className="space-y-4">
-          <section className="panel p-6">
+          <section className="panel p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Target className="size-4 text-primary" />
@@ -762,7 +658,7 @@ function Painel() {
             {goalTarget > 0 ? (
               <>
                 <p className="numeric mt-3 text-2xl font-semibold">{mascaraSaldo(netRevenue)}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">de {mascaraSaldo(goalTarget)}</p>
+                <p className="text-xs text-muted-foreground">de {mascaraSaldo(goalTarget)}</p>
                 <Progress value={goalProgress} className="mt-3.5 h-2" />
                 <div className="mt-3 pt-2.5 border-t border-border/60 text-xs text-muted-foreground">
                   {remainingGoal > 0 ? (
@@ -779,18 +675,18 @@ function Painel() {
                 </div>
               </>
             ) : (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Você ainda não definiu a meta deste mês.
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground">
+                  Defina um objetivo mensal para acompanhar o ritmo diário das araras.
                 </p>
-                <Button asChild variant="outline" size="sm" className="mt-4 rounded-full">
+                <Button asChild variant="outline" size="sm" className="mt-3 rounded-full text-xs">
                   <Link to="/metas">Definir meta</Link>
                 </Button>
               </div>
             )}
           </section>
 
-          <section className="panel p-6">
+          <section className="panel p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="size-4 text-primary" />
@@ -803,94 +699,85 @@ function Painel() {
               )}
             </div>
             <p className="numeric mt-3 text-2xl font-semibold">{mascaraSaldo(openCreditTotal)}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {openCredits.length} cliente{openCredits.length !== 1 ? "s" : ""} com saldo pendente
             </p>
-            <Button asChild variant="outline" size="sm" className="mt-4 rounded-full text-xs font-medium">
-              <Link to="/fiado">Gerenciar fiado ➔</Link>
-            </Button>
+            <div className="mt-3 pt-2.5 border-t border-border/60">
+              <Link
+                to="/fiado"
+                className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+              >
+                Cobranças e recibos <ChevronRight className="size-3" />
+              </Link>
+            </div>
           </section>
         </div>
       </div>
 
-      {/* ── 4. DEMONSTRATIVO DE RESULTADO (DRE) & ÚLTIMOS LANÇAMENTOS ─────────── */}
+      {/* ── 4. FLUXO OPERACIONAL RECENTE & ATALHOS RÁPIDOS ────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        {/* Últimos Lançamentos com Identificação de Canal e Tipo */}
-        <section className="panel p-6 sm:p-7">
+        {/* Últimos Lançamentos (Limpos e Sem Redundâncias) */}
+        <section className="panel p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold">Últimos lançamentos</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">Movimentações recentes no caixa</p>
+              <h2 className="text-sm sm:text-base font-semibold">Últimos lançamentos</h2>
+              <p className="text-xs text-muted-foreground">Movimentações recentes no caixa</p>
             </div>
             <Button
               asChild
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-7 rounded-full text-xs font-medium border-border/80"
+              className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground font-medium"
             >
-              <Link to="/caixa">Ver extrato completo</Link>
+              <Link to="/caixa">Extrato completo ➔</Link>
             </Button>
           </div>
 
           {recent.length === 0 ? (
-            <div className="flex h-[180px] flex-col items-center justify-center gap-2.5 text-center p-6 mt-4">
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
-                <Wallet className="h-5 w-5" />
+            <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center p-6 mt-3">
+              <div className="grid size-9 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
+                <Wallet className="size-4" />
               </div>
-              <div className="max-w-sm space-y-1">
-                <p className="text-sm font-semibold text-foreground">Nenhum lançamento no mês</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Comece registrando uma venda no balcão ou uma despesa para movimentar seu caixa.
-                </p>
-              </div>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs font-medium text-primary hover:text-primary hover:bg-primary/5 rounded-full mt-1"
-              >
-                <Link to="/caixa">
-                  Registrar movimentação <ArrowUpRight className="ml-1 h-3 w-3" />
-                </Link>
-              </Button>
+              <p className="text-xs text-muted-foreground">
+                Nenhuma movimentação registrada no caixa este mês.
+              </p>
             </div>
           ) : (
-            <ul className="mt-5 divide-y divide-border/60">
+            <ul className="mt-4 divide-y divide-border/60">
               {recent.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-4 py-3.5">
+                <li key={t.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="truncate text-sm font-medium">{t.description}</p>
-                      {/* Badges Semânticos de Canal e Categoria */}
                       {t.kind === "entrada" ? (
                         t.category === "venda_online" ? (
-                          <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                          <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
                             Online
                           </span>
                         ) : (
-                          <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
                             Balcão
                           </span>
                         )
                       ) : t.category === "estorno_devolucao" ? (
-                        <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                        <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                           Devolução
                         </span>
                       ) : t.category === "compra_estoque" ? (
-                        <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                        <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
                           Estoque
                         </span>
                       ) : t.category === "prolabore" ? (
-                        <span className="shrink-0 rounded-full bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
+                        <span className="shrink-0 rounded-full bg-purple-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
                           Pró-labore
                         </span>
                       ) : (
-                        <span className="shrink-0 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+                        <span className="shrink-0 rounded-full bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-medium text-rose-600 dark:text-rose-400">
                           Despesa
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {formatDate(t.occurred_on)}
                     </p>
                   </div>
@@ -908,106 +795,71 @@ function Painel() {
           )}
         </section>
 
-        {/* Demonstrativo Gerencial do Mês (DRE) & Atalhos */}
-        <div className="space-y-4">
-          <section className="panel p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt className="size-4 text-primary" />
-                <h2 className="text-sm font-semibold">DRE Gerencial do Mês</h2>
-              </div>
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  profit >= 0
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-                )}
-              >
-                {profit >= 0 ? "Saldo Positivo" : "Saldo Negativo"}
-              </span>
+        {/* Atalhos Executivos (Substitui DRE duplicado por Ferramentas de Gestão) */}
+        <section className="panel p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <h2 className="text-sm font-semibold">Ferramentas de Gestão</h2>
             </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Acesso rápido aos controles financeiros e araras
+            </p>
 
-            <div className="mt-4 space-y-2 text-xs text-muted-foreground">
-              <div className="flex justify-between">
-                <span>Receita bruta de vendas:</span>
-                <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(revenue)}</strong>
-              </div>
-              {refunds > 0 && (
-                <div className="flex justify-between text-amber-700 dark:text-amber-400">
-                  <span>(−) Devoluções e estornos:</span>
-                  <span>−{ocultarSaldos ? "••••" : mascaraSaldo(refunds)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-medium pt-1 border-t border-border/40">
-                <span>Receita líquida da loja:</span>
-                <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(netRevenue)}</strong>
-              </div>
-              <div className="flex justify-between text-rose-600 dark:text-rose-400">
-                <span>(−) Despesas operacionais (OPEX):</span>
-                <span>−{ocultarSaldos ? "••••" : mascaraSaldo(expenses)}</span>
-              </div>
-              {stockPurchases > 0 && (
-                <div className="flex justify-between text-blue-600 dark:text-blue-400">
-                  <span>(−) Reinvestimento em roupas:</span>
-                  <span>−{ocultarSaldos ? "••••" : mascaraSaldo(stockPurchases)}</span>
-                </div>
-              )}
-              {prolaboreAmount > 0 && (
-                <div className="flex justify-between text-purple-600 dark:text-purple-400">
-                  <span>(−) Pró-labore da sócia:</span>
-                  <span>−{ocultarSaldos ? "••••" : mascaraSaldo(prolaboreAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center pt-2 border-t border-border/60 font-semibold text-sm">
-                <span className="text-foreground">Sobra Líquida no Caixa:</span>
-                <strong
-                  className={cn(
-                    "numeric text-base font-bold",
-                    profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
-                  )}
-                >
-                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(profit)}
-                </strong>
-              </div>
-            </div>
-          </section>
-
-          {/* Atalhos Rápidos */}
-          <section className="panel p-6">
-            <h2 className="text-sm font-semibold">Atalhos do Lojista</h2>
             <div className="mt-4 grid gap-2">
+              <Shortcut
+                to="/relatorio"
+                icon={<FileSpreadsheet className="size-4" />}
+                title="DRE e Relatório Contábil"
+                desc="Demonstrativo completo de receitas, custos e margem"
+              />
               <Shortcut
                 to="/precificacao"
                 icon={<Calculator className="size-4" />}
-                label="Precificar peça"
+                title="Calculadora de Preço & Markup"
+                desc="Descubra a margem e o preço ideal de cada peça"
               />
               <Shortcut
                 to="/prolabore"
                 icon={<HandCoins className="size-4" />}
-                label="Registrar pró-labore"
-              />
-              <Shortcut
-                to="/relatorio"
-                icon={<TrendingUp className="size-4" />}
-                label="Ver relatório contábil"
+                title="Controle de Pró-labore"
+                desc="Organize as retiradas da sócia sem sangrar o caixa"
               />
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );
 }
 
-function Shortcut({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+function Shortcut({
+  to,
+  icon,
+  title,
+  desc,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
   return (
     <Link
       to={to}
-      className="flex items-center gap-3 rounded-2xl bg-surface-muted px-4 py-3 text-sm font-medium transition-colors hover:bg-accent"
+      className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-secondary/30 p-3 text-left transition-all hover:bg-secondary/60 hover:border-border"
     >
-      <span className="text-primary">{icon}</span>
-      {label}
+      <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-card text-primary shadow-2xs group-hover:scale-105 transition-transform">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1">
+          {title} <ChevronRight className="size-3 text-muted-foreground/60 group-hover:translate-x-0.5 transition-transform" />
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+          {desc}
+        </p>
+      </div>
     </Link>
   );
 }
