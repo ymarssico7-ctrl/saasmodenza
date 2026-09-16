@@ -67,8 +67,8 @@ export function PainelKpisBento({
 
   // Proporções dos canais
   const totalCanais = fisicaRevenue + onlineRevenue;
-  const fisicaPct = totalCanais > 0 ? Math.round((fisicaRevenue / totalCanais) * 100) : 50;
-  const onlinePct = totalCanais > 0 ? 100 - fisicaPct : 50;
+  const fisicaPct = totalCanais > 0 ? Math.round((fisicaRevenue / totalCanais) * 100) : 100;
+  const onlinePct = totalCanais > 0 ? 100 - fisicaPct : 0;
 
   // Variação de faturamento vs mês anterior
   const variacaoValor = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
@@ -96,13 +96,20 @@ export function PainelKpisBento({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {/* ── CARD 1: Faturamento do Mês ────────────────────────────────────────── */}
+      {/* ── CARD 1: Faturamento Consolidado ───────────────────────────────────── */}
       <div className="panel relative flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Faturamento
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Faturamento Total
+              </p>
+              {vitrineAtiva && (
+                <span className="rounded-md bg-secondary px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
+                  Física + Online
+                </span>
+              )}
+            </div>
             <h3 className="numeric mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               {mascaraSaldo(revenue)}
             </h3>
@@ -224,141 +231,156 @@ export function PainelKpisBento({
         </div>
       </div>
 
-      {/* ── CARD 4: Vitrine Online Integrada & Pedidos Live ────────────────────── */}
+      {/* ── CARD 4: Canais de Venda (Loja Física vs Vitrine Online) ────────────── */}
       {vitrineAtiva ? (
-        <div
-          className={cn(
-            "panel relative flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5",
-            pedidosNovosCount > 0 &&
-              "border-rose-500/30 bg-gradient-to-br from-rose-500/5 via-card to-card ring-1 ring-rose-500/20",
-          )}
-        >
-          {/* Cabeçalho do Card */}
+        <div className="panel relative flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
+          {/* Cabeçalho do Card com Status de Pedidos */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                {pedidosNovosCount > 0 ? (
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Canais de Venda
+                </p>
+                {pedidosNovosCount > 0 && (
                   <span className="relative flex size-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
                     <span className="relative inline-flex size-2 rounded-full bg-rose-500" />
                   </span>
-                ) : (
-                  <span className="size-2 rounded-full bg-emerald-500" />
                 )}
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Vitrine Online
-                </p>
               </div>
 
-              {/* Status de Pedidos */}
-              {pedidosNovosCount > 0 ? (
-                <div className="mt-2">
-                  <h3 className="numeric text-2xl sm:text-3xl font-bold text-rose-700 dark:text-rose-400">
-                    {pedidosNovosCount}{" "}
-                    <span className="text-sm font-semibold">
-                      {pedidosNovosCount === 1 ? "novo pedido" : "novos pedidos"}
-                    </span>
-                  </h3>
-                </div>
-              ) : (
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="numeric text-xl sm:text-2xl font-bold text-foreground">
-                    {ocultarSaldos ? "••••" : mascaraSaldo(onlineRevenue)}
-                  </span>
+              {/* Valores dos 2 Canais Lado a Lado (Física e Online) */}
+              <div className="mt-2 space-y-1">
+                {/* Linha 1: Loja Física */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="size-2 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0" />
+                    <span className="text-muted-foreground truncate">Loja Física:</span>
+                    <strong className="num-display font-semibold text-foreground shrink-0">
+                      {ocultarSaldos ? "••••" : mascaraSaldo(fisicaRevenue)}
+                    </strong>
+                  </div>
                   {totalCanais > 0 && (
-                    <span className="text-xs font-medium text-primary">
-                      ({onlinePct}% do total)
+                    <span className="num-display font-medium text-[11px] text-muted-foreground">
+                      {fisicaPct}%
                     </span>
                   )}
                 </div>
-              )}
+
+                {/* Linha 2: Vitrine Online */}
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="size-2 rounded-full bg-primary shrink-0" />
+                    <span className="text-muted-foreground truncate">Vitrine Online:</span>
+                    <strong className="num-display font-semibold text-foreground shrink-0">
+                      {ocultarSaldos ? "••••" : mascaraSaldo(onlineRevenue)}
+                    </strong>
+                  </div>
+                  {totalCanais > 0 && (
+                    <span className="num-display font-semibold text-[11px] text-primary">
+                      {onlinePct}%
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div
-              className={cn(
-                "grid size-10 shrink-0 place-items-center rounded-2xl shadow-2xs",
-                pedidosNovosCount > 0
-                  ? "bg-rose-500/10 text-rose-600"
-                  : "bg-secondary text-foreground",
-              )}
-            >
-              {pedidosNovosCount > 0 ? (
-                <ShoppingBag className="size-5" />
-              ) : (
-                <Store className="size-5" />
-              )}
+            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground shadow-2xs">
+              <Store className="size-5" />
             </div>
           </div>
 
-          {/* Rodapé Integrado: Link Rápido da Bio ou Ação de Separação */}
-          <div className="mt-4 pt-3 border-t border-border/60">
-            {pedidosNovosCount > 0 ? (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-rose-700/90 dark:text-rose-300 truncate">
-                  {pedidosNovosValor > 0 && !ocultarSaldos
-                    ? `${brl(pedidosNovosValor)} a confirmar`
-                    : "Aguardando separação"}
-                </span>
-                <Button
-                  asChild
-                  size="sm"
-                  className="h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 shadow-xs"
-                >
-                  <Link to="/loja/pedidos">
-                    Separar <ChevronRight className="size-3.5 ml-0.5" />
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-1 text-xs">
-                {/* Link da Vitrine Inline Limpo */}
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="truncate text-muted-foreground font-mono text-[11px]">
-                    {vitrineUrl}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="shrink-0 text-primary hover:text-primary/80 transition-colors cursor-pointer"
-                    title="Copiar link da vitrine"
-                  >
-                    <Copy className="size-3" />
-                  </button>
-                  <a
-                    href={fullUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Abrir em nova aba"
-                  >
-                    <ExternalLink className="size-3" />
-                  </a>
-                </div>
+          {/* Barra de Progresso Bicolor e Rodapé Integrado */}
+          <div className="mt-3 space-y-2">
+            {/* Barra segmentada Física vs Online */}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/80 flex shadow-inner">
+              {totalCanais === 0 ? (
+                <div className="h-full w-full bg-border" />
+              ) : (
+                <>
+                  <div
+                    className="h-full bg-slate-500 dark:bg-slate-400 transition-all duration-500"
+                    style={{ width: `${fisicaPct}%` }}
+                    title={`Loja Física: ${fisicaPct}%`}
+                  />
+                  <div
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{ width: `${onlinePct}%` }}
+                    title={`Vitrine Online: ${onlinePct}%`}
+                  />
+                </>
+              )}
+            </div>
 
-                <Link
-                  to="/loja"
-                  className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors ml-1"
-                >
-                  Gerenciar ➔
-                </Link>
-              </div>
-            )}
+            {/* Rodapé: Alerta de Pedidos ou Link Rápido */}
+            <div className="pt-2 border-t border-border/60">
+              {pedidosNovosCount > 0 ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 truncate">
+                    ● {pedidosNovosCount} {pedidosNovosCount === 1 ? "pedido a separar" : "pedidos a separar"}
+                  </span>
+                  <Button
+                    asChild
+                    size="sm"
+                    className="h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[10px] px-2.5 shadow-xs font-semibold"
+                  >
+                    <Link to="/loja/pedidos">
+                      Separar <ChevronRight className="size-3 ml-0.5" />
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="truncate text-muted-foreground font-mono text-[10px]">
+                      {vitrineUrl}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="shrink-0 text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                      title="Copiar link da vitrine"
+                    >
+                      <Copy className="size-3" />
+                    </button>
+                    <a
+                      href={fullUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      title="Abrir vitrine em nova aba"
+                    >
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                  <Link
+                    to="/loja"
+                    className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground font-medium transition-colors ml-1"
+                  >
+                    Gerenciar ➔
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : (
-        /* Vitrine inativa: convite limpo e conciso */
-        <div className="panel relative flex flex-col justify-between p-5 sm:p-6 border-primary/25 bg-gradient-to-br from-primary/5 via-card to-card transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
+        /* Vitrine inativa: Canal Físico exclusivo com opção de ativar vitrine */
+        <div className="panel relative flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                Vitrine Online
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Canais de Venda
               </p>
-              <h3 className="mt-1 text-sm font-semibold text-foreground">
-                Venda pelo Instagram & Zap
+              <h3 className="numeric mt-2 text-2xl font-bold tracking-tight text-foreground">
+                {mascaraSaldo(revenue)}
               </h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                100% vendas no balcão físico
+              </p>
             </div>
-            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-foreground">
-              <Sparkles className="size-5" />
+            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground shadow-2xs">
+              <Store className="size-5" />
             </div>
           </div>
 
@@ -366,10 +388,11 @@ export function PainelKpisBento({
             <Button
               asChild
               size="sm"
-              className="h-8 w-full rounded-full gradient-primary text-xs font-semibold shadow-glow"
+              variant="outline"
+              className="h-8 w-full rounded-full text-xs font-medium border-border/80"
             >
               <Link to="/loja/configuracao">
-                <Sparkles className="size-3.5 mr-1" /> Ativar Vitrine Online
+                <Sparkles className="size-3.5 mr-1 text-primary" /> Ativar Vitrine Online
               </Link>
             </Button>
           </div>
