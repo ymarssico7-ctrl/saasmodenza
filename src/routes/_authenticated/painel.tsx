@@ -521,6 +521,8 @@ function Painel() {
         prevRevenue={prevRevenue}
         refunds={refunds}
         totalExpenses={totalExpenses}
+        expenses={expenses}
+        stockPurchases={stockPurchases}
         profit={profit}
         operatingProfit={operatingProfit}
         marginPct={marginPct}

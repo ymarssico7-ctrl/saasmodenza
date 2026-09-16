@@ -17,6 +17,8 @@ export interface PainelKpisBentoProps {
   prevRevenue: number;
   refunds: number;
   totalExpenses: number;
+  expenses?: number;
+  stockPurchases?: number;
   profit: number;
   operatingProfit: number;
   marginPct: number;
@@ -33,9 +35,9 @@ export interface PainelKpisBentoProps {
 
 export function PainelKpisBento({
   revenue,
-  netRevenue,
   totalExpenses,
-  refunds,
+  expenses = 0,
+  stockPurchases = 0,
   profit,
   marginPct,
   fisicaRevenue,
@@ -47,15 +49,10 @@ export function PainelKpisBento({
   ocultarSaldos,
   mascaraSaldo,
 }: PainelKpisBentoProps) {
-  // Proporções dos canais
-  const totalCanais = fisicaRevenue + onlineRevenue;
-  const fisicaPct = totalCanais > 0 ? Math.round((fisicaRevenue / totalCanais) * 100) : 100;
-  const onlinePct = totalCanais > 0 ? 100 - fisicaPct : 0;
-
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {/* ── CARD 1: Faturamento Total (com split Balcão + Vitrine) ───────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]">
+      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Faturamento Total
@@ -70,35 +67,30 @@ export function PainelKpisBento({
             {mascaraSaldo(revenue)}
           </h3>
 
-          <div className="mt-1 text-xs text-muted-foreground truncate">
-            {ocultarSaldos ? (
-              <span className="font-mono">••••••••</span>
-            ) : revenue > 0 && vitrineAtiva ? (
-              <span
-                className="cursor-help transition-colors hover:text-foreground inline-flex items-center gap-1.5"
-                title={`Balcão: ${brl(fisicaRevenue)} | Vitrine: ${brl(onlineRevenue)}`}
-              >
-                <span>Balcão {fisicaPct}%</span>
-                <span className="text-muted-foreground/50">·</span>
-                <span>Vitrine {onlinePct}%</span>
-                {refunds > 0 && (
-                  <>
-                    <span className="text-muted-foreground/50">·</span>
-                    <span className="text-[11px]">Líq: {brl(netRevenue)}</span>
-                  </>
-                )}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Balcão físico
               </span>
-            ) : vitrineAtiva ? (
-              <span>Balcão físico e vitrine online</span>
-            ) : (
-              <span>Balcão físico da loja</span>
-            )}
+              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
+                {mascaraSaldo(fisicaRevenue)}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Vitrine online
+              </span>
+              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
+                {vitrineAtiva ? mascaraSaldo(onlineRevenue) : "Desativada"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── CARD 2: Despesas do Mês (Saídas / OPEX + Estoque) ────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]">
+      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Despesas do Mês
@@ -113,20 +105,30 @@ export function PainelKpisBento({
             {mascaraSaldo(totalExpenses)}
           </h3>
 
-          <div className="mt-1 text-xs text-muted-foreground">
-            {ocultarSaldos ? (
-              <span className="font-mono">••••••••</span>
-            ) : totalExpenses > 0 ? (
-              <span>Contas pagas + reposição de estoque</span>
-            ) : (
-              <span>Nenhuma saída registrada</span>
-            )}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Contas fixas
+              </span>
+              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
+                {mascaraSaldo(expenses)}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Estoque
+              </span>
+              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
+                {mascaraSaldo(stockPurchases)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── CARD 3: Sobra no Caixa (Lucro Líquido Real) ───────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]">
+      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -165,20 +167,31 @@ export function PainelKpisBento({
             {mascaraSaldo(profit)}
           </h3>
 
-          <div className="mt-1 text-xs text-muted-foreground">
-            {ocultarSaldos ? (
-              <span className="font-mono">••••••••</span>
-            ) : netRevenue > 0 ? (
-              <span>
-                Margem real de{" "}
-                <strong className="font-medium text-foreground">
-                  {marginPct.toFixed(0)}%
-                </strong>{" "}
-                livre
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Margem livre
               </span>
-            ) : (
-              <span>Lucro livre após despesas</span>
-            )}
+              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
+                {marginPct > 0 ? `${marginPct.toFixed(0)}% real` : "0% real"}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Situação
+              </span>
+              <span
+                className={cn(
+                  "block text-xs sm:text-sm font-semibold truncate",
+                  profit >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-rose-600 dark:text-rose-400",
+                )}
+              >
+                {profit >= 0 ? "Lucro livre" : "Prejuízo"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -186,7 +199,7 @@ export function PainelKpisBento({
       {/* ── CARD 4: Peças Vendidas (Volume & Ticket Médio / Pedidos Vitrine) ─── */}
       <div
         className={cn(
-          "panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]",
+          "panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]",
           pedidosNovosCount > 0 &&
             "border-rose-500/30 bg-gradient-to-br from-rose-500/5 via-card to-card ring-1 ring-rose-500/20",
         )}
@@ -225,28 +238,34 @@ export function PainelKpisBento({
             {totalPecasVendidas} {totalPecasVendidas === 1 ? "peça" : "peças"}
           </h3>
 
-          <div className="mt-1 text-xs text-muted-foreground">
-            {pedidosNovosCount > 0 ? (
-              <Link
-                to="/loja/pedidos"
-                className="font-semibold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
-              >
-                ● {pedidosNovosCount}{" "}
-                {pedidosNovosCount === 1 ? "pedido a separar" : "pedidos a separar"}
-                <ChevronRight className="size-3" />
-              </Link>
-            ) : ocultarSaldos ? (
-              <span className="font-mono">Ticket médio: ••••••</span>
-            ) : ticketMedio > 0 ? (
-              <span>
-                Ticket médio:{" "}
-                <strong className="font-medium text-foreground">
-                  {brl(ticketMedio)}
-                </strong>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Ticket médio
               </span>
-            ) : (
-              <span>Giro de arara no mês</span>
-            )}
+              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
+                {ocultarSaldos ? "••••••" : mascaraSaldo(ticketMedio)}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Vitrine online
+              </span>
+              <div className="text-xs sm:text-sm font-semibold truncate">
+                {pedidosNovosCount > 0 ? (
+                  <Link
+                    to="/loja/pedidos"
+                    className="text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    ● {pedidosNovosCount} {pedidosNovosCount === 1 ? "pedido" : "pedidos"}
+                    <ChevronRight className="size-3" />
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">0 pedidos</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
