@@ -513,7 +513,7 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento, Sobra no Caixa, Peças, Vitrine Online) ── */}
+      {/* ── 1. BENTO BOX KPIS (Faturamento, Sobra no Caixa, Loja Física, Vitrine Online) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
@@ -524,15 +524,9 @@ function Painel() {
         marginPct={marginPct}
         fisicaRevenue={fisicaRevenue}
         onlineRevenue={onlineRevenue}
-        totalPecasVendidas={totalPecasVendidas}
-        ticketMedio={ticketMedio}
-        totalVendasCount={totalVendasCount}
         vitrineAtiva={vitrineAtiva}
-        storeSlug={store?.slug}
-        storeName={store?.name}
         pedidosNovosCount={pedidosNovosCount}
         pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
-        pedidosNovosValor={pedidosNovosValor}
         ocultarSaldos={ocultarSaldos}
         mascaraSaldo={mascaraSaldo}
       />
@@ -540,6 +534,8 @@ function Painel() {
       {/* ── 2. O PULSO DA LOJA (Peças Campeãs da Arara & Saúde do Estoque) ────── */}
       <PainelTopProducts
         topProducts={topProducts}
+        totalPecasVendidas={totalPecasVendidas}
+        ticketMedio={ticketMedio}
         outOfStockCount={outOfStockCount}
         lowStockCount={lowStockCount}
         totalCatalogItems={totalCatalogItems}

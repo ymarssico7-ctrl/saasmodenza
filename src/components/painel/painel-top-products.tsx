@@ -1,8 +1,6 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  AlertCircle,
-  AlertTriangle,
   ArrowUpRight,
   ChevronRight,
   Package,
@@ -27,6 +25,8 @@ export interface TopProductItem {
 
 export interface PainelTopProductsProps {
   topProducts: TopProductItem[];
+  totalPecasVendidas?: number;
+  ticketMedio?: number;
   outOfStockCount: number;
   lowStockCount: number;
   totalCatalogItems: number;
@@ -36,6 +36,8 @@ export interface PainelTopProductsProps {
 
 export function PainelTopProducts({
   topProducts,
+  totalPecasVendidas = 0,
+  ticketMedio = 0,
   outOfStockCount,
   lowStockCount,
   totalCatalogItems,
@@ -60,7 +62,14 @@ export function PainelTopProducts({
                   Peças Campeãs da Loja
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Mais vendidas na arara e na vitrine este mês
+                  {totalPecasVendidas > 0 ? (
+                    <>
+                      <strong>{totalPecasVendidas} {totalPecasVendidas === 1 ? "peça vendida" : "peças vendidas"}</strong>
+                      {" · "}Ticket médio: {ocultarSaldos ? "R$ ••••" : mascaraSaldo(ticketMedio)}
+                    </>
+                  ) : (
+                    "Mais vendidas na arara e na vitrine este mês"
+                  )}
                 </p>
               </div>
             </div>
@@ -195,7 +204,7 @@ export function PainelTopProducts({
             </span>
           </div>
 
-          {/* Lista Limpa de Status de Estoque (Sem Síndrome de Box-in-a-box) */}
+          {/* Lista Limpa de Status de Estoque */}
           <div className="mt-5 space-y-3">
             {/* Status 1: Esgotadas */}
             <div className="flex items-center justify-between py-2 border-b border-border/50">
