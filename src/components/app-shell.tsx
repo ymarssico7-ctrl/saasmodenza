@@ -311,42 +311,80 @@ function ModeToggle({
   mode,
   onChange,
   businessModel = "hibrida",
+  badgeCount = 0,
 }: {
   mode: "gestao" | "loja";
   onChange: (mode: "gestao" | "loja") => void;
   businessModel?: BusinessModel;
+  badgeCount?: number;
 }) {
   const isOnlineOnly = businessModel === "online";
+  // Determina se o primeiro botão (da esquerda) está ativo
+  const isFirstActive = isOnlineOnly ? mode === "loja" : mode === "gestao";
 
   return (
-    <div className="mx-1 mb-5 mt-1 flex rounded-2xl bg-surface-muted p-1 gap-1">
+    <div className="relative mx-1 mb-5 mt-1 flex rounded-2xl bg-surface-muted p-1 border border-border/50 select-none">
+      {/* Indicador Deslizante com Física Suave Apple (Spring-like easing) */}
+      <div
+        className={cn(
+          "absolute inset-y-1 w-[calc(50%-4px)] rounded-xl bg-card shadow-xs border border-border/60 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none",
+          isFirstActive ? "left-1" : "left-[calc(50%+2px)]",
+        )}
+      />
+
+      {/* Botão 1: 'Loja Online' (se 100% digital) ou 'Gestão' (se híbrida) */}
       <button
         type="button"
         onClick={() => onChange(isOnlineOnly ? "loja" : "gestao")}
         className={cn(
-          "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer",
+          "relative z-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer active:scale-[0.98]",
           (isOnlineOnly ? mode === "loja" : mode === "gestao")
-            ? "bg-white dark:bg-card shadow-sm text-foreground"
+            ? "text-foreground font-semibold"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
-        {isOnlineOnly ? "🌐 Loja Online" : "🏢 Gestão"}
+        {isOnlineOnly ? (
+          <>
+            <span>🌐 Loja Online</span>
+            {badgeCount > 0 && (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-xs animate-pulse">
+                {badgeCount > 9 ? "9+" : badgeCount}
+              </span>
+            )}
+          </>
+        ) : (
+          "🏢 Gestão"
+        )}
       </button>
+
+      {/* Botão 2: 'Gestão' (se 100% digital) ou 'Loja Online' (se híbrida) */}
       <button
         type="button"
         onClick={() => onChange(isOnlineOnly ? "gestao" : "loja")}
         className={cn(
-          "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer",
+          "relative z-10 flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer active:scale-[0.98]",
           (isOnlineOnly ? mode === "gestao" : mode === "loja")
-            ? "bg-white dark:bg-card shadow-sm text-foreground"
+            ? "text-foreground font-semibold"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
-        {isOnlineOnly ? "📊 Gestão" : "🌐 Loja Online"}
+        {isOnlineOnly ? (
+          "📊 Gestão"
+        ) : (
+          <>
+            <span>🌐 Loja Online</span>
+            {badgeCount > 0 && (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-xs animate-pulse">
+                {badgeCount > 9 ? "9+" : badgeCount}
+              </span>
+            )}
+          </>
+        )}
       </button>
     </div>
   );
 }
+
 
 // Main AppShell
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -485,29 +523,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Alternador de modo (pílula Apple) — visível apenas quando vitrine está ativa */}
         {vitrineAtiva && (
           <div className="mt-5">
-            <ModeToggle mode={sidebarMode} onChange={handleModeChange} businessModel={businessModel} />
+            <ModeToggle
+              mode={sidebarMode}
+              onChange={handleModeChange}
+              businessModel={businessModel}
+              badgeCount={pendingOrderCount}
+            />
           </div>
         )}
 
-
-        {/* Navegação plana com seções visuais */}
+        {/* Navegação plana com seções visuais e transição fluida */}
         <nav className={cn("flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]", vitrineAtiva ? "mt-0" : "mt-6")}>
-          {mainNav.map((item) => (
-            <div key={item.to} className="flex flex-col">
-              {item.section && (
-                <div className="px-4 pt-4 pb-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                    {item.section}
-                  </p>
-                </div>
-              )}
-              <NavItemLink
-                item={item}
-                active={isNavActive(item)}
-                badgeCount={getBadge(item)}
-              />
-            </div>
-          ))}
+          <div
+            key={`${sidebarMode}-${businessModel}`}
+            className="flex flex-col gap-1 animate-in fade-in-60 slide-in-from-left-1.5 duration-200 ease-out"
+          >
+            {mainNav.map((item) => (
+              <div key={item.to} className="flex flex-col">
+                {item.section && (
+                  <div className="px-4 pt-4 pb-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                      {item.section}
+                    </p>
+                  </div>
+                )}
+                <NavItemLink
+                  item={item}
+                  active={isNavActive(item)}
+                  badgeCount={getBadge(item)}
+                />
+              </div>
+            ))}
+          </div>
 
           <div className="mt-4 border-t border-sidebar-border/60 pt-2">
             <NavItemLink
@@ -516,6 +563,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           </div>
         </nav>
+
 
         {/* Banner de Trial */}
         {trialStatus === "active" && daysLeftInTrial !== null && (
@@ -592,28 +640,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Alternador de modo no overlay mobile */}
           {vitrineAtiva && (
             <div className="mb-4">
-              <ModeToggle mode={sidebarMode} onChange={handleModeChange} businessModel={businessModel} />
+              <ModeToggle
+                mode={sidebarMode}
+                onChange={handleModeChange}
+                businessModel={businessModel}
+                badgeCount={pendingOrderCount}
+              />
             </div>
           )}
 
           <nav className="flex flex-col gap-1">
-            {mainNav.map((item) => (
-              <div key={item.to} className="flex flex-col">
-                {item.section && (
-                  <div className="px-4 pt-4 pb-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                      {item.section}
-                    </p>
-                  </div>
-                )}
-                <NavItemLink
-                  item={item}
-                  active={isNavActive(item)}
-                  badgeCount={getBadge(item)}
-                  onClick={() => setMobileMenuOpen(false)}
-                />
-              </div>
-            ))}
+            <div
+              key={`${sidebarMode}-${businessModel}`}
+              className="flex flex-col gap-1 animate-in fade-in-60 slide-in-from-left-1.5 duration-200 ease-out"
+            >
+              {mainNav.map((item) => (
+                <div key={item.to} className="flex flex-col">
+                  {item.section && (
+                    <div className="px-4 pt-4 pb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                        {item.section}
+                      </p>
+                    </div>
+                  )}
+                  <NavItemLink
+                    item={item}
+                    active={isNavActive(item)}
+                    badgeCount={getBadge(item)}
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
+                </div>
+              ))}
+            </div>
             <div className="mt-3 border-t border-border/60 pt-2">
               <NavItemLink
                 item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
@@ -622,6 +680,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
             </div>
           </nav>
+
           <button
             onClick={() => void signOut()}
             className="mt-6 flex items-center gap-2 px-4 text-sm font-medium text-muted-foreground cursor-pointer"
@@ -687,28 +746,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Alternador no sheet "Mais" quando vitrine ativa */}
           {vitrineAtiva && (
             <div className="px-4 pt-4">
-              <ModeToggle mode={sidebarMode} onChange={handleModeChange} businessModel={businessModel} />
+              <ModeToggle
+                mode={sidebarMode}
+                onChange={handleModeChange}
+                businessModel={businessModel}
+                badgeCount={pendingOrderCount}
+              />
             </div>
           )}
 
-
           <nav className="flex flex-col gap-1 px-4 py-3">
-            {mobileMoreNav.map((item) => (
-              <div key={item.to} className="flex flex-col">
-                {item.section && (
-                  <div className="px-4 pt-4 pb-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                      {item.section}
-                    </p>
-                  </div>
-                )}
-                <NavItemLink
-                  item={item}
-                  active={isNavActive(item)}
-                  onClick={() => setMoreSheetOpen(false)}
-                />
-              </div>
-            ))}
+            <div
+              key={`${sidebarMode}-${businessModel}`}
+              className="flex flex-col gap-1 animate-in fade-in-60 slide-in-from-left-1.5 duration-200 ease-out"
+            >
+              {mobileMoreNav.map((item) => (
+                <div key={item.to} className="flex flex-col">
+                  {item.section && (
+                    <div className="px-4 pt-4 pb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                        {item.section}
+                      </p>
+                    </div>
+                  )}
+                  <NavItemLink
+                    item={item}
+                    active={isNavActive(item)}
+                    onClick={() => setMoreSheetOpen(false)}
+                  />
+                </div>
+              ))}
+            </div>
             <div className="mt-3 border-t border-border/40 pt-2">
               <NavItemLink
                 item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
@@ -717,6 +785,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
             </div>
           </nav>
+
           <div className="px-8 py-4 border-t border-border/40">
             <button
               onClick={() => {
