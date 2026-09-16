@@ -178,6 +178,7 @@ function Painel() {
 
   const refunds = sumByCategories(current, "saida", REFUND_CATEGORIES);
   const netRevenue = revenue - refunds;
+  const totalExpenses = sumBy(current, "saida");
 
   // Segregação contábil homogênea com relatorio.tsx:
   const opexExclusions = new Set([
@@ -513,18 +514,21 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento, Sobra no Caixa, Loja Física, Vitrine Online) ── */}
+      {/* ── 1. BENTO BOX KPIS (Faturamento Total, Despesas do Mês, Sobra no Caixa, Peças Vendidas) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
         prevRevenue={prevRevenue}
         refunds={refunds}
+        totalExpenses={totalExpenses}
         profit={profit}
         operatingProfit={operatingProfit}
         marginPct={marginPct}
         fisicaRevenue={fisicaRevenue}
         onlineRevenue={onlineRevenue}
         vitrineAtiva={vitrineAtiva}
+        totalPecasVendidas={totalPecasVendidas}
+        ticketMedio={ticketMedio}
         pedidosNovosCount={pedidosNovosCount}
         pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
         ocultarSaldos={ocultarSaldos}
