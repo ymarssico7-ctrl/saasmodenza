@@ -45,7 +45,9 @@ export function PainelTopProducts({
   ocultarSaldos,
   mascaraSaldo,
 }: PainelTopProductsProps) {
-  const hasProducts = topProducts.length > 0;
+  // Apenas considera que tem produtos se houver ao menos 1 peça vendida
+  const activeSellers = topProducts.filter((p) => p.soldCount > 0);
+  const hasProducts = activeSellers.length > 0;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
@@ -79,29 +81,29 @@ export function PainelTopProducts({
             </Button>
           </div>
 
-          {/* Lista de Peças */}
+          {/* Lista de Peças Campeãs */}
           {!hasProducts ? (
-            <div className="flex h-[240px] flex-col items-center justify-center gap-3 text-center p-6 mt-4">
+            <div className="flex h-[240px] flex-col items-center justify-center gap-3 text-center p-6 mt-4 rounded-2xl border border-dashed border-border/70 bg-secondary/20">
               <div className="grid size-12 place-items-center rounded-2xl bg-secondary/80 text-muted-foreground">
                 <Shirt className="size-6 text-primary" />
               </div>
               <div className="max-w-xs space-y-1">
                 <p className="text-sm font-semibold text-foreground">
-                  Nenhuma venda computada ainda
+                  Aguardando primeiras vendas do mês
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Conforme suas vendas no balcão e na vitrine online forem registradas, o ranking das roupas mais vendidas surgirá aqui.
+                  Conforme suas vendas forem registradas no balcão ou na vitrine online, suas roupas campeãs surgirão aqui com foto e receita gerada.
                 </p>
               </div>
               <Button asChild variant="outline" size="sm" className="rounded-full text-xs font-medium mt-1">
-                <Link to="/estoque">
-                  <Plus className="size-3.5 mr-1" /> Cadastrar nova peça
+                <Link to="/caixa">
+                  <Plus className="size-3.5 mr-1" /> Registrar venda no caixa
                 </Link>
               </Button>
             </div>
           ) : (
             <div className="mt-5 divide-y divide-border/60">
-              {topProducts.slice(0, 5).map((item, index) => {
+              {activeSellers.slice(0, 5).map((item, index) => {
                 const isOutOfStock = item.totalStock <= 0;
                 const isLowStock = item.totalStock > 0 && item.totalStock < 3;
 
@@ -113,8 +115,19 @@ export function PainelTopProducts({
                     {/* Imagem + Nome + Info */}
                     <div className="flex min-w-0 items-center gap-3.5">
                       {/* Ranking # */}
-                      <span className="num-display w-4 text-center text-xs font-bold text-muted-foreground/80">
-                        {index + 1}
+                      <span
+                        className={cn(
+                          "num-display w-5 text-center text-xs font-bold shrink-0",
+                          index === 0
+                            ? "text-amber-500 font-extrabold"
+                            : index === 1
+                              ? "text-slate-400 font-bold"
+                              : index === 2
+                                ? "text-amber-700 font-bold"
+                                : "text-muted-foreground/80",
+                        )}
+                      >
+                        #{index + 1}
                       </span>
 
                       {/* Foto ou Thumbnail elegante */}
@@ -127,8 +140,8 @@ export function PainelTopProducts({
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
-                          <div className="grid h-full w-full place-items-center text-muted-foreground/60 bg-gradient-to-br from-secondary to-muted">
-                            <Shirt className="size-6" />
+                          <div className="grid h-full w-full place-items-center text-muted-foreground/60 bg-gradient-to-br from-primary/10 via-secondary to-muted">
+                            <Shirt className="size-6 text-primary/60" />
                           </div>
                         )}
                       </div>
@@ -162,7 +175,7 @@ export function PainelTopProducts({
                     {/* Vendas & Receita */}
                     <div className="shrink-0 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                           {item.soldCount} {item.soldCount === 1 ? "peça" : "peças"}
                         </span>
                       </div>

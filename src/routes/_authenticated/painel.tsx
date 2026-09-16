@@ -85,7 +85,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
       {
         name: "description",
         content:
-          "Visão geral integrada do seu varejo de moda: faturamento, divisão físico e online, peças vendidas, pedidos e estoque.",
+          "Visão geral integrada do seu varejo de moda: faturamento, lucro real, divisão físico e online, peças vendidas, pedidos e estoque.",
       },
       { property: "og:title", content: "Painel — Vestui" },
       {
@@ -205,21 +205,42 @@ function Painel() {
     };
   }, [storeId, store?.metadata]);
 
-  // ── Normalização de Pedidos ───────────────────────────────────────────────
+  // ── Normalização de Pedidos com Filtro Temporal Estrito ───────────────────
   const orders = React.useMemo(() => {
     return (rawOrders || []) as Array<{
       id: string;
       status?: string;
       total?: number;
       created_at?: string;
+      criadoEm?: string;
       itens?: Array<{ produtoId?: string; nome?: string; qtd?: number; preco?: number }>;
       items?: Array<{ produtoId?: string; nome?: string; qtd?: number; preco?: number }>;
     }>;
   }, [rawOrders]);
 
-  const pedidosNovosCount = React.useMemo(() => {
-    return orders.filter((o) => o.status === "novo").length;
+  // Pedidos do mês vigente
+  const currentMonthOrders = React.useMemo(() => {
+    return orders.filter((o) => {
+      const dt = o.created_at || o.criadoEm || "";
+      return dt.slice(0, 7) === thisMonth.slice(0, 7);
+    });
+  }, [orders, thisMonth]);
+
+  // Pedidos ativos no mês (exclui cancelados)
+  const activeMonthOrders = React.useMemo(() => {
+    return currentMonthOrders.filter((o) => o.status !== "cancelado");
+  }, [currentMonthOrders]);
+
+  // Pedidos novos aguardando separação
+  const pedidosNovos = React.useMemo(() => {
+    return orders.filter((o) => o.status === "novo");
   }, [orders]);
+
+  const pedidosNovosCount = pedidosNovos.length;
+  const pedidosNovosValor = pedidosNovos.reduce(
+    (acc, o) => acc + (Number(o.total) || 0),
+    0,
+  );
 
   const pedidosEmSeparacaoCount = React.useMemo(() => {
     return orders.filter((o) => o.status === "em_separacao").length;
@@ -251,15 +272,23 @@ function Painel() {
   const stockPurchases = sumByCategories(current, "saida", STOCK_PURCHASE_CATEGORIES);
   const profit = operatingProfit - stockPurchases - prolaboreAmount;
 
+  const marginPct = React.useMemo(() => {
+    if (netRevenue <= 0) return 0;
+    return (operatingProfit / netRevenue) * 100;
+  }, [operatingProfit, netRevenue]);
+
   const prevRevenue = sumBy(previous, "entrada");
 
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(1, daysInMonth - now.getDate());
   const projection = projectMonth(netRevenue, now.getDate(), daysInMonth);
 
   const goal = goals.find((g) => g.month.slice(0, 7) === thisMonth.slice(0, 7));
   const goalTarget = Number(goal?.target_amount ?? 0);
   const goalProgress = goalTarget > 0 ? Math.min((netRevenue / goalTarget) * 100, 100) : 0;
+  const remainingGoal = Math.max(0, goalTarget - netRevenue);
+  const dailyTarget = goalTarget > 0 && remainingGoal > 0 ? remainingGoal / daysRemaining : 0;
 
   const openCredits = credits.filter(
     (c) =>
@@ -274,7 +303,7 @@ function Painel() {
   );
   const overdue = openCredits.filter((c) => c.due_date < today).length;
 
-  // ── Peças Vendidas, Best Sellers & Saúde de Estoque ───────────────────────
+  // ── Peças Vendidas, Best Sellers & Saúde de Estoque (Reconciliado) ────────
   const { totalPecasVendidas, topProducts, outOfStockCount, lowStockCount, totalCatalogItems } =
     React.useMemo(() => {
       type InvItem = {
@@ -314,20 +343,16 @@ function Painel() {
         if (stock === 0) outOfStock++;
         else if (stock < 3) lowStock++;
 
-        const price = Number(item.sale_price ?? 0);
-        const initialSold = Number(item.sold_this_month ?? 0);
-
         salesMap[item.id] = {
           item,
-          soldCount: initialSold,
-          revenue: initialSold * price,
+          soldCount: 0,
+          revenue: 0,
           totalStock: stock,
         };
       }
 
-      // Soma vendas dos pedidos da vitrine
-      for (const order of orders) {
-        if (order.status === "cancelado") continue;
+      // 1) Peças vendidas nos pedidos da vitrine DO MÊS ATUAL
+      for (const order of activeMonthOrders) {
         const list = order.itens ?? order.items ?? [];
         for (const it of list) {
           const pId = it.produtoId;
@@ -349,9 +374,9 @@ function Painel() {
         }
       }
 
-      // Soma transações do caixa com peças vinculadas
+      // 2) Peças vendidas no balcão físico do mês (evita duplicar com venda_online que já veio de orders)
       for (const t of current) {
-        if (t.kind === "entrada") {
+        if (t.kind === "entrada" && t.category !== "venda_online") {
           const desc = (t.description || "").toLowerCase();
           for (const s of Object.values(salesMap)) {
             if (desc.includes(s.item.name.toLowerCase())) {
@@ -363,20 +388,31 @@ function Painel() {
         }
       }
 
-      let totalPecas = Object.values(salesMap).reduce((acc, s) => acc + s.soldCount, 0);
-
-      // Fallback: se houver entradas de venda no caixa mas sem vínculo de peça cadastrada
-      const totalEntradasVenda = current.filter(
-        (t) =>
-          t.kind === "entrada" &&
-          (t.category === "venda_produto" || t.category === "venda_online"),
-      ).length;
-      if (totalPecas === 0 && totalEntradasVenda > 0) {
-        totalPecas = totalEntradasVenda;
+      // 3) Fallback se não há vendas detectadas mas o banco possui sold_this_month
+      const anySales = Object.values(salesMap).some((s) => s.soldCount > 0);
+      if (!anySales) {
+        for (const item of invItems) {
+          const initSold = Number(item.sold_this_month ?? 0);
+          const target = salesMap[item.id];
+          if (initSold > 0 && target) {
+            target.soldCount += initSold;
+            target.revenue += initSold * Number(item.sale_price ?? 0);
+          }
+        }
       }
 
-      // Lista ordenada das mais vendidas
-      let listTop: TopProductItem[] = Object.values(salesMap)
+      let totalPecas = Object.values(salesMap).reduce((acc, s) => acc + s.soldCount, 0);
+
+      // Fallback: se houver entradas de venda no balcão sem vínculo de peça cadastrada
+      const totalEntradasBalcao = current.filter(
+        (t) => t.kind === "entrada" && t.category === "venda_produto",
+      ).length;
+      if (totalPecas === 0 && totalEntradasBalcao > 0) {
+        totalPecas = totalEntradasBalcao;
+      }
+
+      // Lista ordenada das peças mais vendidas (apenas com soldCount > 0 para integridade de dados)
+      const listTop: TopProductItem[] = Object.values(salesMap)
         .filter((s) => s.soldCount > 0)
         .sort((a, b) => b.soldCount - a.soldCount || b.revenue - a.revenue)
         .map((s) => {
@@ -387,36 +423,13 @@ function Painel() {
             name: s.item.name,
             category: s.item.category,
             price: Number(s.item.sale_price ?? 0),
-            photoUrl: s.item.photo_url ?? s.item.image_url ?? null,
+            photoUrl: s.item.photo_url ?? s.item.image_url ?? undefined,
             soldCount: s.soldCount,
             revenue: s.revenue,
             totalStock: s.totalStock,
             sizesSummary: sizesList.length > 0 ? `Tam: ${sizesList.join(", ")}` : undefined,
           };
         });
-
-      // Se for loja nova/demo sem histórico de vendas mas com produtos cadastrados, exibe primeiros itens com estoque
-      if (listTop.length === 0 && invItems.length > 0) {
-        listTop = invItems.slice(0, 5).map((item) => {
-          const sizes = (item.sizes ?? {}) as Record<string, number>;
-          const stock = Object.values(sizes).reduce(
-            (a, b) => a + (Math.round(Number(b)) || 0),
-            0,
-          );
-          const sizesList = Object.keys(sizes).filter((k) => (Number(sizes[k]) || 0) > 0);
-          return {
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            price: Number(item.sale_price ?? 0),
-            photoUrl: item.photo_url ?? item.image_url ?? null,
-            soldCount: 0,
-            revenue: 0,
-            totalStock: stock,
-            sizesSummary: sizesList.length > 0 ? `Tam: ${sizesList.join(", ")}` : undefined,
-          };
-        });
-      }
 
       return {
         totalPecasVendidas: totalPecas,
@@ -425,18 +438,16 @@ function Painel() {
         lowStockCount: lowStock,
         totalCatalogItems: invItems.length,
       };
-    }, [inventory, orders, current]);
+    }, [inventory, activeMonthOrders, current]);
 
-  // ── Ticket Médio e Total de Vendas ────────────────────────────────────────
+  // ── Ticket Médio e Total de Vendas (Reconciliado) ─────────────────────────
   const totalVendasCount = React.useMemo(() => {
-    const entradasVendas = current.filter(
-      (t) =>
-        t.kind === "entrada" &&
-        (t.category === "venda_produto" || t.category === "venda_online"),
+    const entradasBalcao = current.filter(
+      (t) => t.kind === "entrada" && t.category !== "venda_online",
     ).length;
-    const onlineOrdersCount = orders.filter((o) => o.status !== "cancelado").length;
-    return Math.max(entradasVendas, onlineOrdersCount);
-  }, [current, orders]);
+    const onlineOrdersCount = activeMonthOrders.length;
+    return entradasBalcao + onlineOrdersCount;
+  }, [current, activeMonthOrders]);
 
   const ticketMedio = React.useMemo(() => {
     if (totalVendasCount > 0 && revenue > 0) {
@@ -539,8 +550,8 @@ function Painel() {
           title={`Olá, ${greetingName}`}
           description={
             hasCustomStore
-              ? `Aqui está o centro de gestão da sua loja (${rawStore}) hoje.`
-              : "Aqui está o centro de gestão da sua loja hoje."
+              ? `Aqui está o centro de comando da sua loja (${rawStore}) hoje.`
+              : "Aqui está o centro de comando da sua loja hoje."
           }
           action={
             <div className="flex shrink-0 items-center gap-2">
@@ -576,7 +587,7 @@ function Painel() {
           }
         />
 
-        {/* Pill Integrado da Vitrine Online (Substitui a antiga barra cinza isolada) */}
+        {/* Pill Integrado da Vitrine Online */}
         {vitrineAtiva && (
           <div className="pt-1">
             <PainelVitrinePill
@@ -600,12 +611,15 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento, Split Físico x Online, Peças, Live Pedidos) ── */}
+      {/* ── 1. BENTO BOX KPIS (Faturamento, Sobra no Caixa, Peças, Omnichannel/Live) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
         prevRevenue={prevRevenue}
         refunds={refunds}
+        profit={profit}
+        operatingProfit={operatingProfit}
+        marginPct={marginPct}
         fisicaRevenue={fisicaRevenue}
         onlineRevenue={onlineRevenue}
         totalPecasVendidas={totalPecasVendidas}
@@ -614,6 +628,7 @@ function Painel() {
         vitrineAtiva={vitrineAtiva}
         pedidosNovosCount={pedidosNovosCount}
         pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
+        pedidosNovosValor={pedidosNovosValor}
         ocultarSaldos={ocultarSaldos}
         mascaraSaldo={mascaraSaldo}
       />
@@ -630,20 +645,24 @@ function Painel() {
 
       {/* ── 3. EVOLUÇÃO FINANCEIRA & METAS ────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        {/* Gráfico de Evolução 6 Meses */}
+        {/* Gráfico de Evolução 6 Meses com Legenda Visual */}
         <section className="panel p-6 sm:p-7">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-base font-semibold">Evolução dos últimos 6 meses</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Faturamento e lucro líquido retido por mês
               </p>
             </div>
-            {onlineRevenue > 0 && !ocultarSaldos && (
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                {brl(onlineRevenue)} via vitrine
+            {/* Legenda visual elegante (Padrão Apple) */}
+            <div className="flex items-center gap-3 self-start sm:self-auto">
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <span className="size-2 rounded-full bg-primary" /> Faturamento
               </span>
-            )}
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <span className="size-2 rounded-full bg-emerald-500" /> Sobra Líquida
+              </span>
+            </div>
           </div>
           {totalHistorico === 0 ? (
             <div className="flex h-[260px] flex-col items-center justify-center gap-3 text-center p-6">
@@ -725,21 +744,39 @@ function Painel() {
           )}
         </section>
 
-        {/* Coluna Direita: Meta do Mês + Fiados a Receber */}
+        {/* Coluna Direita: Meta Comercial Ativa + Fiados a Receber */}
         <div className="space-y-4">
           <section className="panel p-6">
-            <div className="flex items-center gap-2">
-              <Target className="size-4 text-primary" />
-              <h2 className="text-sm font-semibold">Meta do mês</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="size-4 text-primary" />
+                <h2 className="text-sm font-semibold">Meta do mês</h2>
+              </div>
+              {goalTarget > 0 && (
+                <span className="num-display text-xs font-semibold text-primary">
+                  {pct(goalProgress)}
+                </span>
+              )}
             </div>
+
             {goalTarget > 0 ? (
               <>
-                <p className="numeric mt-4 text-2xl font-semibold">{mascaraSaldo(netRevenue)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">de {mascaraSaldo(goalTarget)}</p>
-                <Progress value={goalProgress} className="mt-4 h-2" />
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {pct(goalProgress)} da meta alcançada
-                </p>
+                <p className="numeric mt-3 text-2xl font-semibold">{mascaraSaldo(netRevenue)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">de {mascaraSaldo(goalTarget)}</p>
+                <Progress value={goalProgress} className="mt-3.5 h-2" />
+                <div className="mt-3 pt-2.5 border-t border-border/60 text-xs text-muted-foreground">
+                  {remainingGoal > 0 ? (
+                    <p className="leading-relaxed">
+                      Faltam <strong className="text-foreground">{mascaraSaldo(remainingGoal)}</strong> em{" "}
+                      {daysRemaining} dia{daysRemaining !== 1 ? "s" : ""} · Ritmo:{" "}
+                      <strong className="text-foreground">{mascaraSaldo(dailyTarget)}/dia</strong>
+                    </p>
+                  ) : (
+                    <p className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      🎉 Parabéns! Meta do mês superada!
+                    </p>
+                  )}
+                </div>
               </>
             ) : (
               <div className="mt-4">
@@ -754,30 +791,36 @@ function Painel() {
           </section>
 
           <section className="panel p-6">
-            <div className="flex items-center gap-2">
-              <Users className="size-4 text-primary" />
-              <h2 className="text-sm font-semibold">Fiado em aberto</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="size-4 text-primary" />
+                <h2 className="text-sm font-semibold">Fiado em aberto</h2>
+              </div>
+              {overdue > 0 && (
+                <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                  {overdue} vencido{overdue !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
-            <p className="numeric mt-4 text-2xl font-semibold">{mascaraSaldo(openCreditTotal)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {openCredits.length} pendente(s)
-              {overdue > 0 ? ` · ${overdue} vencido(s)` : ""}
+            <p className="numeric mt-3 text-2xl font-semibold">{mascaraSaldo(openCreditTotal)}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {openCredits.length} cliente{openCredits.length !== 1 ? "s" : ""} com saldo pendente
             </p>
-            <Button asChild variant="outline" size="sm" className="mt-4 rounded-full">
-              <Link to="/fiado">Gerenciar fiado</Link>
+            <Button asChild variant="outline" size="sm" className="mt-4 rounded-full text-xs font-medium">
+              <Link to="/fiado">Gerenciar fiado ➔</Link>
             </Button>
           </section>
         </div>
       </div>
 
-      {/* ── 4. SOBRA NO CAIXA (DRE GERENCIAL) & ÚLTIMOS LANÇAMENTOS ────────────── */}
+      {/* ── 4. DEMONSTRATIVO DE RESULTADO (DRE) & ÚLTIMOS LANÇAMENTOS ─────────── */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        {/* Últimos Lançamentos com Identificação de Canal */}
+        {/* Últimos Lançamentos com Identificação de Canal e Tipo */}
         <section className="panel p-6 sm:p-7">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold">Últimos lançamentos</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Movimentações recentes no caixa</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Movimentações recentes no caixa</p>
             </div>
             <Button
               asChild
@@ -812,21 +855,40 @@ function Painel() {
               </Button>
             </div>
           ) : (
-            <ul className="mt-5 divide-y divide-border">
+            <ul className="mt-5 divide-y divide-border/60">
               {recent.map((t) => (
                 <li key={t.id} className="flex items-center justify-between gap-4 py-3.5">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="truncate text-sm font-medium">{t.description}</p>
-                      {t.category === "venda_online" ? (
-                        <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                          Online
+                      {/* Badges Semânticos de Canal e Categoria */}
+                      {t.kind === "entrada" ? (
+                        t.category === "venda_online" ? (
+                          <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                            Online
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            Balcão
+                          </span>
+                        )
+                      ) : t.category === "estorno_devolucao" ? (
+                        <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                          Devolução
                         </span>
-                      ) : t.kind === "entrada" ? (
-                        <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          Balcão
+                      ) : t.category === "compra_estoque" ? (
+                        <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                          Estoque
                         </span>
-                      ) : null}
+                      ) : t.category === "prolabore" ? (
+                        <span className="shrink-0 rounded-full bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
+                          Pró-labore
+                        </span>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+                          Despesa
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {formatDate(t.occurred_on)}
@@ -846,14 +908,13 @@ function Painel() {
           )}
         </section>
 
-        {/* Sobra no Caixa & Atalhos */}
+        {/* Demonstrativo Gerencial do Mês (DRE) & Atalhos */}
         <div className="space-y-4">
-          {/* Card Resumo de Sobra no Caixa */}
           <section className="panel p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Wallet className="size-4 text-primary" />
-                <h2 className="text-sm font-semibold">Sobra no Caixa</h2>
+                <Receipt className="size-4 text-primary" />
+                <h2 className="text-sm font-semibold">DRE Gerencial do Mês</h2>
               </div>
               <span
                 className={cn(
@@ -863,44 +924,51 @@ function Painel() {
                     : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
                 )}
               >
-                {profit >= 0 ? "Positivo" : "Atenção"}
+                {profit >= 0 ? "Saldo Positivo" : "Saldo Negativo"}
               </span>
             </div>
 
-            <p className="numeric mt-3 text-2xl sm:text-3xl font-bold">
-              {mascaraSaldo(profit)}
-            </p>
-
-            <div className="mt-3 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-3">
+            <div className="mt-4 space-y-2 text-xs text-muted-foreground">
               <div className="flex justify-between">
-                <span>Receita líquida:</span>
+                <span>Receita bruta de vendas:</span>
+                <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(revenue)}</strong>
+              </div>
+              {refunds > 0 && (
+                <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                  <span>(−) Devoluções e estornos:</span>
+                  <span>−{ocultarSaldos ? "••••" : mascaraSaldo(refunds)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-medium pt-1 border-t border-border/40">
+                <span>Receita líquida da loja:</span>
                 <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(netRevenue)}</strong>
               </div>
-              <div className="flex justify-between">
-                <span>Despesas operacionais:</span>
-                <span className="text-rose-600 dark:text-rose-400">
-                  −{ocultarSaldos ? "••••" : mascaraSaldo(expenses)}
-                </span>
+              <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                <span>(−) Despesas operacionais (OPEX):</span>
+                <span>−{ocultarSaldos ? "••••" : mascaraSaldo(expenses)}</span>
               </div>
               {stockPurchases > 0 && (
-                <div className="flex justify-between">
-                  <span>Reinvestido em roupas:</span>
-                  <span className="text-blue-600 dark:text-blue-400">
-                    −{ocultarSaldos ? "••••" : mascaraSaldo(stockPurchases)}
-                  </span>
+                <div className="flex justify-between text-blue-600 dark:text-blue-400">
+                  <span>(−) Reinvestimento em roupas:</span>
+                  <span>−{ocultarSaldos ? "••••" : mascaraSaldo(stockPurchases)}</span>
                 </div>
               )}
               {prolaboreAmount > 0 && (
-                <div className="flex justify-between">
-                  <span>Pró-labore retirado:</span>
-                  <span className="text-purple-600 dark:text-purple-400">
-                    −{ocultarSaldos ? "••••" : mascaraSaldo(prolaboreAmount)}
-                  </span>
+                <div className="flex justify-between text-purple-600 dark:text-purple-400">
+                  <span>(−) Pró-labore da sócia:</span>
+                  <span>−{ocultarSaldos ? "••••" : mascaraSaldo(prolaboreAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-1 border-t border-border/40 font-medium">
-                <span>Projeção final do mês:</span>
-                <strong className="text-foreground">{ocultarSaldos ? "••••" : mascaraSaldo(projection)}</strong>
+              <div className="flex justify-between items-center pt-2 border-t border-border/60 font-semibold text-sm">
+                <span className="text-foreground">Sobra Líquida no Caixa:</span>
+                <strong
+                  className={cn(
+                    "numeric text-base font-bold",
+                    profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                  )}
+                >
+                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(profit)}
+                </strong>
               </div>
             </div>
           </section>
@@ -922,7 +990,7 @@ function Painel() {
               <Shortcut
                 to="/relatorio"
                 icon={<TrendingUp className="size-4" />}
-                label="Ver relatório financeiro"
+                label="Ver relatório contábil"
               />
             </div>
           </section>

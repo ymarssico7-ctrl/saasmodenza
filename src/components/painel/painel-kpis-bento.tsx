@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
+  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { brl } from "@/lib/format";
@@ -20,6 +21,9 @@ export interface PainelKpisBentoProps {
   netRevenue: number;
   prevRevenue: number;
   refunds: number;
+  profit: number;
+  operatingProfit: number;
+  marginPct: number;
   fisicaRevenue: number;
   onlineRevenue: number;
   totalPecasVendidas: number;
@@ -28,6 +32,7 @@ export interface PainelKpisBentoProps {
   vitrineAtiva: boolean;
   pedidosNovosCount: number;
   pedidosEmSeparacaoCount: number;
+  pedidosNovosValor?: number;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
 }
@@ -37,6 +42,9 @@ export function PainelKpisBento({
   netRevenue,
   prevRevenue,
   refunds,
+  profit,
+  operatingProfit,
+  marginPct,
   fisicaRevenue,
   onlineRevenue,
   totalPecasVendidas,
@@ -45,6 +53,7 @@ export function PainelKpisBento({
   vitrineAtiva,
   pedidosNovosCount,
   pedidosEmSeparacaoCount,
+  pedidosNovosValor = 0,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelKpisBentoProps) {
@@ -60,7 +69,7 @@ export function PainelKpisBento({
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {/* ── CARD 1: Faturamento do Mês ────────────────────────────────────────── */}
-      <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift">
+      <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -80,7 +89,7 @@ export function PainelKpisBento({
             <p className="text-xs text-muted-foreground font-mono">••••••••••••</p>
           ) : (
             <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex items-center gap-1.5 text-xs flex-wrap">
                 {prevRevenue > 0 && (
                   <span
                     className={cn(
@@ -111,86 +120,66 @@ export function PainelKpisBento({
         </div>
       </div>
 
-      {/* ── CARD 2: Split de Canais (Físico vs Online) ─────────────────────────── */}
-      <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift">
+      {/* ── CARD 2: Sobra no Caixa (Lucro Real no Bolso) ────────────────────────── */}
+      <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Divisão de Canais
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {vitrineAtiva ? "Balcão físico vs Vitrine online" : "Balcão da loja física"}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Sobra no Caixa
+              </p>
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider",
+                  profit >= 0
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+                )}
+              >
+                {profit >= 0 ? "Positivo" : "Atenção"}
+              </span>
+            </div>
+            <h3
+              className={cn(
+                "numeric mt-2 text-2xl sm:text-3xl font-bold tracking-tight",
+                profit >= 0 ? "text-foreground" : "text-rose-600 dark:text-rose-400",
+              )}
+            >
+              {mascaraSaldo(profit)}
+            </h3>
           </div>
-          <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground shadow-2xs">
-            <Store className="size-5" />
+          <div
+            className={cn(
+              "grid size-10 shrink-0 place-items-center rounded-2xl shadow-2xs",
+              profit >= 0
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+            )}
+          >
+            <TrendingUp className="size-5" />
           </div>
         </div>
 
-        <div className="mt-4 space-y-2.5">
-          {/* Métricas por canal */}
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="size-2 rounded-full bg-foreground shrink-0" />
-              <span className="text-muted-foreground truncate">Loja Física:</span>
-              <strong className="text-foreground shrink-0">
-                {ocultarSaldos ? "••••" : mascaraSaldo(fisicaRevenue)}
-              </strong>
-            </div>
-            {totalCanais > 0 && vitrineAtiva && (
-              <span className="num-display font-semibold text-xs text-muted-foreground">
-                {fisicaPct}%
-              </span>
-            )}
-          </div>
-
-          {vitrineAtiva && (
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="size-2 rounded-full bg-primary shrink-0" />
-                <span className="text-muted-foreground truncate">Vitrine Online:</span>
-                <strong className="text-foreground shrink-0">
-                  {ocultarSaldos ? "••••" : mascaraSaldo(onlineRevenue)}
-                </strong>
-              </div>
-              {totalCanais > 0 && (
-                <span className="num-display font-semibold text-xs text-primary">
-                  {onlinePct}%
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Barra de Progresso Segmentada em 2 cores */}
-          {vitrineAtiva ? (
-            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex shadow-inner">
-              {totalCanais === 0 ? (
-                <div className="h-full w-full bg-border" />
-              ) : (
-                <>
-                  <div
-                    className="h-full bg-foreground transition-all duration-500"
-                    style={{ width: `${fisicaPct}%` }}
-                    title={`Física: ${fisicaPct}%`}
-                  />
-                  <div
-                    className="h-full bg-primary transition-all duration-500"
-                    style={{ width: `${onlinePct}%` }}
-                    title={`Online: ${onlinePct}%`}
-                  />
-                </>
-              )}
-            </div>
+        <div className="mt-4 pt-3 border-t border-border/60">
+          {ocultarSaldos ? (
+            <p className="text-xs text-muted-foreground font-mono">••••••••••••</p>
           ) : (
-            <div className="pt-2 text-xs text-muted-foreground">
-              <span>100% das vendas registradas no balcão.</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                {netRevenue > 0
+                  ? `Margem de ${marginPct.toFixed(0)}% na operação`
+                  : "Sem movimentação"}
+              </span>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                Livre pós-despesas
+              </span>
             </div>
           )}
         </div>
       </div>
 
       {/* ── CARD 3: Peças Vendidas & Ticket Médio ─────────────────────────────── */}
-      <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift">
+      <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -215,17 +204,17 @@ export function PainelKpisBento({
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground truncate">
             {totalVendasCount > 0
-              ? `${totalVendasCount} venda${totalVendasCount !== 1 ? "s" : ""} realizada${totalVendasCount !== 1 ? "s" : ""} no mês`
+              ? `${totalVendasCount} venda${totalVendasCount !== 1 ? "s" : ""} computada${totalVendasCount !== 1 ? "s" : ""} no mês`
               : "Nenhuma venda registrada ainda"}
           </p>
         </div>
       </div>
 
-      {/* ── CARD 4: Centro de Ação da Loja Online / Live Orders ────────────────── */}
+      {/* ── CARD 4: Canais Omnichannel & Pedidos Live ──────────────────────────── */}
       {vitrineAtiva ? (
         pedidosNovosCount > 0 ? (
           /* Alerta Pulsante: Pedidos Novos Aguardando Separação */
-          <div className="panel relative flex flex-col justify-between p-6 border-rose-500/30 bg-gradient-to-br from-rose-500/5 via-card to-card transition-all duration-300 hover:shadow-lift ring-1 ring-rose-500/20">
+          <div className="panel relative flex flex-col justify-between p-6 border-rose-500/30 bg-gradient-to-br from-rose-500/5 via-card to-card transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 ring-1 ring-rose-500/20">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-1.5">
@@ -250,8 +239,10 @@ export function PainelKpisBento({
             </div>
 
             <div className="mt-4 pt-3 border-t border-rose-500/15 flex items-center justify-between">
-              <span className="text-xs text-rose-700/80 dark:text-rose-300 truncate">
-                Aguardando separação
+              <span className="text-xs text-rose-700/90 dark:text-rose-300 truncate">
+                {pedidosNovosValor > 0 && !ocultarSaldos
+                  ? `${brl(pedidosNovosValor)} a confirmar`
+                  : "Aguardando separação"}
               </span>
               <Button
                 asChild
@@ -264,72 +255,98 @@ export function PainelKpisBento({
               </Button>
             </div>
           </div>
-        ) : pedidosEmSeparacaoCount > 0 ? (
-          /* Pedidos em separação */
-          <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift">
+        ) : (
+          /* Split de Canais Físico vs Online com Live Status da Vitrine */
+          <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Vitrine Online
+                  Divisão de Canais
                 </p>
-                <h3 className="numeric mt-2 text-2xl sm:text-3xl font-bold text-foreground">
-                  {pedidosEmSeparacaoCount}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">em preparo</span>
-                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Balcão vs Vitrine Online
+                </p>
               </div>
-              <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-foreground shadow-2xs">
-                <ShoppingBag className="size-5" />
+              <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground shadow-2xs">
+                <Store className="size-5" />
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Prontos para despacho</span>
-              <Button asChild variant="ghost" size="sm" className="h-7 text-xs px-2 text-primary">
-                <Link to="/loja/pedidos">
-                  Ver pedidos <ChevronRight className="size-3.5 ml-0.5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        ) : (
-          /* Tudo em dia na vitrine */
-          <div className="panel relative flex flex-col justify-between p-6 transition-all duration-300 hover:shadow-lift">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-emerald-500" />
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Vitrine Online
-                  </p>
+            <div className="mt-3 space-y-2">
+              {/* Métricas por canal */}
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="size-2 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0" />
+                  <span className="text-muted-foreground truncate">Balcão:</span>
+                  <strong className="text-foreground shrink-0">
+                    {ocultarSaldos ? "••••" : mascaraSaldo(fisicaRevenue)}
+                  </strong>
                 </div>
-                <p className="mt-2 text-base font-semibold text-foreground">Tudo em dia!</p>
+                {totalCanais > 0 && (
+                  <span className="num-display font-semibold text-xs text-muted-foreground">
+                    {fisicaPct}%
+                  </span>
+                )}
               </div>
-              <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <PackageCheck className="size-5" />
+
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="size-2 rounded-full bg-primary shrink-0" />
+                  <span className="text-muted-foreground truncate">Online:</span>
+                  <strong className="text-foreground shrink-0">
+                    {ocultarSaldos ? "••••" : mascaraSaldo(onlineRevenue)}
+                  </strong>
+                </div>
+                {totalCanais > 0 && (
+                  <span className="num-display font-semibold text-xs text-primary">
+                    {onlinePct}%
+                  </span>
+                )}
+              </div>
+
+              {/* Barra de Progresso Segmentada em 2 cores */}
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex shadow-inner">
+                {totalCanais === 0 ? (
+                  <div className="h-full w-full bg-border" />
+                ) : (
+                  <>
+                    <div
+                      className="h-full bg-slate-500 dark:bg-slate-400 transition-all duration-500"
+                      style={{ width: `${fisicaPct}%` }}
+                      title={`Balcão Físico: ${fisicaPct}%`}
+                    />
+                    <div
+                      className="h-full bg-primary transition-all duration-500"
+                      style={{ width: `${onlinePct}%` }}
+                      title={`Vitrine Online: ${onlinePct}%`}
+                    />
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                {onlineRevenue > 0 ? (
-                  <>
-                    Online: <strong>{ocultarSaldos ? "••••" : mascaraSaldo(onlineRevenue)}</strong>
-                  </>
-                ) : (
-                  "Nenhum pedido pendente"
-                )}
-              </span>
-              <Button asChild variant="ghost" size="sm" className="h-7 text-xs px-2 text-primary">
-                <Link to="/loja/pedidos">
-                  Abrir <ChevronRight className="size-3.5 ml-0.5" />
+            {/* Footer de status da vitrine */}
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              {pedidosEmSeparacaoCount > 0 ? (
+                <Link to="/loja/pedidos" className="text-primary font-medium hover:underline flex items-center gap-1">
+                  <span>{pedidosEmSeparacaoCount} em separação</span>
+                  <ChevronRight className="size-3" />
                 </Link>
-              </Button>
+              ) : (
+                <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <PackageCheck className="size-3.5" />
+                  <span>Vitrine em dia</span>
+                </div>
+              )}
+              <Link to="/loja" className="text-muted-foreground hover:text-foreground transition-colors">
+                Gerenciar ➔
+              </Link>
             </div>
           </div>
         )
       ) : (
         /* Vitrine inativa: convite elegante para ativar */
-        <div className="panel relative flex flex-col justify-between p-6 border-primary/25 bg-gradient-to-br from-primary/5 via-card to-card transition-all duration-300 hover:shadow-lift">
+        <div className="panel relative flex flex-col justify-between p-6 border-primary/25 bg-gradient-to-br from-primary/5 via-card to-card transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-primary">
