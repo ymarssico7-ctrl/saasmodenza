@@ -2,9 +2,9 @@ import React from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronRight,
-  Receipt,
-  Shirt,
   ShoppingBag,
+  Sparkles,
+  Store,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -35,27 +35,29 @@ export interface PainelKpisBentoProps {
 
 export function PainelKpisBento({
   revenue,
-  totalExpenses,
-  expenses = 0,
-  stockPurchases = 0,
+  refunds,
+  netRevenue,
   profit,
   marginPct,
   fisicaRevenue,
   onlineRevenue,
   vitrineAtiva,
-  totalPecasVendidas,
-  ticketMedio,
   pedidosNovosCount,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelKpisBentoProps) {
+  // Proporções dos canais
+  const totalCanais = fisicaRevenue + onlineRevenue;
+  const fisicaPct = totalCanais > 0 ? Math.round((fisicaRevenue / totalCanais) * 100) : 100;
+  const onlinePct = totalCanais > 0 ? 100 - fisicaPct : 0;
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {/* ── CARD 1: Faturamento Total (com split Balcão + Vitrine) ───────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
+      {/* ── CARD 1: Faturamento Geral (Consolidado) ──────────────────────────── */}
+      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Faturamento Total
+            Faturamento Geral
           </span>
           <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-foreground shadow-2xs">
             <Wallet className="size-4.5" />
@@ -67,68 +69,130 @@ export function PainelKpisBento({
             {mascaraSaldo(revenue)}
           </h3>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Balcão físico
+          <div className="mt-1 text-xs text-muted-foreground truncate">
+            {ocultarSaldos ? (
+              <span className="font-mono">••••••••</span>
+            ) : refunds > 0 ? (
+              <span>
+                Líq: <strong className="font-medium text-foreground">{brl(netRevenue)}</strong>
               </span>
-              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
-                {mascaraSaldo(fisicaRevenue)}
-              </span>
-            </div>
-
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Vitrine online
-              </span>
-              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
-                {vitrineAtiva ? mascaraSaldo(onlineRevenue) : "Desativada"}
-              </span>
-            </div>
+            ) : (
+              <span>Total consolidado da loja</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── CARD 2: Despesas do Mês (Saídas / OPEX + Estoque) ────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
+      {/* ── CARD 2: Loja Física (Balcão) ─────────────────────────────────────── */}
+      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Despesas do Mês
+            Loja Física
           </span>
-          <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-2xs">
-            <Receipt className="size-4.5" />
+          <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground shadow-2xs">
+            <Store className="size-4.5" />
           </div>
         </div>
 
         <div className="mt-3">
           <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            {mascaraSaldo(totalExpenses)}
+            {mascaraSaldo(fisicaRevenue)}
           </h3>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Contas fixas
+          <div className="mt-1 text-xs text-muted-foreground truncate">
+            {ocultarSaldos ? (
+              <span className="font-mono">••••••••</span>
+            ) : totalCanais > 0 && vitrineAtiva ? (
+              <span>
+                <strong className="font-medium text-foreground">{fisicaPct}%</strong> das vendas no balcão
               </span>
-              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
-                {mascaraSaldo(expenses)}
-              </span>
-            </div>
-
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Estoque
-              </span>
-              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
-                {mascaraSaldo(stockPurchases)}
-              </span>
-            </div>
+            ) : (
+              <span>Vendas registradas no balcão</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── CARD 3: Sobra no Caixa (Lucro Líquido Real) ───────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
+      {/* ── CARD 3: Vitrine Online (Digital) ─────────────────────────────────── */}
+      <div
+        className={cn(
+          "panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]",
+          pedidosNovosCount > 0 &&
+            "border-rose-500/30 bg-gradient-to-br from-rose-500/5 via-card to-card ring-1 ring-rose-500/20",
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Vitrine Online
+            </span>
+            {pedidosNovosCount > 0 && (
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-rose-500" />
+              </span>
+            )}
+          </div>
+
+          <div
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-2xl shadow-2xs",
+              pedidosNovosCount > 0
+                ? "bg-rose-500/10 text-rose-600"
+                : "bg-secondary text-foreground",
+            )}
+          >
+            <ShoppingBag className="size-4.5" />
+          </div>
+        </div>
+
+        <div className="mt-3">
+          {vitrineAtiva ? (
+            <>
+              <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                {mascaraSaldo(onlineRevenue)}
+              </h3>
+
+              <div className="mt-1 text-xs truncate">
+                {pedidosNovosCount > 0 ? (
+                  <Link
+                    to="/loja/pedidos"
+                    className="font-semibold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    ● {pedidosNovosCount} {pedidosNovosCount === 1 ? "pedido a separar" : "pedidos a separar"}
+                    <ChevronRight className="size-3" />
+                  </Link>
+                ) : ocultarSaldos ? (
+                  <span className="font-mono text-muted-foreground">••••••••</span>
+                ) : totalCanais > 0 ? (
+                  <span className="text-muted-foreground">
+                    <strong className="font-medium text-foreground">{onlinePct}%</strong> das vendas digitais
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Vendas no Instagram e Zap</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-bold text-muted-foreground">
+                Desativada
+              </h3>
+              <div className="mt-1 text-xs">
+                <Link
+                  to="/loja/configuracao"
+                  className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                >
+                  <Sparkles className="size-3" /> Ativar vitrine online
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── CARD 4: Sobra no Caixa (Lucro Real Líquido) ───────────────────────── */}
+      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[148px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -167,105 +231,20 @@ export function PainelKpisBento({
             {mascaraSaldo(profit)}
           </h3>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Margem livre
+          <div className="mt-1 text-xs text-muted-foreground truncate">
+            {ocultarSaldos ? (
+              <span className="font-mono">••••••••</span>
+            ) : netRevenue > 0 ? (
+              <span>
+                Margem real de{" "}
+                <strong className="font-medium text-foreground">
+                  {marginPct.toFixed(0)}%
+                </strong>{" "}
+                livre
               </span>
-              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
-                {marginPct > 0 ? `${marginPct.toFixed(0)}% real` : "0% real"}
-              </span>
-            </div>
-
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Situação
-              </span>
-              <span
-                className={cn(
-                  "block text-xs sm:text-sm font-semibold truncate",
-                  profit >= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400",
-                )}
-              >
-                {profit >= 0 ? "Lucro livre" : "Prejuízo"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── CARD 4: Peças Vendidas (Volume & Ticket Médio / Pedidos Vitrine) ─── */}
-      <div
-        className={cn(
-          "panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]",
-          pedidosNovosCount > 0 &&
-            "border-rose-500/30 bg-gradient-to-br from-rose-500/5 via-card to-card ring-1 ring-rose-500/20",
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Peças Vendidas
-            </span>
-            {pedidosNovosCount > 0 && (
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-rose-500" />
-              </span>
-            )}
-          </div>
-
-          <div
-            className={cn(
-              "grid size-9 shrink-0 place-items-center rounded-2xl shadow-2xs",
-              pedidosNovosCount > 0
-                ? "bg-rose-500/10 text-rose-600"
-                : "bg-secondary text-foreground",
-            )}
-          >
-            {pedidosNovosCount > 0 ? (
-              <ShoppingBag className="size-4.5" />
             ) : (
-              <Shirt className="size-4.5" />
+              <span>Lucro livre após despesas</span>
             )}
-          </div>
-        </div>
-
-        <div className="mt-3">
-          <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            {totalPecasVendidas} {totalPecasVendidas === 1 ? "peça" : "peças"}
-          </h3>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Ticket médio
-              </span>
-              <span className="numeric block text-xs sm:text-sm font-semibold text-foreground truncate">
-                {ocultarSaldos ? "••••••" : mascaraSaldo(ticketMedio)}
-              </span>
-            </div>
-
-            <div className="min-w-0">
-              <span className="block text-[11px] text-muted-foreground truncate">
-                Vitrine online
-              </span>
-              <div className="text-xs sm:text-sm font-semibold truncate">
-                {pedidosNovosCount > 0 ? (
-                  <Link
-                    to="/loja/pedidos"
-                    className="text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
-                  >
-                    ● {pedidosNovosCount} {pedidosNovosCount === 1 ? "pedido" : "pedidos"}
-                    <ChevronRight className="size-3" />
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground">0 pedidos</span>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
