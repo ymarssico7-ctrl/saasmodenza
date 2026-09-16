@@ -107,20 +107,18 @@ export function PainelKpisBento({
           <div className="mt-1 text-xs text-muted-foreground truncate">
             {ocultarSaldos ? (
               <span className="font-mono">••••••••</span>
-            ) : totalCanais > 0 && vitrineAtiva ? (
+            ) : (
               <span>
                 Balcão{" "}
-                <strong className="font-medium text-foreground">{brlCompact(fisicaRevenue)}</strong>
+                <strong className="font-medium text-foreground">{brl(fisicaRevenue)}</strong>
                 {" · "}Online{" "}
-                <strong className="font-medium text-foreground">{brlCompact(onlineRevenue)}</strong>
+                <strong className="font-medium text-foreground">{brl(onlineRevenue)}</strong>
+                {refunds > 0 && (
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    (Líq: {brl(netRevenue)})
+                  </span>
+                )}
               </span>
-            ) : refunds > 0 ? (
-              <span>
-                Líq:{" "}
-                <strong className="font-medium text-foreground">{brl(netRevenue)}</strong>
-              </span>
-            ) : (
-              <span>Total consolidado da loja</span>
             )}
           </div>
 
