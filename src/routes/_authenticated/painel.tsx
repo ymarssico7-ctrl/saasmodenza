@@ -514,7 +514,7 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento Total, Despesas do Mês, Sobra no Caixa, Peças Vendidas) ── */}
+      {/* ── 1. BENTO BOX KPIS (Faturamento+Meta, Saídas, Sobra no Caixa, Peças+Ticket) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
@@ -533,6 +533,9 @@ function Painel() {
         ticketMedio={ticketMedio}
         pedidosNovosCount={pedidosNovosCount}
         pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
+        goalTarget={goalTarget}
+        goalProgress={goalProgress}
+        dailyTarget={dailyTarget}
         ocultarSaldos={ocultarSaldos}
         mascaraSaldo={mascaraSaldo}
       />
