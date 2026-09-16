@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { brl } from "@/lib/format";
+import { brl, brlCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export interface PainelKpisBentoProps {
@@ -103,16 +103,16 @@ export function PainelKpisBento({
             {mascaraSaldo(revenue)}
           </h3>
 
-          {/* Sub-linha: canais ou líquido */}
+          {/* Sub-linha: R$ real por canal */}
           <div className="mt-1 text-xs text-muted-foreground truncate">
             {ocultarSaldos ? (
               <span className="font-mono">••••••••</span>
             ) : totalCanais > 0 && vitrineAtiva ? (
               <span>
                 Balcão{" "}
-                <strong className="font-medium text-foreground">{fisicaPct}%</strong>
+                <strong className="font-medium text-foreground">{brlCompact(fisicaRevenue)}</strong>
                 {" · "}Online{" "}
-                <strong className="font-medium text-foreground">{onlinePct}%</strong>
+                <strong className="font-medium text-foreground">{brlCompact(onlineRevenue)}</strong>
               </span>
             ) : refunds > 0 ? (
               <span>
