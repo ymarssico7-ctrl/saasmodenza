@@ -7,14 +7,18 @@ import {
   CircleDollarSign,
   HandCoins,
   LayoutDashboard,
+  Link2,
   LogOut,
   Menu,
   MoreHorizontal,
+  Package,
   Settings,
   ShoppingBag,
   Sparkles,
   Store,
+  Tag,
   Target,
+  Truck,
   Users,
   Wallet,
   X,
@@ -45,140 +49,237 @@ type NavItem = {
   isMatch?: (pathname: string) => boolean;
 };
 
-// ─── Navegação Dinâmica & Progressiva (Padrão Apple) ─────────────────────────
-// Se a vitrine estiver desativada: o sistema é 100% focado no balcão da loja física.
-// Se a vitrine estiver ativada: o Canal Digital surge de forma limpa e organizada.
-function getMainNav(vitrineAtiva: boolean): NavItem[] {
-  const items: NavItem[] = [
-    {
-      to: "/painel",
-      label: "Início",
-      icon: LayoutDashboard,
-      isMatch: (p) => p === "/painel",
-    },
-    {
-      to: "/caixa",
-      label: "Caixa & PDV",
-      icon: Wallet,
-      isMatch: (p) => p === "/caixa",
-    },
-  ];
+// ─── Modo Gestão — balcão físico e administração ──────────────────────────────
+const GESTAO_NAV: NavItem[] = [
+  {
+    to: "/painel",
+    label: "Início",
+    icon: LayoutDashboard,
+    isMatch: (p) => p === "/painel",
+  },
+  {
+    to: "/caixa",
+    label: "Caixa & PDV",
+    icon: Wallet,
+    isMatch: (p) => p === "/caixa",
+  },
+  {
+    to: "/estoque",
+    label: "Roupas & Estoque",
+    icon: Boxes,
+    isMatch: (p) => p.startsWith("/estoque"),
+  },
+  {
+    to: "/clientes",
+    label: "Clientes & CRM",
+    icon: Users,
+    isMatch: (p) => p.startsWith("/clientes"),
+  },
+  {
+    to: "/fiado",
+    label: "Fiado & Cobranças",
+    icon: HandCoins,
+    isMatch: (p) => p.startsWith("/fiado"),
+  },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    section: "Financeiro",
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/metas",
+    label: "Metas & Planejamento",
+    icon: Target,
+    isMatch: (p) => p.startsWith("/metas"),
+  },
+];
 
-  if (vitrineAtiva) {
-    items.push({
-      to: "/loja/pedidos",
-      label: "Pedidos da Vitrine",
-      icon: ShoppingBag,
-      badgeKey: "pedidos",
-      isMatch: (p) =>
-        p.startsWith("/loja/pedidos") ||
-        p.startsWith("/loja/produtos") ||
-        p.startsWith("/loja/configuracao") ||
-        p.startsWith("/loja/templates") ||
-        p.startsWith("/loja/personalizar") ||
-        p.startsWith("/loja/compartilhar") ||
-        p.startsWith("/loja/frete") ||
-        p.startsWith("/loja/cupons") ||
-        p.startsWith("/loja/integracoes") ||
-        p === "/loja",
-    });
-  }
+// ─── Modo Loja Online — canal digital completo ────────────────────────────────
+const LOJA_ONLINE_NAV: NavItem[] = [
+  {
+    to: "/loja/pedidos",
+    label: "Pedidos",
+    icon: ShoppingBag,
+    badgeKey: "pedidos",
+    isMatch: (p) => p.startsWith("/loja/pedidos"),
+  },
+  {
+    to: "/loja/produtos",
+    label: "Catálogo da Vitrine",
+    icon: Package,
+    isMatch: (p) => p.startsWith("/loja/produtos"),
+  },
+  {
+    to: "/loja/recebimentos",
+    label: "Vestui Pay",
+    icon: BadgeDollarSign,
+    isMatch: (p) => p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/loja/configuracao",
+    label: "Configurar Vitrine",
+    icon: Store,
+    isMatch: (p) =>
+      p.startsWith("/loja/configuracao") ||
+      p.startsWith("/loja/templates") ||
+      p.startsWith("/loja/personalizar") ||
+      p.startsWith("/loja/compartilhar") ||
+      p === "/loja",
+  },
+  {
+    to: "/loja/integracoes",
+    label: "Integrações",
+    icon: Link2,
+    isMatch: (p) => p.startsWith("/loja/integracoes"),
+  },
+  {
+    to: "/loja/cupons",
+    label: "Cupons",
+    icon: Tag,
+    isMatch: (p) => p.startsWith("/loja/cupons"),
+  },
+  {
+    to: "/loja/frete",
+    label: "Frete",
+    icon: Truck,
+    isMatch: (p) => p.startsWith("/loja/frete"),
+  },
+];
 
-  items.push(
-    {
-      to: "/estoque",
-      label: "Roupas & Estoque",
-      icon: Boxes,
-      isMatch: (p) => p.startsWith("/estoque"),
-    },
-    {
-      to: "/clientes",
-      label: "Clientes & CRM",
-      icon: Users,
-      isMatch: (p) => p.startsWith("/clientes"),
-    },
-    {
-      to: "/fiado",
-      label: "Fiado & Cobranças",
-      icon: HandCoins,
-      isMatch: (p) => p.startsWith("/fiado"),
-    },
-    {
-      to: "/relatorio",
-      label: "Lucro Real & DRE",
-      icon: CircleDollarSign,
-      section: "Financeiro",
-      isMatch: (p) =>
-        p.startsWith("/relatorio") ||
-        p.startsWith("/precificacao") ||
-        p.startsWith("/prolabore") ||
-        p.startsWith("/loja/recebimentos"),
-    },
-    {
-      to: "/metas",
-      label: "Metas & Planejamento",
-      icon: Target,
-      isMatch: (p) => p.startsWith("/metas"),
-    },
+// ─── Navegação sem vitrine (sidebar física) ───────────────────────────────────
+function getMainNavFisica(): NavItem[] {
+  return GESTAO_NAV;
+}
+
+// ─── Mobile (vitrine desativada) ──────────────────────────────────────────────
+const MOBILE_PRIMARY_FISICA: NavItem[] = [
+  { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
+  { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
+  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
+];
+
+const MOBILE_MORE_FISICA: NavItem[] = [
+  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    section: "Financeiro",
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore"),
+  },
+  { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
+];
+
+// ─── Mobile (modo Gestão com vitrine ativa) ───────────────────────────────────
+const MOBILE_PRIMARY_GESTAO: NavItem[] = [
+  { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
+  { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
+  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
+];
+
+const MOBILE_MORE_GESTAO: NavItem[] = [
+  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    section: "Financeiro",
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/precificacao") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/loja/recebimentos"),
+  },
+  { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
+];
+
+// ─── Mobile (modo Loja Online) ────────────────────────────────────────────────
+const MOBILE_PRIMARY_LOJA: NavItem[] = [
+  {
+    to: "/loja/pedidos",
+    label: "Pedidos",
+    icon: ShoppingBag,
+    badgeKey: "pedidos",
+    isMatch: (p) => p.startsWith("/loja/pedidos"),
+  },
+  {
+    to: "/loja/produtos",
+    label: "Catálogo",
+    icon: Package,
+    isMatch: (p) => p.startsWith("/loja/produtos"),
+  },
+  {
+    to: "/loja/recebimentos",
+    label: "Vestui Pay",
+    icon: BadgeDollarSign,
+    isMatch: (p) => p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/loja/configuracao",
+    label: "Vitrine",
+    icon: Store,
+    isMatch: (p) =>
+      p.startsWith("/loja/configuracao") ||
+      p.startsWith("/loja/templates") ||
+      p.startsWith("/loja/personalizar") ||
+      p.startsWith("/loja/compartilhar") ||
+      p === "/loja",
+  },
+];
+
+const MOBILE_MORE_LOJA: NavItem[] = [
+  { to: "/loja/integracoes", label: "Integrações", icon: Link2, isMatch: (p) => p.startsWith("/loja/integracoes") },
+  { to: "/loja/cupons", label: "Cupons", icon: Tag, isMatch: (p) => p.startsWith("/loja/cupons") },
+  { to: "/loja/frete", label: "Frete", icon: Truck, isMatch: (p) => p.startsWith("/loja/frete") },
+];
+
+// ─── Componente Alternador de Modo (pílula Apple) ─────────────────────────────
+function ModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: "gestao" | "loja";
+  onChange: (mode: "gestao" | "loja") => void;
+}) {
+  return (
+    <div className="mx-1 mb-5 mt-1 flex rounded-2xl bg-surface-muted p-1 gap-1">
+      <button
+        type="button"
+        onClick={() => onChange("gestao")}
+        className={cn(
+          "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer",
+          mode === "gestao"
+            ? "bg-white dark:bg-card shadow-sm text-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        🏢 Gestão
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("loja")}
+        className={cn(
+          "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-all duration-200 cursor-pointer",
+          mode === "loja"
+            ? "bg-white dark:bg-card shadow-sm text-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        🌐 Loja Online
+      </button>
+    </div>
   );
-
-  return items;
-}
-
-function getMobilePrimary(vitrineAtiva: boolean): NavItem[] {
-  if (vitrineAtiva) {
-    return [
-      { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
-      { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
-      {
-        to: "/loja/pedidos",
-        label: "Pedidos",
-        icon: ShoppingBag,
-        badgeKey: "pedidos",
-        isMatch: (p) => p.startsWith("/loja/pedidos"),
-      },
-      { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
-    ];
-  }
-  return [
-    { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
-    { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
-    { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
-    { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
-  ];
-}
-
-function getMobileMoreNav(vitrineAtiva: boolean): NavItem[] {
-  if (vitrineAtiva) {
-    return [
-      { to: "/clientes", label: "Clientes & CRM", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
-      { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
-      {
-        to: "/relatorio",
-        label: "Lucro Real & DRE",
-        icon: CircleDollarSign,
-        isMatch: (p) =>
-          p.startsWith("/relatorio") ||
-          p.startsWith("/precificacao") ||
-          p.startsWith("/prolabore"),
-      },
-      { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
-    ];
-  }
-  return [
-    { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
-    {
-      to: "/relatorio",
-      label: "Lucro Real & DRE",
-      icon: CircleDollarSign,
-      section: "Financeiro",
-      isMatch: (p) =>
-        p.startsWith("/relatorio") ||
-        p.startsWith("/precificacao") ||
-        p.startsWith("/prolabore"),
-    },
-    { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
-  ];
 }
 
 // Main AppShell
@@ -208,9 +309,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [storeId, store?.metadata]);
 
-  const mainNav = useMemo(() => getMainNav(vitrineAtiva), [vitrineAtiva]);
-  const mobilePrimary = useMemo(() => getMobilePrimary(vitrineAtiva), [vitrineAtiva]);
-  const mobileMoreNav = useMemo(() => getMobileMoreNav(vitrineAtiva), [vitrineAtiva]);
+  // ── Modo do alternador: persistido no localStorage ─────────────────────────
+  const [sidebarMode, setSidebarMode] = useState<"gestao" | "loja">(() => {
+    if (typeof window === "undefined") return "gestao";
+    return (localStorage.getItem("vestui_sidebar_mode") as "gestao" | "loja") || "gestao";
+  });
+
+  function handleModeChange(mode: "gestao" | "loja") {
+    setSidebarMode(mode);
+    localStorage.setItem("vestui_sidebar_mode", mode);
+  }
+
+  // ── Se vitrine for desativada, volta pro modo gestão ───────────────────────
+  useEffect(() => {
+    if (!vitrineAtiva && sidebarMode === "loja") {
+      setSidebarMode("gestao");
+      localStorage.setItem("vestui_sidebar_mode", "gestao");
+    }
+  }, [vitrineAtiva, sidebarMode]);
+
+  // ── Listas de navegação conforme modo e estado da vitrine ──────────────────
+  const mainNav = useMemo<NavItem[]>(() => {
+    if (!vitrineAtiva) return getMainNavFisica();
+    return sidebarMode === "loja" ? LOJA_ONLINE_NAV : GESTAO_NAV;
+  }, [vitrineAtiva, sidebarMode]);
+
+  const mobilePrimary = useMemo<NavItem[]>(() => {
+    if (!vitrineAtiva) return MOBILE_PRIMARY_FISICA;
+    return sidebarMode === "loja" ? MOBILE_PRIMARY_LOJA : MOBILE_PRIMARY_GESTAO;
+  }, [vitrineAtiva, sidebarMode]);
+
+  const mobileMoreNav = useMemo<NavItem[]>(() => {
+    if (!vitrineAtiva) return MOBILE_MORE_FISICA;
+    return sidebarMode === "loja" ? MOBILE_MORE_LOJA : MOBILE_MORE_GESTAO;
+  }, [vitrineAtiva, sidebarMode]);
 
   // Badge de pedidos pendentes — calculado uma vez, usado na sidebar e no tab bar
   const pendingOrderCount = useMemo(() => {
@@ -260,8 +392,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
         </Link>
 
+        {/* Alternador de modo (pílula Apple) — visível apenas quando vitrine está ativa */}
+        {vitrineAtiva && (
+          <div className="mt-5">
+            <ModeToggle mode={sidebarMode} onChange={handleModeChange} />
+          </div>
+        )}
+
         {/* Navegação plana com seções visuais */}
-        <nav className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav className={cn("flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]", vitrineAtiva ? "mt-0" : "mt-6")}>
           {mainNav.map((item) => (
             <div key={item.to} className="flex flex-col">
               {item.section && (
@@ -359,6 +498,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile overlay menu completo */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
+          {/* Alternador de modo no overlay mobile */}
+          {vitrineAtiva && (
+            <div className="mb-4">
+              <ModeToggle mode={sidebarMode} onChange={handleModeChange} />
+            </div>
+          )}
           <nav className="flex flex-col gap-1">
             {mainNav.map((item) => (
               <div key={item.to} className="flex flex-col">
@@ -446,6 +591,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Menu Completo
             </SheetTitle>
           </SheetHeader>
+
+          {/* Alternador no sheet "Mais" quando vitrine ativa */}
+          {vitrineAtiva && (
+            <div className="px-4 pt-4">
+              <ModeToggle mode={sidebarMode} onChange={handleModeChange} />
+            </div>
+          )}
+
           <nav className="flex flex-col gap-1 px-4 py-3">
             {mobileMoreNav.map((item) => (
               <div key={item.to} className="flex flex-col">
