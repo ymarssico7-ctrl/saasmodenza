@@ -47,6 +47,11 @@ export function PainelKpisBento({
   ocultarSaldos,
   mascaraSaldo,
 }: PainelKpisBentoProps) {
+  // Proporções dos canais
+  const totalCanais = fisicaRevenue + onlineRevenue;
+  const fisicaPct = totalCanais > 0 ? Math.round((fisicaRevenue / totalCanais) * 100) : 100;
+  const onlinePct = totalCanais > 0 ? 100 - fisicaPct : 0;
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {/* ── CARD 1: Faturamento Total (com split Balcão + Vitrine) ───────────── */}
@@ -65,35 +70,28 @@ export function PainelKpisBento({
             {mascaraSaldo(revenue)}
           </h3>
 
-          <div className="mt-1 flex items-center text-xs text-muted-foreground truncate">
+          <div className="mt-1 text-xs text-muted-foreground truncate">
             {ocultarSaldos ? (
               <span className="font-mono">••••••••</span>
-            ) : vitrineAtiva ? (
-              <div className="flex items-center gap-1.5 truncate">
-                <span>
-                  Balcão{" "}
-                  <strong className="font-medium text-foreground">
-                    {mascaraSaldo(fisicaRevenue)}
-                  </strong>
-                </span>
-                <span className="text-muted-foreground/60">·</span>
-                <span>
-                  Vitrine{" "}
-                  <strong className="font-medium text-foreground">
-                    {mascaraSaldo(onlineRevenue)}
-                  </strong>
-                </span>
+            ) : revenue > 0 && vitrineAtiva ? (
+              <span
+                className="cursor-help transition-colors hover:text-foreground inline-flex items-center gap-1.5"
+                title={`Balcão: ${brl(fisicaRevenue)} | Vitrine: ${brl(onlineRevenue)}`}
+              >
+                <span>Balcão {fisicaPct}%</span>
+                <span className="text-muted-foreground/50">·</span>
+                <span>Vitrine {onlinePct}%</span>
                 {refunds > 0 && (
                   <>
-                    <span className="text-muted-foreground/60">·</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      Líq: {brl(netRevenue)}
-                    </span>
+                    <span className="text-muted-foreground/50">·</span>
+                    <span className="text-[11px]">Líq: {brl(netRevenue)}</span>
                   </>
                 )}
-              </div>
+              </span>
+            ) : vitrineAtiva ? (
+              <span>Balcão físico e vitrine online</span>
             ) : (
-              <span>100% no balcão físico</span>
+              <span>Balcão físico da loja</span>
             )}
           </div>
         </div>
