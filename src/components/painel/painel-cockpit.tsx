@@ -60,7 +60,7 @@ export function PainelMetaRitmo({
   const temMeta = goalTarget > 0;
 
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[290px]">
+    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
@@ -202,7 +202,7 @@ export function PainelPecaCampea({
   const hasSale = starProduct && starProduct.soldCount > 0;
 
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[290px]">
+    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">

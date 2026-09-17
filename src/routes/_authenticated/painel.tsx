@@ -531,7 +531,29 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── 2. O MOTOR DO NEGÓCIO (Meta Comercial & Peça Estrela) ──────────── */}
+      {/* ── 2. O ACERVO DA LOJA (Peça Estrela & Saúde do Estoque - Original da Imagem 01) ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PainelPecaCampea
+          starProduct={starProduct}
+          totalPecasVendidas={totalPecasVendidas}
+          ticketMedio={ticketMedio}
+          totalCatalogItems={totalCatalogItems}
+          ocultarSaldos={ocultarSaldos}
+          mascaraSaldo={mascaraSaldo}
+        />
+        <PainelCapitalEstoque
+          totalStockValue={totalStockValue}
+          totalStockUnits={totalStockUnits}
+          totalCatalogItems={totalCatalogItems}
+          outOfStockCount={outOfStockCount}
+          lowStockCount={lowStockCount}
+          healthyStockCount={healthyStockCount}
+          ocultarSaldos={ocultarSaldos}
+          mascaraSaldo={mascaraSaldo}
+        />
+      </div>
+
+      {/* ── 3. GESTÃO COMERCIAL & CAIXA (Meta & Liquidez do Negócio) ────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
         <PainelMetaRitmo
           goalTarget={goalTarget}
@@ -541,28 +563,6 @@ function Painel() {
           dailyTarget={dailyTarget}
           netRevenue={netRevenue}
           thisMonthLabel={monthLabel(thisMonth)}
-          ocultarSaldos={ocultarSaldos}
-          mascaraSaldo={mascaraSaldo}
-        />
-        <PainelPecaCampea
-          starProduct={starProduct}
-          totalPecasVendidas={totalPecasVendidas}
-          ticketMedio={ticketMedio}
-          totalCatalogItems={totalCatalogItems}
-          ocultarSaldos={ocultarSaldos}
-          mascaraSaldo={mascaraSaldo}
-        />
-      </div>
-
-      {/* ── 3. PATRIMÔNIO & OPERAÇÃO IMEDIATA (Capital de Estoque & Caixa) ──── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PainelCapitalEstoque
-          totalStockValue={totalStockValue}
-          totalStockUnits={totalStockUnits}
-          totalCatalogItems={totalCatalogItems}
-          outOfStockCount={outOfStockCount}
-          lowStockCount={lowStockCount}
-          healthyStockCount={healthyStockCount}
           ocultarSaldos={ocultarSaldos}
           mascaraSaldo={mascaraSaldo}
         />
