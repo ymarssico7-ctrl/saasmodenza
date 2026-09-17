@@ -89,8 +89,8 @@ export function PainelTopProducts({
 
           {/* Lista de Peças Campeãs ou Estado Inspirador */}
           {!hasProducts ? (
-            <div className="flex h-[200px] flex-col items-center justify-center gap-2.5 text-center p-4 mt-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-secondary text-foreground/70 shadow-2xs">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-6 px-4">
+              <div className="grid size-12 place-items-center rounded-2xl bg-secondary text-foreground/70 shadow-2xs">
                 <Sparkles className="size-5 text-foreground/60" />
               </div>
               <div className="max-w-xs space-y-1">
@@ -107,10 +107,10 @@ export function PainelTopProducts({
                 asChild
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-full border-border/80 bg-card px-3.5 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
+                className="h-8 rounded-full border-border/80 bg-card px-4 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
               >
                 <Link to="/caixa">
-                  <Plus className="size-3.5 mr-1 text-muted-foreground" />
+                  <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
                   Registrar venda no caixa
                 </Link>
               </Button>

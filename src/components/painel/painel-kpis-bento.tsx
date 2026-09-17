@@ -115,7 +115,7 @@ export function PainelKpisBento({
                   Balcão: <strong className="font-semibold text-foreground">{mascaraSaldo(fisicaRevenue)}</strong>
                 </span>
               </span>
-              <span className="text-border mx-1">·</span>
+              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
               <span className="flex items-center gap-1.5 truncate">
                 <ShoppingBag
                   className={cn(
@@ -166,7 +166,7 @@ export function PainelKpisBento({
               <span className="truncate">
                 Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong>
               </span>
-              <span className="text-border mx-1">·</span>
+              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
               <span className="truncate">
                 Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong>
               </span>
@@ -217,7 +217,7 @@ export function PainelKpisBento({
               <span className="truncate">
                 Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong>
               </span>
-              <span className="text-border mx-1">·</span>
+              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
               <span className="truncate">
                 {netRevenue > 0 ? "Disponível no caixa" : "Caixa estável"}
               </span>

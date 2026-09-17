@@ -553,7 +553,7 @@ function Painel() {
       />
 
       {/* ── 3. EVOLUÇÃO FINANCEIRA & METAS ────────────────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Gráfico de Evolução 6 Meses com Legenda Visual */}
         <section className="panel p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -573,7 +573,7 @@ function Painel() {
             </div>
           </div>
           {totalHistorico === 0 ? (
-            <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center p-6">
+            <div className="flex h-[190px] flex-col items-center justify-center gap-2 text-center p-4">
               <div className="grid size-10 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
                 <TrendingUp className="size-5 text-primary/70" />
               </div>
@@ -680,11 +680,11 @@ function Painel() {
                 </div>
               </>
             ) : (
-              <div className="mt-3">
+              <div className="mt-3 flex items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground">
-                  Defina um objetivo mensal para acompanhar o ritmo diário das araras.
+                  Defina um objetivo para acompanhar o ritmo diário de vendas.
                 </p>
-                <Button asChild variant="outline" size="sm" className="mt-3 rounded-full text-xs">
+                <Button asChild variant="outline" size="sm" className="h-8 shrink-0 rounded-full text-xs font-medium">
                   <Link to="/metas">Definir meta</Link>
                 </Button>
               </div>
@@ -720,7 +720,7 @@ function Painel() {
       </div>
 
       {/* ── 4. FLUXO OPERACIONAL RECENTE & ATALHOS RÁPIDOS ────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Últimos Lançamentos (Limpos e Sem Redundâncias) */}
         <section className="panel p-5 sm:p-6">
           <div className="flex items-center justify-between">
