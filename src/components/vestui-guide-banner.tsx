@@ -219,18 +219,18 @@ export function VestuiGuideBanner({
   // ── BANNER APPLE HIG ULTRA-COMPACTO (~44px) ────────────────────────────────
   return (
     <>
-      {/* Container fluido de 1 linha */}
+      {/* Container fluido e pacificado */}
       <div
         className={cn(
-          "group relative flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/85 px-3.5 py-2 text-xs shadow-2xs backdrop-blur-md transition-all hover:border-primary/30",
+          "group relative flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-secondary/30 px-3.5 py-2 text-xs transition-all hover:border-border/80 hover:bg-secondary/40",
           className,
         )}
       >
         {/* Bloco Esquerdo: Progresso + Próximo Passo */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Micro-anel ou ícone com brilho sutil */}
-          <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <Sparkles className="size-3.5" />
+          {/* Micro-ícone discreto */}
+          <div className="grid size-6 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground shadow-2xs">
+            <Sparkles className="size-3" />
           </div>
 
           <div className="flex items-center gap-2.5 min-w-0">
