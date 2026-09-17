@@ -245,7 +245,7 @@ export function VestuiGuideBanner({
             <div className="flex items-center gap-2 shrink-0">
               <div className="h-1.5 w-14 rounded-full bg-secondary/80 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  className="h-full rounded-full bg-foreground/50 transition-all duration-500"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -274,20 +274,20 @@ export function VestuiGuideBanner({
               type="button"
               size="sm"
               onClick={nextStep.action}
-              className="h-7 rounded-full border border-primary/30 bg-primary/10 px-3 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer"
+              className="h-7 rounded-full border border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs cursor-pointer"
             >
               <span>{nextStep.cta}</span>
-              <ArrowUpRight className="ml-1 size-3" />
+              <ArrowUpRight className="ml-1 size-3 text-muted-foreground" />
             </Button>
           ) : nextStep.to ? (
             <Button
               asChild
               size="sm"
-              className="h-7 rounded-full border border-primary/30 bg-primary/10 px-3 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer"
+              className="h-7 rounded-full border border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs cursor-pointer"
             >
               <Link to={nextStep.to}>
                 <span>{nextStep.cta}</span>
-                <ArrowRight className="ml-1 size-3" />
+                <ArrowRight className="ml-1 size-3 text-muted-foreground" />
               </Link>
             </Button>
           ) : null}

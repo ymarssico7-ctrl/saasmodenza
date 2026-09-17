@@ -90,7 +90,7 @@ export function PainelTopProducts({
           {!hasProducts ? (
             <div className="flex h-[200px] flex-col items-center justify-center gap-2.5 text-center p-6 mt-4">
               <div className="grid size-11 place-items-center rounded-2xl bg-secondary/70 text-muted-foreground">
-                <Shirt className="size-5 text-primary/70" />
+                <Shirt className="size-5 text-muted-foreground/60" />
               </div>
               <div className="max-w-xs space-y-1">
                 <p className="text-sm font-semibold text-foreground">
@@ -200,7 +200,7 @@ export function PainelTopProducts({
               </h2>
             </div>
             <span className="text-xs text-muted-foreground font-medium">
-              {totalCatalogItems} modelos
+              {totalCatalogItems} {totalCatalogItems === 1 ? "modelo" : "modelos"}
             </span>
           </div>
 
@@ -212,7 +212,7 @@ export function PainelTopProducts({
                 <span
                   className={cn(
                     "size-2 rounded-full",
-                    outOfStockCount > 0 ? "bg-rose-500" : "bg-emerald-500",
+                    outOfStockCount > 0 ? "bg-rose-500/80" : "bg-emerald-500/80",
                   )}
                 />
                 <span className="text-xs text-foreground font-medium">Modelos esgotados</span>
@@ -225,7 +225,7 @@ export function PainelTopProducts({
                     : "text-muted-foreground",
                 )}
               >
-                {outOfStockCount} {outOfStockCount === 1 ? "peça" : "peças"}
+                {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
               </span>
             </div>
 
@@ -235,7 +235,7 @@ export function PainelTopProducts({
                 <span
                   className={cn(
                     "size-2 rounded-full",
-                    lowStockCount > 0 ? "bg-amber-500" : "bg-emerald-500",
+                    lowStockCount > 0 ? "bg-amber-500/80" : "bg-emerald-500/80",
                   )}
                 />
                 <span className="text-xs text-foreground font-medium">Últimas unidades (&lt; 3 un.)</span>
@@ -248,18 +248,21 @@ export function PainelTopProducts({
                     : "text-muted-foreground",
                 )}
               >
-                {lowStockCount} {lowStockCount === 1 ? "peça" : "peças"}
+                {lowStockCount} {lowStockCount === 1 ? "modelo" : "modelos"}
               </span>
             </div>
 
             {/* Status 3: Grade Disponível */}
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2.5">
-                <span className="size-2 rounded-full bg-emerald-500" />
+                <span className="size-2 rounded-full bg-emerald-500/80" />
                 <span className="text-xs text-foreground font-medium">Modelos com estoque saudável</span>
               </div>
               <span className="num-display text-xs font-semibold text-muted-foreground">
-                {Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount)} modelos
+                {Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount)}{" "}
+                {Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount) === 1
+                  ? "modelo"
+                  : "modelos"}
               </span>
             </div>
           </div>
