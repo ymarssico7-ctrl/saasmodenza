@@ -40,6 +40,8 @@ export interface PainelMetaRitmoProps {
   dailyTarget: number;
   netRevenue: number;
   thisMonthLabel: string;
+  onSetQuickGoal?: ((amount: number) => void) | undefined;
+  isSettingGoal?: boolean | undefined;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
 }
@@ -52,6 +54,8 @@ export function PainelMetaRitmo({
   dailyTarget,
   netRevenue,
   thisMonthLabel,
+  onSetQuickGoal,
+  isSettingGoal,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelMetaRitmoProps) {
@@ -149,44 +153,80 @@ export function PainelMetaRitmo({
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-6 px-4 mt-2">
-            <div className="grid size-11 place-items-center rounded-2xl bg-secondary text-foreground/70 shadow-2xs">
-              <Target className="size-5 text-primary" />
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-5 px-4 mt-1">
+            <div className="grid size-10 place-items-center rounded-2xl bg-primary/10 text-primary shadow-2xs">
+              <Target className="size-5" />
             </div>
             <div className="max-w-xs space-y-1">
               <p className="text-sm font-semibold text-foreground">
-                Sua loja ainda não tem meta este mês
+                Ative a meta da loja para {thisMonthLabel}
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Defina um objetivo de vendas para calcular o ritmo diário exato que sua equipe precisa manter.
+                Escolha um objetivo em 1 clique para calcular o ritmo diário exato de vendas:
               </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+              {[5000, 10000, 20000].map((val) => (
+                <Button
+                  key={val}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSettingGoal}
+                  onClick={() => onSetQuickGoal?.(val)}
+                  className="h-8 rounded-full border-border/80 bg-card px-3 text-xs font-semibold text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-2xs cursor-pointer"
+                >
+                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(val)}
+                </Button>
+              ))}
             </div>
             <Button
               asChild
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="h-8 rounded-full border-border/80 bg-card px-4 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
+              className="h-6 text-[11px] text-muted-foreground hover:text-foreground font-medium rounded-full cursor-pointer mt-0.5"
             >
               <Link to="/metas">
-                <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
-                Definir meta do mês
+                Personalizar outro valor na página de metas <ChevronRight className="size-3 ml-0.5" />
               </Link>
             </Button>
           </div>
         )}
       </div>
+
+      {temMeta && (
+        <Button
+          asChild
+          variant="outline"
+          className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        >
+          <Link to="/metas">
+            Calibrar Objetivos & Metas <ChevronRight className="size-3.5 ml-1" />
+          </Link>
+        </Button>
+      )}
     </section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 2. PAINEL PEÇA CAMPEÃ (Vitrine & Peça Mais Desejada - Sem Tabelas)
+ * 2. PAINEL PEÇA CAMPEÃ & VITRINE ATIVA (Sem Tabelas Burocráticas)
  * ──────────────────────────────────────────────────────────────────────────── */
+export interface CatalogPreviewItem {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  photoUrl?: string | null | undefined;
+  stock: number;
+}
+
 export interface PainelPecaCampeaProps {
   starProduct: TopProductItem | null;
   totalPecasVendidas: number;
   ticketMedio: number;
   totalCatalogItems: number;
+  catalogPreview?: CatalogPreviewItem[] | undefined;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
 }
@@ -196,10 +236,12 @@ export function PainelPecaCampea({
   totalPecasVendidas,
   ticketMedio,
   totalCatalogItems,
+  catalogPreview,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelPecaCampeaProps) {
   const hasSale = starProduct && starProduct.soldCount > 0;
+  const hasCatalog = catalogPreview && catalogPreview.length > 0;
 
   return (
     <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
@@ -212,12 +254,12 @@ export function PainelPecaCampea({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Peça Campeã da Loja
+                {hasSale ? "Peça Campeã da Loja" : "Vitrine & Peças na Arara"}
               </h2>
               <p className="text-xs text-muted-foreground">
                 {hasSale
                   ? "A mais desejada pelas clientes este mês"
-                  : "Destaque comercial das araras"}
+                  : "Modelos disponíveis prontos para venda"}
               </p>
             </div>
           </div>
@@ -234,10 +276,9 @@ export function PainelPecaCampea({
           </Button>
         </div>
 
-        {/* Vitrine Estrela (Layout de Revista de Moda) */}
+        {/* Conteúdo: 1) Peça Campeã com Venda */}
         {hasSale ? (
           <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 rounded-2xl bg-secondary/30 p-4 border border-border/60">
-            {/* Foto Grande Nobre */}
             <div className="relative size-24 sm:size-28 shrink-0 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
               {starProduct.photoUrl ? (
                 <img
@@ -256,7 +297,6 @@ export function PainelPecaCampea({
               </span>
             </div>
 
-            {/* Métricas de Valor */}
             <div className="min-w-0 flex-1 space-y-2 text-center sm:text-left">
               <div>
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -283,19 +323,72 @@ export function PainelPecaCampea({
               </div>
             </div>
           </div>
+        ) : hasCatalog ? (
+          /* Conteúdo: 2) Vitrine Ativa com Fotos/Peças Reais do Estoque (Adeus deserto cinza!) */
+          <div className="mt-3 space-y-2.5">
+            {catalogPreview.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-secondary/30 p-2.5 border border-border/60 hover:bg-secondary/50 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-card">
+                    {item.photoUrl ? (
+                      <img
+                        src={item.photoUrl}
+                        alt={item.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center text-primary/60 bg-gradient-to-br from-primary/10 to-secondary">
+                        <Shirt className="size-5" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block truncate">
+                      {item.category}
+                    </span>
+                    <h4 className="truncate text-xs sm:text-sm font-bold text-foreground">
+                      {item.name}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="numeric text-xs font-semibold text-foreground">
+                        {ocultarSaldos ? "R$ ••••" : mascaraSaldo(item.price)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        · {item.stock} {item.stock === 1 ? "peça em arara" : "peças em arara"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 rounded-full border-border/80 bg-card text-xs font-medium text-foreground hover:bg-secondary/80 hover:text-primary transition-all px-3 cursor-pointer shadow-2xs"
+                >
+                  <Link to="/caixa">
+                    <Plus className="size-3 mr-1" /> Vender
+                  </Link>
+                </Button>
+              </div>
+            ))}
+          </div>
         ) : (
+          /* Conteúdo: 3) Caso a loja realmente não tenha nenhum produto cadastrado */
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-6 px-4 mt-2">
             <div className="grid size-11 place-items-center rounded-2xl bg-secondary text-foreground/70 shadow-2xs">
               <Shirt className="size-5 text-foreground/60" />
             </div>
             <div className="max-w-xs space-y-1">
               <p className="text-sm font-semibold text-foreground">
-                Araras prontas para faturar
+                Cadastre seus modelos de moda
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {totalCatalogItems > 0
-                  ? `${totalCatalogItems} ${totalCatalogItems === 1 ? "modelo pronto" : "modelos prontos"} para faturar no balcão ou vitrine.`
-                  : "Cadastre suas primeiras peças para ativar a vitrine da loja."}
+                Adicione suas primeiras peças com foto, tamanhos e preços para ativar a vitrine da loja.
               </p>
             </div>
             <Button
@@ -304,17 +397,17 @@ export function PainelPecaCampea({
               size="sm"
               className="h-8 rounded-full border-border/80 bg-card px-4 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
             >
-              <Link to="/caixa">
+              <Link to="/estoque">
                 <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
-                Registrar venda no caixa
+                Cadastrar primeira peça
               </Link>
             </Button>
           </div>
         )}
       </div>
 
-      {/* Rodapé Executivo: Apenas quando há vendas e dados relevantes */}
-      {hasSale && ticketMedio > 0 && (
+      {/* Rodapé Executivo & Botão de Fechamento Simétrico */}
+      {hasSale && ticketMedio > 0 ? (
         <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Receipt className="size-3 text-muted-foreground/70" />
@@ -324,6 +417,16 @@ export function PainelPecaCampea({
             {ocultarSaldos ? "R$ ••••" : mascaraSaldo(ticketMedio)}
           </strong>
         </div>
+      ) : (
+        <Button
+          asChild
+          variant="outline"
+          className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        >
+          <Link to="/estoque">
+            Ver Catálogo Completo <ChevronRight className="size-3.5 ml-1" />
+          </Link>
+        </Button>
       )}
     </section>
   );
@@ -339,6 +442,7 @@ export interface PainelCapitalEstoqueProps {
   outOfStockCount: number;
   lowStockCount: number;
   healthyStockCount: number;
+  outOfStockSampleName?: string | null | undefined;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
 }
@@ -350,6 +454,7 @@ export function PainelCapitalEstoque({
   outOfStockCount,
   lowStockCount,
   healthyStockCount,
+  outOfStockSampleName,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelCapitalEstoqueProps) {
@@ -406,14 +511,21 @@ export function PainelCapitalEstoque({
 
         {/* A Lista Limpa com Pontos Coloridos que o Usuário Amou */}
         <ul className="mt-4 divide-y divide-border/60 text-xs">
-          <li className="flex items-center justify-between py-2.5 text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-muted-foreground/40" />
-              Modelos esgotados
-            </span>
-            <span className="numeric font-medium text-foreground">
-              {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
-            </span>
+          <li className="flex flex-col py-2.5 text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-muted-foreground/40" />
+                Modelos esgotados
+              </span>
+              <span className="numeric font-medium text-foreground">
+                {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
+              </span>
+            </div>
+            {outOfStockCount > 0 && outOfStockSampleName && (
+              <div className="mt-1 flex items-center gap-1.5 pl-4 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                <span>⚠️ {outOfStockSampleName} está zerado · Repor estoque</span>
+              </div>
+            )}
           </li>
           <li className="flex items-center justify-between py-2.5 text-muted-foreground">
             <span className="flex items-center gap-2">

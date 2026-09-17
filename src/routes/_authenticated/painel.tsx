@@ -1,6 +1,7 @@
 import React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Eye,
   EyeOff,
@@ -17,7 +18,9 @@ import {
   PainelCapitalEstoque,
   PainelAcaoCaixa,
   type TopProductItem,
+  type CatalogPreviewItem,
 } from "@/components/painel/painel-cockpit";
+import { upsertGoal } from "@/lib/mutations";
 import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
@@ -72,6 +75,7 @@ export const Route = createFileRoute("/_authenticated/painel")({
 });
 
 function Painel() {
+  const queryClient = useQueryClient();
   const { storeId, store } = useStore();
   const { ocultarSaldos, togglePrivacidade, mascaraSaldo } = usePrivacyMode();
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
@@ -188,6 +192,19 @@ function Painel() {
   const remainingGoal = Math.max(0, goalTarget - netRevenue);
   const dailyTarget = goalTarget > 0 && remainingGoal > 0 ? remainingGoal / daysRemaining : 0;
 
+  const quickGoalMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      return upsertGoal(storeId, thisMonth, amount);
+    },
+    onSuccess: () => {
+      toast.success("Meta ativada com sucesso!");
+      void queryClient.invalidateQueries({ queryKey: ["goals"] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || "Erro ao definir meta");
+    },
+  });
+
   const openCredits = credits.filter(
     (c) =>
       creditStatus(
@@ -211,6 +228,8 @@ function Painel() {
     totalCatalogItems,
     totalStockUnits,
     totalStockValue,
+    outOfStockSampleName,
+    catalogPreview,
   } = React.useMemo(() => {
       type InvItem = {
         id: string;
@@ -228,6 +247,7 @@ function Painel() {
 
       let outOfStock = 0;
       let lowStock = 0;
+      let outOfStockSampleName: string | null = null;
 
       const salesMap: Record<
         string,
@@ -248,8 +268,14 @@ function Painel() {
           (a, b) => a + (Math.round(Number(b)) || 0),
           0,
         );
-        if (stock === 0) outOfStock++;
-        else if (stock < 3) lowStock++;
+        if (stock === 0) {
+          outOfStock++;
+          if (!outOfStockSampleName) {
+            outOfStockSampleName = item.name;
+          }
+        } else if (stock < 3) {
+          lowStock++;
+        }
 
         totalStockUnits += stock;
         totalStockValue += stock * (Number(item.sale_price) || 0);
@@ -340,6 +366,22 @@ function Painel() {
           };
         });
 
+      const catalogPreview: CatalogPreviewItem[] = invItems.slice(0, 2).map((it) => {
+        const sizes = (it.sizes ?? {}) as Record<string, number>;
+        const stock = Object.values(sizes).reduce(
+          (a, b) => a + (Math.round(Number(b)) || 0),
+          0,
+        );
+        return {
+          id: it.id,
+          name: it.name,
+          category: it.category || "Vestuário",
+          price: Number(it.sale_price ?? 0),
+          photoUrl: it.photo_url ?? it.image_url ?? undefined,
+          stock,
+        };
+      });
+
       return {
         totalPecasVendidas: totalPecas,
         topProducts: listTop,
@@ -349,6 +391,8 @@ function Painel() {
         totalCatalogItems: invItems.length,
         totalStockUnits,
         totalStockValue,
+        outOfStockSampleName,
+        catalogPreview,
       };
     }, [inventory, activeMonthOrders, current]);
 
@@ -538,6 +582,7 @@ function Painel() {
           totalPecasVendidas={totalPecasVendidas}
           ticketMedio={ticketMedio}
           totalCatalogItems={totalCatalogItems}
+          catalogPreview={catalogPreview}
           ocultarSaldos={ocultarSaldos}
           mascaraSaldo={mascaraSaldo}
         />
@@ -548,6 +593,7 @@ function Painel() {
           outOfStockCount={outOfStockCount}
           lowStockCount={lowStockCount}
           healthyStockCount={healthyStockCount}
+          outOfStockSampleName={outOfStockSampleName}
           ocultarSaldos={ocultarSaldos}
           mascaraSaldo={mascaraSaldo}
         />
@@ -563,6 +609,8 @@ function Painel() {
           dailyTarget={dailyTarget}
           netRevenue={netRevenue}
           thisMonthLabel={monthLabel(thisMonth)}
+          onSetQuickGoal={(val) => quickGoalMutation.mutate(val)}
+          isSettingGoal={quickGoalMutation.isPending}
           ocultarSaldos={ocultarSaldos}
           mascaraSaldo={mascaraSaldo}
         />
