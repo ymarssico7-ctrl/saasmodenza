@@ -2,38 +2,22 @@ import React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
-  ChevronRight,
   Eye,
   EyeOff,
-  Package,
   Plus,
-  Receipt,
-  Shirt,
-  ShoppingBag,
-  Sparkles,
-  Store,
-  Tag,
-  TrendingUp,
-  Users,
-  Wallet,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
 import { PainelKpisBento } from "@/components/painel/painel-kpis-bento";
-import { PainelTopProducts, type TopProductItem } from "@/components/painel/painel-top-products";
+import {
+  PainelMetaRitmo,
+  PainelPecaCampea,
+  PainelCapitalEstoque,
+  PainelAcaoCaixa,
+  type TopProductItem,
+} from "@/components/painel/painel-cockpit";
 import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
@@ -218,8 +202,16 @@ function Painel() {
   const overdue = openCredits.filter((c) => c.due_date < today).length;
 
   // ── Peças Vendidas, Best Sellers & Saúde de Estoque (Reconciliado) ────────
-  const { totalPecasVendidas, topProducts, outOfStockCount, lowStockCount, totalCatalogItems } =
-    React.useMemo(() => {
+  const {
+    totalPecasVendidas,
+    topProducts,
+    outOfStockCount,
+    lowStockCount,
+    healthyStockCount,
+    totalCatalogItems,
+    totalStockUnits,
+    totalStockValue,
+  } = React.useMemo(() => {
       type InvItem = {
         id: string;
         name: string;
@@ -247,6 +239,9 @@ function Painel() {
         }
       > = {};
 
+      let totalStockUnits = 0;
+      let totalStockValue = 0;
+
       for (const item of invItems) {
         const sizes = (item.sizes ?? {}) as Record<string, number>;
         const stock = Object.values(sizes).reduce(
@@ -255,6 +250,9 @@ function Painel() {
         );
         if (stock === 0) outOfStock++;
         else if (stock < 3) lowStock++;
+
+        totalStockUnits += stock;
+        totalStockValue += stock * (Number(item.sale_price) || 0);
 
         salesMap[item.id] = {
           item,
@@ -347,9 +345,14 @@ function Painel() {
         topProducts: listTop,
         outOfStockCount: outOfStock,
         lowStockCount: lowStock,
+        healthyStockCount: Math.max(0, invItems.length - outOfStock - lowStock),
         totalCatalogItems: invItems.length,
+        totalStockUnits,
+        totalStockValue,
       };
     }, [inventory, activeMonthOrders, current]);
+
+  const starProduct = topProducts[0] ?? null;
 
   // ── Ticket Médio e Total de Vendas (Reconciliado) ─────────────────────────
   const totalVendasCount = React.useMemo(() => {
@@ -369,31 +372,6 @@ function Painel() {
     }
     return 0;
   }, [revenue, totalVendasCount, totalPecasVendidas]);
-
-  // ── Série Histórica de 6 meses ────────────────────────────────────────────
-  const series = Array.from({ length: 6 }, (_, i) => {
-    const m = monthStart(-(5 - i));
-    const items = inMonth(m);
-    const mRevenue = sumBy(items, "entrada");
-    const mRefunds = sumByCategories(items, "saida", REFUND_CATEGORIES);
-    const mOpex = sumByExcluding(items, "saida", opexExclusions);
-    const mStock = sumByCategories(items, "saida", STOCK_PURCHASE_CATEGORIES);
-    const mPro = sumByCategories(items, "saida", PROLABORE_CATEGORIES);
-    return {
-      month: monthLabelShort(m),
-      faturamento: mRevenue,
-      lucro: mRevenue - mRefunds - mOpex - mStock - mPro,
-    };
-  });
-
-  const totalHistorico = series.reduce(
-    (acc, s) => acc + (s.faturamento || 0) + Math.abs(s.lucro || 0),
-    0,
-  );
-
-  const recent = [...current]
-    .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
-    .slice(0, 6);
 
   // ── Skeletons com Geometria Exata (Apple Standard) ────────────────────────
   if (isProfileLoading || isTxsLoading || isInventoryLoading) {
@@ -419,13 +397,12 @@ function Painel() {
           ))}
         </div>
 
-        {/* Top Products Bento Skeleton */}
+        {/* Cockpit Grid Skeletons (2x2 Nobre) */}
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="panel p-6 space-y-4">
             <Skeleton className="h-5 w-48" />
             <Skeleton className="h-4 w-32" />
             <div className="space-y-3 mt-6">
-              <Skeleton className="h-16 w-full rounded-xl" />
               <Skeleton className="h-16 w-full rounded-xl" />
               <Skeleton className="h-16 w-full rounded-xl" />
             </div>
@@ -434,8 +411,27 @@ function Painel() {
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-4 w-28" />
             <div className="space-y-3 mt-6">
-              <Skeleton className="h-14 w-full rounded-xl" />
-              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="panel p-6 space-y-4">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-32" />
+            <div className="space-y-3 mt-6">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          </div>
+          <div className="panel p-6 space-y-4">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-28" />
+            <div className="space-y-3 mt-6">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
             </div>
           </div>
         </div>
@@ -535,243 +531,49 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── 2. O PULSO DA LOJA (Peças Campeãs da Arara & Saúde do Estoque) ────── */}
-      <PainelTopProducts
-        topProducts={topProducts}
-        totalPecasVendidas={totalPecasVendidas}
-        ticketMedio={ticketMedio}
-        outOfStockCount={outOfStockCount}
-        lowStockCount={lowStockCount}
-        totalCatalogItems={totalCatalogItems}
-        ocultarSaldos={ocultarSaldos}
-        mascaraSaldo={mascaraSaldo}
-      />
-
-      {/* ── 3. HISTÓRICO & ATIVIDADE OPERACIONAL (Simetria Nobre 50/50) ────────── */}
+      {/* ── 2. O MOTOR DO NEGÓCIO (Meta Comercial & Peça Estrela) ──────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* ── COLUNA 1: Gráfico de Evolução 6 Meses com Legenda Visual ─────────── */}
-        <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300">
-          <div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                  Evolução dos últimos 6 meses
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Faturamento e lucro líquido retido por mês
-                </p>
-              </div>
-              <div className="flex items-center gap-3 self-start sm:self-auto">
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span className="size-2 rounded-full bg-primary" /> Faturamento
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                  <span className="size-2 rounded-full bg-emerald-500" /> Sobra Líquida
-                </span>
-              </div>
-            </div>
+        <PainelMetaRitmo
+          goalTarget={goalTarget}
+          goalProgress={goalProgress}
+          remainingGoal={remainingGoal}
+          daysRemaining={daysRemaining}
+          dailyTarget={dailyTarget}
+          netRevenue={netRevenue}
+          thisMonthLabel={monthLabel(thisMonth)}
+          ocultarSaldos={ocultarSaldos}
+          mascaraSaldo={mascaraSaldo}
+        />
+        <PainelPecaCampea
+          starProduct={starProduct}
+          totalPecasVendidas={totalPecasVendidas}
+          ticketMedio={ticketMedio}
+          totalCatalogItems={totalCatalogItems}
+          ocultarSaldos={ocultarSaldos}
+          mascaraSaldo={mascaraSaldo}
+        />
+      </div>
 
-            {totalHistorico === 0 ? (
-              <div className="flex h-[180px] flex-col items-center justify-center gap-2 text-center p-4 mt-2">
-                <div className="grid size-10 place-items-center rounded-2xl bg-secondary/70 text-muted-foreground/70">
-                  <TrendingUp className="size-5 text-primary/70" />
-                </div>
-                <p className="text-sm font-medium text-foreground">
-                  Sua evolução financeira aparecerá aqui
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-                  O gráfico traçará a curva de faturamento e sobra de caixa conforme as movimentações forem registradas.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-5 h-[230px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={series} margin={{ left: -18, right: 6, top: 6 }}>
-                    <defs>
-                      <linearGradient id="fat" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="luc" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis
-                      tickFormatter={(v) => (ocultarSaldos ? "••••" : brlCompact(Number(v)))}
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={11}
-                      width={78}
-                    />
-                    <Tooltip
-                      formatter={(v: unknown, name: unknown) => [
-                        ocultarSaldos ? "R$ ••••••" : brl(Number(v)),
-                        name === "faturamento"
-                          ? "Faturamento"
-                          : name === "lucro"
-                            ? "Resultado líquido"
-                            : String(name ?? ""),
-                      ]}
-                      contentStyle={{
-                        borderRadius: 16,
-                        border: "1px solid var(--color-border)",
-                        background: "var(--color-popover)",
-                        color: "var(--color-popover-foreground)",
-                        boxShadow: "var(--shadow-lifted)",
-                        fontSize: 12,
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="faturamento"
-                      stroke="var(--color-primary)"
-                      strokeWidth={2.5}
-                      fill="url(#fat)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="lucro"
-                      stroke="var(--color-success)"
-                      strokeWidth={2.5}
-                      fill="url(#luc)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ── COLUNA 2: Últimos Lançamentos do Caixa + Alerta Inteligente de Fiado ── */}
-        <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300">
-          <div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                  Últimos lançamentos
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Movimentações recentes no caixa
-                </p>
-              </div>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground font-medium"
-              >
-                <Link to="/caixa">
-                  Extrato completo <ChevronRight className="size-3.5 ml-0.5" />
-                </Link>
-              </Button>
-            </div>
-
-            {/* Alerta Inteligente de Fiado: Só aparece se houver saldo pendente */}
-            {openCreditTotal > 0 && (
-              <div className="mt-3">
-                <Link
-                  to="/fiado"
-                  className={cn(
-                    "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
-                    overdue > 0
-                      ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15"
-                      : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15",
-                  )}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <Users className="size-3.5 shrink-0" />
-                    <span className="truncate">
-                      <strong>{mascaraSaldo(openCreditTotal)}</strong> em aberto ({openCredits.length}{" "}
-                      {openCredits.length === 1 ? "cliente" : "clientes"})
-                      {overdue > 0 && ` · ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
-                    </span>
-                  </div>
-                  <span className="font-semibold shrink-0 text-[11px] underline">
-                    Cobranças ➔
-                  </span>
-                </Link>
-              </div>
-            )}
-
-            {recent.length === 0 ? (
-              <div className="flex h-[180px] flex-col items-center justify-center gap-2 text-center p-4 mt-2">
-                <div className="grid size-10 place-items-center rounded-2xl bg-secondary/70 text-muted-foreground/70">
-                  <Wallet className="size-4" />
-                </div>
-                <p className="text-sm font-medium text-foreground">
-                  Caixa pronto para movimentar
-                </p>
-                <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-                  Nenhuma entrada ou saída registrada no caixa este mês.
-                </p>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="h-8 rounded-full border-border/80 bg-card px-4 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
-                >
-                  <Link to="/caixa">
-                    <Plus className="size-3.5 mr-1 text-muted-foreground" />
-                    Novo lançamento
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <ul className="mt-3 divide-y divide-border/60">
-                {recent.slice(0, 5).map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 py-2.5">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="truncate text-sm font-medium">{t.description}</p>
-                        {t.kind === "entrada" ? (
-                          t.category === "venda_online" ? (
-                            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
-                              Online
-                            </span>
-                          ) : (
-                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
-                              Balcão
-                            </span>
-                          )
-                        ) : t.category === "estorno_devolucao" ? (
-                          <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                            Devolução
-                          </span>
-                        ) : t.category === "compra_estoque" ? (
-                          <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-                            Estoque
-                          </span>
-                        ) : t.category === "prolabore" ? (
-                          <span className="shrink-0 rounded-full bg-purple-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
-                            Pró-labore
-                          </span>
-                        ) : (
-                          <span className="shrink-0 rounded-full bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-medium text-rose-600 dark:text-rose-400">
-                            Despesa
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(t.occurred_on)}
-                      </p>
-                    </div>
-                    <p
-                      className={`numeric shrink-0 text-sm font-semibold ${
-                        t.kind === "entrada" ? "text-success" : "text-destructive"
-                      }`}
-                    >
-                      {t.kind === "entrada" ? "+" : "−"}
-                      {mascaraSaldo(Number(t.amount))}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+      {/* ── 3. PATRIMÔNIO & OPERAÇÃO IMEDIATA (Capital de Estoque & Caixa) ──── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PainelCapitalEstoque
+          totalStockValue={totalStockValue}
+          totalStockUnits={totalStockUnits}
+          totalCatalogItems={totalCatalogItems}
+          outOfStockCount={outOfStockCount}
+          lowStockCount={lowStockCount}
+          healthyStockCount={healthyStockCount}
+          ocultarSaldos={ocultarSaldos}
+          mascaraSaldo={mascaraSaldo}
+        />
+        <PainelAcaoCaixa
+          profit={profit}
+          openCreditTotal={openCreditTotal}
+          openCreditsCount={openCredits.length}
+          overdue={overdue}
+          ocultarSaldos={ocultarSaldos}
+          mascaraSaldo={mascaraSaldo}
+        />
       </div>
     </div>
   );
