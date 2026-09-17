@@ -78,16 +78,18 @@ export function PainelMetaRitmo({
             </div>
           </div>
 
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
-          >
-            <Link to="/metas">
-              {temMeta ? "Calibrar meta" : "Definir meta"} <ArrowUpRight className="size-3 ml-0.5" />
-            </Link>
-          </Button>
+          {temMeta && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
+            >
+              <Link to="/metas">
+                Calibrar meta <ArrowUpRight className="size-3 ml-0.5" />
+              </Link>
+            </Button>
+          )}
         </div>
 
         {/* Conteúdo Executivo */}
@@ -311,16 +313,18 @@ export function PainelPecaCampea({
         )}
       </div>
 
-      {/* Rodapé Executivo: Ticket Médio das Clientes */}
-      <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <Receipt className="size-3 text-muted-foreground/70" />
-          <span>Ticket médio da loja:</span>
-        </span>
-        <strong className="numeric font-semibold text-foreground">
-          {ocultarSaldos ? "R$ ••••" : mascaraSaldo(ticketMedio)}
-        </strong>
-      </div>
+      {/* Rodapé Executivo: Apenas quando há vendas e dados relevantes */}
+      {hasSale && ticketMedio > 0 && (
+        <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Receipt className="size-3 text-muted-foreground/70" />
+            <span>Ticket médio da loja:</span>
+          </span>
+          <strong className="numeric font-semibold text-foreground">
+            {ocultarSaldos ? "R$ ••••" : mascaraSaldo(ticketMedio)}
+          </strong>
+        </div>
+      )}
     </section>
   );
 }
@@ -350,9 +354,9 @@ export function PainelCapitalEstoque({
   mascaraSaldo,
 }: PainelCapitalEstoqueProps) {
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[290px]">
+    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
       <div>
-        {/* Cabeçalho */}
+        {/* Cabeçalho Fiel ao Design Original que o Lojista Amou */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
@@ -360,123 +364,94 @@ export function PainelCapitalEstoque({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Capital em Estoque & Araras
+                Saúde do Estoque
               </h2>
               <p className="text-xs text-muted-foreground">
-                Patrimônio ativo em mercadorias para faturar
+                {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalStockValue)} em patrimônio ativo · {totalStockUnits} peças
               </p>
             </div>
           </div>
 
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
-          >
-            <Link to="/estoque">
-              Ver estoque <ArrowUpRight className="size-3 ml-0.5" />
-            </Link>
-          </Button>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+            {totalCatalogItems} {totalCatalogItems === 1 ? "modelo" : "modelos"}
+          </span>
         </div>
 
-        {/* Número Hero: Valor Total das Araras */}
-        <div className="mt-5 space-y-3">
-          <div>
-            <div className="flex items-baseline justify-between">
-              <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalStockValue)}
-              </span>
-              <span className="text-xs font-semibold text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
-                {totalStockUnits} peças físicas
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              potencial de faturamento em {totalCatalogItems} modelos cadastrados
-            </p>
+        {/* Barra Apple HIG de Distribuição de Acervo */}
+        {totalCatalogItems > 0 && (
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-secondary gap-0.5 flex">
+            {healthyStockCount > 0 && (
+              <div
+                style={{ width: `${(healthyStockCount / totalCatalogItems) * 100}%` }}
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                title="Estoque saudável"
+              />
+            )}
+            {lowStockCount > 0 && (
+              <div
+                style={{ width: `${(lowStockCount / totalCatalogItems) * 100}%` }}
+                className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                title="Últimas unidades"
+              />
+            )}
+            {outOfStockCount > 0 && (
+              <div
+                style={{ width: `${(outOfStockCount / totalCatalogItems) * 100}%` }}
+                className="h-full bg-muted-foreground/30 rounded-full transition-all duration-500"
+                title="Esgotados"
+              />
+            )}
           </div>
+        )}
 
-          {/* Barra Apple HIG de Distribuição de Acervo */}
-          {totalCatalogItems > 0 && (
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary gap-0.5 flex">
-              {healthyStockCount > 0 && (
-                <div
-                  style={{ width: `${(healthyStockCount / totalCatalogItems) * 100}%` }}
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                  title="Estoque saudável"
-                />
-              )}
-              {lowStockCount > 0 && (
-                <div
-                  style={{ width: `${(lowStockCount / totalCatalogItems) * 100}%` }}
-                  className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                  title="Últimas unidades"
-                />
-              )}
-              {outOfStockCount > 0 && (
-                <div
-                  style={{ width: `${(outOfStockCount / totalCatalogItems) * 100}%` }}
-                  className="h-full bg-foreground/25 rounded-full transition-all duration-500"
-                  title="Esgotados"
-                />
-              )}
-            </div>
-          )}
-
-          {/* 3 Blocos de Status Limpos (Cards Visuais, Sem Tabela) */}
-          <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5">
-              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 block">
-                Saudável
-              </span>
-              <span className="numeric text-sm font-bold text-foreground">
-                {healthyStockCount}
-              </span>
-            </div>
-
-            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5">
-              <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 block">
-                Últimas (&lt; 3)
-              </span>
-              <span className="numeric text-sm font-bold text-foreground">
-                {lowStockCount}
-              </span>
-            </div>
-
-            <div className="rounded-xl bg-secondary border border-border/70 p-2.5">
-              <span className="text-[10px] font-semibold text-muted-foreground block">
-                Esgotados
-              </span>
-              <span className="numeric text-sm font-bold text-foreground">
-                {outOfStockCount}
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* A Lista Limpa com Pontos Coloridos que o Usuário Amou */}
+        <ul className="mt-4 divide-y divide-border/60 text-xs">
+          <li className="flex items-center justify-between py-2.5 text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-muted-foreground/40" />
+              Modelos esgotados
+            </span>
+            <span className="numeric font-medium text-foreground">
+              {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
+            </span>
+          </li>
+          <li className="flex items-center justify-between py-2.5 text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-amber-500" />
+              Últimas unidades (&lt; 3 un.)
+            </span>
+            <span className="numeric font-medium text-foreground">
+              {lowStockCount} {lowStockCount === 1 ? "modelo" : "modelos"}
+            </span>
+          </li>
+          <li className="flex items-center justify-between py-2.5 text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500" />
+              Modelos com estoque saudável
+            </span>
+            <span className="numeric font-medium text-foreground">
+              {healthyStockCount} {healthyStockCount === 1 ? "modelo" : "modelos"}
+            </span>
+          </li>
+        </ul>
       </div>
 
-      {/* Sugestão de Reposição */}
-      {outOfStockCount > 0 ? (
-        <div className="mt-3 pt-2.5 border-t border-border/50">
-          <Link
-            to="/estoque"
-            className="text-xs text-amber-700 dark:text-amber-400 font-medium hover:underline flex items-center justify-between"
-          >
-            <span>⚠️ {outOfStockCount} modelo{outOfStockCount !== 1 ? "s" : ""} sem estoque · Repor peças</span>
-            <ChevronRight className="size-3.5" />
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-3 pt-2.5 border-t border-border/50 text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
-          <span>✓ Todas as araras abastecidas para faturamento</span>
-        </div>
-      )}
+      {/* Botão de Fechamento Largo e Arredondado */}
+      <Button
+        asChild
+        variant="outline"
+        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+      >
+        <Link to="/estoque">
+          Gerenciar Estoque <ChevronRight className="size-3.5 ml-1" />
+        </Link>
+      </Button>
     </section>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 4. PAINEL AÇÃO RÁPIDA & SAÚDE DO CAIXA (Decisão Imediata - Sem Extrato Frio)
+ * 4. PAINEL LIQUIDEZ & OPERAÇÃO DO CAIXA (Simetria Nobre e Ações Sem Fricção)
  * ──────────────────────────────────────────────────────────────────────────── */
 export interface PainelAcaoCaixaProps {
   profit: number;
@@ -496,7 +471,7 @@ export function PainelAcaoCaixa({
   mascaraSaldo,
 }: PainelAcaoCaixaProps) {
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[290px]">
+    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
@@ -506,105 +481,101 @@ export function PainelAcaoCaixa({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Operação & Ação Rápida
+                Liquidez & Caixa
               </h2>
               <p className="text-xs text-muted-foreground">
-                Controles imediatos do caixa hoje
+                Disponibilidade imediata para o negócio hoje
               </p>
             </div>
           </div>
 
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
-          >
-            <Link to="/caixa">
-              Extrato no caixa <ArrowUpRight className="size-3 ml-0.5" />
-            </Link>
-          </Button>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+            Mês atual
+          </span>
         </div>
 
-        {/* Status de Liquidez & Fiado */}
-        <div className="mt-5 space-y-3">
-          {/* Card de Alerta Inteligente de Fiado */}
+        {/* Saldo Líquido do Mês (Hero Sutil) */}
+        <div className="mt-4 flex items-baseline justify-between">
+          <span
+            className={cn(
+              "numeric text-2xl sm:text-3xl font-bold tracking-tight",
+              profit >= 0 ? "text-foreground" : "text-destructive",
+            )}
+          >
+            {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(profit)}
+          </span>
+          <span className="text-xs font-semibold text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+            {profit >= 0 ? "Sobra líquida" : "Déficit temporário"}
+          </span>
+        </div>
+
+        {/* Status de Cobranças (Fiado) em Linha Serena */}
+        <div className="mt-3">
           {openCreditTotal > 0 ? (
             <Link
               to="/fiado"
               className={cn(
-                "flex items-center justify-between gap-3 rounded-2xl p-3.5 border transition-all hover:scale-[1.01]",
+                "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
                 overdue > 0
-                  ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300"
-                  : "bg-amber-500/10 border-amber-500/20 text-amber-800 dark:text-amber-300",
+                  ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15"
+                  : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15",
               )}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Users className="size-4 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-bold truncate">
-                    {ocultarSaldos ? "R$ ••••" : mascaraSaldo(openCreditTotal)} a receber em fiado
-                  </p>
-                  <p className="text-[11px] opacity-80 truncate">
-                    {openCreditsCount} cliente{openCreditsCount !== 1 ? "s" : ""}{" "}
-                    {overdue > 0 && `· ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
-                  </p>
-                </div>
+              <div className="flex items-center gap-2 truncate">
+                <Users className="size-3.5 shrink-0" />
+                <span className="truncate">
+                  <strong>{ocultarSaldos ? "R$ ••••" : mascaraSaldo(openCreditTotal)}</strong> em aberto ({openCreditsCount}{" "}
+                  {openCreditsCount === 1 ? "cliente" : "clientes"})
+                  {overdue > 0 && ` · ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
+                </span>
               </div>
-              <span className="text-[11px] font-bold underline shrink-0">
-                Cobrar ➔
+              <span className="font-semibold shrink-0 text-[11px] underline">
+                Cobranças ➔
               </span>
             </Link>
           ) : (
-            <div className="flex items-center gap-2.5 rounded-2xl bg-secondary/50 border border-border/60 p-3.5 text-xs text-foreground">
-              <span className="grid size-6 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 font-bold">
-                ✓
-              </span>
-              <div>
-                <p className="font-semibold">Clientes em dia</p>
-                <p className="text-[11px] text-muted-foreground">Nenhum fiado pendente de cobrança no momento.</p>
-              </div>
+            <div className="flex items-center gap-2 rounded-xl bg-secondary/50 px-3 py-2 text-xs text-muted-foreground border border-border/60">
+              <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span>Zero pendências de cobrança ou fiado</span>
             </div>
           )}
+        </div>
 
-          {/* Botões de Ação Executiva Imediata */}
-          <div className="pt-2 grid gap-2 sm:grid-cols-2">
-            <Button
-              asChild
-              className="h-10 rounded-xl gradient-primary text-primary-foreground font-semibold shadow-glow hover:opacity-95 transition-all text-xs cursor-pointer"
-            >
-              <Link to="/caixa">
-                <Store className="size-3.5 mr-1.5" />
-                Venda no Balcão
-              </Link>
-            </Button>
-
-            <Button
-              asChild
-              variant="outline"
-              className="h-10 rounded-xl border-border/80 bg-card hover:bg-secondary/60 text-xs font-medium cursor-pointer"
-            >
-              <Link to="/caixa">
-                <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
-                Lançar Despesa
-              </Link>
-            </Button>
-          </div>
+        {/* Botões de Ação Imediata (Harmônicos, sem roxo gritante) */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button
+            asChild
+            variant="outline"
+            className="h-9 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
+          >
+            <Link to="/caixa">
+              <Store className="size-3.5 mr-1.5 text-primary" />
+              Venda no Balcão
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="h-9 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
+          >
+            <Link to="/caixa">
+              <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
+              Lançar Despesa
+            </Link>
+          </Button>
         </div>
       </div>
 
-      {/* Rodapé: Sobra Líquida Disponível */}
-      <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
-        <span>Sobra retida no mês:</span>
-        <strong
-          className={cn(
-            "numeric font-semibold",
-            profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
-          )}
-        >
-          {ocultarSaldos ? "R$ ••••" : mascaraSaldo(profit)}
-        </strong>
-      </div>
+      {/* Botão de Fechamento Largo e Arredondado (Simétrico ao card de estoque!) */}
+      <Button
+        asChild
+        variant="outline"
+        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+      >
+        <Link to="/caixa">
+          Extrato Completo do Caixa <ChevronRight className="size-3.5 ml-1" />
+        </Link>
+      </Button>
     </section>
   );
 }
