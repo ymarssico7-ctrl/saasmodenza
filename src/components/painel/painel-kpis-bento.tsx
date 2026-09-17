@@ -2,12 +2,12 @@ import React from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronRight,
+  Package,
   Receipt,
   ShoppingBag,
   Sparkles,
   Store,
   Target,
-  TrendingDown,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -22,7 +22,7 @@ export interface PainelKpisBentoProps {
   refunds: number;
   // ── Despesas ──────────────────────────────────────────────────────────────
   totalExpenses: number;
-  expenses?: number; // OPEX puro (sem estoque, sem prolabore)
+  expenses?: number; // OPEX puro
   stockPurchases?: number;
   // ── Lucro ─────────────────────────────────────────────────────────────────
   profit: number;
@@ -58,6 +58,8 @@ export function PainelKpisBento({
   fisicaRevenue,
   onlineRevenue,
   vitrineAtiva,
+  totalPecasVendidas,
+  ticketMedio,
   pedidosNovosCount,
   goalTarget,
   goalProgress,
@@ -65,7 +67,7 @@ export function PainelKpisBento({
   ocultarSaldos,
   mascaraSaldo,
 }: PainelKpisBentoProps) {
-  // ── Proporções dos canais ──────────────────────────────────────────────────
+  // ── Cálculos dos canais ────────────────────────────────────────────────────
   const totalCanais = fisicaRevenue + onlineRevenue;
   const fisicaPct = totalCanais > 0 ? Math.round((fisicaRevenue / totalCanais) * 100) : 100;
   const onlinePct = totalCanais > 0 ? 100 - fisicaPct : 0;
@@ -81,184 +83,68 @@ export function PainelKpisBento({
   const estoqueVal = stockPurchases ?? 0;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
-      {/* ── CARD 1: O "MASTER BENTO" (2 COLUNAS DE LARGURA) ────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 sm:col-span-2 xl:col-span-2 flex flex-col justify-between">
-        {/* Topo: Faturamento Consolidado + Widget de Meta */}
-        <div>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Faturamento Consolidado
-                </span>
-                {refunds > 0 && !ocultarSaldos && (
-                  <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground font-medium">
-                    Líq: {brl(netRevenue)}
-                  </span>
-                )}
-              </div>
-              <h3 className="numeric text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-                {mascaraSaldo(revenue)}
-              </h3>
+    <div className="space-y-4">
+      {/* ── 1. A TRINDADE FINANCEIRA (3 CARDS MESTRES COM RESPIRO ABSOLUTO) ── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* ── CARD 1: FATURAMENTO DO MÊS ──────────────────────────────────── */}
+        <div className="panel p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[170px]">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Faturamento do Mês
+            </span>
+            <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-primary-soft text-accent-foreground shadow-2xs">
+              <Wallet className="size-4.5" />
             </div>
+          </div>
 
-            {/* Widget de Meta Integrado */}
-            <div className="rounded-2xl border border-border/60 bg-secondary/30 p-2.5 sm:p-3 min-w-[170px] sm:min-w-[200px]">
-              <div className="flex items-center justify-between text-xs font-medium mb-1.5">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Target className="size-3 text-primary" />
-                  <span>Meta</span>
-                </span>
-                <span
-                  className={cn(
-                    "font-bold text-xs",
-                    metaDefinida
-                      ? metaAtingida
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : progressClamp >= 70
-                          ? "text-primary"
-                          : progressClamp >= 40
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-rose-600 dark:text-rose-400"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {metaDefinida ? `${progressClamp.toFixed(0)}%` : "Não definida"}
-                </span>
-              </div>
+          <div className="mt-4">
+            <h3 className="numeric text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+              {mascaraSaldo(revenue)}
+            </h3>
 
-              {metaDefinida ? (
-                <>
-                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-700",
-                        metaAtingida
-                          ? "bg-emerald-500"
-                          : progressClamp >= 70
-                            ? "bg-primary"
-                            : progressClamp >= 40
-                              ? "bg-amber-400"
-                              : "bg-rose-400",
-                      )}
-                      style={{ width: `${progressClamp}%` }}
-                    />
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>{ocultarSaldos ? "••••" : brl(goalTarget)}</span>
-                    {!metaAtingida && dailyTarget && dailyTarget > 0 && !ocultarSaldos && (
-                      <span className="font-medium text-foreground">
-                        +{brl(dailyTarget)}/dia
-                      </span>
-                    )}
-                  </div>
-                </>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {ocultarSaldos ? (
+                <span className="font-mono">••••••••</span>
+              ) : refunds > 0 ? (
+                <span>
+                  Líquido:{" "}
+                  <strong className="font-medium text-foreground">{brl(netRevenue)}</strong>{" "}
+                  após estornos
+                </span>
               ) : (
-                <div className="text-[10px] text-muted-foreground">
-                  Cadastre sua meta em Metas
-                </div>
+                <span>Entradas consolidadas no período</span>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Base: As Duas Cápsulas Dedicadas (Loja Física vs. Vitrine Online) com Espaço e Respiro */}
-        <div className="mt-5 pt-4 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Cápsula Loja Física */}
-          <div className="rounded-2xl border border-border/50 bg-secondary/30 p-3.5 sm:p-4 transition-colors hover:bg-secondary/50 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <Store className="size-3.5 text-foreground/70" />
-                Loja Física
-              </span>
-              <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-bold text-muted-foreground shadow-2xs border border-border/40">
-                {totalCanais > 0 ? `${fisicaPct}%` : "Balcão"}
-              </span>
-            </div>
-
-            <div className="mt-2">
-              <p className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                {mascaraSaldo(fisicaRevenue)}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Vendas registradas no balcão
-              </p>
-            </div>
-          </div>
-
-          {/* Cápsula Vitrine Online */}
-          <div
-            className={cn(
-              "rounded-2xl border p-3.5 sm:p-4 transition-colors flex flex-col justify-between",
-              pedidosNovosCount > 0
-                ? "border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10"
-                : "border-border/50 bg-secondary/30 hover:bg-secondary/50",
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <ShoppingBag
-                  className={cn(
-                    "size-3.5",
-                    pedidosNovosCount > 0 ? "text-rose-500" : "text-foreground/70",
-                  )}
-                />
-                Vitrine Online
-                {pedidosNovosCount > 0 && (
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex size-2 rounded-full bg-rose-500" />
+          <div className="mt-3 text-[11px] text-muted-foreground flex items-center justify-between">
+            {metaDefinida ? (
+              <span>
+                {metaAtingida ? (
+                  <strong className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    Meta do mês atingida! ({progressClamp.toFixed(0)}%)
+                  </strong>
+                ) : (
+                  <span>
+                    Ritmo:{" "}
+                    <strong className="font-semibold text-foreground">
+                      {progressClamp.toFixed(0)}%
+                    </strong>{" "}
+                    da meta
                   </span>
                 )}
               </span>
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-bold shadow-2xs border",
-                  pedidosNovosCount > 0
-                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
-                    : "bg-background/80 text-muted-foreground border-border/40",
-                )}
-              >
-                {pedidosNovosCount > 0
-                  ? `${pedidosNovosCount} pendente${pedidosNovosCount > 1 ? "s" : ""}`
-                  : totalCanais > 0
-                    ? `${onlinePct}%`
-                    : "Digital"}
-              </span>
-            </div>
-
-            <div className="mt-2">
-              <p className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                {mascaraSaldo(onlineRevenue)}
-              </p>
-              <div className="text-[11px] mt-0.5">
-                {pedidosNovosCount > 0 ? (
-                  <Link
-                    to="/loja/pedidos"
-                    className="font-semibold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
-                  >
-                    Separar pedidos agora <ChevronRight className="size-3" />
-                  </Link>
-                ) : vitrineAtiva ? (
-                  <span className="text-muted-foreground">Vendas no Instagram e Zap</span>
-                ) : (
-                  <Link
-                    to="/loja/configuracao"
-                    className="text-primary hover:underline font-semibold flex items-center gap-0.5"
-                  >
-                    <Sparkles className="size-3" /> Ativar vitrine
-                  </Link>
-                )}
-              </div>
-            </div>
+            ) : (
+              <span>Meta do mês ainda não definida</span>
+            )}
+            {dailyTarget && dailyTarget > 0 && !metaAtingida && !ocultarSaldos ? (
+              <span className="text-muted-foreground">+{brl(dailyTarget)}/dia</span>
+            ) : null}
           </div>
         </div>
-      </div>
 
-      {/* ── CARD 2: SAÍDAS DO MÊS (1 COLUNA) ─────────────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between">
-        <div>
+        {/* ── CARD 2: SAÍDAS DO MÊS ────────────────────────────────────────── */}
+        <div className="panel p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[170px]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Saídas do Mês
@@ -268,64 +154,44 @@ export function PainelKpisBento({
             </div>
           </div>
 
-          <div className="mt-3">
-            <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <div className="mt-4">
+            <h3 className="numeric text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
               {mascaraSaldo(despesasExibidas)}
             </h3>
 
-            <div className="mt-1.5 text-xs text-muted-foreground">
+            <div className="mt-2 text-xs text-muted-foreground">
               {ocultarSaldos ? (
                 <span className="font-mono">••••••••</span>
               ) : opexVal > 0 || estoqueVal > 0 ? (
                 <span>
-                  Contas <strong className="font-medium text-foreground">{brl(opexVal)}</strong>
+                  Contas{" "}
+                  <strong className="font-medium text-foreground">{brl(opexVal)}</strong>
                   {" · "}Estoque{" "}
                   <strong className="font-medium text-foreground">{brl(estoqueVal)}</strong>
                 </span>
               ) : (
-                <span>Todas as saídas do período</span>
+                <span>Todas as despesas e compras do mês</span>
               )}
             </div>
           </div>
+
+          <div className="mt-3 text-[11px] text-muted-foreground">
+            {revenue > 0 ? (
+              <span>
+                Consumo:{" "}
+                <strong className="font-semibold text-foreground">
+                  {Math.round((despesasExibidas / revenue) * 100)}%
+                </strong>{" "}
+                da receita do período
+              </span>
+            ) : (
+              <span>Nenhuma saída registrada hoje</span>
+            )}
+          </div>
         </div>
 
-        {/* Indicador de Pressão Financeira */}
-        <div className="mt-4 pt-4 border-t border-border/60">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium mb-1.5">
-            <span className="flex items-center gap-1">
-              <TrendingDown className="size-3 text-rose-500" />
-              Consumo da receita
-            </span>
-            <span className="font-bold text-foreground">
-              {revenue > 0 ? `${Math.round((despesasExibidas / revenue) * 100)}%` : "0%"}
-            </span>
-          </div>
-          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-700",
-                revenue > 0 && despesasExibidas / revenue > 0.85
-                  ? "bg-rose-500"
-                  : revenue > 0 && despesasExibidas / revenue > 0.65
-                    ? "bg-amber-400"
-                    : "bg-emerald-500",
-              )}
-              style={{
-                width: `${revenue > 0 ? Math.min((despesasExibidas / revenue) * 100, 100) : 0}%`,
-              }}
-            />
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-1.5">
-            {revenue > 0 && despesasExibidas / revenue > 0.85
-              ? "Atenção: saídas elevadas no mês"
-              : "Despesas sob controle"}
-          </p>
-        </div>
-      </div>
-
-      {/* ── CARD 3: SOBRA NO CAIXA (1 COLUNA) ────────────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between">
-        <div>
+        {/* ── CARD 3: SOBRA NO CAIXA (LUCRO REAL) ─────────────────────────── */}
+        <div className="panel p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[170px] sm:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -354,55 +220,167 @@ export function PainelKpisBento({
             </div>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-4">
             <h3
               className={cn(
-                "numeric text-2xl sm:text-3xl font-bold tracking-tight",
+                "numeric text-3xl sm:text-4xl font-bold tracking-tight",
                 profit >= 0 ? "text-foreground" : "text-rose-600 dark:text-rose-400",
               )}
             >
               {mascaraSaldo(profit)}
             </h3>
 
-            <div className="mt-1.5 text-xs text-muted-foreground">
+            <div className="mt-2 text-xs text-muted-foreground">
               {ocultarSaldos ? (
                 <span className="font-mono">••••••••</span>
               ) : netRevenue > 0 ? (
                 <span>
-                  Margem real de{" "}
+                  Margem livre de{" "}
                   <strong className="font-medium text-foreground">
                     {marginPct.toFixed(0)}%
                   </strong>{" "}
-                  livre
+                  retida no caixa
                 </span>
               ) : (
-                <span>Lucro livre após todas as despesas</span>
+                <span>Lucro líquido livre após contas e estoque</span>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Indicador de Retenção de Caixa */}
-        <div className="mt-4 pt-4 border-t border-border/60">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium mb-1.5">
-            <span>Margem líquida</span>
-            <span className="font-bold text-foreground">
-              {marginPct > 0 ? `${marginPct.toFixed(0)}% livre` : "0%"}
-            </span>
+          <div className="mt-3 text-[11px] text-muted-foreground">
+            {profit >= 0 ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                ● Caixa saudável disponível para o lojista
+              </span>
+            ) : (
+              <span className="text-rose-600 dark:text-rose-400 font-medium">
+                ● Atenção: saídas superaram entradas no mês
+              </span>
+            )}
           </div>
-          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-700"
-              style={{
-                width: `${Math.min(Math.max(marginPct, 0), 100)}%`,
-              }}
-            />
+        </div>
+      </div>
+
+      {/* ── 2. A FITA ZEN OMNICHANNEL (CANAIS & OPERAÇÃO EM UMA LINHA FLUIDA) ── */}
+      <div className="panel p-3.5 sm:p-4 transition-all duration-300 hover:shadow-soft">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 divide-y md:divide-y-0 md:divide-x divide-border/60">
+          {/* Estação 1: Loja Física */}
+          <div className="pt-2 md:pt-0 md:px-3 first:pt-0 first:px-0">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Store className="size-3.5 text-foreground/70" />
+              <span>Loja Física</span>
+              <span className="text-[10px] text-muted-foreground/60">
+                {totalCanais > 0 ? `(${fisicaPct}%)` : ""}
+              </span>
+            </div>
+            <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground mt-1">
+              {mascaraSaldo(fisicaRevenue)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+              Vendas no balcão
+            </p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1.5">
-            {profit >= 0
-              ? "Caixa saudável após contas e estoque"
-              : "Atenção: saídas superaram entradas"}
-          </p>
+
+          {/* Estação 2: Vitrine Online */}
+          <div className="pt-2 md:pt-0 md:px-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <ShoppingBag
+                className={cn(
+                  "size-3.5",
+                  pedidosNovosCount > 0 ? "text-rose-500" : "text-foreground/70",
+                )}
+              />
+              <span>Vitrine Online</span>
+              {pedidosNovosCount > 0 && (
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-rose-500" />
+                </span>
+              )}
+            </div>
+            <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground mt-1">
+              {mascaraSaldo(onlineRevenue)}
+            </p>
+            <div className="text-[11px] mt-0.5 truncate">
+              {pedidosNovosCount > 0 ? (
+                <Link
+                  to="/loja/pedidos"
+                  className="font-semibold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-0.5"
+                >
+                  {pedidosNovosCount} a separar <ChevronRight className="size-3" />
+                </Link>
+              ) : vitrineAtiva ? (
+                <span className="text-muted-foreground">Instagram & Zap</span>
+              ) : (
+                <Link
+                  to="/loja/configuracao"
+                  className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                >
+                  <Sparkles className="size-3" /> Ativar vitrine
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Estação 3: Meta do Mês */}
+          <div className="pt-2 md:pt-0 md:px-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Target className="size-3.5 text-foreground/70" />
+              <span>Meta do Mês</span>
+            </div>
+            <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground mt-1">
+              {metaDefinida ? (
+                ocultarSaldos ? (
+                  "••••••••"
+                ) : (
+                  brl(goalTarget)
+                )
+              ) : (
+                <span className="text-muted-foreground text-sm font-semibold">Sem meta</span>
+              )}
+            </p>
+            <div className="text-[11px] mt-0.5 truncate">
+              {metaDefinida ? (
+                <span
+                  className={cn(
+                    "font-semibold",
+                    metaAtingida
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {progressClamp.toFixed(0)}% concluída
+                </span>
+              ) : (
+                <Link
+                  to="/metas"
+                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5"
+                >
+                  Definir meta <ChevronRight className="size-3" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Estação 4: Peças & Giro */}
+          <div className="pt-2 md:pt-0 md:px-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Package className="size-3.5 text-foreground/70" />
+              <span>Peças Vendidas</span>
+            </div>
+            <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground mt-1">
+              {totalPecasVendidas > 0 ? (
+                <>
+                  {totalPecasVendidas} <span className="text-xs font-normal text-muted-foreground">un.</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground text-sm font-semibold">0 peças</span>
+              )}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+              Ticket: <strong className="font-medium text-foreground">{ticketMedio > 0 ? brl(ticketMedio) : "R$ 0,00"}</strong>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -274,7 +274,7 @@ export function VestuiGuideBanner({
               type="button"
               size="sm"
               onClick={nextStep.action}
-              className="h-7 rounded-full gradient-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-2xs transition-all hover:opacity-95 cursor-pointer"
+              className="h-7 rounded-full border border-primary/30 bg-primary/10 px-3 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer"
             >
               <span>{nextStep.cta}</span>
               <ArrowUpRight className="ml-1 size-3" />
@@ -283,7 +283,7 @@ export function VestuiGuideBanner({
             <Button
               asChild
               size="sm"
-              className="h-7 rounded-full gradient-primary px-3 text-[11px] font-semibold text-primary-foreground shadow-2xs transition-all hover:opacity-95 cursor-pointer"
+              className="h-7 rounded-full border border-primary/30 bg-primary/10 px-3 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer"
             >
               <Link to={nextStep.to}>
                 <span>{nextStep.cta}</span>
