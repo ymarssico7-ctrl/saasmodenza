@@ -104,7 +104,7 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé Límpido: Composição Balcão & Vitrine */}
-        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[29px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
@@ -158,21 +158,19 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Contas e Compras de Estoque */}
-        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[29px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
-          ) : opexVal > 0 || estoqueVal > 0 ? (
+          ) : (
             <>
               <span className="truncate">
-                Contas: <strong className="font-semibold text-foreground">{brl(opexVal)}</strong>
+                Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong>
               </span>
               <span className="text-border mx-1">·</span>
               <span className="truncate">
-                Estoque: <strong className="font-semibold text-foreground">{brl(estoqueVal)}</strong>
+                Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong>
               </span>
             </>
-          ) : (
-            <span className="truncate">Contas operacionais e compras de estoque</span>
           )}
         </div>
       </div>
@@ -210,16 +208,20 @@ export function PainelKpisBento({
           </h3>
         </div>
 
-        {/* Rodapé: Margem Livre */}
-        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+        {/* Rodapé: Margem e Status de Caixa */}
+        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[29px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
-          ) : netRevenue > 0 ? (
-            <span>
-              Margem livre: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong> no caixa
-            </span>
           ) : (
-            <span>Lucro livre após despesas</span>
+            <>
+              <span className="truncate">
+                Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong>
+              </span>
+              <span className="text-border mx-1">·</span>
+              <span className="truncate">
+                {netRevenue > 0 ? "Disponível no caixa" : "Caixa estável"}
+              </span>
+            </>
           )}
         </div>
       </div>

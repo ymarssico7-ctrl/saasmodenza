@@ -425,7 +425,7 @@ function Painel() {
         </div>
 
         {/* Top Products Bento Skeleton */}
-        <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <div className="grid gap-4 lg:grid-cols-2">
           <div className="panel p-6 space-y-4">
             <Skeleton className="h-5 w-48" />
             <Skeleton className="h-4 w-32" />
@@ -458,7 +458,7 @@ function Painel() {
   const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 pb-24">
       {/* ── CABEÇALHO ZEN (Sem Barras Soltas Empilhadas) ───────────────────────── */}
       <PageHeader
         eyebrow={monthLabel(thisMonth)}

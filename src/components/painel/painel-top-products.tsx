@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Package,
+  Plus,
   Shirt,
   Sparkles,
 } from "lucide-react";
@@ -48,9 +49,9 @@ export function PainelTopProducts({
   const hasProducts = activeSellers.length > 0;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+    <div className="grid gap-4 lg:grid-cols-2">
       {/* ── SEÇÃO: Peças Campeãs de Vendas ────────────────────────────────────── */}
-      <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300">
+      <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
         <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -86,20 +87,33 @@ export function PainelTopProducts({
             </Button>
           </div>
 
-          {/* Lista de Peças Campeãs */}
+          {/* Lista de Peças Campeãs ou Estado Inspirador */}
           {!hasProducts ? (
-            <div className="flex h-[200px] flex-col items-center justify-center gap-2.5 text-center p-6 mt-4">
-              <div className="grid size-11 place-items-center rounded-2xl bg-secondary/70 text-muted-foreground">
-                <Shirt className="size-5 text-muted-foreground/60" />
+            <div className="flex h-[200px] flex-col items-center justify-center gap-2.5 text-center p-4 mt-3">
+              <div className="grid size-11 place-items-center rounded-2xl bg-secondary text-foreground/70 shadow-2xs">
+                <Sparkles className="size-5 text-foreground/60" />
               </div>
               <div className="max-w-xs space-y-1">
                 <p className="text-sm font-semibold text-foreground">
-                  Nenhuma peça vendida ainda este mês
+                  Araras prontas para faturar
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  As roupas mais vendidas aparecerão aqui automaticamente com foto e faturamento.
+                  {totalCatalogItems > 0
+                    ? `${totalCatalogItems} ${totalCatalogItems === 1 ? "modelo cadastrado" : "modelos cadastrados"} prontos para venda no balcão ou vitrine.`
+                    : "Cadastre suas peças e registre vendas para ver seu ranking de campeãs aqui."}
                 </p>
               </div>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full border-border/80 bg-card px-3.5 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
+              >
+                <Link to="/caixa">
+                  <Plus className="size-3.5 mr-1 text-muted-foreground" />
+                  Registrar venda no caixa
+                </Link>
+              </Button>
             </div>
           ) : (
             <div className="mt-4 divide-y divide-border/60">
@@ -188,7 +202,7 @@ export function PainelTopProducts({
       </section>
 
       {/* ── SEÇÃO: Saúde de Estoque (Límpida e Despoluída) ────────────────────── */}
-      <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300">
+      <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
         <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -204,27 +218,51 @@ export function PainelTopProducts({
             </span>
           </div>
 
+          {/* Barra de Distribuição Visual Apple HIG */}
+          {totalCatalogItems > 0 && (
+            <div className="mt-4">
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary/80 gap-0.5">
+                {Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount) > 0 && (
+                  <div
+                    style={{
+                      width: `${(Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount) / totalCatalogItems) * 100}%`,
+                    }}
+                    className="h-full bg-emerald-500/80 rounded-full transition-all duration-500"
+                    title="Estoque saudável"
+                  />
+                )}
+                {lowStockCount > 0 && (
+                  <div
+                    style={{ width: `${(lowStockCount / totalCatalogItems) * 100}%` }}
+                    className="h-full bg-amber-500/80 rounded-full transition-all duration-500"
+                    title="Últimas unidades"
+                  />
+                )}
+                {outOfStockCount > 0 && (
+                  <div
+                    style={{ width: `${(outOfStockCount / totalCatalogItems) * 100}%` }}
+                    className="h-full bg-foreground/25 rounded-full transition-all duration-500"
+                    title="Esgotados"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Lista Limpa de Status de Estoque */}
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 space-y-2.5">
             {/* Status 1: Esgotadas */}
             <div className="flex items-center justify-between py-2 border-b border-border/50">
               <div className="flex items-center gap-2.5">
                 <span
                   className={cn(
                     "size-2 rounded-full",
-                    outOfStockCount > 0 ? "bg-rose-500/80" : "bg-emerald-500/80",
+                    outOfStockCount > 0 ? "bg-foreground/35" : "bg-emerald-500/80",
                   )}
                 />
                 <span className="text-xs text-foreground font-medium">Modelos esgotados</span>
               </div>
-              <span
-                className={cn(
-                  "num-display text-xs font-semibold",
-                  outOfStockCount > 0
-                    ? "text-rose-600 dark:text-rose-400 font-bold"
-                    : "text-muted-foreground",
-                )}
-              >
+              <span className="num-display text-xs font-semibold text-foreground">
                 {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
               </span>
             </div>
@@ -240,14 +278,7 @@ export function PainelTopProducts({
                 />
                 <span className="text-xs text-foreground font-medium">Últimas unidades (&lt; 3 un.)</span>
               </div>
-              <span
-                className={cn(
-                  "num-display text-xs font-semibold",
-                  lowStockCount > 0
-                    ? "text-amber-700 dark:text-amber-400 font-bold"
-                    : "text-muted-foreground",
-                )}
-              >
+              <span className="num-display text-xs font-semibold text-foreground">
                 {lowStockCount} {lowStockCount === 1 ? "modelo" : "modelos"}
               </span>
             </div>
@@ -258,7 +289,7 @@ export function PainelTopProducts({
                 <span className="size-2 rounded-full bg-emerald-500/80" />
                 <span className="text-xs text-foreground font-medium">Modelos com estoque saudável</span>
               </div>
-              <span className="num-display text-xs font-semibold text-muted-foreground">
+              <span className="num-display text-xs font-semibold text-foreground">
                 {Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount)}{" "}
                 {Math.max(0, totalCatalogItems - outOfStockCount - lowStockCount) === 1
                   ? "modelo"
