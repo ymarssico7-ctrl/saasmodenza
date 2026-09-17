@@ -4,12 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
   ArrowUpRight,
-  Calculator,
   ChevronRight,
   Eye,
   EyeOff,
-  FileSpreadsheet,
-  HandCoins,
   Package,
   Plus,
   Receipt,
@@ -18,7 +15,6 @@ import {
   Sparkles,
   Store,
   Tag,
-  Target,
   TrendingUp,
   Users,
   Wallet,
@@ -34,7 +30,6 @@ import {
 } from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
 import { PainelKpisBento } from "@/components/painel/painel-kpis-bento";
@@ -552,319 +547,232 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── 3. EVOLUÇÃO FINANCEIRA & METAS ────────────────────────────────────── */}
+      {/* ── 3. HISTÓRICO & ATIVIDADE OPERACIONAL (Simetria Nobre 50/50) ────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Gráfico de Evolução 6 Meses com Legenda Visual */}
-        <section className="panel p-5 sm:p-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-sm sm:text-base font-semibold">Evolução dos últimos 6 meses</h2>
-              <p className="text-xs text-muted-foreground">
-                Faturamento e lucro líquido retido por mês
-              </p>
-            </div>
-            <div className="flex items-center gap-3 self-start sm:self-auto">
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <span className="size-2 rounded-full bg-primary" /> Faturamento
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <span className="size-2 rounded-full bg-emerald-500" /> Sobra Líquida
-              </span>
-            </div>
-          </div>
-          {totalHistorico === 0 ? (
-            <div className="flex h-[190px] flex-col items-center justify-center gap-2 text-center p-4">
-              <div className="grid size-10 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
-                <TrendingUp className="size-5 text-primary/70" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">
-                Sua evolução financeira aparecerá aqui
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-                O gráfico traçará a curva de faturamento e sobra de caixa conforme as movimentações forem registradas.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-5 h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series} margin={{ left: -18, right: 6, top: 6 }}>
-                  <defs>
-                    <linearGradient id="fat" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="luc" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis
-                    tickFormatter={(v) => (ocultarSaldos ? "••••" : brlCompact(Number(v)))}
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={11}
-                    width={78}
-                  />
-                  <Tooltip
-                    formatter={(v: unknown, name: unknown) => [
-                      ocultarSaldos ? "R$ ••••••" : brl(Number(v)),
-                      name === "faturamento"
-                        ? "Faturamento"
-                        : name === "lucro"
-                          ? "Resultado líquido"
-                          : String(name ?? ""),
-                    ]}
-                    contentStyle={{
-                      borderRadius: 16,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-popover)",
-                      color: "var(--color-popover-foreground)",
-                      boxShadow: "var(--shadow-lifted)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="faturamento"
-                    stroke="var(--color-primary)"
-                    strokeWidth={2.5}
-                    fill="url(#fat)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="lucro"
-                    stroke="var(--color-success)"
-                    strokeWidth={2.5}
-                    fill="url(#luc)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </section>
-
-        {/* Coluna Direita: Metas Comerciais + Fiados a Receber */}
-        <div className="space-y-4">
-          <section className="panel p-5 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="size-4 text-primary" />
-                <h2 className="text-sm font-semibold">Meta do mês</h2>
-              </div>
-              {goalTarget > 0 && (
-                <span className="num-display text-xs font-semibold text-primary">
-                  {pct(goalProgress)}
-                </span>
-              )}
-            </div>
-
-            {goalTarget > 0 ? (
-              <>
-                <p className="numeric mt-3 text-2xl font-semibold">{mascaraSaldo(netRevenue)}</p>
-                <p className="text-xs text-muted-foreground">de {mascaraSaldo(goalTarget)}</p>
-                <Progress value={goalProgress} className="mt-3.5 h-2" />
-                <div className="mt-3 pt-2.5 border-t border-border/60 text-xs text-muted-foreground">
-                  {remainingGoal > 0 ? (
-                    <p className="leading-relaxed">
-                      Faltam <strong className="text-foreground">{mascaraSaldo(remainingGoal)}</strong> em{" "}
-                      {daysRemaining} dia{daysRemaining !== 1 ? "s" : ""} · Ritmo:{" "}
-                      <strong className="text-foreground">{mascaraSaldo(dailyTarget)}/dia</strong>
-                    </p>
-                  ) : (
-                    <p className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      🎉 Parabéns! Meta do mês superada!
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="mt-3 flex items-center justify-between gap-3">
+        {/* ── COLUNA 1: Gráfico de Evolução 6 Meses com Legenda Visual ─────────── */}
+        <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300">
+          <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground">
+                  Evolução dos últimos 6 meses
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  Defina um objetivo para acompanhar o ritmo diário de vendas.
+                  Faturamento e lucro líquido retido por mês
                 </p>
-                <Button asChild variant="outline" size="sm" className="h-8 shrink-0 rounded-full text-xs font-medium">
-                  <Link to="/metas">Definir meta</Link>
-                </Button>
+              </div>
+              <div className="flex items-center gap-3 self-start sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <span className="size-2 rounded-full bg-primary" /> Faturamento
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                  <span className="size-2 rounded-full bg-emerald-500" /> Sobra Líquida
+                </span>
+              </div>
+            </div>
+
+            {totalHistorico === 0 ? (
+              <div className="flex h-[180px] flex-col items-center justify-center gap-2 text-center p-4 mt-2">
+                <div className="grid size-10 place-items-center rounded-2xl bg-secondary/70 text-muted-foreground/70">
+                  <TrendingUp className="size-5 text-primary/70" />
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  Sua evolução financeira aparecerá aqui
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+                  O gráfico traçará a curva de faturamento e sobra de caixa conforme as movimentações forem registradas.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 h-[230px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={series} margin={{ left: -18, right: 6, top: 6 }}>
+                    <defs>
+                      <linearGradient id="fat" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="luc" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-success)" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="var(--color-success)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
+                    <YAxis
+                      tickFormatter={(v) => (ocultarSaldos ? "••••" : brlCompact(Number(v)))}
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                      width={78}
+                    />
+                    <Tooltip
+                      formatter={(v: unknown, name: unknown) => [
+                        ocultarSaldos ? "R$ ••••••" : brl(Number(v)),
+                        name === "faturamento"
+                          ? "Faturamento"
+                          : name === "lucro"
+                            ? "Resultado líquido"
+                            : String(name ?? ""),
+                      ]}
+                      contentStyle={{
+                        borderRadius: 16,
+                        border: "1px solid var(--color-border)",
+                        background: "var(--color-popover)",
+                        color: "var(--color-popover-foreground)",
+                        boxShadow: "var(--shadow-lifted)",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="faturamento"
+                      stroke="var(--color-primary)"
+                      strokeWidth={2.5}
+                      fill="url(#fat)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="lucro"
+                      stroke="var(--color-success)"
+                      strokeWidth={2.5}
+                      fill="url(#luc)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             )}
-          </section>
-
-          <section className="panel p-5 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="size-4 text-primary" />
-                <h2 className="text-sm font-semibold">Fiado em aberto</h2>
-              </div>
-              {overdue > 0 && (
-                <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                  {overdue} vencido{overdue !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <p className="numeric mt-3 text-2xl font-semibold">{mascaraSaldo(openCreditTotal)}</p>
-            <p className="text-xs text-muted-foreground">
-              {openCredits.length} cliente{openCredits.length !== 1 ? "s" : ""} com saldo pendente
-            </p>
-            <div className="mt-3 pt-2.5 border-t border-border/60">
-              <Link
-                to="/fiado"
-                className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-              >
-                Cobranças e recibos <ChevronRight className="size-3" />
-              </Link>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      {/* ── 4. FLUXO OPERACIONAL RECENTE & ATALHOS RÁPIDOS ────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Últimos Lançamentos (Limpos e Sem Redundâncias) */}
-        <section className="panel p-5 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm sm:text-base font-semibold">Últimos lançamentos</h2>
-              <p className="text-xs text-muted-foreground">Movimentações recentes no caixa</p>
-            </div>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground font-medium"
-            >
-              <Link to="/caixa">Extrato completo ➔</Link>
-            </Button>
           </div>
-
-          {recent.length === 0 ? (
-            <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center p-6 mt-3">
-              <div className="grid size-9 place-items-center rounded-2xl bg-secondary/60 text-muted-foreground/70">
-                <Wallet className="size-4" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Nenhuma movimentação registrada no caixa este mês.
-              </p>
-            </div>
-          ) : (
-            <ul className="mt-4 divide-y divide-border/60">
-              {recent.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="truncate text-sm font-medium">{t.description}</p>
-                      {t.kind === "entrada" ? (
-                        t.category === "venda_online" ? (
-                          <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
-                            Online
-                          </span>
-                        ) : (
-                          <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
-                            Balcão
-                          </span>
-                        )
-                      ) : t.category === "estorno_devolucao" ? (
-                        <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                          Devolução
-                        </span>
-                      ) : t.category === "compra_estoque" ? (
-                        <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-                          Estoque
-                        </span>
-                      ) : t.category === "prolabore" ? (
-                        <span className="shrink-0 rounded-full bg-purple-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
-                          Pró-labore
-                        </span>
-                      ) : (
-                        <span className="shrink-0 rounded-full bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-medium text-rose-600 dark:text-rose-400">
-                          Despesa
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(t.occurred_on)}
-                    </p>
-                  </div>
-                  <p
-                    className={`numeric shrink-0 text-sm font-semibold ${
-                      t.kind === "entrada" ? "text-success" : "text-destructive"
-                    }`}
-                  >
-                    {t.kind === "entrada" ? "+" : "−"}
-                    {mascaraSaldo(Number(t.amount))}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
         </section>
 
-        {/* Atalhos Executivos (Substitui DRE duplicado por Ferramentas de Gestão) */}
-        <section className="panel p-5 sm:p-6 flex flex-col justify-between">
+        {/* ── COLUNA 2: Últimos Lançamentos do Caixa + Alerta Inteligente de Fiado ── */}
+        <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300">
           <div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <h2 className="text-sm font-semibold">Ferramentas de Gestão</h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground">
+                  Últimos lançamentos
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Movimentações recentes no caixa
+                </p>
+              </div>
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-7 rounded-full text-xs text-muted-foreground hover:text-foreground font-medium"
+              >
+                <Link to="/caixa">
+                  Extrato completo <ChevronRight className="size-3.5 ml-0.5" />
+                </Link>
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Acesso rápido aos controles financeiros e araras
-            </p>
 
-            <div className="mt-4 grid gap-2">
-              <Shortcut
-                to="/relatorio"
-                icon={<FileSpreadsheet className="size-4" />}
-                title="DRE e Relatório Contábil"
-                desc="Demonstrativo completo de receitas, custos e margem"
-              />
-              <Shortcut
-                to="/precificacao"
-                icon={<Calculator className="size-4" />}
-                title="Calculadora de Preço & Markup"
-                desc="Descubra a margem e o preço ideal de cada peça"
-              />
-              <Shortcut
-                to="/prolabore"
-                icon={<HandCoins className="size-4" />}
-                title="Controle de Pró-labore"
-                desc="Organize as retiradas da sócia sem sangrar o caixa"
-              />
-            </div>
+            {/* Alerta Inteligente de Fiado: Só aparece se houver saldo pendente */}
+            {openCreditTotal > 0 && (
+              <div className="mt-3">
+                <Link
+                  to="/fiado"
+                  className={cn(
+                    "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
+                    overdue > 0
+                      ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15"
+                      : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15",
+                  )}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Users className="size-3.5 shrink-0" />
+                    <span className="truncate">
+                      <strong>{mascaraSaldo(openCreditTotal)}</strong> em aberto ({openCredits.length}{" "}
+                      {openCredits.length === 1 ? "cliente" : "clientes"})
+                      {overdue > 0 && ` · ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
+                    </span>
+                  </div>
+                  <span className="font-semibold shrink-0 text-[11px] underline">
+                    Cobranças ➔
+                  </span>
+                </Link>
+              </div>
+            )}
+
+            {recent.length === 0 ? (
+              <div className="flex h-[180px] flex-col items-center justify-center gap-2 text-center p-4 mt-2">
+                <div className="grid size-10 place-items-center rounded-2xl bg-secondary/70 text-muted-foreground/70">
+                  <Wallet className="size-4" />
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  Caixa pronto para movimentar
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+                  Nenhuma entrada ou saída registrada no caixa este mês.
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full border-border/80 bg-card px-4 text-xs font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs mt-1 cursor-pointer"
+                >
+                  <Link to="/caixa">
+                    <Plus className="size-3.5 mr-1 text-muted-foreground" />
+                    Novo lançamento
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <ul className="mt-3 divide-y divide-border/60">
+                {recent.slice(0, 5).map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="truncate text-sm font-medium">{t.description}</p>
+                        {t.kind === "entrada" ? (
+                          t.category === "venda_online" ? (
+                            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
+                              Online
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
+                              Balcão
+                            </span>
+                          )
+                        ) : t.category === "estorno_devolucao" ? (
+                          <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                            Devolução
+                          </span>
+                        ) : t.category === "compra_estoque" ? (
+                          <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                            Estoque
+                          </span>
+                        ) : t.category === "prolabore" ? (
+                          <span className="shrink-0 rounded-full bg-purple-500/10 px-1.5 py-0.2 text-[10px] font-semibold text-purple-600 dark:text-purple-400">
+                            Pró-labore
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-rose-500/10 px-1.5 py-0.2 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+                            Despesa
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(t.occurred_on)}
+                      </p>
+                    </div>
+                    <p
+                      className={`numeric shrink-0 text-sm font-semibold ${
+                        t.kind === "entrada" ? "text-success" : "text-destructive"
+                      }`}
+                    >
+                      {t.kind === "entrada" ? "+" : "−"}
+                      {mascaraSaldo(Number(t.amount))}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
       </div>
     </div>
-  );
-}
-
-function Shortcut({
-  to,
-  icon,
-  title,
-  desc,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-secondary/30 p-3 text-left transition-all hover:bg-secondary/60 hover:border-border"
-    >
-      <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-card text-primary shadow-2xs group-hover:scale-105 transition-transform">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1">
-          {title} <ChevronRight className="size-3 text-muted-foreground/60 group-hover:translate-x-0.5 transition-transform" />
-        </p>
-        <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-          {desc}
-        </p>
-      </div>
-    </Link>
   );
 }

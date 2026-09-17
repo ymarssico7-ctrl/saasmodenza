@@ -209,13 +209,26 @@ export function PainelTopProducts({
               <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
                 <Package className="size-4" />
               </div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Saúde do Estoque
-              </h2>
+              <div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground">
+                  Saúde do Estoque
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {totalCatalogItems} {totalCatalogItems === 1 ? "modelo catalogado" : "modelos catalogados"}
+                </p>
+              </div>
             </div>
-            <span className="text-xs text-muted-foreground font-medium">
-              {totalCatalogItems} {totalCatalogItems === 1 ? "modelo" : "modelos"}
-            </span>
+
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
+            >
+              <Link to="/estoque">
+                Ver estoque <ArrowUpRight className="size-3 ml-0.5" />
+              </Link>
+            </Button>
           </div>
 
           {/* Barra de Distribuição Visual Apple HIG */}
@@ -297,20 +310,6 @@ export function PainelTopProducts({
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Ação Única e Limpa */}
-        <div className="mt-5 pt-3 border-t border-border/60">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="h-8 w-full rounded-full text-xs font-medium border-border/80 hover:bg-secondary/60 transition-colors"
-          >
-            <Link to="/estoque">
-              Gerenciar Estoque <ChevronRight className="size-3.5 ml-1 text-muted-foreground" />
-            </Link>
-          </Button>
         </div>
       </section>
     </div>
