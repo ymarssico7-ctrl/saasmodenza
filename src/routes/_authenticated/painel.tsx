@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
 import { PainelKpisBento } from "@/components/painel/painel-kpis-bento";
+import { PainelGraficoVendas } from "@/components/painel/painel-grafico-vendas";
 import {
   PainelMetaRitmo,
-  PainelPecaCampea,
+  PainelRadarPedidosOnline,
   PainelCapitalEstoque,
   PainelAcaoCaixa,
+  type PedidoRadarItem,
   type TopProductItem,
   type CatalogPreviewItem,
 } from "@/components/painel/painel-cockpit";
@@ -146,6 +148,44 @@ function Painel() {
 
   const pedidosEmSeparacaoCount = React.useMemo(() => {
     return orders.filter((o) => o.status === "em_separacao").length;
+  }, [orders]);
+
+  // ── Gestão da Vitrine Online & Radar de Pedidos Pendentes ──────────────────
+  const origin =
+    typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : "https://vestui.com.br";
+  const vitrinePath = store?.slug ? `/vitrine/${store.slug}` : "";
+  const vitrineUrl = vitrinePath ? `${origin}${vitrinePath}` : "";
+  const vitrineDisplay = store?.slug ? `vestui.com.br/vitrine/${store.slug}` : "sua vitrine online";
+
+  const copiarLinkVitrine = React.useCallback(() => {
+    if (!vitrineUrl) {
+      toast.error("Configure o link da sua loja nas Configurações");
+      return;
+    }
+    void navigator.clipboard?.writeText(vitrineUrl);
+    toast.success("Link da vitrine copiado!");
+  }, [vitrineUrl]);
+
+  const pedidosPendentes = React.useMemo<PedidoRadarItem[]>(() => {
+    return orders
+      .filter((o) => o.status === "novo" || o.status === "em_separacao")
+      .map((o) => {
+        const itensArr = o.itens || o.items || [];
+        const primeiroItem = itensArr[0];
+        const record = o as { clienteNome?: string; customer_name?: string };
+        return {
+          id: o.id,
+          clienteNome: record.clienteNome,
+          customer_name: record.customer_name,
+          total: Number(o.total) || 0,
+          status: o.status || "novo",
+          created_at: o.created_at || o.criadoEm || "",
+          itensQtd: itensArr.length > 0 ? itensArr.reduce((acc, it) => acc + (it.qtd || 1), 0) : 1,
+          primeiroItemNome: primeiroItem?.nome || undefined,
+        };
+      });
   }, [orders]);
 
   // ── Cálculos Financeiros (Consolidados) ────────────────────────────────────
@@ -451,6 +491,18 @@ function Painel() {
           ))}
         </div>
 
+        {/* Hero Chart Skeleton */}
+        <div className="panel p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3.5 w-64" />
+            </div>
+            <Skeleton className="h-8 w-56 rounded-full" />
+          </div>
+          <Skeleton className="h-52 w-full rounded-2xl mt-4" />
+        </div>
+
         {/* Cockpit Grid Skeletons (2x2 Nobre) */}
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="panel p-6 space-y-4">
@@ -585,16 +637,26 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── 2. O ACERVO DA LOJA (Peça Estrela & Saúde do Estoque - Original da Imagem 01) ── */}
+      {/* ── 2. GRÁFICO DINÂMICO DE VENDAS COM HOVER & FILTROS (7d, 30d, Mês Atual, Custom) ── */}
+      <PainelGraficoVendas
+        transactions={txs}
+        orders={orders}
+        ocultarSaldos={ocultarSaldos}
+        mascaraSaldo={mascaraSaldo}
+      />
+
+      {/* ── 3. OPERAÇÃO DO VAREJO: RADAR DE PEDIDOS ONLINE & SAÚDE DO ESTOQUE ── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <PainelPecaCampea
-          starProduct={starProduct}
-          totalPecasVendidas={totalPecasVendidas}
-          ticketMedio={ticketMedio}
-          totalCatalogItems={totalCatalogItems}
-          catalogPreview={catalogPreview}
+        <PainelRadarPedidosOnline
+          pedidosPendentes={pedidosPendentes}
+          totalPedidosNovos={pedidosNovosCount}
+          valorTotalNovos={pedidosNovosValor}
+          vitrineAtiva={vitrineAtiva}
+          vitrineUrl={vitrineUrl}
+          vitrineDisplay={vitrineDisplay}
           ocultarSaldos={ocultarSaldos}
           mascaraSaldo={mascaraSaldo}
+          onCopiarLink={copiarLinkVitrine}
         />
         <PainelCapitalEstoque
           totalStockValue={totalStockValue}
@@ -609,7 +671,7 @@ function Painel() {
         />
       </div>
 
-      {/* ── 3. GESTÃO COMERCIAL & CAIXA (Meta & Liquidez do Negócio) ────────── */}
+      {/* ── 4. GESTÃO COMERCIAL & FLUXO DO CAIXA (Ritmo da Meta & Contas a Pagar/Fiado) ── */}
       <div className="grid gap-4 lg:grid-cols-2">
         <PainelMetaRitmo
           goalTarget={goalTarget}
@@ -619,6 +681,8 @@ function Painel() {
           dailyTarget={dailyTarget}
           netRevenue={netRevenue}
           thisMonthLabel={monthLabel(thisMonth)}
+          ticketMedio={ticketMedio}
+          totalPecasVendidas={totalPecasVendidas}
           prevRevenue={prevRevenue}
           onSetQuickGoal={(val) => quickGoalMutation.mutate(val)}
           isSettingGoal={quickGoalMutation.isPending}
@@ -627,6 +691,7 @@ function Painel() {
         />
         <PainelAcaoCaixa
           profit={profit}
+          totalExpenses={totalExpenses}
           openCreditTotal={openCreditTotal}
           openCreditsCount={openCredits.length}
           overdue={overdue}
