@@ -93,7 +93,13 @@ export function PainelRadarPedidosOnline({
   };
 
   return (
-    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
+    <section
+      className={cn(
+        "panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300",
+        temPendentes &&
+          "bg-slate-950 text-white border-slate-800 shadow-md dark:bg-slate-900/95",
+      )}
+    >
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
@@ -102,29 +108,39 @@ export function PainelRadarPedidosOnline({
               className={cn(
                 "grid size-6 place-items-center rounded-lg transition-colors",
                 temPendentes
-                  ? "bg-primary-soft text-primary"
+                  ? "bg-slate-800 text-emerald-400"
                   : "bg-secondary text-foreground",
               )}
             >
               <ShoppingBag className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">
+              <h2
+                className={cn(
+                  "text-sm font-semibold",
+                  temPendentes ? "text-white" : "text-foreground",
+                )}
+              >
                 Radar de Pedidos Online
               </h2>
-              <p className="text-[11px] text-muted-foreground">
-                Expedição e separação de vendas da vitrine
+              <p
+                className={cn(
+                  "text-[11px]",
+                  temPendentes ? "text-slate-400" : "text-muted-foreground",
+                )}
+              >
+                Expedição e separação da vitrine
               </p>
             </div>
           </div>
 
           {temPendentes ? (
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[11px] text-emerald-300 font-semibold flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
               </span>
-              {totalPedidosNovos} {totalPedidosNovos === 1 ? "novo pedido" : "novos pedidos"}
+              {totalPedidosNovos} {totalPedidosNovos === 1 ? "a despachar" : "a despachar"}
             </span>
           ) : (
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
@@ -137,14 +153,14 @@ export function PainelRadarPedidosOnline({
         {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação */}
         {temPendentes ? (
           <div className="mt-3 space-y-2">
-            <div className="flex items-baseline justify-between text-xs text-muted-foreground">
+            <div className="flex items-baseline justify-between text-xs text-slate-400">
               <span>
                 Total a despachar:{" "}
-                <strong className="text-foreground font-semibold">
+                <strong className="text-white font-semibold">
                   {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)}
                 </strong>
               </span>
-              <span className="text-[11px]">
+              <span className="text-[11px] text-slate-400">
                 {pedidosPendentes.length} {pedidosPendentes.length === 1 ? "pedido" : "pedidos"}
               </span>
             </div>
@@ -160,31 +176,30 @@ export function PainelRadarPedidosOnline({
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between gap-2.5 rounded-xl border border-border/70 bg-card p-2.5 shadow-2xs hover:border-border transition-all"
+                    className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-800 bg-slate-900/90 p-2.5 shadow-2xs hover:border-slate-700 transition-all"
                   >
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-xs text-foreground truncate">
+                        <span className="font-semibold text-xs text-white truncate">
                           {cliente}
                         </span>
-                        <span className="rounded-md bg-secondary/80 px-1.5 py-0.2 text-[9px] text-muted-foreground font-medium shrink-0">
+                        <span className="rounded-md bg-slate-800 px-1.5 py-0.2 text-[9px] text-slate-300 font-medium shrink-0">
                           {p.status === "novo" ? "Novo" : "Em separação"}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">
+                      <p className="text-[11px] text-slate-400 truncate">
                         {itemSnippet}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="numeric text-xs font-bold text-foreground">
+                      <span className="numeric text-xs font-bold text-white">
                         {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
                       </span>
                       <Button
                         asChild
                         size="sm"
-                        variant="outline"
-                        className="h-7 rounded-full border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground text-[11px] font-semibold px-2.5 cursor-pointer shadow-2xs transition-all"
+                        className="h-7 rounded-full bg-white text-slate-950 hover:bg-slate-100 text-[11px] font-bold px-3 cursor-pointer shadow-sm transition-all"
                       >
                         <Link to="/loja/pedidos">
                           Separar ➔
@@ -241,7 +256,12 @@ export function PainelRadarPedidosOnline({
       <Button
         asChild
         variant="outline"
-        className="mt-3 w-full rounded-xl h-9 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        className={cn(
+          "mt-3 w-full rounded-xl h-9 text-xs font-medium transition-all cursor-pointer shadow-2xs",
+          temPendentes
+            ? "border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800"
+            : "border-border/80 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+        )}
       >
         <Link to="/loja/pedidos">
           {temPendentes
@@ -505,35 +525,46 @@ export function PainelMetaRitmo({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 4. PAINEL CONTAS, COBRANÇAS & FLUXO DO CAIXA (Sem Repetições Burocráticas)
+ * 4. PAINEL METAS, FIADO & COMPROMISSOS (Estilo "To-Do / Upcoming" da Ref 2)
  * ──────────────────────────────────────────────────────────────────────────── */
-export interface PainelAcaoCaixaProps {
-  profit: number;
-  totalExpenses: number;
+export interface PainelCompromissosMetasProps {
+  goalTarget: number;
+  goalProgress: number;
+  remainingGoal: number;
+  dailyTarget: number;
+  daysRemaining: number;
+  netRevenue: number;
+  thisMonthLabel: string;
   openCreditTotal: number;
   openCreditsCount: number;
   overdue: number;
-  goalTarget?: number | undefined;
-  dailyTarget?: number | undefined;
-  daysRemaining?: number | undefined;
-  recentTransactions?: Transaction[] | undefined;
+  totalExpenses: number;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
+  onSetQuickGoal?: ((amount: number) => void) | undefined;
+  isSettingGoal?: boolean | undefined;
 }
 
-export function PainelAcaoCaixa({
-  profit,
-  totalExpenses,
+export function PainelCompromissosMetas({
+  goalTarget,
+  goalProgress,
+  remainingGoal,
+  dailyTarget,
+  daysRemaining,
+  netRevenue,
+  thisMonthLabel,
   openCreditTotal,
   openCreditsCount,
   overdue,
-  goalTarget = 0,
-  dailyTarget = 0,
-  daysRemaining = 0,
-  recentTransactions,
+  totalExpenses,
   ocultarSaldos,
   mascaraSaldo,
-}: PainelAcaoCaixaProps) {
+  onSetQuickGoal,
+  isSettingGoal,
+}: PainelCompromissosMetasProps) {
+  const temMeta = goalTarget > 0;
+  const progressClamp = Math.min(Math.max(goalProgress, 0), 100);
+
   return (
     <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
       <div>
@@ -541,31 +572,79 @@ export function PainelAcaoCaixa({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
-              <Wallet className="size-3.5" />
+              <Target className="size-3.5" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Contas, Fiado & Ritmo
+                Metas & Compromissos
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Compromissos e ritmo de metas do mês
+                Ritmo comercial e contas do mês
               </p>
             </div>
           </div>
 
           <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium">
-            Mês atual
+            {thisMonthLabel}
           </span>
         </div>
 
-        {/* Linhas de Compromissos: Fiado, Contas a Pagar e Ritmo da Meta */}
-        <div className="mt-3 space-y-2">
-          {/* Linha 1: Fiado / Cobranças em Aberto */}
+        {/* 1. Item Meta Comercial */}
+        <div className="mt-3 space-y-2.5">
+          {temMeta ? (
+            <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Meta Comercial</span>
+                <span className="font-semibold text-foreground">
+                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(netRevenue)} de{" "}
+                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(goalTarget)}
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${progressClamp}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{progressClamp.toFixed(0)}% atingido</span>
+                <span className="font-medium text-primary">
+                  {daysRemaining > 0
+                    ? `${ocultarSaldos ? "R$ ••••" : mascaraSaldo(dailyTarget)}/dia`
+                    : "Fim do período"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border/70 bg-secondary/30 p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground">Definir meta do mês:</span>
+                <Link to="/metas" className="text-[11px] font-medium text-primary hover:underline">
+                  Personalizar ➔
+                </Link>
+              </div>
+              <div className="flex gap-1.5">
+                {[5000, 10000, 20000].map((valor) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    disabled={isSettingGoal}
+                    onClick={() => onSetQuickGoal?.(valor)}
+                    className="flex-1 rounded-lg border border-border/80 bg-card py-1 text-[10px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs"
+                  >
+                    R$ {valor / 1000}k
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Item Fiado / Cobrança na Praça */}
           {openCreditTotal > 0 ? (
             <Link
               to="/fiado"
               className={cn(
-                "flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors border",
+                "flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors border shadow-2xs",
                 overdue > 0
                   ? "bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15"
                   : "bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15",
@@ -586,8 +665,8 @@ export function PainelAcaoCaixa({
           ) : (
             <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground border border-border/60">
               <div className="flex items-center gap-2">
-                <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Zero clientes com fiado em aberto</span>
+                <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+                <span>Zero fiado em aberto na praça</span>
               </div>
               <Link to="/fiado" className="text-[11px] underline hover:text-foreground">
                 Ver fiado
@@ -595,61 +674,16 @@ export function PainelAcaoCaixa({
             </div>
           )}
 
-          {/* Linha 2: Despesas e Saídas do Mês */}
+          {/* 3. Item Contas / Saídas do Mês */}
           <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
             <div className="flex items-center gap-2">
               <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
-              <span className="text-muted-foreground">Contas / saídas do mês:</span>
+              <span className="text-muted-foreground">Contas e saídas do mês:</span>
             </div>
             <span className="numeric font-semibold text-foreground">
               {ocultarSaldos ? "R$ ••••" : mascaraSaldo(totalExpenses)}
             </span>
           </div>
-
-          {/* Linha 3: Ritmo Diário da Meta */}
-          <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
-            <div className="flex items-center gap-2">
-              <Target className="size-3.5 text-primary shrink-0" />
-              <span className="text-muted-foreground">
-                {goalTarget > 0
-                  ? `Ritmo ideal (${daysRemaining}d restantes):`
-                  : "Meta mensal da loja:"}
-              </span>
-            </div>
-            {goalTarget > 0 ? (
-              <span className="numeric font-semibold text-primary">
-                {ocultarSaldos ? "R$ ••••/dia" : `${mascaraSaldo(dailyTarget)}/dia`}
-              </span>
-            ) : (
-              <Link to="/metas" className="text-[11px] font-medium text-primary hover:underline">
-                Ativar meta ➔
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Botões de Ação Imediata */}
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button
-            asChild
-            variant="outline"
-            className="h-8.5 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
-          >
-            <Link to="/caixa">
-              <Store className="size-3.5 mr-1.5 text-primary" />
-              Venda no Balcão
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="h-8.5 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
-          >
-            <Link to="/caixa">
-              <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
-              Lançar Despesa
-            </Link>
-          </Button>
         </div>
       </div>
 
@@ -664,6 +698,213 @@ export function PainelAcaoCaixa({
         </Link>
       </Button>
     </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 5. PAINEL ÚLTIMAS VENDAS & MOVIMENTAÇÕES (Inspirado em FinScope & Business Manager)
+ * ──────────────────────────────────────────────────────────────────────────── */
+export interface PainelUltimasVendasProps {
+  transactions: Transaction[];
+  ocultarSaldos: boolean;
+  mascaraSaldo: (valor: number) => string;
+}
+
+export function PainelUltimasVendas({
+  transactions,
+  ocultarSaldos,
+  mascaraSaldo,
+}: PainelUltimasVendasProps) {
+  // Ordenar as últimas 4 movimentações por data decrescente
+  const ultimas = React.useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
+      .slice(0, 4);
+  }, [transactions]);
+
+  const temTransacoes = ultimas.length > 0;
+
+  return (
+    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
+      <div>
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
+              <Receipt className="size-3.5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">
+                Movimentações Recentes
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                Últimas entradas e saídas registradas na loja
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/caixa"
+            className="text-[11px] font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+          >
+            Ver extrato <ChevronRight className="size-3" />
+          </Link>
+        </div>
+
+        {/* Lista de Transações */}
+        {temTransacoes ? (
+          <div className="mt-3 divide-y divide-border/60">
+            {ultimas.map((tx) => {
+              const isEntrada = tx.kind === "entrada";
+              const isOnline = tx.category === "venda_online";
+              const desc =
+                tx.notes ||
+                (isOnline
+                  ? "Venda Vitrine Online"
+                  : isEntrada
+                    ? "Venda no Balcão"
+                    : "Despesa / Saída");
+
+              const [ano, mes, dia] = (tx.occurred_on || "").split("-");
+              const dataFormatada = dia && mes ? `${dia}/${mes}` : tx.occurred_on;
+
+              return (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between py-2.5 first:pt-1 last:pb-1 text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                    <div
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center rounded-lg shadow-2xs",
+                        isOnline
+                          ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                          : isEntrada
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+                      )}
+                    >
+                      {isOnline ? (
+                        <ShoppingBag className="size-3.5" />
+                      ) : isEntrada ? (
+                        <Store className="size-3.5" />
+                      ) : (
+                        <Receipt className="size-3.5" />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground truncate text-xs">
+                        {desc}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span>{dataFormatada}</span>
+                        <span>·</span>
+                        <span className="capitalize">
+                          {isOnline
+                            ? "Vitrine"
+                            : isEntrada
+                              ? "Balcão"
+                              : tx.category || "Despesa"}
+                        </span>
+                        {tx.payment_method && (
+                          <>
+                            <span>·</span>
+                            <span className="capitalize">{tx.payment_method.replace("_", " ")}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "numeric font-bold text-xs tracking-tight",
+                        isEntrada
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-foreground/80",
+                      )}
+                    >
+                      {ocultarSaldos
+                        ? "R$ ••••"
+                        : `${isEntrada ? "+" : "-"} ${mascaraSaldo(tx.amount)}`}
+                    </span>
+                    <span
+                      className={cn(
+                        "hidden sm:inline-block rounded-md px-1.5 py-0.5 text-[9px] font-medium",
+                        isEntrada
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                          : "bg-secondary text-muted-foreground",
+                      )}
+                    >
+                      {isEntrada ? "Concluída" : "Pago"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-3 py-4 flex flex-col items-center justify-center text-center rounded-xl bg-secondary/30 border border-dashed border-border/70 p-4">
+            <Store className="size-6 text-muted-foreground/50 mb-1.5" />
+            <p className="text-xs font-medium text-foreground">
+              Nenhuma venda registrada este mês
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5 max-w-xs">
+              Quando você registrar uma venda no balcão ou na vitrine, ela aparecerá aqui em tempo real.
+            </p>
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="mt-2.5 h-7 rounded-lg text-[11px] font-semibold"
+            >
+              <Link to="/caixa">
+                <Plus className="size-3 mr-1" /> Registrar Venda no Balcão
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 6. COMPATIBILIDADE RETROATIVA PARA PAINELACAO CAIXA
+ * ──────────────────────────────────────────────────────────────────────────── */
+export interface PainelAcaoCaixaProps {
+  profit: number;
+  totalExpenses: number;
+  openCreditTotal: number;
+  openCreditsCount: number;
+  overdue: number;
+  goalTarget?: number | undefined;
+  dailyTarget?: number | undefined;
+  daysRemaining?: number | undefined;
+  recentTransactions?: Transaction[] | undefined;
+  ocultarSaldos: boolean;
+  mascaraSaldo: (valor: number) => string;
+}
+
+export function PainelAcaoCaixa(props: PainelAcaoCaixaProps) {
+  return (
+    <PainelCompromissosMetas
+      goalTarget={props.goalTarget ?? 0}
+      goalProgress={0}
+      remainingGoal={0}
+      dailyTarget={props.dailyTarget ?? 0}
+      daysRemaining={props.daysRemaining ?? 0}
+      netRevenue={0}
+      thisMonthLabel="Mês atual"
+      openCreditTotal={props.openCreditTotal}
+      openCreditsCount={props.openCreditsCount}
+      overdue={props.overdue}
+      totalExpenses={props.totalExpenses}
+      ocultarSaldos={props.ocultarSaldos}
+      mascaraSaldo={props.mascaraSaldo}
+    />
   );
 }
 

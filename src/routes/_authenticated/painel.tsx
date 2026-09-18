@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Plus,
+  Store,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,8 @@ import {
   PainelMetaRitmo,
   PainelRadarPedidosOnline,
   PainelCapitalEstoque,
-  PainelAcaoCaixa,
+  PainelCompromissosMetas,
+  PainelUltimasVendas,
   type PedidoRadarItem,
   type TopProductItem,
   type CatalogPreviewItem,
@@ -477,24 +479,25 @@ function Painel() {
           <Skeleton className="h-3.5 w-60" />
         </div>
 
-        {/* Bento KPIs Skeletons (Trindade Mestre Compacta) */}
-        <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-3 w-28" />
-                <Skeleton className="h-8 w-8 rounded-xl" />
-              </div>
-              <Skeleton className="h-8 w-32" />
-              <Skeleton className="h-3 w-40" />
+        {/* Grid 70/30 Skeletons (Padrão FinScope / Business Manager) */}
+        <div className="grid gap-4 lg:grid-cols-12 items-start">
+          {/* Coluna Esquerda (~68% = 8 colunas): KPIs + Gráfico + Histórico */}
+          <div className="flex flex-col gap-4 lg:col-span-8">
+            {/* Tríade Bento KPIs */}
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-8 w-8 rounded-xl" />
+                  </div>
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Bento Grid 60/40 Skeletons */}
-        <div className="grid gap-4 lg:grid-cols-12">
-          {/* Coluna Esquerda: Gráfico + Pedidos */}
-          <div className="flex flex-col gap-4 lg:col-span-7">
+            {/* Gráfico */}
             <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-4 w-32" />
@@ -502,6 +505,23 @@ function Painel() {
               </div>
               <Skeleton className="h-[180px] w-full rounded-xl" />
             </div>
+
+            {/* Feed de Vendas Recentes */}
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+            </div>
+          </div>
+
+          {/* Coluna Direita (~32% = 4 colunas): Radar + Estoque + Metas */}
+          <div className="flex flex-col gap-4 lg:col-span-4">
+            {/* Radar Online */}
             <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-4 w-36" />
@@ -509,10 +529,8 @@ function Painel() {
               </div>
               <Skeleton className="h-14 w-full rounded-xl" />
             </div>
-          </div>
 
-          {/* Coluna Direita: Estoque + Contas */}
-          <div className="flex flex-col gap-4 lg:col-span-5">
+            {/* Saúde do Estoque */}
             <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-4 w-32" />
@@ -525,6 +543,8 @@ function Painel() {
                 <Skeleton className="h-4 w-full" />
               </div>
             </div>
+
+            {/* Metas & Compromissos */}
             <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-4 w-36" />
@@ -562,7 +582,7 @@ function Painel() {
             : "Centro de comando da sua loja hoje."
         }
         action={
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -585,10 +605,21 @@ function Painel() {
             </Button>
             <Button
               asChild
-              className="h-9 rounded-full px-3.5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer text-xs"
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 rounded-full border border-border/80 bg-card px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer shadow-2xs"
             >
               <Link to="/caixa">
-                <Plus className="size-3.5" /> Novo lançamento
+                <Plus className="size-3.5" /> Lançar Despesa
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className="h-9 gap-1.5 rounded-full px-3.5 font-semibold bg-primary text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer text-xs"
+            >
+              <Link to="/caixa">
+                <Store className="size-3.5 mr-0.5" /> + Nova Venda
               </Link>
             </Button>
           </div>
@@ -607,42 +638,55 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento, Saídas, Sobra no Caixa) ── */}
-      <PainelKpisBento
-        revenue={revenue}
-        netRevenue={netRevenue}
-        prevRevenue={prevRevenue}
-        refunds={refunds}
-        totalExpenses={totalExpenses}
-        expenses={expenses}
-        stockPurchases={stockPurchases}
-        profit={profit}
-        operatingProfit={operatingProfit}
-        marginPct={marginPct}
-        fisicaRevenue={fisicaRevenue}
-        onlineRevenue={onlineRevenue}
-        vitrineAtiva={vitrineAtiva}
-        totalPecasVendidas={totalPecasVendidas}
-        ticketMedio={ticketMedio}
-        pedidosNovosCount={pedidosNovosCount}
-        pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
-        goalTarget={goalTarget}
-        goalProgress={goalProgress}
-        dailyTarget={dailyTarget}
-        ocultarSaldos={ocultarSaldos}
-        mascaraSaldo={mascaraSaldo}
-      />
+      {/* ── GRID PRINCIPAL 70/30 (PADRÃO FINSCOPE / BUSINESS MANAGER) ── */}
+      <div className="grid gap-4 lg:grid-cols-12 items-start">
+        {/* ── Coluna Esquerda (~68% = 8 colunas): Performance, Gráfico & Histórico de Vendas ── */}
+        <div className="flex flex-col gap-4 lg:col-span-8">
+          {/* 1. Tríade Bento de Métricas Macro */}
+          <PainelKpisBento
+            revenue={revenue}
+            netRevenue={netRevenue}
+            prevRevenue={prevRevenue}
+            refunds={refunds}
+            totalExpenses={totalExpenses}
+            expenses={expenses}
+            stockPurchases={stockPurchases}
+            profit={profit}
+            operatingProfit={operatingProfit}
+            marginPct={marginPct}
+            fisicaRevenue={fisicaRevenue}
+            onlineRevenue={onlineRevenue}
+            vitrineAtiva={vitrineAtiva}
+            totalPecasVendidas={totalPecasVendidas}
+            ticketMedio={ticketMedio}
+            pedidosNovosCount={pedidosNovosCount}
+            pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
+            goalTarget={goalTarget}
+            goalProgress={goalProgress}
+            dailyTarget={dailyTarget}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
 
-      {/* ── 2. BENTO GRID 60/40 (TELA ÚNICA SEM ROLAGEM TRIPLA) ── */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        {/* ── Coluna Esquerda (~60% = 7 colunas): Gráfico de Vendas + Radar de Pedidos ── */}
-        <div className="flex flex-col gap-4 lg:col-span-7">
+          {/* 2. Hero Chart de Ritmo de Vendas Dinâmico */}
           <PainelGraficoVendas
             transactions={txs}
             orders={orders}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
           />
+
+          {/* 3. Feed de Vendas & Movimentações Recentes */}
+          <PainelUltimasVendas
+            transactions={txs}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
+        </div>
+
+        {/* ── Coluna Direita (~32% = 4 colunas): Ação Operacional, Estoque & Compromissos ── */}
+        <div className="flex flex-col gap-4 lg:col-span-4">
+          {/* 4. Radar de Pedidos da Vitrine Online (Hero Card com Destaque de Alto Contraste) */}
           <PainelRadarPedidosOnline
             pedidosPendentes={pedidosPendentes}
             totalPedidosNovos={pedidosNovosCount}
@@ -654,10 +698,8 @@ function Painel() {
             mascaraSaldo={mascaraSaldo}
             onCopiarLink={copiarLinkVitrine}
           />
-        </div>
 
-        {/* ── Coluna Direita (~40% = 5 colunas): Saúde do Estoque + Contas, Fiado & Ritmo ── */}
-        <div className="flex flex-col gap-4 lg:col-span-5">
+          {/* 5. Saúde do Estoque & Patrimônio Físico (Design Apple HIG Fiel) */}
           <PainelCapitalEstoque
             totalStockValue={totalStockValue}
             totalStockUnits={totalStockUnits}
@@ -669,18 +711,24 @@ function Painel() {
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
           />
-          <PainelAcaoCaixa
-            profit={profit}
-            totalExpenses={totalExpenses}
+
+          {/* 6. Metas Comerciais, Fiado na Praça & Saídas a Honrar */}
+          <PainelCompromissosMetas
+            goalTarget={goalTarget}
+            goalProgress={goalProgress}
+            remainingGoal={remainingGoal}
+            dailyTarget={dailyTarget}
+            daysRemaining={daysRemaining}
+            netRevenue={netRevenue}
+            thisMonthLabel={monthLabel(thisMonth)}
             openCreditTotal={openCreditTotal}
             openCreditsCount={openCredits.length}
             overdue={overdue}
-            goalTarget={goalTarget}
-            dailyTarget={dailyTarget}
-            daysRemaining={daysRemaining}
-            recentTransactions={recentTransactions}
+            totalExpenses={totalExpenses}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
+            onSetQuickGoal={(val) => quickGoalMutation.mutate(val)}
+            isSettingGoal={quickGoalMutation.isPending}
           />
         </div>
       </div>
