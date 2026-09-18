@@ -194,54 +194,36 @@ export function PainelGraficoVendas({
   );
 
   return (
-    <section className="panel p-5 sm:p-6 transition-all duration-300">
+    <section className="panel p-4 sm:p-5 transition-all duration-300">
       {/* ── Topo do Gráfico: Título, Resumo Executivo & Seletor de Período ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="grid size-7 place-items-center rounded-lg bg-primary-soft text-primary">
-              <TrendingUp className="size-4" />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Ritmo de Vendas
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Faturamento diário confirmado em balcão e vitrine online
-              </p>
-            </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="grid size-6 place-items-center rounded-lg bg-primary-soft text-primary">
+            <TrendingUp className="size-3.5" />
           </div>
-
-          {/* Resumo Dinâmico do Período Selecionado */}
-          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
-            <span className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground">
-              {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalPeriodo)}
-            </span>
-            <span className="text-muted-foreground">
-              faturados em{" "}
-              <strong className="text-foreground font-semibold">
-                {totalVendasCount} {totalVendasCount === 1 ? "venda" : "vendas"}
-              </strong>
-            </span>
-            {ticketMedioPeriodo > 0 && (
-              <span className="text-muted-foreground/80 hidden sm:inline">
-                · Ticket Médio:{" "}
-                <strong className="text-foreground font-medium">
-                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(ticketMedioPeriodo)}
-                </strong>
-              </span>
-            )}
-          </div>
+          <h2 className="text-sm font-semibold text-foreground">
+            Ritmo de Vendas
+          </h2>
+          <span className="numeric text-sm font-bold text-foreground">
+            {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalPeriodo)}
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            ({totalVendasCount} {totalVendasCount === 1 ? "venda" : "vendas"}
+            {ticketMedioPeriodo > 0 && !ocultarSaldos
+              ? ` · Médio: ${brlCompact(ticketMedioPeriodo)}`
+              : ""}
+            )
+          </span>
         </div>
 
-        {/* Seletores de Período (Pills Elegantes) */}
-        <div className="flex flex-col items-start sm:items-end gap-2">
-          <div className="flex items-center gap-1 rounded-full border border-border/80 bg-secondary/60 p-1 text-xs shadow-2xs">
+        {/* Seletores de Período (Pills Compactas) */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-0.5 rounded-full border border-border/80 bg-secondary/60 p-0.5 text-[11px] shadow-2xs">
             <button
               type="button"
               onClick={() => setPeriodo("7d")}
               className={cn(
-                "rounded-full px-3 py-1 font-medium transition-all cursor-pointer",
+                "rounded-full px-2.5 py-0.5 font-medium transition-all cursor-pointer",
                 periodo === "7d"
                   ? "bg-card text-foreground shadow-2xs font-semibold"
                   : "text-muted-foreground hover:text-foreground",
@@ -253,7 +235,7 @@ export function PainelGraficoVendas({
               type="button"
               onClick={() => setPeriodo("30d")}
               className={cn(
-                "rounded-full px-3 py-1 font-medium transition-all cursor-pointer",
+                "rounded-full px-2.5 py-0.5 font-medium transition-all cursor-pointer",
                 periodo === "30d"
                   ? "bg-card text-foreground shadow-2xs font-semibold"
                   : "text-muted-foreground hover:text-foreground",
@@ -265,53 +247,52 @@ export function PainelGraficoVendas({
               type="button"
               onClick={() => setPeriodo("mes")}
               className={cn(
-                "rounded-full px-3 py-1 font-medium transition-all cursor-pointer",
+                "rounded-full px-2.5 py-0.5 font-medium transition-all cursor-pointer",
                 periodo === "mes"
                   ? "bg-card text-foreground shadow-2xs font-semibold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              Mês atual
+              Mês
             </button>
             <button
               type="button"
               onClick={() => setPeriodo("custom")}
               className={cn(
-                "flex items-center gap-1 rounded-full px-3 py-1 font-medium transition-all cursor-pointer",
+                "flex items-center gap-1 rounded-full px-2 py-0.5 font-medium transition-all cursor-pointer",
                 periodo === "custom"
                   ? "bg-card text-foreground shadow-2xs font-semibold"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Calendar className="size-3" />
-              <span>Personalizado</span>
+              <Calendar className="size-2.5" />
+              <span>Custom</span>
             </button>
           </div>
 
           {/* Seletor de Datas Personalizado (Abre se custom estiver ativo) */}
           {periodo === "custom" && (
-            <div className="flex items-center gap-1.5 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
-              <span className="text-muted-foreground text-[11px]">De:</span>
+            <div className="flex items-center gap-1 text-[11px] animate-in fade-in slide-in-from-top-1 duration-200">
               <input
                 type="date"
                 value={dataInicioCustom}
                 onChange={(e) => setDataInicioCustom(e.target.value)}
-                className="h-7 rounded-lg border border-border/80 bg-card px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                className="h-6 rounded-md border border-border/80 bg-card px-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
               />
-              <span className="text-muted-foreground text-[11px]">Até:</span>
+              <span className="text-muted-foreground text-[10px]">a</span>
               <input
                 type="date"
                 value={dataFimCustom}
                 onChange={(e) => setDataFimCustom(e.target.value)}
-                className="h-7 rounded-lg border border-border/80 bg-card px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                className="h-6 rounded-md border border-border/80 bg-card px-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
               />
             </div>
           )}
         </div>
       </div>
 
-      {/* ── O Gráfico Interativo com Recharts ───────────────────────────────── */}
-      <div className="mt-6 h-[240px] w-full">
+      {/* ── O Gráfico Interativo com Recharts (180px de Altura Ágil) ── */}
+      <div className="mt-3 h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
@@ -422,10 +403,10 @@ export function PainelGraficoVendas({
 
       {/* Nota sutil caso ainda não haja vendas no período */}
       {totalPeriodo === 0 && (
-        <div className="mt-2 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/80 px-3 py-1 text-[11px] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-primary" />
-            Nenhuma venda registrada no período selecionado. Novas vendas aparecerão na curva instantaneamente.
+        <div className="mt-1 text-center">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+            <span className="size-1.5 rounded-full bg-primary/70" />
+            Novas vendas confirmadas entrarão na curva instantaneamente.
           </span>
         </div>
       )}

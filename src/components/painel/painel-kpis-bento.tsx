@@ -78,12 +78,12 @@ export function PainelKpisBento({
   const estoqueVal = stockPurchases ?? 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
+      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Faturamento Total
             </span>
             {metaDefinida && (
@@ -92,19 +92,19 @@ export function PainelKpisBento({
               </span>
             )}
           </div>
-          <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground/80 shadow-2xs">
-            <Wallet className="size-4.5" />
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+            <Wallet className="size-4" />
           </div>
         </div>
 
-        <div className="my-2">
-          <h3 className="numeric text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+        <div className="my-1.5">
+          <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             {mascaraSaldo(revenue)}
           </h3>
         </div>
 
         {/* Rodapé Límpido: Composição Balcão & Vitrine */}
-        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[29px]">
+        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
@@ -141,24 +141,24 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 2: SAÍDAS DO MÊS ────────────────────────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
+      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saídas do Mês
           </span>
-          <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground/80 shadow-2xs">
-            <Receipt className="size-4.5" />
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+            <Receipt className="size-4" />
           </div>
         </div>
 
-        <div className="my-2">
-          <h3 className="numeric text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+        <div className="my-1.5">
+          <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             {mascaraSaldo(despesasExibidas)}
           </h3>
         </div>
 
         {/* Rodapé: Contas e Compras de Estoque */}
-        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[29px]">
+        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
@@ -176,10 +176,10 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 3: SOBRA NO CAIXA (LUCRO REAL) ─────────────────────────── */}
-      <div className="panel p-5 sm:p-6 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[160px]">
+      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Sobra no Caixa
             </span>
             {profit > 0 ? (
@@ -192,15 +192,15 @@ export function PainelKpisBento({
               </span>
             ) : null}
           </div>
-          <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-secondary text-foreground/80 shadow-2xs">
-            <TrendingUp className="size-4.5" />
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+            <TrendingUp className="size-4" />
           </div>
         </div>
 
-        <div className="my-2">
+        <div className="my-1.5">
           <h3
             className={cn(
-              "numeric text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight",
+              "numeric text-2xl sm:text-3xl font-bold tracking-tight",
               profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground",
             )}
           >
@@ -209,7 +209,7 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Margem e Status de Caixa */}
-        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[29px]">
+        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (

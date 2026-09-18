@@ -1,11 +1,8 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   CheckCircle2,
   ChevronRight,
-  Clock,
   Copy,
   ExternalLink,
   Package,
@@ -47,7 +44,7 @@ export interface CatalogPreviewItem {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 1. PAINEL RADAR DA VITRINE & PEDIDOS ONLINE (O primeiro lugar onde o lojista olha)
+ * 1. PAINEL RADAR DA VITRINE & PEDIDOS ONLINE (Compacto, Ágil e Leve)
  * ──────────────────────────────────────────────────────────────────────────── */
 export interface PedidoRadarItem {
   id: string;
@@ -91,38 +88,38 @@ export function PainelRadarPedidosOnline({
       onCopiarLink();
     } else if (vitrineUrl) {
       void navigator.clipboard?.writeText(vitrineUrl);
-      toast.success("Link da vitrine copiado para a área de transferência!");
+      toast.success("Link da vitrine copiado!");
     }
   };
 
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
+    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "grid size-7 place-items-center rounded-lg transition-colors",
+                "grid size-6 place-items-center rounded-lg transition-colors",
                 temPendentes
                   ? "bg-primary-soft text-primary"
                   : "bg-secondary text-foreground",
               )}
             >
-              <ShoppingBag className="size-4" />
+              <ShoppingBag className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 Radar de Pedidos Online
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Expedição e separação de vendas da vitrine
               </p>
             </div>
           </div>
 
           {temPendentes ? (
-            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -130,7 +127,7 @@ export function PainelRadarPedidosOnline({
               {totalPedidosNovos} {totalPedidosNovos === 1 ? "novo pedido" : "novos pedidos"}
             </span>
           ) : (
-            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               Tudo despachado
             </span>
@@ -139,7 +136,7 @@ export function PainelRadarPedidosOnline({
 
         {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação */}
         {temPendentes ? (
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-2">
             <div className="flex items-baseline justify-between text-xs text-muted-foreground">
               <span>
                 Total a despachar:{" "}
@@ -148,12 +145,12 @@ export function PainelRadarPedidosOnline({
                 </strong>
               </span>
               <span className="text-[11px]">
-                {pedidosPendentes.length} {pedidosPendentes.length === 1 ? "pedido na fila" : "pedidos na fila"}
+                {pedidosPendentes.length} {pedidosPendentes.length === 1 ? "pedido" : "pedidos"}
               </span>
             </div>
 
-            {/* Lista dos 2 a 3 primeiros pedidos aguardando ação */}
-            <div className="space-y-2">
+            {/* Lista dos 2 primeiros pedidos aguardando ação */}
+            <div className="space-y-1.5">
               {pedidosPendentes.slice(0, 2).map((p) => {
                 const cliente = p.customer_name || p.clienteNome || `Pedido #${p.id.slice(0, 6)}`;
                 const itemSnippet = p.primeiroItemNome
@@ -163,14 +160,14 @@ export function PainelRadarPedidosOnline({
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-2xs hover:border-border transition-all"
+                    className="flex items-center justify-between gap-2.5 rounded-xl border border-border/70 bg-card p-2.5 shadow-2xs hover:border-border transition-all"
                   >
                     <div className="min-w-0 flex-1 space-y-0.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-xs text-foreground truncate">
                           {cliente}
                         </span>
-                        <span className="rounded-md bg-secondary/80 px-1.5 py-0.2 text-[10px] text-muted-foreground font-medium shrink-0">
+                        <span className="rounded-md bg-secondary/80 px-1.5 py-0.2 text-[9px] text-muted-foreground font-medium shrink-0">
                           {p.status === "novo" ? "Novo" : "Em separação"}
                         </span>
                       </div>
@@ -187,7 +184,7 @@ export function PainelRadarPedidosOnline({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="h-8 rounded-full border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground text-xs font-semibold px-3 cursor-pointer shadow-2xs transition-all"
+                        className="h-7 rounded-full border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground text-[11px] font-semibold px-2.5 cursor-pointer shadow-2xs transition-all"
                       >
                         <Link to="/loja/pedidos">
                           Separar ➔
@@ -201,33 +198,40 @@ export function PainelRadarPedidosOnline({
           </div>
         ) : (
           /* Conteúdo: 2) Quando NÃO há pedidos pendentes (Vitrine Ativa 24h) */
-          <div className="mt-4 flex flex-col items-center justify-center gap-2.5 text-center py-3">
-            <div className="grid size-10 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="size-5" />
-            </div>
-            <div className="max-w-xs space-y-1">
-              <p className="text-sm font-semibold text-foreground">
-                Nenhum pedido pendente
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Todos os pedidos online já foram separados e despachados. Sua vitrine está pronta para vender.
-              </p>
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2 rounded-xl bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground border border-border/60">
+              <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span>Zero pedidos pendentes no momento. Vitrine pronta para novas vendas.</span>
             </div>
 
             {/* Box do Link da Vitrine com Botão Copiar */}
-            <div className="mt-1 flex w-full max-w-sm items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/40 px-3 py-1.5 text-xs">
+            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs shadow-2xs">
               <span className="truncate text-muted-foreground text-[11px]">
                 {vitrineDisplay || "modaly.app/vitrine/sualoja"}
               </span>
-              <button
-                type="button"
-                onClick={handleCopy}
-                title="Copiar link da vitrine"
-                className="inline-flex h-6 items-center gap-1 rounded-lg border border-border/70 bg-card px-2 text-[11px] font-medium text-foreground hover:bg-secondary transition-all cursor-pointer shrink-0 shadow-2xs"
-              >
-                <Copy className="size-2.5 text-muted-foreground" />
-                <span>Copiar</span>
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Copiar link da vitrine"
+                  className="inline-flex h-6 items-center gap-1 rounded-md border border-border/70 bg-secondary/70 px-2 text-[11px] font-medium text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs"
+                >
+                  <Copy className="size-2.5 text-muted-foreground" />
+                  <span>Copiar</span>
+                </button>
+                {vitrineUrl && (
+                  <a
+                    href={vitrineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir vitrine"
+                    className="inline-flex h-6 items-center gap-1 rounded-md bg-primary/10 px-2 text-[11px] font-medium text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                  >
+                    <span>Abrir</span>
+                    <ExternalLink className="size-2.5" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -237,12 +241,12 @@ export function PainelRadarPedidosOnline({
       <Button
         asChild
         variant="outline"
-        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        className="mt-3 w-full rounded-xl h-9 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
       >
         <Link to="/loja/pedidos">
           {temPendentes
             ? `Central de Pedidos da Vitrine (${totalPedidosNovos})`
-            : "Abrir Central de Pedidos Online"}{" "}
+            : "Central de Pedidos Online"}{" "}
           <ChevronRight className="size-3.5 ml-1" />
         </Link>
       </Button>
@@ -277,32 +281,32 @@ export function PainelCapitalEstoque({
   mascaraSaldo,
 }: PainelCapitalEstoqueProps) {
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
+    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
       <div>
         {/* Cabeçalho Fiel ao Design Original que o Lojista Amou */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
-              <Package className="size-4" />
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
+              <Package className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 Saúde do Estoque
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalStockValue)} em patrimônio ativo · {totalStockUnits} peças
               </p>
             </div>
           </div>
 
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium">
             {totalCatalogItems} {totalCatalogItems === 1 ? "modelo" : "modelos"}
           </span>
         </div>
 
         {/* Barra Apple HIG de Distribuição de Acervo */}
         {totalCatalogItems > 0 && (
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-secondary gap-0.5 flex">
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary gap-0.5 flex">
             {healthyStockCount > 0 && (
               <div
                 style={{ width: `${(healthyStockCount / totalCatalogItems) * 100}%` }}
@@ -328,8 +332,8 @@ export function PainelCapitalEstoque({
         )}
 
         {/* A Lista Limpa com Pontos Coloridos que o Usuário Amou */}
-        <ul className="mt-4 divide-y divide-border/60 text-xs">
-          <li className="flex flex-col py-2.5 text-muted-foreground">
+        <ul className="mt-3 divide-y divide-border/60 text-xs">
+          <li className="flex flex-col py-2 text-muted-foreground">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <span className="size-2 rounded-full bg-muted-foreground/40" />
@@ -348,7 +352,7 @@ export function PainelCapitalEstoque({
               </div>
             )}
           </li>
-          <li className="flex items-center justify-between py-2.5 text-muted-foreground">
+          <li className="flex items-center justify-between py-2 text-muted-foreground">
             <span className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-amber-500" />
               Últimas unidades (&lt; 3 un.)
@@ -357,7 +361,7 @@ export function PainelCapitalEstoque({
               {lowStockCount} {lowStockCount === 1 ? "modelo" : "modelos"}
             </span>
           </li>
-          <li className="flex items-center justify-between py-2.5 text-muted-foreground">
+          <li className="flex items-center justify-between py-2 text-muted-foreground">
             <span className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-emerald-500" />
               Modelos com estoque saudável
@@ -373,7 +377,7 @@ export function PainelCapitalEstoque({
       <Button
         asChild
         variant="outline"
-        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        className="mt-3 w-full rounded-xl h-9 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
       >
         <Link to="/estoque">
           Gerenciar Estoque <ChevronRight className="size-3.5 ml-1" />
@@ -384,7 +388,7 @@ export function PainelCapitalEstoque({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 3. PAINEL META & RITMO COMERCIAL (Meta, Ritmo Diário, Ticket Médio & Peças)
+ * 3. PAINEL META & RITMO COMERCIAL (Retido para compatibilidade)
  * ──────────────────────────────────────────────────────────────────────────── */
 export interface PainelMetaRitmoProps {
   goalTarget: number;
@@ -420,119 +424,55 @@ export function PainelMetaRitmo({
   mascaraSaldo,
 }: PainelMetaRitmoProps) {
   const progressClamp = Math.min(Math.max(goalProgress, 0), 100);
-  const metaBatida = progressClamp >= 100;
   const temMeta = goalTarget > 0;
 
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
+    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
       <div>
-        {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-7 place-items-center rounded-lg bg-primary-soft text-primary">
-              <Target className="size-4" />
+            <div className="grid size-6 place-items-center rounded-lg bg-primary-soft text-primary">
+              <Target className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 Ritmo Comercial & Metas
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 Velocidade e objetivo de vendas em {thisMonthLabel}
               </p>
             </div>
           </div>
-
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
-            {temMeta ? `${progressClamp.toFixed(0)}% atingido` : "Sem meta ativa"}
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium">
+            {temMeta ? `${progressClamp.toFixed(0)}%` : "Sem meta"}
           </span>
         </div>
 
-        {/* Conteúdo Executivo */}
         {temMeta ? (
-          <div className="mt-4 space-y-3.5">
-            <div>
-              <div className="flex items-baseline justify-between">
-                <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                  {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(netRevenue)}
-                </span>
-                <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-                  {progressClamp.toFixed(0)}% da meta
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                meta estabelecida de {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(goalTarget)}
-              </p>
+          <div className="mt-3 space-y-2.5">
+            <div className="flex items-baseline justify-between">
+              <span className="numeric text-xl font-bold tracking-tight text-foreground">
+                {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(netRevenue)}
+              </span>
+              <span className="text-[11px] font-semibold text-primary">
+                Meta: {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(goalTarget)}
+              </span>
             </div>
-
-            {/* Barra de Progresso Apple HIG */}
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 style={{ width: `${progressClamp}%` }}
-                className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all"
               />
             </div>
-
-            {/* Grid Executivo 2x2 com Ritmo e Velocidade Comercial */}
-            {metaBatida ? (
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2.5 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
-                <Sparkles className="size-4 shrink-0" />
-                <span>🎉 Parabéns! Sua loja superou a meta estipulada para este mês.</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-secondary/40 p-2.5 border border-border/60 text-xs">
-                <div>
-                  <span className="text-[11px] text-muted-foreground block">Falta faturar</span>
-                  <span className="numeric text-xs sm:text-sm font-semibold text-foreground">
-                    {ocultarSaldos ? "R$ ••••" : mascaraSaldo(remainingGoal)}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/80 block mt-0.5">
-                    em {daysRemaining} dia{daysRemaining !== 1 ? "s" : ""} restantes
-                  </span>
-                </div>
-                <div className="border-l border-border/70 pl-2.5">
-                  <span className="text-[11px] text-muted-foreground block">Ritmo diário</span>
-                  <span className="numeric text-xs sm:text-sm font-semibold text-primary">
-                    {ocultarSaldos ? "R$ ••••/dia" : `${mascaraSaldo(dailyTarget)}/dia`}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/80 block mt-0.5">
-                    para bater 100%
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Indicadores de Apoio: Ticket Médio & Peças */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pt-0.5">
-              <span>
-                Ticket médio:{" "}
-                <strong className="text-foreground font-semibold">
-                  {ocultarSaldos ? "R$ ••••" : ticketMedio > 0 ? mascaraSaldo(ticketMedio) : "—"}
-                </strong>
-              </span>
-              <span>
-                Peças vendidas:{" "}
-                <strong className="text-foreground font-semibold">
-                  {totalPecasVendidas} {totalPecasVendidas === 1 ? "peça" : "peças"}
-                </strong>
-              </span>
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+              <span>Ritmo: <strong className="text-primary">{ocultarSaldos ? "R$ ••/dia" : `${mascaraSaldo(dailyTarget)}/dia`}</strong></span>
+              <span>Peças: <strong className="text-foreground">{totalPecasVendidas}</strong></span>
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2.5 text-center py-4 px-4 mt-1">
-            <div className="grid size-9 place-items-center rounded-2xl bg-primary/10 text-primary shadow-2xs">
-              <Target className="size-4.5" />
-            </div>
-            <div className="max-w-xs space-y-1">
-              <p className="text-sm font-semibold text-foreground">
-                Ative a meta da loja para {thisMonthLabel}
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {prevRevenue && prevRevenue > 0
-                  ? `Mês anterior: ${ocultarSaldos ? "R$ ••••" : mascaraSaldo(prevRevenue)} faturados. Escolha uma meta rápida:`
-                  : "Defina um objetivo em 1 clique para calcular o ritmo diário exato de vendas:"}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-0.5">
+          <div className="mt-3 flex flex-wrap gap-2 items-center justify-between text-xs">
+            <span className="text-muted-foreground text-[11px]">Ative uma meta rápida:</span>
+            <div className="flex gap-1.5">
               {[5000, 10000, 20000].map((val) => (
                 <Button
                   key={val}
@@ -541,9 +481,9 @@ export function PainelMetaRitmo({
                   size="sm"
                   disabled={isSettingGoal}
                   onClick={() => onSetQuickGoal?.(val)}
-                  className="h-8 rounded-full border-border/80 bg-card px-3 text-xs font-semibold text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-2xs cursor-pointer"
+                  className="h-7 rounded-lg border-border/80 px-2 text-[11px] font-medium"
                 >
-                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(val)}
+                  {mascaraSaldo(val)}
                 </Button>
               ))}
             </div>
@@ -551,15 +491,13 @@ export function PainelMetaRitmo({
         )}
       </div>
 
-      {/* Botão de Fechamento Largo e Arredondado */}
       <Button
         asChild
         variant="outline"
-        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        className="mt-3 w-full rounded-xl h-9 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
       >
         <Link to="/metas">
-          {temMeta ? "Calibrar Objetivos & Metas" : "Configurar Metas da Loja"}{" "}
-          <ChevronRight className="size-3.5 ml-1" />
+          {temMeta ? "Calibrar Metas" : "Configurar Metas"} <ChevronRight className="size-3.5 ml-1" />
         </Link>
       </Button>
     </section>
@@ -567,7 +505,7 @@ export function PainelMetaRitmo({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 4. PAINEL CONTAS A PAGAR, COBRANÇAS & FLUXO DO CAIXA
+ * 4. PAINEL CONTAS, COBRANÇAS & FLUXO DO CAIXA (Sem Repetições Burocráticas)
  * ──────────────────────────────────────────────────────────────────────────── */
 export interface PainelAcaoCaixaProps {
   profit: number;
@@ -575,6 +513,9 @@ export interface PainelAcaoCaixaProps {
   openCreditTotal: number;
   openCreditsCount: number;
   overdue: number;
+  goalTarget?: number | undefined;
+  dailyTarget?: number | undefined;
+  daysRemaining?: number | undefined;
   recentTransactions?: Transaction[] | undefined;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
@@ -586,63 +527,40 @@ export function PainelAcaoCaixa({
   openCreditTotal,
   openCreditsCount,
   overdue,
+  goalTarget = 0,
+  dailyTarget = 0,
+  daysRemaining = 0,
   recentTransactions,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelAcaoCaixaProps) {
   return (
-    <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
+    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
-              <Wallet className="size-4" />
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
+              <Wallet className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Contas a Pagar, Cobranças & Caixa
+              <h2 className="text-sm font-semibold text-foreground">
+                Contas, Fiado & Ritmo
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Compromissos imediatos e saúde do fluxo financeiro
+              <p className="text-[11px] text-muted-foreground">
+                Compromissos e ritmo de metas do mês
               </p>
             </div>
           </div>
 
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium">
             Mês atual
           </span>
         </div>
 
-        {/* Saldo Líquido do Mês (Hero Sutil) */}
-        <div className="mt-4 flex items-baseline justify-between">
-          <span
-            className={cn(
-              "numeric text-2xl sm:text-3xl font-bold tracking-tight",
-              profit >= 0 ? "text-foreground" : "text-destructive",
-            )}
-          >
-            {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(profit)}
-          </span>
-          <span className="text-xs font-semibold text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
-            {profit >= 0 ? "Sobra líquida real" : "Déficit temporário"}
-          </span>
-        </div>
-
-        {/* Linhas de Compromissos: Contas do Mês vs Fiado na Praça */}
-        <div className="mt-3.5 space-y-2">
-          {/* Linha 1: Despesas e Saídas do Mês */}
-          <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
-            <div className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
-              <span className="text-muted-foreground">Saídas e contas do mês:</span>
-            </div>
-            <span className="numeric font-semibold text-foreground">
-              {ocultarSaldos ? "R$ ••••" : mascaraSaldo(totalExpenses)}
-            </span>
-          </div>
-
-          {/* Linha 2: Fiado / Cobranças em Aberto */}
+        {/* Linhas de Compromissos: Fiado, Contas a Pagar e Ritmo da Meta */}
+        <div className="mt-3 space-y-2">
+          {/* Linha 1: Fiado / Cobranças em Aberto */}
           {openCreditTotal > 0 ? (
             <Link
               to="/fiado"
@@ -656,7 +574,7 @@ export function PainelAcaoCaixa({
               <div className="flex items-center gap-2 truncate">
                 <Users className="size-3.5 shrink-0" />
                 <span className="truncate">
-                  Fiado a receber: <strong>{ocultarSaldos ? "R$ ••••" : mascaraSaldo(openCreditTotal)}</strong> ({openCreditsCount}{" "}
+                  Fiado: <strong>{ocultarSaldos ? "R$ ••••" : mascaraSaldo(openCreditTotal)}</strong> ({openCreditsCount}{" "}
                   {openCreditsCount === 1 ? "cliente" : "clientes"})
                   {overdue > 0 && ` · ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
                 </span>
@@ -669,21 +587,53 @@ export function PainelAcaoCaixa({
             <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs text-muted-foreground border border-border/60">
               <div className="flex items-center gap-2">
                 <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Zero pendências de cobrança ou fiado</span>
+                <span>Zero clientes com fiado em aberto</span>
               </div>
               <Link to="/fiado" className="text-[11px] underline hover:text-foreground">
                 Ver fiado
               </Link>
             </div>
           )}
+
+          {/* Linha 2: Despesas e Saídas do Mês */}
+          <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
+              <span className="text-muted-foreground">Contas / saídas do mês:</span>
+            </div>
+            <span className="numeric font-semibold text-foreground">
+              {ocultarSaldos ? "R$ ••••" : mascaraSaldo(totalExpenses)}
+            </span>
+          </div>
+
+          {/* Linha 3: Ritmo Diário da Meta */}
+          <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
+            <div className="flex items-center gap-2">
+              <Target className="size-3.5 text-primary shrink-0" />
+              <span className="text-muted-foreground">
+                {goalTarget > 0
+                  ? `Ritmo ideal (${daysRemaining}d restantes):`
+                  : "Meta mensal da loja:"}
+              </span>
+            </div>
+            {goalTarget > 0 ? (
+              <span className="numeric font-semibold text-primary">
+                {ocultarSaldos ? "R$ ••••/dia" : `${mascaraSaldo(dailyTarget)}/dia`}
+              </span>
+            ) : (
+              <Link to="/metas" className="text-[11px] font-medium text-primary hover:underline">
+                Ativar meta ➔
+              </Link>
+            )}
+          </div>
         </div>
 
-        {/* Botões de Ação Imediata (Sem roxo gritante, visual Apple) */}
+        {/* Botões de Ação Imediata */}
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Button
             asChild
             variant="outline"
-            className="h-9 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
+            className="h-8.5 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
           >
             <Link to="/caixa">
               <Store className="size-3.5 mr-1.5 text-primary" />
@@ -693,7 +643,7 @@ export function PainelAcaoCaixa({
           <Button
             asChild
             variant="outline"
-            className="h-9 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
+            className="h-8.5 rounded-xl border-border/80 bg-card hover:bg-secondary/70 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
           >
             <Link to="/caixa">
               <Plus className="size-3.5 mr-1.5 text-muted-foreground" />
@@ -703,11 +653,11 @@ export function PainelAcaoCaixa({
         </div>
       </div>
 
-      {/* Botão de Fechamento Largo e Arredondado */}
+      {/* Botão de Fechamento */}
       <Button
         asChild
         variant="outline"
-        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        className="mt-3 w-full rounded-xl h-9 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
       >
         <Link to="/caixa">
           Extrato Completo do Caixa <ChevronRight className="size-3.5 ml-1" />
@@ -731,6 +681,5 @@ export interface PainelPecaCampeaProps {
 }
 
 export function PainelPecaCampea(props: PainelPecaCampeaProps) {
-  // Redireciona de forma elegante para o acervo de estoque
   return null;
 }

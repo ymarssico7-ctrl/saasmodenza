@@ -470,74 +470,70 @@ function Painel() {
   // ── Skeletons com Geometria Exata (Apple Standard) ────────────────────────
   if (isProfileLoading || isTxsLoading || isInventoryLoading) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-10 w-52 sm:h-12" />
-          <Skeleton className="h-4 w-72" />
+      <div className="space-y-4 pb-8">
+        <div className="space-y-1.5">
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-8 w-44 sm:h-9" />
+          <Skeleton className="h-3.5 w-60" />
         </div>
 
-        {/* Bento KPIs Skeletons (Trindade Mestre) */}
-        <div className="grid gap-4 md:grid-cols-3">
+        {/* Bento KPIs Skeletons (Trindade Mestre Compacta) */}
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="panel p-6 space-y-4">
+            <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-3.5 w-32" />
-                <Skeleton className="h-9 w-9 rounded-full" />
+                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-8 w-8 rounded-xl" />
               </div>
-              <Skeleton className="h-9 w-28 mt-4" />
-              <Skeleton className="h-3.5 w-36 mt-2" />
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-3 w-40" />
             </div>
           ))}
         </div>
 
-        {/* Hero Chart Skeleton */}
-        <div className="panel p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-3.5 w-64" />
+        {/* Bento Grid 60/40 Skeletons */}
+        <div className="grid gap-4 lg:grid-cols-12">
+          {/* Coluna Esquerda: Gráfico + Pedidos */}
+          <div className="flex flex-col gap-4 lg:col-span-7">
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-36 rounded-full" />
+              </div>
+              <Skeleton className="h-[180px] w-full rounded-xl" />
             </div>
-            <Skeleton className="h-8 w-56 rounded-full" />
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </div>
+              <Skeleton className="h-14 w-full rounded-xl" />
+            </div>
           </div>
-          <Skeleton className="h-52 w-full rounded-2xl mt-4" />
-        </div>
 
-        {/* Cockpit Grid Skeletons (2x2 Nobre) */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="panel p-6 space-y-4">
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="h-4 w-32" />
-            <div className="space-y-3 mt-6">
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
+          {/* Coluna Direita: Estoque + Contas */}
+          <div className="flex flex-col gap-4 lg:col-span-5">
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full" />
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
             </div>
-          </div>
-          <div className="panel p-6 space-y-4">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-28" />
-            <div className="space-y-3 mt-6">
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="panel p-6 space-y-4">
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="h-4 w-32" />
-            <div className="space-y-3 mt-6">
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
-            </div>
-          </div>
-          <div className="panel p-6 space-y-4">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-28" />
-            <div className="space-y-3 mt-6">
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full rounded-xl" />
+                <Skeleton className="h-8 w-full rounded-xl" />
+              </div>
             </div>
           </div>
         </div>
@@ -555,15 +551,15 @@ function Painel() {
   const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
 
   return (
-    <div className="space-y-7 pb-24">
+    <div className="space-y-4 pb-8">
       {/* ── CABEÇALHO ZEN (Sem Barras Soltas Empilhadas) ───────────────────────── */}
       <PageHeader
         eyebrow={monthLabel(thisMonth)}
         title={`Olá, ${greetingName}`}
         description={
           hasCustomStore
-            ? `Aqui está o centro de comando da sua loja (${rawStore}) hoje.`
-            : "Aqui está o centro de comando da sua loja hoje."
+            ? `Centro de comando da sua loja (${rawStore}) hoje.`
+            : "Centro de comando da sua loja hoje."
         }
         action={
           <div className="flex shrink-0 items-center gap-2">
@@ -578,7 +574,7 @@ function Painel() {
                   : "Ocultar saldos para privacidade no balcão"
               }
               className={cn(
-                "h-10 gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-all shadow-2xs cursor-pointer",
+                "h-9 gap-1.5 rounded-full border px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer",
                 ocultarSaldos
                   ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
                   : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
@@ -589,7 +585,7 @@ function Painel() {
             </Button>
             <Button
               asChild
-              className="h-10 rounded-full px-4 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer text-xs"
+              className="h-9 rounded-full px-3.5 font-semibold gradient-primary shadow-glow hover:opacity-95 transition-all cursor-pointer text-xs"
             >
               <Link to="/caixa">
                 <Plus className="size-3.5" /> Novo lançamento
@@ -611,7 +607,7 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. BENTO BOX KPIS (Faturamento+Meta, Saídas, Sobra no Caixa, Peças+Ticket) ── */}
+      {/* ── 1. BENTO BOX KPIS (Faturamento, Saídas, Sobra no Caixa) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
@@ -637,68 +633,56 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── 2. GRÁFICO DINÂMICO DE VENDAS COM HOVER & FILTROS (7d, 30d, Mês Atual, Custom) ── */}
-      <PainelGraficoVendas
-        transactions={txs}
-        orders={orders}
-        ocultarSaldos={ocultarSaldos}
-        mascaraSaldo={mascaraSaldo}
-      />
+      {/* ── 2. BENTO GRID 60/40 (TELA ÚNICA SEM ROLAGEM TRIPLA) ── */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        {/* ── Coluna Esquerda (~60% = 7 colunas): Gráfico de Vendas + Radar de Pedidos ── */}
+        <div className="flex flex-col gap-4 lg:col-span-7">
+          <PainelGraficoVendas
+            transactions={txs}
+            orders={orders}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
+          <PainelRadarPedidosOnline
+            pedidosPendentes={pedidosPendentes}
+            totalPedidosNovos={pedidosNovosCount}
+            valorTotalNovos={pedidosNovosValor}
+            vitrineAtiva={vitrineAtiva}
+            vitrineUrl={vitrineUrl}
+            vitrineDisplay={vitrineDisplay}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+            onCopiarLink={copiarLinkVitrine}
+          />
+        </div>
 
-      {/* ── 3. OPERAÇÃO DO VAREJO: RADAR DE PEDIDOS ONLINE & SAÚDE DO ESTOQUE ── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PainelRadarPedidosOnline
-          pedidosPendentes={pedidosPendentes}
-          totalPedidosNovos={pedidosNovosCount}
-          valorTotalNovos={pedidosNovosValor}
-          vitrineAtiva={vitrineAtiva}
-          vitrineUrl={vitrineUrl}
-          vitrineDisplay={vitrineDisplay}
-          ocultarSaldos={ocultarSaldos}
-          mascaraSaldo={mascaraSaldo}
-          onCopiarLink={copiarLinkVitrine}
-        />
-        <PainelCapitalEstoque
-          totalStockValue={totalStockValue}
-          totalStockUnits={totalStockUnits}
-          totalCatalogItems={totalCatalogItems}
-          outOfStockCount={outOfStockCount}
-          lowStockCount={lowStockCount}
-          healthyStockCount={healthyStockCount}
-          outOfStockSampleName={outOfStockSampleName}
-          ocultarSaldos={ocultarSaldos}
-          mascaraSaldo={mascaraSaldo}
-        />
-      </div>
-
-      {/* ── 4. GESTÃO COMERCIAL & FLUXO DO CAIXA (Ritmo da Meta & Contas a Pagar/Fiado) ── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PainelMetaRitmo
-          goalTarget={goalTarget}
-          goalProgress={goalProgress}
-          remainingGoal={remainingGoal}
-          daysRemaining={daysRemaining}
-          dailyTarget={dailyTarget}
-          netRevenue={netRevenue}
-          thisMonthLabel={monthLabel(thisMonth)}
-          ticketMedio={ticketMedio}
-          totalPecasVendidas={totalPecasVendidas}
-          prevRevenue={prevRevenue}
-          onSetQuickGoal={(val) => quickGoalMutation.mutate(val)}
-          isSettingGoal={quickGoalMutation.isPending}
-          ocultarSaldos={ocultarSaldos}
-          mascaraSaldo={mascaraSaldo}
-        />
-        <PainelAcaoCaixa
-          profit={profit}
-          totalExpenses={totalExpenses}
-          openCreditTotal={openCreditTotal}
-          openCreditsCount={openCredits.length}
-          overdue={overdue}
-          recentTransactions={recentTransactions}
-          ocultarSaldos={ocultarSaldos}
-          mascaraSaldo={mascaraSaldo}
-        />
+        {/* ── Coluna Direita (~40% = 5 colunas): Saúde do Estoque + Contas, Fiado & Ritmo ── */}
+        <div className="flex flex-col gap-4 lg:col-span-5">
+          <PainelCapitalEstoque
+            totalStockValue={totalStockValue}
+            totalStockUnits={totalStockUnits}
+            totalCatalogItems={totalCatalogItems}
+            outOfStockCount={outOfStockCount}
+            lowStockCount={lowStockCount}
+            healthyStockCount={healthyStockCount}
+            outOfStockSampleName={outOfStockSampleName}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
+          <PainelAcaoCaixa
+            profit={profit}
+            totalExpenses={totalExpenses}
+            openCreditTotal={openCreditTotal}
+            openCreditsCount={openCredits.length}
+            overdue={overdue}
+            goalTarget={goalTarget}
+            dailyTarget={dailyTarget}
+            daysRemaining={daysRemaining}
+            recentTransactions={recentTransactions}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
+        </div>
       </div>
     </div>
   );
