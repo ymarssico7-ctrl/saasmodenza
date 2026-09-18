@@ -16,6 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+import type { Transaction } from "@/lib/finance";
+
 export interface TopProductItem {
   id: string;
   name: string;
@@ -40,6 +42,7 @@ export interface PainelMetaRitmoProps {
   dailyTarget: number;
   netRevenue: number;
   thisMonthLabel: string;
+  prevRevenue?: number | undefined;
   onSetQuickGoal?: ((amount: number) => void) | undefined;
   isSettingGoal?: boolean | undefined;
   ocultarSaldos: boolean;
@@ -54,6 +57,7 @@ export function PainelMetaRitmo({
   dailyTarget,
   netRevenue,
   thisMonthLabel,
+  prevRevenue,
   onSetQuickGoal,
   isSettingGoal,
   ocultarSaldos,
@@ -82,18 +86,9 @@ export function PainelMetaRitmo({
             </div>
           </div>
 
-          {temMeta && (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
-            >
-              <Link to="/metas">
-                Calibrar meta <ArrowUpRight className="size-3 ml-0.5" />
-              </Link>
-            </Button>
-          )}
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+            {temMeta ? `${progressClamp.toFixed(0)}% atingido` : "Sem meta ativa"}
+          </span>
         </div>
 
         {/* Conteúdo Executivo */}
@@ -153,19 +148,21 @@ export function PainelMetaRitmo({
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center py-5 px-4 mt-1">
-            <div className="grid size-10 place-items-center rounded-2xl bg-primary/10 text-primary shadow-2xs">
-              <Target className="size-5" />
+          <div className="flex flex-1 flex-col items-center justify-center gap-2.5 text-center py-4 px-4 mt-1">
+            <div className="grid size-9 place-items-center rounded-2xl bg-primary/10 text-primary shadow-2xs">
+              <Target className="size-4.5" />
             </div>
             <div className="max-w-xs space-y-1">
               <p className="text-sm font-semibold text-foreground">
                 Ative a meta da loja para {thisMonthLabel}
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Escolha um objetivo em 1 clique para calcular o ritmo diário exato de vendas:
+                {prevRevenue && prevRevenue > 0
+                  ? `Mês anterior: ${ocultarSaldos ? "R$ ••••" : mascaraSaldo(prevRevenue)} faturados. Escolha uma meta rápida:`
+                  : "Defina um objetivo em 1 clique para calcular o ritmo diário exato de vendas:"}
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-0.5">
               {[5000, 10000, 20000].map((val) => (
                 <Button
                   key={val}
@@ -180,31 +177,21 @@ export function PainelMetaRitmo({
                 </Button>
               ))}
             </div>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="h-6 text-[11px] text-muted-foreground hover:text-foreground font-medium rounded-full cursor-pointer mt-0.5"
-            >
-              <Link to="/metas">
-                Personalizar outro valor na página de metas <ChevronRight className="size-3 ml-0.5" />
-              </Link>
-            </Button>
           </div>
         )}
       </div>
 
-      {temMeta && (
-        <Button
-          asChild
-          variant="outline"
-          className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
-        >
-          <Link to="/metas">
-            Calibrar Objetivos & Metas <ChevronRight className="size-3.5 ml-1" />
-          </Link>
-        </Button>
-      )}
+      {/* Botão de Fechamento Largo e Arredondado (Simétrico em todos os estados!) */}
+      <Button
+        asChild
+        variant="outline"
+        className="mt-4 w-full rounded-2xl h-10 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+      >
+        <Link to="/metas">
+          {temMeta ? "Calibrar Objetivos & Metas" : "Configurar Metas da Loja"}{" "}
+          <ChevronRight className="size-3.5 ml-1" />
+        </Link>
+      </Button>
     </section>
   );
 }
@@ -254,26 +241,19 @@ export function PainelPecaCampea({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                {hasSale ? "Peça Campeã da Loja" : "Vitrine & Peças na Arara"}
+                {hasSale ? "Peça Campeã da Loja" : "Araras Prontas para Venda"}
               </h2>
               <p className="text-xs text-muted-foreground">
                 {hasSale
                   ? "A mais desejada pelas clientes este mês"
-                  : "Modelos disponíveis prontos para venda"}
+                  : "Modelos disponíveis para pronta-entrega"}
               </p>
             </div>
           </div>
 
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-foreground font-medium rounded-full"
-          >
-            <Link to="/estoque">
-              Ver araras <ArrowUpRight className="size-3 ml-0.5" />
-            </Link>
-          </Button>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground font-medium">
+            {hasSale ? "Mais Vendida" : "Pronta-entrega"}
+          </span>
         </div>
 
         {/* Conteúdo: 1) Peça Campeã com Venda */}
@@ -324,58 +304,83 @@ export function PainelPecaCampea({
             </div>
           </div>
         ) : hasCatalog ? (
-          /* Conteúdo: 2) Vitrine Ativa com Fotos/Peças Reais do Estoque (Adeus deserto cinza!) */
+          /* Conteúdo: 2) Vitrine Ativa com Fotos/Peças Reais do Estoque */
           <div className="mt-3 space-y-2.5">
-            {catalogPreview.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-2xl bg-secondary/30 p-2.5 border border-border/60 hover:bg-secondary/50 transition-colors"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-card">
-                    {item.photoUrl ? (
-                      <img
-                        src={item.photoUrl}
-                        alt={item.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="grid h-full w-full place-items-center text-primary/60 bg-gradient-to-br from-primary/10 to-secondary">
-                        <Shirt className="size-5" />
+            {catalogPreview.map((item) => {
+              const isAvailable = item.stock > 0;
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-secondary/30 p-2.5 border border-border/60 hover:bg-secondary/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-card">
+                      {item.photoUrl ? (
+                        <img
+                          src={item.photoUrl}
+                          alt={item.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-primary/60 bg-gradient-to-br from-primary/10 to-secondary">
+                          <Shirt className="size-5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block truncate">
+                        {item.category}
+                      </span>
+                      <h4 className="truncate text-xs sm:text-sm font-bold text-foreground">
+                        {item.name}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="numeric text-xs font-semibold text-foreground">
+                          {ocultarSaldos ? "R$ ••••" : mascaraSaldo(item.price)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium",
+                            isAvailable
+                              ? "text-muted-foreground"
+                              : "text-amber-600 dark:text-amber-400",
+                          )}
+                        >
+                          · {isAvailable
+                              ? `${item.stock} ${item.stock === 1 ? "peça" : "peças"} em arara`
+                              : "Esgotado em arara"}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block truncate">
-                      {item.category}
-                    </span>
-                    <h4 className="truncate text-xs sm:text-sm font-bold text-foreground">
-                      {item.name}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="numeric text-xs font-semibold text-foreground">
-                        {ocultarSaldos ? "R$ ••••" : mascaraSaldo(item.price)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        · {item.stock} {item.stock === 1 ? "peça em arara" : "peças em arara"}
-                      </span>
                     </div>
                   </div>
-                </div>
 
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shrink-0 rounded-full border-border/80 bg-card text-xs font-medium text-foreground hover:bg-secondary/80 hover:text-primary transition-all px-3 cursor-pointer shadow-2xs"
-                >
-                  <Link to="/caixa">
-                    <Plus className="size-3 mr-1" /> Vender
-                  </Link>
-                </Button>
-              </div>
-            ))}
+                  {isAvailable ? (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0 rounded-full border-border/80 bg-card text-xs font-medium text-foreground hover:bg-secondary/80 hover:text-primary transition-all px-3 cursor-pointer shadow-2xs"
+                    >
+                      <Link to="/caixa">
+                        <Plus className="size-3 mr-1" /> Vender
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="h-8 shrink-0 rounded-full border-amber-500/40 bg-amber-500/10 text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all px-3 cursor-pointer shadow-2xs"
+                    >
+                      <Link to="/estoque">
+                        Repor
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           /* Conteúdo: 3) Caso a loja realmente não tenha nenhum produto cadastrado */
@@ -522,8 +527,11 @@ export function PainelCapitalEstoque({
               </span>
             </div>
             {outOfStockCount > 0 && outOfStockSampleName && (
-              <div className="mt-1 flex items-center gap-1.5 pl-4 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                <span>⚠️ {outOfStockSampleName} está zerado · Repor estoque</span>
+              <div className="mt-1 flex items-center justify-between pl-4 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                <span>⚠️ {outOfStockSampleName} está zerado</span>
+                <Link to="/estoque" className="underline hover:opacity-80 text-[10px] font-semibold">
+                  Repor estoque ➔
+                </Link>
               </div>
             )}
           </li>
@@ -570,6 +578,7 @@ export interface PainelAcaoCaixaProps {
   openCreditTotal: number;
   openCreditsCount: number;
   overdue: number;
+  recentTransactions?: Transaction[] | undefined;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
 }
@@ -579,9 +588,12 @@ export function PainelAcaoCaixa({
   openCreditTotal,
   openCreditsCount,
   overdue,
+  recentTransactions,
   ocultarSaldos,
   mascaraSaldo,
 }: PainelAcaoCaixaProps) {
+  const hasRecent = recentTransactions && recentTransactions.length > 0;
+
   return (
     <section className="panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-300 min-h-[310px]">
       <div>
@@ -621,37 +633,71 @@ export function PainelAcaoCaixa({
           </span>
         </div>
 
-        {/* Status de Cobranças (Fiado) em Linha Serena */}
-        <div className="mt-3">
-          {openCreditTotal > 0 ? (
-            <Link
-              to="/fiado"
-              className={cn(
-                "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
-                overdue > 0
-                  ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15"
-                  : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15",
-              )}
-            >
-              <div className="flex items-center gap-2 truncate">
-                <Users className="size-3.5 shrink-0" />
-                <span className="truncate">
-                  <strong>{ocultarSaldos ? "R$ ••••" : mascaraSaldo(openCreditTotal)}</strong> em aberto ({openCreditsCount}{" "}
-                  {openCreditsCount === 1 ? "cliente" : "clientes"})
-                  {overdue > 0 && ` · ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
+        {/* Mini-Feed de Movimentações Recentes ou Status Serena */}
+        {hasRecent ? (
+          <div className="mt-3 space-y-1.5">
+            {recentTransactions.slice(0, 2).map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between gap-2 rounded-xl bg-secondary/35 px-3 py-1.5 text-xs border border-border/50"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full shrink-0",
+                      tx.kind === "entrada" ? "bg-emerald-500" : "bg-rose-500",
+                    )}
+                  />
+                  <span className="truncate text-foreground font-medium">
+                    {tx.description || (tx.kind === "entrada" ? "Venda de produto" : "Despesa da loja")}
+                  </span>
+                </div>
+                <span
+                  className={cn(
+                    "numeric font-semibold shrink-0",
+                    tx.kind === "entrada"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400",
+                  )}
+                >
+                  {tx.kind === "entrada" ? "+" : "-"}
+                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(Number(tx.amount))}
                 </span>
               </div>
-              <span className="font-semibold shrink-0 text-[11px] underline">
-                Cobranças ➔
-              </span>
-            </Link>
-          ) : (
-            <div className="flex items-center gap-2 rounded-xl bg-secondary/50 px-3 py-2 text-xs text-muted-foreground border border-border/60">
-              <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span>Zero pendências de cobrança ou fiado</span>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3">
+            {openCreditTotal > 0 ? (
+              <Link
+                to="/fiado"
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
+                  overdue > 0
+                    ? "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 hover:bg-rose-500/15"
+                    : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15",
+                )}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Users className="size-3.5 shrink-0" />
+                  <span className="truncate">
+                    <strong>{ocultarSaldos ? "R$ ••••" : mascaraSaldo(openCreditTotal)}</strong> em aberto ({openCreditsCount}{" "}
+                    {openCreditsCount === 1 ? "cliente" : "clientes"})
+                    {overdue > 0 && ` · ${overdue} vencido${overdue !== 1 ? "s" : ""}`}
+                  </span>
+                </div>
+                <span className="font-semibold shrink-0 text-[11px] underline">
+                  Cobranças ➔
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl bg-secondary/50 px-3 py-2 text-xs text-muted-foreground border border-border/60">
+                <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>Zero pendências de cobrança ou fiado</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Botões de Ação Imediata (Harmônicos, sem roxo gritante) */}
         <div className="mt-3 grid grid-cols-2 gap-2">

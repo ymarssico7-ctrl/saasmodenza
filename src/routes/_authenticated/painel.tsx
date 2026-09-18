@@ -366,7 +366,7 @@ function Painel() {
           };
         });
 
-      const catalogPreview: CatalogPreviewItem[] = invItems.slice(0, 2).map((it) => {
+      const catalogWithStock = invItems.map((it) => {
         const sizes = (it.sizes ?? {}) as Record<string, number>;
         const stock = Object.values(sizes).reduce(
           (a, b) => a + (Math.round(Number(b)) || 0),
@@ -381,6 +381,10 @@ function Painel() {
           stock,
         };
       });
+
+      const catalogPreview: CatalogPreviewItem[] = catalogWithStock
+        .sort((a, b) => (b.stock > 0 ? 1 : 0) - (a.stock > 0 ? 1 : 0) || b.stock - a.stock)
+        .slice(0, 2);
 
       return {
         totalPecasVendidas: totalPecas,
@@ -416,6 +420,12 @@ function Painel() {
     }
     return 0;
   }, [revenue, totalVendasCount, totalPecasVendidas]);
+
+  const recentTransactions = React.useMemo(() => {
+    return [...txs]
+      .sort((a, b) => (b.occurred_on || "").localeCompare(a.occurred_on || ""))
+      .slice(0, 3);
+  }, [txs]);
 
   // ── Skeletons com Geometria Exata (Apple Standard) ────────────────────────
   if (isProfileLoading || isTxsLoading || isInventoryLoading) {
@@ -609,6 +619,7 @@ function Painel() {
           dailyTarget={dailyTarget}
           netRevenue={netRevenue}
           thisMonthLabel={monthLabel(thisMonth)}
+          prevRevenue={prevRevenue}
           onSetQuickGoal={(val) => quickGoalMutation.mutate(val)}
           isSettingGoal={quickGoalMutation.isPending}
           ocultarSaldos={ocultarSaldos}
@@ -619,6 +630,7 @@ function Painel() {
           openCreditTotal={openCreditTotal}
           openCreditsCount={openCredits.length}
           overdue={overdue}
+          recentTransactions={recentTransactions}
           ocultarSaldos={ocultarSaldos}
           mascaraSaldo={mascaraSaldo}
         />
