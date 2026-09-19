@@ -213,15 +213,10 @@ export function PainelRadarPedidosOnline({
           </div>
         ) : (
           /* Conteúdo: 2) Quando NÃO há pedidos pendentes (Vitrine Ativa 24h) */
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2 rounded-xl bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground border border-border/60">
-              <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span>Zero pedidos pendentes no momento. Vitrine pronta para novas vendas.</span>
-            </div>
-
+          <div className="mt-2.5 space-y-2">
             {/* Box do Link da Vitrine com Botão Copiar */}
-            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs shadow-2xs">
-              <span className="truncate text-muted-foreground text-[11px]">
+            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
+              <span className="truncate text-muted-foreground text-[11px] font-mono">
                 {vitrineDisplay || "modaly.app/vitrine/sualoja"}
               </span>
               <div className="flex items-center gap-1 shrink-0">
@@ -229,7 +224,7 @@ export function PainelRadarPedidosOnline({
                   type="button"
                   onClick={handleCopy}
                   title="Copiar link da vitrine"
-                  className="inline-flex h-6 items-center gap-1 rounded-md border border-border/70 bg-secondary/70 px-2 text-[11px] font-medium text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs"
+                  className="inline-flex h-6 items-center gap-1 rounded-md border border-border/70 bg-card px-2 text-[10px] font-medium text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs"
                 >
                   <Copy className="size-2.5 text-muted-foreground" />
                   <span>Copiar</span>
@@ -240,7 +235,7 @@ export function PainelRadarPedidosOnline({
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Abrir vitrine"
-                    className="inline-flex h-6 items-center gap-1 rounded-md bg-primary/10 px-2 text-[11px] font-medium text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                    className="inline-flex h-6 items-center gap-1 rounded-md bg-primary/10 px-2 text-[10px] font-medium text-primary hover:bg-primary/20 transition-all cursor-pointer"
                   >
                     <span>Abrir</span>
                     <ExternalLink className="size-2.5" />
@@ -571,15 +566,15 @@ export function PainelCompromissosMetas({
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
-              <Target className="size-3.5" />
+            <div className="grid size-6 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <Users className="size-3.5" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Metas & Compromissos
+                Compromissos de Caixa
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Ritmo comercial e contas do mês
+                Fiado na praça e contas do mês
               </p>
             </div>
           </div>
@@ -589,34 +584,8 @@ export function PainelCompromissosMetas({
           </span>
         </div>
 
-        {/* 1. Item Meta Comercial */}
-        <div className="mt-3 space-y-2.5">
-          {temMeta ? (
-            <div className="rounded-xl border border-border/70 bg-card p-2.5 shadow-2xs space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Meta do Mês</span>
-                <span className="font-semibold text-foreground">
-                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(netRevenue)} de{" "}
-                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(goalTarget)} ({progressClamp.toFixed(0)}%)
-                </span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-500"
-                  style={{ width: `${progressClamp}%` }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
-              <span className="text-muted-foreground text-[11px]">Nenhuma meta ativa</span>
-              <Link to="/metas" className="text-[11px] font-semibold text-primary hover:underline">
-                Definir meta ➔
-              </Link>
-            </div>
-          )}
-
-          {/* 2. Item Fiado / Cobrança na Praça */}
+        {/* 1. Item Fiado / Cobrança na Praça */}
+        <div className="mt-3 space-y-2">
           {openCreditTotal > 0 ? (
             <Link
               to="/fiado"

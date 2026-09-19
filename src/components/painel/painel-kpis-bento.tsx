@@ -86,7 +86,7 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Faturamento Total
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-2xs">
             <Wallet className="size-4" />
           </div>
         </div>
@@ -97,35 +97,23 @@ export function PainelKpisBento({
           </h3>
         </div>
 
-        {/* Rodapé Límpido: Composição Balcão & Vitrine */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[26px]">
+        {/* Rodapé Límpido: Balcão & Vitrine sem truncamento */}
+        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
             <>
-              <span className="flex items-center gap-1.5 truncate">
+              <span className="flex items-center gap-1">
                 <Store className="size-3 text-muted-foreground/70 shrink-0" />
-                <span>
-                  Balcão: <strong className="font-semibold text-foreground">{mascaraSaldo(fisicaRevenue)}</strong>
-                </span>
+                <span>Balcão: <strong className="font-semibold text-foreground">{mascaraSaldo(fisicaRevenue)}</strong></span>
               </span>
-              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
-              <span className="flex items-center gap-1.5 truncate">
-                <ShoppingBag
-                  className={cn(
-                    "size-3 shrink-0",
-                    pedidosNovosCount > 0 ? "text-rose-500" : "text-muted-foreground/70",
-                  )}
-                />
-                <span>
-                  Vitrine: <strong className="font-semibold text-foreground">{mascaraSaldo(onlineRevenue)}</strong>
-                </span>
+              <span className="text-muted-foreground/30 select-none">·</span>
+              <span className="flex items-center gap-1">
+                <ShoppingBag className={cn("size-3 shrink-0", pedidosNovosCount > 0 ? "text-rose-500" : "text-muted-foreground/70")} />
+                <span>Vitrine: <strong className="font-semibold text-foreground">{mascaraSaldo(onlineRevenue)}</strong></span>
                 {pedidosNovosCount > 0 && (
-                  <Link
-                    to="/loja/pedidos"
-                    className="ml-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center shrink-0"
-                  >
-                    ({pedidosNovosCount} a separar)
+                  <Link to="/loja/pedidos" className="text-[10px] font-bold text-rose-500 hover:underline">
+                    ({pedidosNovosCount})
                   </Link>
                 )}
               </span>
@@ -140,30 +128,26 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saídas do Mês
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-2xs">
             <Receipt className="size-4" />
           </div>
         </div>
 
         <div className="my-1.5">
-          <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
             {mascaraSaldo(despesasExibidas)}
           </h3>
         </div>
 
         {/* Rodapé: Contas e Compras de Estoque */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[26px]">
+        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
             <>
-              <span className="truncate">
-                Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong>
-              </span>
-              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
-              <span className="truncate">
-                Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong>
-              </span>
+              <span>Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong></span>
+              <span className="text-muted-foreground/30 select-none">·</span>
+              <span>Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong></span>
             </>
           )}
         </div>
@@ -186,7 +170,7 @@ export function PainelKpisBento({
               </span>
             ) : null}
           </div>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs">
             <TrendingUp className="size-4" />
           </div>
         </div>
@@ -194,7 +178,7 @@ export function PainelKpisBento({
         <div className="my-1.5">
           <h3
             className={cn(
-              "numeric text-2xl sm:text-3xl font-bold tracking-tight",
+              "numeric text-2xl font-bold tracking-tight",
               profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground",
             )}
           >
@@ -203,18 +187,14 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Margem e Status de Caixa */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground min-h-[26px]">
+        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
             <>
-              <span className="truncate">
-                Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong>
-              </span>
-              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
-              <span className="truncate">
-                {netRevenue > 0 ? "Disponível no caixa" : "Caixa estável"}
-              </span>
+              <span>Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong></span>
+              <span className="text-muted-foreground/30 select-none">·</span>
+              <span className="truncate">{netRevenue > 0 ? "Caixa positivo" : "Caixa estável"}</span>
             </>
           )}
         </div>
@@ -227,40 +207,33 @@ export function PainelKpisBento({
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Meta do Mês
             </span>
-            {metaDefinida && (
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                  metaAtingida
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                metaDefinida
+                  ? metaAtingida
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-primary-soft text-primary",
-                )}
-              >
-                {metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`}
-              </span>
-            )}
+                    : "bg-primary-soft text-primary"
+                  : "bg-secondary text-muted-foreground",
+              )}
+            >
+              {metaDefinida ? (metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`) : "Inativa"}
+            </span>
           </div>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shadow-2xs">
             <Target className="size-4" />
           </div>
         </div>
 
         <div className="my-1.5">
-          {metaDefinida ? (
-            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
-              {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(netRevenue)}
-            </h3>
-          ) : (
-            <Link
-              to="/metas"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-            >
-              Definir meta <ChevronRight className="size-3.5" />
-            </Link>
-          )}
+          <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
+            {metaDefinida
+              ? (ocultarSaldos ? "R$ ••••••" : mascaraSaldo(netRevenue))
+              : "0%"}
+          </h3>
         </div>
 
-        {/* Rodapé: Barra de Progresso ou Dica */}
+        {/* Rodapé: Barra de Progresso ou Ação Limpa */}
         <div className="pt-2 border-t border-border/50 flex flex-col justify-center min-h-[26px]">
           {metaDefinida ? (
             <div className="space-y-1">
@@ -285,10 +258,14 @@ export function PainelKpisBento({
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="truncate">Ritmo diário</span>
-              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
-              <span className="truncate">Sem meta ativa</span>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground">Ritmo diário</span>
+              <Link
+                to="/metas"
+                className="font-semibold text-primary hover:underline flex items-center gap-0.5"
+              >
+                Definir meta <ChevronRight className="size-3" />
+              </Link>
             </div>
           )}
         </div>
