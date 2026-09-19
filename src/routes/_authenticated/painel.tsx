@@ -493,56 +493,55 @@ function Painel() {
           ))}
         </div>
 
-        {/* Linha 2: Comercial & Radar Online (7/5 cols) */}
-        <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-          {/* Gráfico */}
-          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-7">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-6 w-36 rounded-full" />
+        {/* Grid Contínuo Skeletons (7/5) */}
+        <div className="grid gap-4 lg:grid-cols-12 items-start">
+          {/* Coluna Esquerda: Gráfico + Feed */}
+          <div className="flex flex-col gap-4 lg:col-span-7">
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-36 rounded-full" />
+              </div>
+              <Skeleton className="h-[180px] w-full rounded-xl" />
             </div>
-            <Skeleton className="h-[180px] w-full rounded-xl" />
+
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+              <Skeleton className="h-7 w-full rounded-xl" />
+            </div>
           </div>
 
-          {/* Radar Online */}
-          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-36" />
-              <Skeleton className="h-5 w-24 rounded-full" />
+          {/* Coluna Direita: Radar + Estoque */}
+          <div className="flex flex-col gap-4 lg:col-span-5">
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-5 w-24 rounded-full" />
+              </div>
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-xl" />
             </div>
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-8 w-full rounded-xl" />
-          </div>
-        </div>
 
-        {/* Linha 3: Histórico de Vendas & Saúde do Estoque (7/5 cols) */}
-        <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-          {/* Feed de Atividades Recentes */}
-          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-7 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-20" />
+            <div className="panel p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full" />
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+              <Skeleton className="h-8 w-full rounded-xl" />
             </div>
-            <div className="space-y-2 pt-1">
-              <Skeleton className="h-10 w-full rounded-xl" />
-              <Skeleton className="h-10 w-full rounded-xl" />
-            </div>
-            <Skeleton className="h-7 w-full rounded-xl" />
-          </div>
-
-          {/* Saúde do Estoque */}
-          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-            </div>
-            <Skeleton className="h-2 w-full rounded-full" />
-            <div className="space-y-2 pt-1">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-            <Skeleton className="h-8 w-full rounded-xl" />
           </div>
         </div>
       </div>
@@ -652,17 +651,25 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── LINHA 2: COMERCIAL & ATENDIMENTO ONLINE (PRIORIDADE NO TOPO — 7/5 COLS) ── */}
-      <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-        <div className="lg:col-span-7">
+      {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}
+      <div className="grid gap-4 lg:grid-cols-12 items-start">
+        {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo de Vendas + Histórico Recente ── */}
+        <div className="flex flex-col gap-4 lg:col-span-7">
           <PainelGraficoVendas
             transactions={txs}
             orders={orders}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
           />
+          <PainelUltimasVendas
+            transactions={txs}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
         </div>
-        <div className="lg:col-span-5">
+
+        {/* ── Coluna Direita (~42% = 5 colunas): Radar Online (Topo) + Saúde do Estoque ── */}
+        <div className="flex flex-col gap-4 lg:col-span-5">
           <PainelRadarPedidosOnline
             pedidosPendentes={pedidosPendentes}
             totalPedidosNovos={pedidosNovosCount}
@@ -674,19 +681,6 @@ function Painel() {
             mascaraSaldo={mascaraSaldo}
             onCopiarLink={copiarLinkVitrine}
           />
-        </div>
-      </div>
-
-      {/* ── LINHA 3: HISTÓRICO DE VENDAS & SAÚDE DO ESTOQUE (PAREADO 1 A 1 — 7/5 COLS) ── */}
-      <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-        <div className="lg:col-span-7">
-          <PainelUltimasVendas
-            transactions={txs}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-          />
-        </div>
-        <div className="lg:col-span-5">
           <PainelCapitalEstoque
             totalStockValue={totalStockValue}
             totalStockUnits={totalStockUnits}
