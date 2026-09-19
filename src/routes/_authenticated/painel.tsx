@@ -479,24 +479,24 @@ function Painel() {
           <Skeleton className="h-3.5 w-60" />
         </div>
 
-        {/* Grid 70/30 Skeletons (Padrão FinScope / Business Manager) */}
-        <div className="grid gap-4 lg:grid-cols-12 items-start">
-          {/* Coluna Esquerda (~68% = 8 colunas): KPIs + Gráfico + Histórico */}
-          <div className="flex flex-col gap-4 lg:col-span-8">
-            {/* Tríade Bento KPIs */}
-            <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-3 w-28" />
-                    <Skeleton className="h-8 w-8 rounded-xl" />
-                  </div>
-                  <Skeleton className="h-8 w-32" />
-                  <Skeleton className="h-3 w-40" />
-                </div>
-              ))}
+        {/* Topo: Faixa de 4 KPIs em largura total (Padrão Prodex) */}
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-8 rounded-xl" />
+              </div>
+              <Skeleton className="h-8 w-28" />
+              <Skeleton className="h-3 w-36" />
             </div>
+          ))}
+        </div>
 
+        {/* Grid Balanceado 7/5 */}
+        <div className="grid gap-4 lg:grid-cols-12 items-start">
+          {/* Coluna Esquerda (~58% = 7 colunas): Gráfico + Histórico */}
+          <div className="flex flex-col gap-4 lg:col-span-7">
             {/* Gráfico */}
             <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -519,8 +519,8 @@ function Painel() {
             </div>
           </div>
 
-          {/* Coluna Direita (~32% = 4 colunas): Radar + Estoque + Metas */}
-          <div className="flex flex-col gap-4 lg:col-span-4">
+          {/* Coluna Direita (~42% = 5 colunas): Radar + Estoque + Metas */}
+          <div className="flex flex-col gap-4 lg:col-span-5">
             {/* Radar Online */}
             <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
@@ -626,6 +626,32 @@ function Painel() {
         }
       />
 
+      {/* ── 1. FAIXA DE KPIS MACRO FULL-WIDTH (4 CARDS — PADRÃO PRODEX) ── */}
+      <PainelKpisBento
+        revenue={revenue}
+        netRevenue={netRevenue}
+        prevRevenue={prevRevenue}
+        refunds={refunds}
+        totalExpenses={totalExpenses}
+        expenses={expenses}
+        stockPurchases={stockPurchases}
+        profit={profit}
+        operatingProfit={operatingProfit}
+        marginPct={marginPct}
+        fisicaRevenue={fisicaRevenue}
+        onlineRevenue={onlineRevenue}
+        vitrineAtiva={vitrineAtiva}
+        totalPecasVendidas={totalPecasVendidas}
+        ticketMedio={ticketMedio}
+        pedidosNovosCount={pedidosNovosCount}
+        pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
+        goalTarget={goalTarget}
+        goalProgress={goalProgress}
+        dailyTarget={dailyTarget}
+        ocultarSaldos={ocultarSaldos}
+        mascaraSaldo={mascaraSaldo}
+      />
+
       {/* Banner de Boas-Vindas / Guia Financeiro */}
       <VestuiGuideBanner
         mode="gestao"
@@ -638,36 +664,10 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── GRID PRINCIPAL 70/30 (PADRÃO FINSCOPE / BUSINESS MANAGER) ── */}
+      {/* ── GRID PRINCIPAL EQUILIBRADO 7/5 ── */}
       <div className="grid gap-4 lg:grid-cols-12 items-start">
-        {/* ── Coluna Esquerda (~68% = 8 colunas): Performance, Gráfico & Histórico de Vendas ── */}
-        <div className="flex flex-col gap-4 lg:col-span-8">
-          {/* 1. Tríade Bento de Métricas Macro */}
-          <PainelKpisBento
-            revenue={revenue}
-            netRevenue={netRevenue}
-            prevRevenue={prevRevenue}
-            refunds={refunds}
-            totalExpenses={totalExpenses}
-            expenses={expenses}
-            stockPurchases={stockPurchases}
-            profit={profit}
-            operatingProfit={operatingProfit}
-            marginPct={marginPct}
-            fisicaRevenue={fisicaRevenue}
-            onlineRevenue={onlineRevenue}
-            vitrineAtiva={vitrineAtiva}
-            totalPecasVendidas={totalPecasVendidas}
-            ticketMedio={ticketMedio}
-            pedidosNovosCount={pedidosNovosCount}
-            pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
-            goalTarget={goalTarget}
-            goalProgress={goalProgress}
-            dailyTarget={dailyTarget}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-          />
-
+        {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo Comercial & Feed de Movimentações ── */}
+        <div className="flex flex-col gap-4 lg:col-span-7">
           {/* 2. Hero Chart de Ritmo de Vendas Dinâmico */}
           <PainelGraficoVendas
             transactions={txs}
@@ -684,9 +684,9 @@ function Painel() {
           />
         </div>
 
-        {/* ── Coluna Direita (~32% = 4 colunas): Ação Operacional, Estoque & Compromissos ── */}
-        <div className="flex flex-col gap-4 lg:col-span-4">
-          {/* 4. Radar de Pedidos da Vitrine Online (Hero Card com Destaque de Alto Contraste) */}
+        {/* ── Coluna Direita (~42% = 5 colunas): Radar Online, Estoque & Compromissos ── */}
+        <div className="flex flex-col gap-4 lg:col-span-5">
+          {/* 4. Radar de Pedidos da Vitrine Online (Destaque de Alto Contraste se pendente) */}
           <PainelRadarPedidosOnline
             pedidosPendentes={pedidosPendentes}
             totalPedidosNovos={pedidosNovosCount}
@@ -699,7 +699,7 @@ function Painel() {
             onCopiarLink={copiarLinkVitrine}
           />
 
-          {/* 5. Saúde do Estoque & Patrimônio Físico (Design Apple HIG Fiel) */}
+          {/* 5. Saúde do Estoque & Patrimônio Físico */}
           <PainelCapitalEstoque
             totalStockValue={totalStockValue}
             totalStockUnits={totalStockUnits}

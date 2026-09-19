@@ -5,6 +5,7 @@ import {
   Receipt,
   ShoppingBag,
   Store,
+  Target,
   TrendingUp,
   Wallet,
 } from "lucide-react";
@@ -78,27 +79,20 @@ export function PainelKpisBento({
   const estoqueVal = stockPurchases ?? 0;
 
   return (
-    <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
       <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Faturamento Total
-            </span>
-            {metaDefinida && (
-              <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                Meta: {progressClamp.toFixed(0)}%
-              </span>
-            )}
-          </div>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Faturamento Total
+          </span>
           <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <Wallet className="size-4" />
           </div>
         </div>
 
         <div className="my-1.5">
-          <h3 className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
             {mascaraSaldo(revenue)}
           </h3>
         </div>
@@ -222,6 +216,80 @@ export function PainelKpisBento({
                 {netRevenue > 0 ? "Disponível no caixa" : "Caixa estável"}
               </span>
             </>
+          )}
+        </div>
+      </div>
+
+      {/* ── CARD 4: META DO MÊS ──────────────────────────────────────────── */}
+      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Meta do Mês
+            </span>
+            {metaDefinida && (
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                  metaAtingida
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-primary-soft text-primary",
+                )}
+              >
+                {metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`}
+              </span>
+            )}
+          </div>
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+            <Target className="size-4" />
+          </div>
+        </div>
+
+        <div className="my-1.5">
+          {metaDefinida ? (
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
+              {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(netRevenue)}
+            </h3>
+          ) : (
+            <Link
+              to="/metas"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+            >
+              Definir meta <ChevronRight className="size-3.5" />
+            </Link>
+          )}
+        </div>
+
+        {/* Rodapé: Barra de Progresso ou Dica */}
+        <div className="pt-2 border-t border-border/50 flex flex-col justify-center min-h-[26px]">
+          {metaDefinida ? (
+            <div className="space-y-1">
+              <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-500",
+                    metaAtingida ? "bg-emerald-500" : "bg-primary",
+                  )}
+                  style={{ width: `${progressClamp}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="truncate">
+                  Alvo: <strong className="font-semibold text-foreground">{ocultarSaldos ? "R$ ••••" : mascaraSaldo(goalTarget)}</strong>
+                </span>
+                {dailyTarget !== undefined && dailyTarget > 0 && !metaAtingida && (
+                  <span className="font-medium text-primary shrink-0 ml-1">
+                    {ocultarSaldos ? "R$ ••••" : mascaraSaldo(dailyTarget)}/dia
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="truncate">Ritmo diário</span>
+              <span className="text-muted-foreground/40 font-bold mx-1.5 select-none">·</span>
+              <span className="truncate">Sem meta ativa</span>
+            </div>
           )}
         </div>
       </div>

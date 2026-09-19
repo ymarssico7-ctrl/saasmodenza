@@ -592,12 +592,12 @@ export function PainelCompromissosMetas({
         {/* 1. Item Meta Comercial */}
         <div className="mt-3 space-y-2.5">
           {temMeta ? (
-            <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs space-y-2">
+            <div className="rounded-xl border border-border/70 bg-card p-2.5 shadow-2xs space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Meta Comercial</span>
+                <span className="text-muted-foreground">Meta do Mês</span>
                 <span className="font-semibold text-foreground">
                   {ocultarSaldos ? "R$ ••••" : mascaraSaldo(netRevenue)} de{" "}
-                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(goalTarget)}
+                  {ocultarSaldos ? "R$ ••••" : mascaraSaldo(goalTarget)} ({progressClamp.toFixed(0)}%)
                 </span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
@@ -606,36 +606,13 @@ export function PainelCompromissosMetas({
                   style={{ width: `${progressClamp}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>{progressClamp.toFixed(0)}% atingido</span>
-                <span className="font-medium text-primary">
-                  {daysRemaining > 0
-                    ? `${ocultarSaldos ? "R$ ••••" : mascaraSaldo(dailyTarget)}/dia`
-                    : "Fim do período"}
-                </span>
-              </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-border/70 bg-secondary/30 p-2.5 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-foreground">Definir meta do mês:</span>
-                <Link to="/metas" className="text-[11px] font-medium text-primary hover:underline">
-                  Personalizar ➔
-                </Link>
-              </div>
-              <div className="flex gap-1.5">
-                {[5000, 10000, 20000].map((valor) => (
-                  <button
-                    key={valor}
-                    type="button"
-                    disabled={isSettingGoal}
-                    onClick={() => onSetQuickGoal?.(valor)}
-                    className="flex-1 rounded-lg border border-border/80 bg-card py-1 text-[10px] font-semibold text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs"
-                  >
-                    R$ {valor / 1000}k
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-xs border border-border/60">
+              <span className="text-muted-foreground text-[11px]">Nenhuma meta ativa</span>
+              <Link to="/metas" className="text-[11px] font-semibold text-primary hover:underline">
+                Definir meta ➔
+              </Link>
             </div>
           )}
 
