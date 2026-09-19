@@ -813,6 +813,19 @@ export function PainelUltimasVendas({
           </div>
         )}
       </div>
+
+      {/* Botão de Fechamento Simétrico */}
+      {temTransacoes && (
+        <Button
+          asChild
+          variant="outline"
+          className="mt-3 w-full rounded-xl h-8 border-border/80 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        >
+          <Link to="/caixa">
+            Extrato Completo do Caixa <ChevronRight className="size-3 ml-1" />
+          </Link>
+        </Button>
+      )}
     </section>
   );
 }

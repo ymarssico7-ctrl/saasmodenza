@@ -493,7 +493,7 @@ function Painel() {
           ))}
         </div>
 
-        {/* Linha 2: Desempenho & Estoque (7/5 cols) */}
+        {/* Linha 2: Comercial & Radar Online (7/5 cols) */}
         <div className="grid gap-4 lg:grid-cols-12 items-stretch">
           {/* Gráfico */}
           <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-7">
@@ -504,8 +504,34 @@ function Painel() {
             <Skeleton className="h-[180px] w-full rounded-xl" />
           </div>
 
+          {/* Radar Online */}
+          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-8 w-full rounded-xl" />
+          </div>
+        </div>
+
+        {/* Linha 3: Histórico de Vendas & Saúde do Estoque (7/5 cols) */}
+        <div className="grid gap-4 lg:grid-cols-12 items-stretch">
+          {/* Feed de Atividades Recentes */}
+          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-7 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="space-y-2 pt-1">
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+            <Skeleton className="h-7 w-full rounded-xl" />
+          </div>
+
           {/* Saúde do Estoque */}
-          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-5">
+          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-5 w-20 rounded-full" />
@@ -516,40 +542,7 @@ function Painel() {
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-full" />
             </div>
-          </div>
-        </div>
-
-        {/* Linha 3: Atividade Recente & Operação (7/5 cols) */}
-        <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-          {/* Feed de Atividades Recentes */}
-          <div className="panel p-4 sm:p-5 space-y-3 lg:col-span-7">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-20" />
-            </div>
-            <div className="space-y-2 pt-1">
-              <Skeleton className="h-10 w-full rounded-xl" />
-              <Skeleton className="h-10 w-full rounded-xl" />
-            </div>
-          </div>
-
-          {/* Radar & Compromissos */}
-          <div className="flex flex-col gap-4 lg:col-span-5">
-            <div className="panel p-4 sm:p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-5 w-24 rounded-full" />
-              </div>
-              <Skeleton className="h-12 w-full rounded-xl" />
-            </div>
-
-            <div className="panel p-4 sm:p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-4 w-36" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-              </div>
-              <Skeleton className="h-8 w-full rounded-xl" />
-            </div>
+            <Skeleton className="h-8 w-full rounded-xl" />
           </div>
         </div>
       </div>
@@ -659,12 +652,36 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── LINHA 2: PERFORMANCE COMERCIAL & PATRIMÔNIO EM ESTOQUE (7/5 COLS) ── */}
+      {/* ── LINHA 2: COMERCIAL & ATENDIMENTO ONLINE (PRIORIDADE NO TOPO — 7/5 COLS) ── */}
       <div className="grid gap-4 lg:grid-cols-12 items-stretch">
         <div className="lg:col-span-7">
           <PainelGraficoVendas
             transactions={txs}
             orders={orders}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <PainelRadarPedidosOnline
+            pedidosPendentes={pedidosPendentes}
+            totalPedidosNovos={pedidosNovosCount}
+            valorTotalNovos={pedidosNovosValor}
+            vitrineAtiva={vitrineAtiva}
+            vitrineUrl={vitrineUrl}
+            vitrineDisplay={vitrineDisplay}
+            ocultarSaldos={ocultarSaldos}
+            mascaraSaldo={mascaraSaldo}
+            onCopiarLink={copiarLinkVitrine}
+          />
+        </div>
+      </div>
+
+      {/* ── LINHA 3: HISTÓRICO DE VENDAS & SAÚDE DO ESTOQUE (PAREADO 1 A 1 — 7/5 COLS) ── */}
+      <div className="grid gap-4 lg:grid-cols-12 items-stretch">
+        <div className="lg:col-span-7">
+          <PainelUltimasVendas
+            transactions={txs}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
           />
@@ -680,47 +697,6 @@ function Painel() {
             outOfStockSampleName={outOfStockSampleName}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
-          />
-        </div>
-      </div>
-
-      {/* ── LINHA 3: OPERAÇÃO DO DIA A DIA (ATIVIDADES & DESPACHO/CAIXA) (7/5 COLS) ── */}
-      <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-        <div className="lg:col-span-7">
-          <PainelUltimasVendas
-            transactions={txs}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-          />
-        </div>
-        <div className="flex flex-col gap-4 lg:col-span-5">
-          <PainelRadarPedidosOnline
-            pedidosPendentes={pedidosPendentes}
-            totalPedidosNovos={pedidosNovosCount}
-            valorTotalNovos={pedidosNovosValor}
-            vitrineAtiva={vitrineAtiva}
-            vitrineUrl={vitrineUrl}
-            vitrineDisplay={vitrineDisplay}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-            onCopiarLink={copiarLinkVitrine}
-          />
-          <PainelCompromissosMetas
-            goalTarget={goalTarget}
-            goalProgress={goalProgress}
-            remainingGoal={remainingGoal}
-            dailyTarget={dailyTarget}
-            daysRemaining={daysRemaining}
-            netRevenue={netRevenue}
-            thisMonthLabel={monthLabel(thisMonth)}
-            openCreditTotal={openCreditTotal}
-            openCreditsCount={openCredits.length}
-            overdue={overdue}
-            totalExpenses={totalExpenses}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-            onSetQuickGoal={(val) => quickGoalMutation.mutate(val)}
-            isSettingGoal={quickGoalMutation.isPending}
           />
         </div>
       </div>
