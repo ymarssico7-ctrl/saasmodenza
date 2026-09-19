@@ -554,6 +554,17 @@ function Painel() {
       ? rawOwner.split(" ")[0]
       : "Lojista";
 
+  const rawStore = profile?.store_name?.trim();
+  const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
+
+  const formattedStoreName = React.useMemo(() => {
+    if (!rawStore) return "";
+    return rawStore
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }, [rawStore]);
+
   const timeGreeting = React.useMemo(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return "Bom dia";
@@ -561,12 +572,58 @@ function Painel() {
     return "Boa noite";
   }, []);
 
+  const dateLabel = React.useMemo(() => {
+    try {
+      const now = new Date();
+      const diasSemana = [
+        "Domingo",
+        "Segunda-feira",
+        "Terça-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sábado",
+      ];
+      const meses = [
+        "janeiro",
+        "fevereiro",
+        "março",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
+      ];
+      const diaSemana = diasSemana[now.getDay()];
+      const dia = now.getDate();
+      const mes = meses[now.getMonth()];
+      return `${diaSemana}, ${dia} de ${mes}`;
+    } catch {
+      return monthLabel(thisMonth);
+    }
+  }, [thisMonth]);
+
   return (
     <div className="space-y-4 pb-8">
-      {/* ── CABEÇALHO ULTRA-ZEN (Linha Única — Padrão Linear / Apple HIG) ───────── */}
+      {/* ── CABEÇALHO EQUILIBRADO (Padrão Apple HIG / Linear — Leve, Caloroso & Fluido) ── */}
       <PageHeader
-        title={`${timeGreeting}, ${greetingName}`}
-        className="py-1"
+        eyebrow={
+          <span className="text-xs font-medium text-muted-foreground">
+            {dateLabel}
+            {hasCustomStore && (
+              <>
+                <span className="mx-1.5 opacity-50">·</span>
+                <span className="font-semibold text-foreground/80">{formattedStoreName}</span>
+              </>
+            )}
+          </span>
+        }
+        title={`${timeGreeting}, ${greetingName} 👋`}
+        description="Aqui está o panorama financeiro e operacional de hoje."
         action={
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
