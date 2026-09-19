@@ -554,17 +554,6 @@ function Painel() {
       ? rawOwner.split(" ")[0]
       : "Lojista";
 
-  const rawStore = profile?.store_name?.trim();
-  const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
-
-  const formattedStoreName = React.useMemo(() => {
-    if (!rawStore) return "";
-    return rawStore
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
-  }, [rawStore]);
-
   const timeGreeting = React.useMemo(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return "Bom dia";
@@ -572,66 +561,12 @@ function Painel() {
     return "Boa noite";
   }, []);
 
-  const fullDateLabel = React.useMemo(() => {
-    try {
-      const now = new Date();
-      const diasSemana = [
-        "Domingo",
-        "Segunda-feira",
-        "Terça-feira",
-        "Quarta-feira",
-        "Quinta-feira",
-        "Sexta-feira",
-        "Sábado",
-      ];
-      const meses = [
-        "janeiro",
-        "fevereiro",
-        "março",
-        "abril",
-        "maio",
-        "junho",
-        "julho",
-        "agosto",
-        "setembro",
-        "outubro",
-        "novembro",
-        "dezembro",
-      ];
-      const diaSemana = diasSemana[now.getDay()];
-      const dia = now.getDate();
-      const mes = meses[now.getMonth()];
-      const ano = now.getFullYear();
-      return `Hoje · ${diaSemana}, ${dia} de ${mes} de ${ano}`;
-    } catch {
-      return monthLabel(thisMonth);
-    }
-  }, [thisMonth]);
-
   return (
     <div className="space-y-4 pb-8">
-      {/* ── CABEÇALHO ZEN (Sem Barras Soltas Empilhadas) ───────────────────────── */}
+      {/* ── CABEÇALHO ULTRA-ZEN (Linha Única — Padrão Linear / Apple HIG) ───────── */}
       <PageHeader
-        eyebrow={
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span>{fullDateLabel}</span>
-          </div>
-        }
         title={`${timeGreeting}, ${greetingName}`}
-        description={
-          hasCustomStore ? (
-            <span>
-              Visão geral e ritmo financeiro da{" "}
-              <span className="font-semibold text-foreground">{formattedStoreName}</span> hoje.
-            </span>
-          ) : (
-            "Visão geral e ritmo financeiro da sua loja hoje."
-          )
-        }
+        className="py-1"
         action={
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
