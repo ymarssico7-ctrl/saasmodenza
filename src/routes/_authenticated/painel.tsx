@@ -609,21 +609,20 @@ function Painel() {
 
   return (
     <div className="space-y-4 pb-8">
-      {/* ── CABEÇALHO EQUILIBRADO (Padrão Apple HIG / Linear — Leve, Caloroso & Fluido) ── */}
+      {/* ── CABEÇALHO ESSENCIAL (Padrão Apple HIG & Stripe — 2 Linhas Limpas) ──── */}
       <PageHeader
-        eyebrow={
-          <span className="text-xs font-medium text-muted-foreground">
-            {dateLabel}
+        title={`${timeGreeting}, ${greetingName}`}
+        description={
+          <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground">
             {hasCustomStore && (
               <>
-                <span className="mx-1.5 opacity-50">·</span>
                 <span className="font-semibold text-foreground/80">{formattedStoreName}</span>
+                <span className="opacity-40">·</span>
               </>
             )}
+            <span>{dateLabel}</span>
           </span>
         }
-        title={`${timeGreeting}, ${greetingName} 👋`}
-        description="Aqui está o panorama financeiro e operacional de hoje."
         action={
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
