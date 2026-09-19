@@ -8,28 +8,45 @@ export function PageHeader({
   action,
   className,
 }: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
   action?: ReactNode;
   className?: string;
 }) {
   return (
     <header
-      className={cn("flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between", className)}
+      className={cn(
+        "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+        className,
+      )}
     >
-      <div className="space-y-2">
+      <div className="space-y-1 sm:space-y-1.5">
         {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            {eyebrow}
-          </p>
+          typeof eyebrow === "string" ? (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              {eyebrow}
+            </p>
+          ) : (
+            <div>{eyebrow}</div>
+          )
         ) : null}
-        <h1 className="text-3xl font-semibold leading-tight sm:text-[2.6rem]">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          {title}
+        </h1>
         {description ? (
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+          typeof description === "string" ? (
+            <p className="max-w-2xl text-xs sm:text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          ) : (
+            <div className="max-w-2xl text-xs sm:text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </div>
+          )
         ) : null}
       </div>
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+      {action ? <div className="flex shrink-0 items-center gap-2 pt-1 sm:pt-0">{action}</div> : null}
     </header>
   );
 }
