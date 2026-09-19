@@ -613,6 +613,18 @@ function Painel() {
         }
       />
 
+      {/* Banner de Boas-Vindas / Guia Financeiro (No Topo como Onboarding do Sistema) */}
+      <VestuiGuideBanner
+        mode="gestao"
+        storeId={storeId}
+        storeSlug={store?.slug}
+        inventoryCount={inventory.length}
+        hasSales={txs.some((t) => t.kind === "entrada")}
+        salesCount={txs.filter((t) => t.kind === "entrada").length}
+        hasGoal={goalTarget > 0}
+        hasStorefront={Boolean(store?.slug)}
+      />
+
       {/* ── 1. FAIXA DE KPIS MACRO FULL-WIDTH (4 CARDS — PADRÃO PRODEX) ── */}
       <PainelKpisBento
         revenue={revenue}
@@ -637,18 +649,6 @@ function Painel() {
         dailyTarget={dailyTarget}
         ocultarSaldos={ocultarSaldos}
         mascaraSaldo={mascaraSaldo}
-      />
-
-      {/* Banner de Boas-Vindas / Guia Financeiro */}
-      <VestuiGuideBanner
-        mode="gestao"
-        storeId={storeId}
-        storeSlug={store?.slug}
-        inventoryCount={inventory.length}
-        hasSales={txs.some((t) => t.kind === "entrada")}
-        salesCount={txs.filter((t) => t.kind === "entrada").length}
-        hasGoal={goalTarget > 0}
-        hasStorefront={Boolean(store?.slug)}
       />
 
       {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}

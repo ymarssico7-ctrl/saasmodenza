@@ -86,7 +86,7 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Faturamento Total
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <Wallet className="size-4" />
           </div>
         </div>
@@ -128,7 +128,7 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saídas do Mês
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <Receipt className="size-4" />
           </div>
         </div>
@@ -170,7 +170,7 @@ export function PainelKpisBento({
               </span>
             ) : null}
           </div>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <TrendingUp className="size-4" />
           </div>
         </div>
@@ -220,7 +220,7 @@ export function PainelKpisBento({
               {metaDefinida ? (metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`) : "Inativa"}
             </span>
           </div>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shadow-2xs">
+          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <Target className="size-4" />
           </div>
         </div>
