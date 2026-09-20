@@ -463,6 +463,67 @@ function Painel() {
     return 0;
   }, [revenue, totalVendasCount, totalPecasVendidas]);
 
+  // ── Dados de Saudação e Cabeçalho ─────────────────────────────────────────
+  // ATENÇÃO: estes hooks devem ficar ANTES de qualquer early return (Regra dos Hooks)
+  const rawOwner = profile?.owner_name?.trim();
+  const greetingName =
+    rawOwner && rawOwner.toLowerCase() !== "lojista" && rawOwner.toLowerCase() !== "visitante"
+      ? rawOwner.split(" ")[0]
+      : "Lojista";
+
+  const rawStore = profile?.store_name?.trim();
+  const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
+
+  const formattedStoreName = React.useMemo(() => {
+    if (!rawStore) return "";
+    return rawStore
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }, [rawStore]);
+
+  const timeGreeting = React.useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
+    return "Boa noite";
+  }, []);
+
+  const dateLabel = React.useMemo(() => {
+    try {
+      const now = new Date();
+      const diasSemana = [
+        "Domingo",
+        "Segunda-feira",
+        "Terça-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sábado",
+      ];
+      const meses = [
+        "janeiro",
+        "fevereiro",
+        "março",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
+      ];
+      const diaSemana = diasSemana[now.getDay()];
+      const dia = now.getDate();
+      const mes = meses[now.getMonth()];
+      return `${diaSemana}, ${dia} de ${mes}`;
+    } catch {
+      return monthLabel(thisMonth);
+    }
+  }, [thisMonth]);
+
   const recentTransactions = React.useMemo(() => {
     return [...txs]
       .sort((a, b) => (b.occurred_on || "").localeCompare(a.occurred_on || ""))
@@ -548,64 +609,7 @@ function Painel() {
     );
   }
 
-  const rawOwner = profile?.owner_name?.trim();
-  const greetingName =
-    rawOwner && rawOwner.toLowerCase() !== "lojista" && rawOwner.toLowerCase() !== "visitante"
-      ? rawOwner.split(" ")[0]
-      : "Lojista";
 
-  const rawStore = profile?.store_name?.trim();
-  const hasCustomStore = Boolean(rawStore && rawStore !== "Loja Demo" && rawStore !== "Minha loja");
-
-  const formattedStoreName = React.useMemo(() => {
-    if (!rawStore) return "";
-    return rawStore
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(" ");
-  }, [rawStore]);
-
-  const timeGreeting = React.useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Bom dia";
-    if (hour >= 12 && hour < 18) return "Boa tarde";
-    return "Boa noite";
-  }, []);
-
-  const dateLabel = React.useMemo(() => {
-    try {
-      const now = new Date();
-      const diasSemana = [
-        "Domingo",
-        "Segunda-feira",
-        "Terça-feira",
-        "Quarta-feira",
-        "Quinta-feira",
-        "Sexta-feira",
-        "Sábado",
-      ];
-      const meses = [
-        "janeiro",
-        "fevereiro",
-        "março",
-        "abril",
-        "maio",
-        "junho",
-        "julho",
-        "agosto",
-        "setembro",
-        "outubro",
-        "novembro",
-        "dezembro",
-      ];
-      const diaSemana = diasSemana[now.getDay()];
-      const dia = now.getDate();
-      const mes = meses[now.getMonth()];
-      return `${diaSemana}, ${dia} de ${mes}`;
-    } catch {
-      return monthLabel(thisMonth);
-    }
-  }, [thisMonth]);
 
   return (
     <div className="space-y-4 pb-8">
