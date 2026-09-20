@@ -597,7 +597,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             ) : (
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{storeName}</p>
+                <p className="truncate text-sm font-semibold capitalize">{storeName}</p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">{ownerName}</p>
               </div>
             )}

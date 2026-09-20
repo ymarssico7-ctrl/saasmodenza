@@ -267,41 +267,36 @@ export function VestuiGuideBanner({
         </div>
 
         {/* Bloco Direito: Ação Rápida + Sheet Drawer + Fechar */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Ação Primária em 1 clique */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Ação Primária sutil em linha */}
           {nextStep.action ? (
-            <Button
+            <button
               type="button"
-              size="sm"
               onClick={nextStep.action}
-              className="h-7 rounded-full border border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
             >
               <span>{nextStep.cta}</span>
-              <ArrowUpRight className="ml-1 size-3 text-muted-foreground" />
-            </Button>
+              <ArrowUpRight className="size-3" />
+            </button>
           ) : nextStep.to ? (
-            <Button
-              asChild
-              size="sm"
-              className="h-7 rounded-full border border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-secondary/70 transition-all shadow-2xs cursor-pointer"
+            <Link
+              to={nextStep.to}
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
             >
-              <Link to={nextStep.to}>
-                <span>{nextStep.cta}</span>
-                <ArrowRight className="ml-1 size-3 text-muted-foreground" />
-              </Link>
-            </Button>
+              <span>{nextStep.cta}</span>
+              <ArrowRight className="size-3" />
+            </Link>
           ) : null}
 
           {/* Drawer / Sheet Apple Lateral para detalhes sem poluir a tela */}
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 rounded-full border-border/80 bg-card px-2.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer"
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
               >
-                <span>Ver etapas</span>
-              </Button>
+                Ver etapas
+              </button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full sm:max-w-md p-6 bg-card/95 backdrop-blur-2xl border-border/80">
               <SheetHeader className="space-y-1.5 pb-4 border-b border-border/60">

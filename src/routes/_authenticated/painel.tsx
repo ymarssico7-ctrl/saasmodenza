@@ -711,7 +711,7 @@ function Painel() {
       />
 
       {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}
-      <div className="grid gap-4 lg:grid-cols-12 items-start">
+      <div className="grid gap-4 lg:grid-cols-12 items-stretch">
         {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo de Vendas + Histórico Recente ── */}
         <div className="flex flex-col gap-4 lg:col-span-7">
           <PainelGraficoVendas
@@ -724,6 +724,7 @@ function Painel() {
             transactions={txs}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
+            className="flex-1"
           />
         </div>
 
@@ -750,6 +751,7 @@ function Painel() {
             outOfStockSampleName={outOfStockSampleName}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
+            className="flex-1"
           />
         </div>
       </div>

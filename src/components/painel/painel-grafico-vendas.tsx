@@ -196,24 +196,27 @@ export function PainelGraficoVendas({
   return (
     <section className="panel p-4 sm:p-5 transition-all duration-300">
       {/* ── Topo do Gráfico: Título, Resumo Executivo & Seletor de Período ── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="grid size-6 place-items-center rounded-lg bg-primary-soft text-primary">
-            <TrendingUp className="size-3.5" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground/80 shadow-2xs">
+              <TrendingUp className="size-3.5" />
+            </div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Ritmo de Vendas
+            </h2>
           </div>
-          <h2 className="text-sm font-semibold text-foreground">
-            Ritmo de Vendas
-          </h2>
-          <span className="numeric text-sm font-bold text-foreground">
-            {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalPeriodo)}
-          </span>
-          <span className="text-[11px] text-muted-foreground">
-            ({totalVendasCount} {totalVendasCount === 1 ? "venda" : "vendas"}
-            {ticketMedioPeriodo > 0 && !ocultarSaldos
-              ? ` · Médio: ${brlCompact(ticketMedioPeriodo)}`
-              : ""}
-            )
-          </span>
+          <div className="mt-1 flex items-baseline gap-2 pl-8">
+            <span className="numeric text-lg font-bold tracking-tight text-foreground">
+              {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalPeriodo)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              · {totalVendasCount} {totalVendasCount === 1 ? "venda" : "vendas"}
+              {ticketMedioPeriodo > 0 && !ocultarSaldos
+                ? ` (Médio: ${brlCompact(ticketMedioPeriodo)})`
+                : ""}
+            </span>
+          </div>
         </div>
 
         {/* Seletores de Período (Pills Compactas) */}
@@ -291,8 +294,8 @@ export function PainelGraficoVendas({
         </div>
       </div>
 
-      {/* ── O Gráfico Interativo com Recharts (180px de Altura Ágil) ── */}
-      <div className="mt-3 h-[180px] w-full">
+      {/* ── O Gráfico Interativo com Recharts (Canvas Nobre de 230px) ── */}
+      <div className="mt-4 h-[230px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
@@ -303,7 +306,7 @@ export function PainelGraficoVendas({
                 <stop
                   offset="0%"
                   stopColor="var(--color-primary)"
-                  stopOpacity={0.32}
+                  stopOpacity={0.28}
                 />
                 <stop
                   offset="95%"
@@ -317,7 +320,7 @@ export function PainelGraficoVendas({
               vertical={false}
               stroke="var(--color-border)"
               strokeDasharray="3 3"
-              opacity={0.65}
+              opacity={0.5}
             />
 
             <XAxis
@@ -331,8 +334,9 @@ export function PainelGraficoVendas({
             <YAxis
               tickLine={false}
               axisLine={false}
-              width={55}
-              domain={[0, maxVenda > 0 ? "auto" : 10]}
+              width={52}
+              domain={maxVenda > 0 ? [0, "auto"] : [0, 100]}
+              ticks={maxVenda > 0 ? undefined : [0, 50, 100]}
               allowDecimals={false}
               tickFormatter={(v: number) =>
                 ocultarSaldos ? "••••" : brlCompact(v)
@@ -403,11 +407,10 @@ export function PainelGraficoVendas({
 
       {/* Nota sutil caso ainda não haja vendas no período */}
       {totalPeriodo === 0 && (
-        <div className="mt-1 text-center">
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
-            <span className="size-1.5 rounded-full bg-primary/70" />
-            Novas vendas confirmadas entrarão na curva instantaneamente.
-          </span>
+        <div className="mt-2 text-center">
+          <p className="text-[11px] text-muted-foreground/70">
+            Novas vendas confirmadas entrarão na curva automaticamente
+          </p>
         </div>
       )}
     </section>

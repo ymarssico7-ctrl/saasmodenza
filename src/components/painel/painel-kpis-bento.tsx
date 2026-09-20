@@ -217,7 +217,7 @@ export function PainelKpisBento({
                   : "bg-secondary text-muted-foreground",
               )}
             >
-              {metaDefinida ? (metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`) : "Inativa"}
+              {metaDefinida ? (metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`) : "Sem meta"}
             </span>
           </div>
           <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">

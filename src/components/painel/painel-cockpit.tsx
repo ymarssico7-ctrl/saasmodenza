@@ -68,6 +68,7 @@ export interface PainelRadarPedidosOnlineProps {
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
   onCopiarLink?: (() => void) | undefined;
+  className?: string | undefined;
 }
 
 export function PainelRadarPedidosOnline({
@@ -80,6 +81,7 @@ export function PainelRadarPedidosOnline({
   ocultarSaldos,
   mascaraSaldo,
   onCopiarLink,
+  className,
 }: PainelRadarPedidosOnlineProps) {
   const temPendentes = pedidosPendentes.length > 0;
 
@@ -98,6 +100,7 @@ export function PainelRadarPedidosOnline({
         "panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300",
         temPendentes &&
           "bg-slate-950 text-white border-slate-800 shadow-md dark:bg-slate-900/95",
+        className,
       )}
     >
       <div>
@@ -215,18 +218,18 @@ export function PainelRadarPedidosOnline({
           /* Conteúdo: 2) Quando NÃO há pedidos pendentes (Vitrine Ativa 24h) */
           <div className="mt-2.5 space-y-2">
             {/* Box do Link da Vitrine com Botão Copiar */}
-            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
+            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
               <span className="truncate text-muted-foreground text-[11px] font-mono">
                 {vitrineDisplay || "modaly.app/vitrine/sualoja"}
               </span>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={handleCopy}
                   title="Copiar link da vitrine"
-                  className="inline-flex h-6 items-center gap-1 rounded-md border border-border/70 bg-card px-2 text-[10px] font-medium text-foreground hover:bg-secondary transition-all cursor-pointer shadow-2xs"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
                 >
-                  <Copy className="size-2.5 text-muted-foreground" />
+                  <Copy className="size-3" />
                   <span>Copiar</span>
                 </button>
                 {vitrineUrl && (
@@ -235,10 +238,10 @@ export function PainelRadarPedidosOnline({
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Abrir vitrine"
-                    className="inline-flex h-6 items-center gap-1 rounded-md bg-primary/10 px-2 text-[10px] font-medium text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline transition-colors cursor-pointer px-1.5 py-0.5"
                   >
                     <span>Abrir</span>
-                    <ExternalLink className="size-2.5" />
+                    <ExternalLink className="size-3" />
                   </a>
                 )}
               </div>
@@ -247,24 +250,23 @@ export function PainelRadarPedidosOnline({
         )}
       </div>
 
-      {/* Botão de Fechamento Largo e Arredondado */}
-      <Button
-        asChild
-        variant="outline"
+      {/* Link de Fechamento Integrado e Fluido */}
+      <Link
+        to="/loja/pedidos"
         className={cn(
-          "mt-3 w-full rounded-xl h-9 text-xs font-medium transition-all cursor-pointer shadow-2xs",
+          "mt-3 pt-2.5 border-t flex items-center justify-center gap-1 text-xs font-medium transition-colors",
           temPendentes
-            ? "border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-800"
-            : "border-border/80 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+            ? "border-slate-800 text-slate-300 hover:text-white"
+            : "border-border/50 text-muted-foreground hover:text-foreground",
         )}
       >
-        <Link to="/loja/pedidos">
+        <span>
           {temPendentes
             ? `Central de Pedidos da Vitrine (${totalPedidosNovos})`
-            : "Central de Pedidos Online"}{" "}
-          <ChevronRight className="size-3.5 ml-1" />
-        </Link>
-      </Button>
+            : "Central de Pedidos Online"}
+        </span>
+        <ChevronRight className="size-3.5" />
+      </Link>
     </section>
   );
 }
@@ -282,6 +284,7 @@ export interface PainelCapitalEstoqueProps {
   outOfStockSampleName?: string | null | undefined;
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
+  className?: string | undefined;
 }
 
 export function PainelCapitalEstoque({
@@ -294,9 +297,10 @@ export function PainelCapitalEstoque({
   outOfStockSampleName,
   ocultarSaldos,
   mascaraSaldo,
+  className,
 }: PainelCapitalEstoqueProps) {
   return (
-    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
+    <section className={cn("panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300", className)}>
       <div>
         {/* Cabeçalho Fiel ao Design Original que o Lojista Amou */}
         <div className="flex items-center justify-between">
@@ -346,31 +350,37 @@ export function PainelCapitalEstoque({
           </div>
         )}
 
-        {/* A Lista Limpa com Pontos Coloridos que o Usuário Amou */}
-        <ul className="mt-3 divide-y divide-border/60 text-xs">
-          <li className="flex flex-col py-2 text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-muted-foreground/40" />
-                Modelos esgotados
-              </span>
+        {/* A Lista Limpa com Pontos Coloridos Rigorosamente Alinhada */}
+        <ul className="mt-3 divide-y divide-border/50 text-xs">
+          <li className="flex items-center justify-between py-2 text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "size-2 rounded-full",
+                  outOfStockCount > 0 ? "bg-rose-500" : "bg-muted-foreground/40",
+                )}
+              />
+              <span>Modelos esgotados</span>
+            </span>
+            <div className="flex items-center gap-2">
+              {outOfStockCount > 0 && outOfStockSampleName && (
+                <Link
+                  to="/estoque"
+                  className="text-[11px] text-rose-600 dark:text-rose-400 font-medium hover:underline flex items-center gap-0.5"
+                >
+                  <span className="truncate max-w-[120px]">{outOfStockSampleName} zerado</span>
+                  <span className="text-[10px] opacity-75">· Repor ➔</span>
+                </Link>
+              )}
               <span className="numeric font-medium text-foreground">
                 {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
               </span>
             </div>
-            {outOfStockCount > 0 && outOfStockSampleName && (
-              <div className="mt-1 flex items-center justify-between pl-4 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                <span>⚠️ {outOfStockSampleName} está zerado</span>
-                <Link to="/estoque" className="underline hover:opacity-80 text-[10px] font-semibold">
-                  Repor estoque ➔
-                </Link>
-              </div>
-            )}
           </li>
           <li className="flex items-center justify-between py-2 text-muted-foreground">
             <span className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-amber-500" />
-              Últimas unidades (&lt; 3 un.)
+              <span>Últimas unidades (&lt; 3 un.)</span>
             </span>
             <span className="numeric font-medium text-foreground">
               {lowStockCount} {lowStockCount === 1 ? "modelo" : "modelos"}
@@ -379,7 +389,7 @@ export function PainelCapitalEstoque({
           <li className="flex items-center justify-between py-2 text-muted-foreground">
             <span className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-emerald-500" />
-              Modelos com estoque saudável
+              <span>Modelos com estoque saudável</span>
             </span>
             <span className="numeric font-medium text-foreground">
               {healthyStockCount} {healthyStockCount === 1 ? "modelo" : "modelos"}
@@ -388,16 +398,14 @@ export function PainelCapitalEstoque({
         </ul>
       </div>
 
-      {/* Botão de Fechamento Largo e Arredondado */}
-      <Button
-        asChild
-        variant="outline"
-        className="mt-3 w-full rounded-xl h-9 border-border/80 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+      {/* Link de Fechamento Integrado e Fluido */}
+      <Link
+        to="/estoque"
+        className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
-        <Link to="/estoque">
-          Gerenciar Estoque <ChevronRight className="size-3.5 ml-1" />
-        </Link>
-      </Button>
+        <span>Gerenciar Estoque</span>
+        <ChevronRight className="size-3.5" />
+      </Link>
     </section>
   );
 }
@@ -654,24 +662,26 @@ export interface PainelUltimasVendasProps {
   transactions: Transaction[];
   ocultarSaldos: boolean;
   mascaraSaldo: (valor: number) => string;
+  className?: string | undefined;
 }
 
 export function PainelUltimasVendas({
   transactions,
   ocultarSaldos,
   mascaraSaldo,
+  className,
 }: PainelUltimasVendasProps) {
-  // Ordenar as últimas 4 movimentações por data decrescente
+  // Ordenar as últimas 5 movimentações por data decrescente
   const ultimas = React.useMemo(() => {
     return [...transactions]
       .sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
-      .slice(0, 4);
+      .slice(0, 5);
   }, [transactions]);
 
   const temTransacoes = ultimas.length > 0;
 
   return (
-    <section className="panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300">
+    <section className={cn("panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300", className)}>
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
@@ -763,7 +773,7 @@ export function PainelUltimasVendas({
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0 flex items-center gap-2">
+                  <div className="text-right shrink-0">
                     <span
                       className={cn(
                         "numeric font-bold text-xs tracking-tight",
@@ -775,16 +785,6 @@ export function PainelUltimasVendas({
                       {ocultarSaldos
                         ? "R$ ••••"
                         : `${isEntrada ? "+" : "-"} ${mascaraSaldo(tx.amount)}`}
-                    </span>
-                    <span
-                      className={cn(
-                        "hidden sm:inline-block rounded-md px-1.5 py-0.5 text-[9px] font-medium",
-                        isEntrada
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                          : "bg-secondary text-muted-foreground",
-                      )}
-                    >
-                      {isEntrada ? "Concluída" : "Pago"}
                     </span>
                   </div>
                 </div>
@@ -814,17 +814,15 @@ export function PainelUltimasVendas({
         )}
       </div>
 
-      {/* Botão de Fechamento Simétrico */}
+      {/* Link de Fechamento Integrado e Fluido */}
       {temTransacoes && (
-        <Button
-          asChild
-          variant="outline"
-          className="mt-3 w-full rounded-xl h-8 border-border/80 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+        <Link
+          to="/caixa"
+          className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
-          <Link to="/caixa">
-            Extrato Completo do Caixa <ChevronRight className="size-3 ml-1" />
-          </Link>
-        </Button>
+          <span>Extrato Completo do Caixa</span>
+          <ChevronRight className="size-3.5" />
+        </Link>
       )}
     </section>
   );
