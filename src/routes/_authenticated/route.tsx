@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import {
   createFileRoute,
   Navigate,
@@ -19,13 +19,21 @@ import { useAccess } from "@/lib/useAccess";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        throw redirect({ to: "/auth", replace: true });
+      }
+      return { user: session.user };
+    } catch (err) {
+      // Se for um redirect do TanStack Router, deixa propagar normalmente
+      if (err && typeof err === "object" && "to" in err) throw err;
+      // Qualquer erro inesperado do Supabase → redireciona para login
+      // em vez de exibir o ErrorComponent ("Ops, algo inesperado aconteceu")
       throw redirect({ to: "/auth", replace: true });
     }
-    return { user: session.user };
   },
   component: AuthenticatedLayout,
 });
