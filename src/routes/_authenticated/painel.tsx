@@ -612,7 +612,7 @@ function Painel() {
 
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-4 pb-2">
       {/* ── CABEÇALHO ESSENCIAL (Padrão Apple HIG & Stripe — 2 Linhas Limpas) ──── */}
       <PageHeader
         title={`${timeGreeting}, ${greetingName}`}

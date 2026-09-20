@@ -691,8 +691,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <main className="pb-28 lg:pb-16 lg:pl-[268px]">
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-6">{children}</div>
+      <main className="pb-24 lg:pb-5 lg:pl-[268px]">
+        <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8 sm:py-5 lg:pb-4">{children}</div>
       </main>
 
       {/* Tab bar mobile */}
