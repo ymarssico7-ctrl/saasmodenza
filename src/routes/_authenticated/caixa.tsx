@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   CalendarDays,
   ChevronDown,
+  Clock,
   Minus,
   Package,
   Pencil,
@@ -23,7 +24,6 @@ import {
   Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
@@ -940,104 +940,179 @@ function Caixa() {
     : "bg-rose-600 hover:bg-rose-700 text-white";
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Vendas da Loja"
         title="Balcão & PDV"
         description="Registre cada venda física e despesas da sua loja. O saldo se atualiza na hora."
       />
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Entradas do mês"
-          value={brl(revenue)}
-          tone="positive"
-          icon={<ArrowUpRight className="size-4" />}
-          hint={
-            monthRefunds > 0
-              ? `Receita líquida: ${brl(revenue - monthRefunds)} após ${brl(monthRefunds)} em estornos`
-              : `${monthTxs.filter((t) => t.kind === "entrada").length} entrada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} confirmada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} no mês`
-          }
-        />
-        <StatCard
-          label="Total de saídas"
-          value={brl(expenses)}
-          tone="negative"
-          icon={<ArrowDownRight className="size-4" />}
-          hint={
-            monthRefunds > 0
-              ? `Despesas operacionais: ${brl(expenses - monthRefunds)} (${brl(monthRefunds)} em estornos)`
-              : `${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} registrada${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`
-          }
-        />
-        <StatCard
-          label="Saldo de hoje"
-          value={brl(todayBalance)}
-          tone={todayBalance >= 0 ? "primary" : "negative"}
-          icon={<Wallet className="size-4" />}
-          hint={`${todayTxs.length} lançamento${todayTxs.length !== 1 ? "s" : ""} hoje`}
-        />
-        <StatCard
-          label="Resultado do mês"
-          value={brl(revenue - expenses)}
-          tone={revenue - expenses >= 0 ? "positive" : "negative"}
-          icon={revenue - expenses >= 0 ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
-          hint={revenue > 0 ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%` : "Sem receita no mês"}
-        />
+      {/* ── KPIs Bento Apple Style (Zero poluição, sem semáforo saturado) ──── */}
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Card 1: Entradas do Mês */}
+        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Entradas do Mês
+            </span>
+            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+              <ArrowUpRight className="size-4" />
+            </div>
+          </div>
+          <div className="my-2">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${revenue > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
+              {brl(revenue)}
+            </h3>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {monthRefunds > 0
+              ? `Líquido: ${brl(revenue - monthRefunds)} (${brl(monthRefunds)} estornos)`
+              : `${monthTxs.filter((t) => t.kind === "entrada").length} entrada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} no mês`}
+          </p>
+        </div>
+
+        {/* Card 2: Total de Saídas */}
+        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Total de Saídas
+            </span>
+            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+              <ArrowDownRight className="size-4" />
+            </div>
+          </div>
+          <div className="my-2">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${expenses > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+              {brl(expenses)}
+            </h3>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {monthRefunds > 0
+              ? `Operacional: ${brl(expenses - monthRefunds)} (${brl(monthRefunds)} estornos)`
+              : `${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`}
+          </p>
+        </div>
+
+        {/* Card 3: Saldo de Hoje */}
+        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Saldo de Hoje
+            </span>
+            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+              <Wallet className="size-4" />
+            </div>
+          </div>
+          <div className="my-2">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+              todayBalance > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : todayBalance < 0
+                ? "text-rose-600 dark:text-rose-400"
+                : "text-foreground"
+            }`}>
+              {brl(todayBalance)}
+            </h3>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {todayTxs.length} lançamento{todayTxs.length !== 1 ? "s" : ""} hoje
+          </p>
+        </div>
+
+        {/* Card 4: Resultado do Mês */}
+        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Resultado do Mês
+            </span>
+            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
+              {revenue - expenses >= 0 ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
+            </div>
+          </div>
+          <div className="my-2">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+              revenue - expenses > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : revenue - expenses < 0
+                ? "text-rose-600 dark:text-rose-400"
+                : "text-foreground"
+            }`}>
+              {brl(revenue - expenses)}
+            </h3>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {revenue > 0 ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%` : "Sem receita no mês"}
+          </p>
+        </div>
       </div>
 
       {/* ── Banner de Previsão D+1 (aparece apenas quando há vendas online pendentes) ── */}
       {onlinePendingD1 > 0 && (
-        <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
-          <div className="shrink-0 flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm">
-            ⏳
+        <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary-soft/30 px-4 py-3">
+          <div className="shrink-0 flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs">
+            <Clock className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-xs sm:text-sm font-semibold text-foreground">
               {brl(onlinePendingD1)} em trânsito via Vestui Pay
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               Vendas online aguardando compensação D+1 BACEN. O depósito cai automaticamente no próximo dia útil às 07:00.
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
-            A compensar D+1
+          <span className="shrink-0 rounded-lg bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+            D+1 BACEN
           </span>
         </div>
       )}
 
-      {/* ── Formulário ───────────────────────────────────────────────────── */}
-      <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Novo lançamento</h2>
+      {/* ── Formulário de Registro / PDV Terminal ─────────────────────────── */}
+      <section className="panel p-5 sm:p-6 lg:p-7">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
+              {isEntrada ? "Lançamento de Venda no Balcão" : "Lançamento de Despesa / Saída"}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isEntrada
+                ? "Selecione uma peça do estoque ou registre uma venda rápida de balcão."
+                : "Controle despesas operacionais, compras de estoque, fornecedores e devoluções."}
+            </p>
+          </div>
 
-        {/* Segmented Control — Entrada / Saída */}
-        <div className="mt-5 inline-flex rounded-full bg-surface-muted p-1 gap-1">
-          {(["entrada", "saida"] as const).map((k) => (
+          {/* Segmented Control Apple HIG */}
+          <div className="inline-flex rounded-xl bg-surface-muted p-1 gap-1 border border-border/40 shadow-2xs self-start sm:self-auto">
             <button
-              key={k}
-              onClick={() => handleKindChange(k)}
-              className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-200 ${
-                kind === k
-                  ? k === "entrada"
-                    ? "bg-emerald-600 text-white shadow-sm"
-                    : "bg-rose-600 text-white shadow-sm"
+              type="button"
+              onClick={() => handleKindChange("entrada")}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                kind === "entrada"
+                  ? "bg-card text-foreground shadow-xs border border-border/50"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {k === "entrada" ? (
-                <Plus className="size-3.5" />
-              ) : (
-                <Minus className="size-3.5" />
-              )}
-              {k === "entrada" ? "Entrada" : "Saída"}
+              <span className={`size-2 rounded-full ${kind === "entrada" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+              Entrada
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => handleKindChange("saida")}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                kind === "saida"
+                  ? "bg-card text-foreground shadow-xs border border-border/50"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className={`size-2 rounded-full ${kind === "saida" ? "bg-rose-500" : "bg-muted-foreground/40"}`} />
+              Saída
+            </button>
+          </div>
         </div>
 
-        {/* Grid de Campos */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Descrição" className="relative lg:col-span-2">
+        {/* Grid de Campos Equilibrado em 12 Colunas (Sem buracos brancos) */}
+        <div className="mt-6 grid gap-4 grid-cols-12">
+          {/* Linha 1: Descrição (8 cols) e Valor (4 cols) */}
+          <Field label="Descrição da Peça ou Serviço" className="relative col-span-12 lg:col-span-8">
             <div className="relative">
               <Input
                 value={description}
@@ -1049,7 +1124,7 @@ function Caixa() {
                   setShowProductPopover(true);
                 }}
                 placeholder={descriptionPlaceholder}
-                className="h-11 rounded-xl pr-9"
+                className="h-11 rounded-xl pr-9 bg-card"
               />
               {selectedProduct ? (
                 <button
@@ -1058,7 +1133,7 @@ function Caixa() {
                     setSelectedProductId(null);
                     setDescription("");
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1093,7 +1168,7 @@ function Caixa() {
                               }
                             }}
                             onClick={() => handleSelectProduct(p)}
-                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
                               isHighlighted
                                 ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
                                 : "hover:bg-primary-soft/50"
@@ -1156,7 +1231,7 @@ function Caixa() {
                                 setShowProductPopover(false);
                                 setQuickProductOpen(true);
                               }}
-                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all ${
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all cursor-pointer ${
                                 isHigh1
                                   ? "bg-primary/20 ring-2 ring-primary"
                                   : "bg-primary/10 hover:bg-primary/20"
@@ -1173,7 +1248,7 @@ function Caixa() {
                                 }
                               }}
                               onClick={() => setShowProductPopover(false)}
-                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-all ${
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-all cursor-pointer ${
                                 isHigh2
                                   ? "bg-surface-muted ring-2 ring-primary/40 text-foreground font-semibold"
                                   : "hover:bg-surface-muted"
@@ -1192,39 +1267,46 @@ function Caixa() {
             )}
           </Field>
 
-          <Field label="Valor (R$)">
+          <Field label="Valor (R$)" className="col-span-12 lg:col-span-4">
             <div className="space-y-1.5">
               <div className="relative">
-                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold ${accentClass}`}>
-                  {isEntrada ? "+" : "−"}
+                <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold ${accentClass}`}>
+                  {isEntrada ? "+ R$" : "− R$"}
                 </span>
                 <Input
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="189,90"
-                  className="h-11 rounded-xl pl-7 font-mono"
+                  placeholder="0,00"
+                  className="h-11 rounded-xl pl-12 font-mono font-semibold text-sm bg-card"
                 />
               </div>
 
               {/* Botão sutil de Desconto / Promoção */}
-              <button
-                type="button"
-                onClick={() => setShowDiscount(!showDiscount)}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-              >
-                <Tag className="h-3 w-3" />
-                {showDiscount
-                  ? "Remover desconto"
-                  : isEntrada
-                  ? "+ Aplicar desconto / promoção"
-                  : "+ Desconto / abatimento obtido"}
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscount(!showDiscount)}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline cursor-pointer"
+                >
+                  <Tag className="size-3" />
+                  {showDiscount
+                    ? "Remover desconto"
+                    : isEntrada
+                    ? "+ Aplicar desconto"
+                    : "+ Desconto / abatimento obtido"}
+                </button>
+                {calculatedDiscount > 0 && (
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    Líq: {brl(netAmount)}
+                  </span>
+                )}
+              </div>
             </div>
           </Field>
 
-          {/* Categoria com "+ Nova categoria" e "⚙️ Gerenciar nas Configurações" */}
-          <Field label="Categoria">
+          {/* Linha 2: Categoria, Forma de pagamento, Cliente e Data (4 colunas balanceadas) */}
+          <Field label="Categoria" className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Select
               value={category}
               onValueChange={(v) => {
@@ -1236,7 +1318,7 @@ function Caixa() {
                 setCategory(v);
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl">
+              <SelectTrigger className="h-11 rounded-xl bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1258,8 +1340,7 @@ function Caixa() {
             </Select>
           </Field>
 
-          {/* Forma de Pagamento com "+ Nova forma" e "⚙️ Gerenciar nas Configurações" */}
-          <Field label="Forma de pagamento">
+          <Field label="Forma de pagamento" className="col-span-12 sm:col-span-6 lg:col-span-3">
             <Select
               value={method}
               onValueChange={(v) => {
@@ -1274,7 +1355,7 @@ function Caixa() {
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl">
+              <SelectTrigger className="h-11 rounded-xl bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1296,9 +1377,9 @@ function Caixa() {
             </Select>
           </Field>
 
-          {/* Cliente (Busca Spotlight / Autocomplete Apple Level — Exibido no grid superior APENAS se não for Fiado) */}
+          {/* Cliente (Exibido no grid superior APENAS se não for Fiado) */}
           {!isFiado && (
-            <Field label="Cliente (Opcional)" className="relative">
+            <Field label="Cliente (Opcional)" className="relative col-span-12 sm:col-span-6 lg:col-span-3">
               <div className="relative">
                 <Input
                   ref={customerInputRef}
@@ -1314,16 +1395,16 @@ function Caixa() {
                   }}
                   placeholder={
                     isEntrada
-                      ? "Digite o nome ou telefone da cliente…"
-                      : "Digite o nome ou telefone para estorno/devolução…"
+                      ? "Nome ou telefone da cliente…"
+                      : "Cliente para devolução/estorno…"
                   }
-                  className="h-11 rounded-xl pr-9"
+                  className="h-11 rounded-xl pr-9 bg-card"
                 />
                 {selectedCustomer ? (
                   <button
                     type="button"
                     onClick={handleClearCustomer}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -1352,7 +1433,7 @@ function Caixa() {
                               key={c.id}
                               type="button"
                               onClick={() => handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
                                 isHighlighted
                                   ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
                                   : "hover:bg-primary-soft/50"
@@ -1374,14 +1455,13 @@ function Caixa() {
                       </>
                     ) : null}
 
-                    {/* Atalho Inteligente para Cadastrar Nova Cliente */}
                     <button
                       type="button"
                       onClick={() => {
                         setShowCustomerPopover(false);
                         setAddCustomerOpen(true);
                       }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
                         customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
                       }`}
                     >
@@ -1396,47 +1476,39 @@ function Caixa() {
             </Field>
           )}
 
-          {/* Data com atalhos "Hoje" / "Ontem" / Outra data */}
-          <Field label="Data">
-            <div className="space-y-2">
-              <div className="flex gap-1.5">
+          {/* Data com atalhos Apple HIG integrados (Sem texto de data órfão) */}
+          <Field label="Data da Operação" className={`col-span-12 sm:col-span-6 ${isFiado ? "lg:col-span-6" : "lg:col-span-3"}`}>
+            <div className="space-y-1.5">
+              <div className="flex h-11 items-center rounded-xl border border-border/60 bg-surface-muted/40 p-1 gap-1">
                 {(["hoje", "ontem", "custom"] as const).map((m) => (
                   <button
                     key={m}
+                    type="button"
                     onClick={() => setDateMode(m)}
-                    className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-xl border text-xs font-medium transition-all ${
+                    className={`flex-1 h-full rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       dateMode === m
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        ? "bg-card text-foreground shadow-xs border border-border/50"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {m === "custom" ? (
-                      <><CalendarDays className="h-3.5 w-3.5" /> Outra</>
-                    ) : (
-                      m.charAt(0).toUpperCase() + m.slice(1)
-                    )}
+                    {m === "hoje" ? "Hoje" : m === "ontem" ? "Ontem" : <><CalendarDays className="size-3.5" /> Outra</>}
                   </button>
                 ))}
               </div>
               {dateMode === "custom" && (
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <Input
                     type="date"
                     value={customDate}
                     onChange={(e) => setCustomDate(e.target.value)}
-                    className="h-10 rounded-xl text-sm"
+                    className="h-9 rounded-xl text-xs bg-card"
                   />
                   {customDate > todayISO() && (
-                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                      ⚠️ Data futura selecionada: este lançamento entrará no fluxo de caixa de {customDate.slice(0, 7)}.
+                    <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                      ⚠️ Entrará no fluxo de caixa de {customDate.slice(0, 7)}.
                     </p>
                   )}
                 </div>
-              )}
-              {dateMode !== "custom" && (
-                <p className="text-xs text-muted-foreground">
-                  {dateMode === "hoje" ? todayISO() : yesterdayISO()}
-                </p>
               )}
             </div>
           </Field>
@@ -1522,14 +1594,16 @@ function Caixa() {
           </div>
         )}
 
-        {/* ── Micro-Card de Impacto na Gestão (Apple Live Feedback) ─────────── */}
-        <div className={`mt-4 flex items-center gap-3 rounded-2xl border p-3.5 transition-all ${managementImpact.style}`}>
-          <span className="text-lg">{managementImpact.icon}</span>
-          <div className="text-xs">
-            <span className="font-semibold">{managementImpact.title}: </span>
-            <span className="opacity-90">{managementImpact.desc}</span>
+        {/* ── Micro-Card de Impacto na Gestão (apenas para fluxos contábeis especiais) ── */}
+        {category !== "venda_produto" && category !== "outros" && (
+          <div className={`mt-4 flex items-center gap-3 rounded-xl border p-3 text-xs transition-all ${managementImpact.style}`}>
+            <span className="text-base">{managementImpact.icon}</span>
+            <div>
+              <span className="font-semibold">{managementImpact.title}: </span>
+              <span className="opacity-90">{managementImpact.desc}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
         {selectedProduct && (
@@ -1763,15 +1837,44 @@ function Caixa() {
           </div>
         )}
 
-        {/* ── Botão de envio com cor dinâmica ─────────────────────────── */}
-        <Button
-          className={`mt-6 h-11 rounded-full px-6 font-semibold transition-colors cursor-pointer ${btnClass}`}
-          disabled={create.isPending}
-          onClick={handleTriggerSubmit}
-        >
-          {isEntrada ? <Plus className="size-4" /> : <Minus className="size-4" />}
-          {isEntrada ? "Registrar entrada" : "Registrar saída"}
-        </Button>
+        {/* ── Barra de Finalização da Transação (Footer do PDV) ─────────────── */}
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border/50 pt-5">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-mono text-base font-bold text-foreground">
+              {brl(netAmount || 0)}
+            </span>
+            {calculatedDiscount > 0 && (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                −{brl(calculatedDiscount)} desc.
+              </span>
+            )}
+            <span className="opacity-40">·</span>
+            <span>
+              {isEntrada ? "Entrada" : "Saída"} via {resolvePayment({ payment_method: method } as any)}
+            </span>
+            {selectedProduct && (
+              <>
+                <span className="opacity-40">·</span>
+                <span className="text-primary font-medium truncate max-w-[180px]">
+                  {selectedProduct.name} {selectedProductSize ? `(${selectedProductSize})` : ""}
+                </span>
+              </>
+            )}
+          </div>
+
+          <Button
+            className={`h-11 rounded-xl px-7 font-semibold shadow-sm transition-all cursor-pointer ${
+              isEntrada
+                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
+                : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+            }`}
+            disabled={create.isPending}
+            onClick={handleTriggerSubmit}
+          >
+            {isEntrada ? <Plus className="size-4 mr-1.5" /> : <Minus className="size-4 mr-1.5" />}
+            {isEntrada ? "Registrar Entrada" : "Registrar Saída"}
+          </Button>
+        </div>
 
         {/* ── Diálogo Guardrail de Venda com Estoque Zerado (Apple UX) ───────── */}
         <AlertDialog open={confirmZeroStockOpen} onOpenChange={setConfirmZeroStockOpen}>
@@ -1815,10 +1918,10 @@ function Caixa() {
       </section>
 
       {/* ── Extrato do mês ───────────────────────────────────────────────── */}
-      <section className="panel p-6 sm:p-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="panel p-5 sm:p-6 lg:p-7">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
           <div>
-            <h2 className="text-base font-semibold">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
               Lançamentos de {monthLabel(month).toLowerCase()}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -1826,17 +1929,17 @@ function Caixa() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Filtros rápidos: Todos / Entradas / Saídas */}
-            <div className="inline-flex rounded-full bg-surface-muted p-1 text-xs font-semibold">
+            <div className="inline-flex rounded-xl bg-surface-muted p-1 text-xs font-medium border border-border/40 gap-0.5 shadow-2xs">
               {(["todos", "entrada", "saida"] as const).map((k) => (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setExtratoKind(k)}
-                  className={`rounded-full px-3 py-1 transition-all ${
+                  className={`rounded-lg px-3 py-1.5 transition-all cursor-pointer ${
                     extratoKind === k
-                      ? "bg-card text-foreground shadow-xs font-bold"
+                      ? "bg-card text-foreground shadow-xs border border-border/50 font-semibold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -1845,20 +1948,20 @@ function Caixa() {
               ))}
             </div>
 
-            {/* Input de Busca Instantânea */}
-            <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+            {/* Input de Busca Instantânea com cantos consistentes */}
+            <div className="relative min-w-[220px] flex-1 sm:flex-initial">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={extratoSearch}
                 onChange={(e) => setExtratoSearch(e.target.value)}
                 placeholder="Buscar por cliente, peça…"
-                className="h-8 rounded-full pl-8 pr-3 text-xs bg-card"
+                className="h-9 rounded-xl pl-8 pr-8 text-xs bg-card border border-border/60"
               />
               {extratoSearch && (
                 <button
                   type="button"
                   onClick={() => setExtratoSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -1870,23 +1973,23 @@ function Caixa() {
         {monthTxs.length === 0 ? (
           <EmptyState
             className="mt-6"
-            icon={<Wallet className="size-6" />}
+            icon={<Wallet className="size-5" />}
             title="Nenhum lançamento neste mês"
-            description="Registre a primeira venda ou despesa para acompanhar o caixa em tempo real."
+            description="Registre a primeira venda ou despesa para acompanhar o fluxo de caixa em tempo real."
           />
         ) : filteredMonthTxs.length === 0 ? (
           <EmptyState
             className="mt-6"
-            icon={<Search className="size-6" />}
+            icon={<Search className="size-5" />}
             title="Nenhum lançamento encontrado"
             description={`Nenhum resultado corresponde à busca "${extratoSearch}". Tente outro termo ou limpe o filtro.`}
           />
         ) : (
-          <ul className="mt-5 divide-y divide-border">
+          <ul className="mt-4 divide-y divide-border/50">
             {filteredMonthTxs.map((t) => {
               const linkedProd = resolveLinkedProduct(t);
               return (
-                <li key={t.id} className="flex items-center justify-between gap-4 py-4">
+                <li key={t.id} className="flex items-center justify-between gap-4 py-3 px-2 rounded-xl hover:bg-surface-muted/30 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Imagem do Produto no Extrato */}
                     {linkedProd?.image_url ? (

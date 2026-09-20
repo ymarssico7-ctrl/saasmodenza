@@ -7,28 +7,33 @@ export function EmptyState({
   description,
   action,
   className,
+  variant = "subtle",
 }: {
   icon?: ReactNode;
   title: string;
   description: string;
   action?: ReactNode;
   className?: string;
+  variant?: "dashed" | "subtle";
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-surface-muted/60 px-6 py-16 text-center",
+        "flex flex-col items-center justify-center rounded-2xl px-6 py-12 text-center transition-all",
+        variant === "dashed"
+          ? "border border-dashed border-border bg-surface-muted/50"
+          : "border border-border/60 bg-surface-muted/20",
         className,
       )}
     >
       {icon ? (
-        <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+        <span className="mb-3.5 flex size-11 items-center justify-center rounded-xl bg-secondary text-foreground/75 shadow-2xs">
           {icon}
         </span>
       ) : null}
-      <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
-      {action ? <div className="mt-6">{action}</div> : null}
+      <h3 className="text-sm sm:text-base font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">{description}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }
