@@ -962,22 +962,22 @@ function Caixa() {
         }
       />
 
-      {/* ── Cockpit de KPIs Quiet Luxury (Apple Zen: Monocromia Nobre e Paz Visual) ──── */}
+      {/* ── Cockpit de KPIs Apple Sharp (Nitidez Suíça, Alto Contraste e Elegância) ──── */}
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Saldo de Hoje (Hero do Balcão) */}
-        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Saldo de Hoje
             </span>
-            <Wallet className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
+            <Wallet className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
           </div>
           <div className="my-2">
             <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(todayBalance)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70 truncate">
+          <p className="text-xs font-medium text-muted-foreground truncate">
             {todayTxs.length > 0
               ? `${todayTxs.length} lançamento${todayTxs.length !== 1 ? "s" : ""} hoje`
               : "Pronto para o dia"}
@@ -985,19 +985,19 @@ function Caixa() {
         </div>
 
         {/* Card 2: Entradas do Mês */}
-        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Entradas do Mês
             </span>
-            <ArrowUpRight className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
+            <ArrowUpRight className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
           </div>
           <div className="my-2">
             <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(revenue)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70 truncate">
+          <p className="text-xs font-medium text-muted-foreground truncate">
             {monthRefunds > 0
               ? `Líq: ${brl(revenue - monthRefunds)}`
               : revenue > 0
@@ -1007,19 +1007,19 @@ function Caixa() {
         </div>
 
         {/* Card 3: Total de Saídas */}
-        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Total de Saídas
             </span>
-            <ArrowDownRight className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
+            <ArrowDownRight className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
           </div>
           <div className="my-2">
             <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(expenses)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70 truncate">
+          <p className="text-xs font-medium text-muted-foreground truncate">
             {monthRefunds > 0
               ? `Operacional: ${brl(expenses - monthRefunds)}`
               : expenses > 0
@@ -1029,12 +1029,12 @@ function Caixa() {
         </div>
 
         {/* Card 4: Resultado do Mês */}
-        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Resultado do Mês
             </span>
-            <TrendingUp className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
+            <TrendingUp className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
           </div>
           <div className="my-2">
             <h3 className={`numeric text-2xl font-bold tracking-tight ${
@@ -1043,7 +1043,7 @@ function Caixa() {
               {brl(revenue - expenses)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70 truncate">
+          <p className="text-xs font-medium text-muted-foreground truncate">
             {revenue > 0
               ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%`
               : "Líquido no mês"}
