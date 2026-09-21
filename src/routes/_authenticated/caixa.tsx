@@ -1153,6 +1153,10 @@ function Caixa() {
     .filter((t) => t.kind === "saida" && t.category === "estorno_devolucao")
     .reduce((acc, t) => acc + Number(t.amount), 0);
   const todayBalance = sumBy(todayTxs, "entrada") - sumBy(todayTxs, "saida");
+  const todayEntries = sumBy(todayTxs, "entrada");
+  const todayExits = sumBy(todayTxs, "saida");
+  const pluralize = (count: number, singular: string, plural: string) =>
+    `${count} ${count === 1 ? singular : plural}`;
 
   // ── Vendas Online aguardando compensação D+1 BACEN ────────────────────────
   // Calcula data de compensação D+1 (próximo dia útil) dado um occurred_on
@@ -1496,26 +1500,42 @@ function Caixa() {
         }
       />
 
-      {/* ── Cockpit de KPIs Apple Sharp (Nitidez Suíça, Alto Contraste e Elegância) ──── */}
+      {/* ── Cockpit de KPIs Executivo Apple (Hierarquia Clara, Distinção Semântica e Quiet Luxury) ──── */}
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Saldo de Hoje (Hero do Balcão) */}
-        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        {/* Card 1: Saldo de Hoje (Hero / Âncora do Balcão) */}
+        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/80 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Saldo de Hoje
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-xl bg-surface-muted text-foreground/80 border border-border/60">
+                <Wallet className="size-3.5" strokeWidth={2} />
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Saldo de Hoje
+              </span>
+            </div>
+            <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+              Hoje
             </span>
-            <Wallet className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
           </div>
-          <div className="my-2">
-            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
+          <div className="my-2.5">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+              todayBalance < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+            }`}>
               {brl(todayBalance)}
             </h3>
           </div>
-          <p className="text-xs font-medium text-muted-foreground truncate">
-            {todayTxs.length > 0
-              ? `${todayTxs.length} lançamento${todayTxs.length !== 1 ? "s" : ""} hoje`
-              : "Pronto para o dia"}
-          </p>
+          <div className="text-xs text-muted-foreground truncate">
+            {todayTxs.length > 0 ? (
+              <div className="truncate">
+                <span className="font-semibold text-foreground/90">{pluralize(todayTxs.length, "operação", "operações")} hoje</span>
+                <span className="text-muted-foreground/60 block text-[11px] mt-0.5">
+                  (+ {brl(todayEntries)} • − {brl(todayExits)})
+                </span>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Caixa pronto para o dia</p>
+            )}
+          </div>
         </div>
 
         {/* Card 2: Entradas do Mês */}
@@ -1524,19 +1544,23 @@ function Caixa() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Entradas do Mês
             </span>
-            <ArrowUpRight className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
+            <div className="flex size-7 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <ArrowUpRight className="size-3.5" strokeWidth={2} />
+            </div>
           </div>
-          <div className="my-2">
+          <div className="my-2.5">
             <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(revenue)}
             </h3>
           </div>
-          <p className="text-xs font-medium text-muted-foreground truncate">
-            {monthRefunds > 0
-              ? `Líq: ${brl(revenue - monthRefunds)}`
-              : revenue > 0
-              ? `${monthTxs.filter((t) => t.kind === "entrada").length} entradas`
-              : "No período"}
+          <p className="text-xs text-muted-foreground truncate">
+            {monthRefunds > 0 ? (
+              <span>Líq: <strong className="font-semibold text-foreground">{brl(revenue - monthRefunds)}</strong></span>
+            ) : revenue > 0 ? (
+              <span>{pluralize(monthTxs.filter((t) => t.kind === "entrada").length, "venda confirmada", "vendas confirmadas")}</span>
+            ) : (
+              "Sem entradas no mês"
+            )}
           </p>
         </div>
 
@@ -1546,19 +1570,30 @@ function Caixa() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Total de Saídas
             </span>
-            <ArrowDownRight className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
+            <div className="flex size-7 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+              <ArrowDownRight className="size-3.5" strokeWidth={2} />
+            </div>
           </div>
-          <div className="my-2">
+          <div className="my-2.5">
             <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
-              {brl(expenses)}
+              {expenses > 0 ? (
+                <>
+                  <span className="text-rose-600 dark:text-rose-400 mr-1">−</span>
+                  {brl(expenses)}
+                </>
+              ) : (
+                brl(0)
+              )}
             </h3>
           </div>
-          <p className="text-xs font-medium text-muted-foreground truncate">
-            {monthRefunds > 0
-              ? `Operacional: ${brl(expenses - monthRefunds)}`
-              : expenses > 0
-              ? `${monthTxs.filter((t) => t.kind === "saida").length} saídas`
-              : "No período"}
+          <p className="text-xs text-muted-foreground truncate">
+            {monthRefunds > 0 ? (
+              <span>Operacional: <strong className="font-semibold text-foreground">{brl(expenses - monthRefunds)}</strong></span>
+            ) : expenses > 0 ? (
+              <span>{pluralize(monthTxs.filter((t) => t.kind === "saida").length, "saída registrada", "saídas registradas")}</span>
+            ) : (
+              "Sem despesas no mês"
+            )}
           </p>
         </div>
 
@@ -1568,19 +1603,30 @@ function Caixa() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Resultado do Mês
             </span>
-            <TrendingUp className="size-4 text-muted-foreground/80 transition-colors group-hover:text-foreground" strokeWidth={1.85} />
+            <div className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+              <TrendingUp className="size-3.5" strokeWidth={2} />
+            </div>
           </div>
-          <div className="my-2">
+          <div className="my-2.5">
             <h3 className={`numeric text-2xl font-bold tracking-tight ${
-              revenue - expenses < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+              revenue - expenses > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : revenue - expenses < 0
+                ? "text-rose-600 dark:text-rose-400"
+                : "text-foreground"
             }`}>
-              {brl(revenue - expenses)}
+              {revenue - expenses > 0 ? "+ " : revenue - expenses < 0 ? "− " : ""}
+              {brl(Math.abs(revenue - expenses))}
             </h3>
           </div>
-          <p className="text-xs font-medium text-muted-foreground truncate">
-            {revenue > 0
-              ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%`
-              : "Líquido no mês"}
+          <p className="text-xs text-muted-foreground truncate">
+            {revenue > 0 ? (
+              <span>
+                Margem <strong className="font-semibold text-foreground">{((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%</strong> • {revenue - expenses >= 0 ? "Superávit" : "Déficit"}
+              </span>
+            ) : (
+              "Líquido acumulado"
+            )}
           </p>
         </div>
       </div>
