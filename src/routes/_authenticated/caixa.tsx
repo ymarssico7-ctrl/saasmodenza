@@ -346,19 +346,36 @@ function MiniDateRangePicker({
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
+  // Helper seguro para formatar "12 de set." sem desvios de fuso horário
+  const formatShort = (iso: string) => {
+    if (!iso) return "—";
+    const parts = iso.split("-");
+    if (parts.length !== 3) return iso;
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+  };
+
   // viewYear/viewMonth controlam o mês da coluna ESQUERDA
   const [viewYear, setViewYear] = useState(() => {
-    const d = start ? new Date(start + "T00:00:00") : today;
-    return d.getFullYear();
+    if (start) {
+      const p = start.split("-");
+      if (p[0]) return Number(p[0]);
+    }
+    return today.getFullYear();
   });
   const [viewMonth, setViewMonth] = useState(() => {
-    const d = start ? new Date(start + "T00:00:00") : today;
-    return d.getMonth();
+    if (start) {
+      const p = start.split("-");
+      if (p[1]) return Number(p[1]) - 1;
+    }
+    return today.getMonth();
   });
 
-  // phase: "start" = aguardando clique de início, "end" = aguardando clique de fim
-  const [phase, setPhase] = useState<"start" | "end">("start");
-  const [tempStart, setTempStart] = useState(start);
+  // Máquina de estados:
+  // "idle": exibe start e end confirmados
+  // "selecting": usuário clicou na 1ª data (tempStart). Range preview só existe se hoverDay !== null!
+  const [phase, setPhase] = useState<"idle" | "selecting">("idle");
+  const [tempStart, setTempStart] = useState<string | null>(null);
   const [hoverDay, setHoverDay] = useState<string | null>(null);
 
   const monthNames = [
@@ -366,25 +383,22 @@ function MiniDateRangePicker({
     "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
   ];
 
-  // Calcula mês direito (pode virar para o ano seguinte)
   const rightMonth = (viewMonth + 1) % 12;
   const rightYear = viewMonth === 11 ? viewYear + 1 : viewYear;
 
   function goLeft() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
+    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
+    else setViewMonth((m) => m - 1);
   }
   function goRight() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
+    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
+    else setViewMonth((m) => m + 1);
   }
 
-  // Gera array de dias para o grid de um mês (com padding de início)
   function getDays(year: number, month: number) {
     const firstDay = new Date(year, month, 1).getDay(); // 0=dom
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // Ajuste para semana começar na segunda (0=seg, 6=dom)
-    const startPad = (firstDay + 6) % 7;
+    const startPad = (firstDay + 6) % 7; // Seg = 0, Dom = 6
     const cells: (number | null)[] = [];
     for (let i = 0; i < startPad; i++) cells.push(null);
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -395,35 +409,39 @@ function MiniDateRangePicker({
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
+  // Clique em um dia
   function handleDayClick(ds: string) {
-    if (phase === "start") {
+    if (phase === "idle") {
+      // 1º clique: Inicia nova seleção limpa. Nenhum dia fantasma!
       setTempStart(ds);
-      setPhase("end");
+      setHoverDay(null);
+      setPhase("selecting");
     } else {
+      // 2º clique:
+      if (!tempStart) {
+        setTempStart(ds);
+        return;
+      }
+      if (ds === tempStart) {
+        // Clicou no mesmo dia -> Seleciona DIA ÚNICO [D, D]
+        onChange(ds, ds);
+        onClose();
+        return;
+      }
       let s = tempStart;
       let e = ds;
-      if (e < s) { [s, e] = [e, s]; }
+      if (e < s) [s, e] = [e, s];
       onChange(s, e);
-      setPhase("start");
-      setTempStart(s);
       onClose();
     }
   }
 
-  function inRange(ds: string) {
-    const s = phase === "end" ? tempStart : start;
-    const e = phase === "end" ? (hoverDay ?? end) : end;
-    if (!s || !e) return false;
-    const [lo, hi] = s <= e ? [s, e] : [e, s];
-    return ds > lo && ds < hi;
-  }
-
-  function isStart(ds: string) {
-    return ds === (phase === "end" ? tempStart : start);
-  }
-  function isEnd(ds: string) {
-    if (phase === "end") return ds === hoverDay;
-    return ds === end;
+  // Aplica dia único explicitamente
+  function handleApplySingleDay() {
+    if (tempStart) {
+      onChange(tempStart, tempStart);
+      onClose();
+    }
   }
 
   // Atalhos rápidos
@@ -432,53 +450,102 @@ function MiniDateRangePicker({
     onClose();
   }
 
+  // Verifica se o dia é exatamente o início ativo
+  function isStartDay(ds: string) {
+    if (phase === "selecting") {
+      if (!tempStart) return false;
+      if (hoverDay && hoverDay < tempStart) return ds === hoverDay;
+      return ds === tempStart;
+    }
+    const [lo] = start <= end ? [start, end] : [end, start];
+    return ds === lo;
+  }
+
+  // Verifica se o dia é exatamente o término ativo
+  function isEndDay(ds: string) {
+    if (phase === "selecting") {
+      if (!tempStart) return false;
+      if (!hoverDay || hoverDay === tempStart) return false;
+      if (hoverDay < tempStart) return ds === tempStart;
+      return ds === hoverDay;
+    }
+    if (!start || !end || start === end) return false;
+    const [, hi] = start <= end ? [start, end] : [end, start];
+    return ds === hi;
+  }
+
+  // Verifica se o dia está DENTRO do intervalo (exclui endpoints)
+  function isBetweenRange(ds: string) {
+    if (phase === "selecting") {
+      // Durante seleção, SÓ destaca se houver hover ativo e diferente de tempStart
+      if (!tempStart || !hoverDay || hoverDay === tempStart) return false;
+      const [lo, hi] = tempStart <= hoverDay ? [tempStart, hoverDay] : [hoverDay, tempStart];
+      return ds > lo && ds < hi;
+    }
+    // Estado idle: destaca entre start e end confirmados
+    if (!start || !end || start === end) return false;
+    const [lo, hi] = start <= end ? [start, end] : [end, start];
+    return ds > lo && ds < hi;
+  }
+
   function renderMonthGrid(year: number, month: number) {
     const days = getDays(year, month);
-    const weekLabels = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+    const weekLabels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
     return (
       <div className="flex-1 min-w-0">
-        {/* Cabeçalho do mês */}
         <div className="text-center text-[11px] font-bold text-foreground mb-2">
           {monthNames[month]} {year}
         </div>
-        {/* Labels de dias da semana */}
         <div className="grid grid-cols-7 mb-1">
-          {weekLabels.map(l => (
+          {weekLabels.map((l) => (
             <div key={l} className="text-center text-[9px] font-semibold text-muted-foreground/60 py-0.5">
               {l}
             </div>
           ))}
         </div>
-        {/* Células */}
-        <div className="grid grid-cols-7 gap-y-0.5">
+        <div className="grid grid-cols-7 gap-y-1">
           {days.map((d, i) => {
-            if (!d) return <div key={`pad-${i}`} />;
+            if (!d) return <div key={`pad-${i}`} className="h-7 w-7" />;
             const ds = dayStr(year, month, d);
-            const isS = isStart(ds);
-            const isE = isEnd(ds);
-            const isInR = inRange(ds);
+            const isS = isStartDay(ds);
+            const isE = isEndDay(ds);
+            const isMid = isBetweenRange(ds);
             const isT = ds === todayStr;
+
+            // Determina conexão contínua de fundo (estilo Apple)
+            const hasRange = phase === "selecting" ? (tempStart && hoverDay && tempStart !== hoverDay) : (start && end && start !== end);
+            const rangeBg = isMid
+              ? "bg-foreground/[0.07]"
+              : isS && hasRange
+              ? "bg-gradient-to-r from-transparent 50% to-foreground/[0.07] 50%"
+              : isE && hasRange
+              ? "bg-gradient-to-l from-transparent 50% to-foreground/[0.07] 50%"
+              : "";
+
             return (
-              <button
+              <div
                 key={ds}
-                type="button"
-                onClick={() => handleDayClick(ds)}
-                onMouseEnter={() => phase === "end" && setHoverDay(ds)}
-                onMouseLeave={() => phase === "end" && setHoverDay(null)}
-                className={[
-                  "relative flex flex-col items-center justify-center w-7 h-7 mx-auto rounded-full text-[11px] transition-all cursor-pointer select-none",
-                  isS || isE
-                    ? "bg-foreground text-background font-bold shadow-sm"
-                    : isInR
-                    ? "bg-foreground/10 text-foreground rounded-none"
-                    : "hover:bg-surface-muted text-foreground",
-                ].join(" ")}
+                className={`relative flex items-center justify-center h-7 w-full ${rangeBg}`}
+                onMouseEnter={() => phase === "selecting" && setHoverDay(ds)}
               >
-                {d}
-                {isT && !isS && !isE && (
-                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary/70" />
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleDayClick(ds)}
+                  className={[
+                    "relative flex flex-col items-center justify-center size-7 rounded-full text-[11px] transition-all cursor-pointer select-none z-10",
+                    isS || isE
+                      ? "bg-foreground text-background font-bold shadow-xs scale-105"
+                      : isMid
+                      ? "text-foreground font-medium hover:bg-foreground/15"
+                      : "text-foreground hover:bg-surface-muted",
+                  ].join(" ")}
+                >
+                  <span>{d}</span>
+                  {isT && !isS && !isE && (
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary/80" />
+                  )}
+                </button>
+              </div>
             );
           })}
         </div>
@@ -486,106 +553,118 @@ function MiniDateRangePicker({
     );
   }
 
-  const displayStart = start
-    ? new Date(start + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
-    : "—";
-  const displayEnd = end
-    ? new Date(end + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
-    : "—";
+  // Textos para o cabeçalho dinâmico
+  const headerStartText = phase === "selecting"
+    ? (hoverDay && tempStart && hoverDay < tempStart ? formatShort(hoverDay) : formatShort(tempStart ?? ""))
+    : formatShort(start);
 
-  const nowDate = new Date();
-  function sevenDaysAgo() {
+  const headerEndText = phase === "selecting"
+    ? (hoverDay && tempStart
+        ? (hoverDay > tempStart ? formatShort(hoverDay) : formatShort(tempStart))
+        : "Selecione o fim...")
+    : formatShort(end);
+
+  const sevenDaysAgoStr = () => {
     const d = new Date(); d.setDate(d.getDate() - 7);
     return d.toISOString().slice(0, 10);
-  }
-  function firstOfMonth() {
-    return todayStr.slice(0, 8) + "01";
-  }
+  };
+  const firstOfMonthStr = () => todayStr.slice(0, 8) + "01";
 
   return (
     <div
       className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-border/70 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 p-4 w-auto"
       style={{ minWidth: 340 }}
+      onMouseLeave={() => phase === "selecting" && setHoverDay(null)}
     >
-      {/* Fase indicator */}
+      {/* Cabeçalho Reativo Dinâmico */}
       <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-border/40">
         <div className="flex items-center gap-2 text-[11px]">
-          <span className={phase === "start" ? "font-bold text-foreground" : "text-muted-foreground"}>
-            {displayStart}
+          <span className={phase === "selecting" ? "font-bold text-foreground underline underline-offset-4 decoration-primary" : "font-semibold text-foreground"}>
+            {headerStartText}
           </span>
-          <span className="text-muted-foreground/40">→</span>
-          <span className={phase === "end" ? "font-bold text-foreground" : "text-muted-foreground"}>
-            {phase === "end" && hoverDay
-              ? new Date(hoverDay + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
-              : displayEnd}
+          <span className="text-muted-foreground/40 font-normal">→</span>
+          <span className={phase === "selecting" && !hoverDay ? "text-muted-foreground/60 italic" : "font-semibold text-foreground"}>
+            {headerEndText}
           </span>
-          {phase === "end" && (
-            <span className="ml-1 rounded-full bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">
-              clique no dia final
+          {phase === "selecting" && (
+            <span className="ml-1.5 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary animate-in fade-in-50">
+              {hoverDay ? "Clique para confirmar" : "Clique no dia final"}
             </span>
           )}
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-muted-foreground hover:text-foreground cursor-pointer"
+          className="text-muted-foreground hover:text-foreground cursor-pointer rounded-lg p-1 hover:bg-surface-muted transition-colors"
         >
           <X className="size-3.5" />
         </button>
       </div>
 
-      {/* Navegação + grids */}
+      {/* Navegação e grids mensais */}
       <div className="flex items-start gap-1 mb-3">
-        {/* Seta esquerda */}
         <button
           type="button"
           onClick={goLeft}
-          className="mt-0 rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
+          className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
+          title="Mês anterior"
         >
           <ChevronLeft className="size-3.5" />
         </button>
 
-        {/* Dois grids de mês */}
         <div className="flex gap-4 flex-1">
           {renderMonthGrid(viewYear, viewMonth)}
           <div className="w-px bg-border/40 self-stretch" />
           {renderMonthGrid(rightYear, rightMonth)}
         </div>
 
-        {/* Seta direita */}
         <button
           type="button"
           onClick={goRight}
           className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
+          title="Próximo mês"
         >
           <ChevronRight className="size-3.5" />
         </button>
       </div>
 
-      {/* Atalhos rápidos */}
-      <div className="flex items-center gap-1.5 pt-2.5 border-t border-border/40">
-        <span className="text-[10px] text-muted-foreground/60 mr-1">Atalho:</span>
-        <button
-          type="button"
-          onClick={() => applyPreset(todayStr, todayStr)}
-          className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
-        >
-          Hoje
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset(sevenDaysAgo(), todayStr)}
-          className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
-        >
-          Últimos 7 dias
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset(firstOfMonth(), todayStr)}
-          className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
-        >
-          Este mês
-        </button>
+      {/* Rodapé com Atalhos e Ação Rápida */}
+      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/40">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground/60 mr-0.5">Atalhos:</span>
+          <button
+            type="button"
+            onClick={() => applyPreset(todayStr, todayStr)}
+            className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset(sevenDaysAgoStr(), todayStr)}
+            className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
+          >
+            Últimos 7 dias
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset(firstOfMonthStr(), todayStr)}
+            className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
+          >
+            Este mês
+          </button>
+        </div>
+
+        {/* Botão contextual: se está selecionando, permite aplicar apenas aquele dia */}
+        {phase === "selecting" && tempStart && (
+          <button
+            type="button"
+            onClick={handleApplySingleDay}
+            className="rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary hover:bg-primary/20 cursor-pointer transition-colors animate-in fade-in-50"
+          >
+            Apenas este dia
+          </button>
+        )}
       </div>
     </div>
   );
