@@ -2427,74 +2427,91 @@ function Caixa() {
             <div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-                  Extrato de Movimentações
+                  Extrato de Caixa
                 </h2>
-                <span className="rounded-full bg-surface-muted border border-border/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-2xs">
-                  {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "registro" : "registros"}
-                </span>
-                {(monthOffset !== 0 || periodMode === "custom") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPeriodMode("month");
-                      setMonthOffset(0);
-                    }}
-                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer transition-all"
-                  >
-                    Voltar ao mês atual
-                  </button>
+                {filteredMonthTxs.length > 0 && (
+                  <span className="rounded-full bg-surface-muted border border-border/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-2xs">
+                    {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "registro" : "registros"}
+                  </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span>
-                  {periodMode === "custom"
-                    ? `Período de ${new Date(customRangeStart + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })} a ${new Date(customRangeEnd + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}`
-                    : monthLabel(extratoMonth)}
-                </span>
-                <span className="text-muted-foreground/40 font-normal">•</span>
-                <span>
-                  Saldo no período:{" "}
-                  <strong
-                    className={
-                      periodSummary.liquido >= 0
-                        ? "font-bold text-emerald-600 dark:text-emerald-400 font-mono"
-                        : "font-bold text-rose-600 dark:text-rose-400 font-mono"
-                    }
-                  >
-                    {periodSummary.liquido >= 0 ? "+" : ""}
-                    R$ {brl(periodSummary.liquido)}
-                  </strong>
-                </span>
-              </p>
+
+              {/* Subtítulo Executivo Financeiro (Zero redundância e Quiet Luxury) */}
+              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                {periodSummary.count === 0 ? (
+                  <span className="font-normal text-muted-foreground/80">
+                    Nenhuma movimentação registrada no período
+                  </span>
+                ) : (
+                  <>
+                    <span>
+                      {periodSummary.count}{" "}
+                      {periodSummary.count === 1 ? "operação conciliada" : "operações conciliadas"}
+                    </span>
+                    <span className="text-muted-foreground/40 font-normal">•</span>
+                    <span>
+                      Saldo líquido:{" "}
+                      <strong
+                        className={
+                          periodSummary.liquido > 0
+                            ? "font-bold text-emerald-600 dark:text-emerald-400 font-mono"
+                            : periodSummary.liquido < 0
+                            ? "font-bold text-rose-600 dark:text-rose-400 font-mono"
+                            : "font-medium text-muted-foreground font-mono"
+                        }
+                      >
+                        {periodSummary.liquido > 0 ? "+ " : ""}
+                        {brl(periodSummary.liquido)}
+                      </strong>
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Lado Direito: Pílula de Navegação Temporal Unificada (Apple Style) */}
+            {/* Lado Direito: Pólo Temporal Unificado (Padrão macOS / Apple Calendar) */}
             <div className="relative flex items-center gap-2 self-start sm:self-auto">
-              <div className="inline-flex items-center rounded-2xl border border-border/60 bg-surface-muted/50 p-1 shadow-2xs">
-                {/* Botão Mês Anterior (ativo no modo mês) */}
-                {periodMode === "month" && (
-                  <button
-                    type="button"
-                    onClick={() => setMonthOffset((prev) => prev - 1)}
-                    className="flex size-7 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
-                    title="Mês anterior"
-                  >
-                    <ChevronLeft className="size-4" />
-                  </button>
-                )}
+              {/* Botão "Hoje" contextual (surge ao sair do mês atual ou em data personalizada) */}
+              {(monthOffset !== 0 || periodMode === "custom") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPeriodMode("month");
+                    setMonthOffset(0);
+                    setShowDateRangePicker(false);
+                  }}
+                  className="rounded-xl border border-border/60 bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-muted transition-all cursor-pointer shadow-2xs active:scale-95"
+                >
+                  Hoje
+                </button>
+              )}
 
-                {/* Botão Central: Pílula que abre o seletor flutuante */}
+              {/* Segmented Control de Navegação Temporal (macOS Toolbar style) */}
+              <div className="inline-flex items-center rounded-xl border border-border/60 bg-surface-muted/60 p-0.5 shadow-2xs divide-x divide-border/40">
+                {/* Botão Mês Anterior */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (periodMode === "custom") setPeriodMode("month");
+                    setMonthOffset((prev) => prev - 1);
+                  }}
+                  className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all cursor-pointer"
+                  title="Mês anterior"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </button>
+
+                {/* Botão Central: Rótulo do Período + Trigger do MiniDateRangePicker */}
                 <button
                   type="button"
                   onClick={() => setShowDateRangePicker((v) => !v)}
                   className={[
-                    "flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                    "flex items-center gap-1.5 px-3 py-1 text-xs font-semibold transition-all cursor-pointer select-none",
                     showDateRangePicker
-                      ? "bg-card text-primary shadow-xs"
-                      : "text-foreground hover:bg-card/80",
+                      ? "bg-card text-foreground shadow-2xs font-bold"
+                      : "text-foreground hover:bg-card/60",
                   ].join(" ")}
                 >
-                  <CalendarDays className="size-3.5 text-muted-foreground/80" />
                   <span>
                     {periodMode === "custom"
                       ? `${customRangeStart ? new Date(customRangeStart + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" }) : "—"} → ${customRangeEnd ? new Date(customRangeEnd + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" }) : "—"}`
@@ -2502,23 +2519,24 @@ function Caixa() {
                   </span>
                   <ChevronDown
                     className={[
-                      "size-3 text-muted-foreground transition-transform duration-200",
+                      "size-3 text-muted-foreground/70 transition-transform duration-200",
                       showDateRangePicker ? "rotate-180" : "",
                     ].join(" ")}
                   />
                 </button>
 
-                {/* Botão Próximo Mês (ativo no modo mês) */}
-                {periodMode === "month" && (
-                  <button
-                    type="button"
-                    onClick={() => setMonthOffset((prev) => prev + 1)}
-                    className="flex size-7 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
-                    title="Próximo mês"
-                  >
-                    <ChevronRight className="size-4" />
-                  </button>
-                )}
+                {/* Botão Próximo Mês */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (periodMode === "custom") setPeriodMode("month");
+                    setMonthOffset((prev) => prev + 1);
+                  }}
+                  className="flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all cursor-pointer"
+                  title="Próximo mês"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
               </div>
 
               {/* Overlay invisível para fechar ao clicar fora */}
