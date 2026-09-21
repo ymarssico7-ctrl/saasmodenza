@@ -28,6 +28,7 @@ import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authentica
 import { Route as LojaPreviewRouteImport } from './routes/loja.preview'
 import { Route as LojaPreviewFrameRouteImport } from './routes/loja.preview-frame'
 import { Route as VitrineStoreSlugRouteImport } from './routes/vitrine.$storeSlug'
+import { Route as AuthenticatedCaixaBackupRouteImport } from './routes/_authenticated/caixa.backup'
 import { Route as AuthenticatedLojaIndexRouteImport } from './routes/_authenticated/loja.index'
 import { Route as AuthenticatedLojaClientesRouteImport } from './routes/_authenticated/loja.clientes'
 import { Route as AuthenticatedLojaCompartilharRouteImport } from './routes/_authenticated/loja.compartilhar'
@@ -138,6 +139,12 @@ const VitrineStoreSlugRoute = VitrineStoreSlugRouteImport.update({
   path: '/vitrine/$storeSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCaixaBackupRoute =
+  AuthenticatedCaixaBackupRouteImport.update({
+    id: '/backup',
+    path: '/backup',
+    getParentRoute: () => AuthenticatedCaixaRoute,
+  } as any)
 const AuthenticatedLojaIndexRoute = AuthenticatedLojaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -218,7 +225,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/caixa': typeof AuthenticatedCaixaRoute
+  '/caixa': typeof AuthenticatedCaixaRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/loja/preview': typeof LojaPreviewRoute
   '/loja/preview-frame': typeof LojaPreviewFrameRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
+  '/caixa/backup': typeof AuthenticatedCaixaBackupRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
   '/loja/configuracao': typeof AuthenticatedLojaConfiguracaoRoute
@@ -251,7 +259,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/caixa': typeof AuthenticatedCaixaRoute
+  '/caixa': typeof AuthenticatedCaixaRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
@@ -265,6 +273,7 @@ export interface FileRoutesByTo {
   '/loja/preview': typeof LojaPreviewRoute
   '/loja/preview-frame': typeof LojaPreviewFrameRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
+  '/caixa/backup': typeof AuthenticatedCaixaBackupRoute
   '/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
   '/loja/configuracao': typeof AuthenticatedLojaConfiguracaoRoute
@@ -285,7 +294,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/_authenticated/caixa': typeof AuthenticatedCaixaRoute
+  '/_authenticated/caixa': typeof AuthenticatedCaixaRouteWithChildren
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
@@ -300,6 +309,7 @@ export interface FileRoutesById {
   '/loja/preview': typeof LojaPreviewRoute
   '/loja/preview-frame': typeof LojaPreviewFrameRoute
   '/vitrine/$storeSlug': typeof VitrineStoreSlugRoute
+  '/_authenticated/caixa/backup': typeof AuthenticatedCaixaBackupRoute
   '/_authenticated/loja/clientes': typeof AuthenticatedLojaClientesRoute
   '/_authenticated/loja/compartilhar': typeof AuthenticatedLojaCompartilharRoute
   '/_authenticated/loja/configuracao': typeof AuthenticatedLojaConfiguracaoRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/loja/preview'
     | '/loja/preview-frame'
     | '/vitrine/$storeSlug'
+    | '/caixa/backup'
     | '/loja/clientes'
     | '/loja/compartilhar'
     | '/loja/configuracao'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/loja/preview'
     | '/loja/preview-frame'
     | '/vitrine/$storeSlug'
+    | '/caixa/backup'
     | '/loja/clientes'
     | '/loja/compartilhar'
     | '/loja/configuracao'
@@ -401,6 +413,7 @@ export interface FileRouteTypes {
     | '/loja/preview'
     | '/loja/preview-frame'
     | '/vitrine/$storeSlug'
+    | '/_authenticated/caixa/backup'
     | '/_authenticated/loja/clientes'
     | '/_authenticated/loja/compartilhar'
     | '/_authenticated/loja/configuracao'
@@ -561,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VitrineStoreSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/caixa/backup': {
+      id: '/_authenticated/caixa/backup'
+      path: '/backup'
+      fullPath: '/caixa/backup'
+      preLoaderRoute: typeof AuthenticatedCaixaBackupRouteImport
+      parentRoute: typeof AuthenticatedCaixaRoute
+    }
     '/_authenticated/loja/': {
       id: '/_authenticated/loja/'
       path: '/'
@@ -655,6 +675,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCaixaRouteChildren {
+  AuthenticatedCaixaBackupRoute: typeof AuthenticatedCaixaBackupRoute
+}
+
+const AuthenticatedCaixaRouteChildren: AuthenticatedCaixaRouteChildren = {
+  AuthenticatedCaixaBackupRoute: AuthenticatedCaixaBackupRoute,
+}
+
+const AuthenticatedCaixaRouteWithChildren =
+  AuthenticatedCaixaRoute._addFileChildren(AuthenticatedCaixaRouteChildren)
+
 interface AuthenticatedLojaRouteChildren {
   AuthenticatedLojaClientesRoute: typeof AuthenticatedLojaClientesRoute
   AuthenticatedLojaCompartilharRoute: typeof AuthenticatedLojaCompartilharRoute
@@ -691,7 +722,7 @@ const AuthenticatedLojaRouteWithChildren =
   AuthenticatedLojaRoute._addFileChildren(AuthenticatedLojaRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRoute
+  AuthenticatedCaixaRoute: typeof AuthenticatedCaixaRouteWithChildren
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
@@ -706,7 +737,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCaixaRoute: AuthenticatedCaixaRoute,
+  AuthenticatedCaixaRoute: AuthenticatedCaixaRouteWithChildren,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,

@@ -91,7 +91,7 @@ import {
   insertCustomer,
 } from "@/lib/mutations";
 
-export const Route = createFileRoute("/_authenticated/caixa")({
+export const Route = createFileRoute("/_authenticated/caixa/backup")({
   head: () => ({
     meta: [
       { title: "Controle de caixa — Vestui" },
