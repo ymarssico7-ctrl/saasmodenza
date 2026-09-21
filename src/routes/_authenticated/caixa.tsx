@@ -2030,8 +2030,16 @@ function Caixa() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="Digite o valor…"
-                  className="h-12 rounded-2xl pl-10 font-mono font-bold text-lg tracking-tight bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:font-sans placeholder:font-normal placeholder:text-sm placeholder:text-muted-foreground/50"
+                  className={`h-12 rounded-2xl pl-10 font-mono font-bold text-lg tracking-tight bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:font-sans placeholder:font-normal placeholder:text-sm placeholder:text-muted-foreground/50 ${
+                    basket.length > 0 ? "pr-24" : "pr-4"
+                  }`}
                 />
+                {basket.length > 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-[11px] font-bold select-none pointer-events-none">
+                    <ShoppingBag className="size-3" />
+                    {totalPieces} {totalPieces === 1 ? "peça" : "peças"}
+                  </span>
+                )}
               </div>
 
               {/* Ações rápidas sob o valor: Desconto e Quantidade */}
@@ -2768,7 +2776,7 @@ function Caixa() {
               </span>
               {calculatedDiscount > 0 && (
                 <span className="text-xs text-muted-foreground/60 line-through font-mono">
-                  {brl(combinedGrossAmount)}
+                  {brl(grossAmount)}
                 </span>
               )}
             </div>
