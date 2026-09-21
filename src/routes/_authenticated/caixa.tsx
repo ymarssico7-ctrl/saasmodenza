@@ -1074,266 +1074,215 @@ function Caixa() {
         </div>
       )}
 
-      {/* ── TERMINAL DE VENDAS & BALCÃO (Estilo Apple Store & Square POS) ── */}
-      <section className="panel overflow-hidden border border-border/70 shadow-soft">
-        {/* Header do Terminal com Controles Rápidos */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 px-5 py-4 sm:px-6 bg-surface-muted/20">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-2xs">
-              <Receipt className="size-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold tracking-tight text-foreground">
-                {isEntrada ? "Terminal de Venda no Balcão" : "Registro de Despesa & Saída"}
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {isEntrada
-                  ? "Selecione a peça ou lance valor avulso com baixa imediata no caixa."
-                  : "Controle despesas operacionais, compras de estoque e custos da loja."}
-              </p>
-            </div>
-          </div>
-
-          {/* Controles de Topo: Data Compacta e Segmented Control */}
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            {/* Seletor de Data Compacto e Discreto */}
-            <div className="flex items-center rounded-xl bg-card border border-border/60 p-1 text-xs shadow-2xs">
-              {(["hoje", "ontem", "custom"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setDateMode(m)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                    dateMode === m
-                      ? "bg-secondary text-foreground shadow-2xs border border-border/50"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {m === "hoje" ? "Hoje" : m === "ontem" ? "Ontem" : <CalendarDays className="size-3.5 inline" />}
-                </button>
-              ))}
-              {dateMode === "custom" && (
-                <input
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => setCustomDate(e.target.value)}
-                  className="ml-1 px-1.5 py-0.5 rounded-md bg-surface-muted text-[11px] font-medium border border-border/60 text-foreground cursor-pointer"
-                />
-              )}
-            </div>
-
-            {/* Segmented Control Apple HIG */}
-            <div className="inline-flex rounded-xl bg-surface-muted p-1 gap-1 border border-border/40 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => handleKindChange("entrada")}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                  kind === "entrada"
-                    ? "bg-card text-foreground shadow-xs border border-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span className={`size-2 rounded-full ${kind === "entrada" ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
-                Entrada
-              </button>
-              <button
-                type="button"
-                onClick={() => handleKindChange("saida")}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
-                  kind === "saida"
-                    ? "bg-card text-foreground shadow-xs border border-border/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span className={`size-2 rounded-full ${kind === "saida" ? "bg-rose-500" : "bg-muted-foreground/40"}`} />
-                Saída
-              </button>
-            </div>
+      {/* ── Formulário Novo Lançamento (Padrão Original Elevado Apple Level) ── */}
+      <section className="panel p-5 sm:p-7 overflow-hidden border border-border/70 shadow-soft">
+        {/* Título e Alternador de Entrada / Saída */}
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground font-display">
+            Novo lançamento
+          </h2>
+          <div className="mt-3.5 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleKindChange("entrada")}
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                isEntrada
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-surface-muted text-muted-foreground hover:text-foreground hover:bg-surface-muted/80 border border-border/50"
+              }`}
+            >
+              <Plus className="size-3.5" />
+              Entrada
+            </button>
+            <button
+              type="button"
+              onClick={() => handleKindChange("saida")}
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                !isEntrada
+                  ? "bg-rose-600 text-white shadow-xs"
+                  : "bg-surface-muted text-muted-foreground hover:text-foreground hover:bg-surface-muted/80 border border-border/50"
+              }`}
+            >
+              <Minus className="size-3.5" />
+              Saída
+            </button>
           </div>
         </div>
 
-        {/* Corpo do Terminal em Split Grid: Operação (Esquerda) e Cupom Digital (Direita) - Apple Refined */}
-        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-12 lg:gap-8 items-stretch">
-          {/* ── COLUNA ESQUERDA: OPERAÇÃO DE BALCÃO (~58% - lg:col-span-7) ─────────────── */}
-          <div className="flex flex-col justify-between gap-5 lg:col-span-7">
-            {/* Bloco 1: Busca de Produto / Descrição */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/80">
-                  {isEntrada ? "Peça do Estoque ou Descrição" : "Descrição da Despesa"}
-                </Label>
-                <span className="text-[11px] text-muted-foreground/70">
-                  {selectedProduct ? "Peça vinculada" : "Digite para buscar"}
-                </span>
-              </div>
-              <div className="relative">
-                <Input
-                  value={description}
-                  onFocus={() => setShowProductPopover(true)}
-                  onKeyDown={handleKeyDownDescription}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
+        {/* ── LINHA 1: Descrição (70%) + Valor (R$) (30%) ── */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          {/* Campo de Descrição */}
+          <div className="md:col-span-8 lg:col-span-9 space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Descrição
+            </Label>
+            <div className="relative">
+              <Input
+                value={description}
+                onFocus={() => setShowProductPopover(true)}
+                onKeyDown={handleKeyDownDescription}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setSelectedProductId(null);
+                  setShowProductPopover(true);
+                }}
+                placeholder={descriptionPlaceholder}
+                className="h-12 rounded-2xl pr-10 bg-card text-sm font-medium border-border/80 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+              />
+              {selectedProduct ? (
+                <button
+                  type="button"
+                  onClick={() => {
                     setSelectedProductId(null);
-                    setShowProductPopover(true);
+                    setDescription("");
                   }}
-                  placeholder={descriptionPlaceholder}
-                  className="h-12 rounded-2xl pr-10 bg-card text-sm font-medium border-border/80 shadow-2xs focus-visible:ring-primary/20"
-                />
-                {selectedProduct ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedProductId(null);
-                      setDescription("");
-                    }}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md hover:bg-surface-muted"
-                    title="Desvincular produto"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <Package className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-                )}
-              </div>
-
-              {/* Menu Dropdown de Produtos do Estoque */}
-              {showProductPopover && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowProductPopover(false)}
-                  />
-                  <div className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                    {matchingProducts.length > 0 && (
-                      <>
-                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          📦 Produtos no Estoque ({matchingProducts.length})
-                        </div>
-                        {matchingProducts.map((p, idx) => {
-                          const st = calcTotalStock(p);
-                          const isHighlighted = idx === highlightIndex;
-                          return (
-                            <button
-                              key={p.id}
-                              type="button"
-                              ref={(node) => {
-                                if (isHighlighted && node) {
-                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                                }
-                              }}
-                              onClick={() => handleSelectProduct(p)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
-                                isHighlighted
-                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
-                                  : "hover:bg-primary-soft/50"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                {p.image_url ? (
-                                  <img
-                                    src={p.image_url}
-                                    alt={p.name}
-                                    className="h-9 w-9 shrink-0 rounded-lg object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted-foreground">
-                                    <Package className="h-4 w-4" />
-                                  </div>
-                                )}
-                                <div className="min-w-0">
-                                  <p className="truncate font-medium leading-tight">{p.name}</p>
-                                  <p className="text-[11px] text-muted-foreground">{p.category}</p>
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <p className="font-mono text-xs font-semibold text-foreground">
-                                  {brl(isEntrada ? p.selling_price : p.cost_price ?? p.selling_price)}
-                                </p>
-                                <span
-                                  className={`inline-block text-[10px] font-medium ${
-                                    st > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
-                                  }`}
-                                >
-                                  {st > 0 ? `${st} un. em estoque` : "Sem estoque"}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                        <div className="my-1.5 h-px bg-border" />
-                      </>
-                    )}
-
-                    {description.trim().length > 0 && (
-                      <div className="space-y-1 p-1">
-                        {(() => {
-                          const idxOpt1 = matchingProducts.length;
-                          const idxOpt2 = matchingProducts.length + 1;
-                          const isHigh1 = highlightIndex === idxOpt1;
-                          const isHigh2 = highlightIndex === idxOpt2;
-                          return (
-                            <>
-                              <button
-                                type="button"
-                                ref={(node) => {
-                                  if (isHigh1 && node) {
-                                    node.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                                  }
-                                }}
-                                onClick={() => {
-                                  setShowProductPopover(false);
-                                  setQuickProductOpen(true);
-                                }}
-                                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all cursor-pointer ${
-                                  isHigh1
-                                    ? "bg-primary/20 ring-2 ring-primary"
-                                    : "bg-primary/10 hover:bg-primary/20"
-                                }`}
-                              >
-                                <Plus className="h-4 w-4" />
-                                Cadastrar "${description.trim()}" no Estoque
-                              </button>
-                              <button
-                                type="button"
-                                ref={(node) => {
-                                  if (isHigh2 && node) {
-                                    node.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                                  }
-                                }}
-                                onClick={() => setShowProductPopover(false)}
-                                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-all cursor-pointer ${
-                                  isHigh2
-                                    ? "bg-surface-muted ring-2 ring-primary/40 text-foreground font-semibold"
-                                    : "hover:bg-surface-muted"
-                                }`}
-                              >
-                                <Zap className="h-4 w-4" />
-                                Lançar venda rápida de "${description.trim()}" (sem cadastrar no estoque)
-                              </button>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </>
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md hover:bg-surface-muted"
+                  title="Desvincular produto"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : (
+                <Package className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
               )}
             </div>
 
-            {/* Card Tátil de Peça Vinculada ao Estoque */}
+            {/* Menu Popover de Produtos do Estoque */}
+            {showProductPopover && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowProductPopover(false)}
+                />
+                <div className="absolute left-0 right-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  {matchingProducts.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        📦 Produtos no Estoque ({matchingProducts.length})
+                      </div>
+                      {matchingProducts.map((p, idx) => {
+                        const st = calcTotalStock(p);
+                        const isHighlighted = idx === highlightIndex;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            ref={(node) => {
+                              if (isHighlighted && node) {
+                                node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                              }
+                            }}
+                            onClick={() => handleSelectProduct(p)}
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
+                              isHighlighted
+                                ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
+                                : "hover:bg-primary-soft/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {p.image_url ? (
+                                <img
+                                  src={p.image_url}
+                                  alt={p.name}
+                                  className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-muted-foreground">
+                                  <Package className="h-4 w-4" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate font-medium leading-tight">{p.name}</p>
+                                <p className="text-[11px] text-muted-foreground">{p.category}</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-mono text-xs font-semibold text-foreground">
+                                {brl(isEntrada ? p.selling_price : p.cost_price ?? p.selling_price)}
+                              </p>
+                              <span
+                                className={`inline-block text-[10px] font-medium ${
+                                  st > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                                }`}
+                              >
+                                {st > 0 ? `${st} un. em estoque` : "Sem estoque"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      <div className="my-1.5 h-px bg-border" />
+                    </>
+                  )}
+
+                  {description.trim().length > 0 && (
+                    <div className="space-y-1 p-1">
+                      {(() => {
+                        const idxOpt1 = matchingProducts.length;
+                        const idxOpt2 = matchingProducts.length + 1;
+                        const isHigh1 = highlightIndex === idxOpt1;
+                        const isHigh2 = highlightIndex === idxOpt2;
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              ref={(node) => {
+                                if (isHigh1 && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
+                              onClick={() => {
+                                setShowProductPopover(false);
+                                setQuickProductOpen(true);
+                              }}
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all cursor-pointer ${
+                                isHigh1
+                                  ? "bg-primary/20 ring-2 ring-primary"
+                                  : "bg-primary/10 hover:bg-primary/20"
+                              }`}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Cadastrar "${description.trim()}" no Estoque
+                            </button>
+                            <button
+                              type="button"
+                              ref={(node) => {
+                                if (isHigh2 && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
+                              onClick={() => setShowProductPopover(false)}
+                              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-all cursor-pointer ${
+                                isHigh2
+                                  ? "bg-surface-muted ring-2 ring-primary/40 text-foreground font-semibold"
+                                  : "hover:bg-surface-muted"
+                              }`}
+                            >
+                              <Zap className="h-4 w-4" />
+                              Lançar venda rápida de "${description.trim()}" (sem cadastrar no estoque)
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Card Tátil de Peça Vinculada */}
             {selectedProduct && (
-              <div className="rounded-2xl border border-primary/25 bg-primary-soft/20 p-4 animate-in fade-in-50 slide-in-from-top-2">
+              <div className="rounded-2xl border border-primary/25 bg-primary-soft/20 p-3.5 animate-in fade-in-50 slide-in-from-top-2">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     {selectedProduct.image_url ? (
                       <img
                         src={selectedProduct.image_url}
                         alt={selectedProduct.name}
-                        className="h-12 w-12 shrink-0 rounded-xl object-cover shadow-2xs border border-border/40"
+                        className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-2xs border border-border/40"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Package className="h-6 w-6" />
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Package className="h-5 w-5" />
                       </div>
                     )}
                     <div className="min-w-0">
@@ -1383,8 +1332,8 @@ function Caixa() {
                   const entries = Object.entries(sizesRecord);
                   if (entries.length === 0 || (entries.length === 1 && entries[0]?.[0] === "Único")) return null;
                   return (
-                    <div className="mt-3.5 pt-3 border-t border-primary/15">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="mt-3 pt-2.5 border-t border-primary/15">
+                      <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[11px] font-semibold text-foreground">
                           Tamanho vendido:
                         </span>
@@ -1411,7 +1360,7 @@ function Caixa() {
                               key={sz}
                               type="button"
                               onClick={() => setSelectedProductSize(sz)}
-                              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs transition-all cursor-pointer ${
+                              className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs transition-all cursor-pointer ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground font-bold shadow-xs ring-2 ring-primary/20"
                                   : isZero
@@ -1432,172 +1381,319 @@ function Caixa() {
                 })()}
               </div>
             )}
+          </div>
 
-            <div className="h-px bg-border/40 my-0.5" />
-
-            {/* Bloco 2: Formas de Pagamento em 1 Toque (Quick-Chips Refinados Apple) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/80">
-                  Forma de Pagamento
-                </Label>
-                <span className="text-[11px] font-medium text-muted-foreground/70">
-                  1 clique para selecionar
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {[
-                  { id: "pix", label: "Pix", icon: <Zap className="size-4 text-emerald-500" /> },
-                  { id: "credito", label: "Crédito", icon: <CreditCard className="size-4 text-indigo-500" /> },
-                  { id: "debito", label: "Débito", icon: <CreditCard className="size-4 text-sky-500" /> },
-                  { id: "dinheiro", label: "Dinheiro", icon: <Banknote className="size-4 text-amber-500" /> },
-                  { id: "fiado", label: "Fiado", icon: <Wallet className="size-4 text-violet-500" /> },
-                ].map((pm) => (
-                  <button
-                    key={pm.id}
-                    type="button"
-                    onClick={() => {
-                      setMethod(pm.id);
-                      if (pm.id === "fiado" && selectedCustomerId) {
-                        setFiadoCustomerId(selectedCustomerId);
-                      }
-                    }}
-                    className={`flex items-center justify-center gap-1.5 h-12 px-2 rounded-2xl text-xs font-semibold border transition-all cursor-pointer ${
-                      method === pm.id
-                        ? "border-primary/50 bg-primary/10 text-primary shadow-2xs font-bold"
-                        : "border-border/70 bg-card text-foreground/80 hover:bg-surface-muted/80 hover:border-border"
-                    }`}
-                  >
-                    {pm.icon}
-                    <span className="truncate">{pm.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Calculadora de Troco Inteligente */}
-              {method === "dinheiro" && (
-                <div className="mt-2.5 rounded-2xl border border-amber-200/70 bg-amber-50/40 dark:border-amber-900/40 dark:bg-amber-950/20 p-3.5 space-y-2 animate-in fade-in-50">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-amber-900 dark:text-amber-300">
-                      💵 Dinheiro recebido da cliente:
-                    </span>
-                    {toNumber(cashReceived) > netAmount && (
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        Troco a devolver: {brl(toNumber(cashReceived) - netAmount)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">
-                        R$
-                      </span>
-                      <Input
-                        inputMode="decimal"
-                        value={cashReceived}
-                        onChange={(e) => setCashReceived(e.target.value)}
-                        placeholder={String(netAmount || "").replace(".", ",")}
-                        className="h-10 rounded-xl pl-8 text-xs font-mono bg-card"
-                      />
-                    </div>
-                    {/* Cédulas Rápidas */}
-                    {(() => {
-                      const ceil20 = Math.ceil(netAmount / 20) * 20;
-                      const ceil50 = Math.ceil(netAmount / 50) * 50;
-                      const ceil100 = Math.ceil(netAmount / 100) * 100;
-                      const suggestions = Array.from(new Set([ceil20, ceil50, ceil100])).filter((v) => v >= netAmount && v > 0).slice(0, 3);
-                      return (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {suggestions.map((val) => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => setCashReceived(String(val))}
-                              className="h-10 rounded-xl border border-border bg-card px-2.5 text-[11px] font-mono font-semibold hover:bg-secondary cursor-pointer"
-                            >
-                              R$ {val}
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
+          {/* Campo de Valor (R$) */}
+          <div className="md:col-span-4 lg:col-span-3 space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Valor (R$)
+            </Label>
+            <div className="relative">
+              <span className={`absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-sm pointer-events-none ${
+                isEntrada ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+              }`}>
+                {isEntrada ? "+ " : "− "}
+              </span>
+              <Input
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleTriggerSubmit(); }}
+                placeholder="0,00"
+                className="h-12 rounded-2xl pl-9 pr-3 font-mono font-bold text-base bg-card border-border/80 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+              />
             </div>
 
-            {/* Bloco 3: Seção Fiado (Apenas se Fiado ativo) */}
-            {isFiado && (
-              <div className="rounded-2xl border border-amber-300/80 bg-amber-50/60 dark:border-amber-800/50 dark:bg-amber-950/30 p-4 space-y-3 animate-in fade-in-50">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
-                    📋 Dados do Fiado
-                  </span>
-                  <span className="text-[11px] text-amber-700 dark:text-amber-400">
-                    Registrará automaticamente na aba Fiado
-                  </span>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Cliente do Fiado (Obrigatório)">
-                    <div className="relative">
-                      <Input
-                        ref={customerInputRef}
-                        value={selectedCustomer ? selectedCustomer.name : customerSearch}
-                        onFocus={() => {
-                          if (!selectedCustomer) setShowCustomerPopover(true);
-                        }}
-                        onKeyDown={handleKeyDownCustomer}
-                        onChange={(e) => {
-                          if (selectedCustomer) handleClearCustomer();
-                          setCustomerSearch(e.target.value);
-                          setShowCustomerPopover(true);
-                        }}
-                        placeholder="Busque a cliente pelo nome/telefone…"
-                        className="h-10 rounded-xl pr-9 bg-card text-xs"
-                      />
-                      {selectedCustomer ? (
-                        <button
-                          type="button"
-                          onClick={handleClearCustomer}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      ) : (
-                        <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+            {/* Link "+ Aplicar desconto / promoção" exatamente como na imagem */}
+            {isEntrada && (
+              <div className="pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscount(!showDiscount)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer"
+                >
+                  <Tag className="size-3" />
+                  <span>{showDiscount ? "Ocultar desconto" : "+ Aplicar desconto / promoção"}</span>
+                </button>
+                {showDiscount && (
+                  <div className="mt-2 p-3 rounded-2xl border border-border/70 bg-surface-muted/30 space-y-2 animate-in fade-in-50">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                      <span>Desconto rápido:</span>
+                      {calculatedDiscount > 0 && (
+                        <span className="text-amber-600 dark:text-amber-400 font-bold">
+                          −{brl(calculatedDiscount)}
+                        </span>
                       )}
                     </div>
-                  </Field>
+                    <div className="flex items-center gap-1">
+                      {[
+                        { label: "0%", pct: 0 },
+                        { label: "5%", pct: 5 },
+                        { label: "10%", pct: 10 },
+                        { label: "15%", pct: 15 },
+                      ].map((d) => (
+                        <button
+                          key={d.pct}
+                          type="button"
+                          onClick={() => {
+                            if (d.pct === 0) {
+                              setDiscountValue("");
+                            } else {
+                              setDiscountType("pct");
+                              setDiscountValue(String(d.pct));
+                            }
+                          }}
+                          className={`flex-1 h-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            discountType === "pct" && discountValue === String(d.pct)
+                              ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                              : "border-border/60 bg-card text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDiscountType("flat");
+                          if (discountType === "pct") setDiscountValue("");
+                        }}
+                        className={`px-2.5 h-8 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                          discountType === "flat"
+                            ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                            : "border-border/60 bg-card text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        R$
+                      </button>
+                    </div>
+                    {discountType === "flat" && (
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">
+                          R$
+                        </span>
+                        <Input
+                          inputMode="decimal"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                          placeholder="Valor em R$"
+                          className="h-8 rounded-lg pl-8 text-xs font-mono bg-card"
+                          autoFocus
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-                  <Field label="Vencimento da Cobrança">
-                    <Input
-                      type="date"
-                      value={fiadoDueDate}
-                      onChange={(e) => setFiadoDueDate(e.target.value)}
-                      className="h-10 rounded-xl bg-card text-xs"
-                    />
-                  </Field>
+        {/* ── LINHA 2: Categoria (33%) + Forma de Pagamento (33%) + Cliente (33%) ── */}
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Categoria */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Categoria
+            </Label>
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                if (v === "__add_new__") { setAddCatOpen(true); return; }
+                if (v === "__manage_cat__") { void navigate({ to: "/configuracoes" }); return; }
+                setCategory(v);
+              }}
+            >
+              <SelectTrigger className="h-12 rounded-2xl bg-card text-xs font-medium border-border/80 shadow-2xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.value} value={c.value} className="text-xs">
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Forma de Pagamento */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Forma de pagamento
+            </Label>
+            <Select
+              value={method}
+              onValueChange={(v) => {
+                setMethod(v);
+                if (v === "fiado" && selectedCustomerId) {
+                  setFiadoCustomerId(selectedCustomerId);
+                }
+              }}
+            >
+              <SelectTrigger className="h-12 rounded-2xl bg-card text-xs font-medium border-border/80 shadow-2xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix" className="text-xs">Pix</SelectItem>
+                <SelectItem value="credito" className="text-xs">Cartão de Crédito</SelectItem>
+                <SelectItem value="debito" className="text-xs">Cartão de Débito</SelectItem>
+                <SelectItem value="dinheiro" className="text-xs">Dinheiro</SelectItem>
+                <SelectItem value="fiado" className="text-xs">Fiado / Crediário</SelectItem>
+                {customOpts.paymentMethods.map((pm) => (
+                  <SelectItem key={pm.value} value={pm.value} className="text-xs">
+                    {pm.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Se Dinheiro: Calculadora rápida de troco */}
+            {method === "dinheiro" && (
+              <div className="mt-1.5 p-2.5 rounded-xl border border-amber-200/70 bg-amber-50/40 dark:border-amber-900/40 dark:bg-amber-950/20 text-xs space-y-1.5 animate-in fade-in-50">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-amber-900 dark:text-amber-300">Recebido da cliente:</span>
+                  {toNumber(cashReceived) > netAmount && (
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      Troco: {brl(toNumber(cashReceived) - netAmount)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    inputMode="decimal"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    placeholder="Valor recebido"
+                    className="h-8 rounded-lg text-xs font-mono bg-card"
+                  />
+                  {(() => {
+                    const ceil50 = Math.ceil(netAmount / 50) * 50;
+                    const ceil100 = Math.ceil(netAmount / 100) * 100;
+                    const suggestions = Array.from(new Set([ceil50, ceil100])).filter((v) => v >= netAmount && v > 0).slice(0, 2);
+                    return suggestions.map((val) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setCashReceived(String(val))}
+                        className="h-8 rounded-lg border border-border bg-card px-2 text-[10px] font-mono hover:bg-secondary cursor-pointer shrink-0"
+                      >
+                        R$ {val}
+                      </button>
+                    ));
+                  })()}
                 </div>
               </div>
             )}
+          </div>
 
-            <div className="h-px bg-border/40 my-0.5" />
+          {/* Cliente (Opcional) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Cliente (Opcional)
+              </Label>
+              <button
+                type="button"
+                onClick={() => setAddCustomerOpen(true)}
+                className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+              >
+                + Cadastrar
+              </button>
+            </div>
+            <div className="relative">
+              <Input
+                ref={customerInputRef}
+                value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                onFocus={() => {
+                  if (!selectedCustomer) setShowCustomerPopover(true);
+                }}
+                onKeyDown={handleKeyDownCustomer}
+                onChange={(e) => {
+                  if (selectedCustomer) handleClearCustomer();
+                  setCustomerSearch(e.target.value);
+                  setShowCustomerPopover(true);
+                }}
+                placeholder="Digite o nome ou telefone da cliente..."
+                className="h-12 rounded-2xl pr-10 bg-card text-xs font-medium border-border/80 shadow-2xs"
+              />
+              {selectedCustomer ? (
+                <button
+                  type="button"
+                  onClick={handleClearCustomer}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : (
+                <User className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+              )}
+            </div>
 
-            {/* Bloco 4: Cliente da Loja (Quando não for fiado) */}
-            {!isFiado && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/80">
-                    Cliente da Loja (Opcional)
-                  </Label>
+            {/* Popover de Clientes */}
+            {showCustomerPopover && !selectedCustomer && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowCustomerPopover(false)}
+                />
+                <div className="absolute left-0 right-0 z-20 mt-1 max-h-60 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  {matchingCustomers.length > 0 && (
+                    <>
+                      <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        👤 Clientes Encontradas ({matchingCustomers.length})
+                      </div>
+                      {matchingCustomers.map((c, idx) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleSelectCustomer(c)}
+                          className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition-all cursor-pointer ${
+                            idx === customerHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary-soft/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                              {c.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="truncate font-medium">{c.name}</span>
+                          </div>
+                          {c.phone && <span className="text-[10px] font-mono text-muted-foreground">{c.phone}</span>}
+                        </button>
+                      ))}
+                      <div className="my-1 h-px bg-border" />
+                    </>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setAddCustomerOpen(true)}
-                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                    onClick={() => {
+                      setShowCustomerPopover(false);
+                      setAddCustomerOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer"
                   >
-                    + Cadastrar nova cliente
+                    <Plus className="size-3.5" />
+                    {customerSearch.trim() ? `Cadastrar "${customerSearch.trim()}"` : "Cadastrar nova cliente…"}
                   </button>
                 </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Bloco Fiado (se method === 'fiado') */}
+        {isFiado && (
+          <div className="mt-4 rounded-2xl border border-amber-300/80 bg-amber-50/60 dark:border-amber-800/50 dark:bg-amber-950/30 p-4 space-y-3 animate-in fade-in-50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                📋 Dados do Fiado
+              </span>
+              <span className="text-[11px] text-amber-700 dark:text-amber-400">
+                Registrará automaticamente na aba Fiado
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Cliente do Fiado (Obrigatório)">
                 <div className="relative">
                   <Input
                     ref={customerInputRef}
@@ -1611,12 +1707,8 @@ function Caixa() {
                       setCustomerSearch(e.target.value);
                       setShowCustomerPopover(true);
                     }}
-                    placeholder={
-                      isEntrada
-                        ? "Vincular compra ao histórico de uma cliente…"
-                        : "Nome da cliente para estorno/devolução…"
-                    }
-                    className="h-12 rounded-2xl pr-9 bg-card text-xs font-medium border-border/80 shadow-2xs"
+                    placeholder="Busque a cliente pelo nome/telefone…"
+                    className="h-10 rounded-xl pr-9 bg-card text-xs"
                   />
                   {selectedCustomer ? (
                     <button
@@ -1627,311 +1719,110 @@ function Caixa() {
                       <X className="h-4 w-4" />
                     </button>
                   ) : (
-                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
                   )}
                 </div>
+              </Field>
 
-                {/* Popover Autocomplete de Clientes */}
-                {showCustomerPopover && !selectedCustomer && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowCustomerPopover(false)}
-                    />
-                    <div className="absolute left-0 right-0 z-20 mt-1 max-h-60 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                      {matchingCustomers.length > 0 && (
-                        <>
-                          <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            👤 Clientes Encontradas ({matchingCustomers.length})
-                          </div>
-                          {matchingCustomers.map((c, idx) => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs transition-all cursor-pointer ${
-                                idx === customerHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary-soft/50"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-                                  {c.name.charAt(0).toUpperCase()}
-                                </div>
-                                <span className="truncate font-medium">{c.name}</span>
-                              </div>
-                              {c.phone && <span className="text-[10px] font-mono text-muted-foreground">{c.phone}</span>}
-                            </button>
-                          ))}
-                          <div className="my-1 h-px bg-border" />
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowCustomerPopover(false);
-                          setAddCustomerOpen(true);
-                        }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer"
-                      >
-                        <Plus className="size-3.5" />
-                        {customerSearch.trim() ? `Cadastrar "${customerSearch.trim()}"` : "Cadastrar nova cliente…"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+              <Field label="Vencimento da Cobrança">
+                <Input
+                  type="date"
+                  value={fiadoDueDate}
+                  onChange={(e) => setFiadoDueDate(e.target.value)}
+                  className="h-10 rounded-xl bg-card text-xs"
+                />
+              </Field>
+            </div>
+          </div>
+        )}
 
-            {/* Bloco 5: Opções Contábeis Avançadas Ancoradas */}
-            <div className="mt-auto pt-3 border-t border-border/40">
-              <button
-                type="button"
-                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer transition-colors"
-              >
-                <Settings className="size-3.5" />
-                <span>
-                  {showAdvancedOptions ? "Ocultar opções contábeis avançadas" : "Opções contábeis avançadas (Categoria / Observações) ▾"}
-                </span>
-              </button>
-
-              {showAdvancedOptions && (
-                <div className="mt-3 grid gap-3 sm:grid-cols-2 rounded-2xl border border-border/60 bg-surface-muted/30 p-3.5 animate-in fade-in-50">
-                  <Field label="Categoria Contábil">
-                    <Select
-                      value={category}
-                      onValueChange={(v) => {
-                        if (v === "__add_new__") { setAddCatOpen(true); return; }
-                        if (v === "__manage_cat__") { void navigate({ to: "/configuracoes" }); return; }
-                        setCategory(v);
-                      }}
-                    >
-                      <SelectTrigger className="h-10 rounded-xl bg-card text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => (
-                          <SelectItem key={c.value} value={c.value} className="text-xs">
-                            {c.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-
-                  {category !== "venda_produto" && category !== "outros" && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground sm:col-span-2">
-                      <span>{managementImpact.icon}</span>
-                      <span><strong>{managementImpact.title}:</strong> {managementImpact.desc}</span>
-                    </div>
+        {/* ── LINHA 3: Data da Operação ── */}
+        <div className="mt-5 space-y-2">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Data
+          </Label>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {(["hoje", "ontem", "custom"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setDateMode(m)}
+                  className={`h-10 px-4 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    dateMode === m
+                      ? "bg-card text-foreground shadow-2xs border border-primary/40 ring-1 ring-primary/20"
+                      : "bg-surface-muted/60 text-muted-foreground hover:text-foreground hover:bg-surface-muted border border-border/50"
+                  }`}
+                >
+                  {m === "hoje" ? "Hoje" : m === "ontem" ? "Ontem" : (
+                    <span className="flex items-center gap-1.5">
+                      <CalendarDays className="size-3.5" />
+                      Outra
+                    </span>
                   )}
-                </div>
+                </button>
+              ))}
+              {dateMode === "custom" && (
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="h-10 px-3 rounded-xl bg-card text-xs font-medium border border-border/80 text-foreground cursor-pointer"
+                />
               )}
             </div>
           </div>
-
-          {/* ── COLUNA DIREITA: CUPOM DIGITAL & TICKET (~42% - lg:col-span-5) ─── */}
-          <div className="lg:col-span-5 rounded-3xl border border-border/80 bg-surface-muted/30 p-5 sm:p-6 shadow-soft flex flex-col justify-between min-h-[460px]">
-            <div>
-              {/* Topo do Cupom */}
-              <div className="flex items-center justify-between border-b border-border/50 pb-3.5">
-                <div className="flex items-center gap-2">
-                  <Receipt className="size-4 text-primary" />
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground">
-                    Cupom de Balcão
-                  </span>
-                </div>
-                <span className="rounded-full bg-secondary/80 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  {dateMode === "hoje" ? "Hoje" : dateMode === "ontem" ? "Ontem" : customDate}
-                </span>
-              </div>
-
-              {/* Detalhes do Cupom */}
-              <div className="mt-4 space-y-4">
-                {/* Linha da Peça / Item */}
-                <div className="flex items-start justify-between gap-3 bg-card/60 p-3 rounded-2xl border border-border/50">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">
-                      {description.trim() || (isEntrada ? "Venda no Balcão" : "Despesa da Loja")}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
-                      {selectedProductSize && (
-                        <span className="font-semibold text-primary">Tam: {selectedProductSize} · </span>
-                      )}
-                      <span>Via {resolvePayment({ payment_method: method } as any)}</span>
-                      {selectedCustomer && (
-                        <>
-                          <span className="opacity-40">·</span>
-                          <span className="text-foreground font-medium">{selectedCustomer.name}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <span className="font-mono text-sm font-bold text-foreground shrink-0">
-                    {brl(grossAmount || 0)}
-                  </span>
-                </div>
-
-                {/* Input de Valor direto no Cupom - Redesenhado com Tipografia Imponente */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {isEntrada ? "Valor da Venda (R$)" : "Valor da Despesa (R$)"}
-                    </Label>
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {isEntrada ? "+ Crédito" : "− Débito"}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <span className={`absolute left-4 top-1/2 -translate-y-1/2 font-mono font-bold text-base pointer-events-none ${
-                      isEntrada ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                    }`}>
-                      {isEntrada ? "+ R$" : "− R$"}
-                    </span>
-                    <Input
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleTriggerSubmit(); }}
-                      placeholder="0,00"
-                      className="h-14 rounded-2xl pl-16 pr-4 font-mono font-bold text-2xl sm:text-3xl bg-card border-border/80 shadow-2xs text-right"
-                    />
-                  </div>
-                </div>
-
-                {/* Chips de Desconto Rápido de 1 Toque (Apple POS) */}
-                {isEntrada && (
-                  <div className="pt-1.5 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Desconto no Balcão:
-                      </Label>
-                      {calculatedDiscount > 0 && (
-                        <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                          −{brl(calculatedDiscount)} ({discountType === "pct" ? `${discountValue}%` : "R$"})
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {[
-                        { label: "0%", pct: 0 },
-                        { label: "5%", pct: 5 },
-                        { label: "10%", pct: 10 },
-                        { label: "15%", pct: 15 },
-                      ].map((d) => {
-                        const isSelected = showDiscount && discountType === "pct" && discountValue === String(d.pct);
-                        const isZeroSelected = !showDiscount && d.pct === 0;
-                        return (
-                          <button
-                            key={d.pct}
-                            type="button"
-                            onClick={() => {
-                              if (d.pct === 0) {
-                                setShowDiscount(false);
-                                setDiscountValue("");
-                              } else {
-                                setDiscountType("pct");
-                                setDiscountValue(String(d.pct));
-                                setShowDiscount(true);
-                              }
-                            }}
-                            className={`flex-1 h-9 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                              isZeroSelected || isSelected
-                                ? "border-primary/50 bg-primary/10 text-primary font-bold shadow-2xs"
-                                : "border-border/60 bg-card text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            {d.label}
-                          </button>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDiscountType("flat");
-                          setShowDiscount(true);
-                          if (discountType === "pct") setDiscountValue("");
-                        }}
-                        className={`px-3 h-9 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                          showDiscount && discountType === "flat"
-                            ? "border-primary/50 bg-primary/10 text-primary font-bold shadow-2xs"
-                            : "border-border/60 bg-card text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        R$ Manual
-                      </button>
-                    </div>
-
-                    {showDiscount && discountType === "flat" && (
-                      <div className="mt-1.5 relative animate-in fade-in-50">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">
-                          R$
-                        </span>
-                        <Input
-                          inputMode="decimal"
-                          value={discountValue}
-                          onChange={(e) => setDiscountValue(e.target.value)}
-                          placeholder="Valor do desconto em R$"
-                          className="h-9 rounded-xl pl-8 text-xs font-mono bg-card"
-                          autoFocus
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Totalizador Imponente e Super Botão de Finalização com Linha Pontilhada */}
-            <div className="mt-6 border-t border-dashed border-border/70 pt-4 space-y-4">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Total {isEntrada ? "a Receber" : "da Saída"}
-                </span>
-                <div className="text-right">
-                  <h3 className={`numeric text-3xl sm:text-4xl font-black tracking-tight leading-none ${
-                    netAmount > 0
-                      ? isEntrada
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
-                      : "text-foreground"
-                  }`}>
-                    {brl(netAmount || 0)}
-                  </h3>
-                  {calculatedDiscount > 0 && (
-                    <p className="text-xs text-muted-foreground line-through mt-1">
-                      De {brl(grossAmount)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <Button
-                className={`w-full h-13 rounded-2xl text-sm font-bold shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  isEntrada
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 hover:shadow-emerald-600/30"
-                    : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
-                }`}
-                disabled={create.isPending || netAmount <= 0}
-                onClick={handleTriggerSubmit}
-              >
-                {create.isPending ? (
-                  "Registrando..."
-                ) : (
-                  <>
-                    <span>{isEntrada ? "Finalizar Venda" : "Registrar Saída"}</span>
-                    <ArrowRight className="size-4" />
-                  </>
-                )}
-              </Button>
-              <p className="text-center text-[10px] text-muted-foreground">
-                Pressione <kbd className="px-1.5 py-0.5 rounded bg-card border border-border text-[9px] font-mono">Enter ↵</kbd> no valor para finalizar
-              </p>
-            </div>
-          </div>
+          <p className="text-[11px] font-mono text-muted-foreground">
+            {dateMode === "hoje" ? today : dateMode === "ontem" ? yesterdayStr : customDate}
+          </p>
         </div>
 
-        {/* ── Diálogo Guardrail de Venda com Estoque Zerado (Apple UX) ───────── */}
+        {/* ── LINHA 4: Banner de Impacto Financeiro / Contábil ── */}
+        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20 px-4 py-3 text-xs animate-in fade-in-50">
+          <span className="text-base">{managementImpact.icon}</span>
+          <p className="text-muted-foreground">
+            <strong className="text-foreground font-semibold">{managementImpact.title}:</strong>{" "}
+            {managementImpact.desc}
+          </p>
+        </div>
+
+        {/* ── LINHA 5: Botão de Ação Alinhado à Esquerda exatamente como na imagem ── */}
+        <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Button
+            className={`h-12 px-7 rounded-2xl text-sm font-bold shadow-md transition-all cursor-pointer flex items-center gap-2 self-start ${
+              isEntrada
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+            }`}
+            disabled={create.isPending || netAmount <= 0}
+            onClick={handleTriggerSubmit}
+          >
+            {create.isPending ? (
+              "Registrando..."
+            ) : (
+              <>
+                {isEntrada ? <Plus className="size-4" /> : <Minus className="size-4" />}
+                <span>{isEntrada ? "Registrar entrada" : "Registrar saída"}</span>
+              </>
+            )}
+          </Button>
+
+          {/* Resumo Dinâmico em Linha se houver valor preenchido */}
+          {netAmount > 0 && (
+            <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
+              <span className="font-mono font-bold text-foreground">{brl(netAmount)}</span>
+              <span>•</span>
+              <span>{isEntrada ? "Entrada" : "Saída"} via {resolvePayment({ payment_method: method } as any)}</span>
+              {calculatedDiscount > 0 && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                  (com desconto de {brl(calculatedDiscount)})
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+      {/* ── Diálogo Guardrail de Venda com Estoque Zerado (Apple UX) ───────── */}
         <AlertDialog open={confirmZeroStockOpen} onOpenChange={setConfirmZeroStockOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -1970,7 +1861,6 @@ function Caixa() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </section>
 
       {/* ── Extrato do mês ───────────────────────────────────────────────── */}
       <section className="panel p-5 sm:p-6 lg:p-7">
