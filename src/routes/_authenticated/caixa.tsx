@@ -22,6 +22,7 @@ import {
   Plus,
   Receipt,
   Search,
+  RotateCcw,
   Settings,
   Sparkles,
   Tag,
@@ -3089,24 +3090,104 @@ function Caixa() {
                           </div>
                           <ConfirmDelete
                             onConfirm={() => remove.mutate(t)}
-                            title={linkedProd ? "Excluir e ajustar estoque?" : "Excluir lançamento?"}
-                            description={
-                              linkedProd
-                                ? (() => {
-                                    const sizeMatch = t.description.match(/\[Tam:\s*([^\]]+)\]/);
-                                    const extractedSize = sizeMatch?.[1]?.trim();
-                                    const sizeLabel = extractedSize ? ` (${extractedSize})` : "";
-                                    if (t.kind === "entrada") {
-                                      return `Atenção: Este lançamento está vinculado a "${linkedProd.name}". Ao excluí-lo, 1 unidade${sizeLabel} retornará automaticamente ao estoque.`;
-                                    } else if (t.category === "estorno_devolucao" || t.category === "compra_estoque") {
-                                      return `Atenção: Este lançamento adicionou estoque de "${linkedProd.name}". Ao excluí-lo, 1 unidade${sizeLabel} será estornada do estoque.`;
-                                    } else {
-                                      return `Atenção: Este lançamento movimentou o estoque de "${linkedProd.name}". Ao excluí-lo, 1 unidade${sizeLabel} retornará ao estoque.`;
-                                    }
-                                  })()
-                                : "O lançamento será removido do seu caixa. Essa ação não pode ser desfeita."
+                            icon={
+                              <div className="flex size-11 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 shadow-2xs">
+                                <Trash2 className="size-5" />
+                              </div>
                             }
-                            confirmLabel={linkedProd ? "Excluir e ajustar estoque" : "Excluir"}
+                            title="Excluir lançamento?"
+                            description={(() => {
+                              const cleanDesc = t.description.replace(/\s*\[[^\]]*\]/g, "").trim();
+                              const sizeMatch = t.description.match(/\[Tam:\s*([^\]]+)\]/);
+                              const extractedSize = sizeMatch?.[1]?.trim();
+                              const isEntry = t.kind === "entrada";
+
+                              return (
+                                <div className="space-y-3 pt-1 text-left">
+                                  <p className="text-xs text-muted-foreground">
+                                    Este registro financeiro será removido permanentemente do seu extrato e saldo diário.
+                                  </p>
+
+                                  {/* Card Resumo do Lançamento */}
+                                  <div className="rounded-2xl border border-border/70 bg-surface-muted/50 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        {linkedProd?.image_url ? (
+                                          <img
+                                            src={linkedProd.image_url}
+                                            alt={cleanDesc}
+                                            className="size-10 shrink-0 rounded-xl object-cover border border-border/60 shadow-2xs"
+                                          />
+                                        ) : (
+                                          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-card border border-border/60 text-muted-foreground">
+                                            <Package className="size-5" />
+                                          </div>
+                                        )}
+                                        <div className="min-w-0">
+                                          <p className="text-xs font-bold text-foreground truncate">
+                                            {cleanDesc || t.description}
+                                          </p>
+                                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                                            {extractedSize && (
+                                              <span className="rounded-md bg-card border border-border/70 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-foreground">
+                                                Tam: {extractedSize}
+                                              </span>
+                                            )}
+                                            <span>•</span>
+                                            <span>{resolveCategory(t)}</span>
+                                            <span>•</span>
+                                            <span>{resolvePayment(t)}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right shrink-0">
+                                        <span
+                                          className={`font-mono text-xs font-bold ${
+                                            isEntry
+                                              ? "text-emerald-600 dark:text-emerald-400"
+                                              : "text-rose-600 dark:text-rose-400"
+                                          }`}
+                                        >
+                                          {isEntry ? "+" : "−"} {brl(Number(t.amount))}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Callout Visual de Ajuste no Estoque */}
+                                    {linkedProd && (
+                                      <div
+                                        className={`mt-2.5 flex items-center gap-2 rounded-xl p-2.5 text-xs ${
+                                          isEntry || t.category === "perda_avaria"
+                                            ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                            : "border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                        }`}
+                                      >
+                                        <RotateCcw className="size-4 shrink-0" />
+                                        <p className="font-medium text-[11px] leading-tight">
+                                          {isEntry || t.category === "perda_avaria" ? (
+                                            <>
+                                              <strong>+1 unidade</strong> retornará ao estoque automaticamente.
+                                            </>
+                                          ) : (
+                                            <>
+                                              <strong>−1 unidade</strong> será estornada do estoque.
+                                            </>
+                                          )}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                            confirmLabel={
+                              <span className="flex items-center gap-1.5">
+                                <Trash2 className="size-3.5" />
+                                Excluir lançamento
+                              </span>
+                            }
+                            cancelLabel="Manter lançamento"
                             trigger={
                               <Button
                                 variant="ghost"
