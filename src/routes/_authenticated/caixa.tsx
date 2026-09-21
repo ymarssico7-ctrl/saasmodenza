@@ -972,22 +972,58 @@ function Caixa() {
     return Object.values(sizes).reduce((acc, n) => acc + (Math.round(toNumber(n)) || 0), 0);
   };
 
-  // ── Puxar valor automático incondicional ao selecionar produto ────────────
+  // ── Seleção e Adição Fluida de Produtos ───────────────────────────────────
   const handleSelectProduct = (product: InventoryItem) => {
-    setSelectedProductId(product.id);
-    setDescription(product.name);
-
     const sizes = (product.sizes ?? {}) as Record<string, number>;
     const entries = Object.entries(sizes);
     const firstAvailable = entries.find(([, q]) => q > 0)?.[0] ?? entries[0]?.[0] ?? "";
-    setSelectedProductSize(firstAvailable);
 
-    // Em Entrada: puxa Preço de Venda (selling_price)
-    // Em Saída: puxa Preço de Custo ao fornecedor (cost_price se > 0, senão selling_price)
     const priceToUse = isEntrada
       ? product.selling_price
       : (product.cost_price && product.cost_price > 0 ? product.cost_price : product.selling_price);
 
+    // Se já estiver no modo multi-itens (basket ativo)
+    if (basket.length > 0 && isEntrada) {
+      const existingIdx = basket.findIndex(
+        (i) => i.productId === product.id && i.size === firstAvailable,
+      );
+
+      let updatedBasket: SaleBasketItem[] = [];
+      if (existingIdx >= 0) {
+        updatedBasket = basket.map((item, idx) => {
+          if (idx !== existingIdx) return item;
+          const newQ = item.quantity + 1;
+          const newTot = Number((item.unitPrice * newQ).toFixed(2));
+          return { ...item, quantity: newQ, totalPrice: newTot };
+        });
+        toast.success(`+1 un. de "${product.name}" somada à venda!`);
+      } else {
+        const newItem: SaleBasketItem = {
+          id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+          productId: product.id,
+          productName: product.name,
+          size: firstAvailable,
+          quantity: 1,
+          unitPrice: priceToUse,
+          totalPrice: priceToUse,
+          deductStock: true,
+        };
+        updatedBasket = [...basket, newItem];
+        toast.success(`"${product.name}" adicionada à venda!`);
+      }
+
+      setBasket(updatedBasket);
+      const newTotal = updatedBasket.reduce((sum, i) => sum + i.totalPrice, 0);
+      setAmount(String(Number(newTotal.toFixed(2))).replace(".", ","));
+      setDescription("");
+      setShowProductPopover(false);
+      return;
+    }
+
+    // Modo Venda Simples inicial (1 peça)
+    setSelectedProductId(product.id);
+    setDescription(product.name);
+    setSelectedProductSize(firstAvailable);
     setUnitPrice(priceToUse);
     setQuantity(1);
 
@@ -997,6 +1033,40 @@ function Caixa() {
       setAmount("");
     }
     setShowProductPopover(false);
+  };
+
+  // ── Iniciar Multi-itens com 1 Clique ──────────────────────────────────────
+  const handleStartMultiItem = () => {
+    if (!description.trim() && !selectedProduct) {
+      toast.warning("Selecione a primeira peça antes de adicionar mais");
+      return;
+    }
+    const currentPrice = grossAmount > 0 ? grossAmount : unitPrice > 0 ? unitPrice : 0;
+    if (currentPrice <= 0) {
+      toast.warning("Informe o valor da peça antes de adicionar mais");
+      return;
+    }
+
+    const firstItem: SaleBasketItem = {
+      id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      productId: selectedProductId ?? undefined,
+      productName: description.trim() || selectedProduct?.name || "Peça",
+      size: selectedProductSize || undefined,
+      quantity,
+      unitPrice: unitPrice > 0 ? unitPrice : currentPrice / quantity,
+      totalPrice: currentPrice,
+      deductStock: !!selectedProductId && deductStock,
+    };
+
+    setBasket([firstItem]);
+    setAmount(String(Number(currentPrice.toFixed(2))).replace(".", ","));
+    setDescription("");
+    setSelectedProductId(null);
+    setSelectedProductSize("");
+    setQuantity(1);
+    setUnitPrice(0);
+    setShowProductPopover(true);
+    toast.info("Primeira peça adicionada. Selecione a próxima para somar!");
   };
 
   // ── Ajuste de Quantidade ──────────────────────────────────────────────────
@@ -1024,98 +1094,58 @@ function Caixa() {
     return "Ex: Material de escritório, manutenção, conta de luz…";
   }, [isEntrada, category]);
 
-  // ── Cálculos de Desconto / Promoção e Subtotais Consolidados ───────────────
+  // ── Cálculos de Valor, Desconto e Quantidade Total ─────────────────────────
   const grossAmount = toNumber(amount);
   const discountNum = toNumber(discountValue);
 
-  const basketSubtotal = useMemo(() => {
-    return basket.reduce((acc, item) => acc + item.totalPrice, 0);
-  }, [basket]);
-
-  const basketPieces = useMemo(() => {
-    return basket.reduce((acc, item) => acc + item.quantity, 0);
-  }, [basket]);
-
   const totalPieces = useMemo(() => {
-    return basketPieces + (grossAmount > 0 ? quantity : 0);
-  }, [basketPieces, grossAmount, quantity]);
-
-  const combinedGrossAmount = useMemo(() => {
-    return Number((basketSubtotal + (grossAmount > 0 ? grossAmount : 0)).toFixed(2));
-  }, [basketSubtotal, grossAmount]);
+    if (basket.length > 0) {
+      return basket.reduce((acc, item) => acc + item.quantity, 0);
+    }
+    return grossAmount > 0 ? quantity : 0;
+  }, [basket, grossAmount, quantity]);
 
   const calculatedDiscount = useMemo(() => {
-    if (combinedGrossAmount <= 0 || discountNum <= 0) return 0;
+    if (grossAmount <= 0 || discountNum <= 0) return 0;
     if (discountType === "pct") {
-      return Number(((combinedGrossAmount * Math.min(discountNum, 100)) / 100).toFixed(2));
+      return Number(((grossAmount * Math.min(discountNum, 100)) / 100).toFixed(2));
     }
-    return Math.min(discountNum, combinedGrossAmount);
-  }, [combinedGrossAmount, discountNum, discountType]);
+    return Math.min(discountNum, grossAmount);
+  }, [grossAmount, discountNum, discountType]);
 
-  const netAmount = Math.max(combinedGrossAmount - calculatedDiscount, 0);
+  const netAmount = Math.max(grossAmount - calculatedDiscount, 0);
 
   // ── Handlers da Sacola Multi-itens ─────────────────────────────────────────
-  const handleAddToBasket = () => {
-    if (!description.trim()) {
-      toast.error("Informe a peça antes de adicionar");
-      return;
-    }
-    if (grossAmount <= 0) {
-      toast.error("Informe o valor da peça antes de adicionar");
-      return;
-    }
-
-    // Validação de estoque por tamanho se tiver peça vinculada
-    if (selectedProduct && deductStock && selectedProductSize) {
-      const sizesRecord = (selectedProduct.sizes ?? {}) as Record<string, number>;
-      const avail = Number(sizesRecord[selectedProductSize] ?? 0);
-      if (avail < quantity) {
-        toast.warning(
-          `Atenção: estoque de "${selectedProduct.name}" (Tam: ${selectedProductSize}) tem ${avail} un. disponíveis (adicionadas: ${quantity} un.).`
-        );
-      }
-    }
-
-    const itemTotal = grossAmount;
-    const itemUnitPrice = unitPrice > 0 ? unitPrice : itemTotal / quantity;
-
-    const newItem: SaleBasketItem = {
-      id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
-      productId: selectedProductId ?? undefined,
-      productName: description.trim(),
-      size: selectedProductSize || undefined,
-      quantity,
-      unitPrice: itemUnitPrice,
-      totalPrice: itemTotal,
-      deductStock: !!selectedProductId && deductStock,
-    };
-
-    setBasket((prev) => [...prev, newItem]);
-    toast.success(`"${description.trim()}" adicionada à sacola!`);
-
-    // Limpa campos da peça para inserir a próxima com facilidade
-    setDescription("");
-    setAmount("");
-    setSelectedProductId(null);
-    setSelectedProductSize("");
-    setQuantity(1);
-    setUnitPrice(0);
-    setDeductStock(true);
-  };
-
   const handleRemoveFromBasket = (id: string) => {
-    setBasket((prev) => prev.filter((i) => i.id !== id));
+    setBasket((prev) => {
+      const remaining = prev.filter((i) => i.id !== id);
+      if (remaining.length === 0) {
+        setAmount("");
+        setDescription("");
+        setSelectedProductId(null);
+        setSelectedProductSize("");
+        setQuantity(1);
+        setUnitPrice(0);
+      } else {
+        const newTotal = remaining.reduce((sum, i) => sum + i.totalPrice, 0);
+        setAmount(String(Number(newTotal.toFixed(2))).replace(".", ","));
+      }
+      return remaining;
+    });
   };
 
   const handleUpdateBasketQty = (id: string, delta: number) => {
-    setBasket((prev) =>
-      prev.map((item) => {
+    setBasket((prev) => {
+      const updated = prev.map((item) => {
         if (item.id !== id) return item;
         const newQty = Math.max(1, item.quantity + delta);
         const newTotal = Number((item.unitPrice * newQty).toFixed(2));
         return { ...item, quantity: newQty, totalPrice: newTotal };
-      })
-    );
+      });
+      const newTotal = updated.reduce((sum, i) => sum + i.totalPrice, 0);
+      setAmount(String(Number(newTotal.toFixed(2))).replace(".", ","));
+      return updated;
+    });
   };
 
   // ── Listas combinadas (padrão + custom) ──────────────────────────────────
@@ -1239,27 +1269,31 @@ function Caixa() {
   // ── Mutações ──────────────────────────────────────────────────────────────
   const create = useMutation({
     mutationFn: async () => {
-      // Monta a lista completa de itens: itens da sacola + item em digitação (se houver)
-      const allItems: SaleBasketItem[] = [...basket];
-      if (description.trim() && grossAmount > 0) {
-        allItems.push({
-          id: "active-item",
-          productId: selectedProductId ?? undefined,
-          productName: description.trim(),
-          size: selectedProductSize || undefined,
-          quantity,
-          unitPrice: unitPrice > 0 ? unitPrice : grossAmount / quantity,
-          totalPrice: grossAmount,
-          deductStock: !!selectedProductId && deductStock,
-        });
-      }
+      // Monta a lista completa de itens: itens da sacola ou item único ativo
+      const allItems: SaleBasketItem[] =
+        basket.length > 0
+          ? basket
+          : (description.trim() || selectedProductId) && grossAmount > 0
+          ? [
+              {
+                id: "active-item",
+                productId: selectedProductId ?? undefined,
+                productName: description.trim() || selectedProduct?.name || "Peça",
+                size: selectedProductSize || undefined,
+                quantity,
+                unitPrice: unitPrice > 0 ? unitPrice : grossAmount / quantity,
+                totalPrice: grossAmount,
+                deductStock: !!selectedProductId && deductStock,
+              },
+            ]
+          : [];
 
       if (allItems.length === 0) {
         throw new Error(isEntrada ? "Informe ao menos uma peça para registrar a venda" : "Descreva o motivo da saída");
       }
-      if (combinedGrossAmount > 0 && calculatedDiscount >= combinedGrossAmount) {
+      if (grossAmount > 0 && calculatedDiscount >= grossAmount) {
         throw new Error(
-          `O desconto (${brl(calculatedDiscount)}) não pode ser igual ou maior que o valor bruto (${brl(combinedGrossAmount)}). Reduza o desconto para lançar.`,
+          `O desconto (${brl(calculatedDiscount)}) não pode ser igual ou maior que o valor bruto (${brl(grossAmount)}). Reduza o desconto para lançar.`,
         );
       }
       if (netAmount <= 0) throw new Error("Informe um valor maior que zero");
@@ -2027,8 +2061,8 @@ function Caixa() {
                   )}
                 </button>
 
-                {/* Stepper de Quantidade se for Entrada */}
-                {isEntrada && (
+                {/* Stepper de Quantidade — só aparece em modo unitário (sem sacola ativa) */}
+                {isEntrada && basket.length === 0 && (
                   <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-muted/50 px-2.5 py-0.5 text-xs shadow-2xs">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Qtd:</span>
                     <button
@@ -2057,99 +2091,92 @@ function Caixa() {
             </div>
           </Field>
 
-          {/* ── Multi-itens: Ação de Sacola e Lista de Peças Adicionadas (Apenas em Entrada) ── */}
+          {/* ── Multi-itens: sacola fluida (Apenas em Entrada) ── */}
           {isEntrada && (
             <div className="sm:col-span-2 lg:col-span-3 -mt-1 mb-1">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
+
+              {/* Gatilho "+ Adicionar outra peça" — visível só em modo unitário com peça selecionada */}
+              {basket.length === 0 && (description.trim() || selectedProductId) && (
                 <button
                   type="button"
-                  onClick={handleAddToBasket}
-                  disabled={!description.trim() || grossAmount <= 0}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-35 disabled:pointer-events-none cursor-pointer shadow-2xs"
+                  onClick={handleStartMultiItem}
+                  disabled={grossAmount <= 0}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-primary/40 bg-transparent hover:bg-primary/8 text-primary/80 hover:text-primary px-3 py-1 text-xs font-semibold transition-all disabled:opacity-35 disabled:pointer-events-none cursor-pointer"
                 >
-                  <ShoppingBag className="size-3.5" />
-                  <span>
-                    {basket.length > 0
-                      ? "+ Adicionar mais esta peça à sacola"
-                      : "+ Incluir mais peças nesta mesma venda (Multi-itens)"}
-                  </span>
+                  <ShoppingBag className="size-3" />
+                  <span>+ Adicionar outra peça nesta venda</span>
                 </button>
+              )}
 
-                {basket.length > 0 && (
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    🛍️ {basketPieces} {basketPieces === 1 ? "peça já na sacola" : "peças já na sacola"}
-                  </span>
-                )}
-              </div>
-
-              {/* Card Minimalista da Sacola de Venda */}
+              {/* Lista da sacola — aparece quando basket está ativo */}
               {basket.length > 0 && (
-                <div className="mt-3 rounded-2xl border border-primary/25 bg-primary-soft/20 p-3.5 animate-in fade-in-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="size-4 text-primary" />
-                      <span className="text-xs font-bold text-foreground">
-                        Peças na Sacola ({basketPieces} un.)
-                      </span>
-                    </div>
-                    <span className="font-mono text-xs font-bold text-primary">
-                      Subtotal: {brl(basketSubtotal)}
+                <div className="rounded-2xl border border-border/60 bg-surface-muted/30 p-3 space-y-1.5 animate-in fade-in-50">
+                  {/* Header minimalista */}
+                  <div className="flex items-center gap-1.5 pb-1">
+                    <ShoppingBag className="size-3.5 text-primary/70" />
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      {totalPieces} {totalPieces === 1 ? "peça" : "peças"} nesta venda
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {/* Rows dos itens */}
+                  <div className="space-y-1 max-h-44 overflow-y-auto">
                     {basket.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-card border border-border/70 px-3 py-2 shadow-2xs text-xs"
+                        className="flex items-center justify-between gap-2 rounded-xl bg-card border border-border/60 px-3 py-2 shadow-2xs text-xs"
                       >
+                        {/* Nome + Tamanho */}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-semibold text-foreground truncate">{item.productName}</span>
                             {item.size && (
                               <span className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                                Tam: {item.size}
+                                {item.size}
                               </span>
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {item.quantity > 1 ? `${item.quantity} un. × ${brl(item.unitPrice)}` : brl(item.unitPrice)}
+                            {item.quantity > 1
+                              ? `${item.quantity} × ${brl(item.unitPrice)}`
+                              : brl(item.unitPrice)}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex items-center rounded-lg border border-border/60 bg-surface-muted/50 p-0.5">
+                        {/* Stepper de Qtd + Preço + Remover */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center rounded-lg border border-border/60 bg-surface-muted/60 p-0.5">
                             <button
                               type="button"
                               onClick={() => handleUpdateBasketQty(item.id, -1)}
                               disabled={item.quantity <= 1}
-                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer transition-colors"
                               title="Diminuir quantidade"
                             >
                               <Minus className="size-3" />
                             </button>
-                            <span className="w-5 text-center font-mono text-xs font-bold">
+                            <span className="w-5 text-center font-mono text-xs font-bold text-foreground">
                               {item.quantity}
                             </span>
                             <button
                               type="button"
                               onClick={() => handleUpdateBasketQty(item.id, 1)}
-                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                               title="Aumentar quantidade"
                             >
                               <Plus className="size-3" />
                             </button>
                           </div>
 
-                          <span className="font-mono font-bold text-foreground w-20 text-right">
+                          <span className="font-mono font-semibold text-foreground w-16 text-right">
                             {brl(item.totalPrice)}
                           </span>
 
                           <button
                             type="button"
                             onClick={() => handleRemoveFromBasket(item.id)}
-                            className="p-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                            title="Remover peça da sacola"
+                            className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors cursor-pointer"
+                            title="Remover desta venda"
                           >
                             <X className="size-3.5" />
                           </button>
@@ -2157,6 +2184,11 @@ function Caixa() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Hint para adicionar mais — seleciona no campo acima */}
+                  <p className="text-[11px] text-muted-foreground/70 pt-0.5">
+                    Selecione outra peça no campo acima para adicionar à venda.
+                  </p>
                 </div>
               )}
             </div>
