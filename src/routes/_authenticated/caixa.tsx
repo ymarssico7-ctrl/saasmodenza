@@ -955,116 +955,98 @@ function Caixa() {
         title="Balcão & PDV"
         description="Registre cada venda física e despesas da sua loja. O saldo se atualiza na hora."
         action={
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-2xs">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/70 px-3 py-1 text-xs font-medium text-muted-foreground/80 shadow-2xs backdrop-blur-xs">
+            <span className="size-1.5 rounded-full bg-emerald-600/70 dark:bg-emerald-400/70" />
             <span>Caixa Aberto</span>
           </div>
         }
       />
 
-      {/* ── Cockpit de KPIs Apple Bento (Compacto, Aerodinâmico e Focado) ──── */}
+      {/* ── Cockpit de KPIs Quiet Luxury (Apple Zen: Monocromia Nobre e Paz Visual) ──── */}
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Saldo de Hoje (Hero do Balcão) */}
-        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
               Saldo de Hoje
             </span>
-            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary shadow-2xs">
-              <Wallet className="size-3.5" />
-            </div>
+            <Wallet className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <div className="my-1.5">
-            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${
-              todayBalance > 0
-                ? "text-emerald-600 dark:text-emerald-400"
-                : todayBalance < 0
-                ? "text-rose-600 dark:text-rose-400"
-                : "text-foreground"
-            }`}>
+          <div className="my-2">
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(todayBalance)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">
+          <p className="text-[11px] text-muted-foreground/70 truncate">
             {todayTxs.length > 0
               ? `${todayTxs.length} lançamento${todayTxs.length !== 1 ? "s" : ""} hoje`
-              : "Pronto para as vendas do dia"}
+              : "Pronto para o dia"}
           </p>
         </div>
 
         {/* Card 2: Entradas do Mês */}
-        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
               Entradas do Mês
             </span>
-            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs">
-              <ArrowUpRight className="size-3.5" />
-            </div>
+            <ArrowUpRight className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <div className="my-1.5">
-            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${revenue > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
+          <div className="my-2">
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(revenue)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">
+          <p className="text-[11px] text-muted-foreground/70 truncate">
             {monthRefunds > 0
-              ? `Líq: ${brl(revenue - monthRefunds)} (${brl(monthRefunds)} estornos)`
+              ? `Líq: ${brl(revenue - monthRefunds)}`
               : revenue > 0
-              ? `${monthTxs.filter((t) => t.kind === "entrada").length} entrada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} no mês`
-              : "Iniciando movimentações"}
+              ? `${monthTxs.filter((t) => t.kind === "entrada").length} entradas`
+              : "No período"}
           </p>
         </div>
 
         {/* Card 3: Total de Saídas */}
-        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
               Total de Saídas
             </span>
-            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-2xs">
-              <ArrowDownRight className="size-3.5" />
-            </div>
+            <ArrowDownRight className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <div className="my-1.5">
-            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${expenses > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+          <div className="my-2">
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
               {brl(expenses)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">
+          <p className="text-[11px] text-muted-foreground/70 truncate">
             {monthRefunds > 0
-              ? `Operacional: ${brl(expenses - monthRefunds)} (${brl(monthRefunds)} estornos)`
+              ? `Operacional: ${brl(expenses - monthRefunds)}`
               : expenses > 0
-              ? `${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`
-              : "Nenhuma saída registrada"}
+              ? `${monthTxs.filter((t) => t.kind === "saida").length} saídas`
+              : "No período"}
           </p>
         </div>
 
         {/* Card 4: Resultado do Mês */}
-        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+        <div className="group relative p-4 rounded-2xl border border-border/60 bg-card shadow-2xs hover:border-border/90 hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
               Resultado do Mês
             </span>
-            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 shadow-2xs">
-              <TrendingUp className="size-3.5" />
-            </div>
+            <TrendingUp className="size-4 text-muted-foreground/45 transition-colors group-hover:text-muted-foreground" strokeWidth={1.5} />
           </div>
-          <div className="my-1.5">
-            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${
-              revenue - expenses > 0
-                ? "text-emerald-600 dark:text-emerald-400"
-                : revenue - expenses < 0
-                ? "text-rose-600 dark:text-rose-400"
-                : "text-foreground"
+          <div className="my-2">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+              revenue - expenses < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
             }`}>
               {brl(revenue - expenses)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">
+          <p className="text-[11px] text-muted-foreground/70 truncate">
             {revenue > 0
               ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%`
-              : "Margem sob controle"}
+              : "Líquido no mês"}
           </p>
         </div>
       </div>
