@@ -330,6 +330,267 @@ function QuickProductDialog({
   );
 }
 
+
+// ── Mini Date Range Picker (Apple-level, zero deps) ─────────────────────────
+function MiniDateRangePicker({
+  start,
+  end,
+  onChange,
+  onClose,
+}: {
+  start: string;
+  end: string;
+  onChange: (s: string, e: string) => void;
+  onClose: () => void;
+}) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  // viewYear/viewMonth controlam o mês da coluna ESQUERDA
+  const [viewYear, setViewYear] = useState(() => {
+    const d = start ? new Date(start + "T00:00:00") : today;
+    return d.getFullYear();
+  });
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = start ? new Date(start + "T00:00:00") : today;
+    return d.getMonth();
+  });
+
+  // phase: "start" = aguardando clique de início, "end" = aguardando clique de fim
+  const [phase, setPhase] = useState<"start" | "end">("start");
+  const [tempStart, setTempStart] = useState(start);
+  const [hoverDay, setHoverDay] = useState<string | null>(null);
+
+  const monthNames = [
+    "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+    "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro",
+  ];
+
+  // Calcula mês direito (pode virar para o ano seguinte)
+  const rightMonth = (viewMonth + 1) % 12;
+  const rightYear = viewMonth === 11 ? viewYear + 1 : viewYear;
+
+  function goLeft() {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  }
+  function goRight() {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  }
+
+  // Gera array de dias para o grid de um mês (com padding de início)
+  function getDays(year: number, month: number) {
+    const firstDay = new Date(year, month, 1).getDay(); // 0=dom
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // Ajuste para semana começar na segunda (0=seg, 6=dom)
+    const startPad = (firstDay + 6) % 7;
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < startPad; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    return cells;
+  }
+
+  function dayStr(year: number, month: number, day: number) {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function handleDayClick(ds: string) {
+    if (phase === "start") {
+      setTempStart(ds);
+      setPhase("end");
+    } else {
+      let s = tempStart;
+      let e = ds;
+      if (e < s) { [s, e] = [e, s]; }
+      onChange(s, e);
+      setPhase("start");
+      setTempStart(s);
+      onClose();
+    }
+  }
+
+  function inRange(ds: string) {
+    const s = phase === "end" ? tempStart : start;
+    const e = phase === "end" ? (hoverDay ?? end) : end;
+    if (!s || !e) return false;
+    const [lo, hi] = s <= e ? [s, e] : [e, s];
+    return ds > lo && ds < hi;
+  }
+
+  function isStart(ds: string) {
+    return ds === (phase === "end" ? tempStart : start);
+  }
+  function isEnd(ds: string) {
+    if (phase === "end") return ds === hoverDay;
+    return ds === end;
+  }
+
+  // Atalhos rápidos
+  function applyPreset(s: string, e: string) {
+    onChange(s, e);
+    onClose();
+  }
+
+  function renderMonthGrid(year: number, month: number) {
+    const days = getDays(year, month);
+    const weekLabels = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
+    return (
+      <div className="flex-1 min-w-0">
+        {/* Cabeçalho do mês */}
+        <div className="text-center text-[11px] font-bold text-foreground mb-2">
+          {monthNames[month]} {year}
+        </div>
+        {/* Labels de dias da semana */}
+        <div className="grid grid-cols-7 mb-1">
+          {weekLabels.map(l => (
+            <div key={l} className="text-center text-[9px] font-semibold text-muted-foreground/60 py-0.5">
+              {l}
+            </div>
+          ))}
+        </div>
+        {/* Células */}
+        <div className="grid grid-cols-7 gap-y-0.5">
+          {days.map((d, i) => {
+            if (!d) return <div key={`pad-${i}`} />;
+            const ds = dayStr(year, month, d);
+            const isS = isStart(ds);
+            const isE = isEnd(ds);
+            const isInR = inRange(ds);
+            const isT = ds === todayStr;
+            return (
+              <button
+                key={ds}
+                type="button"
+                onClick={() => handleDayClick(ds)}
+                onMouseEnter={() => phase === "end" && setHoverDay(ds)}
+                onMouseLeave={() => phase === "end" && setHoverDay(null)}
+                className={[
+                  "relative flex flex-col items-center justify-center w-7 h-7 mx-auto rounded-full text-[11px] transition-all cursor-pointer select-none",
+                  isS || isE
+                    ? "bg-foreground text-background font-bold shadow-sm"
+                    : isInR
+                    ? "bg-foreground/10 text-foreground rounded-none"
+                    : "hover:bg-surface-muted text-foreground",
+                ].join(" ")}
+              >
+                {d}
+                {isT && !isS && !isE && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary/70" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  const displayStart = start
+    ? new Date(start + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
+    : "—";
+  const displayEnd = end
+    ? new Date(end + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
+    : "—";
+
+  const nowDate = new Date();
+  function sevenDaysAgo() {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  }
+  function firstOfMonth() {
+    return todayStr.slice(0, 8) + "01";
+  }
+
+  return (
+    <div
+      className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-border/70 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 p-4 w-auto"
+      style={{ minWidth: 340 }}
+    >
+      {/* Fase indicator */}
+      <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-border/40">
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className={phase === "start" ? "font-bold text-foreground" : "text-muted-foreground"}>
+            {displayStart}
+          </span>
+          <span className="text-muted-foreground/40">→</span>
+          <span className={phase === "end" ? "font-bold text-foreground" : "text-muted-foreground"}>
+            {phase === "end" && hoverDay
+              ? new Date(hoverDay + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
+              : displayEnd}
+          </span>
+          {phase === "end" && (
+            <span className="ml-1 rounded-full bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+              clique no dia final
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-muted-foreground hover:text-foreground cursor-pointer"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+
+      {/* Navegação + grids */}
+      <div className="flex items-start gap-1 mb-3">
+        {/* Seta esquerda */}
+        <button
+          type="button"
+          onClick={goLeft}
+          className="mt-0 rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
+        >
+          <ChevronLeft className="size-3.5" />
+        </button>
+
+        {/* Dois grids de mês */}
+        <div className="flex gap-4 flex-1">
+          {renderMonthGrid(viewYear, viewMonth)}
+          <div className="w-px bg-border/40 self-stretch" />
+          {renderMonthGrid(rightYear, rightMonth)}
+        </div>
+
+        {/* Seta direita */}
+        <button
+          type="button"
+          onClick={goRight}
+          className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
+        >
+          <ChevronRight className="size-3.5" />
+        </button>
+      </div>
+
+      {/* Atalhos rápidos */}
+      <div className="flex items-center gap-1.5 pt-2.5 border-t border-border/40">
+        <span className="text-[10px] text-muted-foreground/60 mr-1">Atalho:</span>
+        <button
+          type="button"
+          onClick={() => applyPreset(todayStr, todayStr)}
+          className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
+        >
+          Hoje
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset(sevenDaysAgo(), todayStr)}
+          className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
+        >
+          Últimos 7 dias
+        </button>
+        <button
+          type="button"
+          onClick={() => applyPreset(firstOfMonth(), todayStr)}
+          className="rounded-lg border border-border/60 bg-surface-muted/60 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer transition-colors"
+        >
+          Este mês
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Constantes estáticas de base ────────────────────────────────────────────
 const baseEntryCategories = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
 const baseExitCategories = EXIT_CATEGORIES as readonly { value: string; label: string }[];
@@ -438,6 +699,7 @@ function Caixa() {
   const [showExtratoSearchPopover, setShowExtratoSearchPopover] = useState(false);
   const [activeFilterChip, setActiveFilterChip] = useState<string | null>(null);
   const extratoSearchInputRef = useRef<HTMLInputElement>(null);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -948,14 +1210,31 @@ function Caixa() {
 
   // ── Dados para o Menu Spotlight de Busca Rápida ───────────────────────────
   const spotlightOptions = useMemo(() => {
-    const clientsSet = new Set<string>();
     const productsSet = new Set<string>();
+    const matchedCustomers: { id: string; name: string }[] = [];
+    const seenCustomerIds = new Set<string>();
+
     for (const t of currentPeriodTxs) {
       if (t.description) {
         const clean = t.description.replace(/\s*\[Desconto:.*\]/, "").trim();
         productsSet.add(clean);
       }
     }
+
+    // Detecta clientes que aparecem nas transações do período via busca textual
+    for (const customer of customers) {
+      if (seenCustomerIds.has(customer.id)) continue;
+      const nameLower = customer.name.toLowerCase();
+      const found = currentPeriodTxs.some(
+        (t) => t.description.toLowerCase().includes(nameLower)
+      );
+      if (found) {
+        matchedCustomers.push({ id: customer.id, name: customer.name });
+        seenCustomerIds.add(customer.id);
+        if (matchedCustomers.length >= 6) break;
+      }
+    }
+
     return {
       methods: [
         { label: "Pix", value: "pix" },
@@ -971,8 +1250,9 @@ function Caixa() {
         { label: "Despesas / Custos", value: "despesa" },
       ],
       recentProducts: Array.from(productsSet).slice(0, 5),
+      recentCustomers: matchedCustomers,
     };
-  }, [currentPeriodTxs]);
+  }, [currentPeriodTxs, customers]);
 
   // ── Extrato Filtrado e Buscado Instantaneamente ───────────────────────────
   const filteredMonthTxs = useMemo(() => {
@@ -2115,34 +2395,64 @@ function Caixa() {
             </div>
           </div>
 
-          {/* Gaveta de Filtro de Data Customizado (Quando ativo) */}
+          {/* Gaveta de Filtro de Data Customizado — Mini Dual Calendar Picker */}
           {periodMode === "custom" && (
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-surface-muted/40 p-3.5 text-xs animate-in fade-in-50">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground">De:</span>
-                <Input
-                  type="date"
-                  value={customRangeStart}
-                  onChange={(e) => setCustomRangeStart(e.target.value)}
-                  className="h-8 rounded-xl text-xs bg-card border-border/70 font-mono w-36"
+            <div className="relative flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-surface-muted/40 p-3 text-xs animate-in fade-in-50">
+              {/* Pílula trigger que abre o dual calendar */}
+              <button
+                type="button"
+                onClick={() => setShowDateRangePicker((v) => !v)}
+                className={[
+                  "inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-2xs",
+                  showDateRangePicker
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/60 bg-card text-foreground hover:border-primary/30 hover:bg-primary/5",
+                ].join(" ")}
+              >
+                <CalendarDays className="size-3.5 text-muted-foreground" />
+                <span>
+                  {customRangeStart
+                    ? new Date(customRangeStart + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
+                    : "—"}
+                </span>
+                <span className="text-muted-foreground/50 font-normal">→</span>
+                <span>
+                  {customRangeEnd
+                    ? new Date(customRangeEnd + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
+                    : "—"}
+                </span>
+                <ChevronDown className={[
+                  "size-3 text-muted-foreground transition-transform",
+                  showDateRangePicker ? "rotate-180" : "",
+                ].join(" ")} />
+              </button>
+
+              {/* Overlay invisível para fechar */}
+              {showDateRangePicker && (
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setShowDateRangePicker(false)}
                 />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-foreground">Até:</span>
-                <Input
-                  type="date"
-                  value={customRangeEnd}
-                  onChange={(e) => setCustomRangeEnd(e.target.value)}
-                  className="h-8 rounded-xl text-xs bg-card border-border/70 font-mono w-36"
+              )}
+
+              {/* Componente de calendário duplo */}
+              {showDateRangePicker && (
+                <MiniDateRangePicker
+                  start={customRangeStart}
+                  end={customRangeEnd}
+                  onChange={(s, e) => {
+                    setCustomRangeStart(s);
+                    setCustomRangeEnd(e);
+                  }}
+                  onClose={() => setShowDateRangePicker(false)}
                 />
-              </div>
+              )}
+
+              {/* Atalhos rápidos (sempre visíveis) */}
               <div className="flex items-center gap-1.5 ml-auto">
                 <button
                   type="button"
-                  onClick={() => {
-                    setCustomRangeStart(todayISO());
-                    setCustomRangeEnd(todayISO());
-                  }}
+                  onClick={() => { setCustomRangeStart(todayISO()); setCustomRangeEnd(todayISO()); setShowDateRangePicker(false); }}
                   className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Hoje
@@ -2150,10 +2460,10 @@ function Caixa() {
                 <button
                   type="button"
                   onClick={() => {
-                    const now = new Date();
-                    now.setDate(now.getDate() - 7);
+                    const now = new Date(); now.setDate(now.getDate() - 7);
                     setCustomRangeStart(now.toISOString().slice(0, 10));
                     setCustomRangeEnd(todayISO());
+                    setShowDateRangePicker(false);
                   }}
                   className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
                 >
@@ -2161,10 +2471,7 @@ function Caixa() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCustomRangeStart(todayISO().slice(0, 8) + "01");
-                    setCustomRangeEnd(todayISO());
-                  }}
+                  onClick={() => { setCustomRangeStart(todayISO().slice(0, 8) + "01"); setCustomRangeEnd(todayISO()); setShowDateRangePicker(false); }}
                   className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Este mês
@@ -2320,6 +2627,32 @@ function Caixa() {
                               className="rounded-xl border border-border/60 bg-surface-muted/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all cursor-pointer shadow-2xs truncate max-w-full"
                             >
                               {p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Grupo 4: Clientes do período */}
+                    {spotlightOptions.recentCustomers.length > 0 && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 block mb-1.5">
+                          👤 Clientes no Período
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {spotlightOptions.recentCustomers.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setExtratoSearch(c.name);
+                                setActiveFilterChip(null);
+                                setShowExtratoSearchPopover(false);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-surface-muted/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all cursor-pointer shadow-2xs"
+                            >
+                              <User className="size-3 shrink-0" />
+                              {c.name}
                             </button>
                           ))}
                         </div>
