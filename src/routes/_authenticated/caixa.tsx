@@ -995,56 +995,6 @@ function Caixa() {
     return "Ex: Material de escritório, manutenção, conta de luz…";
   }, [isEntrada, category]);
 
-  // ── Impacto Contábil Live Feedback (Linguagem Humana & Simples Apple) ─────
-  const managementImpact = useMemo(() => {
-    if (isEntrada) {
-      return {
-        icon: "💰",
-        title: "Venda / Entrada",
-        desc: "Soma no faturamento e aumenta o dinheiro no caixa da loja.",
-        style: "border-emerald-200 bg-emerald-50/50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400",
-      };
-    }
-    if (category === "compra_estoque") {
-      return {
-        icon: "📦",
-        title: "Novas Peças (Compra)",
-        desc: "Investimento para trazer mais roupas e novidades para a loja.",
-        style: "border-blue-200 bg-blue-50/50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/20 dark:text-blue-400",
-      };
-    }
-    if (category === "estorno_devolucao") {
-      return {
-        icon: "🔄",
-        title: "Estorno / Devolução de Cliente",
-        desc: "Devolve o valor à cliente e retorna a peça intacta ao estoque de venda (+1 un.).",
-        style: "border-amber-200 bg-amber-50/50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-400",
-      };
-    }
-    if (category === "perda_avaria") {
-      return {
-        icon: "⚠️",
-        title: "Perda / Avaria de Estoque",
-        desc: "Registra o prejuízo da peça danificada/furtada e dá baixa no estoque (-1 un.).",
-        style: "border-rose-200 bg-rose-50/50 text-rose-800 dark:border-rose-800/40 dark:bg-rose-950/20 dark:text-rose-400",
-      };
-    }
-    if (category === "prolabore") {
-      return {
-        icon: "👤",
-        title: "Seu Pagamento",
-        desc: "Retirada de dinheiro para o seu bolso como dona do negócio.",
-        style: "border-purple-200 bg-purple-50/50 text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/20 dark:text-purple-400",
-      };
-    }
-    return {
-      icon: "💸",
-      title: "Custo da Loja",
-      desc: "Pagamento necessário para manter sua loja aberta e funcionando.",
-      style: "border-rose-200 bg-rose-50/50 text-rose-800 dark:border-rose-800/40 dark:bg-rose-950/20 dark:text-rose-400",
-    };
-  }, [isEntrada, category]);
-
   // ── Cálculos de Desconto / Promoção ───────────────────────────────────────
   const grossAmount = toNumber(amount);
   const discountNum = toNumber(discountValue);
@@ -1257,6 +1207,7 @@ function Caixa() {
       setSelectedProductId(null);
       setSelectedProductSize("");
       setSelectedCustomerId("");
+      setCustomerSearch("");
       setDeductStock(true);
       setFiadoCustomerId("");
       setFiadoDueDate(todayISO());
@@ -1281,14 +1232,18 @@ function Caixa() {
         }
       }
 
-      // Caso 2: peça de Tamanho Único com estoque total zerado (sem chips de grade)
+      // Caso 2: peça de grade com múltiplos tamanhos, mas nenhum chip de tamanho foi clicado
+      if (!selectedProductSize && sizeKeys.length > 1 && !(sizeKeys.length === 1 && sizeKeys[0] === "Único")) {
+        toast.warning("Selecione o tamanho da peça vendida antes de lançar para baixar o estoque corretamente.");
+        return;
+      }
+
+      // Caso 3: peça de Tamanho Único com estoque total zerado (sem chips de grade)
       if (!selectedProductSize && (sizeKeys.length === 0)) {
-        // Nenhum tamanho cadastrado — estoque totalmente zerado
         setConfirmZeroStockOpen(true);
         return;
       }
       if (!selectedProductSize && sizeKeys.length > 0) {
-        // Peça com tamanhos mas nenhum chip selecionado — verifica estoque total
         const totalQty = Object.values(sizesRecord).reduce((a, b) => a + Number(b || 0), 0);
         if (totalQty <= 0) {
           setConfirmZeroStockOpen(true);
@@ -1960,7 +1915,7 @@ function Caixa() {
                 }
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl">
+              <SelectTrigger className="h-12 rounded-2xl bg-card border-border/70 text-xs font-medium shadow-2xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1982,121 +1937,21 @@ function Caixa() {
             </Select>
           </Field>
 
-          {/* Cliente (Busca Spotlight / Autocomplete Apple Level — Exibido no grid superior APENAS se não for Fiado) */}
-          {!isFiado && (
-            <Field label="Cliente (Opcional)" className="relative">
-              <div className="relative">
-                <Input
-                  ref={customerInputRef}
-                  value={selectedCustomer ? selectedCustomer.name : customerSearch}
-                  onFocus={() => {
-                    if (!selectedCustomer) setShowCustomerPopover(true);
-                  }}
-                  onKeyDown={handleKeyDownCustomer}
-                  onChange={(e) => {
-                    if (selectedCustomer) handleClearCustomer();
-                    setCustomerSearch(e.target.value);
-                    setShowCustomerPopover(true);
-                  }}
-                  placeholder={
-                    isEntrada
-                      ? "Digite o nome ou telefone da cliente…"
-                      : "Digite o nome ou telefone para estorno/devolução…"
-                  }
-                  className="h-11 rounded-xl pr-9"
-                />
-                {selectedCustomer ? (
-                  <button
-                    type="button"
-                    onClick={handleClearCustomer}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
-                )}
-              </div>
-
-              {/* Menu Dropdown Autocomplete de Clientes */}
-              {showCustomerPopover && !selectedCustomer && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowCustomerPopover(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                    {matchingCustomers.length > 0 ? (
-                      <>
-                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          👤 Clientes Encontradas ({matchingCustomers.length})
-                        </div>
-                        {matchingCustomers.map((c, idx) => {
-                          const isHighlighted = idx === customerHighlight;
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
-                                isHighlighted
-                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
-                                  : "hover:bg-primary-soft/50"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                                  {c.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate font-medium leading-tight">{c.name}</p>
-                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                        <div className="my-1.5 h-px bg-border" />
-                      </>
-                    ) : null}
-
-                    {/* Atalho Inteligente para Cadastrar Nova Cliente */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCustomerPopover(false);
-                        setAddCustomerOpen(true);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
-                        customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {customerSearch.trim()
-                        ? `Cadastrar "${customerSearch.trim()}" na base`
-                        : "Cadastrar nova cliente…"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </Field>
-          )}
-
           {/* Data com atalhos "Hoje" / "Ontem" / Outra data */}
           <Field label="Data">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex gap-1.5">
                 {(["hoje", "ontem", "custom"] as const).map((m) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => setDateMode(m)}
-                    className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
+                    className={`flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl border text-xs font-medium transition-all cursor-pointer ${
                       dateMode === m
                         ? isEntrada
                           ? "border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold shadow-2xs"
                           : "border-rose-600/40 bg-rose-500/10 text-rose-700 dark:text-rose-400 font-semibold shadow-2xs"
-                        : "border-border/60 bg-card text-muted-foreground hover:border-border hover:text-foreground"
+                        : "border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground shadow-2xs"
                     }`}
                   >
                     {m === "custom" ? (
@@ -2137,6 +1992,113 @@ function Caixa() {
               )}
             </div>
           </Field>
+
+          {/* Cliente / Favorecido (Busca Spotlight / Autocomplete Apple Level — Exibido no grid superior APENAS se não for Fiado) */}
+          {!isFiado && (
+            <Field
+              label={isEntrada ? "Cliente (Opcional)" : "Favorecido / Fornecedor (Opcional)"}
+              className="relative sm:col-span-2 lg:col-span-3"
+            >
+              <div className="relative">
+                <Input
+                  ref={customerInputRef}
+                  value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                  onFocus={() => {
+                    if (!selectedCustomer) setShowCustomerPopover(true);
+                  }}
+                  onKeyDown={handleKeyDownCustomer}
+                  onChange={(e) => {
+                    if (selectedCustomer) handleClearCustomer();
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerPopover(true);
+                  }}
+                  placeholder={
+                    isEntrada
+                      ? "Digite o nome ou telefone da cliente…"
+                      : "Ex: Fornecedor de tecidos, eletricista, proprietário, prestador…"
+                  }
+                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+                {selectedCustomer ? (
+                  <button
+                    type="button"
+                    onClick={handleClearCustomer}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                )}
+              </div>
+
+              {/* Menu Dropdown Autocomplete de Clientes / Favorecidos */}
+              {showCustomerPopover && !selectedCustomer && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowCustomerPopover(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    {matchingCustomers.length > 0 ? (
+                      <>
+                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {isEntrada ? `👤 Clientes Encontradas (${matchingCustomers.length})` : `👤 Favorecidos Encontrados (${matchingCustomers.length})`}
+                        </div>
+                        {matchingCustomers.map((c, idx) => {
+                          const isHighlighted = idx === customerHighlight;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => handleSelectCustomer(c)}
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                                isHighlighted
+                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
+                                  : "hover:bg-primary-soft/50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                  {c.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium leading-tight">{c.name}</p>
+                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                        <div className="my-1.5 h-px bg-border" />
+                      </>
+                    ) : null}
+
+                    {/* Atalho Inteligente para Cadastrar Nova Cliente / Favorecido */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomerPopover(false);
+                        setAddCustomerOpen(true);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
+                        customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {customerSearch.trim()
+                        ? isEntrada
+                          ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
+                          : `Cadastrar "${customerSearch.trim()}" na base`
+                        : isEntrada
+                        ? "Cadastrar nova cliente…"
+                        : "Cadastrar novo favorecido/fornecedor…"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Field>
+          )}
         </div>
 
         {/* ── Painel Expansível Sutil de Desconto / Promoção ────────────────── */}
@@ -2218,17 +2180,6 @@ function Caixa() {
             )}
           </div>
         )}
-
-        {/* ── Micro-Card de Impacto na Gestão (Apple Live Feedback) ─────────── */}
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-border/60 bg-surface-muted/40 p-3.5 text-xs text-muted-foreground transition-all">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-card border border-border/50 text-foreground/80 shadow-2xs">
-            <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <p className="text-xs text-muted-foreground/90 leading-relaxed">
-            <strong className="font-semibold text-foreground">{managementImpact.title}:</strong>{" "}
-            {managementImpact.desc}
-          </p>
-        </div>
 
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
         {selectedProduct && (
@@ -2462,15 +2413,47 @@ function Caixa() {
           </div>
         )}
 
-        {/* ── Botão de envio com cor dinâmica ─────────────────────────── */}
+        {/* ── Barra de Ação Inferior (Ergonomia Fitts + Bilateral Balance) ── */}
         <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-border/40 pt-5">
+          {/* Total da Operação à Esquerda */}
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-2xl border border-border/60 bg-surface-muted/50 px-4 py-2.5 shadow-2xs">
+              <span className="block text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70">
+                Total da operação
+              </span>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span
+                  className={`font-mono text-2xl font-black leading-none ${
+                    netAmount > 0
+                      ? isEntrada
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {brl(netAmount)}
+                </span>
+                {calculatedDiscount > 0 && (
+                  <span className="text-xs text-muted-foreground line-through font-mono">
+                    De {brl(grossAmount)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] font-medium text-muted-foreground mt-1">
+                Via {resolvePayment({ payment_method: method } as any)}
+                {selectedCustomer ? ` • ${selectedCustomer.name}` : ""}
+              </p>
+            </div>
+          </div>
+
+          {/* Botão de Envio à Direita */}
           <Button
-            className={`h-12 rounded-2xl px-7 text-sm font-bold tracking-tight transition-all cursor-pointer shadow-md flex items-center gap-2 self-start ${
+            className={`h-12 rounded-2xl px-8 text-sm font-bold tracking-tight transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 w-full sm:w-auto ${
               isEntrada
                 ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
                 : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
             }`}
-            disabled={create.isPending}
+            disabled={create.isPending || netAmount <= 0}
             onClick={handleTriggerSubmit}
           >
             {create.isPending ? (
@@ -2482,33 +2465,6 @@ function Caixa() {
               </>
             )}
           </Button>
-
-          {/* Resumo Vivo de Conferência à Direita (Bilateral Balance) */}
-          {grossAmount > 0 && (
-            <div className="flex items-center gap-3 text-right sm:self-auto animate-in fade-in-50">
-              <div className="text-xs text-muted-foreground">
-                <span className="block text-[10px] uppercase font-semibold tracking-wider text-muted-foreground/70">
-                  Total da operação
-                </span>
-                <span className="font-medium">
-                  Via {resolvePayment({ payment_method: method } as any)}
-                  {selectedCustomer ? ` • ${selectedCustomer.name}` : ""}
-                </span>
-              </div>
-              <div className="border-l border-border/60 pl-3">
-                <p className={`font-mono text-xl font-black leading-none ${
-                  isEntrada ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                }`}>
-                  {brl(netAmount)}
-                </p>
-                {calculatedDiscount > 0 && (
-                  <span className="text-[10px] text-muted-foreground line-through block mt-0.5">
-                    De {brl(grossAmount)}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── Diálogo Guardrail de Venda com Estoque Zerado (Apple UX) ───────── */}
