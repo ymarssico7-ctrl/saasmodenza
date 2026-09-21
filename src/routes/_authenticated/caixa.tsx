@@ -295,7 +295,7 @@ function QuickProductDialog({
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-muted-foreground">Categoria</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-11 rounded-xl">
+                <SelectTrigger className="h-12 rounded-2xl bg-card border-border/70 text-xs font-medium shadow-2xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1079,27 +1079,31 @@ function Caixa() {
         <h2 className="text-lg font-bold tracking-tight text-foreground">Novo lançamento</h2>
 
         {/* Segmented Control — Entrada / Saída */}
-        <div className="mt-5 inline-flex rounded-full bg-surface-muted p-1 gap-1">
-          {(["entrada", "saida"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => handleKindChange(k)}
-              className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-200 ${
-                kind === k
-                  ? k === "entrada"
-                    ? "bg-emerald-600 text-white shadow-sm"
-                    : "bg-rose-600 text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {k === "entrada" ? (
-                <Plus className="size-3.5" />
-              ) : (
-                <Minus className="size-3.5" />
-              )}
-              {k === "entrada" ? "Entrada" : "Saída"}
-            </button>
-          ))}
+        <div className="mt-4 inline-flex items-center rounded-2xl bg-surface-muted/80 p-1 border border-border/50 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => handleKindChange("entrada")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+              isEntrada
+                ? "bg-card text-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className={`size-2 rounded-full ${isEntrada ? "bg-emerald-500 shadow-xs" : "bg-muted-foreground/40"}`} />
+            Entrada
+          </button>
+          <button
+            type="button"
+            onClick={() => handleKindChange("saida")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+              !isEntrada
+                ? "bg-card text-foreground shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className={`size-2 rounded-full ${!isEntrada ? "bg-rose-500 shadow-xs" : "bg-muted-foreground/40"}`} />
+            Saída
+          </button>
         </div>
 
         {/* Grid de Campos */}
@@ -1116,7 +1120,7 @@ function Caixa() {
                   setShowProductPopover(true);
                 }}
                 placeholder={descriptionPlaceholder}
-                className="h-11 rounded-xl pr-9"
+                className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
               />
               {selectedProduct ? (
                 <button
@@ -1270,7 +1274,7 @@ function Caixa() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="189,90"
-                  className="h-11 rounded-xl pl-7 font-mono"
+                  className="h-12 rounded-2xl pl-8 font-mono font-bold text-base bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
               </div>
 
@@ -1278,14 +1282,21 @@ function Caixa() {
               <button
                 type="button"
                 onClick={() => setShowDiscount(!showDiscount)}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
               >
-                <Tag className="h-3 w-3" />
-                {showDiscount
-                  ? "Remover desconto"
-                  : isEntrada
-                  ? "+ Aplicar desconto / promoção"
-                  : "+ Desconto / abatimento obtido"}
+                <Tag className="size-3 text-muted-foreground" />
+                <span>
+                  {showDiscount
+                    ? "Ocultar desconto"
+                    : isEntrada
+                    ? "+ Desconto / promoção"
+                    : "+ Desconto obtido"}
+                </span>
+                {calculatedDiscount > 0 && (
+                  <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">
+                    (−{brl(calculatedDiscount)})
+                  </span>
+                )}
               </button>
             </div>
           </Field>
@@ -1303,7 +1314,7 @@ function Caixa() {
                 setCategory(v);
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl">
+              <SelectTrigger className="h-12 rounded-2xl bg-card border-border/70 text-xs font-medium shadow-2xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1470,15 +1481,18 @@ function Caixa() {
                 {(["hoje", "ontem", "custom"] as const).map((m) => (
                   <button
                     key={m}
+                    type="button"
                     onClick={() => setDateMode(m)}
-                    className={`flex h-9 flex-1 items-center justify-center gap-1 rounded-xl border text-xs font-medium transition-all ${
+                    className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                       dateMode === m
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        ? isEntrada
+                          ? "border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold shadow-2xs"
+                          : "border-rose-600/40 bg-rose-500/10 text-rose-700 dark:text-rose-400 font-semibold shadow-2xs"
+                        : "border-border/60 bg-card text-muted-foreground hover:border-border hover:text-foreground"
                     }`}
                   >
                     {m === "custom" ? (
-                      <><CalendarDays className="h-3.5 w-3.5" /> Outra</>
+                      <><CalendarDays className="size-3.5" /> Outra</>
                     ) : (
                       m.charAt(0).toUpperCase() + m.slice(1)
                     )}
@@ -1491,18 +1505,26 @@ function Caixa() {
                     type="date"
                     value={customDate}
                     onChange={(e) => setCustomDate(e.target.value)}
-                    className="h-10 rounded-xl text-sm"
+                    className="h-10 rounded-xl text-xs font-medium bg-card"
                   />
                   {customDate > todayISO() && (
                     <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                      ⚠️ Data futura selecionada: este lançamento entrará no fluxo de caixa de {customDate.slice(0, 7)}.
+                      ⚠️ Data futura: este lançamento entrará no fluxo de {customDate.slice(0, 7)}.
                     </p>
                   )}
                 </div>
               )}
               {dateMode !== "custom" && (
-                <p className="text-xs text-muted-foreground">
-                  {dateMode === "hoje" ? todayISO() : yesterdayISO()}
+                <p className="text-[11px] font-medium text-muted-foreground/80 flex items-center gap-1.5">
+                  <Clock className="size-3 opacity-60" />
+                  {(() => {
+                    const dStr = dateMode === "hoje" ? todayISO() : yesterdayISO();
+                    const [y, m, d] = dStr.split("-").map(Number);
+                    const dateObj = new Date(y, (m || 1) - 1, d || 1);
+                    const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+                    const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+                    return `${weekdays[dateObj.getDay()]}, ${d} de ${months[(m || 1) - 1]}`;
+                  })()}
                 </p>
               )}
             </div>
@@ -1590,12 +1612,14 @@ function Caixa() {
         )}
 
         {/* ── Micro-Card de Impacto na Gestão (Apple Live Feedback) ─────────── */}
-        <div className={`mt-5 flex items-center gap-3 rounded-2xl border p-4 transition-all ${managementImpact.style}`}>
-          <span className="text-lg">{managementImpact.icon}</span>
-          <div className="text-xs">
-            <span className="font-semibold">{managementImpact.title}: </span>
-            <span className="opacity-90">{managementImpact.desc}</span>
+        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-border/60 bg-surface-muted/40 p-3.5 text-xs text-muted-foreground transition-all">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-card border border-border/50 text-foreground/80 shadow-2xs">
+            <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
           </div>
+          <p className="text-xs text-muted-foreground/90 leading-relaxed">
+            <strong className="font-semibold text-foreground">{managementImpact.title}:</strong>{" "}
+            {managementImpact.desc}
+          </p>
         </div>
 
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
@@ -1831,14 +1855,53 @@ function Caixa() {
         )}
 
         {/* ── Botão de envio com cor dinâmica ─────────────────────────── */}
-        <Button
-          className={`mt-7 h-12 rounded-full px-7 text-sm font-bold tracking-tight transition-all cursor-pointer shadow-md ${btnClass}`}
-          disabled={create.isPending}
-          onClick={handleTriggerSubmit}
-        >
-          {isEntrada ? <Plus className="size-4" /> : <Minus className="size-4" />}
-          {isEntrada ? "Registrar entrada" : "Registrar saída"}
-        </Button>
+        <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-border/40 pt-5">
+          <Button
+            className={`h-12 rounded-2xl px-7 text-sm font-bold tracking-tight transition-all cursor-pointer shadow-md flex items-center gap-2 self-start ${
+              isEntrada
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+            }`}
+            disabled={create.isPending}
+            onClick={handleTriggerSubmit}
+          >
+            {create.isPending ? (
+              "Registrando..."
+            ) : (
+              <>
+                {isEntrada ? <Plus className="size-4" /> : <Minus className="size-4" />}
+                <span>{isEntrada ? "Registrar entrada" : "Registrar saída"}</span>
+              </>
+            )}
+          </Button>
+
+          {/* Resumo Vivo de Conferência à Direita (Bilateral Balance) */}
+          {grossAmount > 0 && (
+            <div className="flex items-center gap-3 text-right sm:self-auto animate-in fade-in-50">
+              <div className="text-xs text-muted-foreground">
+                <span className="block text-[10px] uppercase font-semibold tracking-wider text-muted-foreground/70">
+                  Total da operação
+                </span>
+                <span className="font-medium">
+                  Via {resolvePayment({ payment_method: method } as any)}
+                  {selectedCustomer ? ` • ${selectedCustomer.name}` : ""}
+                </span>
+              </div>
+              <div className="border-l border-border/60 pl-3">
+                <p className={`font-mono text-xl font-black leading-none ${
+                  isEntrada ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                }`}>
+                  {brl(netAmount)}
+                </p>
+                {calculatedDiscount > 0 && (
+                  <span className="text-[10px] text-muted-foreground line-through block mt-0.5">
+                    De {brl(grossAmount)}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ── Diálogo Guardrail de Venda com Estoque Zerado (Apple UX) ───────── */}
         <AlertDialog open={confirmZeroStockOpen} onOpenChange={setConfirmZeroStockOpen}>
