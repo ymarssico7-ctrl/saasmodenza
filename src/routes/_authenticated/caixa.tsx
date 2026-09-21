@@ -940,6 +940,43 @@ function Caixa() {
     });
   }, [monthTxs, extratoKind, extratoSearch, resolveCategory, resolvePayment]);
 
+  // ── Agrupamento Inteligente por Dia para Fechamento Diário de Caixa ──────
+  const groupedTxsByDate = useMemo(() => {
+    const groups: { date: string; label: string; txs: Transaction[]; total: number }[] = [];
+    const map = new Map<string, Transaction[]>();
+
+    for (const t of filteredMonthTxs) {
+      const d = t.occurred_on;
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(t);
+    }
+
+    const sortedDates = Array.from(map.keys()).sort((a, b) => b.localeCompare(a));
+    const todayStr = todayISO();
+    const yesterdayStr = yesterdayISO();
+
+    for (const d of sortedDates) {
+      const txs = map.get(d)!;
+      let label = "";
+      if (d === todayStr) {
+        label = "Hoje";
+      } else if (d === yesterdayStr) {
+        label = "Ontem";
+      } else {
+        const [y, m, day] = d.split("-").map(Number);
+        const dateObj = new Date(y, (m || 1) - 1, day || 1);
+        const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+        const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+        label = `${weekdays[dateObj.getDay()]}, ${day} de ${months[(m || 1) - 1]}`;
+      }
+
+      const total = txs.reduce((acc, t) => acc + (t.kind === "entrada" ? Number(t.amount) : -Number(t.amount)), 0);
+      groups.push({ date: d, label, txs, total });
+    }
+
+    return groups;
+  }, [filteredMonthTxs]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   const accentClass = isEntrada
     ? "text-emerald-600 dark:text-emerald-400"
@@ -1942,29 +1979,34 @@ function Caixa() {
       </section>
 
 
-      {/* ── Extrato do mês ───────────────────────────────────────────────── */}
-      <section className="panel p-5 sm:p-6 lg:p-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
+      {/* ── Extrato do mês (Organização Administrativa e Financeira Apple Wallet) ── */}
+      <section className="panel p-5 sm:p-6 lg:p-7 border border-border/70 shadow-soft">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-5">
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">
-              Lançamentos de {monthLabel(month).toLowerCase()}
-            </h2>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Lançamentos de {monthLabel(month)}
+              </h2>
+              <span className="rounded-full bg-surface-muted border border-border/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-2xs">
+                {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "registro" : "registros"}
+              </span>
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "lançamento encontrado" : "lançamentos encontrados"}
+              Histórico financeiro com fechamento e conciliação diária de caixa
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Filtros rápidos: Todos / Entradas / Saídas */}
-            <div className="inline-flex rounded-xl bg-surface-muted p-1 text-xs font-medium border border-border/40 gap-0.5 shadow-2xs">
+            {/* Filtros rápidos: Todos / Entradas / Saídas em Segmented Control Apple */}
+            <div className="inline-flex rounded-2xl bg-surface-muted/80 p-1 text-xs font-medium border border-border/50 gap-0.5 shadow-2xs">
               {(["todos", "entrada", "saida"] as const).map((k) => (
                 <button
                   key={k}
                   type="button"
                   onClick={() => setExtratoKind(k)}
-                  className={`rounded-lg px-3 py-1.5 transition-all cursor-pointer ${
+                  className={`rounded-xl px-3.5 py-1.5 transition-all cursor-pointer ${
                     extratoKind === k
-                      ? "bg-card text-foreground shadow-xs border border-border/50 font-semibold"
+                      ? "bg-card text-foreground shadow-xs font-bold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -1975,12 +2017,12 @@ function Caixa() {
 
             {/* Input de Busca Instantânea com cantos consistentes */}
             <div className="relative min-w-[220px] flex-1 sm:flex-initial">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
               <Input
                 value={extratoSearch}
                 onChange={(e) => setExtratoSearch(e.target.value)}
-                placeholder="Buscar por cliente, peça…"
-                className="h-9 rounded-xl pl-8 pr-8 text-xs bg-card border border-border/60"
+                placeholder="Buscar cliente, peça, método…"
+                className="h-9 rounded-xl pl-8.5 pr-8 text-xs bg-card border border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
               />
               {extratoSearch && (
                 <button
@@ -1988,7 +2030,7 @@ function Caixa() {
                   onClick={() => setExtratoSearch("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
@@ -1996,102 +2038,130 @@ function Caixa() {
         </div>
 
         {monthTxs.length === 0 ? (
-          <EmptyState
-            className="mt-6"
-            icon={<Wallet className="size-5" />}
-            title="Nenhum lançamento neste mês"
-            description="Registre a primeira venda ou despesa para acompanhar o fluxo de caixa em tempo real."
-          />
+          <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in-50">
+            <div className="flex size-12 items-center justify-center rounded-2xl border border-border/60 bg-card shadow-2xs text-muted-foreground/80 mb-3.5">
+              <Wallet className="size-5" strokeWidth={1.75} />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Nenhum lançamento neste mês</h3>
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+              Assim que você registrar a primeira venda física ou despesa no balcão acima, o extrato com fechamento diário será gerado automaticamente aqui.
+            </p>
+          </div>
         ) : filteredMonthTxs.length === 0 ? (
-          <EmptyState
-            className="mt-6"
-            icon={<Search className="size-5" />}
-            title="Nenhum lançamento encontrado"
-            description={`Nenhum resultado corresponde à busca "${extratoSearch}". Tente outro termo ou limpe o filtro.`}
-          />
+          <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in-50">
+            <div className="flex size-12 items-center justify-center rounded-2xl border border-border/60 bg-card shadow-2xs text-muted-foreground/80 mb-3.5">
+              <Search className="size-5" strokeWidth={1.75} />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Nenhum lançamento encontrado</h3>
+            <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+              Nenhum resultado corresponde à busca "${extratoSearch}". Tente outro termo ou limpe os filtros.
+            </p>
+          </div>
         ) : (
-          <ul className="mt-4 divide-y divide-border/50">
-            {filteredMonthTxs.map((t) => {
-              const linkedProd = resolveLinkedProduct(t);
-              return (
-                <li key={t.id} className="flex items-center justify-between gap-4 py-3 px-2 rounded-xl hover:bg-surface-muted/30 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Imagem do Produto no Extrato */}
-                    {linkedProd?.image_url ? (
-                      <img
-                        src={linkedProd.image_url}
-                        alt={t.description}
-                        className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-muted-foreground">
-                        <Package className="h-5 w-5" />
-                      </div>
-                    )}
+          <div className="mt-6 space-y-6">
+            {groupedTxsByDate.map((group) => (
+              <div key={group.date} className="space-y-2">
+                {/* Cabeçalho do Dia (Fechamento Diário de Caixa) */}
+                <div className="flex items-center justify-between px-1 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground">{group.label}</span>
+                    <span className="text-[11px] text-muted-foreground">({group.txs.length} {group.txs.length === 1 ? "operação" : "operações"})</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-mono text-xs font-semibold">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans">Saldo do dia:</span>
+                    <span className={group.total >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                      {group.total >= 0 ? "+" : ""}{brl(group.total)}
+                    </span>
+                  </div>
+                </div>
 
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{t.description}</p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge
-                          variant={t.category === "venda_online" ? "outline" : "secondary"}
-                          className={`rounded-full text-[10px] font-medium ${
-                            t.category === "venda_online"
-                              ? "border-primary/30 bg-primary/10 text-primary font-semibold"
-                              : ""
-                          }`}
-                        >
-                          {t.category === "venda_online" ? "🌐 Venda Online" : resolveCategory(t)}
-                        </Badge>
-                        <Badge variant="outline" className="rounded-full text-[10px] font-medium">
-                          {resolvePayment(t)}
-                        </Badge>
-                        {t.category === "venda_online" && (
-                          calcD1Date(t.occurred_on) > today ? (
-                            <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                              ⏳ A compensar D+1
-                            </span>
+                {/* Itens do Dia em Card Integrado */}
+                <div className="rounded-2xl border border-border/60 bg-card divide-y divide-border/40 overflow-hidden shadow-2xs">
+                  {group.txs.map((t) => {
+                    const linkedProd = resolveLinkedProduct(t);
+                    return (
+                      <div
+                        key={t.id}
+                        className="group flex items-center justify-between gap-4 p-3.5 hover:bg-surface-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {linkedProd?.image_url ? (
+                            <img
+                              src={linkedProd.image_url}
+                              alt={t.description}
+                              className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-2xs border border-border/50"
+                            />
                           ) : (
-                            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                              🟢 Liquidado em conta
-                            </span>
-                          )
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(t.occurred_on)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted border border-border/50 text-muted-foreground">
+                              <Package className="h-4 w-4" strokeWidth={1.75} />
+                            </div>
+                          )}
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    <p
-                      className={`numeric text-sm font-semibold ${
-                        t.kind === "entrada"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-600 dark:text-rose-400"
-                      }`}
-                    >
-                      {t.kind === "entrada" ? "+" : "−"}
-                      {brl(Number(t.amount))}
-                    </p>
-                    <ConfirmDelete
-                      onConfirm={() => remove.mutate(t.id)}
-                      description="O lançamento será removido do seu caixa."
-                      trigger={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 rounded-full text-muted-foreground"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      }
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-foreground leading-tight">
+                              {t.description}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <Badge
+                                variant="secondary"
+                                className="rounded-lg text-[10px] font-medium py-0 px-2 border-border/50"
+                              >
+                                {t.category === "venda_online" ? "🌐 Venda Online" : resolveCategory(t)}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="rounded-lg text-[10px] font-medium py-0 px-2 border-border/60"
+                              >
+                                {resolvePayment(t)}
+                              </Badge>
+                              {t.category === "venda_online" && (
+                                calcD1Date(t.occurred_on) > today ? (
+                                  <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.2 text-[10px] font-semibold text-amber-700">
+                                    ⏳ D+1
+                                  </span>
+                                ) : (
+                                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.2 text-[10px] font-semibold text-emerald-700">
+                                    🟢 Liquidado
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3">
+                          <div className="text-right">
+                            <p
+                              className={`font-mono text-sm font-bold ${
+                                t.kind === "entrada"
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-rose-600 dark:text-rose-400"
+                              }`}
+                            >
+                              {t.kind === "entrada" ? "+" : "−"} {brl(Number(t.amount))}
+                            </p>
+                          </div>
+                          <ConfirmDelete
+                            onConfirm={() => remove.mutate(t.id)}
+                            description="O lançamento será removido do seu caixa."
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 rounded-lg text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            }
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 
