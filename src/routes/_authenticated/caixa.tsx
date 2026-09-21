@@ -1299,9 +1299,61 @@ function Caixa() {
   };
 
   const remove = useMutation({
-    mutationFn: async (id: string) => deleteTransaction(storeId, id),
-    onSuccess: () => {
-      toast.success("Lançamento excluído");
+    mutationFn: async (t: Transaction) => {
+      // Extrai tamanho da descrição: "[Tam: M]"
+      const sizeMatch = t.description.match(/\[Tam:\s*([^\]]+)\]/);
+      const extractedSize = sizeMatch?.[1]?.trim();
+
+      // Limpa TODOS os annotations [xxx: yyy] para obter o nome base do produto
+      const cleanName = t.description
+        .replace(/\s*\[[^\]]*\]/g, "")
+        .trim()
+        .toLowerCase();
+
+      const linkedProduct = inventoryItems.find(
+        (p) => p.name.toLowerCase() === cleanName,
+      );
+
+      if (linkedProduct) {
+        // Reverte o delta original: entrada (venda) era -1 → reverter é +1
+        let reverseDelta = 0;
+        if (t.kind === "entrada") {
+          reverseDelta = 1; // venda revertida: devolve 1 unidade ao estoque
+        } else if (
+          t.category === "estorno_devolucao" ||
+          t.category === "compra_estoque"
+        ) {
+          reverseDelta = -1; // devolução/compra revertida: retira 1 unidade
+        } else if (t.category === "perda_avaria") {
+          reverseDelta = 1; // perda revertida: devolve 1 unidade ao estoque
+        } else {
+          reverseDelta = 1; // saída genérica com produto: devolve 1 unidade
+        }
+
+        if (reverseDelta !== 0) {
+          await adjustInventoryStock(
+            storeId,
+            linkedProduct.id,
+            reverseDelta,
+            extractedSize ?? undefined,
+          );
+        }
+      }
+
+      await deleteTransaction(storeId, t.id);
+      return linkedProduct
+        ? { name: linkedProduct.name, size: extractedSize }
+        : null;
+    },
+    onSuccess: (result) => {
+      if (result) {
+        const sizeLabel = result.size ? ` (${result.size})` : "";
+        toast.success(
+          `Lançamento excluído e 1 un. de "${result.name}"${sizeLabel} devolvida ao estoque`,
+        );
+      } else {
+        toast.success("Lançamento excluído");
+      }
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       void queryClient.invalidateQueries({ queryKey: ["credits"] });
@@ -1332,7 +1384,10 @@ function Caixa() {
   );
 
   const resolveLinkedProduct = (t: Transaction) => {
-    const cleanDesc = t.description.replace(/\s*\[Desconto:.*\]/, "").trim().toLowerCase();
+    const cleanDesc = t.description
+      .replace(/\s*\[[^\]]*\]/g, "")
+      .trim()
+      .toLowerCase();
     return inventoryItems.find((p) => p.name.toLowerCase() === cleanDesc) ?? null;
   };
 
@@ -1704,7 +1759,9 @@ function Caixa() {
                   type="button"
                   onClick={() => {
                     setSelectedProductId(null);
+                    setSelectedProductSize("");
                     setDescription("");
+                    setAmount("");
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -1850,7 +1907,7 @@ function Caixa() {
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="189,90"
+                  placeholder="0,00"
                   className="h-12 rounded-2xl pl-8 font-mono font-bold text-base bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
               </div>
@@ -3031,8 +3088,25 @@ function Caixa() {
                             </p>
                           </div>
                           <ConfirmDelete
-                            onConfirm={() => remove.mutate(t.id)}
-                            description="O lançamento será removido do seu caixa."
+                            onConfirm={() => remove.mutate(t)}
+                            title={linkedProd ? "Excluir e ajustar estoque?" : "Excluir lançamento?"}
+                            description={
+                              linkedProd
+                                ? (() => {
+                                    const sizeMatch = t.description.match(/\[Tam:\s*([^\]]+)\]/);
+                                    const extractedSize = sizeMatch?.[1]?.trim();
+                                    const sizeLabel = extractedSize ? ` (${extractedSize})` : "";
+                                    if (t.kind === "entrada") {
+                                      return `Atenção: Este lançamento está vinculado a "${linkedProd.name}". Ao excluí-lo, 1 unidade${sizeLabel} retornará automaticamente ao estoque.`;
+                                    } else if (t.category === "estorno_devolucao" || t.category === "compra_estoque") {
+                                      return `Atenção: Este lançamento adicionou estoque de "${linkedProd.name}". Ao excluí-lo, 1 unidade${sizeLabel} será estornada do estoque.`;
+                                    } else {
+                                      return `Atenção: Este lançamento movimentou o estoque de "${linkedProd.name}". Ao excluí-lo, 1 unidade${sizeLabel} retornará ao estoque.`;
+                                    }
+                                  })()
+                                : "O lançamento será removido do seu caixa. Essa ação não pode ser desfeita."
+                            }
+                            confirmLabel={linkedProd ? "Excluir e ajustar estoque" : "Excluir"}
                             trigger={
                               <Button
                                 variant="ghost"
