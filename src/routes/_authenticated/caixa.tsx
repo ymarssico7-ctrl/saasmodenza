@@ -24,8 +24,6 @@ import {
   Search,
   RotateCcw,
   Settings,
-  Sparkles,
-  Tag,
   TrendingUp,
   Trash2,
   User,
@@ -1827,40 +1825,53 @@ function Caixa() {
           </Field>
 
           <Field label="Valor (R$)">
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="relative">
-                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold ${accentClass}`}>
+                {/* Badge de sinal — fundo semântico colorido */}
+                <span
+                  className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-md text-[11px] font-black leading-none select-none ${
+                    isEntrada
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                      : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+                  }`}
+                >
                   {isEntrada ? "+" : "−"}
                 </span>
                 <Input
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0,00"
-                  className="h-12 rounded-2xl pl-8 font-mono font-bold text-base bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                  placeholder="Digite o valor…"
+                  className="h-12 rounded-2xl pl-10 font-mono font-bold text-lg tracking-tight bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:font-sans placeholder:font-normal placeholder:text-sm placeholder:text-muted-foreground/50"
                 />
               </div>
 
-              {/* Botão sutil de Desconto / Promoção */}
-              <button
-                type="button"
-                onClick={() => setShowDiscount(!showDiscount)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
-              >
-                <Tag className="size-3 text-muted-foreground" />
-                <span>
-                  {showDiscount
-                    ? "Ocultar desconto"
-                    : isEntrada
-                    ? "+ Desconto / promoção"
-                    : "+ Desconto obtido"}
-                </span>
-                {calculatedDiscount > 0 && (
-                  <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">
-                    (−{brl(calculatedDiscount)})
+              {/* Chip de Desconto — ação clara, não texto fantasma */}
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscount(!showDiscount)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all cursor-pointer select-none ${
+                    showDiscount || calculatedDiscount > 0
+                      ? "border-amber-400/70 bg-amber-50 text-amber-700 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-700/50 dark:hover:bg-amber-900/40"
+                      : "border-dashed border-border/80 bg-transparent text-muted-foreground hover:border-amber-400/60 hover:bg-amber-50/40 hover:text-amber-700 dark:hover:bg-amber-950/20 dark:hover:text-amber-400"
+                  }`}
+                >
+                  <Percent className="size-3 shrink-0" />
+                  <span>
+                    {showDiscount
+                      ? "Ocultar desconto"
+                      : isEntrada
+                      ? "Desconto / promoção"
+                      : "Desconto obtido"}
                   </span>
-                )}
-              </button>
+                  {calculatedDiscount > 0 && (
+                    <span className="font-black font-mono ml-0.5">
+                      −{brl(calculatedDiscount)}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </Field>
 
@@ -2415,35 +2426,33 @@ function Caixa() {
 
         {/* ── Barra de Ação Inferior (Ergonomia Fitts + Bilateral Balance) ── */}
         <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-border/40 pt-5">
-          {/* Total da Operação à Esquerda */}
-          <div className="flex items-center gap-3.5">
-            <div className="rounded-2xl border border-border/60 bg-surface-muted/50 px-4 py-2.5 shadow-2xs">
-              <span className="block text-[10px] uppercase font-bold tracking-wider text-muted-foreground/70">
-                Total da operação
+          {/* Total da Operação à Esquerda — sem card/borda desnecessária */}
+          <div className="flex flex-col justify-center gap-0.5 min-w-0">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 leading-none">
+              Total da operação
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span
+                className={`font-mono text-2xl font-black leading-none tracking-tight ${
+                  netAmount > 0
+                    ? isEntrada
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                    : "text-muted-foreground/50"
+                }`}
+              >
+                {brl(netAmount)}
               </span>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <span
-                  className={`font-mono text-2xl font-black leading-none ${
-                    netAmount > 0
-                      ? isEntrada
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {brl(netAmount)}
+              {calculatedDiscount > 0 && (
+                <span className="text-xs text-muted-foreground/60 line-through font-mono">
+                  {brl(grossAmount)}
                 </span>
-                {calculatedDiscount > 0 && (
-                  <span className="text-xs text-muted-foreground line-through font-mono">
-                    De {brl(grossAmount)}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] font-medium text-muted-foreground mt-1">
-                Via {resolvePayment({ payment_method: method } as any)}
-                {selectedCustomer ? ` • ${selectedCustomer.name}` : ""}
-              </p>
+              )}
             </div>
+            <p className="text-[11px] text-muted-foreground/70 font-medium leading-none mt-1">
+              Via {resolvePayment({ payment_method: method } as any)}
+              {selectedCustomer ? ` · ${selectedCustomer.name}` : ""}
+            </p>
           </div>
 
           {/* Botão de Envio à Direita */}
