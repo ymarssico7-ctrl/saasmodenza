@@ -488,70 +488,7 @@ function MiniDateRangePicker({
     return ds > lo && ds < hi;
   }
 
-  function renderMonthGrid(year: number, month: number) {
-    const days = getDays(year, month);
-    const weekLabels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-    return (
-      <div className="flex-1 min-w-0">
-        <div className="text-center text-[11px] font-bold text-foreground mb-2">
-          {monthNames[month]} {year}
-        </div>
-        <div className="grid grid-cols-7 mb-1">
-          {weekLabels.map((l) => (
-            <div key={l} className="text-center text-[9px] font-semibold text-muted-foreground/60 py-0.5">
-              {l}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-y-1">
-          {days.map((d, i) => {
-            if (!d) return <div key={`pad-${i}`} className="h-7 w-7" />;
-            const ds = dayStr(year, month, d);
-            const isS = isStartDay(ds);
-            const isE = isEndDay(ds);
-            const isMid = isBetweenRange(ds);
-            const isT = ds === todayStr;
 
-            // Determina conexão contínua de fundo (estilo Apple)
-            const hasRange = phase === "selecting" ? (tempStart && hoverDay && tempStart !== hoverDay) : (start && end && start !== end);
-            const rangeBg = isMid
-              ? "bg-foreground/[0.07]"
-              : isS && hasRange
-              ? "bg-gradient-to-r from-transparent 50% to-foreground/[0.07] 50%"
-              : isE && hasRange
-              ? "bg-gradient-to-l from-transparent 50% to-foreground/[0.07] 50%"
-              : "";
-
-            return (
-              <div
-                key={ds}
-                className={`relative flex items-center justify-center h-7 w-full ${rangeBg}`}
-                onMouseEnter={() => phase === "selecting" && setHoverDay(ds)}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleDayClick(ds)}
-                  className={[
-                    "relative flex flex-col items-center justify-center size-7 rounded-full text-[11px] transition-all cursor-pointer select-none z-10",
-                    isS || isE
-                      ? "bg-foreground text-background font-bold shadow-xs scale-105"
-                      : isMid
-                      ? "text-foreground font-medium hover:bg-foreground/15"
-                      : "text-foreground hover:bg-surface-muted",
-                  ].join(" ")}
-                >
-                  <span>{d}</span>
-                  {isT && !isS && !isE && (
-                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary/80" />
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
   // Textos para o cabeçalho dinâmico
   const headerStartText = phase === "selecting"
@@ -572,8 +509,7 @@ function MiniDateRangePicker({
 
   return (
     <div
-      className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-border/70 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 p-4 w-auto"
-      style={{ minWidth: 340 }}
+      className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-border/70 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 p-5 w-[320px] sm:w-[580px] max-w-[calc(100vw-32px)]"
       onMouseLeave={() => phase === "selecting" && setHoverDay(null)}
     >
       {/* Cabeçalho Reativo Dinâmico */}
@@ -601,36 +537,155 @@ function MiniDateRangePicker({
         </button>
       </div>
 
-      {/* Navegação e grids mensais */}
-      <div className="flex items-start gap-1 mb-3">
-        <button
-          type="button"
-          onClick={goLeft}
-          className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
-          title="Mês anterior"
-        >
-          <ChevronLeft className="size-3.5" />
-        </button>
-
-        <div className="flex gap-4 flex-1">
-          {renderMonthGrid(viewYear, viewMonth)}
-          <div className="w-px bg-border/40 self-stretch" />
-          {renderMonthGrid(rightYear, rightMonth)}
+      {/* Grids mensais com setas inline nos títulos */}
+      <div className="flex gap-6 mb-3">
+        {/* Mês ESQUERDO com seta ‹ no título (e seta › apenas no mobile) */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={goLeft}
+              className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Mês anterior"
+            >
+              <ChevronLeft className="size-3.5" />
+            </button>
+            <span className="text-[11px] font-bold text-foreground">
+              {monthNames[viewMonth]} {viewYear}
+            </span>
+            <button
+              type="button"
+              onClick={goRight}
+              className="sm:hidden rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Próximo mês"
+            >
+              <ChevronRight className="size-3.5" />
+            </button>
+            <div className="hidden sm:block size-5" /> {/* spacer para alinhar título ao centro no desktop */}
+          </div>
+          <div className="grid grid-cols-7 mb-1">
+            {["S","T","Q","Q","S","S","D"].map((l, i) => (
+              <div key={i} className="text-center text-[9px] font-semibold text-muted-foreground/60 py-0.5">
+                {l}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-y-1">
+            {getDays(viewYear, viewMonth).map((d, i) => {
+              if (!d) return <div key={`lpad-${i}`} className="h-8 w-8" />;
+              const ds = dayStr(viewYear, viewMonth, d);
+              const isS = isStartDay(ds);
+              const isE = isEndDay(ds);
+              const isMid = isBetweenRange(ds);
+              const isT = ds === todayStr;
+              const hasRange = phase === "selecting" ? (tempStart && hoverDay && tempStart !== hoverDay) : (start && end && start !== end);
+              const rangeBg = isMid
+                ? "bg-foreground/[0.07]"
+                : isS && hasRange
+                ? "bg-gradient-to-r from-transparent 50% to-foreground/[0.07] 50%"
+                : isE && hasRange
+                ? "bg-gradient-to-l from-transparent 50% to-foreground/[0.07] 50%"
+                : "";
+              return (
+                <div
+                  key={ds}
+                  className={`relative flex items-center justify-center h-8 w-full ${rangeBg}`}
+                  onMouseEnter={() => phase === "selecting" && setHoverDay(ds)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleDayClick(ds)}
+                    className={[
+                      "relative flex flex-col items-center justify-center size-8 rounded-full text-[11px] transition-all cursor-pointer select-none z-10",
+                      isS || isE ? "bg-foreground text-background font-bold shadow-xs scale-105"
+                        : isMid ? "text-foreground font-medium hover:bg-foreground/15"
+                        : "text-foreground hover:bg-surface-muted",
+                    ].join(" ")}
+                  >
+                    <span>{d}</span>
+                    {isT && !isS && !isE && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary/80" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={goRight}
-          className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer self-start mt-0.5"
-          title="Próximo mês"
-        >
-          <ChevronRight className="size-3.5" />
-        </button>
+        {/* Divisor */}
+        <div className="hidden sm:block w-px bg-border/40 self-stretch" />
+
+        {/* Mês DIREITO com seta › no título (oculto no mobile) */}
+        <div className="hidden sm:block flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="size-5" /> {/* spacer */}
+            <span className="text-[11px] font-bold text-foreground">
+              {monthNames[rightMonth]} {rightYear}
+            </span>
+            <button
+              type="button"
+              onClick={goRight}
+              className="rounded-xl p-1 text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors cursor-pointer"
+              title="Próximo mês"
+            >
+              <ChevronRight className="size-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-7 mb-1">
+            {["S","T","Q","Q","S","S","D"].map((l, i) => (
+              <div key={i} className="text-center text-[9px] font-semibold text-muted-foreground/60 py-0.5">
+                {l}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-y-1">
+            {getDays(rightYear, rightMonth).map((d, i) => {
+              if (!d) return <div key={`rpad-${i}`} className="h-8 w-8" />;
+              const ds = dayStr(rightYear, rightMonth, d);
+              const isS = isStartDay(ds);
+              const isE = isEndDay(ds);
+              const isMid = isBetweenRange(ds);
+              const isT = ds === todayStr;
+              const hasRange = phase === "selecting" ? (tempStart && hoverDay && tempStart !== hoverDay) : (start && end && start !== end);
+              const rangeBg = isMid
+                ? "bg-foreground/[0.07]"
+                : isS && hasRange
+                ? "bg-gradient-to-r from-transparent 50% to-foreground/[0.07] 50%"
+                : isE && hasRange
+                ? "bg-gradient-to-l from-transparent 50% to-foreground/[0.07] 50%"
+                : "";
+              return (
+                <div
+                  key={ds}
+                  className={`relative flex items-center justify-center h-8 w-full ${rangeBg}`}
+                  onMouseEnter={() => phase === "selecting" && setHoverDay(ds)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleDayClick(ds)}
+                    className={[
+                      "relative flex flex-col items-center justify-center size-8 rounded-full text-[11px] transition-all cursor-pointer select-none z-10",
+                      isS || isE ? "bg-foreground text-background font-bold shadow-xs scale-105"
+                        : isMid ? "text-foreground font-medium hover:bg-foreground/15"
+                        : "text-foreground hover:bg-surface-muted",
+                    ].join(" ")}
+                  >
+                    <span>{d}</span>
+                    {isT && !isS && !isE && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary/80" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Rodapé com Atalhos e Ação Rápida */}
-      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/40">
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border/40">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground/60 mr-0.5">Atalhos:</span>
           <button
             type="button"
