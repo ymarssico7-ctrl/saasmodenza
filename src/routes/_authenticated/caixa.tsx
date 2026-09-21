@@ -1471,6 +1471,9 @@ function Caixa() {
     return groups;
   }, [filteredMonthTxs]);
 
+  // Ativa scroll interno apenas se a quantidade de lançamentos exceder o viewport confortável do card
+  const isScrollable = filteredMonthTxs.length > 7;
+
   // ── Render ────────────────────────────────────────────────────────────────
   const accentClass = isEntrada
     ? "text-emerald-600 dark:text-emerald-400"
@@ -2886,11 +2889,23 @@ function Caixa() {
             )}
           </div>
         ) : (
-          <div className="mt-6 max-h-[540px] overflow-y-auto scrollbar-apple pr-2 -mr-2 overscroll-contain space-y-6">
+          <div
+            className={`mt-6 space-y-6 ${
+              isScrollable
+                ? "max-h-[540px] overflow-y-auto scrollbar-apple pr-2 -mr-2"
+                : ""
+            }`}
+          >
             {groupedTxsByDate.map((group) => (
               <div key={group.date} className="space-y-2">
-                {/* Cabeçalho do Dia (Fechamento Diário de Caixa) - Sticky Apple Style */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-card/90 backdrop-blur-md text-xs border border-border/40 shadow-2xs">
+                {/* Cabeçalho do Dia (Fechamento Diário de Caixa) - Sticky apenas quando há scroll */}
+                <div
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs border border-border/40 shadow-2xs ${
+                    isScrollable
+                      ? "sticky top-0 z-10 bg-card/90 backdrop-blur-md"
+                      : "bg-card"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-foreground">{group.label}</span>
                     <span className="text-[11px] text-muted-foreground">({group.txs.length} {group.txs.length === 1 ? "operação" : "operações"})</span>
@@ -2990,7 +3005,7 @@ function Caixa() {
               </div>
             ))}
 
-            {filteredMonthTxs.length > 6 && (
+            {isScrollable && (
               <p className="text-center text-[11px] font-medium text-muted-foreground/60 pt-2 pb-1 select-none">
                 Fim dos lançamentos deste período ({filteredMonthTxs.length} registros)
               </p>
