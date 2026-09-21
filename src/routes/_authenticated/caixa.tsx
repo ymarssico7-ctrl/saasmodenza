@@ -10,6 +10,9 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
   Clock,
   CreditCard,
   Minus,
@@ -425,9 +428,16 @@ function Caixa() {
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const customerInputRef = useRef<HTMLInputElement>(null);
 
-  // Busca e Filtros no Extrato
+  // ── Gestão Temporal & Busca Spotlight no Extrato ──────────────────────────
   const [extratoSearch, setExtratoSearch] = useState("");
   const [extratoKind, setExtratoKind] = useState<"todos" | "entrada" | "saida">("todos");
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [periodMode, setPeriodMode] = useState<"month" | "custom">("month");
+  const [customRangeStart, setCustomRangeStart] = useState(() => todayISO().slice(0, 8) + "01");
+  const [customRangeEnd, setCustomRangeEnd] = useState(todayISO());
+  const [showExtratoSearchPopover, setShowExtratoSearchPopover] = useState(false);
+  const [activeFilterChip, setActiveFilterChip] = useState<string | null>(null);
+  const extratoSearchInputRef = useRef<HTMLInputElement>(null);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -926,11 +936,65 @@ function Caixa() {
     return inventoryItems.find((p) => p.name.toLowerCase() === cleanDesc) ?? null;
   };
 
+  // ── Período Ativo do Extrato (Navegável / Personalizável) ─────────────────
+  const extratoMonth = useMemo(() => monthStart(monthOffset), [monthOffset]);
+
+  const currentPeriodTxs = useMemo(() => {
+    if (periodMode === "custom") {
+      return txs.filter((t) => t.occurred_on >= customRangeStart && t.occurred_on <= customRangeEnd);
+    }
+    return txs.filter((t) => t.occurred_on.slice(0, 7) === extratoMonth.slice(0, 7));
+  }, [txs, periodMode, extratoMonth, customRangeStart, customRangeEnd]);
+
+  // ── Dados para o Menu Spotlight de Busca Rápida ───────────────────────────
+  const spotlightOptions = useMemo(() => {
+    const clientsSet = new Set<string>();
+    const productsSet = new Set<string>();
+    for (const t of currentPeriodTxs) {
+      if (t.description) {
+        const clean = t.description.replace(/\s*\[Desconto:.*\]/, "").trim();
+        productsSet.add(clean);
+      }
+    }
+    return {
+      methods: [
+        { label: "Pix", value: "pix" },
+        { label: "Cartão de Crédito", value: "cartao_credito" },
+        { label: "Cartão de Débito", value: "cartao_debito" },
+        { label: "Dinheiro", value: "dinheiro" },
+        { label: "Fiado", value: "fiado" },
+      ],
+      categories: [
+        { label: "Venda Balcão", value: "venda_produto" },
+        { label: "Venda Online", value: "venda_online" },
+        { label: "Compra Estoque", value: "compra_estoque" },
+        { label: "Despesas / Custos", value: "despesa" },
+      ],
+      recentProducts: Array.from(productsSet).slice(0, 5),
+    };
+  }, [currentPeriodTxs]);
+
   // ── Extrato Filtrado e Buscado Instantaneamente ───────────────────────────
   const filteredMonthTxs = useMemo(() => {
-    return monthTxs.filter((t) => {
+    return currentPeriodTxs.filter((t) => {
       const matchesKind = extratoKind === "todos" || t.kind === extratoKind;
       if (!matchesKind) return false;
+
+      // Se houver chip de filtro ativo
+      if (activeFilterChip) {
+        const qChip = activeFilterChip.toLowerCase();
+        const payVal = t.payment_method?.toLowerCase() ?? "";
+        const catVal = t.category?.toLowerCase() ?? "";
+        const descVal = t.description.toLowerCase();
+        const chipMatch =
+          payVal === qChip ||
+          catVal === qChip ||
+          descVal.includes(qChip) ||
+          resolvePayment(t).toLowerCase() === qChip ||
+          resolveCategory(t).toLowerCase() === qChip;
+        if (!chipMatch) return false;
+      }
+
       if (!extratoSearch.trim()) return true;
       const q = extratoSearch.toLowerCase();
       const descMatch = t.description.toLowerCase().includes(q);
@@ -938,7 +1002,7 @@ function Caixa() {
       const payMatch = resolvePayment(t).toLowerCase().includes(q);
       return descMatch || catMatch || payMatch;
     });
-  }, [monthTxs, extratoKind, extratoSearch, resolveCategory, resolvePayment]);
+  }, [currentPeriodTxs, extratoKind, extratoSearch, activeFilterChip, resolveCategory, resolvePayment]);
 
   // ── Agrupamento Inteligente por Dia para Fechamento Diário de Caixa ──────
   const groupedTxsByDate = useMemo(() => {
@@ -1981,23 +2045,137 @@ function Caixa() {
 
       {/* ── Extrato do mês (Organização Administrativa e Financeira Apple Wallet) ── */}
       <section className="panel p-5 sm:p-6 lg:p-7 border border-border/70 shadow-soft">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-5">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-base font-bold tracking-tight text-foreground">
-                Lançamentos de {monthLabel(month)}
-              </h2>
-              <span className="rounded-full bg-surface-muted border border-border/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-2xs">
-                {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "registro" : "registros"}
-              </span>
+        {/* Cabeçalho do Extrato com Navegação de Data & Ações */}
+        <div className="flex flex-col gap-4 border-b border-border/50 pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Lado Esquerdo: Navegação de Mês / Período */}
+            <div>
+              <div className="flex items-center gap-2">
+                {periodMode === "month" && (
+                  <button
+                    type="button"
+                    onClick={() => setMonthOffset((prev) => prev - 1)}
+                    className="flex size-7 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-all cursor-pointer shadow-2xs"
+                    title="Mês anterior"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </button>
+                )}
+
+                <h2 className="text-base font-bold tracking-tight text-foreground">
+                  {periodMode === "custom"
+                    ? "Lançamentos no Período Personalizado"
+                    : `Lançamentos de ${monthLabel(extratoMonth)}`}
+                </h2>
+
+                {periodMode === "month" && (
+                  <button
+                    type="button"
+                    onClick={() => setMonthOffset((prev) => prev + 1)}
+                    className="flex size-7 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-all cursor-pointer shadow-2xs"
+                    title="Próximo mês"
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                )}
+
+                <span className="rounded-full bg-surface-muted border border-border/60 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-2xs ml-1">
+                  {filteredMonthTxs.length} {filteredMonthTxs.length === 1 ? "registro" : "registros"}
+                </span>
+
+                {monthOffset !== 0 && periodMode === "month" && (
+                  <button
+                    type="button"
+                    onClick={() => setMonthOffset(0)}
+                    className="text-[11px] font-semibold text-primary hover:underline ml-1 cursor-pointer"
+                  >
+                    Mês atual
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Histórico financeiro com fechamento e conciliação diária de caixa
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Histórico financeiro com fechamento e conciliação diária de caixa
-            </p>
+
+            {/* Lado Direito: Botão Seletor de Período Personalizável */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPeriodMode(periodMode === "month" ? "custom" : "month")}
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
+                  periodMode === "custom"
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-border"
+                }`}
+              >
+                <CalendarDays className="size-3.5" />
+                <span>{periodMode === "custom" ? "Voltar ao Mês" : "Personalizar Data"}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Filtros rápidos: Todos / Entradas / Saídas em Segmented Control Apple */}
+          {/* Gaveta de Filtro de Data Customizado (Quando ativo) */}
+          {periodMode === "custom" && (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/60 bg-surface-muted/40 p-3.5 text-xs animate-in fade-in-50">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground">De:</span>
+                <Input
+                  type="date"
+                  value={customRangeStart}
+                  onChange={(e) => setCustomRangeStart(e.target.value)}
+                  className="h-8 rounded-xl text-xs bg-card border-border/70 font-mono w-36"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground">Até:</span>
+                <Input
+                  type="date"
+                  value={customRangeEnd}
+                  onChange={(e) => setCustomRangeEnd(e.target.value)}
+                  className="h-8 rounded-xl text-xs bg-card border-border/70 font-mono w-36"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomRangeStart(todayISO());
+                    setCustomRangeEnd(todayISO());
+                  }}
+                  className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Hoje
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    now.setDate(now.getDate() - 7);
+                    setCustomRangeStart(now.toISOString().slice(0, 10));
+                    setCustomRangeEnd(todayISO());
+                  }}
+                  className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Últimos 7 dias
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomRangeStart(todayISO().slice(0, 8) + "01");
+                    setCustomRangeEnd(todayISO());
+                  }}
+                  className="rounded-lg border border-border/60 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  Este mês
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Barra de Filtros Rápidos (Todos/Entradas/Saídas) e Busca Spotlight */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            {/* Segmented Control Tipo de Lançamento */}
             <div className="inline-flex rounded-2xl bg-surface-muted/80 p-1 text-xs font-medium border border-border/50 gap-0.5 shadow-2xs">
               {(["todos", "entrada", "saida"] as const).map((k) => (
                 <button
@@ -2015,36 +2193,158 @@ function Caixa() {
               ))}
             </div>
 
-            {/* Input de Busca Instantânea com cantos consistentes */}
-            <div className="relative min-w-[220px] flex-1 sm:flex-initial">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
-              <Input
-                value={extratoSearch}
-                onChange={(e) => setExtratoSearch(e.target.value)}
-                placeholder="Buscar cliente, peça, método…"
-                className="h-9 rounded-xl pl-8.5 pr-8 text-xs bg-card border border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
-              />
-              {extratoSearch && (
-                <button
-                  type="button"
-                  onClick={() => setExtratoSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+            {/* Busca Spotlight Inteligente com Popover (Menu como na Imagem 3) */}
+            <div className="relative flex-1 sm:flex-initial flex items-center gap-2">
+              {/* Chip de Filtro Rápido Ativo */}
+              {activeFilterChip && (
+                <div className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary animate-in fade-in-50">
+                  <span>{activeFilterChip}</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFilterChip(null)}
+                    className="hover:opacity-75 cursor-pointer"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              )}
+
+              <div className="relative min-w-[240px] sm:min-w-[280px]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/70" />
+                <Input
+                  ref={extratoSearchInputRef}
+                  value={extratoSearch}
+                  onFocus={() => setShowExtratoSearchPopover(true)}
+                  onChange={(e) => {
+                    setExtratoSearch(e.target.value);
+                    setShowExtratoSearchPopover(true);
+                  }}
+                  placeholder="Buscar no extrato..."
+                  className="h-9 rounded-2xl pl-9 pr-8 text-xs bg-card border border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 w-full"
+                />
+                {extratoSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setExtratoSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Menu Popover Spotlight da Lupa (Estilo Imagem 3 / Apple Spotlight) */}
+              {showExtratoSearchPopover && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowExtratoSearchPopover(false)}
+                  />
+                  <div className="absolute right-0 top-full z-20 mt-1.5 w-80 sm:w-96 rounded-2xl border border-border/70 bg-card p-3 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-3">
+                    <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Filter className="size-3" />
+                        Filtros Rápidos no Extrato
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowExtratoSearchPopover(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+
+                    {/* Grupo 1: Formas de Pagamento */}
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 block mb-1.5">
+                        💳 Forma de Pagamento
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {spotlightOptions.methods.map((m) => (
+                          <button
+                            key={m.value}
+                            type="button"
+                            onClick={() => {
+                              setActiveFilterChip(m.label);
+                              setExtratoSearch("");
+                              setShowExtratoSearchPopover(false);
+                            }}
+                            className="rounded-xl border border-border/60 bg-surface-muted/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all cursor-pointer shadow-2xs"
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Grupo 2: Categorias */}
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 block mb-1.5">
+                        🏷️ Categorias
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {spotlightOptions.categories.map((c) => (
+                          <button
+                            key={c.value}
+                            type="button"
+                            onClick={() => {
+                              setActiveFilterChip(c.label);
+                              setExtratoSearch("");
+                              setShowExtratoSearchPopover(false);
+                            }}
+                            className="rounded-xl border border-border/60 bg-surface-muted/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all cursor-pointer shadow-2xs"
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Grupo 3: Peças recentes movimentadas */}
+                    {spotlightOptions.recentProducts.length > 0 && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 block mb-1.5">
+                          📦 Peças Movimentadas no Período
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {spotlightOptions.recentProducts.map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => {
+                                setExtratoSearch(p);
+                                setActiveFilterChip(null);
+                                setShowExtratoSearchPopover(false);
+                              }}
+                              className="rounded-xl border border-border/60 bg-surface-muted/50 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all cursor-pointer shadow-2xs truncate max-w-full"
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {monthTxs.length === 0 ? (
+        {/* Listagem ou Empty States */}
+        {currentPeriodTxs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in-50">
             <div className="flex size-12 items-center justify-center rounded-2xl border border-border/60 bg-card shadow-2xs text-muted-foreground/80 mb-3.5">
               <Wallet className="size-5" strokeWidth={1.75} />
             </div>
-            <h3 className="text-sm font-semibold text-foreground">Nenhum lançamento neste mês</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              {periodMode === "custom"
+                ? "Nenhum lançamento no período selecionado"
+                : `Nenhum lançamento em ${monthLabel(extratoMonth)}`}
+            </h3>
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-              Assim que você registrar a primeira venda física ou despesa no balcão acima, o extrato com fechamento diário será gerado automaticamente aqui.
+              Assim que você registrar uma venda física ou despesa no balcão acima, o extrato com fechamento diário será gerado automaticamente aqui.
             </p>
           </div>
         ) : filteredMonthTxs.length === 0 ? (
@@ -2054,8 +2354,20 @@ function Caixa() {
             </div>
             <h3 className="text-sm font-semibold text-foreground">Nenhum lançamento encontrado</h3>
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
-              Nenhum resultado corresponde à busca "${extratoSearch}". Tente outro termo ou limpe os filtros.
+              Nenhum resultado corresponde à busca "${extratoSearch || activeFilterChip}". Tente outro termo ou limpe os filtros.
             </p>
+            {(extratoSearch || activeFilterChip) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setExtratoSearch("");
+                  setActiveFilterChip(null);
+                }}
+                className="mt-3 text-xs font-semibold text-primary hover:underline cursor-pointer"
+              >
+                Limpar filtros de busca
+              </button>
+            )}
           </div>
         ) : (
           <div className="mt-6 space-y-6">
