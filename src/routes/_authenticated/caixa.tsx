@@ -22,6 +22,7 @@ import {
   Settings,
   Sparkles,
   Tag,
+  TrendingUp,
   Trash2,
   User,
   Wallet,
@@ -953,66 +954,28 @@ function Caixa() {
         eyebrow="Vendas da Loja"
         title="Balcão & PDV"
         description="Registre cada venda física e despesas da sua loja. O saldo se atualiza na hora."
+        action={
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-2xs">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Caixa Aberto</span>
+          </div>
+        }
       />
 
-      {/* ── KPIs Bento Apple Style (Zero poluição, sem semáforo saturado) ──── */}
+      {/* ── Cockpit de KPIs Apple Bento (Compacto, Aerodinâmico e Focado) ──── */}
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Entradas do Mês */}
-        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Entradas do Mês
-            </span>
-            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-              <ArrowUpRight className="size-4" />
-            </div>
-          </div>
-          <div className="my-2">
-            <h3 className={`numeric text-2xl font-bold tracking-tight ${revenue > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
-              {brl(revenue)}
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {monthRefunds > 0
-              ? `Líquido: ${brl(revenue - monthRefunds)} (${brl(monthRefunds)} estornos)`
-              : `${monthTxs.filter((t) => t.kind === "entrada").length} entrada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} no mês`}
-          </p>
-        </div>
-
-        {/* Card 2: Total de Saídas */}
-        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Total de Saídas
-            </span>
-            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-              <ArrowDownRight className="size-4" />
-            </div>
-          </div>
-          <div className="my-2">
-            <h3 className={`numeric text-2xl font-bold tracking-tight ${expenses > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
-              {brl(expenses)}
-            </h3>
-          </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {monthRefunds > 0
-              ? `Operacional: ${brl(expenses - monthRefunds)} (${brl(monthRefunds)} estornos)`
-              : `${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`}
-          </p>
-        </div>
-
-        {/* Card 3: Saldo de Hoje */}
-        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
+        {/* Card 1: Saldo de Hoje (Hero do Balcão) */}
+        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Saldo de Hoje
             </span>
-            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-              <Wallet className="size-4" />
+            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary shadow-2xs">
+              <Wallet className="size-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+          <div className="my-1.5">
+            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${
               todayBalance > 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : todayBalance < 0
@@ -1022,23 +985,73 @@ function Caixa() {
               {brl(todayBalance)}
             </h3>
           </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {todayTxs.length} lançamento{todayTxs.length !== 1 ? "s" : ""} hoje
+          <p className="text-[11px] text-muted-foreground truncate">
+            {todayTxs.length > 0
+              ? `${todayTxs.length} lançamento${todayTxs.length !== 1 ? "s" : ""} hoje`
+              : "Pronto para as vendas do dia"}
+          </p>
+        </div>
+
+        {/* Card 2: Entradas do Mês */}
+        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Entradas do Mês
+            </span>
+            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs">
+              <ArrowUpRight className="size-3.5" />
+            </div>
+          </div>
+          <div className="my-1.5">
+            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${revenue > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
+              {brl(revenue)}
+            </h3>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">
+            {monthRefunds > 0
+              ? `Líq: ${brl(revenue - monthRefunds)} (${brl(monthRefunds)} estornos)`
+              : revenue > 0
+              ? `${monthTxs.filter((t) => t.kind === "entrada").length} entrada${monthTxs.filter((t) => t.kind === "entrada").length !== 1 ? "s" : ""} no mês`
+              : "Iniciando movimentações"}
+          </p>
+        </div>
+
+        {/* Card 3: Total de Saídas */}
+        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Total de Saídas
+            </span>
+            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-2xs">
+              <ArrowDownRight className="size-3.5" />
+            </div>
+          </div>
+          <div className="my-1.5">
+            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${expenses > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+              {brl(expenses)}
+            </h3>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">
+            {monthRefunds > 0
+              ? `Operacional: ${brl(expenses - monthRefunds)} (${brl(monthRefunds)} estornos)`
+              : expenses > 0
+              ? `${monthTxs.filter((t) => t.kind === "saida").length} despesa${monthTxs.filter((t) => t.kind === "saida").length !== 1 ? "s" : ""} no mês`
+              : "Nenhuma saída registrada"}
           </p>
         </div>
 
         {/* Card 4: Resultado do Mês */}
-        <div className="panel p-4 sm:p-5 transition-all duration-200 hover:shadow-lift flex flex-col justify-between">
+        <div className="panel p-3.5 sm:p-4 rounded-2xl border border-border/70 shadow-2xs hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Resultado do Mês
             </span>
-            <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-              {revenue - expenses >= 0 ? <ArrowUpRight className="size-4" /> : <ArrowDownRight className="size-4" />}
+            <div className="grid size-7 shrink-0 place-items-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 shadow-2xs">
+              <TrendingUp className="size-3.5" />
             </div>
           </div>
-          <div className="my-2">
-            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+          <div className="my-1.5">
+            <h3 className={`numeric text-xl sm:text-2xl font-bold tracking-tight ${
               revenue - expenses > 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : revenue - expenses < 0
@@ -1048,8 +1061,10 @@ function Caixa() {
               {brl(revenue - expenses)}
             </h3>
           </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {revenue > 0 ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%` : "Sem receita no mês"}
+          <p className="text-[11px] text-muted-foreground truncate">
+            {revenue > 0
+              ? `Margem ${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%`
+              : "Margem sob controle"}
           </p>
         </div>
       </div>
