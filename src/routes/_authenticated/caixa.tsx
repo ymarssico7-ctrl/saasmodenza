@@ -24,6 +24,7 @@ import {
   Search,
   RotateCcw,
   Settings,
+  ShoppingBag,
   TrendingUp,
   Trash2,
   User,
@@ -782,6 +783,17 @@ function Caixa() {
     return () => window.removeEventListener("custom-options-changed", refreshOpts);
   }, [refreshOpts]);
 
+  type SaleBasketItem = {
+    id: string;
+    productId?: string;
+    productName: string;
+    size?: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    deductStock: boolean;
+  };
+
   // ── Estado do formulário ──────────────────────────────────────────────────
   const [kind, setKind] = useState<"entrada" | "saida">("entrada");
   const [description, setDescription] = useState("");
@@ -791,9 +803,12 @@ function Caixa() {
   const [cashReceived, setCashReceived] = useState("");
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
-  // Conexão Inteligente com Estoque
+  // Conexão Inteligente com Estoque & Quantidade
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedProductSize, setSelectedProductSize] = useState<string>("");
+  const [quantity, setQuantity] = useState<number>(1);
+  const [unitPrice, setUnitPrice] = useState<number>(0);
+  const [basket, setBasket] = useState<SaleBasketItem[]>([]);
   const [deductStock, setDeductStock] = useState(true);
   const [showProductPopover, setShowProductPopover] = useState(false);
   const [confirmZeroStockOpen, setConfirmZeroStockOpen] = useState(false);
@@ -973,12 +988,28 @@ function Caixa() {
       ? product.selling_price
       : (product.cost_price && product.cost_price > 0 ? product.cost_price : product.selling_price);
 
+    setUnitPrice(priceToUse);
+    setQuantity(1);
+
     if (priceToUse > 0) {
       setAmount(String(priceToUse).replace(".", ","));
     } else {
       setAmount("");
     }
     setShowProductPopover(false);
+  };
+
+  // ── Ajuste de Quantidade ──────────────────────────────────────────────────
+  const handleQuantityChange = (newQty: number) => {
+    if (newQty < 1) return;
+    setQuantity(newQty);
+    if (unitPrice > 0) {
+      setAmount(String(Number((unitPrice * newQty).toFixed(2))).replace(".", ","));
+    } else if (grossAmount > 0) {
+      const prevQty = quantity > 0 ? quantity : 1;
+      const inferredUnit = grossAmount / prevQty;
+      setAmount(String(Number((inferredUnit * newQty).toFixed(2))).replace(".", ","));
+    }
   };
 
   // ── Placeholder Inteligente da Descrição ──────────────────────────────────
@@ -993,19 +1024,99 @@ function Caixa() {
     return "Ex: Material de escritório, manutenção, conta de luz…";
   }, [isEntrada, category]);
 
-  // ── Cálculos de Desconto / Promoção ───────────────────────────────────────
+  // ── Cálculos de Desconto / Promoção e Subtotais Consolidados ───────────────
   const grossAmount = toNumber(amount);
   const discountNum = toNumber(discountValue);
 
-  const calculatedDiscount = useMemo(() => {
-    if (grossAmount <= 0 || discountNum <= 0) return 0;
-    if (discountType === "pct") {
-      return (grossAmount * Math.min(discountNum, 100)) / 100;
-    }
-    return Math.min(discountNum, grossAmount);
-  }, [grossAmount, discountNum, discountType]);
+  const basketSubtotal = useMemo(() => {
+    return basket.reduce((acc, item) => acc + item.totalPrice, 0);
+  }, [basket]);
 
-  const netAmount = Math.max(grossAmount - calculatedDiscount, 0);
+  const basketPieces = useMemo(() => {
+    return basket.reduce((acc, item) => acc + item.quantity, 0);
+  }, [basket]);
+
+  const totalPieces = useMemo(() => {
+    return basketPieces + (grossAmount > 0 ? quantity : 0);
+  }, [basketPieces, grossAmount, quantity]);
+
+  const combinedGrossAmount = useMemo(() => {
+    return Number((basketSubtotal + (grossAmount > 0 ? grossAmount : 0)).toFixed(2));
+  }, [basketSubtotal, grossAmount]);
+
+  const calculatedDiscount = useMemo(() => {
+    if (combinedGrossAmount <= 0 || discountNum <= 0) return 0;
+    if (discountType === "pct") {
+      return Number(((combinedGrossAmount * Math.min(discountNum, 100)) / 100).toFixed(2));
+    }
+    return Math.min(discountNum, combinedGrossAmount);
+  }, [combinedGrossAmount, discountNum, discountType]);
+
+  const netAmount = Math.max(combinedGrossAmount - calculatedDiscount, 0);
+
+  // ── Handlers da Sacola Multi-itens ─────────────────────────────────────────
+  const handleAddToBasket = () => {
+    if (!description.trim()) {
+      toast.error("Informe a peça antes de adicionar");
+      return;
+    }
+    if (grossAmount <= 0) {
+      toast.error("Informe o valor da peça antes de adicionar");
+      return;
+    }
+
+    // Validação de estoque por tamanho se tiver peça vinculada
+    if (selectedProduct && deductStock && selectedProductSize) {
+      const sizesRecord = (selectedProduct.sizes ?? {}) as Record<string, number>;
+      const avail = Number(sizesRecord[selectedProductSize] ?? 0);
+      if (avail < quantity) {
+        toast.warning(
+          `Atenção: estoque de "${selectedProduct.name}" (Tam: ${selectedProductSize}) tem ${avail} un. disponíveis (adicionadas: ${quantity} un.).`
+        );
+      }
+    }
+
+    const itemTotal = grossAmount;
+    const itemUnitPrice = unitPrice > 0 ? unitPrice : itemTotal / quantity;
+
+    const newItem: SaleBasketItem = {
+      id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      productId: selectedProductId ?? undefined,
+      productName: description.trim(),
+      size: selectedProductSize || undefined,
+      quantity,
+      unitPrice: itemUnitPrice,
+      totalPrice: itemTotal,
+      deductStock: !!selectedProductId && deductStock,
+    };
+
+    setBasket((prev) => [...prev, newItem]);
+    toast.success(`"${description.trim()}" adicionada à sacola!`);
+
+    // Limpa campos da peça para inserir a próxima com facilidade
+    setDescription("");
+    setAmount("");
+    setSelectedProductId(null);
+    setSelectedProductSize("");
+    setQuantity(1);
+    setUnitPrice(0);
+    setDeductStock(true);
+  };
+
+  const handleRemoveFromBasket = (id: string) => {
+    setBasket((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleUpdateBasketQty = (id: string, delta: number) => {
+    setBasket((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const newQty = Math.max(1, item.quantity + delta);
+        const newTotal = Number((item.unitPrice * newQty).toFixed(2));
+        return { ...item, quantity: newQty, totalPrice: newTotal };
+      })
+    );
+  };
 
   // ── Listas combinadas (padrão + custom) ──────────────────────────────────
 
@@ -1026,6 +1137,9 @@ function Caixa() {
     setMethod("pix");
     setSelectedProductId(null);
     setSelectedProductSize("");
+    setQuantity(1);
+    setUnitPrice(0);
+    setBasket([]);
     // Fix 7: reseta o cliente para não vazar cliente de fiado numa saída
     handleClearCustomer();
   };
@@ -1125,45 +1239,77 @@ function Caixa() {
   // ── Mutações ──────────────────────────────────────────────────────────────
   const create = useMutation({
     mutationFn: async () => {
-      if (!description.trim()) throw new Error("Descreva o lançamento");
-      if (grossAmount > 0 && calculatedDiscount >= grossAmount) {
+      // Monta a lista completa de itens: itens da sacola + item em digitação (se houver)
+      const allItems: SaleBasketItem[] = [...basket];
+      if (description.trim() && grossAmount > 0) {
+        allItems.push({
+          id: "active-item",
+          productId: selectedProductId ?? undefined,
+          productName: description.trim(),
+          size: selectedProductSize || undefined,
+          quantity,
+          unitPrice: unitPrice > 0 ? unitPrice : grossAmount / quantity,
+          totalPrice: grossAmount,
+          deductStock: !!selectedProductId && deductStock,
+        });
+      }
+
+      if (allItems.length === 0) {
+        throw new Error(isEntrada ? "Informe ao menos uma peça para registrar a venda" : "Descreva o motivo da saída");
+      }
+      if (combinedGrossAmount > 0 && calculatedDiscount >= combinedGrossAmount) {
         throw new Error(
-          `O desconto (${brl(calculatedDiscount)}) não pode ser igual ou maior que o valor bruto (${brl(grossAmount)}). Reduza o desconto para lançar.`,
+          `O desconto (${brl(calculatedDiscount)}) não pode ser igual ou maior que o valor bruto (${brl(combinedGrossAmount)}). Reduza o desconto para lançar.`,
         );
       }
       if (netAmount <= 0) throw new Error("Informe um valor maior que zero");
 
-      // Monta a descrição final (acrescentando cliente e nota de desconto se houver)
-      let finalDescription = description.trim();
+      // Monta a descrição final
       const activeCustId = isFiado ? fiadoCustomerId : selectedCustomerId;
       const linkedCustomer = customers.find((c) => c.id === activeCustId);
+
+      let finalDescription = "";
+      if (allItems.length > 1) {
+        const piecesCount = allItems.reduce((acc, i) => acc + i.quantity, 0);
+        const summary = allItems
+          .map((i) => `${i.quantity > 1 ? `${i.quantity}x ` : ""}${i.productName}${i.size ? ` [Tam: ${i.size}]` : ""}`)
+          .join(", ");
+        finalDescription = `Venda (${piecesCount} peças): ${summary}`;
+      } else {
+        const single = allItems[0];
+        finalDescription = single.productName;
+        if (single.size && !finalDescription.toLowerCase().includes(single.size.toLowerCase())) {
+          finalDescription += ` [Tam: ${single.size}]`;
+        }
+        if (single.quantity > 1) {
+          finalDescription += ` (${single.quantity} un.)`;
+        }
+      }
+
       if (linkedCustomer && !finalDescription.toLowerCase().includes(linkedCustomer.name.toLowerCase())) {
         finalDescription += ` [Cliente: ${linkedCustomer.name}]`;
       }
       if (calculatedDiscount > 0) {
         finalDescription += ` [Desconto: ${brl(calculatedDiscount)}]`;
       }
-      if (selectedProductId && selectedProductSize && !finalDescription.toLowerCase().includes(selectedProductSize.toLowerCase())) {
-        finalDescription += ` [Tam: ${selectedProductSize}]`;
-      }
 
-      // Baixa/Acréscimo automático de estoque se vinculado a produto do estoque
-      if (selectedProductId && deductStock) {
-        let delta = -1;
-        if (isEntrada) {
-          delta = -1; // Venda de produto: sai 1 un do estoque
-        } else if (category === "estorno_devolucao" || category === "compra_estoque") {
-          delta = 1; // Devolução de cliente ou nova compra: entra 1 un no estoque
-        } else if (category === "perda_avaria") {
-          delta = -1; // Peça avariada ou perdida: baixa 1 un do estoque
-        } else {
-          delta = -1; // Padrão para saídas com peça vinculada
+      // Baixa/Acréscimo automático de estoque de cada item
+      for (const item of allItems) {
+        if (item.productId && item.deductStock) {
+          let delta = -item.quantity;
+          if (!isEntrada) {
+            if (category === "estorno_devolucao" || category === "compra_estoque") {
+              delta = item.quantity;
+            } else if (category === "perda_avaria") {
+              delta = -item.quantity;
+            } else {
+              delta = -item.quantity;
+            }
+          }
+          await adjustInventoryStock(storeId, item.productId, delta, item.size || undefined);
         }
-
-        // Passa o tamanho exato selecionado
-        await adjustInventoryStock(storeId, selectedProductId, delta, selectedProductSize || undefined);
-        void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       }
+      void queryClient.invalidateQueries({ queryKey: ["inventory"] });
 
       if (isFiado) {
         if (!fiadoCustomerId) throw new Error("Selecione o cliente para registrar o fiado");
@@ -1189,17 +1335,25 @@ function Caixa() {
       });
     },
     onSuccess: () => {
-      const msg = selectedProductId && deductStock
+      const allCount = basket.length + (description.trim() ? 1 : 0);
+      const msg = allCount > 1
+        ? isFiado
+          ? `Venda a prazo (${totalPieces} peças) registrada na aba Fiado e estoque baixado!`
+          : `Venda de ${totalPieces} peças registrada e estoque atualizado!`
+        : selectedProductId && deductStock
         ? isFiado
           ? "Venda a prazo registrada na aba Fiado e peça baixada do estoque!"
-          : `Lançamento registrado e estoque ${category === "estorno_devolucao" || category === "compra_estoque" ? "atualizado (+1 un.)" : "atualizado (-1 un.)"}!`
+          : `Lançamento registrado e estoque ${category === "estorno_devolucao" || category === "compra_estoque" ? `atualizado (+${quantity} un.)` : `atualizado (−${quantity} un.)`}!`
         : isFiado
         ? "Venda a prazo registrada na aba Fiado!"
-        : "Lançamento registrado";
+        : "Lançamento registrado com sucesso";
 
       toast.success(msg);
+      setBasket([]);
       setDescription("");
       setAmount("");
+      setQuantity(1);
+      setUnitPrice(0);
       setShowDiscount(false);
       setDiscountValue("");
       setSelectedProductId(null);
@@ -1667,7 +1821,7 @@ function Caixa() {
 
         {/* Grid de Campos */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Descrição" className="relative lg:col-span-2">
+          <Field label={isEntrada ? "Produto / Peça" : "Motivo da saída / Despesa"} className="relative lg:col-span-2">
             <div className="relative">
               <Input
                 value={description}
@@ -1846,8 +2000,9 @@ function Caixa() {
                 />
               </div>
 
-              {/* Chip de Desconto — ação clara, não texto fantasma */}
-              <div className="flex items-center">
+              {/* Ações rápidas sob o valor: Desconto e Quantidade */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                {/* Chip de Desconto — ação clara, não texto fantasma */}
                 <button
                   type="button"
                   onClick={() => setShowDiscount(!showDiscount)}
@@ -1871,9 +2026,141 @@ function Caixa() {
                     </span>
                   )}
                 </button>
+
+                {/* Stepper de Quantidade se for Entrada */}
+                {isEntrada && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-surface-muted/50 px-2.5 py-0.5 text-xs shadow-2xs">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Qtd:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                      className="flex size-5 items-center justify-center rounded-full hover:bg-card text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer transition-colors"
+                      title="Diminuir quantidade"
+                    >
+                      <Minus className="size-3" />
+                    </button>
+                    <span className="w-5 text-center font-mono text-xs font-bold text-foreground">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      className="flex size-5 items-center justify-center rounded-full hover:bg-card text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      title="Aumentar quantidade"
+                    >
+                      <Plus className="size-3" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </Field>
+
+          {/* ── Multi-itens: Ação de Sacola e Lista de Peças Adicionadas (Apenas em Entrada) ── */}
+          {isEntrada && (
+            <div className="sm:col-span-2 lg:col-span-3 -mt-1 mb-1">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleAddToBasket}
+                  disabled={!description.trim() || grossAmount <= 0}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-35 disabled:pointer-events-none cursor-pointer shadow-2xs"
+                >
+                  <ShoppingBag className="size-3.5" />
+                  <span>
+                    {basket.length > 0
+                      ? "+ Adicionar mais esta peça à sacola"
+                      : "+ Incluir mais peças nesta mesma venda (Multi-itens)"}
+                  </span>
+                </button>
+
+                {basket.length > 0 && (
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    🛍️ {basketPieces} {basketPieces === 1 ? "peça já na sacola" : "peças já na sacola"}
+                  </span>
+                )}
+              </div>
+
+              {/* Card Minimalista da Sacola de Venda */}
+              {basket.length > 0 && (
+                <div className="mt-3 rounded-2xl border border-primary/25 bg-primary-soft/20 p-3.5 animate-in fade-in-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="size-4 text-primary" />
+                      <span className="text-xs font-bold text-foreground">
+                        Peças na Sacola ({basketPieces} un.)
+                      </span>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-primary">
+                      Subtotal: {brl(basketSubtotal)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {basket.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-card border border-border/70 px-3 py-2 shadow-2xs text-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground truncate">{item.productName}</span>
+                            {item.size && (
+                              <span className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                Tam: {item.size}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {item.quantity > 1 ? `${item.quantity} un. × ${brl(item.unitPrice)}` : brl(item.unitPrice)}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center rounded-lg border border-border/60 bg-surface-muted/50 p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateBasketQty(item.id, -1)}
+                              disabled={item.quantity <= 1}
+                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                              title="Diminuir quantidade"
+                            >
+                              <Minus className="size-3" />
+                            </button>
+                            <span className="w-5 text-center font-mono text-xs font-bold">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateBasketQty(item.id, 1)}
+                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                              title="Aumentar quantidade"
+                            >
+                              <Plus className="size-3" />
+                            </button>
+                          </div>
+
+                          <span className="font-mono font-bold text-foreground w-20 text-right">
+                            {brl(item.totalPrice)}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFromBasket(item.id)}
+                            className="p-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                            title="Remover peça da sacola"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categoria com "+ Nova categoria" e "⚙️ Gerenciar nas Configurações" */}
           <Field label="Categoria">
@@ -2232,10 +2519,10 @@ function Caixa() {
                   />
                   <Label htmlFor="deduct-stock-switch" className="cursor-pointer text-xs font-medium">
                     {isEntrada
-                      ? "Dar baixa no estoque (-1 un.)"
+                      ? `Dar baixa no estoque (−${quantity} un.)`
                       : category === "perda_avaria"
-                      ? "Dar baixa por perda/avaria no estoque (-1 un.)"
-                      : "Adicionar ao estoque (+1 un.)"}
+                      ? `Dar baixa por perda/avaria no estoque (−${quantity} un.)`
+                      : `Adicionar ao estoque (+${quantity} un.)`}
                   </Label>
                 </div>
                 <Button
@@ -2266,9 +2553,13 @@ function Caixa() {
                     </span>
                     {selectedProductSize && (
                       <span className="text-[10px]">
-                        {(sizesRecord[selectedProductSize] ?? 0) > 0 ? (
+                        {(sizesRecord[selectedProductSize] ?? 0) >= quantity ? (
                           <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                             {sizesRecord[selectedProductSize]} un. disponíveis no tamanho {selectedProductSize}
+                          </span>
+                        ) : (sizesRecord[selectedProductSize] ?? 0) > 0 ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                            ⚠️ Apenas {sizesRecord[selectedProductSize]} un. no tamanho {selectedProductSize} (solicitadas: {quantity} un.)
                           </span>
                         ) : (
                           <span className="text-amber-600 dark:text-amber-400 font-semibold">
@@ -2445,12 +2736,13 @@ function Caixa() {
               </span>
               {calculatedDiscount > 0 && (
                 <span className="text-xs text-muted-foreground/60 line-through font-mono">
-                  {brl(grossAmount)}
+                  {brl(combinedGrossAmount)}
                 </span>
               )}
             </div>
             <p className="text-[11px] text-muted-foreground/70 font-medium leading-none mt-1">
               Via {resolvePayment({ payment_method: method } as any)}
+              {isEntrada && totalPieces > 0 ? ` · ${totalPieces} ${totalPieces === 1 ? "peça" : "peças"}` : ""}
               {selectedCustomer ? ` · ${selectedCustomer.name}` : ""}
             </p>
           </div>
@@ -2470,7 +2762,13 @@ function Caixa() {
             ) : (
               <>
                 {isEntrada ? <Plus className="size-4" /> : <Minus className="size-4" />}
-                <span>{isEntrada ? "Registrar entrada" : "Registrar saída"}</span>
+                <span>
+                  {isEntrada
+                    ? totalPieces > 1
+                      ? `Registrar entrada (${totalPieces} peças)`
+                      : "Registrar entrada"
+                    : "Registrar saída"}
+                </span>
               </>
             )}
           </Button>
