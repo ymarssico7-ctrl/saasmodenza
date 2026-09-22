@@ -2061,63 +2061,226 @@ function Caixa() {
             )}
           </div>
 
-          <Field label="Valor (R$)">
-            <div className="space-y-2">
-              <div className="relative">
-                {/* Badge de sinal — fundo semântico colorido */}
-                <span
-                  className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-md text-[11px] font-black leading-none select-none ${
-                    isEntrada
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                      : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
-                  }`}
-                >
-                  {isEntrada ? "+" : "−"}
-                </span>
-                <Input
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Digite o valor…"
-                  className={`h-12 rounded-2xl pl-10 font-mono font-bold text-lg tracking-tight bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:font-sans placeholder:font-normal placeholder:text-sm placeholder:text-muted-foreground/50 ${
-                    basket.length > 0 ? "pr-24" : "pr-4"
-                  }`}
-                />
-                {basket.length > 0 && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-[11px] font-bold select-none pointer-events-none">
-                    <ShoppingBag className="size-3" />
-                    {totalPieces} {totalPieces === 1 ? "peça" : "peças"}
+          <Field
+            className="relative"
+            label={
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-muted-foreground">Valor (R$)</Label>
+                {calculatedDiscount > 0 ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setShowDiscount(!showDiscount)}
+                      className="hover:underline cursor-pointer"
+                      title="Editar desconto"
+                    >
+                      −{brl(calculatedDiscount)} ({discountType === "pct" ? `${discountValue}%` : "fixo"})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiscountValue("");
+                        setShowDiscount(false);
+                      }}
+                      className="hover:text-destructive cursor-pointer ml-0.5"
+                      title="Remover desconto"
+                      aria-label="Remover desconto"
+                    >
+                      <X className="size-3" />
+                    </button>
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscount(!showDiscount)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer select-none"
+                  >
+                    <Percent className="size-3" />
+                    <span>{isEntrada ? "Desconto" : "Abatimento"}</span>
+                  </button>
                 )}
               </div>
-
-              {/* Ação de Desconto sob o valor — agora com largura e respiro total */}
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDiscount(!showDiscount)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all cursor-pointer select-none ${
-                    showDiscount || calculatedDiscount > 0
-                      ? "border-amber-400/70 bg-amber-50 text-amber-700 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-700/50 dark:hover:bg-amber-900/40"
-                      : "border-dashed border-border/80 bg-transparent text-muted-foreground hover:border-amber-400/60 hover:bg-amber-50/40 hover:text-amber-700 dark:hover:bg-amber-950/20 dark:hover:text-amber-400"
-                  }`}
-                >
-                  <Percent className="size-3 shrink-0" />
-                  <span>
-                    {showDiscount
-                      ? "Ocultar desconto"
-                      : isEntrada
-                      ? "Desconto / promoção"
-                      : "Desconto obtido"}
-                  </span>
-                  {calculatedDiscount > 0 && (
-                    <span className="font-black font-mono ml-0.5">
-                      −{brl(calculatedDiscount)}
-                    </span>
-                  )}
-                </button>
-              </div>
+            }
+          >
+            <div className="relative">
+              {/* Badge de sinal — fundo semântico colorido */}
+              <span
+                className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-md text-[11px] font-black leading-none select-none ${
+                  isEntrada
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                    : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+                }`}
+              >
+                {isEntrada ? "+" : "−"}
+              </span>
+              <Input
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Digite o valor…"
+                className={`h-12 rounded-2xl pl-10 font-mono font-bold text-lg tracking-tight bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:font-sans placeholder:font-normal placeholder:text-sm placeholder:text-muted-foreground/50 ${
+                  basket.length > 0 ? "pr-24" : "pr-4"
+                }`}
+              />
+              {basket.length > 0 && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-[11px] font-bold select-none pointer-events-none">
+                  <ShoppingBag className="size-3" />
+                  {totalPieces} {totalPieces === 1 ? "peça" : "peças"}
+                </span>
+              )}
             </div>
+
+            {/* Popover Compacto Flutuante de Desconto / Promoção */}
+            {showDiscount && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowDiscount(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-2xl border border-border bg-card p-3.5 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-3">
+                  {/* Header do Popover */}
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Percent className="size-3.5 text-primary" />
+                      <span className="text-xs font-bold text-foreground">
+                        {isEntrada ? "Desconto na Venda" : "Abatimento na Despesa"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDiscount(false)}
+                      className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Fechar"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Chips Rápidos de 1 Toque (Atalhos mais comuns de Varejo) */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                      Atalhos rápidos:
+                    </span>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[5, 10, 15, 20].map((pct) => {
+                        const isSelected = discountType === "pct" && discountValue === String(pct);
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => {
+                              setDiscountType("pct");
+                              setDiscountValue(String(pct));
+                            }}
+                            className={`py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground shadow-2xs scale-98"
+                                : "bg-surface-muted/70 hover:bg-surface-muted text-foreground border border-border/60"
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Valor Personalizado: Toggle R$ / % + Input */}
+                  <div className="space-y-1.5 pt-1 border-t border-border/50">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Ou valor personalizado:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {/* Segmented R$ / % */}
+                      <div className="flex rounded-xl border border-border/70 bg-surface-muted/50 p-0.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setDiscountType("flat")}
+                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            discountType === "flat"
+                              ? "bg-card text-foreground shadow-2xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          R$
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDiscountType("pct")}
+                          className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            discountType === "pct"
+                              ? "bg-card text-foreground shadow-2xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          %
+                        </button>
+                      </div>
+
+                      {/* Input do Desconto */}
+                      <Input
+                        inputMode="decimal"
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={discountType === "flat" ? "Ex: 20,00" : "Ex: 10"}
+                        className="h-9 rounded-xl font-mono text-xs font-bold flex-1"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {/* Resumo do Cálculo em Tempo Real */}
+                  {grossAmount > 0 && calculatedDiscount > 0 && (
+                    <div className="rounded-xl bg-primary-soft/25 border border-primary/20 p-2 text-xs space-y-0.5">
+                      <div className="flex justify-between text-muted-foreground text-[11px]">
+                        <span>Desconto aplicado:</span>
+                        <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
+                          −{brl(calculatedDiscount)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-bold text-foreground">
+                        <span>Total com desconto:</span>
+                        <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                          {brl(netAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Alerta se desconto for maior ou igual ao valor */}
+                  {grossAmount > 0 && calculatedDiscount >= grossAmount && (
+                    <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive">
+                      ⚠️ O desconto supera ou zera o valor da venda. Reduza para lançar.
+                    </div>
+                  )}
+
+                  {/* Ações: Limpar Desconto e Fechar */}
+                  <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                    {discountValue ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDiscountValue("");
+                        }}
+                        className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer font-medium"
+                      >
+                        Remover desconto
+                      </button>
+                    ) : (
+                      <div />
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setShowDiscount(false)}
+                      className="h-8 rounded-xl px-3 text-xs font-bold cursor-pointer"
+                    >
+                      Concluído
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </Field>
 
           {/* ── Multi-itens: sacola fluida (Apenas em Entrada) ── */}
@@ -2460,85 +2623,6 @@ function Caixa() {
           )}
         </div>
 
-        {/* ── Painel Expansível Sutil de Desconto / Promoção ────────────────── */}
-        {showDiscount && (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800/40 dark:bg-amber-950/20 animate-in fade-in-50 slide-in-from-top-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-amber-800 dark:text-amber-400">
-                {isEntrada ? "🏷️ Desconto / Valor Promocional" : "🏷️ Desconto / Abatimento Obtido do Fornecedor"}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDiscount(false);
-                  setDiscountValue("");
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Fechar
-              </button>
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <div>
-                <Label className="text-[11px] font-medium text-muted-foreground">Tipo de desconto</Label>
-                <div className="mt-1 flex rounded-xl border border-border bg-card p-1">
-                  <button
-                    type="button"
-                    onClick={() => setDiscountType("flat")}
-                    className={`flex-1 rounded-lg py-1 text-xs font-semibold transition-colors ${
-                      discountType === "flat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    R$ Reais
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDiscountType("pct")}
-                    className={`flex-1 rounded-lg py-1 text-xs font-semibold transition-colors ${
-                      discountType === "pct" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    % Porcentagem
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-[11px] font-medium text-muted-foreground">
-                  {discountType === "flat" ? "Desconto (R$)" : "Desconto (%)"}
-                </Label>
-                <Input
-                  inputMode="decimal"
-                  value={discountValue}
-                  onChange={(e) => setDiscountValue(e.target.value)}
-                  placeholder={discountType === "flat" ? "20,00" : "15"}
-                  className="mt-1 h-9 rounded-xl font-mono text-xs"
-                />
-              </div>
-
-              <div className="flex flex-col justify-end">
-                <div className="rounded-xl border border-amber-300/40 bg-card p-2 text-right">
-                  <span className="text-[10px] text-muted-foreground">Valor final a lançar:</span>
-                  <p className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    {brl(netAmount)}
-                  </p>
-                  {calculatedDiscount > 0 && (
-                    <span className="text-[10px] text-amber-700 dark:text-amber-400">
-                      {isEntrada ? "Desconto ao cliente: " : "Abatimento obtido: "}{brl(calculatedDiscount)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {grossAmount > 0 && calculatedDiscount >= grossAmount && (
-              <div className="mt-3 rounded-xl bg-destructive/15 p-2.5 text-xs font-medium text-destructive">
-                ⚠️ O desconto ({brl(calculatedDiscount)}) zera ou supera o valor bruto ({brl(grossAmount)}). Reduza o desconto para lançar.
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── Card Tátil de Conexão Inteligente com Estoque ────────────────── */}
         {selectedProduct && (
@@ -3548,13 +3632,17 @@ function Field({
   children,
   className,
 }: {
-  label: string;
+  label: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <div className={`space-y-2 ${className ?? ""}`}>
-      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+      {typeof label === "string" ? (
+        <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+      ) : (
+        label
+      )}
       {children}
     </div>
   );
