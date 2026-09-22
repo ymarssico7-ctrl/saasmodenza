@@ -1363,7 +1363,15 @@ function Caixa() {
       if (allItems.length > 1) {
         const piecesCount = allItems.reduce((acc, i) => acc + i.quantity, 0);
         const summary = allItems
-          .map((i) => `${i.quantity > 1 ? `${i.quantity}x ` : ""}${i.productName}${i.size ? ` [Tam: ${i.size}]` : ""}`)
+          .map((i) => {
+            const iDisc = i.discount
+              ? (i.discount.type === "pct"
+                  ? Number(((i.totalPrice * Math.min(i.discount.value, 100)) / 100).toFixed(2))
+                  : Math.min(i.discount.value, i.totalPrice))
+              : 0;
+            const tag = `${i.quantity > 1 ? `${i.quantity}x ` : ""}${i.productName}${i.size ? ` [Tam: ${i.size}]` : ""}`;
+            return iDisc > 0 ? `${tag} (−${brl(iDisc)})` : tag;
+          })
           .join(", ");
         finalDescription = `Venda (${piecesCount} peças): ${summary}`;
       } else {
@@ -1381,7 +1389,8 @@ function Caixa() {
         finalDescription += ` [Cliente: ${linkedCustomer.name}]`;
       }
       if (calculatedDiscount > 0) {
-        finalDescription += ` [Desconto: ${brl(calculatedDiscount)}]`;
+        const discLabel = hasItemDiscounts ? "Desconto por peça" : "Desconto";
+        finalDescription += ` [${discLabel}: ${brl(calculatedDiscount)}]`;
       }
 
       // Baixa/Acréscimo automático de estoque de cada item
@@ -2191,14 +2200,20 @@ function Caixa() {
 
           {/* ── Trigger de Desconto — Pill Acessível ── */}
           <div className="relative sm:col-span-2 lg:col-span-1 -mt-2 mb-1">
-            {calculatedDiscount > 0 ? (
-              /* Estado ativo: badge âmbar com valor + editar + remover */
+            {hasItemDiscounts && discountNum <= 0 ? (
+              /* Modo por peça ativo: exibe resumo do total de descontos, bloqueando o global */
+              <div className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-bold select-none">
+                <Percent className="size-3.5 shrink-0" />
+                <span>Desconto por peça: −{brl(basketTotalDiscount)}</span>
+              </div>
+            ) : calculatedDiscount > 0 ? (
+              /* Estado ativo global: badge âmbar com valor + editar + remover */
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowDiscount(!showDiscount)}
                   className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all hover:bg-amber-500/20 cursor-pointer"
-                  title="Editar desconto"
+                  title="Editar desconto global"
                 >
                   <Percent className="size-3.5 shrink-0" />
                   <span>
