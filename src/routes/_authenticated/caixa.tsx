@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   Banknote,
+  Building2,
   CalendarDays,
   Check,
   ChevronDown,
@@ -879,6 +880,33 @@ function Caixa() {
       .slice(0, 8);
   }, [customers, customerSearch]);
 
+  // Favorecido / Fornecedor para Saídas (Texto Livre Persistente + Histórico Inteligente)
+  const [supplierName, setSupplierName] = useState("");
+  const [showSupplierPopover, setShowSupplierPopover] = useState(false);
+  const [supplierHighlight, setSupplierHighlight] = useState(-1);
+
+  const previousSuppliers = useMemo(() => {
+    const map = new Map<string, number>();
+    monthTxs
+      .filter((t) => t.kind === "saida")
+      .forEach((t) => {
+        const match = t.description.match(/\[Favorecido:\s*([^\]]+)\]/i) || t.description.match(/\[Fornecedor:\s*([^\]]+)\]/i);
+        if (match?.[1]?.trim()) {
+          const name = match[1].trim();
+          map.set(name, (map.get(name) ?? 0) + 1);
+        }
+      });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name);
+  }, [monthTxs]);
+
+  const matchingSuppliers = useMemo(() => {
+    if (!supplierName.trim()) return previousSuppliers.slice(0, 6);
+    const q = supplierName.toLowerCase();
+    return previousSuppliers.filter((s) => s.toLowerCase().includes(q)).slice(0, 6);
+  }, [previousSuppliers, supplierName]);
+
   const handleSelectCustomer = (c: Customer) => {
     setSelectedCustomerId(c.id);
     setCustomerSearch("");
@@ -1000,7 +1028,7 @@ function Caixa() {
       : (product.cost_price && product.cost_price > 0 ? product.cost_price : product.selling_price);
 
     // Se já estiver no modo multi-itens (basket ativo)
-    if (basket.length > 0 && isEntrada) {
+    if (basket.length > 0) {
       const existingIdx = basket.findIndex(
         (i) => i.productId === product.id && i.size === firstAvailable,
       );
@@ -1014,7 +1042,7 @@ function Caixa() {
           const itemDisc = item.discount ? calcItemDiscount({ ...item, totalPrice: newTot }, item.discount.type, item.discount.value) : 0;
           return { ...item, quantity: newQ, totalPrice: newTot, netPrice: Number((newTot - itemDisc).toFixed(2)) };
         });
-        toast.success(`+1 un. de "${product.name}" somada à venda!`);
+        toast.success(`+1 un. de "${product.name}" somada!`);
       } else {
         const newItem: SaleBasketItem = {
           id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
@@ -1028,7 +1056,7 @@ function Caixa() {
           deductStock: true,
         };
         updatedBasket = [...basket, newItem];
-        toast.success(`"${product.name}" adicionada à venda!`);
+        toast.success(`"${product.name}" adicionada!`);
       }
 
       setBasket(updatedBasket);
@@ -1237,6 +1265,7 @@ function Caixa() {
     setQuantity(1);
     setUnitPrice(0);
     setBasket([]);
+    setSupplierName("");
     // Fix 7: reseta o cliente para não vazar cliente de fiado numa saída
     handleClearCustomer();
   };
@@ -1383,7 +1412,18 @@ function Caixa() {
             return iDisc > 0 ? `${tag} (−${brl(iDisc)})` : tag;
           })
           .join(", ");
-        finalDescription = `Venda (${piecesCount} peças): ${summary}`;
+
+        const prefix = isEntrada
+          ? `Venda (${piecesCount} peças)`
+          : category === "compra_estoque"
+          ? `Compra de estoque (${piecesCount} peças)`
+          : category === "perda_avaria"
+          ? `Perda/Avaria (${piecesCount} peças)`
+          : category === "estorno_devolucao"
+          ? `Devolução (${piecesCount} peças)`
+          : `Saída (${piecesCount} peças)`;
+
+        finalDescription = `${prefix}: ${summary}`;
       } else {
         const single = allItems[0];
         finalDescription = single.productName;
@@ -1395,11 +1435,20 @@ function Caixa() {
         }
       }
 
-      if (linkedCustomer && !finalDescription.toLowerCase().includes(linkedCustomer.name.toLowerCase())) {
-        finalDescription += ` [Cliente: ${linkedCustomer.name}]`;
+      if (isEntrada) {
+        if (linkedCustomer && !finalDescription.toLowerCase().includes(linkedCustomer.name.toLowerCase())) {
+          finalDescription += ` [Cliente: ${linkedCustomer.name}]`;
+        }
+      } else {
+        if (category === "estorno_devolucao" && linkedCustomer) {
+          finalDescription += ` [Cliente: ${linkedCustomer.name}]`;
+        } else if (supplierName.trim() && !finalDescription.toLowerCase().includes(supplierName.toLowerCase())) {
+          finalDescription += ` [Favorecido: ${supplierName.trim()}]`;
+        }
       }
+
       if (calculatedDiscount > 0) {
-        const discLabel = hasItemDiscounts ? "Desconto por peça" : "Desconto";
+        const discLabel = isEntrada ? (hasItemDiscounts ? "Desconto por peça" : "Desconto") : "Abatimento";
         finalDescription += ` [${discLabel}: ${brl(calculatedDiscount)}]`;
       }
 
@@ -1446,17 +1495,34 @@ function Caixa() {
     },
     onSuccess: () => {
       const allCount = basket.length + (description.trim() ? 1 : 0);
-      const msg = allCount > 1
-        ? isFiado
-          ? `Venda a prazo (${totalPieces} peças) registrada na aba Fiado e estoque baixado!`
-          : `Venda de ${totalPieces} peças registrada e estoque atualizado!`
-        : selectedProductId && deductStock
-        ? isFiado
-          ? "Venda a prazo registrada na aba Fiado e peça baixada do estoque!"
-          : `Lançamento registrado e estoque ${category === "estorno_devolucao" || category === "compra_estoque" ? `atualizado (+${quantity} un.)` : `atualizado (−${quantity} un.)`}!`
-        : isFiado
-        ? "Venda a prazo registrada na aba Fiado!"
-        : "Lançamento registrado com sucesso";
+      let msg = "Lançamento registrado com sucesso";
+      if (allCount > 1) {
+        if (isFiado) {
+          msg = `Venda a prazo (${totalPieces} peças) registrada na aba Fiado e estoque baixado!`;
+        } else if (isEntrada) {
+          msg = `Venda de ${totalPieces} peças registrada e estoque atualizado!`;
+        } else if (category === "perda_avaria") {
+          msg = `Baixa de avaria (${totalPieces} peças) registrada e estoque atualizado (−${totalPieces} un.)!`;
+        } else if (category === "compra_estoque") {
+          msg = `Compra (${totalPieces} peças) registrada e estoque abastecido (+${totalPieces} un.)!`;
+        } else {
+          msg = `Saída de ${totalPieces} peças registrada com sucesso!`;
+        }
+      } else if (selectedProductId && deductStock) {
+        if (isFiado) {
+          msg = "Venda a prazo registrada na aba Fiado e peça baixada do estoque!";
+        } else if (isEntrada) {
+          msg = `Lançamento registrado e estoque atualizado (−${quantity} un.)!`;
+        } else if (category === "perda_avaria") {
+          msg = `Baixa de avaria registrada e estoque atualizado (−${quantity} un.)!`;
+        } else if (category === "compra_estoque" || category === "estorno_devolucao") {
+          msg = `Lançamento registrado e estoque abastecido (+${quantity} un.)!`;
+        } else {
+          msg = `Lançamento registrado e estoque atualizado (−${quantity} un.)!`;
+        }
+      } else if (isFiado) {
+        msg = "Venda a prazo registrada na aba Fiado!";
+      }
 
       toast.success(msg);
       setBasket([]);
@@ -1470,6 +1536,7 @@ function Caixa() {
       setSelectedProductSize("");
       setSelectedCustomerId("");
       setCustomerSearch("");
+      setSupplierName("");
       setDeductStock(true);
       setFiadoCustomerId("");
       setFiadoDueDate(todayISO());
@@ -1522,9 +1589,15 @@ function Caixa() {
       const sizeMatch = t.description.match(/\[Tam:\s*([^\]]+)\]/);
       const extractedSize = sizeMatch?.[1]?.trim();
 
-      // Limpa TODOS os annotations [xxx: yyy] para obter o nome base do produto
+      // Extrai quantidade real da descrição: "(5 un.)" ou "(5 peças)"
+      const qtyMatch = t.description.match(/\((\d+)\s*un\.\)/) || t.description.match(/\((\d+)\s*peças?\)/i);
+      const itemQty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
+
+      // Limpa TODOS os annotations [xxx: yyy] e sufixos para obter o nome base do produto
       const cleanName = t.description
         .replace(/\s*\[[^\]]*\]/g, "")
+        .replace(/\s*\([^)]*\)/g, "")
+        .replace(/^(?:Venda|Compra(?: de estoque)?|Perda\/Avaria|Devolução(?: de mercadoria)?|Saída)\s*(?:\([^)]*\))?:\s*/i, "")
         .trim()
         .toLowerCase();
 
@@ -1533,19 +1606,19 @@ function Caixa() {
       );
 
       if (linkedProduct) {
-        // Reverte o delta original: entrada (venda) era -1 → reverter é +1
+        // Reverte o delta original proporcional à quantidade real
         let reverseDelta = 0;
         if (t.kind === "entrada") {
-          reverseDelta = 1; // venda revertida: devolve 1 unidade ao estoque
+          reverseDelta = itemQty; // venda revertida: devolve itemQty unidades ao estoque
         } else if (
           t.category === "estorno_devolucao" ||
           t.category === "compra_estoque"
         ) {
-          reverseDelta = -1; // devolução/compra revertida: retira 1 unidade
+          reverseDelta = -itemQty; // devolução/compra revertida: retira itemQty unidades
         } else if (t.category === "perda_avaria") {
-          reverseDelta = 1; // perda revertida: devolve 1 unidade ao estoque
+          reverseDelta = itemQty; // perda revertida: devolve itemQty unidades ao estoque
         } else {
-          reverseDelta = 1; // saída genérica com produto: devolve 1 unidade
+          reverseDelta = itemQty; // saída genérica com produto: devolve itemQty unidades
         }
 
         if (reverseDelta !== 0) {
@@ -2090,7 +2163,7 @@ function Caixa() {
           </Field>
 
             {/* Seletor de Quantidade (Segmented Counter Box) — Harmonioso no Padrão Apple */}
-            {isEntrada && basket.length === 0 && (
+            {basket.length === 0 && (isEntrada || !!selectedProductId || category === "compra_estoque" || category === "perda_avaria" || category === "estorno_devolucao") && (
               <Field label="Quantidade" className="w-full sm:w-36 shrink-0">
                 <div
                   className={`h-12 flex items-center justify-between px-1.5 py-1 rounded-full border overflow-hidden transition-all ${
@@ -2408,8 +2481,8 @@ function Caixa() {
           </div>
 
 
-          {/* ── Multi-itens: sacola fluida (Apenas em Entrada) ── */}
-          {isEntrada && (
+          {/* ── Multi-itens: sacola fluida ── */}
+          {(isEntrada || selectedProductId || basket.length > 0 || category === "compra_estoque" || category === "perda_avaria" || category === "estorno_devolucao") && (
             <div className="sm:col-span-2 lg:col-span-3 -mt-1 mb-1">
 
               {/* Gatilho "+ Adicionar outra peça" — visível só em modo unitário com peça selecionada */}
@@ -2421,7 +2494,16 @@ function Caixa() {
                   className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-primary/40 bg-transparent hover:bg-primary/8 text-primary/80 hover:text-primary px-3 py-1 text-xs font-semibold transition-all disabled:opacity-35 disabled:pointer-events-none cursor-pointer"
                 >
                   <ShoppingBag className="size-3" />
-                  <span>+ Adicionar outra peça nesta venda</span>
+                  <span>
+                    + Adicionar outra peça{" "}
+                    {isEntrada
+                      ? "nesta venda"
+                      : category === "perda_avaria"
+                      ? "nesta avaria"
+                      : category === "compra_estoque"
+                      ? "nesta compra"
+                      : "nesta saída"}
+                  </span>
                 </button>
               )}
 
@@ -2433,7 +2515,14 @@ function Caixa() {
                     <div className="flex items-center gap-1.5">
                       <ShoppingBag className="size-3.5 text-primary/70" />
                       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                        {totalPieces} {totalPieces === 1 ? "peça" : "peças"} nesta venda
+                        {totalPieces} {totalPieces === 1 ? "peça" : "peças"}{" "}
+                        {isEntrada
+                          ? "nesta venda"
+                          : category === "perda_avaria"
+                          ? "nesta avaria"
+                          : category === "compra_estoque"
+                          ? "nesta compra"
+                          : "nesta saída"}
                       </span>
                     </div>
                   </div>
@@ -2718,7 +2807,7 @@ function Caixa() {
 
                   {/* Hint para adicionar mais */}
                   <p className="text-[11px] text-muted-foreground/70 pt-0.5">
-                    Selecione outra peça no campo acima para adicionar à venda.
+                    Selecione outra peça no campo acima para adicionar{isEntrada ? " à venda" : ""}.
                   </p>
                 </div>
               )}
@@ -2854,10 +2943,10 @@ function Caixa() {
             </div>
           </Field>
 
-          {/* Cliente / Favorecido (Busca Spotlight / Autocomplete Apple Level — Exibido no grid superior APENAS se não for Fiado) */}
-          {!isFiado && (
+          {/* Cliente (para Entrada ou Estorno) / Favorecido (para Saídas operacionais) */}
+          {!isFiado && (isEntrada || category === "estorno_devolucao") ? (
             <Field
-              label={isEntrada ? "Cliente (Opcional)" : "Favorecido / Fornecedor (Opcional)"}
+              label={isEntrada ? "Cliente (Opcional)" : "Cliente reembolsada (Opcional)"}
               className="relative sm:col-span-2 lg:col-span-3"
             >
               <div className="relative">
@@ -2876,7 +2965,7 @@ function Caixa() {
                   placeholder={
                     isEntrada
                       ? "Digite o nome ou telefone da cliente…"
-                      : "Ex: Fornecedor de tecidos, eletricista, proprietário, prestador…"
+                      : "Selecione a cliente que recebeu o estorno…"
                   }
                   className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
@@ -2884,7 +2973,7 @@ function Caixa() {
                   <button
                     type="button"
                     onClick={handleClearCustomer}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -2893,7 +2982,7 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Menu Dropdown Autocomplete de Clientes / Favorecidos */}
+              {/* Menu Dropdown Autocomplete de Clientes */}
               {showCustomerPopover && !selectedCustomer && (
                 <>
                   <div
@@ -2904,7 +2993,7 @@ function Caixa() {
                     {matchingCustomers.length > 0 ? (
                       <>
                         <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {isEntrada ? `👤 Clientes Encontradas (${matchingCustomers.length})` : `👤 Favorecidos Encontrados (${matchingCustomers.length})`}
+                          👤 Clientes Encontradas ({matchingCustomers.length})
                         </div>
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
@@ -2913,7 +3002,7 @@ function Caixa() {
                               key={c.id}
                               type="button"
                               onClick={() => handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
                                 isHighlighted
                                   ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
                                   : "hover:bg-primary-soft/50"
@@ -2935,31 +3024,112 @@ function Caixa() {
                       </>
                     ) : null}
 
-                    {/* Atalho Inteligente para Cadastrar Nova Cliente / Favorecido */}
+                    {/* Atalho Inteligente para Cadastrar Nova Cliente */}
                     <button
                       type="button"
                       onClick={() => {
                         setShowCustomerPopover(false);
                         setAddCustomerOpen(true);
                       }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
                         customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
                       }`}
                     >
                       <Plus className="h-4 w-4" />
                       {customerSearch.trim()
-                        ? isEntrada
-                          ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
-                          : `Cadastrar "${customerSearch.trim()}" na base`
-                        : isEntrada
-                        ? "Cadastrar nova cliente…"
-                        : "Cadastrar novo favorecido/fornecedor…"}
+                        ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
+                        : "Cadastrar nova cliente…"}
                     </button>
                   </div>
                 </>
               )}
             </Field>
-          )}
+          ) : !isFiado ? (
+            /* Favorecido / Fornecedor (Saída): Texto Livre Persistente + Histórico Inteligente */
+            <Field
+              label="Favorecido / Fornecedor (Opcional)"
+              className="relative sm:col-span-2 lg:col-span-3"
+            >
+              <div className="relative">
+                <Input
+                  value={supplierName}
+                  onFocus={() => {
+                    if (previousSuppliers.length > 0) setShowSupplierPopover(true);
+                  }}
+                  onChange={(e) => {
+                    setSupplierName(e.target.value);
+                    setShowSupplierPopover(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!showSupplierPopover) return;
+                    if (e.key === "Escape") setShowSupplierPopover(false);
+                    else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setSupplierHighlight((p) => (p < matchingSuppliers.length - 1 ? p + 1 : 0));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setSupplierHighlight((p) => (p > 0 ? p - 1 : matchingSuppliers.length - 1));
+                    } else if (e.key === "Enter" && supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
+                      e.preventDefault();
+                      setSupplierName(matchingSuppliers[supplierHighlight]);
+                      setShowSupplierPopover(false);
+                      setSupplierHighlight(-1);
+                    }
+                  }}
+                  placeholder="Ex: Fornecedor de tecidos, eletricista, proprietário, transportadora…"
+                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+                {supplierName ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupplierName("");
+                      setShowSupplierPopover(false);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    title="Limpar favorecido"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                )}
+              </div>
+
+              {/* Sugestões Rápidas de Favorecidos Anteriores (Histórico Dinâmico sem Poluição) */}
+              {showSupplierPopover && matchingSuppliers.length > 0 && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowSupplierPopover(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                      <span>Favorecidos recentes</span>
+                      <span className="text-[10px] text-muted-foreground/60 font-normal">Use as setas ou clique</span>
+                    </div>
+                    {matchingSuppliers.map((s, idx) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          setSupplierName(s);
+                          setShowSupplierPopover(false);
+                          setSupplierHighlight(-1);
+                        }}
+                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                          idx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                        }`}
+                      >
+                        <Building2 className="size-3.5 text-primary/70 shrink-0" />
+                        <span className="truncate">{s}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Field>
+          ) : null}
         </div>
 
 
@@ -3226,8 +3396,9 @@ function Caixa() {
             </div>
             <p className="text-[11px] text-muted-foreground/70 font-medium leading-none mt-1">
               Via {resolvePayment({ payment_method: method } as any)}
-              {isEntrada && totalPieces > 0 ? ` · ${totalPieces} ${totalPieces === 1 ? "peça" : "peças"}` : ""}
-              {selectedCustomer ? ` · ${selectedCustomer.name}` : ""}
+              {totalPieces > 0 ? ` · ${totalPieces} ${totalPieces === 1 ? "peça" : "peças"}` : ""}
+              {isEntrada && selectedCustomer ? ` · ${selectedCustomer.name}` : ""}
+              {!isEntrada && supplierName.trim() ? ` · ${supplierName.trim()}` : ""}
             </p>
           </div>
 
@@ -3251,6 +3422,16 @@ function Caixa() {
                     ? totalPieces > 1
                       ? `Registrar entrada (${totalPieces} peças)`
                       : "Registrar entrada"
+                    : totalPieces > 1
+                    ? category === "perda_avaria"
+                      ? `Registrar perda (${totalPieces} peças)`
+                      : category === "compra_estoque"
+                      ? `Registrar compra (${totalPieces} peças)`
+                      : `Registrar saída (${totalPieces} peças)`
+                    : category === "perda_avaria"
+                    ? "Registrar perda de estoque"
+                    : category === "compra_estoque"
+                    ? "Registrar compra de estoque"
                     : "Registrar saída"}
                 </span>
               </>
