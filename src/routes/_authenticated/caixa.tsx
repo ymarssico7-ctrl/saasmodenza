@@ -2103,45 +2103,7 @@ function Caixa() {
           </div>
 
           <Field
-            className="relative"
-            label={
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-muted-foreground">Valor (R$)</Label>
-                {calculatedDiscount > 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[11px] font-bold">
-                    <button
-                      type="button"
-                      onClick={() => setShowDiscount(!showDiscount)}
-                      className="hover:underline cursor-pointer"
-                      title="Editar desconto"
-                    >
-                      −{brl(calculatedDiscount)} ({discountType === "pct" ? `${discountValue}%` : "fixo"})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDiscountValue("");
-                        setShowDiscount(false);
-                      }}
-                      className="hover:text-destructive cursor-pointer ml-0.5"
-                      title="Remover desconto"
-                      aria-label="Remover desconto"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowDiscount(!showDiscount)}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer select-none"
-                  >
-                    <Percent className="size-3" />
-                    <span>{isEntrada ? "Desconto" : "Abatimento"}</span>
-                  </button>
-                )}
-              </div>
-            }
+            label="Valor (R$)"
           >
             <div className="relative">
               {/* Badge de sinal — fundo semântico colorido */}
@@ -2170,6 +2132,51 @@ function Caixa() {
                 </span>
               )}
             </div>
+          </Field>
+
+          {/* ── Trigger de Desconto — Pill Acessível ── */}
+          <div className="relative sm:col-span-2 lg:col-span-1 -mt-2 mb-1">
+            {calculatedDiscount > 0 ? (
+              /* Estado ativo: badge âmbar com valor + editar + remover */
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscount(!showDiscount)}
+                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all hover:bg-amber-500/20 cursor-pointer"
+                  title="Editar desconto"
+                >
+                  <Percent className="size-3.5 shrink-0" />
+                  <span>
+                    −{brl(calculatedDiscount)}{" "}
+                    <span className="opacity-70">
+                      ({discountType === "pct" ? `${discountValue}%` : "fixo"})
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDiscountValue("");
+                    setShowDiscount(false);
+                  }}
+                  className="flex items-center justify-center size-9 rounded-xl border border-border/60 bg-surface-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/8 transition-all cursor-pointer shrink-0"
+                  title="Remover desconto"
+                  aria-label="Remover desconto"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ) : (
+              /* Estado inativo: botão pill neutro "Aplicar desconto" */
+              <button
+                type="button"
+                onClick={() => setShowDiscount(!showDiscount)}
+                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-dashed border-border hover:border-primary/50 bg-surface-muted/40 hover:bg-primary-soft/30 text-muted-foreground hover:text-primary text-xs font-semibold transition-all cursor-pointer select-none"
+              >
+                <Percent className="size-3.5 shrink-0" />
+                {isEntrada ? "Aplicar desconto" : "Aplicar abatimento"}
+              </button>
+            )}
 
             {/* Popover Compacto Flutuante de Desconto / Promoção */}
             {showDiscount && (
@@ -2178,7 +2185,7 @@ function Caixa() {
                   className="fixed inset-0 z-40"
                   onClick={() => setShowDiscount(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-2xl border border-border bg-card p-3.5 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-3">
+                <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-2xl border border-border bg-card p-3.5 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-3">
                   {/* Header do Popover */}
                   <div className="flex items-center justify-between border-b border-border/60 pb-2">
                     <div className="flex items-center gap-1.5">
@@ -2322,7 +2329,7 @@ function Caixa() {
                 </div>
               </>
             )}
-          </Field>
+          </div>
 
           {/* ── Multi-itens: sacola fluida (Apenas em Entrada) ── */}
           {isEntrada && (
