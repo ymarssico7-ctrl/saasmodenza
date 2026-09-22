@@ -807,6 +807,7 @@ function Caixa() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedProductSize, setSelectedProductSize] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const [quantityText, setQuantityText] = useState<string | null>(null);
   const [unitPrice, setUnitPrice] = useState<number>(0);
   const [basket, setBasket] = useState<SaleBasketItem[]>([]);
   const [deductStock, setDeductStock] = useState(true);
@@ -1073,6 +1074,7 @@ function Caixa() {
   const handleQuantityChange = (newQty: number) => {
     if (newQty < 1) return;
     setQuantity(newQty);
+    setQuantityText(null);
     if (unitPrice > 0) {
       setAmount(String(Number((unitPrice * newQty).toFixed(2))).replace(".", ","));
     } else if (grossAmount > 0) {
@@ -2034,15 +2036,54 @@ function Caixa() {
                     <Minus className="size-4" />
                   </button>
 
-                  <div className="flex-1 flex items-baseline justify-center gap-1 select-none px-1">
-                    <span
-                      className={`font-mono text-base font-black tracking-tight ${
+                  {/* Display / Input Central Editável com Suporte a Digitação e Setas do Teclado */}
+                  <div className="flex-1 flex items-baseline justify-center gap-0.5 px-1">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={quantityText !== null ? quantityText : quantity}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setQuantityText(val);
+                        const parsed = parseInt(val, 10);
+                        if (!isNaN(parsed) && parsed >= 1) {
+                          setQuantity(parsed);
+                          if (unitPrice > 0) {
+                            setAmount(String(Number((unitPrice * parsed).toFixed(2))).replace(".", ","));
+                          } else if (grossAmount > 0) {
+                            const prevQty = quantity > 0 ? quantity : 1;
+                            const inferredUnit = grossAmount / prevQty;
+                            setAmount(String(Number((inferredUnit * parsed).toFixed(2))).replace(".", ","));
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!quantityText || parseInt(quantityText, 10) < 1) {
+                          handleQuantityChange(1);
+                        } else {
+                          setQuantityText(null);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          handleQuantityChange(quantity + 1);
+                        } else if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          handleQuantityChange(Math.max(1, quantity - 1));
+                        } else if (e.key === "Enter") {
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      className={`w-10 sm:w-12 bg-transparent text-center font-mono text-base font-black tracking-tight border-none outline-none p-0 focus:ring-0 cursor-text ${
                         quantity > 1 ? "text-primary" : "text-foreground"
                       }`}
-                    >
-                      {quantity}
-                    </span>
-                    <span className="text-[11px] font-semibold text-muted-foreground/70">
+                      title="Digite a quantidade ou use as setas ↑ e ↓ do teclado"
+                      aria-label="Quantidade da peça"
+                    />
+                    <span className="text-[11px] font-semibold text-muted-foreground/70 select-none pointer-events-none">
                       un.
                     </span>
                   </div>
