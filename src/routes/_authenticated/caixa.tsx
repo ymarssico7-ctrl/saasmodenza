@@ -790,7 +790,9 @@ function Caixa() {
     size?: string;
     quantity: number;
     unitPrice: number;
-    totalPrice: number;
+    totalPrice: number;   // bruto: unitPrice × quantity
+    discount?: { type: "flat" | "pct"; value: number }; // desconto isolado deste item
+    netPrice: number;     // líquido: totalPrice − desconto do item
     deductStock: boolean;
   };
 
@@ -821,6 +823,10 @@ function Caixa() {
   const [showDiscount, setShowDiscount] = useState(false);
   const [discountType, setDiscountType] = useState<"flat" | "pct">("flat");
   const [discountValue, setDiscountValue] = useState("");
+  // Desconto por peça no multi-itens: guarda o item.id do popover aberto
+  const [basketDiscountPopover, setBasketDiscountPopover] = useState<string | null>(null);
+  const [basketDiscountType, setBasketDiscountType] = useState<"flat" | "pct">("pct");
+  const [basketDiscountInput, setBasketDiscountInput] = useState("");
 
   // Data com atalhos: "hoje" | "ontem" | "custom"
   const [dateMode, setDateMode] = useState<"hoje" | "ontem" | "custom">("hoje");
@@ -995,7 +1001,8 @@ function Caixa() {
           if (idx !== existingIdx) return item;
           const newQ = item.quantity + 1;
           const newTot = Number((item.unitPrice * newQ).toFixed(2));
-          return { ...item, quantity: newQ, totalPrice: newTot };
+          const itemDisc = item.discount ? calcItemDiscount({ ...item, totalPrice: newTot }, item.discount.type, item.discount.value) : 0;
+          return { ...item, quantity: newQ, totalPrice: newTot, netPrice: Number((newTot - itemDisc).toFixed(2)) };
         });
         toast.success(`+1 un. de "${product.name}" somada à venda!`);
       } else {
@@ -1007,6 +1014,7 @@ function Caixa() {
           quantity: 1,
           unitPrice: priceToUse,
           totalPrice: priceToUse,
+          netPrice: priceToUse,
           deductStock: true,
         };
         updatedBasket = [...basket, newItem];
@@ -1056,6 +1064,7 @@ function Caixa() {
       quantity,
       unitPrice: unitPrice > 0 ? unitPrice : currentPrice / quantity,
       totalPrice: currentPrice,
+      netPrice: currentPrice,
       deductStock: !!selectedProductId && deductStock,
     };
 
@@ -1107,15 +1116,44 @@ function Caixa() {
     return grossAmount > 0 ? quantity : 0;
   }, [basket, grossAmount, quantity]);
 
+  // Soma dos descontos isolados de cada item da sacola
+  const basketTotalDiscount = useMemo(() => {
+    if (basket.length === 0) return 0;
+    return basket.reduce((acc, item) => {
+      if (!item.discount || item.discount.value <= 0) return acc;
+      const d =
+        item.discount.type === "pct"
+          ? Number(((item.totalPrice * Math.min(item.discount.value, 100)) / 100).toFixed(2))
+          : Math.min(item.discount.value, item.totalPrice);
+      return acc + d;
+    }, 0);
+  }, [basket]);
+
+  // Indica se há qualquer desconto por peça ativo na sacola
+  const hasItemDiscounts = basketTotalDiscount > 0;
+
   const calculatedDiscount = useMemo(() => {
-    if (grossAmount <= 0 || discountNum <= 0) return 0;
-    if (discountType === "pct") {
-      return Number(((grossAmount * Math.min(discountNum, 100)) / 100).toFixed(2));
+    // Modo desconto global (discountValue preenchido pelo usuário)
+    if (discountNum > 0 && grossAmount > 0) {
+      if (discountType === "pct") {
+        return Number(((grossAmount * Math.min(discountNum, 100)) / 100).toFixed(2));
+      }
+      return Math.min(discountNum, grossAmount);
     }
-    return Math.min(discountNum, grossAmount);
-  }, [grossAmount, discountNum, discountType]);
+    // Modo desconto por peça (soma dos descontos isolados)
+    if (basketTotalDiscount > 0) return basketTotalDiscount;
+    return 0;
+  }, [grossAmount, discountNum, discountType, basketTotalDiscount]);
 
   const netAmount = Math.max(grossAmount - calculatedDiscount, 0);
+
+  // ── Helpers de desconto por item ─────────────────────────────────────────
+  const calcItemDiscount = (item: SaleBasketItem, type: "flat" | "pct", value: number): number => {
+    if (value <= 0) return 0;
+    return type === "pct"
+      ? Number(((item.totalPrice * Math.min(value, 100)) / 100).toFixed(2))
+      : Math.min(value, item.totalPrice);
+  };
 
   // ── Handlers da Sacola Multi-itens ─────────────────────────────────────────
   const handleRemoveFromBasket = (id: string) => {
@@ -1142,12 +1180,29 @@ function Caixa() {
         if (item.id !== id) return item;
         const newQty = Math.max(1, item.quantity + delta);
         const newTotal = Number((item.unitPrice * newQty).toFixed(2));
-        return { ...item, quantity: newQty, totalPrice: newTotal };
+        const itemDisc = item.discount ? calcItemDiscount({ ...item, totalPrice: newTotal }, item.discount.type, item.discount.value) : 0;
+        return { ...item, quantity: newQty, totalPrice: newTotal, netPrice: Number((newTotal - itemDisc).toFixed(2)) };
       });
       const newTotal = updated.reduce((sum, i) => sum + i.totalPrice, 0);
       setAmount(String(Number(newTotal.toFixed(2))).replace(".", ","));
       return updated;
     });
+  };
+
+  // Define ou remove desconto isolado de um item da sacola
+  const handleSetItemDiscount = (id: string, type: "flat" | "pct", value: number) => {
+    setBasket((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const disc = value <= 0 ? undefined : { type, value };
+        const itemDiscount = disc ? calcItemDiscount(item, disc.type, disc.value) : 0;
+        return {
+          ...item,
+          discount: disc,
+          netPrice: Number((item.totalPrice - itemDiscount).toFixed(2)),
+        };
+      })
+    );
   };
 
   // ── Listas combinadas (padrão + custom) ──────────────────────────────────
@@ -2360,69 +2415,268 @@ function Caixa() {
                   </div>
 
                   {/* Rows dos itens */}
-                  <div className="space-y-1 max-h-44 overflow-y-auto">
-                    {basket.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-2 rounded-xl bg-card border border-border/60 px-3 py-2 shadow-2xs text-xs"
-                      >
-                        {/* Nome + Tamanho */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-foreground truncate">{item.productName}</span>
-                            {item.size && (
-                              <span className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                                {item.size}
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {basket.map((item) => {
+                      const itemDiscountAmt = item.discount
+                        ? calcItemDiscount(item, item.discount.type, item.discount.value)
+                        : 0;
+                      const isItemPopoverOpen = basketDiscountPopover === item.id;
+                      const globalDiscActive = discountNum > 0;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="relative flex items-start justify-between gap-2 rounded-xl bg-card border border-border/60 px-3 py-2.5 shadow-2xs text-xs"
+                        >
+                          {/* Nome + Tamanho + subtexto de preço */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-foreground truncate">{item.productName}</span>
+                              {item.size && (
+                                <span className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                  {item.size}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {item.quantity > 1
+                                ? `${item.quantity} × ${brl(item.unitPrice)}`
+                                : brl(item.unitPrice)}
+                            </p>
+                            {/* Badge de desconto por item ativo */}
+                            {itemDiscountAmt > 0 && (
+                              <span className="inline-flex items-center gap-1 mt-1 rounded-md bg-amber-500/12 border border-amber-500/25 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-bold">
+                                −{brl(itemDiscountAmt)} desc.
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {item.quantity > 1
-                              ? `${item.quantity} × ${brl(item.unitPrice)}`
-                              : brl(item.unitPrice)}
-                          </p>
-                        </div>
 
-                        {/* Stepper de Qtd + Preço + Remover */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <div className="flex items-center rounded-lg border border-border/60 bg-surface-muted/60 p-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateBasketQty(item.id, -1)}
-                              disabled={item.quantity <= 1}
-                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer transition-colors"
-                              title="Diminuir quantidade"
-                            >
-                              <Minus className="size-3" />
-                            </button>
-                            <span className="w-5 text-center font-mono text-xs font-bold text-foreground">
-                              {item.quantity}
+                          {/* Stepper de Qtd + Preço líquido + Botão % + Remover */}
+                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                            {/* Stepper */}
+                            <div className="flex items-center rounded-lg border border-border/60 bg-surface-muted/60 p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBasketQty(item.id, -1)}
+                                disabled={item.quantity <= 1}
+                                className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer transition-colors"
+                                title="Diminuir quantidade"
+                              >
+                                <Minus className="size-3" />
+                              </button>
+                              <span className="w-5 text-center font-mono text-xs font-bold text-foreground">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBasketQty(item.id, 1)}
+                                className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                                title="Aumentar quantidade"
+                              >
+                                <Plus className="size-3" />
+                              </button>
+                            </div>
+
+                            {/* Preço — líquido se houver desconto, bruto caso contrário */}
+                            <span className={`font-mono font-semibold w-16 text-right ${itemDiscountAmt > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
+                              {brl(item.netPrice)}
                             </span>
+
+                            {/* Botão de desconto por item */}
+                            <div className="relative">
+                              {itemDiscountAmt > 0 ? (
+                                /* Estado ativo: ícone âmbar clicável */
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (globalDiscActive) return;
+                                    setBasketDiscountInput(String(item.discount?.value ?? ""));
+                                    setBasketDiscountType(item.discount?.type ?? "pct");
+                                    setBasketDiscountPopover(isItemPopoverOpen ? null : item.id);
+                                  }}
+                                  disabled={globalDiscActive}
+                                  className="flex size-6 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                  title={globalDiscActive ? "Desconto global ativo — remova-o para usar desconto por peça" : "Editar desconto desta peça"}
+                                >
+                                  <Percent className="size-3" />
+                                </button>
+                              ) : (
+                                /* Estado inativo: ícone neutro */
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (globalDiscActive) return;
+                                    setBasketDiscountInput("");
+                                    setBasketDiscountType("pct");
+                                    setBasketDiscountPopover(isItemPopoverOpen ? null : item.id);
+                                  }}
+                                  disabled={globalDiscActive}
+                                  className="flex size-6 items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary-soft/30 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                  title={globalDiscActive ? "Desconto global ativo — remova-o para usar desconto por peça" : "Aplicar desconto a esta peça"}
+                                >
+                                  <Percent className="size-3" />
+                                </button>
+                              )}
+
+                              {/* Popover de desconto por item */}
+                              {isItemPopoverOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-40" onClick={() => setBasketDiscountPopover(null)} />
+                                  <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-2xl border border-border bg-card p-3 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-2.5">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <Percent className="size-3 text-primary" />
+                                        <span className="text-xs font-bold text-foreground truncate max-w-[140px]">
+                                          Desconto: {item.productName}
+                                        </span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => setBasketDiscountPopover(null)}
+                                        className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                                      >
+                                        <X className="size-3" />
+                                      </button>
+                                    </div>
+
+                                    {/* Chips rápidos */}
+                                    <div>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                                        Atalhos rápidos:
+                                      </span>
+                                      <div className="grid grid-cols-4 gap-1">
+                                        {[5, 10, 15, 20].map((pct) => {
+                                          const isSel = basketDiscountType === "pct" && basketDiscountInput === String(pct);
+                                          return (
+                                            <button
+                                              key={pct}
+                                              type="button"
+                                              onClick={() => {
+                                                setBasketDiscountType("pct");
+                                                setBasketDiscountInput(String(pct));
+                                                handleSetItemDiscount(item.id, "pct", pct);
+                                              }}
+                                              className={`py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer ${
+                                                isSel
+                                                  ? "bg-primary text-primary-foreground shadow-2xs scale-98"
+                                                  : "bg-surface-muted/70 hover:bg-surface-muted text-foreground border border-border/60"
+                                              }`}
+                                            >
+                                              {pct}%
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+
+                                    {/* Toggle R$ / % + Input */}
+                                    <div className="space-y-1.5 pt-1 border-t border-border/50">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                                        Ou valor personalizado:
+                                      </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="flex rounded-xl border border-border/70 bg-surface-muted/50 p-0.5 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => setBasketDiscountType("flat")}
+                                            className={`px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                                              basketDiscountType === "flat"
+                                                ? "bg-card text-foreground shadow-2xs"
+                                                : "text-muted-foreground hover:text-foreground"
+                                            }`}
+                                          >
+                                            R$
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setBasketDiscountType("pct")}
+                                            className={`px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                                              basketDiscountType === "pct"
+                                                ? "bg-card text-foreground shadow-2xs"
+                                                : "text-muted-foreground hover:text-foreground"
+                                            }`}
+                                          >
+                                            %
+                                          </button>
+                                        </div>
+                                        <Input
+                                          inputMode="decimal"
+                                          value={basketDiscountInput}
+                                          onChange={(e) => {
+                                            setBasketDiscountInput(e.target.value);
+                                            const v = toNumber(e.target.value);
+                                            handleSetItemDiscount(item.id, basketDiscountType, v);
+                                          }}
+                                          placeholder={basketDiscountType === "flat" ? "Ex: 10,00" : "Ex: 10"}
+                                          className="h-8 rounded-xl font-mono text-xs font-bold flex-1"
+                                          autoFocus
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Resumo em tempo real */}
+                                    {itemDiscountAmt > 0 && (
+                                      <div className="rounded-xl bg-primary-soft/25 border border-primary/20 p-2 text-xs space-y-0.5">
+                                        <div className="flex justify-between text-muted-foreground text-[11px]">
+                                          <span>Preço bruto:</span>
+                                          <span className="font-mono font-bold">{brl(item.totalPrice)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-muted-foreground text-[11px]">
+                                          <span>Desconto:</span>
+                                          <span className="font-mono font-bold text-amber-700 dark:text-amber-400">−{brl(itemDiscountAmt)}</span>
+                                        </div>
+                                        <div className="flex justify-between font-bold text-foreground">
+                                          <span>Preço com desconto:</span>
+                                          <span className="font-mono text-emerald-600 dark:text-emerald-400">{brl(item.netPrice)}</span>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Ações */}
+                                    <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                                      {itemDiscountAmt > 0 ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            handleSetItemDiscount(item.id, "pct", 0);
+                                            setBasketDiscountInput("");
+                                            setBasketDiscountPopover(null);
+                                          }}
+                                          className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer font-medium"
+                                        >
+                                          Remover desconto
+                                        </button>
+                                      ) : (
+                                        <div />
+                                      )}
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => setBasketDiscountPopover(null)}
+                                        className="h-7 rounded-xl px-3 text-xs font-bold cursor-pointer"
+                                      >
+                                        Concluído
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Remover item */}
                             <button
                               type="button"
-                              onClick={() => handleUpdateBasketQty(item.id, 1)}
-                              className="flex size-5 items-center justify-center rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
-                              title="Aumentar quantidade"
+                              onClick={() => handleRemoveFromBasket(item.id)}
+                              className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors cursor-pointer"
+                              title="Remover desta venda"
                             >
-                              <Plus className="size-3" />
+                              <X className="size-3.5" />
                             </button>
                           </div>
-
-                          <span className="font-mono font-semibold text-foreground w-16 text-right">
-                            {brl(item.totalPrice)}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFromBasket(item.id)}
-                            className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors cursor-pointer"
-                            title="Remover desta venda"
-                          >
-                            <X className="size-3.5" />
-                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Hint para adicionar mais — seleciona no campo acima */}
