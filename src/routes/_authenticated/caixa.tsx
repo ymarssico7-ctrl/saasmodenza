@@ -27,7 +27,6 @@ import {
   RotateCcw,
   Settings,
   ShoppingBag,
-  Sparkles,
   TrendingUp,
   Trash2,
   User,
@@ -834,17 +833,6 @@ const baseEntryCategories = ENTRY_CATEGORIES as readonly { value: string; label:
 const baseExitCategories = EXIT_CATEGORIES as readonly { value: string; label: string }[];
 const basePaymentMethods = PAYMENT_METHODS as readonly { value: string; label: string }[];
 
-// ── Clientes demonstrativas para garantir volume de rolagem em lojas recém-criadas ──
-const DEMO_CUSTOMERS_SAMPLE = [
-  { id: "demo-c1", name: "Camila Rodrigues", phone: "(11) 98765-4321", isDemo: true },
-  { id: "demo-c2", name: "Beatriz Silveira", phone: "(21) 99123-4567", isDemo: true },
-  { id: "demo-c3", name: "Fernanda Lima", phone: "(31) 98456-7890", isDemo: true },
-  { id: "demo-c4", name: "Juliana Mendes", phone: "(41) 99876-5432", isDemo: true },
-  { id: "demo-c5", name: "Mariana Costa", phone: "(19) 98234-5678", isDemo: true },
-  { id: "demo-c6", name: "Patrícia Albuquerque", phone: "(71) 99345-6789", isDemo: true },
-  { id: "demo-c7", name: "Larissa Menezes", phone: "(85) 98123-9876", isDemo: true },
-  { id: "demo-c8", name: "Rafaela Fontana", phone: "(51) 99654-3210", isDemo: true },
-] as const;
 
 // ── Componente principal Caixa ──────────────────────────────────────────────
 function Caixa() {
@@ -868,7 +856,7 @@ function Caixa() {
   const { data: rawSuppliers = [] } = useQuery(suppliersQuery());
   const txs = all as unknown as Transaction[];
 
-  type Customer = { id: string; name: string; phone: string | null; isDemo?: boolean };
+  type Customer = { id: string; name: string; phone: string | null };
   const customers = rawCustomers as unknown as Customer[];
 
   type InventoryItem = {
@@ -973,51 +961,22 @@ function Caixa() {
   const extratoSearchInputRef = useRef<HTMLInputElement>(null);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
-  const [isPopulatingCustomers, setIsPopulatingCustomers] = useState(false);
-  const handlePopulateTestCustomers = async () => {
-    setIsPopulatingCustomers(true);
-    try {
-      const sample = [
-        { name: "Camila Rodrigues", phone: "(11) 98765-4321" },
-        { name: "Beatriz Silveira", phone: "(21) 99123-4567" },
-        { name: "Fernanda Lima", phone: "(31) 98456-7890" },
-        { name: "Juliana Mendes", phone: "(41) 99876-5432" },
-        { name: "Mariana Costa", phone: "(19) 98234-5678" },
-      ];
-      for (const c of sample) {
-        await insertCustomer(storeId, c.name, c.phone);
-      }
-      await queryClient.invalidateQueries({ queryKey: ["customers"] });
-      toast.success("5 clientes de exemplo salvas no banco com sucesso! 🎉");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao cadastrar clientes de teste");
-    } finally {
-      setIsPopulatingCustomers(false);
-    }
-  };
+
 
   const selectedCustomer = useMemo(
-    () => customers.find((c) => c.id === selectedCustomerId) ?? (DEMO_CUSTOMERS_SAMPLE.find((c) => c.id === selectedCustomerId) as Customer | undefined) ?? null,
+    () => customers.find((c) => c.id === selectedCustomerId) ?? null,
     [customers, selectedCustomerId],
   );
 
   const matchingCustomers = useMemo((): Customer[] => {
-    const sortedDB = [...customers].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-    const registeredNames = new Set(sortedDB.map((c) => c.name.toLowerCase()));
-
-    // Se o banco tiver menos de 5 clientes cadastradas, complementa com sugestões demonstrativas
-    // para garantir altura e volume suficientes para ativar o scroll fluido e testabilidade imediata
-    const demoItems: Customer[] = customers.length < 5
-      ? (DEMO_CUSTOMERS_SAMPLE as readonly Customer[]).filter((d) => !registeredNames.has(d.name.toLowerCase()))
-      : [];
-
-    const combined: Customer[] = [...sortedDB, ...demoItems];
-    if (!customerSearch.trim()) return combined.slice(0, 50);
+    const sorted = [...customers].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    if (!customerSearch.trim()) return sorted.slice(0, 50);
     const q = customerSearch.toLowerCase().trim();
-    return combined
+    return sorted
       .filter((c) => c.name.toLowerCase().includes(q) || (c.phone ?? "").includes(q))
       .slice(0, 50);
   }, [customers, customerSearch]);
+
 
   // Favorecido / Fornecedor para Saídas (Texto Livre Persistente + Histórico Inteligente)
   const [supplierName, setSupplierName] = useState("");
@@ -1063,22 +1022,12 @@ function Caixa() {
     return [...fromDB, ...fromHistory].slice(0, 50);
   }, [rawSuppliers, previousSuppliers, supplierName]);
 
-  const handleSelectCustomer = async (c: Customer) => {
-    let finalId = c.id;
-    if (c.isDemo) {
-      try {
-        const res = await insertCustomer(storeId, c.name, c.phone ?? "");
-        finalId = (res as { id?: string })?.id ?? c.id;
-        void queryClient.invalidateQueries({ queryKey: ["customers"] });
-      } catch {
-        finalId = c.id;
-      }
-    }
-    setSelectedCustomerId(finalId);
+  const handleSelectCustomer = (c: Customer) => {
+    setSelectedCustomerId(c.id);
     setCustomerSearch("");
     setShowCustomerPopover(false);
     setCustomerHighlight(-1);
-    if (isFiado) setFiadoCustomerId(finalId);
+    if (isFiado) setFiadoCustomerId(c.id);
   };
 
   const handleClearCustomer = () => {
@@ -3181,7 +3130,7 @@ function Caixa() {
 
                     {/* Viewport com Scroll Dedicado */}
                     {matchingCustomers.length > 0 ? (
-                      <div className="scrollbar-apple overflow-y-auto max-h-52 p-1.5 space-y-0.5 overscroll-contain pr-1">
+                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2.5 space-y-0.5 overscroll-contain">
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
                           return (
@@ -3193,45 +3142,40 @@ function Caixa() {
                                   node.scrollIntoView({ block: "nearest", behavior: "smooth" });
                                 }
                               }}
-                              onClick={() => void handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
+                              onClick={() => handleSelectCustomer(c)}
+                              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
                                 isHighlighted
                                   ? "bg-primary/10 border border-primary/30 text-primary shadow-2xs font-semibold"
                                   : "hover:bg-primary-soft/50 text-foreground"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                                  {c.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate font-medium leading-tight">{c.name}</p>
-                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
-                                </div>
+                              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                {c.name.charAt(0).toUpperCase()}
                               </div>
-                              <div className="shrink-0">
-                                {c.isDemo ? (
-                                  <span className="rounded-full bg-surface-muted border border-border/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                    Exemplo
-                                  </span>
-                                ) : (
-                                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                    Cadastrada
-                                  </span>
-                                )}
+                              <div className="min-w-0">
+                                <p className="truncate font-medium leading-tight">{c.name}</p>
+                                {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
                               </div>
                             </button>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="px-4 py-4 text-center text-xs text-muted-foreground">
-                        Nenhuma cliente encontrada para &quot;{customerSearch}&quot;
+                      <div className="px-4 py-6 flex flex-col items-center gap-2 text-center">
+                        <User className="size-8 text-muted-foreground/25" />
+                        {customerSearch.trim() ? (
+                          <p className="text-xs text-muted-foreground">Nenhuma cliente encontrada para &quot;{customerSearch}&quot;</p>
+                        ) : (
+                          <>
+                            <p className="text-xs text-muted-foreground font-medium">Nenhuma cliente cadastrada</p>
+                            <p className="text-[11px] text-muted-foreground/60">Use o botão abaixo para adicionar</p>
+                          </>
+                        )}
                       </div>
                     )}
 
                     {/* Footer Fixo (Sempre visível no rodapé) */}
-                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0 space-y-1">
+                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -3249,17 +3193,6 @@ function Caixa() {
                             : "Cadastrar nova cliente…"}
                         </span>
                       </button>
-                      {customers.length < 5 && (
-                        <button
-                          type="button"
-                          disabled={isPopulatingCustomers}
-                          onClick={handlePopulateTestCustomers}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-center text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
-                        >
-                          <Sparkles className="size-3 shrink-0" />
-                          <span>{isPopulatingCustomers ? "Cadastrando clientes..." : "⚡ Salvar 5 clientes de teste no banco"}</span>
-                        </button>
-                      )}
                     </div>
                   </div>
                 </>
@@ -3319,7 +3252,7 @@ function Caixa() {
 
                     {/* Viewport com Scroll Dedicado */}
                     {matchingCustomers.length > 0 ? (
-                      <div className="scrollbar-apple overflow-y-auto max-h-52 p-1.5 space-y-0.5 overscroll-contain pr-1">
+                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2.5 space-y-0.5 overscroll-contain">
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
                           return (
@@ -3331,45 +3264,40 @@ function Caixa() {
                                   node.scrollIntoView({ block: "nearest", behavior: "smooth" });
                                 }
                               }}
-                              onClick={() => void handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
+                              onClick={() => handleSelectCustomer(c)}
+                              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
                                 isHighlighted
                                   ? "bg-primary/10 border border-primary/30 text-primary shadow-2xs font-semibold"
                                   : "hover:bg-primary-soft/50 text-foreground"
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                                  {c.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate font-medium leading-tight">{c.name}</p>
-                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
-                                </div>
+                              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                {c.name.charAt(0).toUpperCase()}
                               </div>
-                              <div className="shrink-0">
-                                {c.isDemo ? (
-                                  <span className="rounded-full bg-surface-muted border border-border/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                    Exemplo
-                                  </span>
-                                ) : (
-                                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                    Cadastrada
-                                  </span>
-                                )}
+                              <div className="min-w-0">
+                                <p className="truncate font-medium leading-tight">{c.name}</p>
+                                {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
                               </div>
                             </button>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="px-4 py-4 text-center text-xs text-muted-foreground">
-                        Nenhuma cliente encontrada para &quot;{customerSearch}&quot;
+                      <div className="px-4 py-6 flex flex-col items-center gap-2 text-center">
+                        <User className="size-8 text-muted-foreground/25" />
+                        {customerSearch.trim() ? (
+                          <p className="text-xs text-muted-foreground">Nenhuma cliente encontrada para &quot;{customerSearch}&quot;</p>
+                        ) : (
+                          <>
+                            <p className="text-xs text-muted-foreground font-medium">Nenhuma cliente cadastrada</p>
+                            <p className="text-[11px] text-muted-foreground/60">Use o botão abaixo para adicionar</p>
+                          </>
+                        )}
                       </div>
                     )}
 
                     {/* Footer Fixo */}
-                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0 space-y-1">
+                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -3387,17 +3315,6 @@ function Caixa() {
                             : "Cadastrar nova cliente…"}
                         </span>
                       </button>
-                      {customers.length < 5 && (
-                        <button
-                          type="button"
-                          disabled={isPopulatingCustomers}
-                          onClick={handlePopulateTestCustomers}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-center text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
-                        >
-                          <Sparkles className="size-3 shrink-0" />
-                          <span>{isPopulatingCustomers ? "Cadastrando clientes..." : "⚡ Salvar 5 clientes de teste no banco"}</span>
-                        </button>
-                      )}
                     </div>
                   </div>
                 </>
@@ -4000,7 +3917,7 @@ function Caixa() {
 
                       {/* Viewport com Scroll Dedicado */}
                       {matchingCustomers.length > 0 ? (
-                        <div className="scrollbar-apple overflow-y-auto max-h-52 p-1.5 space-y-0.5 overscroll-contain pr-1">
+                        <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2.5 space-y-0.5 overscroll-contain">
                           {matchingCustomers.map((c, idx) => {
                             const isHighlighted = idx === customerHighlight;
                             return (
@@ -4012,45 +3929,40 @@ function Caixa() {
                                     node.scrollIntoView({ block: "nearest", behavior: "smooth" });
                                   }
                                 }}
-                                onClick={() => void handleSelectCustomer(c)}
-                                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
+                                onClick={() => handleSelectCustomer(c)}
+                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
                                   isHighlighted
                                     ? "bg-amber-100 border border-amber-300 text-amber-900 shadow-2xs font-semibold dark:bg-amber-950 dark:text-amber-200"
                                     : "hover:bg-amber-500/10 text-foreground"
                                 }`}
                               >
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-amber-900 text-xs font-bold dark:bg-amber-800 dark:text-amber-100">
-                                    {c.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="truncate font-medium leading-tight">{c.name}</p>
-                                    {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
-                                  </div>
+                                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-amber-900 text-xs font-bold dark:bg-amber-800 dark:text-amber-100">
+                                  {c.name.charAt(0).toUpperCase()}
                                 </div>
-                                <div className="shrink-0">
-                                  {c.isDemo ? (
-                                    <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-300">
-                                      Exemplo
-                                    </span>
-                                  ) : (
-                                    <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                                      Cadastrada
-                                    </span>
-                                  )}
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium leading-tight">{c.name}</p>
+                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
                                 </div>
                               </button>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="px-4 py-4 text-center text-xs text-muted-foreground">
-                          Nenhuma cliente encontrada para &quot;{customerSearch}&quot;
+                        <div className="px-4 py-6 flex flex-col items-center gap-2 text-center">
+                          <User className="size-8 text-muted-foreground/25" />
+                          {customerSearch.trim() ? (
+                            <p className="text-xs text-muted-foreground">Nenhuma cliente encontrada para &quot;{customerSearch}&quot;</p>
+                          ) : (
+                            <>
+                              <p className="text-xs text-muted-foreground font-medium">Nenhuma cliente cadastrada</p>
+                              <p className="text-[11px] text-muted-foreground/60">Use o botão abaixo para adicionar</p>
+                            </>
+                          )}
                         </div>
                       )}
 
                       {/* Footer Fixo */}
-                      <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0 space-y-1">
+                      <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
                         <button
                           type="button"
                           onClick={() => {
@@ -4068,17 +3980,6 @@ function Caixa() {
                               : "Cadastrar nova cliente…"}
                           </span>
                         </button>
-                        {customers.length < 5 && (
-                          <button
-                            type="button"
-                            disabled={isPopulatingCustomers}
-                            onClick={handlePopulateTestCustomers}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-center text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
-                          >
-                            <Sparkles className="size-3 shrink-0" />
-                            <span>{isPopulatingCustomers ? "Cadastrando clientes..." : "⚡ Salvar 5 clientes de teste no banco"}</span>
-                          </button>
-                        )}
                       </div>
                     </div>
                   </>
