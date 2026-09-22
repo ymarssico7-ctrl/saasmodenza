@@ -2103,7 +2103,7 @@ function Caixa() {
       )}
 
       {/* ── Formulário de Novo Lançamento (Código Autêntico Original Restaurado) ── */}
-      <section className="panel p-5 sm:p-7 border border-border/70 shadow-soft overflow-hidden">
+      <section className="panel p-5 sm:p-7 border border-border/70 shadow-soft relative z-10">
         <h2 className="text-lg font-bold tracking-tight text-foreground">Novo lançamento</h2>
 
         {/* Segmented Control — Entrada / Saída */}
@@ -2173,10 +2173,10 @@ function Caixa() {
             {showProductPopover && (
               <>
                 <div
-                  className="fixed inset-0 z-10"
+                  className="fixed inset-0 z-20"
                   onClick={() => setShowProductPopover(false)}
                 />
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-lift animate-in fade-in-50 zoom-in-95">
                   {matchingProducts.length > 0 && (
                     <>
                       <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -3115,10 +3115,10 @@ function Caixa() {
               {showCustomerPopover && !selectedCustomer && (
                 <>
                   <div
-                    className="fixed inset-0 z-10"
+                    className="fixed inset-0 z-20"
                     onClick={() => setShowCustomerPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-lift animate-in fade-in-50 zoom-in-95 flex flex-col">
                     {/* Header Fixo */}
                     <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
                       <span className="flex items-center gap-1.5">
@@ -3130,7 +3130,7 @@ function Caixa() {
 
                     {/* Viewport com Scroll Dedicado */}
                     {matchingCustomers.length > 0 ? (
-                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2.5 space-y-0.5 overscroll-contain">
+                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2 space-y-0.5 overscroll-contain">
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
                           return (
@@ -3175,7 +3175,7 @@ function Caixa() {
                     )}
 
                     {/* Footer Fixo (Sempre visível no rodapé) */}
-                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                    <div className="p-2 border-t border-border/50 bg-surface-muted/40 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -3237,10 +3237,10 @@ function Caixa() {
               {showCustomerPopover && !selectedCustomer && (
                 <>
                   <div
-                    className="fixed inset-0 z-10"
+                    className="fixed inset-0 z-20"
                     onClick={() => setShowCustomerPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-lift animate-in fade-in-50 zoom-in-95 flex flex-col">
                     {/* Header Fixo */}
                     <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
                       <span className="flex items-center gap-1.5">
@@ -3252,7 +3252,7 @@ function Caixa() {
 
                     {/* Viewport com Scroll Dedicado */}
                     {matchingCustomers.length > 0 ? (
-                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2.5 space-y-0.5 overscroll-contain">
+                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2 space-y-0.5 overscroll-contain">
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
                           return (
@@ -3297,7 +3297,7 @@ function Caixa() {
                     )}
 
                     {/* Footer Fixo */}
-                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                    <div className="p-2 border-t border-border/50 bg-surface-muted/40 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -3390,10 +3390,10 @@ function Caixa() {
               {showSupplierPopover && (
                 <>
                   <div
-                    className="fixed inset-0 z-10"
+                    className="fixed inset-0 z-20"
                     onClick={() => setShowSupplierPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-lift animate-in fade-in-50 zoom-in-95 flex flex-col">
                     {/* Header Fixo */}
                     <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
                       <span className="flex items-center gap-1.5">
@@ -3405,7 +3405,7 @@ function Caixa() {
 
                     {/* Viewport com Scroll Dedicado */}
                     {matchingSuppliers.length > 0 ? (
-                      <div className="scrollbar-apple overflow-y-auto max-h-52 p-1.5 space-y-0.5 overscroll-contain pr-1">
+                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2 space-y-0.5 overscroll-contain">
                         {matchingSuppliers.some((s) => s.isRegistered) && (
                           <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
                             Cadastrados
@@ -3490,7 +3490,7 @@ function Caixa() {
                     )}
 
                     {/* Footer Fixo */}
-                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                    <div className="p-2 border-t border-border/50 bg-surface-muted/40 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -3598,10 +3598,10 @@ function Caixa() {
               {showSupplierPopover && (
                 <>
                   <div
-                    className="fixed inset-0 z-10"
+                    className="fixed inset-0 z-20"
                     onClick={() => setShowSupplierPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                  <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-lift animate-in fade-in-50 zoom-in-95 flex flex-col">
                     {/* Header Fixo */}
                     <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
                       <span className="flex items-center gap-1.5">
@@ -3623,7 +3623,7 @@ function Caixa() {
 
                     {/* Viewport com Scroll Dedicado */}
                     {matchingSuppliers.length > 0 ? (
-                      <div className="scrollbar-apple overflow-y-auto max-h-52 p-1.5 space-y-0.5 overscroll-contain pr-1">
+                      <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2 space-y-0.5 overscroll-contain">
                         {matchingSuppliers.some((s) => s.isRegistered) && (
                           <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
                             Cadastrados
@@ -3707,7 +3707,7 @@ function Caixa() {
                     )}
 
                     {/* Footer Fixo */}
-                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                    <div className="p-2 border-t border-border/50 bg-surface-muted/40 shrink-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -3902,10 +3902,10 @@ function Caixa() {
                 {showCustomerPopover && !selectedCustomer && (
                   <>
                     <div
-                      className="fixed inset-0 z-10"
+                      className="fixed inset-0 z-20"
                       onClick={() => setShowCustomerPopover(false)}
                     />
-                    <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-amber-300/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                    <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-amber-300/80 bg-card shadow-lift animate-in fade-in-50 zoom-in-95 flex flex-col">
                       {/* Header Fixo */}
                       <div className="px-3.5 py-2 border-b border-amber-200/50 dark:border-amber-900/40 text-[11px] font-semibold text-amber-900 dark:text-amber-300 flex justify-between items-center bg-amber-50/50 dark:bg-amber-950/20 shrink-0 select-none">
                         <span className="flex items-center gap-1.5">
@@ -3917,7 +3917,7 @@ function Caixa() {
 
                       {/* Viewport com Scroll Dedicado */}
                       {matchingCustomers.length > 0 ? (
-                        <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2.5 space-y-0.5 overscroll-contain">
+                        <div className="scrollbar-apple overflow-y-auto max-h-52 px-1.5 pt-1.5 pb-2 space-y-0.5 overscroll-contain">
                           {matchingCustomers.map((c, idx) => {
                             const isHighlighted = idx === customerHighlight;
                             return (
@@ -3962,7 +3962,7 @@ function Caixa() {
                       )}
 
                       {/* Footer Fixo */}
-                      <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                      <div className="p-2 border-t border-border/50 bg-surface-muted/40 shrink-0">
                         <button
                           type="button"
                           onClick={() => {
