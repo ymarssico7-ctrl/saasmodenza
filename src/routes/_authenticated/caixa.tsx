@@ -1855,7 +1855,8 @@ function Caixa() {
 
         {/* Grid de Campos */}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label={isEntrada ? "Produto / Peça" : "Motivo da saída / Despesa"} className="relative lg:col-span-2">
+          <div className="lg:col-span-2 flex flex-col sm:flex-row gap-3">
+            <Field label={isEntrada ? "Produto / Peça" : "Motivo da saída / Despesa"} className="relative flex-1">
             <div className="relative">
               <Input
                 value={description}
@@ -2012,6 +2013,54 @@ function Caixa() {
             )}
           </Field>
 
+            {/* Stepper de Quantidade — posicionado na sequência lógica natural [Produto] -> [Qtd] -> [Valor] */}
+            {isEntrada && basket.length === 0 && (
+              <Field label="Qtd" className="w-full sm:w-36 shrink-0">
+                <div
+                  className={`h-12 flex items-center justify-between px-2 rounded-2xl border transition-all ${
+                    quantity > 1
+                      ? "border-primary/40 bg-primary-soft/30 ring-1 ring-primary/20 shadow-2xs"
+                      : "border-border/70 bg-card shadow-2xs"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(quantity - 1)}
+                    disabled={quantity <= 1}
+                    className="flex size-7 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground hover:shadow-2xs active:scale-90 disabled:opacity-25 disabled:pointer-events-none cursor-pointer"
+                    title="Diminuir quantidade"
+                    aria-label="Diminuir quantidade"
+                  >
+                    <Minus className="size-3.5" />
+                  </button>
+
+                  <div className="flex items-center justify-center px-1 select-none">
+                    <span
+                      className={`font-mono text-xs font-bold tracking-tight ${
+                        quantity > 1 ? "text-primary font-black" : "text-foreground"
+                      }`}
+                    >
+                      {quantity}
+                      <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground/80">
+                        un.
+                      </span>
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    className="flex size-7 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground hover:shadow-2xs active:scale-90 cursor-pointer"
+                    title="Aumentar quantidade"
+                    aria-label="Aumentar quantidade"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </div>
+              </Field>
+            )}
+          </div>
+
           <Field label="Valor (R$)">
             <div className="space-y-2">
               <div className="relative">
@@ -2042,9 +2091,8 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Ações rápidas sob o valor: Desconto e Quantidade */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                {/* Chip de Desconto — ação clara, não texto fantasma */}
+              {/* Ação de Desconto sob o valor — agora com largura e respiro total */}
+              <div className="flex items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => setShowDiscount(!showDiscount)}
@@ -2068,51 +2116,6 @@ function Caixa() {
                     </span>
                   )}
                 </button>
-
-                {/* Stepper de Quantidade (Apple Segmented Stepper Pill) — só em modo unitário */}
-                {isEntrada && basket.length === 0 && (
-                  <div
-                    className={`inline-flex items-center rounded-full border p-0.5 shadow-2xs transition-all ${
-                      quantity > 1
-                        ? "border-primary/40 bg-primary-soft/30 ring-1 ring-primary/20"
-                        : "border-border/70 bg-surface-muted/60"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleQuantityChange(quantity - 1)}
-                      disabled={quantity <= 1}
-                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-card hover:text-foreground hover:shadow-2xs active:scale-90 disabled:opacity-25 disabled:pointer-events-none cursor-pointer"
-                      title="Diminuir quantidade"
-                      aria-label="Diminuir quantidade"
-                    >
-                      <Minus className="size-3" />
-                    </button>
-
-                    <div className="flex items-center justify-center px-2 min-w-11 select-none">
-                      <span
-                        className={`font-mono text-xs font-bold tracking-tight ${
-                          quantity > 1 ? "text-primary font-black" : "text-foreground"
-                        }`}
-                      >
-                        {quantity}
-                        <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground/80">
-                          un.
-                        </span>
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuantityChange(quantity + 1)}
-                      className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-all hover:bg-card hover:text-foreground hover:shadow-2xs active:scale-90 cursor-pointer"
-                      title="Aumentar quantidade"
-                      aria-label="Aumentar quantidade"
-                    >
-                      <Plus className="size-3" />
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </Field>
