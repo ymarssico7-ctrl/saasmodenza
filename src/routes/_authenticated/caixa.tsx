@@ -2013,13 +2013,13 @@ function Caixa() {
             )}
           </Field>
 
-            {/* Stepper de Quantidade — posicionado na sequência lógica natural [Produto] -> [Qtd] -> [Valor] */}
+            {/* Seletor de Quantidade (Segmented Counter Box) — na sequência lógica [Produto] -> [Qtd] -> [Valor] */}
             {isEntrada && basket.length === 0 && (
-              <Field label="Qtd" className="w-full sm:w-36 shrink-0">
+              <Field label="Qtd" className="w-full sm:w-38 shrink-0">
                 <div
-                  className={`h-12 flex items-center justify-between px-2 rounded-2xl border transition-all ${
+                  className={`h-12 flex items-center justify-between p-1 rounded-2xl border transition-all ${
                     quantity > 1
-                      ? "border-primary/40 bg-primary-soft/30 ring-1 ring-primary/20 shadow-2xs"
+                      ? "border-primary/40 bg-primary-soft/15 ring-1 ring-primary/20 shadow-2xs"
                       : "border-border/70 bg-card shadow-2xs"
                   }`}
                 >
@@ -2027,34 +2027,34 @@ function Caixa() {
                     type="button"
                     onClick={() => handleQuantityChange(quantity - 1)}
                     disabled={quantity <= 1}
-                    className="flex size-7 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground hover:shadow-2xs active:scale-90 disabled:opacity-25 disabled:pointer-events-none cursor-pointer"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted/70 text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground active:scale-95 disabled:opacity-25 disabled:pointer-events-none cursor-pointer shadow-2xs"
                     title="Diminuir quantidade"
                     aria-label="Diminuir quantidade"
                   >
-                    <Minus className="size-3.5" />
+                    <Minus className="size-4" />
                   </button>
 
-                  <div className="flex items-center justify-center px-1 select-none">
+                  <div className="flex-1 flex items-baseline justify-center gap-1 select-none px-1">
                     <span
-                      className={`font-mono text-xs font-bold tracking-tight ${
-                        quantity > 1 ? "text-primary font-black" : "text-foreground"
+                      className={`font-mono text-base font-black tracking-tight ${
+                        quantity > 1 ? "text-primary" : "text-foreground"
                       }`}
                     >
                       {quantity}
-                      <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground/80">
-                        un.
-                      </span>
+                    </span>
+                    <span className="text-[11px] font-semibold text-muted-foreground/70">
+                      un.
                     </span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(quantity + 1)}
-                    className="flex size-7 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground hover:shadow-2xs active:scale-90 cursor-pointer"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all hover:bg-primary/20 hover:shadow-2xs active:scale-95 cursor-pointer"
                     title="Aumentar quantidade"
                     aria-label="Aumentar quantidade"
                   >
-                    <Plus className="size-3.5" />
+                    <Plus className="size-4" />
                   </button>
                 </div>
               </Field>
