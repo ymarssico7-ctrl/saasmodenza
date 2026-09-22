@@ -2227,7 +2227,19 @@ function Caixa() {
                     title="Editar desconto da venda"
                   >
                     <Percent className="size-3.5 shrink-0" />
-                    <span>{fmtDiscount(grossAmount, calculatedDiscount)}</span>
+                    <span>
+                      {(() => {
+                        const pct = grossAmount > 0 ? (calculatedDiscount / grossAmount) * 100 : 0;
+                        const pctStr = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
+                        return discountType === "pct" ? (
+                          /* Modo %: percentual é primário */
+                          <><strong>−{pctStr}</strong><span className="opacity-55 ml-1 font-normal">({brl(calculatedDiscount)})</span></>
+                        ) : (
+                          /* Modo R$: valor em reais é primário */
+                          <><strong>−{brl(calculatedDiscount)}</strong><span className="opacity-55 ml-1 font-normal">({pctStr})</span></>
+                        );
+                      })()}
+                    </span>
                     <ChevronDown className="size-3 opacity-60" />
                   </button>
                   <button
@@ -2256,119 +2268,132 @@ function Caixa() {
                 </button>
               )
             ) : (
-              /* Estado Expandido: Toolstrip Coesa Sem Abismo (Padrão Apple) */
-              <div className="rounded-2xl border border-primary/35 bg-surface-muted/30 p-2.5 sm:px-3.5 sm:py-2.5 shadow-2xs animate-in fade-in slide-in-from-top-1 duration-150 space-y-2">
-                {/* Linha Única Fluida de Controles — tudo junto, sem ml-auto, sem justify-between */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Título Discreto */}
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground shrink-0 pr-1">
-                    <Percent className="size-3.5 text-primary" />
-                    <span>{isEntrada ? "Desconto na venda:" : "Abatimento:"}</span>
-                  </div>
+              /* Estado Expandido: Dois Grupos — Esquerdo (controles flex-1) + Direito (pill+Concluído shrink-0) */
+              <div className="rounded-2xl border border-primary/35 bg-surface-muted/30 p-2.5 sm:px-3.5 sm:py-2.5 shadow-2xs animate-in fade-in slide-in-from-top-1 duration-150 space-y-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  {/* ── GRUPO ESQUERDO: controles de entrada ── */}
+                  <div className="flex flex-1 flex-wrap items-center gap-2 min-w-0">
+                    {/* Título */}
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-foreground shrink-0">
+                      <Percent className="size-3.5 text-primary" />
+                      <span>{isEntrada ? "Desconto:" : "Abatimento:"}</span>
+                    </div>
 
-                  {/* Chips Rápidos Compactos */}
-                  <div className="flex items-center gap-1">
-                    {[5, 10, 15, 20].map((pct) => {
-                      const isSelected = discountType === "pct" && discountValue === String(pct);
+                    {/* Chips Rápidos */}
+                    <div className="flex items-center gap-1">
+                      {[5, 10, 15, 20].map((pct) => {
+                        const isSelected = discountType === "pct" && discountValue === String(pct);
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => {
+                              setDiscountType("pct");
+                              setDiscountValue(String(pct));
+                            }}
+                            className={`h-7 px-2.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground shadow-2xs scale-98"
+                                : "bg-card hover:bg-surface-muted text-foreground border border-border/70"
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Divisor */}
+                    <div className="h-4 w-px bg-border/60 hidden sm:block shrink-0" />
+
+                    {/* Alternador R$ / % */}
+                    <div className="flex rounded-lg border border-border/70 bg-card p-0.5 shrink-0 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setDiscountType("flat")}
+                        className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                          discountType === "flat"
+                            ? "bg-primary text-primary-foreground shadow-2xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        R$
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDiscountType("pct")}
+                        className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                          discountType === "pct"
+                            ? "bg-primary text-primary-foreground shadow-2xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        %
+                      </button>
+                    </div>
+
+                    {/* Input */}
+                    <Input
+                      inputMode="decimal"
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      placeholder={discountType === "flat" ? "0,00" : "0"}
+                      className="h-7 w-20 rounded-lg font-mono text-xs font-bold text-center bg-card border-border/70 shadow-2xs p-1 shrink-0"
+                      autoFocus
+                    />
+
+                    {/* Limpar */}
+                    {discountValue && (
+                      <button
+                        type="button"
+                        onClick={() => setDiscountValue("")}
+                        className="px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
+                        title="Limpar desconto"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>{/* fim grupo esquerdo */}
+
+                  {/* ── GRUPO DIREITO: pill de economia bimodal + Concluído ── */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {/* Pill Bimodal — primário muda conforme o modo escolhido pelo operador */}
+                    {grossAmount > 0 && calculatedDiscount > 0 && (() => {
+                      const pct = (calculatedDiscount / grossAmount) * 100;
+                      const pctStr = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
                       return (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => {
-                            setDiscountType("pct");
-                            setDiscountValue(String(pct));
-                          }}
-                          className={`h-7 px-2.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-primary text-primary-foreground shadow-2xs scale-98"
-                              : "bg-card hover:bg-surface-muted text-foreground border border-border/70"
-                          }`}
-                        >
-                          {pct}%
-                        </button>
+                        <div className="flex items-center gap-1 animate-in fade-in duration-200">
+                          {discountType === "pct" ? (
+                            /* Modo %: percentual em destaque, R$ em muted */
+                            <>
+                              <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">−{pctStr}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground tabular-nums leading-none">({brl(calculatedDiscount)})</span>
+                            </>
+                          ) : (
+                            /* Modo R$: valor em destaque, % em muted */
+                            <>
+                              <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">−{brl(calculatedDiscount)}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground tabular-nums leading-none">({pctStr})</span>
+                            </>
+                          )}
+                          <span className="text-muted-foreground/40 text-[10px] mx-0.5 leading-none">→</span>
+                          <span className="font-mono text-xs font-semibold text-foreground tabular-nums leading-none">{brl(netAmount)}</span>
+                        </div>
                       );
-                    })}
-                  </div>
+                    })()}
 
-                  {/* Divisor vertical sutil */}
-                  <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
-
-                  {/* Alternador R$ / % */}
-                  <div className="flex rounded-lg border border-border/70 bg-card p-0.5 shrink-0 shadow-2xs">
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => setDiscountType("flat")}
-                      className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                        discountType === "flat"
-                          ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      size="sm"
+                      onClick={() => setShowDiscount(false)}
+                      className="h-7 rounded-lg px-3 text-xs font-bold cursor-pointer"
                     >
-                      R$
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDiscountType("pct")}
-                      className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                        discountType === "pct"
-                          ? "bg-primary text-primary-foreground shadow-2xs"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      %
-                    </button>
-                  </div>
+                      Concluído
+                    </Button>
+                  </div>{/* fim grupo direito */}
+                </div>{/* fim justify-between */}
 
-                  {/* Input Anatômico — largura fixa, sem flex-1, sem abismo */}
-                  <Input
-                    inputMode="decimal"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    placeholder={discountType === "flat" ? "0,00" : "0"}
-                    className="h-7 w-20 rounded-lg font-mono text-xs font-bold text-center bg-card border-border/70 shadow-2xs p-1 shrink-0"
-                    autoFocus
-                  />
-
-                  {/* Limpar — apenas quando há valor digitado */}
-                  {discountValue && (
-                    <button
-                      type="button"
-                      onClick={() => setDiscountValue("")}
-                      className="px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
-                      title="Limpar desconto"
-                    >
-                      Limpar
-                    </button>
-                  )}
-
-                  {/* Concluído — imediatamente ao lado do input, sem salto */}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setShowDiscount(false)}
-                    className="h-7 rounded-lg px-3 text-xs font-bold cursor-pointer shrink-0"
-                  >
-                    Concluído
-                  </Button>
-                </div>
-
-                {/* Micro-linha de feedback bimodal: sempre exibe R$ e % simultaneamente */}
-                {grossAmount > 0 && calculatedDiscount > 0 && (
-                  <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
-                    <span className="text-muted-foreground">
-                      Economia:{" "}
-                      <strong className="font-mono text-emerald-700 dark:text-emerald-400">
-                        {fmtDiscount(grossAmount, calculatedDiscount)}
-                      </strong>
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      Total líquido:{" "}
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{brl(netAmount)}</span>
-                    </span>
-                  </div>
-                )}
-
-                {/* Alerta se desconto superar o valor */}
+                {/* Alerta de desconto excessivo — único item em linha separada (warning crítico) */}
                 {grossAmount > 0 && calculatedDiscount >= grossAmount && (
                   <div className="rounded-lg bg-destructive/15 border border-destructive/25 p-1.5 text-[11px] font-medium text-destructive">
                     ⚠️ O desconto supera ou zera o valor total da venda.
