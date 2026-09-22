@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  AlertCircle,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
@@ -94,6 +95,7 @@ import {
   adjustInventoryStock,
   quickInsertInventoryItem,
   insertCustomer,
+  insertSupplier,
 } from "@/lib/mutations";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
@@ -171,6 +173,96 @@ function QuickCustomerDialog({
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold text-muted-foreground">WhatsApp / Telefone (opcional)</Label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-8888"
+              className="h-11 rounded-xl font-mono"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" className="rounded-full" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button className="rounded-full font-semibold" disabled={!name.trim()} onClick={handleSubmit}>
+            Salvar e Selecionar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Dialog de Cadastro Rápido de Fornecedor (Apple Level) ───────────────────
+function QuickSupplierDialog({
+  open,
+  initialName = "",
+  initialCategory = "compra_estoque",
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  initialName?: string;
+  initialCategory?: string;
+  onConfirm: (name: string, category: string, phone: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [category, setCategory] = useState(initialCategory);
+  const [phone, setPhone] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setName(initialName);
+      setCategory(initialCategory || "compra_estoque");
+      setPhone("");
+    }
+  }, [open, initialName, initialCategory]);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    await onConfirm(name.trim(), category, phone.trim());
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm rounded-2xl p-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <Building2 className="h-5 w-5 text-primary" />
+            Cadastrar Novo Fornecedor
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Nome do Fornecedor / Confecção</Label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Confecção Bella Moda"
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">Categoria Principal</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="compra_estoque">Compra de estoque</SelectItem>
+                <SelectItem value="frete">Frete / Transportadora</SelectItem>
+                <SelectItem value="aluguel">Aluguel / Imobiliária</SelectItem>
+                <SelectItem value="marketing">Marketing / Parcerias</SelectItem>
+                <SelectItem value="outro">Outro / Geral</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-muted-foreground">WhatsApp / Contato (opcional)</Label>
             <Input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -885,6 +977,7 @@ function Caixa() {
   const [supplierName, setSupplierName] = useState("");
   const [showSupplierPopover, setShowSupplierPopover] = useState(false);
   const [supplierHighlight, setSupplierHighlight] = useState(-1);
+  const [addSupplierOpen, setAddSupplierOpen] = useState(false);
 
   const previousSuppliers = useMemo(() => {
     const map = new Map<string, number>();
@@ -1340,6 +1433,23 @@ function Caixa() {
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao cadastrar cliente");
+    }
+  };
+
+  const handleCreateSupplier = async (name: string, cat: string, phone: string) => {
+    try {
+      await insertSupplier({
+        storeId,
+        name,
+        category: cat || null,
+        phone: phone || null,
+      });
+      toast.success(`Fornecedor "${name}" cadastrado com sucesso! 🎉`);
+      void queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      setSupplierName(name);
+      setShowSupplierPopover(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao cadastrar fornecedor");
     }
   };
 
@@ -2959,10 +3069,11 @@ function Caixa() {
             </div>
           </Field>
 
-          {/* Cliente (para Entrada ou Estorno) / Favorecido (para Saídas operacionais) */}
-          {!isFiado && (isEntrada || category === "estorno_devolucao") ? (
+          {/* ── Destinatário / Favorecido / Fornecedor / Cliente Contextual ─── */}
+          {!isFiado && isEntrada ? (
+            /* Entrada (Venda Balcão): Cliente da base de clientes */
             <Field
-              label={isEntrada ? "Cliente (Opcional)" : "Cliente reembolsada (Opcional)"}
+              label="Cliente (Opcional)"
               className="relative sm:col-span-2 lg:col-span-3"
             >
               <div className="relative">
@@ -2978,11 +3089,7 @@ function Caixa() {
                     setCustomerSearch(e.target.value);
                     setShowCustomerPopover(true);
                   }}
-                  placeholder={
-                    isEntrada
-                      ? "Digite o nome ou telefone da cliente…"
-                      : "Selecione a cliente que recebeu o estorno…"
-                  }
+                  placeholder="Digite o nome ou telefone da cliente…"
                   className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
                 {selectedCustomer ? (
@@ -3060,10 +3167,114 @@ function Caixa() {
                 </>
               )}
             </Field>
-          ) : !isFiado ? (
-            /* Favorecido / Fornecedor (Saída): Texto Livre + Fornecedores Cadastrados + Histórico */
+          ) : !isFiado && category === "estorno_devolucao" ? (
+            /* Saída: Devolução / Estorno para CLIENTE */
             <Field
-              label="Favorecido / Fornecedor (Opcional)"
+              label="Cliente reembolsada (Opcional)"
+              className="relative sm:col-span-2 lg:col-span-3"
+            >
+              <div className="relative">
+                <Input
+                  ref={customerInputRef}
+                  value={selectedCustomer ? selectedCustomer.name : customerSearch}
+                  onFocus={() => {
+                    if (!selectedCustomer) setShowCustomerPopover(true);
+                  }}
+                  onKeyDown={handleKeyDownCustomer}
+                  onChange={(e) => {
+                    if (selectedCustomer) handleClearCustomer();
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerPopover(true);
+                  }}
+                  placeholder="Selecione a cliente que recebeu o estorno / devolução…"
+                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+                {selectedCustomer ? (
+                  <button
+                    type="button"
+                    onClick={handleClearCustomer}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                )}
+              </div>
+
+              {/* Menu Dropdown de Clientes na devolução */}
+              {showCustomerPopover && !selectedCustomer && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowCustomerPopover(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    {matchingCustomers.length > 0 ? (
+                      <>
+                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          👤 Clientes ({matchingCustomers.length})
+                        </div>
+                        {matchingCustomers.map((c, idx) => {
+                          const isHighlighted = idx === customerHighlight;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => handleSelectCustomer(c)}
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
+                                isHighlighted
+                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
+                                  : "hover:bg-primary-soft/50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                  {c.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium leading-tight">{c.name}</p>
+                                  {c.phone && <p className="text-[11px] font-mono text-muted-foreground">{c.phone}</p>}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                        <div className="my-1.5 h-px bg-border" />
+                      </>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomerPopover(false);
+                        setAddCustomerOpen(true);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                        customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {customerSearch.trim()
+                        ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
+                        : "Cadastrar nova cliente…"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Field>
+          ) : !isFiado && category === "perda_avaria" ? (
+            /* Saída: Perda / Avaria (Ajuste interno sem favorecido externo) */
+            <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-xs text-rose-700 dark:text-rose-400 flex items-center gap-2.5 animate-in fade-in-50">
+              <AlertCircle className="size-4 shrink-0 text-rose-500" />
+              <span>
+                <strong>Ajuste de avaria / perda:</strong> Trata-se de uma baixa interna de estoque. Não há saída de dinheiro para pessoa ou fornecedor externo.
+              </span>
+            </div>
+          ) : !isFiado && category === "compra_estoque" ? (
+            /* Saída: Compra de Estoque (Específico de Fornecedores de Roupas / Atacado) */
+            <Field
+              label="Fornecedor da mercadoria (Opcional)"
               className="relative sm:col-span-2 lg:col-span-3"
             >
               <div className="relative">
@@ -3078,21 +3289,27 @@ function Caixa() {
                   }}
                   onKeyDown={(e) => {
                     if (!showSupplierPopover) return;
+                    const totalSlots = matchingSuppliers.length + 1; // +1 para botão cadastrar
                     if (e.key === "Escape") setShowSupplierPopover(false);
                     else if (e.key === "ArrowDown") {
                       e.preventDefault();
-                      setSupplierHighlight((p) => (p < matchingSuppliers.length - 1 ? p + 1 : 0));
+                      setSupplierHighlight((p) => (p < totalSlots - 1 ? p + 1 : 0));
                     } else if (e.key === "ArrowUp") {
                       e.preventDefault();
-                      setSupplierHighlight((p) => (p > 0 ? p - 1 : matchingSuppliers.length - 1));
-                    } else if (e.key === "Enter" && supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
+                      setSupplierHighlight((p) => (p > 0 ? p - 1 : totalSlots - 1));
+                    } else if (e.key === "Enter") {
                       e.preventDefault();
-                      setSupplierName(matchingSuppliers[supplierHighlight].name);
-                      setShowSupplierPopover(false);
-                      setSupplierHighlight(-1);
+                      if (supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
+                        setSupplierName(matchingSuppliers[supplierHighlight].name);
+                        setShowSupplierPopover(false);
+                        setSupplierHighlight(-1);
+                      } else if (supplierHighlight === matchingSuppliers.length) {
+                        setShowSupplierPopover(false);
+                        setAddSupplierOpen(true);
+                      }
                     }
                   }}
-                  placeholder="Ex: Distribuidora Moda Sul, eletricista, proprietário…"
+                  placeholder="Ex: Confecção Bella Moda, Malharia Sul, Atacado Brás…"
                   className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
                 {supplierName ? (
@@ -3103,7 +3320,7 @@ function Caixa() {
                       setShowSupplierPopover(false);
                     }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                    title="Limpar favorecido"
+                    title="Limpar fornecedor"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -3112,15 +3329,14 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Dropdown: Fornecedores Cadastrados + Histórico */}
-              {showSupplierPopover && matchingSuppliers.length > 0 && (
+              {/* Dropdown de Fornecedores Cadastrados + Histórico */}
+              {showSupplierPopover && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowSupplierPopover(false)}
                   />
                   <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                    {/* Separador: Cadastrados */}
                     {matchingSuppliers.some((s) => s.isRegistered) && (
                       <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                         <Building2 className="size-3 text-primary" />
@@ -3148,18 +3364,13 @@ function Caixa() {
                         </div>
                         {s.category && (
                           <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
-                            {s.category === "compra_estoque" ? "Estoque" :
-                             s.category === "frete" ? "Frete" :
-                             s.category === "aluguel" ? "Aluguel" :
-                             s.category === "marketing" ? "Marketing" :
-                             s.category === "prolabore" ? "Pró-labore" :
-                             s.category === "perda_avaria" ? "Avaria" : s.category}
+                            {s.category === "compra_estoque" ? "Estoque" : s.category}
                           </span>
                         )}
                       </button>
                     ))}
 
-                    {/* Separador: Histórico de uso */}
+                    {/* Histórico recente */}
                     {matchingSuppliers.some((s) => !s.isRegistered) && (
                       <>
                         {matchingSuppliers.some((s) => s.isRegistered) && (
@@ -3168,28 +3379,220 @@ function Caixa() {
                         <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                           Usados recentemente
                         </div>
+                        {matchingSuppliers.filter((s) => !s.isRegistered).map((s, idx) => {
+                          const absIdx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                          return (
+                            <button
+                              key={`hist-${s.name}`}
+                              type="button"
+                              onClick={() => {
+                                setSupplierName(s.name);
+                                setShowSupplierPopover(false);
+                                setSupplierHighlight(-1);
+                              }}
+                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                                absIdx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                              }`}
+                            >
+                              <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
+                              <span className="truncate">{s.name}</span>
+                            </button>
+                          );
+                        })}
                       </>
                     )}
-                    {matchingSuppliers.filter((s) => !s.isRegistered).map((s, idx) => {
-                      const absIdx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
-                      return (
-                        <button
-                          key={`hist-${s.name}`}
-                          type="button"
-                          onClick={() => {
-                            setSupplierName(s.name);
-                            setShowSupplierPopover(false);
-                            setSupplierHighlight(-1);
-                          }}
-                          className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
-                            absIdx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
-                          }`}
-                        >
-                          <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
-                          <span className="truncate">{s.name}</span>
-                        </button>
-                      );
-                    })}
+
+                    <div className="my-1.5 h-px bg-border/60" />
+
+                    {/* Atalho de Cadastro Rápido de Fornecedor */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSupplierPopover(false);
+                        setAddSupplierOpen(true);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                        supplierHighlight === matchingSuppliers.length ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {supplierName.trim()
+                        ? `Cadastrar "${supplierName.trim()}" como novo fornecedor…`
+                        : "Cadastrar novo fornecedor…"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Field>
+          ) : !isFiado ? (
+            /* Saída: Outras Despesas Operacionais (Aluguel, Frete, Marketing, Prolabore, Outro) */
+            <Field
+              label={
+                category === "aluguel"
+                  ? "Locador / Imobiliária (Opcional)"
+                  : category === "frete"
+                    ? "Transportadora / Entregador (Opcional)"
+                    : category === "marketing"
+                      ? "Parceiro / Canal de Marketing (Opcional)"
+                      : category === "prolabore"
+                        ? "Beneficiário da Retirada (Opcional)"
+                        : "Favorecido / Destinatário (Opcional)"
+              }
+              className="relative sm:col-span-2 lg:col-span-3"
+            >
+              <div className="relative">
+                <Input
+                  value={supplierName}
+                  onFocus={() => {
+                    if (matchingSuppliers.length > 0 || rawSuppliers.length > 0) setShowSupplierPopover(true);
+                  }}
+                  onChange={(e) => {
+                    setSupplierName(e.target.value);
+                    setShowSupplierPopover(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!showSupplierPopover) return;
+                    const totalSlots = matchingSuppliers.length + 1;
+                    if (e.key === "Escape") setShowSupplierPopover(false);
+                    else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setSupplierHighlight((p) => (p < totalSlots - 1 ? p + 1 : 0));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setSupplierHighlight((p) => (p > 0 ? p - 1 : totalSlots - 1));
+                    } else if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
+                        setSupplierName(matchingSuppliers[supplierHighlight].name);
+                        setShowSupplierPopover(false);
+                        setSupplierHighlight(-1);
+                      } else if (supplierHighlight === matchingSuppliers.length) {
+                        setShowSupplierPopover(false);
+                        setAddSupplierOpen(true);
+                      }
+                    }
+                  }}
+                  placeholder={
+                    category === "aluguel"
+                      ? "Ex: Imobiliária Central, Proprietário do ponto…"
+                      : category === "frete"
+                        ? "Ex: Motoboy Lucas, Jadlog, Correios…"
+                        : category === "marketing"
+                          ? "Ex: Agência, Influenciadora, Meta Ads…"
+                          : category === "prolabore"
+                            ? "Ex: Sócia, Titular da loja…"
+                            : "Ex: Gráfica, Eletricista, Marceneiro…"
+                  }
+                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+                {supplierName ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupplierName("");
+                      setShowSupplierPopover(false);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    title="Limpar favorecido"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground/70">
+                💡 Dica: Para despesas rápidas de balcão (ex: café, eletricista, material), basta descrever no "Motivo da saída" acima sem necessidade de cadastrar.
+              </p>
+
+              {/* Dropdown com histórico + fornecedores */}
+              {showSupplierPopover && matchingSuppliers.length > 0 && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowSupplierPopover(false)}
+                  />
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    {matchingSuppliers.some((s) => s.isRegistered) && (
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Building2 className="size-3 text-primary" />
+                        Parceiros cadastrados
+                      </div>
+                    )}
+                    {matchingSuppliers.filter((s) => s.isRegistered).map((s, idx) => (
+                      <button
+                        key={`reg-${s.name}`}
+                        type="button"
+                        onClick={() => {
+                          setSupplierName(s.name);
+                          setShowSupplierPopover(false);
+                          setSupplierHighlight(-1);
+                        }}
+                        className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-all cursor-pointer ${
+                          idx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary-soft/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                            {s.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="truncate font-semibold text-foreground">{s.name}</span>
+                        </div>
+                        {s.category && (
+                          <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                            {s.category}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+
+                    {matchingSuppliers.some((s) => !s.isRegistered) && (
+                      <>
+                        {matchingSuppliers.some((s) => s.isRegistered) && (
+                          <div className="my-1 h-px bg-border/60 mx-2" />
+                        )}
+                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Usados recentemente
+                        </div>
+                        {matchingSuppliers.filter((s) => !s.isRegistered).map((s, idx) => {
+                          const absIdx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                          return (
+                            <button
+                              key={`hist-${s.name}`}
+                              type="button"
+                              onClick={() => {
+                                setSupplierName(s.name);
+                                setShowSupplierPopover(false);
+                                setSupplierHighlight(-1);
+                              }}
+                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                                absIdx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                              }`}
+                            >
+                              <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
+                              <span className="truncate">{s.name}</span>
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    <div className="my-1.5 h-px bg-border/60" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSupplierPopover(false);
+                        setAddSupplierOpen(true);
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                        supplierHighlight === matchingSuppliers.length ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {supplierName.trim()
+                        ? `Cadastrar "${supplierName.trim()}" como novo parceiro…`
+                        : "Cadastrar novo parceiro…"}
+                    </button>
                   </div>
                 </>
               )}
@@ -4186,6 +4589,13 @@ function Caixa() {
         open={addCustomerOpen}
         onConfirm={handleCreateCustomer}
         onClose={() => setAddCustomerOpen(false)}
+      />
+      <QuickSupplierDialog
+        open={addSupplierOpen}
+        initialName={supplierName}
+        initialCategory={category === "compra_estoque" ? "compra_estoque" : category}
+        onConfirm={handleCreateSupplier}
+        onClose={() => setAddSupplierOpen(false)}
       />
       <QuickAddDialog
         open={addCatOpen}
