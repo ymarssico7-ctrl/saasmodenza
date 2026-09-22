@@ -888,7 +888,7 @@ function Caixa() {
 
   const previousSuppliers = useMemo(() => {
     const map = new Map<string, number>();
-    monthTxs
+    txs
       .filter((t) => t.kind === "saida")
       .forEach((t) => {
         const match = t.description.match(/\[Favorecido:\s*([^\]]+)\]/i) || t.description.match(/\[Fornecedor:\s*([^\]]+)\]/i);
@@ -900,7 +900,7 @@ function Caixa() {
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([name]) => name);
-  }, [monthTxs]);
+  }, [txs]);
 
   // Fornecedores cadastrados na tabela suppliers — fonte primária
   type SupplierSuggestion = { name: string; category: string | null; isRegistered: boolean };
