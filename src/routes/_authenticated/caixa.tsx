@@ -2089,11 +2089,11 @@ function Caixa() {
             )}
           </Field>
 
-            {/* Seletor de Quantidade (Segmented Counter Box) — compacto */}
+            {/* Seletor de Quantidade (Segmented Counter Box) — Harmonioso no Padrão Apple */}
             {isEntrada && basket.length === 0 && (
-              <Field label="Quantidade" className="w-full sm:w-34 shrink-0">
+              <Field label="Quantidade" className="w-full sm:w-36 shrink-0">
                 <div
-                  className={`h-12 flex items-center justify-between p-1 rounded-2xl border transition-all ${
+                  className={`h-12 flex items-center justify-between px-1.5 py-1 rounded-full border overflow-hidden transition-all ${
                     quantity > 1
                       ? "border-primary/40 bg-primary-soft/15 ring-1 ring-primary/20 shadow-2xs"
                       : "border-border/70 bg-card shadow-2xs"
@@ -2103,15 +2103,15 @@ function Caixa() {
                     type="button"
                     onClick={() => handleQuantityChange(quantity - 1)}
                     disabled={quantity <= 1}
-                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-surface-muted/70 text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground active:scale-95 disabled:opacity-25 disabled:pointer-events-none cursor-pointer shadow-2xs"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-muted/70 text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground active:scale-95 disabled:opacity-20 disabled:pointer-events-none cursor-pointer"
                     title="Diminuir quantidade"
                     aria-label="Diminuir quantidade"
                   >
-                    <Minus className="size-4" />
+                    <Minus className="size-3.5" />
                   </button>
 
-                  {/* Display / Input Central Editável com Suporte a Digitação e Setas do Teclado */}
-                  <div className="flex-1 flex items-baseline justify-center gap-0.5 px-1">
+                  {/* Display / Input Central: Meio-termo harmônico (font-sans semibold 600 com tabular-nums) */}
+                  <div className="flex-1 min-w-0 flex items-center justify-center gap-1 px-1">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -2151,13 +2151,17 @@ function Caixa() {
                           e.currentTarget.blur();
                         }
                       }}
-                      className={`w-10 bg-transparent text-center font-mono text-base font-black tracking-tight border-none outline-none p-0 focus:ring-0 cursor-text ${
+                      className={`w-7 sm:w-8 bg-transparent text-center font-sans text-base font-semibold tracking-tight border-none outline-none p-0 focus:ring-0 cursor-text tabular-nums leading-none ${
                         quantity > 1 ? "text-primary" : "text-foreground"
                       }`}
                       title="Digite a quantidade ou use as setas ↑ e ↓ do teclado"
                       aria-label="Quantidade da peça"
                     />
-                    <span className="text-[11px] font-semibold text-muted-foreground/70 select-none pointer-events-none">
+                    <span
+                      className={`text-xs font-medium select-none pointer-events-none leading-none ${
+                        quantity > 1 ? "text-primary/70" : "text-muted-foreground/75"
+                      }`}
+                    >
                       un.
                     </span>
                   </div>
@@ -2165,11 +2169,11 @@ function Caixa() {
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(quantity + 1)}
-                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all hover:bg-primary/20 hover:shadow-2xs active:scale-95 cursor-pointer"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-all hover:bg-primary/20 hover:scale-105 active:scale-95 cursor-pointer"
                     title="Aumentar quantidade"
                     aria-label="Aumentar quantidade"
                   >
-                    <Plus className="size-4" />
+                    <Plus className="size-3.5" />
                   </button>
                 </div>
               </Field>
@@ -2491,7 +2495,7 @@ function Caixa() {
                                 >
                                   <Minus className="size-3" />
                                 </button>
-                                <span className="w-5 text-center font-mono text-xs font-bold text-foreground">
+                                <span className="w-5 text-center font-sans text-xs font-semibold tabular-nums text-foreground">
                                   {item.quantity}
                                 </span>
                                 <button
