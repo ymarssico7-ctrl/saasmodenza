@@ -2198,83 +2198,90 @@ function Caixa() {
             </div>
           </Field>
 
-          {/* ── Trigger de Desconto — Pill Acessível ── */}
-          <div className="relative sm:col-span-2 lg:col-span-1 -mt-2 mb-1">
+          {/* ── Trigger & Gaveta de Desconto Geral (Padrão Apple: Inline sem Popover Solto) ── */}
+          <div className={`transition-all duration-200 ${showDiscount ? "sm:col-span-2 lg:col-span-3 -mt-2 mb-1" : "sm:col-span-2 lg:col-span-1 -mt-2 mb-1"}`}>
             {hasItemDiscounts && discountNum <= 0 ? (
               /* Modo por peça ativo: exibe resumo do total de descontos, bloqueando o global */
               <div className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-bold select-none">
                 <Percent className="size-3.5 shrink-0" />
-                <span>Desconto por peça: −{brl(basketTotalDiscount)}</span>
+                <span>Desconto por peça ativo: −{brl(basketTotalDiscount)}</span>
               </div>
-            ) : calculatedDiscount > 0 ? (
-              /* Estado ativo global: badge âmbar com valor + editar + remover */
-              <div className="flex items-center gap-2">
+            ) : !showDiscount ? (
+              /* Estado Recolhido */
+              calculatedDiscount > 0 ? (
+                /* Com desconto ativo: badge âmbar clicável + botão remover */
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscount(true)}
+                    className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all hover:bg-amber-500/20 cursor-pointer"
+                    title="Editar desconto da venda"
+                  >
+                    <Percent className="size-3.5 shrink-0" />
+                    <span>
+                      −{brl(calculatedDiscount)}{" "}
+                      <span className="opacity-70">
+                        ({discountType === "pct" ? `${discountValue}%` : "fixo"})
+                      </span>
+                    </span>
+                    <ChevronDown className="size-3 opacity-60" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscountValue("");
+                      setShowDiscount(false);
+                    }}
+                    className="flex items-center justify-center size-9 rounded-xl border border-border/60 bg-surface-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/8 transition-all cursor-pointer shrink-0"
+                    title="Remover desconto"
+                    aria-label="Remover desconto"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                /* Sem desconto: botão pill neutro com chevron indicativo */
                 <button
                   type="button"
-                  onClick={() => setShowDiscount(!showDiscount)}
-                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all hover:bg-amber-500/20 cursor-pointer"
-                  title="Editar desconto global"
+                  onClick={() => setShowDiscount(true)}
+                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-dashed border-border hover:border-primary/50 bg-surface-muted/40 hover:bg-primary-soft/30 text-muted-foreground hover:text-primary text-xs font-semibold transition-all cursor-pointer select-none"
                 >
                   <Percent className="size-3.5 shrink-0" />
-                  <span>
-                    −{brl(calculatedDiscount)}{" "}
-                    <span className="opacity-70">
-                      ({discountType === "pct" ? `${discountValue}%` : "fixo"})
-                    </span>
-                  </span>
+                  <span>{isEntrada ? "Aplicar desconto na venda" : "Aplicar abatimento"}</span>
+                  <ChevronDown className="size-3 opacity-60" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDiscountValue("");
-                    setShowDiscount(false);
-                  }}
-                  className="flex items-center justify-center size-9 rounded-xl border border-border/60 bg-surface-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/8 transition-all cursor-pointer shrink-0"
-                  title="Remover desconto"
-                  aria-label="Remover desconto"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </div>
+              )
             ) : (
-              /* Estado inativo: botão pill neutro "Aplicar desconto" */
-              <button
-                type="button"
-                onClick={() => setShowDiscount(!showDiscount)}
-                className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-dashed border-border hover:border-primary/50 bg-surface-muted/40 hover:bg-primary-soft/30 text-muted-foreground hover:text-primary text-xs font-semibold transition-all cursor-pointer select-none"
-              >
-                <Percent className="size-3.5 shrink-0" />
-                {isEntrada ? "Aplicar desconto" : "Aplicar abatimento"}
-              </button>
-            )}
-
-            {/* Popover Compacto Flutuante de Desconto / Promoção */}
-            {showDiscount && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowDiscount(false)}
-                />
-                <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-2xl border border-border bg-card p-3.5 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-3">
-                  {/* Header do Popover */}
-                  <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Percent className="size-3.5 text-primary" />
-                      <span className="text-xs font-bold text-foreground">
-                        {isEntrada ? "Desconto na Venda" : "Abatimento na Despesa"}
+              /* Estado Expandido: Gaveta Inline Integrada (Padrão Apple - Sem Popover, Sem Sobreposição) */
+              <div className="rounded-2xl border border-primary/40 bg-surface-muted/30 p-3.5 sm:p-4 shadow-2xs animate-in fade-in slide-in-from-top-1 duration-150 space-y-3">
+                {/* Header da Gaveta Inline */}
+                <div className="flex items-center justify-between pb-1 border-b border-border/50">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Percent className="size-3.5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-foreground block">
+                        {isEntrada ? "Desconto Geral na Venda" : "Abatimento na Despesa"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        Aplicado sobre o total ({brl(grossAmount)})
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowDiscount(false)}
-                      className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
-                      title="Fechar"
-                    >
-                      <X className="size-3.5" />
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscount(false)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground py-1 px-2.5 rounded-lg hover:bg-surface-muted transition-colors cursor-pointer"
+                    title="Recolher painel de desconto"
+                  >
+                    <span>Recolher</span>
+                    <ChevronDown className="size-3 rotate-180" />
+                  </button>
+                </div>
 
-                  {/* Chips Rápidos de 1 Toque (Atalhos mais comuns de Varejo) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  {/* Atalhos Rápidos */}
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
                       Atalhos rápidos:
@@ -2292,8 +2299,8 @@ function Caixa() {
                             }}
                             className={`py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-primary text-primary-foreground shadow-2xs scale-98"
-                                : "bg-surface-muted/70 hover:bg-surface-muted text-foreground border border-border/60"
+                                ? "bg-primary text-primary-foreground shadow-2xs scale-98 ring-2 ring-primary/30"
+                                : "bg-card hover:bg-surface-muted text-foreground border border-border/60"
                             }`}
                           >
                             {pct}%
@@ -2303,20 +2310,19 @@ function Caixa() {
                     </div>
                   </div>
 
-                  {/* Valor Personalizado: Toggle R$ / % + Input */}
-                  <div className="space-y-1.5 pt-1 border-t border-border/50">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                  {/* Valor Personalizado: R$ / % + Input + Ações */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
                       Ou valor personalizado:
                     </span>
                     <div className="flex items-center gap-1.5">
-                      {/* Segmented R$ / % */}
-                      <div className="flex rounded-xl border border-border/70 bg-surface-muted/50 p-0.5 shrink-0">
+                      <div className="flex rounded-xl border border-border/70 bg-card p-0.5 shrink-0 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => setDiscountType("flat")}
                           className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                             discountType === "flat"
-                              ? "bg-card text-foreground shadow-2xs"
+                              ? "bg-primary text-primary-foreground shadow-2xs"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
@@ -2327,7 +2333,7 @@ function Caixa() {
                           onClick={() => setDiscountType("pct")}
                           className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                             discountType === "pct"
-                              ? "bg-card text-foreground shadow-2xs"
+                              ? "bg-primary text-primary-foreground shadow-2xs"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
@@ -2335,69 +2341,56 @@ function Caixa() {
                         </button>
                       </div>
 
-                      {/* Input do Desconto */}
                       <Input
                         inputMode="decimal"
                         value={discountValue}
                         onChange={(e) => setDiscountValue(e.target.value)}
                         placeholder={discountType === "flat" ? "Ex: 20,00" : "Ex: 10"}
-                        className="h-9 rounded-xl font-mono text-xs font-bold flex-1"
+                        className="h-9 rounded-xl font-mono text-xs font-bold flex-1 bg-card border-border/70 shadow-2xs"
                         autoFocus
                       />
-                    </div>
-                  </div>
 
-                  {/* Resumo do Cálculo em Tempo Real */}
-                  {grossAmount > 0 && calculatedDiscount > 0 && (
-                    <div className="rounded-xl bg-primary-soft/25 border border-primary/20 p-2 text-xs space-y-0.5">
-                      <div className="flex justify-between text-muted-foreground text-[11px]">
-                        <span>Desconto aplicado:</span>
-                        <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
-                          −{brl(calculatedDiscount)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-bold text-foreground">
-                        <span>Total com desconto:</span>
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                          {brl(netAmount)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                      {discountValue && (
+                        <button
+                          type="button"
+                          onClick={() => setDiscountValue("")}
+                          className="px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                        >
+                          Limpar
+                        </button>
+                      )}
 
-                  {/* Alerta se desconto for maior ou igual ao valor */}
-                  {grossAmount > 0 && calculatedDiscount >= grossAmount && (
-                    <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive">
-                      ⚠️ O desconto supera ou zera o valor da venda. Reduza para lançar.
-                    </div>
-                  )}
-
-                  {/* Ações: Limpar Desconto e Fechar */}
-                  <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                    {discountValue ? (
-                      <button
+                      <Button
                         type="button"
-                        onClick={() => {
-                          setDiscountValue("");
-                        }}
-                        className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer font-medium"
+                        size="sm"
+                        onClick={() => setShowDiscount(false)}
+                        className="h-9 rounded-xl px-3.5 text-xs font-bold cursor-pointer"
                       >
-                        Remover desconto
-                      </button>
-                    ) : (
-                      <div />
-                    )}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setShowDiscount(false)}
-                      className="h-8 rounded-xl px-3 text-xs font-bold cursor-pointer"
-                    >
-                      Concluído
-                    </Button>
+                        Concluído
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </>
+
+                {/* Resumo ao vivo em barra elegante */}
+                {grossAmount > 0 && calculatedDiscount > 0 && (
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                    <span className="text-muted-foreground text-[11px]">
+                      Economia na venda: <strong className="font-mono text-emerald-700 dark:text-emerald-400">−{brl(calculatedDiscount)} ({discountType === "pct" ? `${discountValue}%` : "valor fixo"})</strong>
+                    </span>
+                    <span className="text-[11px] font-bold text-foreground">
+                      Total líquido a receber: <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-bold">{brl(netAmount)}</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Alerta se desconto superar o valor */}
+                {grossAmount > 0 && calculatedDiscount >= grossAmount && (
+                  <div className="rounded-xl bg-destructive/15 border border-destructive/25 p-2 text-[11px] font-medium text-destructive">
+                    ⚠️ O desconto supera ou zera o valor total da venda. Reduza o desconto para registrar.
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
