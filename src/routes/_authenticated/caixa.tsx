@@ -2015,9 +2015,9 @@ function Caixa() {
             )}
           </Field>
 
-            {/* Seletor de Quantidade (Segmented Counter Box) — na sequência lógica [Produto] -> [Qtd] -> [Valor] */}
+            {/* Seletor de Quantidade (Segmented Counter Box) — na sequência lógica [Produto] -> [Quantidade] -> [Valor] */}
             {isEntrada && basket.length === 0 && (
-              <Field label="Qtd" className="w-full sm:w-38 shrink-0">
+              <Field label="Quantidade" className="w-full sm:w-38 shrink-0">
                 <div
                   className={`h-12 flex items-center justify-between p-1 rounded-2xl border transition-all ${
                     quantity > 1
