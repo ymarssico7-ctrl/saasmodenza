@@ -966,11 +966,12 @@ function Caixa() {
   );
 
   const matchingCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return customers.slice(0, 8);
-    const q = customerSearch.toLowerCase();
-    return customers
+    const list = [...customers].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    if (!customerSearch.trim()) return list.slice(0, 50);
+    const q = customerSearch.toLowerCase().trim();
+    return list
       .filter((c) => c.name.toLowerCase().includes(q) || (c.phone ?? "").includes(q))
-      .slice(0, 8);
+      .slice(0, 50);
   }, [customers, customerSearch]);
 
   // Favorecido / Fornecedor para Saídas (Texto Livre Persistente + Histórico Inteligente)
@@ -1001,19 +1002,20 @@ function Caixa() {
     const q = supplierName.toLowerCase().trim();
     const registeredNames = new Set((rawSuppliers as any[]).map((s: any) => (s.name as string).toLowerCase()));
 
-    // 1. Fornecedores cadastrados que batem com a busca
-    const fromDB: SupplierSuggestion[] = (rawSuppliers as any[])
+    // 1. Fornecedores cadastrados que batem com a busca (ordenados alfabeticamente)
+    const sortedDB = [...(rawSuppliers as any[])].sort((a, b) => (a.name as string).localeCompare(b.name as string, "pt-BR"));
+    const fromDB: SupplierSuggestion[] = sortedDB
       .filter((s: any) => !q || (s.name as string).toLowerCase().includes(q))
-      .slice(0, 5)
+      .slice(0, 40)
       .map((s: any) => ({ name: s.name as string, category: s.category as string | null, isRegistered: true }));
 
     // 2. Histórico de uso (apenas nomes que NÃO estão já na tabela cadastrada)
     const fromHistory: SupplierSuggestion[] = previousSuppliers
       .filter((s) => !registeredNames.has(s.toLowerCase()) && (!q || s.toLowerCase().includes(q)))
-      .slice(0, 4)
+      .slice(0, 20)
       .map((s) => ({ name: s, category: null, isRegistered: false }));
 
-    return [...fromDB, ...fromHistory].slice(0, 8);
+    return [...fromDB, ...fromHistory].slice(0, 50);
   }, [rawSuppliers, previousSuppliers, supplierName]);
 
   const handleSelectCustomer = (c: Customer) => {
@@ -3105,34 +3107,46 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Menu Dropdown Autocomplete de Clientes */}
+              {/* Menu Dropdown Autocomplete de Clientes (Padrão Apple / 3 Camadas) */}
               {showCustomerPopover && !selectedCustomer && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowCustomerPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                    {/* Header Fixo */}
+                    <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
+                      <span className="flex items-center gap-1.5">
+                        <User className="size-3.5 text-primary" />
+                        <span>Clientes ({matchingCustomers.length})</span>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">Use ↑ ↓ para navegar</span>
+                    </div>
+
+                    {/* Viewport com Scroll Dedicado */}
                     {matchingCustomers.length > 0 ? (
-                      <>
-                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          👤 Clientes Encontradas ({matchingCustomers.length})
-                        </div>
+                      <div className="overflow-y-auto max-h-56 p-1.5 space-y-0.5 overscroll-contain pr-1.5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
                           return (
                             <button
                               key={c.id}
                               type="button"
+                              ref={(node) => {
+                                if (isHighlighted && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
                               onClick={() => handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
                                 isHighlighted
-                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
-                                  : "hover:bg-primary-soft/50"
+                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-2xs font-semibold"
+                                  : "hover:bg-primary-soft/50 text-foreground"
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
                                   {c.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
@@ -3143,26 +3157,33 @@ function Caixa() {
                             </button>
                           );
                         })}
-                        <div className="my-1.5 h-px bg-border" />
-                      </>
-                    ) : null}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-4 text-center text-xs text-muted-foreground">
+                        Nenhuma cliente encontrada para &quot;{customerSearch}&quot;
+                      </div>
+                    )}
 
-                    {/* Atalho Inteligente para Cadastrar Nova Cliente */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCustomerPopover(false);
-                        setAddCustomerOpen(true);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
-                        customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {customerSearch.trim()
-                        ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
-                        : "Cadastrar nova cliente…"}
-                    </button>
+                    {/* Footer Fixo (Sempre visível no rodapé) */}
+                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomerPopover(false);
+                          setAddCustomerOpen(true);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                          customerHighlight === matchingCustomers.length ? "bg-primary/15 ring-1 ring-primary/30" : ""
+                        }`}
+                      >
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {customerSearch.trim()
+                            ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
+                            : "Cadastrar nova cliente…"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -3202,34 +3223,46 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Menu Dropdown de Clientes na devolução */}
+              {/* Menu Dropdown de Clientes na devolução (Padrão Apple / 3 Camadas) */}
               {showCustomerPopover && !selectedCustomer && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowCustomerPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                    {/* Header Fixo */}
+                    <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
+                      <span className="flex items-center gap-1.5">
+                        <User className="size-3.5 text-primary" />
+                        <span>Clientes para Reembolso ({matchingCustomers.length})</span>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">Use ↑ ↓ para navegar</span>
+                    </div>
+
+                    {/* Viewport com Scroll Dedicado */}
                     {matchingCustomers.length > 0 ? (
-                      <>
-                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          👤 Clientes ({matchingCustomers.length})
-                        </div>
+                      <div className="overflow-y-auto max-h-56 p-1.5 space-y-0.5 overscroll-contain pr-1.5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
                         {matchingCustomers.map((c, idx) => {
                           const isHighlighted = idx === customerHighlight;
                           return (
                             <button
                               key={c.id}
                               type="button"
+                              ref={(node) => {
+                                if (isHighlighted && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
                               onClick={() => handleSelectCustomer(c)}
-                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all cursor-pointer ${
+                              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
                                 isHighlighted
-                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-sm"
-                                  : "hover:bg-primary-soft/50"
+                                  ? "bg-primary/10 border border-primary/30 text-primary shadow-2xs font-semibold"
+                                  : "hover:bg-primary-soft/50 text-foreground"
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
                                   {c.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
@@ -3240,25 +3273,33 @@ function Caixa() {
                             </button>
                           );
                         })}
-                        <div className="my-1.5 h-px bg-border" />
-                      </>
-                    ) : null}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-4 text-center text-xs text-muted-foreground">
+                        Nenhuma cliente encontrada para &quot;{customerSearch}&quot;
+                      </div>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCustomerPopover(false);
-                        setAddCustomerOpen(true);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
-                        customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {customerSearch.trim()
-                        ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
-                        : "Cadastrar nova cliente…"}
-                    </button>
+                    {/* Footer Fixo */}
+                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomerPopover(false);
+                          setAddCustomerOpen(true);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                          customerHighlight === matchingCustomers.length ? "bg-primary/15 ring-1 ring-primary/30" : ""
+                        }`}
+                      >
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {customerSearch.trim()
+                            ? `Cadastrar "${customerSearch.trim()}" na base de clientes`
+                            : "Cadastrar nova cliente…"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -3329,97 +3370,129 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Dropdown de Fornecedores Cadastrados + Histórico */}
+              {/* Dropdown de Fornecedores Cadastrados + Histórico (Padrão Apple / 3 Camadas) */}
               {showSupplierPopover && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowSupplierPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                    {matchingSuppliers.some((s) => s.isRegistered) && (
-                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <Building2 className="size-3 text-primary" />
-                        Fornecedores cadastrados
-                      </div>
-                    )}
-                    {matchingSuppliers.filter((s) => s.isRegistered).map((s, idx) => (
-                      <button
-                        key={`reg-${s.name}`}
-                        type="button"
-                        onClick={() => {
-                          setSupplierName(s.name);
-                          setShowSupplierPopover(false);
-                          setSupplierHighlight(-1);
-                        }}
-                        className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-all cursor-pointer ${
-                          idx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary-soft/40"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-                            {s.name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="truncate font-semibold text-foreground">{s.name}</span>
-                        </div>
-                        {s.category && (
-                          <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
-                            {s.category === "compra_estoque" ? "Estoque" : s.category}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                    {/* Header Fixo */}
+                    <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
+                      <span className="flex items-center gap-1.5">
+                        <Building2 className="size-3.5 text-primary" />
+                        <span>Fornecedores & Confecções ({matchingSuppliers.length})</span>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">Use ↑ ↓ para navegar</span>
+                    </div>
 
-                    {/* Histórico recente */}
-                    {matchingSuppliers.some((s) => !s.isRegistered) && (
-                      <>
+                    {/* Viewport com Scroll Dedicado */}
+                    {matchingSuppliers.length > 0 ? (
+                      <div className="overflow-y-auto max-h-56 p-1.5 space-y-0.5 overscroll-contain pr-1.5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
                         {matchingSuppliers.some((s) => s.isRegistered) && (
-                          <div className="my-1 h-px bg-border/60 mx-2" />
+                          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                            Cadastrados
+                          </div>
                         )}
-                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Usados recentemente
-                        </div>
-                        {matchingSuppliers.filter((s) => !s.isRegistered).map((s, idx) => {
-                          const absIdx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                        {matchingSuppliers.filter((s) => s.isRegistered).map((s) => {
+                          const idx = matchingSuppliers.findIndex((x) => x.name === s.name && x.isRegistered);
+                          const isHighlighted = idx === supplierHighlight;
                           return (
                             <button
-                              key={`hist-${s.name}`}
+                              key={`reg-${s.name}`}
                               type="button"
+                              ref={(node) => {
+                                if (isHighlighted && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
                               onClick={() => {
                                 setSupplierName(s.name);
                                 setShowSupplierPopover(false);
                                 setSupplierHighlight(-1);
                               }}
-                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
-                                absIdx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                              className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                                isHighlighted ? "bg-primary/10 text-primary font-semibold shadow-2xs" : "hover:bg-primary-soft/40 text-foreground"
                               }`}
                             >
-                              <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
-                              <span className="truncate">{s.name}</span>
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                                  {s.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="truncate font-semibold">{s.name}</span>
+                              </div>
+                              {s.category && (
+                                <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                                  {s.category === "compra_estoque" ? "Estoque" : s.category}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
-                      </>
+
+                        {/* Histórico recente */}
+                        {matchingSuppliers.some((s) => !s.isRegistered) && (
+                          <>
+                            <div className="my-1 h-px bg-border/40 mx-2" />
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                              Usados recentemente
+                            </div>
+                            {matchingSuppliers.filter((s) => !s.isRegistered).map((s) => {
+                              const idx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                              const isHighlighted = idx === supplierHighlight;
+                              return (
+                                <button
+                                  key={`hist-${s.name}`}
+                                  type="button"
+                                  ref={(node) => {
+                                    if (isHighlighted && node) {
+                                      node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                    }
+                                  }}
+                                  onClick={() => {
+                                    setSupplierName(s.name);
+                                    setShowSupplierPopover(false);
+                                    setSupplierHighlight(-1);
+                                  }}
+                                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                                    isHighlighted ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                                  }`}
+                                >
+                                  <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
+                                  <span className="truncate">{s.name}</span>
+                                </button>
+                              );
+                            })}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-4 text-center text-xs text-muted-foreground">
+                        Nenhum fornecedor encontrado para &quot;{supplierName}&quot;
+                      </div>
                     )}
 
-                    <div className="my-1.5 h-px bg-border/60" />
-
-                    {/* Atalho de Cadastro Rápido de Fornecedor */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowSupplierPopover(false);
-                        setAddSupplierOpen(true);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
-                        supplierHighlight === matchingSuppliers.length ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {supplierName.trim()
-                        ? `Cadastrar "${supplierName.trim()}" como novo fornecedor…`
-                        : "Cadastrar novo fornecedor…"}
-                    </button>
+                    {/* Footer Fixo */}
+                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSupplierPopover(false);
+                          setAddSupplierOpen(true);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                          supplierHighlight === matchingSuppliers.length ? "bg-primary/15 ring-1 ring-primary/30" : ""
+                        }`}
+                      >
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {supplierName.trim()
+                            ? `Cadastrar "${supplierName.trim()}" como novo fornecedor…`
+                            : "Cadastrar novo fornecedor…"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -3505,94 +3578,140 @@ function Caixa() {
                 💡 Dica: Para despesas rápidas de balcão (ex: café, eletricista, material), basta descrever no "Motivo da saída" acima sem necessidade de cadastrar.
               </p>
 
-              {/* Dropdown com histórico + fornecedores */}
-              {showSupplierPopover && matchingSuppliers.length > 0 && (
+              {/* Dropdown com histórico + parceiros/fornecedores (Padrão Apple / 3 Camadas) */}
+              {showSupplierPopover && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowSupplierPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                    {matchingSuppliers.some((s) => s.isRegistered) && (
-                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <Building2 className="size-3 text-primary" />
-                        Parceiros cadastrados
-                      </div>
-                    )}
-                    {matchingSuppliers.filter((s) => s.isRegistered).map((s, idx) => (
-                      <button
-                        key={`reg-${s.name}`}
-                        type="button"
-                        onClick={() => {
-                          setSupplierName(s.name);
-                          setShowSupplierPopover(false);
-                          setSupplierHighlight(-1);
-                        }}
-                        className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-all cursor-pointer ${
-                          idx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary-soft/40"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-                            {s.name.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="truncate font-semibold text-foreground">{s.name}</span>
-                        </div>
-                        {s.category && (
-                          <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
-                            {s.category}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                    {/* Header Fixo */}
+                    <div className="px-3.5 py-2 border-b border-border/50 text-[11px] font-semibold text-muted-foreground flex justify-between items-center bg-card shrink-0 select-none">
+                      <span className="flex items-center gap-1.5">
+                        <Building2 className="size-3.5 text-primary" />
+                        <span>
+                          {category === "aluguel"
+                            ? `Locadores & Imobiliárias (${matchingSuppliers.length})`
+                            : category === "frete"
+                              ? `Transportadoras & Entregadores (${matchingSuppliers.length})`
+                              : category === "marketing"
+                                ? `Parceiros de Marketing (${matchingSuppliers.length})`
+                                : category === "prolabore"
+                                  ? `Beneficiários (${matchingSuppliers.length})`
+                                  : `Parceiros & Favorecidos (${matchingSuppliers.length})`}
+                        </span>
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">Use ↑ ↓ para navegar</span>
+                    </div>
 
-                    {matchingSuppliers.some((s) => !s.isRegistered) && (
-                      <>
+                    {/* Viewport com Scroll Dedicado */}
+                    {matchingSuppliers.length > 0 ? (
+                      <div className="overflow-y-auto max-h-56 p-1.5 space-y-0.5 overscroll-contain pr-1.5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
                         {matchingSuppliers.some((s) => s.isRegistered) && (
-                          <div className="my-1 h-px bg-border/60 mx-2" />
+                          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                            Cadastrados
+                          </div>
                         )}
-                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Usados recentemente
-                        </div>
-                        {matchingSuppliers.filter((s) => !s.isRegistered).map((s, idx) => {
-                          const absIdx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                        {matchingSuppliers.filter((s) => s.isRegistered).map((s) => {
+                          const idx = matchingSuppliers.findIndex((x) => x.name === s.name && x.isRegistered);
+                          const isHighlighted = idx === supplierHighlight;
                           return (
                             <button
-                              key={`hist-${s.name}`}
+                              key={`reg-${s.name}`}
                               type="button"
+                              ref={(node) => {
+                                if (isHighlighted && node) {
+                                  node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                }
+                              }}
                               onClick={() => {
                                 setSupplierName(s.name);
                                 setShowSupplierPopover(false);
                                 setSupplierHighlight(-1);
                               }}
-                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
-                                absIdx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                              className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                                isHighlighted ? "bg-primary/10 text-primary font-semibold shadow-2xs" : "hover:bg-primary-soft/40 text-foreground"
                               }`}
                             >
-                              <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
-                              <span className="truncate">{s.name}</span>
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                                  {s.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="truncate font-semibold">{s.name}</span>
+                              </div>
+                              {s.category && (
+                                <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                                  {s.category}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
-                      </>
+
+                        {matchingSuppliers.some((s) => !s.isRegistered) && (
+                          <>
+                            <div className="my-1 h-px bg-border/40 mx-2" />
+                            <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                              Usados recentemente
+                            </div>
+                            {matchingSuppliers.filter((s) => !s.isRegistered).map((s) => {
+                              const idx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                              const isHighlighted = idx === supplierHighlight;
+                              return (
+                                <button
+                                  key={`hist-${s.name}`}
+                                  type="button"
+                                  ref={(node) => {
+                                    if (isHighlighted && node) {
+                                      node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                    }
+                                  }}
+                                  onClick={() => {
+                                    setSupplierName(s.name);
+                                    setShowSupplierPopover(false);
+                                    setSupplierHighlight(-1);
+                                  }}
+                                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                                    isHighlighted ? "bg-primary/10 text-primary font-semibold shadow-2xs" : "hover:bg-surface-muted text-foreground"
+                                  }`}
+                                >
+                                  <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
+                                  <span className="truncate">{s.name}</span>
+                                </button>
+                              );
+                            })}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-4 text-center text-xs text-muted-foreground">
+                        Nenhum parceiro encontrado para &quot;{supplierName}&quot;
+                      </div>
                     )}
 
-                    <div className="my-1.5 h-px bg-border/60" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowSupplierPopover(false);
-                        setAddSupplierOpen(true);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
-                        supplierHighlight === matchingSuppliers.length ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {supplierName.trim()
-                        ? `Cadastrar "${supplierName.trim()}" como novo parceiro…`
-                        : "Cadastrar novo parceiro…"}
-                    </button>
+                    {/* Footer Fixo */}
+                    <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSupplierPopover(false);
+                          setAddSupplierOpen(true);
+                        }}
+                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                          supplierHighlight === matchingSuppliers.length ? "bg-primary/15 ring-1 ring-primary/30" : ""
+                        }`}
+                      >
+                        <Plus className="h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {category === "aluguel"
+                            ? (supplierName.trim() ? `Cadastrar "${supplierName.trim()}" como nova imobiliária/locador…` : "Cadastrar novo locador/imobiliária…")
+                            : category === "frete"
+                              ? (supplierName.trim() ? `Cadastrar "${supplierName.trim()}" como transportadora…` : "Cadastrar nova transportadora…")
+                              : (supplierName.trim() ? `Cadastrar "${supplierName.trim()}" como novo parceiro…` : "Cadastrar novo parceiro…")}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -3763,34 +3882,46 @@ function Caixa() {
                   )}
                 </div>
 
-                {/* Dropdown Autocomplete no Fiado */}
+                {/* Dropdown Autocomplete no Fiado (Padrão Apple / 3 Camadas) */}
                 {showCustomerPopover && !selectedCustomer && (
                   <>
                     <div
                       className="fixed inset-0 z-10"
                       onClick={() => setShowCustomerPopover(false)}
                     />
-                    <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-amber-200 bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-2xl border border-amber-300/80 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 flex flex-col">
+                      {/* Header Fixo */}
+                      <div className="px-3.5 py-2 border-b border-amber-200/50 dark:border-amber-900/40 text-[11px] font-semibold text-amber-900 dark:text-amber-300 flex justify-between items-center bg-amber-50/50 dark:bg-amber-950/20 shrink-0 select-none">
+                        <span className="flex items-center gap-1.5">
+                          <User className="size-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>Clientes Cadastradas ({matchingCustomers.length})</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/60 hidden sm:inline">Use ↑ ↓ para navegar</span>
+                      </div>
+
+                      {/* Viewport com Scroll Dedicado */}
                       {matchingCustomers.length > 0 ? (
-                        <>
-                          <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                            👤 Clientes Encontradas ({matchingCustomers.length})
-                          </div>
+                        <div className="overflow-y-auto max-h-56 p-1.5 space-y-0.5 overscroll-contain pr-1.5 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent]">
                           {matchingCustomers.map((c, idx) => {
                             const isHighlighted = idx === customerHighlight;
                             return (
                               <button
                                 key={c.id}
                                 type="button"
+                                ref={(node) => {
+                                  if (isHighlighted && node) {
+                                    node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                                  }
+                                }}
                                 onClick={() => handleSelectCustomer(c)}
-                                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-all cursor-pointer ${
                                   isHighlighted
-                                    ? "bg-amber-100 border border-amber-300 text-amber-900 shadow-sm dark:bg-amber-950 dark:text-amber-200"
-                                    : "hover:bg-primary-soft/50"
+                                    ? "bg-amber-100 border border-amber-300 text-amber-900 shadow-2xs font-semibold dark:bg-amber-950 dark:text-amber-200"
+                                    : "hover:bg-amber-500/10 text-foreground"
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-amber-900 text-xs font-bold dark:bg-amber-800 dark:text-amber-100">
+                                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-amber-900 text-xs font-bold dark:bg-amber-800 dark:text-amber-100">
                                     {c.name.charAt(0).toUpperCase()}
                                   </div>
                                   <div className="min-w-0">
@@ -3801,25 +3932,33 @@ function Caixa() {
                               </button>
                             );
                           })}
-                          <div className="my-1.5 h-px bg-border" />
-                        </>
-                      ) : null}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-4 text-center text-xs text-muted-foreground">
+                          Nenhuma cliente encontrada para &quot;{customerSearch}&quot;
+                        </div>
+                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowCustomerPopover(false);
-                          setAddCustomerOpen(true);
-                        }}
-                        className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 ${
-                          customerHighlight === matchingCustomers.length ? "bg-primary/10" : ""
-                        }`}
-                      >
-                        <Plus className="h-4 w-4" />
-                        {customerSearch.trim()
-                          ? `Cadastrar "${customerSearch.trim()}" na base`
-                          : "Cadastrar nova cliente…"}
-                      </button>
+                      {/* Footer Fixo */}
+                      <div className="p-1.5 border-t border-border/50 bg-surface-muted/30 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomerPopover(false);
+                            setAddCustomerOpen(true);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-primary transition-all hover:bg-primary-soft/50 cursor-pointer ${
+                            customerHighlight === matchingCustomers.length ? "bg-primary/15 ring-1 ring-primary/30" : ""
+                          }`}
+                        >
+                          <Plus className="h-4 w-4 shrink-0" />
+                          <span className="truncate">
+                            {customerSearch.trim()
+                              ? `Cadastrar "${customerSearch.trim()}" na base…`
+                              : "Cadastrar nova cliente…"}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
