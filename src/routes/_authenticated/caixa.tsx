@@ -65,7 +65,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { transactionsQuery, customersQuery, inventoryQuery } from "@/lib/db";
+import { transactionsQuery, customersQuery, inventoryQuery, suppliersQuery } from "@/lib/db";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
   ENTRY_CATEGORIES,
@@ -760,6 +760,7 @@ function Caixa() {
   const { data: all = [] } = useQuery(transactionsQuery());
   const { data: rawCustomers = [] } = useQuery(customersQuery());
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const { data: rawSuppliers = [] } = useQuery(suppliersQuery());
   const txs = all as unknown as Transaction[];
 
   type Customer = { id: string; name: string; phone: string | null };
@@ -901,11 +902,26 @@ function Caixa() {
       .map(([name]) => name);
   }, [monthTxs]);
 
-  const matchingSuppliers = useMemo(() => {
-    if (!supplierName.trim()) return previousSuppliers.slice(0, 6);
-    const q = supplierName.toLowerCase();
-    return previousSuppliers.filter((s) => s.toLowerCase().includes(q)).slice(0, 6);
-  }, [previousSuppliers, supplierName]);
+  // Fornecedores cadastrados na tabela suppliers — fonte primária
+  type SupplierSuggestion = { name: string; category: string | null; isRegistered: boolean };
+  const matchingSuppliers = useMemo((): SupplierSuggestion[] => {
+    const q = supplierName.toLowerCase().trim();
+    const registeredNames = new Set((rawSuppliers as any[]).map((s: any) => (s.name as string).toLowerCase()));
+
+    // 1. Fornecedores cadastrados que batem com a busca
+    const fromDB: SupplierSuggestion[] = (rawSuppliers as any[])
+      .filter((s: any) => !q || (s.name as string).toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((s: any) => ({ name: s.name as string, category: s.category as string | null, isRegistered: true }));
+
+    // 2. Histórico de uso (apenas nomes que NÃO estão já na tabela cadastrada)
+    const fromHistory: SupplierSuggestion[] = previousSuppliers
+      .filter((s) => !registeredNames.has(s.toLowerCase()) && (!q || s.toLowerCase().includes(q)))
+      .slice(0, 4)
+      .map((s) => ({ name: s, category: null, isRegistered: false }));
+
+    return [...fromDB, ...fromHistory].slice(0, 8);
+  }, [rawSuppliers, previousSuppliers, supplierName]);
 
   const handleSelectCustomer = (c: Customer) => {
     setSelectedCustomerId(c.id);
@@ -3045,7 +3061,7 @@ function Caixa() {
               )}
             </Field>
           ) : !isFiado ? (
-            /* Favorecido / Fornecedor (Saída): Texto Livre Persistente + Histórico Inteligente */
+            /* Favorecido / Fornecedor (Saída): Texto Livre + Fornecedores Cadastrados + Histórico */
             <Field
               label="Favorecido / Fornecedor (Opcional)"
               className="relative sm:col-span-2 lg:col-span-3"
@@ -3054,7 +3070,7 @@ function Caixa() {
                 <Input
                   value={supplierName}
                   onFocus={() => {
-                    if (previousSuppliers.length > 0) setShowSupplierPopover(true);
+                    if (matchingSuppliers.length > 0 || rawSuppliers.length > 0) setShowSupplierPopover(true);
                   }}
                   onChange={(e) => {
                     setSupplierName(e.target.value);
@@ -3071,12 +3087,12 @@ function Caixa() {
                       setSupplierHighlight((p) => (p > 0 ? p - 1 : matchingSuppliers.length - 1));
                     } else if (e.key === "Enter" && supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
                       e.preventDefault();
-                      setSupplierName(matchingSuppliers[supplierHighlight]);
+                      setSupplierName(matchingSuppliers[supplierHighlight].name);
                       setShowSupplierPopover(false);
                       setSupplierHighlight(-1);
                     }
                   }}
-                  placeholder="Ex: Fornecedor de tecidos, eletricista, proprietário, transportadora…"
+                  placeholder="Ex: Distribuidora Moda Sul, eletricista, proprietário…"
                   className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
                 {supplierName ? (
@@ -3096,35 +3112,84 @@ function Caixa() {
                 )}
               </div>
 
-              {/* Sugestões Rápidas de Favorecidos Anteriores (Histórico Dinâmico sem Poluição) */}
+              {/* Dropdown: Fornecedores Cadastrados + Histórico */}
               {showSupplierPopover && matchingSuppliers.length > 0 && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowSupplierPopover(false)}
                   />
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
-                    <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                      <span>Favorecidos recentes</span>
-                      <span className="text-[10px] text-muted-foreground/60 font-normal">Use as setas ou clique</span>
-                    </div>
-                    {matchingSuppliers.map((s, idx) => (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95">
+                    {/* Separador: Cadastrados */}
+                    {matchingSuppliers.some((s) => s.isRegistered) && (
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Building2 className="size-3 text-primary" />
+                        Fornecedores cadastrados
+                      </div>
+                    )}
+                    {matchingSuppliers.filter((s) => s.isRegistered).map((s, idx) => (
                       <button
-                        key={s}
+                        key={`reg-${s.name}`}
                         type="button"
                         onClick={() => {
-                          setSupplierName(s);
+                          setSupplierName(s.name);
                           setShowSupplierPopover(false);
                           setSupplierHighlight(-1);
                         }}
-                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
-                          idx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                        className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-medium transition-all cursor-pointer ${
+                          idx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-primary-soft/40"
                         }`}
                       >
-                        <Building2 className="size-3.5 text-primary/70 shrink-0" />
-                        <span className="truncate">{s}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                            {s.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="truncate font-semibold text-foreground">{s.name}</span>
+                        </div>
+                        {s.category && (
+                          <span className="shrink-0 rounded-full bg-surface-muted border border-border px-2 py-0.5 text-[10px] text-muted-foreground">
+                            {s.category === "compra_estoque" ? "Estoque" :
+                             s.category === "frete" ? "Frete" :
+                             s.category === "aluguel" ? "Aluguel" :
+                             s.category === "marketing" ? "Marketing" :
+                             s.category === "prolabore" ? "Pró-labore" :
+                             s.category === "perda_avaria" ? "Avaria" : s.category}
+                          </span>
+                        )}
                       </button>
                     ))}
+
+                    {/* Separador: Histórico de uso */}
+                    {matchingSuppliers.some((s) => !s.isRegistered) && (
+                      <>
+                        {matchingSuppliers.some((s) => s.isRegistered) && (
+                          <div className="my-1 h-px bg-border/60 mx-2" />
+                        )}
+                        <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Usados recentemente
+                        </div>
+                      </>
+                    )}
+                    {matchingSuppliers.filter((s) => !s.isRegistered).map((s, idx) => {
+                      const absIdx = matchingSuppliers.findIndex((x) => x.name === s.name && !x.isRegistered);
+                      return (
+                        <button
+                          key={`hist-${s.name}`}
+                          type="button"
+                          onClick={() => {
+                            setSupplierName(s.name);
+                            setShowSupplierPopover(false);
+                            setSupplierHighlight(-1);
+                          }}
+                          className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all cursor-pointer ${
+                            absIdx === supplierHighlight ? "bg-primary/10 text-primary font-semibold" : "hover:bg-surface-muted text-foreground"
+                          }`}
+                        >
+                          <Building2 className="size-3.5 text-muted-foreground/60 shrink-0" />
+                          <span className="truncate">{s.name}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}

@@ -95,6 +95,12 @@ const GESTAO_NAV: NavItem[] = [
       p.startsWith("/loja/recebimentos"),
   },
   {
+    to: "/fornecedores",
+    label: "Fornecedores & Gastos",
+    icon: Truck,
+    isMatch: (p) => p.startsWith("/fornecedores"),
+  },
+  {
     to: "/metas",
     label: "Metas & Planejamento",
     icon: Target,
@@ -132,6 +138,12 @@ const GESTAO_ONLINE_NAV: NavItem[] = [
       p.startsWith("/precificacao") ||
       p.startsWith("/prolabore") ||
       p.startsWith("/loja/recebimentos"),
+  },
+  {
+    to: "/fornecedores",
+    label: "Fornecedores & Gastos",
+    icon: Truck,
+    isMatch: (p) => p.startsWith("/fornecedores"),
   },
   {
     to: "/metas",
@@ -219,6 +231,7 @@ const MOBILE_MORE_FISICA: NavItem[] = [
       p.startsWith("/precificacao") ||
       p.startsWith("/prolabore"),
   },
+  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];
 
@@ -243,6 +256,7 @@ const MOBILE_MORE_GESTAO: NavItem[] = [
       p.startsWith("/prolabore") ||
       p.startsWith("/loja/recebimentos"),
   },
+  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];
 
@@ -303,6 +317,7 @@ const MOBILE_PRIMARY_ONLINE_GESTAO: NavItem[] = [
 ];
 
 const MOBILE_MORE_ONLINE_GESTAO: NavItem[] = [
+  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];
 

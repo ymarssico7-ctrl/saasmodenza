@@ -233,6 +233,38 @@ export const goalsQuery = () =>
     },
   });
 
+export const suppliersQuery = () =>
+  queryOptions({
+    queryKey: ["suppliers"],
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+    queryFn: async () => {
+      if (!(await hasSession())) return [] as SupplierRow[];
+      const { data, error } = await supabase
+        .from("suppliers" as any)
+        .select("*")
+        .order("name");
+      if (error) {
+        // Tabela ainda não existe → retorna vazio sem lançar erro
+        if (error.code === "42P01") return [] as SupplierRow[];
+        throw new Error(error.message);
+      }
+      return (data ?? []) as SupplierRow[];
+    },
+  });
+
+/** Tipo local para fornecedores (até o tipo gerado pelo Supabase existir). */
+export type SupplierRow = {
+  id: string;
+  store_id: string;
+  name: string;
+  category: string | null;
+  phone: string | null;
+  cnpj: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
 export const membersQuery = () =>
   queryOptions({
     queryKey: ["members"],

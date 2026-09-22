@@ -18,6 +18,7 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedFiadoRouteImport } from './routes/_authenticated/fiado'
+import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedLojaRouteImport } from './routes/_authenticated/loja'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
@@ -88,6 +89,12 @@ const AuthenticatedFiadoRoute = AuthenticatedFiadoRouteImport.update({
   path: '/fiado',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFornecedoresRoute =
+  AuthenticatedFornecedoresRouteImport.update({
+    id: '/fornecedores',
+    path: '/fornecedores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLojaRoute = AuthenticatedLojaRouteImport.update({
   id: '/loja',
   path: '/loja',
@@ -230,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/fiado': typeof AuthenticatedFiadoRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/loja': typeof AuthenticatedLojaRouteWithChildren
   '/metas': typeof AuthenticatedMetasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -264,6 +272,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/fiado': typeof AuthenticatedFiadoRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -299,6 +308,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/fiado': typeof AuthenticatedFiadoRoute
+  '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
   '/_authenticated/loja': typeof AuthenticatedLojaRouteWithChildren
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/estoque'
     | '/fiado'
+    | '/fornecedores'
     | '/loja'
     | '/metas'
     | '/onboarding'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/estoque'
     | '/fiado'
+    | '/fornecedores'
     | '/metas'
     | '/onboarding'
     | '/painel'
@@ -403,6 +415,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/estoque'
     | '/_authenticated/fiado'
+    | '/_authenticated/fornecedores'
     | '/_authenticated/loja'
     | '/_authenticated/metas'
     | '/_authenticated/onboarding'
@@ -502,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/fiado'
       fullPath: '/fiado'
       preLoaderRoute: typeof AuthenticatedFiadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fornecedores': {
+      id: '/_authenticated/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/fornecedores'
+      preLoaderRoute: typeof AuthenticatedFornecedoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/loja': {
@@ -727,6 +747,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedFiadoRoute: typeof AuthenticatedFiadoRoute
+  AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
   AuthenticatedLojaRoute: typeof AuthenticatedLojaRouteWithChildren
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
@@ -742,6 +763,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedFiadoRoute: AuthenticatedFiadoRoute,
+  AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
   AuthenticatedLojaRoute: AuthenticatedLojaRouteWithChildren,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,

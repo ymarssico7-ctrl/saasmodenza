@@ -257,6 +257,84 @@ export async function deleteCustomer(storeId: string, id: string) {
 }
 
 // ============================================================
+// SUPPLIERS (Fornecedores)
+// ============================================================
+export type SupplierInsert = {
+  storeId: string;
+  name: string;
+  category?: string | null;
+  phone?: string | null;
+  cnpj?: string | null;
+  notes?: string | null;
+};
+
+export async function insertSupplier(input: SupplierInsert): Promise<string> {
+  if (isDemoStore(input.storeId)) {
+    const row = localInsert("suppliers", {
+      store_id: input.storeId,
+      user_id: input.storeId,
+      name: input.name,
+      category: input.category ?? null,
+      phone: input.phone ?? null,
+      cnpj: input.cnpj ?? null,
+      notes: input.notes ?? null,
+    });
+    return (row["id"] ?? "") as string;
+  }
+  const userId = await getAuthUserId();
+  const { data, error } = await supabase
+    .from("suppliers" as any)
+    .insert({
+      store_id: input.storeId,
+      user_id: userId,
+      name: input.name,
+      category: input.category ?? null,
+      phone: input.phone ?? null,
+      cnpj: input.cnpj ?? null,
+      notes: input.notes ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return (data as any).id as string;
+}
+
+export type SupplierUpdate = {
+  storeId: string;
+  id: string;
+  name?: string;
+  category?: string | null;
+  phone?: string | null;
+  cnpj?: string | null;
+  notes?: string | null;
+};
+
+export async function updateSupplier(input: SupplierUpdate): Promise<void> {
+  const { storeId, id, ...patch } = input;
+  if (isDemoStore(storeId)) {
+    localUpdate("suppliers", id, patch as AnyRecord);
+    return;
+  }
+  const { error } = await supabase
+    .from("suppliers" as any)
+    .update(patch)
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSupplier(storeId: string, id: string) {
+  if (isDemoStore(storeId)) {
+    localDelete("suppliers", id);
+    return;
+  }
+  const { error } = await supabase
+    .from("suppliers" as any)
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+// ============================================================
 // CREDITS (Fiado)
 // ============================================================
 export type CreditInsert = {
