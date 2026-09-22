@@ -117,6 +117,16 @@ function yesterdayISO() {
   return d.toISOString().slice(0, 10);
 }
 
+// ── Helper bimodal de desconto: sempre exibe R$ + % simultaneamente ──────────
+// Ex.: desconto de R$20 numa venda de R$100 → "−R$ 20,00 (20%)"
+// Ex.: desconto de 15% numa venda de R$200  → "−R$ 30,00 (15%)"
+function fmtDiscount(gross: number, discountAmt: number): string {
+  if (discountAmt <= 0 || gross <= 0) return "";
+  const pct = (discountAmt / gross) * 100;
+  const pctStr = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
+  return `−${brl(discountAmt)} (${pctStr})`;
+}
+
 // ── Dialog de Cadastro Rápido de Cliente (Apple Level) ─────────────────────
 function QuickCustomerDialog({
   open,
@@ -2217,12 +2227,7 @@ function Caixa() {
                     title="Editar desconto da venda"
                   >
                     <Percent className="size-3.5 shrink-0" />
-                    <span>
-                      −{brl(calculatedDiscount)}{" "}
-                      <span className="opacity-70">
-                        ({discountType === "pct" ? `${discountValue}%` : "fixo"})
-                      </span>
-                    </span>
+                    <span>{fmtDiscount(grossAmount, calculatedDiscount)}</span>
                     <ChevronDown className="size-3 opacity-60" />
                   </button>
                   <button
@@ -2251,114 +2256,114 @@ function Caixa() {
                 </button>
               )
             ) : (
-              /* Estado Expandido: Barra de Controle Ultra-Compacta (Padrão Apple Toolstrip) */
+              /* Estado Expandido: Toolstrip Coesa Sem Abismo (Padrão Apple) */
               <div className="rounded-2xl border border-primary/35 bg-surface-muted/30 p-2.5 sm:px-3.5 sm:py-2.5 shadow-2xs animate-in fade-in slide-in-from-top-1 duration-150 space-y-2">
-                {/* Linha Única Fluida de Controles */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Título Discreto */}
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-foreground shrink-0 pr-1">
-                      <Percent className="size-3.5 text-primary" />
-                      <span>{isEntrada ? "Desconto na venda:" : "Abatimento:"}</span>
-                    </div>
-
-                    {/* Chips Rápidos Compactos */}
-                    <div className="flex items-center gap-1">
-                      {[5, 10, 15, 20].map((pct) => {
-                        const isSelected = discountType === "pct" && discountValue === String(pct);
-                        return (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => {
-                              setDiscountType("pct");
-                              setDiscountValue(String(pct));
-                            }}
-                            className={`h-7 px-2.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
-                              isSelected
-                                ? "bg-primary text-primary-foreground shadow-2xs scale-98"
-                                : "bg-card hover:bg-surface-muted text-foreground border border-border/70"
-                            }`}
-                          >
-                            {pct}%
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Divisor vertical sutil */}
-                    <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
-
-                    {/* R$ / % + Input Anatômico (Sem Espaço Vazio Grotesco) */}
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex rounded-lg border border-border/70 bg-card p-0.5 shrink-0 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => setDiscountType("flat")}
-                          className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                            discountType === "flat"
-                              ? "bg-primary text-primary-foreground shadow-2xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          R$
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDiscountType("pct")}
-                          className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                            discountType === "pct"
-                              ? "bg-primary text-primary-foreground shadow-2xs"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          %
-                        </button>
-                      </div>
-
-                      {/* Input com largura anatômica w-22 (cabe certinho sem sobrar abismo vazio) */}
-                      <Input
-                        inputMode="decimal"
-                        value={discountValue}
-                        onChange={(e) => setDiscountValue(e.target.value)}
-                        placeholder={discountType === "flat" ? "0,00" : "0"}
-                        className="h-7 w-20 sm:w-22 rounded-lg font-mono text-xs font-bold text-center bg-card border-border/70 shadow-2xs p-1"
-                        autoFocus
-                      />
-                    </div>
+                {/* Linha Única Fluida de Controles — tudo junto, sem ml-auto, sem justify-between */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Título Discreto */}
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground shrink-0 pr-1">
+                    <Percent className="size-3.5 text-primary" />
+                    <span>{isEntrada ? "Desconto na venda:" : "Abatimento:"}</span>
                   </div>
 
-                  {/* Ações de Direita: Limpar e Concluir */}
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {discountValue && (
-                      <button
-                        type="button"
-                        onClick={() => setDiscountValue("")}
-                        className="px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                        title="Limpar desconto"
-                      >
-                        Limpar
-                      </button>
-                    )}
-                    <Button
+                  {/* Chips Rápidos Compactos */}
+                  <div className="flex items-center gap-1">
+                    {[5, 10, 15, 20].map((pct) => {
+                      const isSelected = discountType === "pct" && discountValue === String(pct);
+                      return (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            setDiscountType("pct");
+                            setDiscountValue(String(pct));
+                          }}
+                          className={`h-7 px-2.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground shadow-2xs scale-98"
+                              : "bg-card hover:bg-surface-muted text-foreground border border-border/70"
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Divisor vertical sutil */}
+                  <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
+
+                  {/* Alternador R$ / % */}
+                  <div className="flex rounded-lg border border-border/70 bg-card p-0.5 shrink-0 shadow-2xs">
+                    <button
                       type="button"
-                      size="sm"
-                      onClick={() => setShowDiscount(false)}
-                      className="h-7 rounded-lg px-3 text-xs font-bold cursor-pointer"
+                      onClick={() => setDiscountType("flat")}
+                      className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                        discountType === "flat"
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
                     >
-                      Concluído
-                    </Button>
+                      R$
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("pct")}
+                      className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                        discountType === "pct"
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      %
+                    </button>
                   </div>
+
+                  {/* Input Anatômico — largura fixa, sem flex-1, sem abismo */}
+                  <Input
+                    inputMode="decimal"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    placeholder={discountType === "flat" ? "0,00" : "0"}
+                    className="h-7 w-20 rounded-lg font-mono text-xs font-bold text-center bg-card border-border/70 shadow-2xs p-1 shrink-0"
+                    autoFocus
+                  />
+
+                  {/* Limpar — apenas quando há valor digitado */}
+                  {discountValue && (
+                    <button
+                      type="button"
+                      onClick={() => setDiscountValue("")}
+                      className="px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
+                      title="Limpar desconto"
+                    >
+                      Limpar
+                    </button>
+                  )}
+
+                  {/* Concluído — imediatamente ao lado do input, sem salto */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setShowDiscount(false)}
+                    className="h-7 rounded-lg px-3 text-xs font-bold cursor-pointer shrink-0"
+                  >
+                    Concluído
+                  </Button>
                 </div>
 
-                {/* Micro-linha de feedback de economia (Leve e Elegante) */}
+                {/* Micro-linha de feedback bimodal: sempre exibe R$ e % simultaneamente */}
                 {grossAmount > 0 && calculatedDiscount > 0 && (
                   <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
                     <span className="text-muted-foreground">
-                      Economia: <strong className="font-mono text-emerald-700 dark:text-emerald-400">−{brl(calculatedDiscount)} ({discountType === "pct" ? `${discountValue}%` : "fixo"})</strong>
+                      Economia:{" "}
+                      <strong className="font-mono text-emerald-700 dark:text-emerald-400">
+                        {fmtDiscount(grossAmount, calculatedDiscount)}
+                      </strong>
                     </span>
                     <span className="font-semibold text-foreground">
-                      Total líquido: <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{brl(netAmount)}</span>
+                      Total líquido:{" "}
+                      <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{brl(netAmount)}</span>
                     </span>
                   </div>
                 )}
@@ -2372,6 +2377,7 @@ function Caixa() {
               </div>
             )}
           </div>
+
 
           {/* ── Multi-itens: sacola fluida (Apenas em Entrada) ── */}
           {isEntrada && (
@@ -2506,7 +2512,7 @@ function Caixa() {
                                   title={globalDiscActive ? "Desconto global ativo no total" : "Editar desconto desta peça"}
                                 >
                                   <Percent className="size-2.5 shrink-0" />
-                                  <span>−{brl(itemDiscountAmt)}</span>
+                                  <span>{fmtDiscount(item.totalPrice, itemDiscountAmt)}</span>
                                   <ChevronDown className={`size-2.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                                 </button>
                               ) : (
@@ -2664,10 +2670,13 @@ function Caixa() {
                               {itemDiscountAmt > 0 && (
                                 <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
                                   <span className="text-muted-foreground text-[11px]">
-                                    Economia nesta peça: <strong className="font-mono text-emerald-700 dark:text-emerald-400">−{brl(itemDiscountAmt)}</strong>
+                                    Economia:{" "}
+                                    <strong className="font-mono text-emerald-700 dark:text-emerald-400">
+                                      {fmtDiscount(item.totalPrice, itemDiscountAmt)}
+                                    </strong>
                                   </span>
                                   <span className="text-[11px] font-bold text-foreground">
-                                    Valor com desconto: <span className="font-mono text-emerald-600 dark:text-emerald-400">{brl(item.netPrice)}</span>
+                                    Com desconto: <span className="font-mono text-emerald-600 dark:text-emerald-400">{brl(item.netPrice)}</span>
                                   </span>
                                 </div>
                               )}
