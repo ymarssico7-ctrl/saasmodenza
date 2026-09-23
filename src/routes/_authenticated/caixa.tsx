@@ -1971,38 +1971,34 @@ function Caixa() {
         title="Balcão & PDV"
         description="Registre cada venda física e despesas da sua loja. O saldo se atualiza na hora."
         action={
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/70 px-3 py-1 text-xs font-medium text-muted-foreground/80 shadow-2xs backdrop-blur-xs">
-            <span className="size-1.5 rounded-full bg-emerald-600/70 dark:bg-emerald-400/70" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card shadow-soft px-3.5 py-1.5 text-xs font-semibold text-foreground/70">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
             <span>Caixa Aberto</span>
           </div>
         }
       />
 
-      {/* ── Cockpit de KPIs Executivo (Design Minimalista, Leve e Direto) ──── */}
-      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Saldo de Hoje */}
-        <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/80 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">
-              Saldo de hoje
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-xl bg-surface-muted text-muted-foreground border border-border/60">
-              <Wallet className="size-3.5" strokeWidth={1.75} />
-            </div>
+      {/* ── Faixa "Saldo de Hoje" — Escopo Diário (separado dos KPIs mensais) ── */}
+      <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-card shadow-2xs px-5 py-4 hover:border-border hover:shadow-soft transition-all duration-200">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+            <Wallet className="size-4" strokeWidth={1.75} />
           </div>
-          <div className="my-2">
-            <h3 className={`numeric text-2xl font-bold tracking-tight ${
-              todayBalance < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
-            }`}>
-              {brl(todayBalance)}
-            </h3>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-semibold text-muted-foreground">Saldo de hoje</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Saldo em gaveta</span>
           </div>
-          <p className="text-[11px] text-muted-foreground/70">
-            Saldo em gaveta
-          </p>
         </div>
+        <h3 className={`numeric text-2xl font-bold tracking-tight ${
+          todayBalance < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+        }`}>
+          {brl(todayBalance)}
+        </h3>
+      </div>
 
-        {/* Card 2: Entradas do Mês */}
+      {/* ── KPIs Mensais (3 Cards com escopo temporal unificado) ─────────────── */}
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-3">
+        {/* Card 1: Entradas do Mês */}
         <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground">
@@ -2017,18 +2013,18 @@ function Caixa() {
               {brl(revenue)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70">
+          <p className="text-[11px] text-muted-foreground font-medium">
             Faturamento da loja
           </p>
         </div>
 
-        {/* Card 3: Saídas do Mês */}
+        {/* Card 2: Saídas do Mês */}
         <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground">
               Saídas do mês
             </span>
-            <div className="flex size-7 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <div className="flex size-7 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20">
               <ArrowDownRight className="size-3.5" strokeWidth={1.75} />
             </div>
           </div>
@@ -2036,15 +2032,15 @@ function Caixa() {
             <h3 className={`numeric text-2xl font-bold tracking-tight ${
               expenses > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
             }`}>
-              {expenses > 0 ? `− ${brl(expenses)}` : brl(0)}
+              {brl(expenses > 0 ? expenses : 0)}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70">
+          <p className="text-[11px] text-muted-foreground font-medium">
             Despesas operacionais
           </p>
         </div>
 
-        {/* Card 4: Resultado do Mês */}
+        {/* Card 3: Resultado do Mês — âncora visual principal */}
         <div className="group relative p-4 sm:p-5 rounded-2xl border border-border/70 bg-card shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground">
@@ -2053,7 +2049,7 @@ function Caixa() {
             <div className={`flex size-7 items-center justify-center rounded-xl border ${
               revenue - expenses >= 0
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                : "bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20"
             }`}>
               <TrendingUp className="size-3.5" strokeWidth={1.75} />
             </div>
@@ -2066,18 +2062,13 @@ function Caixa() {
                 ? "text-rose-600 dark:text-rose-400"
                 : "text-foreground"
             }`}>
-              {revenue - expenses > 0 ? "+ " : revenue - expenses < 0 ? "− " : ""}
               {brl(Math.abs(revenue - expenses))}
             </h3>
           </div>
-          <p className="text-[11px] text-muted-foreground/70">
-            {revenue > 0 ? (
-              <span>
-                Margem líquida: <strong className="font-semibold text-foreground/80">{((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}%</strong>
-              </span>
-            ) : (
-              "Líquido acumulado"
-            )}
+          <p className="text-[11px] text-muted-foreground font-medium">
+            {revenue > 0
+              ? `${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}% de margem`
+              : "Líquido acumulado"}
           </p>
         </div>
       </div>
