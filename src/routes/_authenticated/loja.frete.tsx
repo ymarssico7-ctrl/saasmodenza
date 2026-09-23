@@ -4,7 +4,6 @@ import { MapPin, Package, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
-import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { SectionCard } from "@/components/loja/section-card";
 import { PlanoBadge } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
@@ -150,7 +149,7 @@ function FretePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Configurar Vitrine"
+        eyebrow="Logística & Entregas"
         title="Frete & Entrega"
         description="Escolha como suas clientes vão receber as peças. As opções ativas aparecem no checkout da loja."
         actions={
@@ -162,8 +161,6 @@ function FretePage() {
           </Button>
         }
       />
-
-      <VitrineConfigNav />
 
       {/* Endereço da loja */}
       <SectionCard

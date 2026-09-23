@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Target, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
@@ -88,12 +89,14 @@ function Metas() {
   });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Meu Financeiro"
+        eyebrow="Finanças da Loja"
         title="Metas de Vendas"
         description="Uma meta clara muda o ritmo da sua loja. Acompanhe o progresso dia a dia."
       />
+
+      <FinanceiroTabs />
 
       <section className="panel bg-primary p-7 text-primary-foreground sm:p-9">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/60">

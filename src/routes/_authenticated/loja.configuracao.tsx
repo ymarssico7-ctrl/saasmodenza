@@ -1,23 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  ArrowRight,
   Check,
   CheckCircle2,
   ExternalLink,
-  ImagePlus,
-  Instagram,
-  MessageCircle,
-  MoreHorizontal,
-  Paintbrush,
-  Upload,
-  Phone,
-  MapPin,
-  Globe,
   FileText,
+  Globe,
+  Instagram,
+  MapPin,
+  MessageCircle,
+  Paintbrush,
+  Phone,
   QrCode,
+  Store,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
@@ -31,18 +30,23 @@ import { Switch } from "@/components/ui/switch";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
-import { getVitrineSettings, saveVitrineSettings, isVitrineAtiva, setVitrineAtiva } from "@/lib/vitrine-settings";
-import { updateStoreDetails } from "@/lib/mutations";
+import { profileQuery } from "@/lib/db";
+import {
+  getVitrineSettings,
+  saveVitrineSettings,
+  isVitrineAtiva,
+  setVitrineAtiva,
+} from "@/lib/vitrine-settings";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/loja/configuracao")({
   head: () => ({
     meta: [
-      { title: "Aparência e Configurações — Vestui" },
+      { title: "Configurações da Vitrine — Vestui" },
       {
         name: "description",
-        content: "Personalize o layout, dados de recebimento Pix e configurações da sua vitrine online.",
+        content: "Personalize o layout, cores da marca e dados de recebimento Pix da sua vitrine online.",
       },
     ],
   }),
@@ -51,52 +55,41 @@ export const Route = createFileRoute("/_authenticated/loja/configuracao")({
 
 function AparenciaPage() {
   const { store, storeId } = useStore();
+  const { data: profile } = useQuery(profileQuery());
   const queryClient = useQueryClient();
 
-  // Campos que vêm do banco (tabela `stores`)
-  const [nome, setNome] = useState(store?.name ?? "");
-  const [whatsapp, setWhatsapp] = useState(store?.phone ?? "");
-  const [cidade, setCidade] = useState(store?.city ?? "");
+  // Dados Cadastrais Soberanos (Central de Configurações da Loja)
+  const masterStoreName = profile?.store_name?.trim() || store?.name?.trim() || "Minha Loja";
+  const masterPhone = profile?.phone?.trim() || store?.phone?.trim() || "Não informado";
+  const masterCity = profile?.city?.trim() || store?.city?.trim() || "Não informada";
+  const masterLogoUrl = profile?.logo_url || "";
 
-  // Leitura de localStorage feita UMA ÚNICA VEZ na montagem (lazy initializer).
-  // Evita JSON.parse e I/O síncrono a cada re-render da página.
+  // Leitura de localStorage das configurações específicas da vitrine
   const [vitrineSettings] = useState(() => getVitrineSettings(storeId));
   const [activeTheme] = useState(() => loadTheme());
 
-  // Campos que ficam no localStorage isolado por loja
+  // Campos exclusivos da vitrine online
   const [ativa, setAtiva] = useState(() => isVitrineAtiva(storeId, store?.metadata));
   const [descricao, setDescricao] = useState(vitrineSettings.descricao);
   const [cor, setCor] = useState(vitrineSettings.corPrincipal);
   const [instagram, setInstagram] = useState(vitrineSettings.instagram);
-  const [estado, setEstado] = useState(vitrineSettings.estado);
   const [boasVindas, setBoasVindas] = useState(vitrineSettings.boasVindas);
   const [politicaTroca, setPoliticaTroca] = useState(vitrineSettings.politicaTroca);
   const [mostrarEstoque, setMostrarEstoque] = useState(vitrineSettings.mostrarEstoque);
-  const [logoUrl, setLogoUrl] = useState(vitrineSettings.logoUrl ?? "");
   const [capaUrl, setCapaUrl] = useState(vitrineSettings.capaUrl ?? "");
   const [chavePix, setChavePix] = useState(vitrineSettings.chavePix ?? "");
-  const [tipoChavePix, setTipoChavePix] = useState<"cpf" | "cnpj" | "telefone" | "email" | "aleatoria">(
-    vitrineSettings.tipoChavePix ?? "cpf"
-  );
+  const [tipoChavePix, setTipoChavePix] = useState<
+    "cpf" | "cnpj" | "telefone" | "email" | "aleatoria"
+  >(vitrineSettings.tipoChavePix ?? "cpf");
   const [titularPix, setTitularPix] = useState(vitrineSettings.titularPix ?? "");
   const [salvando, setSalvando] = useState(false);
-
-  // Sincroniza se o store mudar (ex: após refetch).
-  // nome/whatsapp/cidade são lidos apenas como guards de "campo ainda vazio"
-  // na inicialização — adicioná-los nas deps causaria sobrescrita do input
-  // do usuário a cada digitação (loop de re-render). Padrão intencional.
-  useEffect(() => {
-    if (store?.name && !nome) setNome(store.name);
-    if (store?.phone && !whatsapp) setWhatsapp(store.phone ?? "");
-    if (store?.city && !cidade) setCidade(store.city ?? "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store]);
 
   const handleToggleAtiva = async (novoStatus: boolean) => {
     setAtiva(novoStatus);
     setVitrineAtiva(storeId, novoStatus);
     try {
-      const currentMeta = (typeof store?.metadata === "object" && store?.metadata) ? store.metadata : {};
+      const currentMeta =
+        typeof store?.metadata === "object" && store?.metadata ? store.metadata : {};
       await supabase
         .from("stores")
         .update({
@@ -104,7 +97,7 @@ function AparenciaPage() {
             ...(currentMeta as Record<string, unknown>),
             vitrine_ativa: novoStatus,
             vitrineSettings: {
-              ...(getVitrineSettings(storeId)),
+              ...getVitrineSettings(storeId),
               ativa: novoStatus,
             },
           },
@@ -116,25 +109,14 @@ function AparenciaPage() {
     }
     toast.success(
       novoStatus
-        ? "Vitrine Online ativada! O Canal Digital agora está na barra lateral."
+        ? "Vitrine Online ativada! O Canal Digital agora está no ar."
         : "Vitrine Online pausada. Seu sistema agora foca 100% no balcão da loja física.",
     );
   };
 
   const salvar = async () => {
-    if (!nome.trim()) {
-      toast.error("Informe o nome da loja antes de salvar.");
-      return;
-    }
     setSalvando(true);
     try {
-      // 1) Persiste Nome, Cidade e Telefone no banco (tabela stores)
-      await updateStoreDetails(storeId, {
-        ...(nome.trim() ? { name: nome.trim() } : {}),
-        ...(cidade.trim() ? { city: cidade.trim() } : {}),
-        ...(whatsapp.trim() ? { phone: whatsapp.trim() } : {}),
-      });
-
       const vitrinePayload = {
         ativa,
         descricao,
@@ -143,17 +125,18 @@ function AparenciaPage() {
         politicaTroca,
         mostrarEstoque,
         instagram,
-        estado,
-        logoUrl,
+        estado: vitrineSettings.estado || "",
+        logoUrl: masterLogoUrl || vitrineSettings.logoUrl || "",
         capaUrl,
         chavePix: chavePix.trim(),
         tipoChavePix,
         titularPix: titularPix.trim(),
       };
 
-      // 2) Persiste no Supabase (tabela stores.metadata) para estar disponível em qualquer dispositivo/celular
+      // 1) Persiste no Supabase (tabela stores.metadata) para sincronizar entre todos os dispositivos
       try {
-        const currentMeta = (typeof store?.metadata === "object" && store?.metadata) ? store.metadata : {};
+        const currentMeta =
+          typeof store?.metadata === "object" && store?.metadata ? store.metadata : {};
         await supabase
           .from("stores")
           .update({
@@ -167,26 +150,26 @@ function AparenciaPage() {
         console.error("Erro ao gravar metadata no Supabase:", errDb);
       }
 
-      // 3) Persiste as configs de estilo no localStorage isolado por loja como cache
+      // 2) Persiste as configs de estilo no localStorage isolado por loja como cache rápido
       saveVitrineSettings(storeId, vitrinePayload);
 
-      // 4) Sincroniza nome e WhatsApp no Theme Engine (assim os templates ficam atualizados)
+      // 3) Sincroniza nome oficial e WhatsApp no Theme Engine
       const currentTheme = loadTheme();
       saveTheme({
         ...currentTheme,
         settings: {
           ...currentTheme.settings,
-          storeName: nome.trim() || currentTheme.settings.storeName,
-          storeWhatsApp: whatsapp.trim() || currentTheme.settings.storeWhatsApp || "",
+          storeName: masterStoreName || currentTheme.settings.storeName,
+          storeWhatsApp: masterPhone !== "Não informado" ? masterPhone : currentTheme.settings.storeWhatsApp || "",
         },
       });
 
-      // 5) Invalida o cache do store para o AppShell/header exibir o nome novo
+      // 4) Invalida o cache
       await queryClient.invalidateQueries({ queryKey: ["active_store"] });
       window.dispatchEvent(new Event("vitrine-settings-changed"));
 
-      toast.success("Configurações salvas com sucesso!", {
-        description: `Loja "${nome}" atualizada.`,
+      toast.success("Configurações da vitrine salvas com sucesso! ✨", {
+        description: `Vitrine de "${masterStoreName}" atualizada.`,
       });
     } catch (err) {
       toast.error("Erro ao salvar configurações", {
@@ -200,12 +183,12 @@ function AparenciaPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Configurar Vitrine"
-        title="Aparência & Identidade"
-        description="Personalize o layout, cores da marca e dados de recebimento da sua vitrine online."
+        eyebrow="Loja Virtual"
+        title="Configurações da Vitrine"
+        description="Personalize o visual, cores da marca, bio e recebimento via Pix para suas clientes comprarem online."
         actions={
           <Button
-            className="gradient-primary h-10 gap-2 rounded-full shadow-glow"
+            className="gradient-primary h-10 gap-2 rounded-full shadow-glow cursor-pointer"
             onClick={salvar}
             disabled={salvando}
           >
@@ -223,7 +206,9 @@ function AparenciaPage() {
           <div
             className={cn(
               "grid size-11 shrink-0 place-items-center rounded-2xl transition-colors",
-              ativa ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground",
+              ativa
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground",
             )}
           >
             <Globe className="size-5" />
@@ -244,8 +229,8 @@ function AparenciaPage() {
             </div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {ativa
-                ? "Sua vitrine está ativa e recebendo pedidos pelo Instagram e WhatsApp. O Canal Digital está ativo na barra lateral."
-                : "Ative para publicar seu catálogo no Instagram. Quando pausada, seu sistema foca 100% no balcão da loja física sem poluição."}
+                ? "Sua vitrine está ativa e recebendo pedidos pelo Instagram e WhatsApp. As clientes podem ver os produtos e pedir."
+                : "Ative para publicar seu catálogo no Instagram. Quando pausada, as clientes veem que a loja está em manutenção."}
             </p>
           </div>
         </div>
@@ -261,11 +246,53 @@ function AparenciaPage() {
         </div>
       </div>
 
-      {/* ── Layout Ativo — Banner Principal Full-Width ──────────────────────────── */}
+      {/* ── Card Unificado: Dados Cadastrais Soberanos da Loja ────────────────────── */}
+      <div className="rounded-3xl border border-primary/20 bg-primary/5 p-5 sm:p-6 shadow-soft">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+              {masterLogoUrl ? (
+                <img
+                  src={masterLogoUrl}
+                  alt={masterStoreName}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <Store className="size-6 text-primary" />
+              )}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold text-foreground text-base">{masterStoreName}</h3>
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  <CheckCircle2 className="size-2.5" /> Dados Oficiais do Negócio
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <Phone className="size-3 text-emerald-600" /> WhatsApp: {masterPhone}
+                </span>
+                <span>·</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="size-3 text-muted-foreground" /> Local: {masterCity}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/configuracoes"
+            className="inline-flex items-center gap-1.5 self-start md:self-center rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground shadow-xs hover:bg-surface-muted transition-colors cursor-pointer"
+          >
+            Editar em Configurações Gerais <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Layout Ativo — Banner & Visualizador ─────────────────────────────────── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
         {/* Mockup preview */}
         <div className="relative select-none overflow-hidden bg-gradient-to-br from-stone-100 to-stone-200 p-8">
-          {/* Browser chrome */}
           <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-stone-300/60 bg-white shadow-lift">
             {/* Browser bar */}
             <div className="flex h-8 items-center gap-2 border-b border-stone-200 bg-stone-50 px-3">
@@ -298,7 +325,7 @@ function AparenciaPage() {
                     fontFamily: activeTheme.settings.fontDisplay,
                   }}
                 >
-                  {nome || store?.name || activeTheme.settings.storeName}
+                  {masterStoreName}
                 </span>
                 <div
                   className="flex gap-4 text-[9px]"
@@ -377,7 +404,6 @@ function AparenciaPage() {
         {/* Card footer */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-4">
           <div className="flex items-center gap-3">
-            {/* Palette dots */}
             <div className="flex gap-1.5">
               {[
                 activeTheme.settings.colorBackground,
@@ -393,18 +419,18 @@ function AparenciaPage() {
               ))}
             </div>
             <div>
-              <span className="text-sm font-semibold">Atelier Mod</span>
+              <span className="text-sm font-semibold">Tema Ativo</span>
               <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
                 <CheckCircle2 className="h-3 w-3" />
-                Layout atual
+                No ar
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl text-xs" asChild>
-              <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
+              <a href={`/vitrine/${store?.slug ?? storeId}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5" />
-                Ver ao vivo
+                Ver vitrine online
               </a>
             </Button>
             <Button
@@ -412,13 +438,10 @@ function AparenciaPage() {
               size="sm"
               asChild
             >
-              <Link to="/loja/personalizar">
+              <Link to="/loja/templates">
                 <Paintbrush className="h-3.5 w-3.5" />
-                Personalizar Loja
+                Galeria de Temas
               </Link>
-            </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl">
-              <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -426,56 +449,37 @@ function AparenciaPage() {
 
       {/* ── Grid de Configurações 2 Colunas ─────────────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* ── Coluna Esquerda ─────────────────────────────────────────────────── */}
+        {/* ── Coluna Esquerda: Identidade Visual da Vitrine ─────────────────────── */}
         <div className="space-y-4">
-          {/* Identidade da marca */}
-          <SectionCard title="Identidade da marca" description="Nome, logo e capa da vitrine.">
+          <SectionCard
+            title="Aparência & Identidade da Vitrine"
+            description="Personalize o visual e os destaques que suas clientes verão no catálogo."
+          >
             <div className="space-y-4">
-              <Campo label="Nome da loja">
-                <Input
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="h-11 rounded-xl"
-                  placeholder="Ex: Minha Boutique"
-                />
-              </Campo>
-
-              <Campo label="Descrição curta">
+              <Campo label="Bio / Descrição curta da vitrine">
                 <Textarea
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   rows={3}
                   className="rounded-xl resize-none"
-                  placeholder="Aparece no topo da vitrine…"
+                  placeholder="Ex: Roupas femininas com caimento impecável e envio rápido para todo o Brasil ✨"
                 />
               </Campo>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <Campo label="Banner promocional / Imagem de capa da vitrine">
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-input bg-secondary/40 p-4 text-xs text-muted-foreground">
-                  <span className="mb-2 font-medium text-foreground">Logo da vitrine</span>
-                  <ImageUploader
-                    currentUrl={logoUrl || null}
-                    bucket="store-logos"
-                    folder="brand"
-                    onUploaded={setLogoUrl}
-                    placeholder="Enviar logo (PNG ou JPG)"
-                    aspect="square"
-                  />
-                </div>
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-input bg-secondary/40 p-4 text-xs text-muted-foreground">
-                  <span className="mb-2 font-medium text-foreground">Capa da vitrine</span>
                   <ImageUploader
                     currentUrl={capaUrl || null}
                     bucket="store-logos"
                     folder="brand"
                     onUploaded={setCapaUrl}
-                    placeholder="Enviar capa (PNG, JPG)"
+                    placeholder="Enviar banner de capa (PNG ou JPG)"
                     aspect="portrait"
                   />
                 </div>
-              </div>
+              </Campo>
 
-              <Campo label="Cor principal da loja">
+              <Campo label="Cor principal de destaque">
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -490,50 +494,62 @@ function AparenciaPage() {
                     className="h-11 max-w-[140px] rounded-xl font-mono text-sm"
                   />
                   <span className="text-xs text-muted-foreground">
-                    Usada nos botões e destaques da vitrine
+                    Aplicada nos botões de compra e destaques
                   </span>
+                </div>
+              </Campo>
+
+              <Campo label="Perfil do Instagram da Loja">
+                <div className="relative">
+                  <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    className="h-11 rounded-xl pl-9"
+                    placeholder="@sualoja"
+                  />
                 </div>
               </Campo>
             </div>
           </SectionCard>
 
-          {/* Endereço da loja */}
+          {/* Endereço Web */}
           <SectionCard
-            title="Endereço da loja"
-            description="Link público onde seus clientes acessam a vitrine."
+            title="Endereço da Loja"
+            description="Link público oficial onde suas clientes acessam a vitrine."
           >
             <div className="space-y-4">
-              <Campo label="Link da loja">
+              <Campo label="Link da vitrine">
                 <div className="relative">
                   <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     readOnly
-                    value={`vestui.com.br/vitrine/${store?.slug ?? storeId}`}
+                    value={`vestui.app/vitrine/${store?.slug ?? storeId}`}
                     className="h-11 rounded-xl pl-9 text-muted-foreground"
                   />
                 </div>
               </Campo>
               <Campo label="Domínio próprio" extra={<PlanoBadge plan="crescimento" />}>
-                <Input placeholder="minhaloja.com.br" className="h-11 rounded-xl" disabled />
+                <Input placeholder="sualoja.com.br" className="h-11 rounded-xl" disabled />
               </Campo>
             </div>
           </SectionCard>
         </div>
 
-        {/* ── Coluna Direita ──────────────────────────────────────────────────── */}
+        {/* ── Coluna Direita: Recebimento Pix & Textos ───────────────────────────── */}
         <div className="space-y-4">
           {/* Recebimento via Pix */}
           <SectionCard
             title="Recebimento via Pix (Direto para você)"
-            description="Receba o valor total das vendas instantaneamente na sua conta. Taxa 0%."
+            description="Receba o valor total das vendas instantaneamente na sua conta bancária. Taxa 0%."
           >
             <div className="space-y-4">
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300">
                 <p className="font-semibold flex items-center gap-1.5">
-                  <QrCode className="h-4 w-4 shrink-0" /> Venda sem taxas e receba na hora
+                  <QrCode className="h-4 w-4 shrink-0" /> Venda sem intermediários e receba na hora
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed opacity-90">
-                  Esta chave Pix será apresentada na vitrine quando a cliente escolher pagamento via Pix. O dinheiro entra direto na sua conta bancária.
+                  Esta chave Pix será apresentada na vitrine quando a cliente finalizar o pedido. O dinheiro cai direto na sua conta bancária sem retenção nem taxas.
                 </p>
               </div>
 
@@ -588,56 +604,11 @@ function AparenciaPage() {
             </div>
           </SectionCard>
 
-          {/* Contato e confiança */}
-          <SectionCard title="Contato e confiança" description="Aparece na vitrine para a cliente.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Campo label="WhatsApp">
-                <div className="relative">
-                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="h-11 rounded-xl pl-9"
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-              </Campo>
-              <Campo label="Instagram">
-                <div className="relative">
-                  <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    className="h-11 rounded-xl pl-9"
-                    placeholder="@sualoja"
-                  />
-                </div>
-              </Campo>
-              <Campo label="Cidade">
-                <div className="relative">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={cidade}
-                    onChange={(e) => setCidade(e.target.value)}
-                    className="h-11 rounded-xl pl-9"
-                    placeholder="Sua cidade"
-                  />
-                </div>
-              </Campo>
-              <Campo label="Estado">
-                <Input
-                  value={estado}
-                  onChange={(e) => setEstado(e.target.value)}
-                  className="h-11 rounded-xl"
-                  placeholder="UF"
-                  maxLength={2}
-                />
-              </Campo>
-            </div>
-          </SectionCard>
-
-          {/* Textos da loja */}
-          <SectionCard title="Textos da loja" description="Boas-vindas e política de troca.">
+          {/* Textos da vitrine */}
+          <SectionCard
+            title="Textos & Políticas da Vitrine"
+            description="Mensagem de boas-vindas e regras de troca para as clientes online."
+          >
             <div className="space-y-4">
               <Campo label="Mensagem de boas-vindas">
                 <div className="relative">
@@ -647,7 +618,7 @@ function AparenciaPage() {
                     onChange={(e) => setBoasVindas(e.target.value)}
                     rows={2}
                     className="rounded-xl pl-9 resize-none"
-                    placeholder="Oi! Que bom te ver por aqui…"
+                    placeholder="Oi, maravilhosa! Seja bem-vinda ao nosso catálogo online. Qualquer dúvida me chama no WhatsApp! 💕"
                   />
                 </div>
               </Campo>
@@ -660,17 +631,17 @@ function AparenciaPage() {
                     onChange={(e) => setPoliticaTroca(e.target.value)}
                     rows={4}
                     className="rounded-xl pl-9 resize-none"
-                    placeholder="Trocas em até 7 dias…"
+                    placeholder="Trocas em até 7 dias corridos após o recebimento, com etiqueta afixada e sem sinais de uso."
                   />
                 </div>
               </Campo>
 
-              {/* Toggle de estoque */}
+              {/* Toggle de contagem de estoque */}
               <div className="flex items-start justify-between gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">Mostrar estoque disponível</p>
+                  <p className="text-sm font-semibold">Exibir quantidade de peças em estoque</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Quando desligado, a vitrine exibe apenas "Disponível" sem mostrar a quantidade.
+                    Quando desligado, a vitrine exibe apenas "Disponível" sem revelar o número exato de peças restantes.
                   </p>
                 </div>
                 <Switch

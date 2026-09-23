@@ -26,6 +26,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -161,10 +162,12 @@ function Relatorio() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Meu Financeiro"
-        title="Lucro Real da Loja"
+        eyebrow="Finanças da Loja"
+        title="Lucro Real & DRE"
         description="Acompanhe o faturamento líquido, custos e exatamente quanto sobrou no seu bolso."
       />
+
+      <FinanceiroTabs />
 
       <Tabs defaultValue="dre" className="space-y-6">
         <TabsList className="rounded-full bg-secondary/80 p-1 border border-border">

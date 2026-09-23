@@ -4,7 +4,6 @@ import { Plus, Tag as TagIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
-import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { SectionCard, EmptyState } from "@/components/loja/section-card";
 import { PlanoBadge, Tag } from "@/components/loja/badges";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -147,7 +146,7 @@ function CuponsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Configurar Vitrine"
+        eyebrow="Crescimento & Vendas"
         title="Cupons de Desconto"
         description="Ative campanhas promocionais com cupons fixos ou percentuais."
         actions={
@@ -159,8 +158,6 @@ function CuponsPage() {
           </Button>
         }
       />
-
-      <VitrineConfigNav />
 
       {lista.length === 0 ? (
         <EmptyState

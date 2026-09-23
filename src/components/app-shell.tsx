@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BadgeDollarSign,
   Boxes,
+  Calculator,
   CircleDollarSign,
   HandCoins,
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   Menu,
   MoreHorizontal,
   Package,
+  Palette,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -63,42 +65,43 @@ const GESTAO_NAV: NavItem[] = [
     to: "/caixa",
     label: "Caixa & PDV",
     icon: Wallet,
+    section: "Vendas & Atendimento",
     isMatch: (p) => p === "/caixa",
+  },
+  {
+    to: "/clientes",
+    label: "Clientes & Fiado",
+    icon: Users,
+    isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
   },
   {
     to: "/estoque",
     label: "Produtos & Estoque",
     icon: Boxes,
+    section: "Catálogo & Compras",
     isMatch: (p) => p.startsWith("/estoque"),
   },
   {
-    to: "/clientes",
-    label: "Clientes & CRM",
-    icon: Users,
-    isMatch: (p) => p.startsWith("/clientes"),
-  },
-  {
-    to: "/fiado",
-    label: "Fiado & Cobranças",
-    icon: HandCoins,
-    isMatch: (p) => p.startsWith("/fiado"),
-  },
-  {
-    to: "/relatorio",
-    label: "Lucro Real & DRE",
-    icon: CircleDollarSign,
-    section: "Financeiro",
-    isMatch: (p) =>
-      p.startsWith("/relatorio") ||
-      p.startsWith("/precificacao") ||
-      p.startsWith("/prolabore") ||
-      p.startsWith("/loja/recebimentos"),
+    to: "/precificacao",
+    label: "Precificação",
+    icon: Calculator,
+    isMatch: (p) => p.startsWith("/precificacao"),
   },
   {
     to: "/fornecedores",
     label: "Fornecedores & Gastos",
     icon: Truck,
     isMatch: (p) => p.startsWith("/fornecedores"),
+  },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    section: "Finanças",
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/loja/recebimentos"),
   },
   {
     to: "/metas",
@@ -117,33 +120,40 @@ const GESTAO_ONLINE_NAV: NavItem[] = [
     isMatch: (p) => p === "/painel",
   },
   {
+    to: "/clientes",
+    label: "Clientes & Fiado",
+    icon: Users,
+    section: "Vendas & Atendimento",
+    isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
+  },
+  {
     to: "/estoque",
     label: "Produtos & Estoque",
     icon: Boxes,
+    section: "Catálogo & Compras",
     isMatch: (p) => p.startsWith("/estoque"),
   },
   {
-    to: "/clientes",
-    label: "Clientes & CRM",
-    icon: Users,
-    isMatch: (p) => p.startsWith("/clientes"),
-  },
-  {
-    to: "/relatorio",
-    label: "Lucro Real & DRE",
-    icon: CircleDollarSign,
-    section: "Financeiro",
-    isMatch: (p) =>
-      p.startsWith("/relatorio") ||
-      p.startsWith("/precificacao") ||
-      p.startsWith("/prolabore") ||
-      p.startsWith("/loja/recebimentos"),
+    to: "/precificacao",
+    label: "Precificação",
+    icon: Calculator,
+    isMatch: (p) => p.startsWith("/precificacao"),
   },
   {
     to: "/fornecedores",
     label: "Fornecedores & Gastos",
     icon: Truck,
     isMatch: (p) => p.startsWith("/fornecedores"),
+  },
+  {
+    to: "/relatorio",
+    label: "Lucro Real & DRE",
+    icon: CircleDollarSign,
+    section: "Finanças",
+    isMatch: (p) =>
+      p.startsWith("/relatorio") ||
+      p.startsWith("/prolabore") ||
+      p.startsWith("/loja/recebimentos"),
   },
   {
     to: "/metas",
@@ -160,12 +170,13 @@ const LOJA_ONLINE_NAV: NavItem[] = [
     to: "/loja/pedidos",
     label: "Pedidos",
     icon: ShoppingBag,
+    section: "Vendas Digitais",
     badgeKey: "pedidos",
     isMatch: (p) => p.startsWith("/loja/pedidos"),
   },
   {
     to: "/loja/produtos",
-    label: "Catálogo da Vitrine",
+    label: "Produtos na Vitrine",
     icon: Package,
     isMatch: (p) => p.startsWith("/loja/produtos"),
   },
@@ -176,33 +187,40 @@ const LOJA_ONLINE_NAV: NavItem[] = [
     isMatch: (p) => p.startsWith("/loja/recebimentos"),
   },
   {
+    to: "/loja/templates",
+    label: "Personalizar Loja",
+    icon: Palette,
+    section: "Loja Virtual",
+    isMatch: (p) => p.startsWith("/loja/templates"),
+  },
+  {
     to: "/loja/configuracao",
-    label: "Configurar Vitrine",
+    label: "Configurações da Vitrine",
     icon: Store,
     isMatch: (p) =>
       p.startsWith("/loja/configuracao") ||
-      p.startsWith("/loja/templates") ||
       p.startsWith("/loja/personalizar") ||
       p.startsWith("/loja/compartilhar") ||
       p === "/loja",
+  },
+  {
+    to: "/loja/cupons",
+    label: "Cupons & Descontos",
+    icon: Tag,
+    section: "Crescimento & Logística",
+    isMatch: (p) => p.startsWith("/loja/cupons"),
+  },
+  {
+    to: "/loja/frete",
+    label: "Frete & Entregas",
+    icon: Truck,
+    isMatch: (p) => p.startsWith("/loja/frete"),
   },
   {
     to: "/loja/integracoes",
     label: "Integrações",
     icon: Link2,
     isMatch: (p) => p.startsWith("/loja/integracoes"),
-  },
-  {
-    to: "/loja/cupons",
-    label: "Cupons",
-    icon: Tag,
-    isMatch: (p) => p.startsWith("/loja/cupons"),
-  },
-  {
-    to: "/loja/frete",
-    label: "Frete",
-    icon: Truck,
-    isMatch: (p) => p.startsWith("/loja/frete"),
   },
 ];
 
@@ -216,22 +234,27 @@ const MOBILE_PRIMARY_FISICA: NavItem[] = [
   { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
   { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
   { to: "/estoque", label: "Estoque", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
-  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado") },
 ];
 
 const MOBILE_MORE_FISICA: NavItem[] = [
-  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
+  {
+    to: "/precificacao",
+    label: "Precificação",
+    icon: Calculator,
+    section: "Catálogo & Compras",
+    isMatch: (p) => p.startsWith("/precificacao"),
+  },
+  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   {
     to: "/relatorio",
     label: "Lucro Real & DRE",
     icon: CircleDollarSign,
-    section: "Financeiro",
+    section: "Finanças",
     isMatch: (p) =>
       p.startsWith("/relatorio") ||
-      p.startsWith("/precificacao") ||
       p.startsWith("/prolabore"),
   },
-  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];
 
@@ -239,24 +262,29 @@ const MOBILE_MORE_FISICA: NavItem[] = [
 const MOBILE_PRIMARY_GESTAO: NavItem[] = [
   { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
   { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
-  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
-  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
+  { to: "/estoque", label: "Estoque", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado") },
 ];
 
 const MOBILE_MORE_GESTAO: NavItem[] = [
-  { to: "/fiado", label: "Fiado & Cobranças", icon: HandCoins, isMatch: (p) => p.startsWith("/fiado") },
+  {
+    to: "/precificacao",
+    label: "Precificação",
+    icon: Calculator,
+    section: "Catálogo & Compras",
+    isMatch: (p) => p.startsWith("/precificacao"),
+  },
+  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   {
     to: "/relatorio",
     label: "Lucro Real & DRE",
     icon: CircleDollarSign,
-    section: "Financeiro",
+    section: "Finanças",
     isMatch: (p) =>
       p.startsWith("/relatorio") ||
-      p.startsWith("/precificacao") ||
       p.startsWith("/prolabore") ||
       p.startsWith("/loja/recebimentos"),
   },
-  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];
 
@@ -271,7 +299,7 @@ const MOBILE_PRIMARY_LOJA: NavItem[] = [
   },
   {
     to: "/loja/produtos",
-    label: "Catálogo",
+    label: "Produtos",
     icon: Package,
     isMatch: (p) => p.startsWith("/loja/produtos"),
   },
@@ -282,41 +310,59 @@ const MOBILE_PRIMARY_LOJA: NavItem[] = [
     isMatch: (p) => p.startsWith("/loja/recebimentos"),
   },
   {
-    to: "/loja/configuracao",
-    label: "Vitrine",
-    icon: Store,
-    isMatch: (p) =>
-      p.startsWith("/loja/configuracao") ||
-      p.startsWith("/loja/templates") ||
-      p.startsWith("/loja/personalizar") ||
-      p.startsWith("/loja/compartilhar") ||
-      p === "/loja",
+    to: "/loja/templates",
+    label: "Personalizar",
+    icon: Palette,
+    isMatch: (p) => p.startsWith("/loja/templates"),
   },
 ];
 
 const MOBILE_MORE_LOJA: NavItem[] = [
+  {
+    to: "/loja/configuracao",
+    label: "Configurações da Vitrine",
+    icon: Store,
+    section: "Loja Virtual",
+    isMatch: (p) =>
+      p.startsWith("/loja/configuracao") ||
+      p.startsWith("/loja/personalizar") ||
+      p.startsWith("/loja/compartilhar") ||
+      p === "/loja",
+  },
+  {
+    to: "/loja/cupons",
+    label: "Cupons & Descontos",
+    icon: Tag,
+    section: "Crescimento & Logística",
+    isMatch: (p) => p.startsWith("/loja/cupons"),
+  },
+  { to: "/loja/frete", label: "Frete & Entregas", icon: Truck, isMatch: (p) => p.startsWith("/loja/frete") },
   { to: "/loja/integracoes", label: "Integrações", icon: Link2, isMatch: (p) => p.startsWith("/loja/integracoes") },
-  { to: "/loja/cupons", label: "Cupons", icon: Tag, isMatch: (p) => p.startsWith("/loja/cupons") },
-  { to: "/loja/frete", label: "Frete", icon: Truck, isMatch: (p) => p.startsWith("/loja/frete") },
 ];
 
 // ─── Mobile (modo Gestão para negócio 100% Online) ────────────────────────────
 const MOBILE_PRIMARY_ONLINE_GESTAO: NavItem[] = [
   { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
-  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
-  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
+  { to: "/estoque", label: "Estoque", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado") },
   {
     to: "/relatorio",
     label: "Lucro Real",
     icon: CircleDollarSign,
     isMatch: (p) =>
       p.startsWith("/relatorio") ||
-      p.startsWith("/precificacao") ||
       p.startsWith("/prolabore"),
   },
 ];
 
 const MOBILE_MORE_ONLINE_GESTAO: NavItem[] = [
+  {
+    to: "/precificacao",
+    label: "Precificação",
+    icon: Calculator,
+    section: "Catálogo & Compras",
+    isMatch: (p) => p.startsWith("/precificacao"),
+  },
   { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];

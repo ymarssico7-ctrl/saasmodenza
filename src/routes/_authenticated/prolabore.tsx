@@ -1,9 +1,10 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HandCoins, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -105,12 +106,14 @@ function Prolabore() {
   });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow={monthLabel(month)}
-        title="Pró-labore"
+        eyebrow="Finanças da Loja"
+        title="Pró-labore da Lojista"
         description="O dinheiro da loja não é o seu salário. Defina sua retirada e respeite o limite."
       />
+
+      <FinanceiroTabs />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard

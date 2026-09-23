@@ -1,14 +1,11 @@
-﻿import { Link, useRouterState } from "@tanstack/react-router";
-import { BadgePercent, Palette, Plug, Settings, Share2, Truck } from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Palette, Settings, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { to: "/loja/configuracao", label: "Aparência & Marca", icon: Settings },
+  { to: "/loja/configuracao", label: "Aparência & Identidade", icon: Settings },
   { to: "/loja/templates", label: "Galeria de Temas", icon: Palette },
   { to: "/loja/compartilhar", label: "Link & Divulgação", icon: Share2 },
-  { to: "/loja/frete", label: "Frete & Entrega", icon: Truck },
-  { to: "/loja/cupons", label: "Cupons de Desconto", icon: BadgePercent },
-  { to: "/loja/integracoes", label: "Integrações", icon: Plug },
 ];
 
 export function VitrineConfigNav() {
