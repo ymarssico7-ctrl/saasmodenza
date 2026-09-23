@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Minus, Pencil, Plus, Sparkles, Store, Trash2 } from "lucide-react";
+import { Boxes, Calculator, Minus, Pencil, Plus, Search, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -33,6 +33,7 @@ import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@/lib/mutations";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
@@ -71,6 +72,34 @@ function Estoque() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [gradeMode, setGradeMode] = useState<"grade" | "unico">("grade");
   const [singleSizeQty, setSingleSizeQty] = useState("");
+
+  // ── Filtros e Busca Rápida no Estoque (Apple UX) ──────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "in_stock" | "out_of_stock">("all");
+
+  const filteredItems = useMemo(() => {
+    return items.filter((i) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = i.name.toLowerCase().includes(q);
+        const matchColor = i.color?.toLowerCase().includes(q) ?? false;
+        const matchSupplier = i.supplier?.toLowerCase().includes(q) ?? false;
+        const matchCat = labelOf(INVENTORY_CATEGORIES, i.category).toLowerCase().includes(q);
+        if (!matchName && !matchColor && !matchSupplier && !matchCat) return false;
+      }
+      if (categoryFilter !== "all" && i.category !== categoryFilter) {
+        return false;
+      }
+      if (statusFilter !== "all") {
+        const s = (i.sizes ?? {}) as Sizes;
+        const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+        if (statusFilter === "in_stock" && units <= 0) return false;
+        if (statusFilter === "out_of_stock" && units > 0) return false;
+      }
+      return true;
+    });
+  }, [items, searchQuery, categoryFilter, statusFilter]);
 
   const handleUseSampleAsTemplate = () => {
     setName("Vestido Midi Linho Cru");
@@ -257,7 +286,7 @@ function Estoque() {
             <Button
               asChild
               variant="outline"
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold shadow-2xs hover:bg-secondary"
+              className="h-10 rounded-2xl border-border bg-card px-4 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
             >
               <Link to="/loja/produtos">
                 <Store className="mr-2 size-3.5 text-primary" />
@@ -268,29 +297,51 @@ function Estoque() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Peças em estoque"
-          value={String(totalUnits)}
-          icon={<Boxes className="size-4" />}
-          tone="primary"
-          hint={`${items.length} modelo${items.length !== 1 ? "s" : ""} cadastrado${items.length !== 1 ? "s" : ""}`}
-        />
-        <StatCard
-          label="Valor investido"
-          value={brl(stockValue)}
-          hint={totalUnits > 0 ? `Custo médio: ${brl(stockValue / totalUnits)} / peça` : "Sem peças em estoque"}
-        />
-        <StatCard
-          label="Potencial de venda"
-          value={brl(potential)}
-          tone="positive"
-          hint={
-            potential > 0 && stockValue >= 0
-              ? `Lucro potencial de ${brl(potential - stockValue)} (${potential > 0 ? ((((potential - stockValue) / potential) * 100).toFixed(1)) : "0"}% de margem)`
-              : "Cadastre peças com custo e preço"
-          }
-        />
+      {/* ── Cockpit de Estoque — Padrão Premium Unificado ───────────────────── */}
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-3">
+        {/* Card 1: Peças em estoque */}
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Peças em estoque</span>
+            <Boxes className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
+          </div>
+          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+            {totalUnits} <span className="text-lg font-medium text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
+          </h3>
+          <p className="text-[11px] text-muted-foreground/70">
+            {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+          </p>
+        </div>
+
+        {/* Card 2: Valor investido */}
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Valor investido</span>
+            <Tag className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
+          </div>
+          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+            {brl(stockValue)}
+          </h3>
+          <p className="text-[11px] text-muted-foreground/70">
+            {totalUnits > 0 ? `Custo médio: ${brl(stockValue / totalUnits)} / peça` : "Sem peças em estoque"}
+          </p>
+        </div>
+
+        {/* Card 3: Potencial de venda */}
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Potencial de venda</span>
+            <TrendingUp className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
+          </div>
+          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+            {brl(potential)}
+          </h3>
+          <p className="text-[11px] text-muted-foreground/70">
+            {potential > 0 && stockValue >= 0
+              ? `Lucro potencial de ${brl(potential - stockValue)} (${((potential - stockValue) / potential * 100).toFixed(1).replace(".", ",")}% de margem)`
+              : "Cadastre peças com custo e preço"}
+          </p>
+        </div>
       </div>
 
       <section className="panel p-6 sm:p-7">
@@ -325,7 +376,7 @@ function Estoque() {
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-card px-3 text-xs font-semibold text-primary shadow-xs hover:border-primary">
+              <SelectTrigger className="h-9 w-auto gap-1.5 rounded-2xl border-border bg-card px-3.5 text-xs font-semibold text-primary shadow-xs hover:border-primary/40 hover:bg-primary/5 transition-colors">
                 <Calculator className="size-3.5" /> Puxar da Precificação
               </SelectTrigger>
               <SelectContent>
@@ -349,107 +400,127 @@ function Estoque() {
             </Select>
           )}
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Nome">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Vestido midi linho"
-            />
-          </Field>
-          <Field label="Categoria">
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {INVENTORY_CATEGORIES.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Cor">
-            <Input
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              placeholder="Off-white"
-            />
-          </Field>
-          <Field label="Fornecedor">
-            <Input
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              placeholder="Bras Moda"
-            />
-          </Field>
-          <Field label="Custo (R$)">
-            <Input
-              inputMode="decimal"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              placeholder="59,90"
-            />
-          </Field>
-          <Field label="Preço de venda (R$)">
-            <Input
-              inputMode="decimal"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="169,90"
-            />
-          </Field>
-        </div>
 
-        {(() => {
-          const costNum = toNumber(cost);
-          const priceNum = toNumber(price);
-          if (isNaN(costNum) || isNaN(priceNum) || priceNum <= 0) return null;
-          const margemReais = priceNum - costNum;
-          const margemPct = (margemReais / priceNum) * 100;
-          const markup = costNum > 0 ? (priceNum / costNum).toFixed(2) : null;
-          const abaixoCusto = costNum > 0 && priceNum < costNum;
-
-          return (
-            <div className="mt-4 space-y-1.5 rounded-2xl bg-secondary/50 p-3.5 text-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-muted-foreground">Rentabilidade projetada por peça:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  Margem Bruta: {brl(margemReais)} ({margemPct.toFixed(1)}%)
-                  {markup ? ` · Markup: ${markup}x` : ""}
-                </span>
-              </div>
-              {abaixoCusto ? (
-                <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive leading-relaxed">
-                  ⚠️ Preço de venda menor que o custo de aquisição. Venda com prejuízo direto de {brl(costNum - priceNum)} por peça.
-                </div>
-              ) : null}
+        {/* ── Dados Principais + Foto Integrada ── */}
+        <div className="mt-6 flex flex-col md:flex-row gap-6 items-start">
+          {/* Foto da Peça (Clean & Compacto) */}
+          <div className="w-full md:w-44 shrink-0 flex flex-col gap-2">
+            <Label className="text-xs font-semibold text-foreground/90 tracking-tight">
+              Foto da peça (opcional)
+            </Label>
+            <div className="w-full max-w-[176px]">
+              <ImageUploader
+                currentUrl={photoUrl || null}
+                bucket="product-photos"
+                folder="inventory"
+                onUploaded={setPhotoUrl}
+                placeholder="Adicionar foto"
+                aspect="portrait"
+              />
             </div>
-          );
-        })()}
+            <p className="text-[11px] text-muted-foreground/60 leading-tight">
+              Formatos JPG ou PNG. Recomendado 3:4.
+            </p>
+          </div>
 
-        {/* ── Foto da peça ── */}
-        <div className="mt-6">
-          <Label className="text-xs font-semibold text-muted-foreground">
-            Foto da peça (opcional)
-          </Label>
-          <div className="mt-3">
-            <ImageUploader
-              currentUrl={photoUrl || null}
-              bucket="product-photos"
-              folder="inventory"
-              onUploaded={setPhotoUrl}
-              placeholder="Clique para adicionar foto"
-              aspect="portrait"
-            />
+          {/* Grid de Campos */}
+          <div className="flex-1 w-full space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label="Nome da peça">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Vestido midi linho"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                />
+              </Field>
+              <Field label="Categoria">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INVENTORY_CATEGORIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Cor">
+                <Input
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="Ex: Off-white, Preto..."
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                />
+              </Field>
+              <Field label="Fornecedor (Opcional)">
+                <Input
+                  value={supplier}
+                  onChange={(e) => setSupplier(e.target.value)}
+                  placeholder="Ex: Confecção Bella Moda"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                />
+              </Field>
+              <Field label="Custo da peça (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="0,00"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
+                />
+              </Field>
+              <Field label="Preço de venda (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0,00"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
+                />
+              </Field>
+            </div>
+
+            {/* Rentabilidade Projetada por Peça */}
+            {(() => {
+              const costNum = toNumber(cost);
+              const priceNum = toNumber(price);
+              if (isNaN(costNum) || isNaN(priceNum) || priceNum <= 0) return null;
+              const margemReais = priceNum - costNum;
+              const margemPct = (margemReais / priceNum) * 100;
+              const markup = costNum > 0 ? (priceNum / costNum).toFixed(2) : null;
+              const abaixoCusto = costNum > 0 && priceNum < costNum;
+
+              return (
+                <div className="rounded-xl border border-border/70 bg-surface-muted/50 p-3 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-muted-foreground font-medium">Rentabilidade projetada por peça:</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      Margem: {brl(margemReais)} ({margemPct.toFixed(1)}%)
+                      {markup ? ` · Markup: ${markup}x` : ""}
+                    </span>
+                  </div>
+                  {abaixoCusto ? (
+                    <div className="rounded-lg bg-destructive/15 p-2 text-[11px] font-medium text-destructive leading-relaxed">
+                      ⚠️ Preço de venda menor que o custo de aquisição. Prejuízo de {brl(costNum - priceNum)} por peça.
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
-        <div className="mt-6">
+        {/* ── Grade de Tamanhos & Botão Adicionar ── */}
+        <div className="mt-7 pt-5 border-t border-border/60">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label className="text-xs font-semibold text-muted-foreground">Grade de tamanhos</Label>
+            <div>
+              <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Grade de tamanhos</Label>
+              <p className="text-[11px] text-muted-foreground">Defina a quantidade de peças disponíveis por tamanho</p>
+            </div>
             <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-medium shadow-2xs">
               <button
                 type="button"
@@ -477,53 +548,184 @@ function Estoque() {
           </div>
 
           {gradeMode === "grade" ? (
-            <div className="mt-3 flex flex-wrap gap-3">
-              {SIZE_GRID.map((s) => (
-                <div key={s} className="w-20">
-                  <p className="text-center text-xs font-semibold text-muted-foreground">{s}</p>
-                  <Input
-                    className="mt-1.5 text-center"
-                    inputMode="numeric"
-                    placeholder="0"
-                    value={sizes[s] ? String(sizes[s]) : ""}
-                    onChange={(e) => {
-                      const val = e.target.value.trim();
-                      const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
-                      setSizes((p) => ({ ...p, [s]: isNaN(num) ? 0 : num }));
-                    }}
-                  />
-                </div>
-              ))}
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2.5 max-w-2xl">
+              {SIZE_GRID.map((s) => {
+                const currentQty = Number(sizes[s] ?? 0);
+                return (
+                  <div
+                    key={s}
+                    className="rounded-2xl border border-border/70 bg-card p-2.5 text-center space-y-1.5 shadow-2xs hover:border-border transition-colors"
+                  >
+                    <p className="text-xs font-bold text-foreground">{s}</p>
+                    <Input
+                      inputMode="numeric"
+                      className="h-8 text-center text-xs font-semibold p-1 bg-surface-muted/50 border-border/60"
+                      value={currentQty > 0 ? String(currentQty) : ""}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
+                        setSizes((prev) => ({ ...prev, [s]: isNaN(num) ? 0 : num }));
+                      }}
+                    />
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="size-6 rounded-full"
+                        disabled={currentQty <= 0}
+                        onClick={() =>
+                          setSizes((prev) => ({ ...prev, [s]: Math.max(0, currentQty - 1) }))
+                        }
+                      >
+                        <Minus className="size-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="size-6 rounded-full"
+                        onClick={() =>
+                          setSizes((prev) => ({ ...prev, [s]: currentQty + 1 }))
+                        }
+                      >
+                        <Plus className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="mt-3 max-w-xs space-y-1.5">
-              <Label className="text-xs font-medium text-foreground">Quantidade em estoque (Tamanho Único)</Label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="Ex: 5"
-                value={singleSizeQty}
-                onChange={(e) => setSingleSizeQty(e.target.value)}
-                className="h-10"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Ideal para bolsas, carteiras, cintos, brincos, batas e peças sem variação de tamanho.
+            <div className="mt-4 max-w-sm rounded-2xl border border-border/70 bg-card p-4 space-y-3">
+              <Label className="text-xs font-semibold text-foreground">Quantidade (Tamanho Único)</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-full shrink-0"
+                  disabled={Number(singleSizeQty || 0) <= 0}
+                  onClick={() =>
+                    setSingleSizeQty(String(Math.max(0, Number(singleSizeQty || 0) - 1)))
+                  }
+                >
+                  <Minus className="size-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min="0"
+                  className="h-10 text-center font-bold text-lg bg-surface-muted/50 border-border/60"
+                  placeholder="0"
+                  value={singleSizeQty}
+                  onChange={(e) => setSingleSizeQty(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-full shrink-0"
+                  onClick={() =>
+                    setSingleSizeQty(String(Number(singleSizeQty || 0) + 1))
+                  }
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/70">
+                Ideal para bolsas, cintos, brincos, batas e acessórios sem variação de numeração.
               </p>
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end">
+            <Button
+              className="h-12 rounded-2xl px-8 text-sm font-bold tracking-tight bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 transition-all cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto"
+              disabled={create.isPending}
+              onClick={() => create.mutate()}
+            >
+              {create.isPending ? (
+                "Adicionando..."
+              ) : (
+                <>
+                  <Plus className="size-4" />
+                  <span>Adicionar ao estoque</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel p-5 sm:p-7 border border-border/70 shadow-soft">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-foreground">Peças cadastradas</h2>
+              <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground border border-border/60">
+                {filteredItems.length} {filteredItems.length === 1 ? "peça" : "peças"}
+                {items.length !== filteredItems.length ? ` (de ${items.length})` : ""}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Consulte seu inventário, ajuste quantidades e acompanhe a rentabilidade.
+            </p>
+          </div>
+
+          {/* Barra de Filtros e Busca Rápida */}
+          {items.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Campo de Busca */}
+              <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60 pointer-events-none" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar peça, cor ou fornecedor…"
+                  className="h-9 pl-8 pr-7 text-xs rounded-xl bg-card border-border hover:border-foreground/25 transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro por Categoria */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-9 w-auto gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-medium text-foreground/80 hover:border-foreground/25">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  {INVENTORY_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Filtro por Estoque */}
+              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <SelectTrigger className="h-9 w-auto gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-medium text-foreground/80 hover:border-foreground/25">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo o estoque</SelectItem>
+                  <SelectItem value="in_stock">Disponíveis</SelectItem>
+                  <SelectItem value="out_of_stock">Esgotadas</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
 
-        <Button
-          className="mt-6 h-11 rounded-full px-6 font-semibold"
-          disabled={create.isPending}
-          onClick={() => create.mutate()}
-        >
-          <Plus className="size-4" /> Adicionar ao estoque
-        </Button>
-      </section>
-
-      <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Peças cadastradas</h2>
         {items.length === 0 ? (
           <div className="mt-6 space-y-4">
             <div className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 via-card to-card p-5 sm:p-6 shadow-soft">
@@ -581,7 +783,7 @@ function Estoque() {
 
                 <div className="flex flex-wrap items-center gap-4 shrink-0 md:text-right">
                   <div>
-                    <p className="numeric text-base font-semibold text-primary">R$ 179,90</p>
+                    <p className="numeric text-base font-semibold text-foreground">R$ 179,90</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       custo R$ 65,00 ·{" "}
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">
@@ -606,74 +808,124 @@ function Estoque() {
               </p>
             </div>
           </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="py-12 text-center space-y-3">
+            <p className="text-sm font-medium text-foreground">Nenhuma peça encontrada com os filtros selecionados.</p>
+            <p className="text-xs text-muted-foreground">Tente buscar por outro termo ou limpe os filtros para ver todo o catálogo.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs h-8"
+              onClick={() => {
+                setSearchQuery("");
+                setCategoryFilter("all");
+                setStatusFilter("all");
+              }}
+            >
+              Limpar filtros de busca
+            </Button>
+          </div>
         ) : (
           <ul className="mt-5 space-y-3">
-            {items.map((i) => {
+            {filteredItems.map((i) => {
               const s = (i.sizes ?? {}) as Sizes;
               const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+              const availableSizes = Object.entries(s).filter(([_, qty]) => Number(qty || 0) > 0);
+
               return (
-                <li key={i.id} className="rounded-3xl bg-surface-muted p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{i.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                <li
+                  key={i.id}
+                  className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                >
+                  {/* Lado Esquerdo: Miniatura da Peça + Dados */}
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                    {/* Thumbnail / Foto */}
+                    <div className="relative size-16 sm:size-18 rounded-xl overflow-hidden bg-surface-muted border border-border/60 shrink-0 flex items-center justify-center">
+                      {i.photo_url ? (
+                        <img
+                          src={i.photo_url}
+                          alt={i.name}
+                          className="size-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-1 text-muted-foreground/40">
+                          <Shirt className="size-6" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dados da Peça */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm sm:text-base font-bold text-foreground">
+                        {i.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {labelOf(INVENTORY_CATEGORIES, i.category)}
                         {i.color ? ` · ${i.color}` : ""}
-                        {i.supplier ? ` · ${i.supplier}` : ""}
+                        {i.supplier ? ` · Fornecedor: ${i.supplier}` : ""}
                       </p>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {(() => {
-                          const sizeEntries = Object.entries(s);
-                          if (sizeEntries.length === 0) {
-                            return SIZE_GRID.map((size) => (
-                              <Badge
-                                key={size}
-                                variant="outline"
-                                className="rounded-full text-[10px] font-semibold opacity-50"
-                              >
-                                {size} · 0
-                              </Badge>
-                            ));
-                          }
-                          return sizeEntries.map(([size, qty]) => {
-                            const q = Number(qty || 0);
-                            return (
-                              <Badge
-                                key={size}
-                                variant="outline"
-                                className={`rounded-full text-[10px] font-semibold ${
-                                  q <= 0 ? "opacity-50 line-through border-dashed" : "border-border"
-                                }`}
-                              >
-                                {size} · {q}
-                              </Badge>
-                            );
-                          });
-                        })()}
-                      </div>
+
+                      {/* Grade Limpa (Apenas tamanhos positivos ou Esgotado) */}
+                      {units <= 0 ? (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-lg border border-border/70 bg-surface-muted/90 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                            Esgotado
+                          </span>
+                          <span className="text-[11px] text-muted-foreground/70">
+                            0 peças em estoque
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {availableSizes.map(([size, qty]) => (
+                            <span
+                              key={size}
+                              className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-surface-muted/60 px-2 py-0.5 text-[11px] font-semibold text-foreground/85"
+                            >
+                              <span>{size}</span>
+                              <span className="text-muted-foreground/40 font-normal">·</span>
+                              <span className="font-bold text-foreground">{qty}</span>
+                            </span>
+                          ))}
+                          <span className="text-[11px] text-muted-foreground font-medium ml-1">
+                            · {units} {units === 1 ? "peça disponível" : "peças disponíveis"}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="text-right">
-                        <p className="numeric text-sm font-semibold text-primary">
-                          {brl(Number(i.sale_price))}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          custo {brl(Number(i.cost_price))}
-                          {Number(i.sale_price) > 0 && Number(i.cost_price) > 0
-                            ? ` · margem ${brl(Number(i.sale_price) - Number(i.cost_price))} (${(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%)`
-                            : ""}
-                          {" "}· {units} un.
-                        </p>
-                      </div>
+                  </div>
+
+                  {/* Lado Direito: Preço, Rentabilidade e Ações */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/40">
+                    <div className="text-left sm:text-right">
+                      <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground">
+                        {brl(Number(i.sale_price))}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        Custo: {brl(Number(i.cost_price))}
+                        {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 ? (
+                          <>
+                            {" "}· Margem:{" "}
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              {brl(Number(i.sale_price) - Number(i.cost_price))} ({(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%)
+                            </span>
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
+
+                    {/* Botões de Ação Agrupados */}
+                    <div className="flex items-center gap-1 border border-border/60 bg-surface-muted/50 rounded-xl p-0.5 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => startEditing(i)}
-                        className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+                        className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
                         title="Editar peça e grade"
                         aria-label={`Editar ${i.name}`}
                       >
-                        <Pencil className="size-4" />
+                        <Pencil className="size-3.5" />
                       </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(i.id)}
@@ -682,9 +934,10 @@ function Estoque() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+                            className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            title="Excluir peça"
                           >
-                            <Trash2 className="size-4" />
+                            <Trash2 className="size-3.5" />
                           </Button>
                         }
                       />
@@ -709,17 +962,18 @@ function Estoque() {
 
           {editingItem && (
             <div className="mt-6 space-y-5 px-1 pb-10">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Nome da peça">
                   <Input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="Vestido midi linho"
+                    className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                   />
                 </Field>
                 <Field label="Categoria">
                   <Select value={editCategory} onValueChange={setEditCategory}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -736,21 +990,24 @@ function Estoque() {
                     value={editColor}
                     onChange={(e) => setEditColor(e.target.value)}
                     placeholder="Off-white"
+                    className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                   />
                 </Field>
-                <Field label="Fornecedor">
+                <Field label="Fornecedor (Opcional)">
                   <Input
                     value={editSupplier}
                     onChange={(e) => setEditSupplier(e.target.value)}
                     placeholder="Bras Moda"
+                    className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                   />
                 </Field>
-                <Field label="Custo (R$)">
+                <Field label="Custo da peça (R$)">
                   <Input
                     inputMode="decimal"
                     value={editCost}
                     onChange={(e) => setEditCost(e.target.value)}
                     placeholder="59,90"
+                    className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
                   />
                 </Field>
                 <Field label="Preço de venda (R$)">
@@ -759,6 +1016,7 @@ function Estoque() {
                     value={editPrice}
                     onChange={(e) => setEditPrice(e.target.value)}
                     placeholder="169,90"
+                    className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
                   />
                 </Field>
               </div>
@@ -774,16 +1032,16 @@ function Estoque() {
                 const abaixoCusto = costNum > 0 && priceNum < costNum;
 
                 return (
-                  <div className="rounded-2xl bg-secondary/50 p-3.5 text-xs space-y-1.5">
+                  <div className="rounded-xl border border-border/70 bg-surface-muted/50 p-3 text-xs space-y-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-muted-foreground">Rentabilidade atualizada:</span>
+                      <span className="text-muted-foreground font-medium">Rentabilidade atualizada:</span>
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                         Margem: {brl(margemReais)} ({margemPct.toFixed(1)}%)
                         {markup ? ` · Markup: ${markup}x` : ""}
                       </span>
                     </div>
                     {abaixoCusto && (
-                      <div className="rounded-xl bg-destructive/15 p-2 text-[11px] font-medium text-destructive">
+                      <div className="rounded-lg bg-destructive/15 p-2 text-[11px] font-medium text-destructive">
                         ⚠️ Preço de venda menor que o custo. Prejuízo de {brl(costNum - priceNum)} por peça.
                       </div>
                     )}
@@ -793,8 +1051,8 @@ function Estoque() {
 
               {/* Foto da Peça */}
               <div>
-                <Label className="text-xs font-semibold text-muted-foreground">Foto da peça</Label>
-                <div className="mt-2">
+                <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Foto da peça</Label>
+                <div className="mt-2 w-full max-w-[176px]">
                   <ImageUploader
                     currentUrl={editPhotoUrl || null}
                     bucket="product-photos"
@@ -809,7 +1067,7 @@ function Estoque() {
               {/* Grade de Tamanhos — suporte dinâmico a Grade P/M/G e Tamanho Único */}
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label className="text-xs font-semibold text-muted-foreground">Grade de tamanhos</Label>
+                  <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Grade de tamanhos</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
                       Total: {Object.values(editSizes).reduce((acc, q) => acc + (Number(q) || 0), 0)} un.
@@ -853,11 +1111,11 @@ function Estoque() {
                     {SIZE_GRID.map((s) => {
                       const currentQty = Number(editSizes[s] ?? 0);
                       return (
-                        <div key={s} className="rounded-2xl border border-border bg-card p-2 text-center space-y-1.5">
+                        <div key={s} className="rounded-2xl border border-border bg-card p-2 text-center space-y-1.5 shadow-2xs">
                           <p className="text-xs font-bold text-foreground">{s}</p>
                           <Input
                             inputMode="numeric"
-                            className="h-8 text-center text-xs font-semibold p-1"
+                            className="h-8 text-center text-xs font-semibold p-1 bg-surface-muted/50 border-border/60"
                             value={currentQty > 0 ? String(currentQty) : ""}
                             placeholder="0"
                             onChange={(e) => {
@@ -896,7 +1154,7 @@ function Estoque() {
                     })}
                   </div>
                 ) : (
-                  <div className="mt-3 rounded-2xl border border-border bg-card p-4 space-y-3">
+                  <div className="mt-3 rounded-2xl border border-border bg-card p-4 space-y-3 shadow-2xs">
                     <p className="text-xs text-muted-foreground">
                       Ideal para bolsas, cintos, brincos, acessórios e peças sem variação de tamanho.
                     </p>
@@ -912,7 +1170,7 @@ function Estoque() {
                       <Input
                         type="number"
                         min="0"
-                        className="h-10 text-center font-bold text-lg"
+                        className="h-10 text-center font-bold text-lg bg-surface-muted/50 border-border/60"
                         value={String(editSizes["Único"] ?? 0)}
                         onChange={(e) => {
                           const n = Math.max(0, Math.round(Number(e.target.value) || 0));
@@ -931,18 +1189,18 @@ function Estoque() {
                 )}
               </div>
 
-              <div className="pt-2 flex gap-3">
+              <div className="pt-3 flex gap-3 border-t border-border/60">
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 h-11 rounded-full font-semibold"
+                  className="flex-1 h-12 rounded-2xl font-semibold border-border hover:bg-secondary cursor-pointer"
                   onClick={() => setEditingItem(null)}
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="button"
-                  className="flex-1 h-11 rounded-full font-semibold"
+                  className="flex-1 h-12 rounded-2xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 cursor-pointer"
                   disabled={update.isPending}
                   onClick={() => update.mutate()}
                 >
@@ -957,10 +1215,10 @@ function Estoque() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="space-y-2">
-      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+    <div className={cn("space-y-1.5", className)}>
+      <Label className="text-xs font-semibold text-foreground/90 tracking-tight">{label}</Label>
       {children}
     </div>
   );
