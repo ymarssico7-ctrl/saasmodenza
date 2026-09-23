@@ -2,7 +2,26 @@ import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowRight, Building2, Check, Globe, LogOut, Pencil, Plus, Settings, ShoppingBag, Sparkles, Store, Tags, Trash2, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  CreditCard,
+  ExternalLink,
+  Globe,
+  LogOut,
+  Pencil,
+  Plus,
+  Settings,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  Tags,
+  Trash2,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { SubscriptionModal } from "@/components/subscription-modal";
@@ -10,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -52,17 +71,30 @@ import {
 } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
+type ConfiguracoesTab = "perfil" | "canais" | "caixa" | "equipe" | "conta";
+
+type ConfiguracoesSearch = {
+  tab?: ConfiguracoesTab;
+};
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
+  validateSearch: (search: Record<string, unknown>): ConfiguracoesSearch => {
+    const validTabs: ConfiguracoesTab[] = ["perfil", "canais", "caixa", "equipe", "conta"];
+    const tab =
+      typeof search.tab === "string" && validTabs.includes(search.tab as ConfiguracoesTab)
+        ? (search.tab as ConfiguracoesTab)
+        : "perfil";
+    return { tab };
+  },
   head: () => ({
     meta: [
-      { title: "Configurações da loja — Vestui" },
+      { title: "Configurações da Loja — Vestui" },
       {
         name: "description",
-        content: "Ajuste os dados da loja, sua retirada mensal e a equipe com acesso.",
+        content: "Ajuste os dados da loja, modelo de atendimento, caixa, equipe e assinatura.",
       },
-      { property: "og:title", content: "Configurações da loja — Vestui" },
-      { property: "og:description", content: "Dados da loja, pró-labore e equipe." },
+      { property: "og:title", content: "Configurações da Loja — Vestui" },
+      { property: "og:description", content: "Central oficial de configurações da boutique." },
     ],
   }),
   component: Configuracoes,
@@ -70,18 +102,36 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 
 function Configuracoes() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { store, storeId, isDemoMode } = useStore();
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { store, storeId } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
   const { categories: storeCategories } = useStoreCategories();
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
+
+  const [activeTab, setActiveTab] = useState<ConfiguracoesTab>(search.tab ?? "perfil");
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  const [subModalOpen, setSubModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (search.tab && search.tab !== activeTab) {
+      setActiveTab(search.tab);
+    }
+  }, [search.tab, activeTab]);
+
+  const handleTabChange = (val: string) => {
+    const nextTab = val as ConfiguracoesTab;
+    setActiveTab(nextTab);
+    void navigate({ search: (prev) => ({ ...prev, tab: nextTab }) });
+  };
 
   const [businessModel, setBusinessModelState] = useState<BusinessModel>(() =>
     getBusinessModel(storeId, store?.metadata),
   );
-  const [vitrineAtiva, setVitrineAtivaState] = useState(() => isVitrineAtiva(storeId, store?.metadata));
+  const [vitrineAtiva, setVitrineAtivaState] = useState(() =>
+    isVitrineAtiva(storeId, store?.metadata),
+  );
 
   useEffect(() => {
     setBusinessModelState(getBusinessModel(storeId, store?.metadata));
@@ -105,7 +155,9 @@ function Configuracoes() {
     setBusinessModel(storeId, model);
 
     try {
-      const currentMeta = (store?.metadata && typeof store.metadata === "object" ? store.metadata : {}) as Record<string, any>;
+      const currentMeta = (
+        store?.metadata && typeof store.metadata === "object" ? store.metadata : {}
+      ) as Record<string, any>;
       const updatedMeta = {
         ...currentMeta,
         business_model: model,
@@ -140,7 +192,6 @@ function Configuracoes() {
     }
   };
 
-
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [city, setCity] = useState("");
@@ -150,7 +201,6 @@ function Configuracoes() {
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberRole, setMemberRole] = useState("vendedora");
-  const [subModalOpen, setSubModalOpen] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -182,7 +232,6 @@ function Configuracoes() {
         logo_url: logoUrl.trim() || null,
       };
 
-      // Patch de campos espelhados na tabela `stores` (multi-tenant)
       const storePatch = {
         name: storeName.trim(),
         city: city.trim() || null,
@@ -191,45 +240,40 @@ function Configuracoes() {
       };
 
       if (realUser) {
-        // Usuário real → atualiza profiles e stores simultaneamente
         const uid = await currentUserId();
-
         const [profileRes, storeRes] = await Promise.all([
           supabase.from("profiles").update(profilePatch).eq("id", uid),
           supabase.from("stores").update(storePatch).eq("owner_id", uid),
         ]);
-
         if (profileRes.error) throw new Error(profileRes.error.message);
         if (storeRes.error) throw new Error(storeRes.error.message);
       } else {
-        // Modo demo → persiste no localStorage (sem chamar o banco)
         updateDemoProfile(profilePatch);
       }
 
-      // Sincroniza o nome da loja no tema da vitrine (localStorage),
-      // garantindo que a vitrine pública reflita imediatamente o nome correto
-      // independente do modo (demo ou real).
       try {
         const themeKey = `vestui_theme_config_${storeId}`;
-        const raw = localStorage.getItem(themeKey) || localStorage.getItem(`vestuli_theme_config_${storeId}`);
+        const raw =
+          localStorage.getItem(themeKey) || localStorage.getItem(`vestuli_theme_config_${storeId}`);
         const theme = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
-        theme['nome'] = profilePatch.store_name;
-        theme['whatsapp'] = phone.trim() || theme['whatsapp'] || "";
-        theme['cidade'] = city.trim() || theme['cidade'] || "";
+        theme["nome"] = profilePatch.store_name;
+        theme["whatsapp"] = phone.trim() || theme["whatsapp"] || "";
+        theme["cidade"] = city.trim() || theme["cidade"] || "";
         localStorage.setItem(themeKey, JSON.stringify(theme));
       } catch {
-        // Silencia erros de JSON/quota — não é crítico
+        // Silencia erro de quota local
       }
 
-      // Atualiza a interface imediatamente em ambos os casos
-      queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({ ...(old ?? {}), ...profilePatch }));
+      queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({
+        ...(old ?? {}),
+        ...profilePatch,
+      }));
       queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) =>
         old ? { ...old, ...storePatch } : old,
       );
     },
     onSuccess: () => {
-      toast.success("Dados atualizados");
-      // Invalida ambas as queries para garantir sincronia total com o banco
+      toast.success("Dados salvos com sucesso! ✨");
       void isAuthenticated().then((real) => {
         if (real) {
           void queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -240,14 +284,13 @@ function Configuracoes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-
   const addMember = useMutation({
     mutationFn: async () => {
       if (!memberName.trim()) throw new Error("Informe o nome");
       return insertMember(storeId, memberName.trim(), memberEmail.trim() || null, memberRole);
     },
     onSuccess: () => {
-      toast.success("Membro adicionado");
+      toast.success("Colaborador adicionado à equipe! 🎉");
       setMemberName("");
       setMemberEmail("");
       void queryClient.invalidateQueries({ queryKey: ["members"] });
@@ -258,7 +301,7 @@ function Configuracoes() {
   const removeMember = useMutation({
     mutationFn: async (id: string) => deleteMember(storeId, id),
     onSuccess: () => {
-      toast.success("Membro removido");
+      toast.success("Membro removido da equipe.");
       void queryClient.invalidateQueries({ queryKey: ["members"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -272,365 +315,614 @@ function Configuracoes() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8 max-w-5xl">
       <PageHeader
         eyebrow="Configurações"
-        title="Sua loja no Vestui"
-        description="Ajuste os dados da loja, sua retirada mensal e quem trabalha com você."
+        title="Central da Loja"
+        description="Gerencie a identidade da boutique, canais de venda, regras do caixa, equipe e assinatura."
       />
 
-      <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Dados da loja</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Field label="Nome da loja">
-            <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} />
-          </Field>
-          <Field label="Seu nome">
-            <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
-          </Field>
-          <Field label="Cidade">
-            <Input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="São Paulo, SP"
-            />
-          </Field>
-          <Field label="WhatsApp">
-            <Input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(11) 99999-0000"
-            />
-          </Field>
-          <Field label="Pró-labore mensal (R$)">
-            <Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
-          </Field>
-        </div>
+      {/* ── Barra de Navegação de Configurações (Nível Shopify / Linear) ──────── */}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <div className="overflow-x-auto pb-1 scrollbar-none">
+          <TabsList className="h-11 rounded-2xl bg-surface-muted/70 p-1 border border-border/60 gap-1 inline-flex min-w-full sm:min-w-0">
+            <TabsTrigger
+              value="perfil"
+              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+            >
+              <Store className="size-3.5 text-primary" />
+              <span>Perfil da Loja</span>
+            </TabsTrigger>
 
-        {/* ── Logo da loja ── */}
-        <div className="mt-6">
-          <Label className="text-xs font-semibold text-muted-foreground">Logo da loja (opcional)</Label>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Aparece no cabeçalho da sua vitrine online. Recomendado: fundo transparente, formato quadrado.
-          </p>
-          <div className="mt-3">
-            <ImageUploader
-              currentUrl={logoUrl || null}
-              bucket="store-logos"
-              folder="logos"
-              onUploaded={setLogoUrl}
-              placeholder="Clique para adicionar logo"
-              aspect="square"
-            />
-          </div>
-        </div>
+            <TabsTrigger
+              value="canais"
+              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+            >
+              <Globe className="size-3.5 text-sky-500" />
+              <span>Canais & Modelo</span>
+            </TabsTrigger>
 
-        <Button
-          className="mt-6 h-11 rounded-full px-6 font-semibold"
-          disabled={saveProfile.isPending}
-          onClick={() => saveProfile.mutate()}
-        >
-          Salvar alterações
-        </Button>
-      </section>
+            <TabsTrigger
+              value="caixa"
+              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+            >
+              <CreditCard className="size-3.5 text-emerald-500" />
+              <span>Caixa & Pagamentos</span>
+            </TabsTrigger>
 
-      {/* ── Modelo de Atuação & Canais de Venda ── */}
-      <section className="panel p-6 sm:p-7">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Store className="size-4" />
-              </span>
-              <h2 className="text-base font-semibold">Modelo de Atuação da Loja</h2>
-              <Badge variant={vitrineAtiva ? "default" : "secondary"} className="text-[10px] uppercase font-bold tracking-wider">
-                {businessModel === "fisica"
-                  ? "Loja Física"
-                  : businessModel === "hibrida"
-                  ? "Física + Online"
-                  : "100% Loja Online"}
-              </Badge>
-            </div>
-            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-              Defina como você vende. O Vestui adapta automaticamente os menus da barra lateral, as ferramentas e a rotina do sistema sob medida para o seu dia a dia.
-            </p>
-          </div>
-
-          {vitrineAtiva && (
-            <Button asChild variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-semibold shrink-0 shadow-2xs hover:bg-secondary">
-              <Link to="/loja/configuracao">
-                Configurar Vitrine <ArrowRight className="ml-1.5 size-3.5" />
-              </Link>
-            </Button>
-          )}
-        </div>
-
-        {/* ── 3 Cards Interativos de Seleção (Padrão Apple) ── */}
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {/* Card 1: Apenas Loja Física */}
-          <button
-            type="button"
-            onClick={() => void handleSelectBusinessModel("fisica")}
-            className={cn(
-              "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
-              businessModel === "fisica"
-                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
-                : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50"
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className={cn(
-                "flex size-9 items-center justify-center rounded-xl transition-colors",
-                businessModel === "fisica" ? "bg-primary text-white shadow-sm" : "bg-surface-muted text-muted-foreground group-hover:text-foreground"
-              )}>
-                <Building2 className="size-4.5" />
-              </span>
-              {businessModel === "fisica" ? (
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
-                  <Check className="size-3 stroke-[3]" />
-                </span>
-              ) : (
-                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  Balcão
+            <TabsTrigger
+              value="equipe"
+              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+            >
+              <Users className="size-3.5 text-violet-500" />
+              <span>Equipe & Acessos</span>
+              {members.length > 0 && (
+                <span className="ml-1 rounded-full bg-violet-500/10 px-1.5 py-0.2 text-[10px] font-bold text-violet-600 dark:text-violet-400">
+                  {members.length}
                 </span>
               )}
-            </div>
-            <h3 className="mt-3.5 text-sm font-semibold text-foreground">Apenas Loja Física</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Vendas no balcão presencial, caixa diário e controle de fiado. Sem vitrine digital.
-            </p>
-          </button>
+            </TabsTrigger>
 
-          {/* Card 2: Física + Online (Híbrida) */}
-          <button
-            type="button"
-            onClick={() => void handleSelectBusinessModel("hibrida")}
-            className={cn(
-              "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
-              businessModel === "hibrida"
-                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
-                : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50"
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className={cn(
-                "flex size-9 items-center justify-center rounded-xl transition-colors",
-                businessModel === "hibrida" ? "bg-primary text-white shadow-sm" : "bg-surface-muted text-muted-foreground group-hover:text-foreground"
-              )}>
-                <Store className="size-4.5" />
-              </span>
-              {businessModel === "hibrida" ? (
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
-                  <Check className="size-3 stroke-[3]" />
-                </span>
-              ) : (
-                <span className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  Mais escolhido
-                </span>
-              )}
-            </div>
-            <h3 className="mt-3.5 text-sm font-semibold text-foreground">Física + Loja Online</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Balcão físico com caixa e fiado + vitrine no WhatsApp e Instagram com alternador rápido.
-            </p>
-          </button>
-
-          {/* Card 3: Apenas Loja Online */}
-          <button
-            type="button"
-            onClick={() => void handleSelectBusinessModel("online")}
-            className={cn(
-              "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
-              businessModel === "online"
-                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
-                : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50"
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className={cn(
-                "flex size-9 items-center justify-center rounded-xl transition-colors",
-                businessModel === "online" ? "bg-primary text-white shadow-sm" : "bg-surface-muted text-muted-foreground group-hover:text-foreground"
-              )}>
-                <Globe className="size-4.5" />
-              </span>
-              {businessModel === "online" ? (
-                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
-                  <Check className="size-3 stroke-[3]" />
-                </span>
-              ) : (
-                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  100% Digital
-                </span>
-              )}
-            </div>
-            <h3 className="mt-3.5 text-sm font-semibold text-foreground">Apenas Loja Online</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Vendas exclusivamente digitais. Foco total em pedidos, catálogo e Vestui Pay, sem balcão.
-            </p>
-          </button>
-        </div>
-      </section>
-
-      {/* ── Categorias do Catálogo (Nível Shopify) ── */}
-      <section className="panel p-6 sm:p-7">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Tags className="size-4" />
-              </span>
-              <h2 className="text-base font-semibold text-foreground">Categorias do Catálogo</h2>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Departamentos oficiais da sua boutique. São sincronizados no Estoque, na Precificação e na Vitrine Online.
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setCategoryManagerOpen(true)}
-            className="rounded-xl border-border bg-card text-xs font-semibold hover:border-primary/40 hover:text-primary transition-all cursor-pointer h-10 px-4 shrink-0 shadow-2xs"
-          >
-            <Pencil className="size-3.5 mr-1.5" />
-            Gerenciar categorias
-          </Button>
+            <TabsTrigger
+              value="conta"
+              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+            >
+              <Sparkles className="size-3.5 text-amber-500" />
+              <span>Plano & Conta</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2 pt-2">
-          {storeCategories.map((c) => {
-            const count = inventoryItems.filter(
-              (i) => (i.category || "").toLowerCase().trim() === c.slug.toLowerCase() ||
-                     (i.category || "").toLowerCase().trim() === c.name.toLowerCase()
-            ).length;
-
-            return (
-              <div
-                key={c.id}
-                className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-surface-muted/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border"
-              >
-                <span>{c.name}</span>
-                <span className="rounded-md bg-card border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground font-semibold">
-                  {count} {count === 1 ? "peça" : "peças"}
-                </span>
+        {/* ════ ABA 1: Perfil da Loja ═════════════════════════════════════════ */}
+        <TabsContent value="perfil" className="space-y-6 mt-2">
+          <section className="panel p-6 sm:p-7 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Identidade & Contato</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Dados oficiais da sua boutique exibidos nos recibos, vitrine e no atendimento pelo WhatsApp.
+                </p>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <Button
+                className="h-10 rounded-xl px-6 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 shrink-0 cursor-pointer"
+                disabled={saveProfile.isPending}
+                onClick={() => saveProfile.mutate()}
+              >
+                {saveProfile.isPending ? "Salvando..." : "Salvar alterações"}
+              </Button>
+            </div>
 
-      <section className="panel p-6 sm:p-7">
-        <h2 className="text-base font-semibold">Equipe</h2>
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          Registre quem atua na loja para organizar responsabilidades.
-        </p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <Field label="Nome">
-            <Input
-              value={memberName}
-              onChange={(e) => setMemberName(e.target.value)}
-              placeholder="Júlia"
-            />
-          </Field>
-          <Field label="E-mail (opcional)">
-            <Input
-              value={memberEmail}
-              onChange={(e) => setMemberEmail(e.target.value)}
-              placeholder="julia@loja.com"
-            />
-          </Field>
-          <Field label="Função">
-            <Select value={memberRole} onValueChange={setMemberRole}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vendedora">Vendedora</SelectItem>
-                <SelectItem value="gerente">Gerente</SelectItem>
-                <SelectItem value="financeiro">Financeiro</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        <Button
-          variant="outline"
-          className="mt-6 h-11 rounded-full px-6 font-semibold"
-          disabled={addMember.isPending}
-          onClick={() => addMember.mutate()}
-        >
-          <Plus className="size-4" /> Adicionar membro
-        </Button>
-
-        {members.length > 0 ? (
-          <ul className="mt-7 divide-y divide-border">
-            {members.map((m) => (
-              <li key={m.id} className="flex items-center justify-between gap-4 py-3.5">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-full bg-accent text-primary">
-                    <Users className="size-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium">{m.name}</p>
-                    <p className="mt-0.5 text-xs capitalize text-muted-foreground">
-                      {m.role}
-                      {m.email ? ` · ${m.email}` : ""}
-                    </p>
-                  </div>
-                </div>
-                <ConfirmDelete
-                  onConfirm={() => removeMember.mutate(m.id)}
-                  description={`${m.name} será removido da equipe.`}
-                  trigger={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8 rounded-full text-muted-foreground"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  }
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nome da loja">
+                <Input
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Ex: Boutique Elegance"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
+              </Field>
+              <Field label="Seu nome (Proprietária / Responsável)">
+                <Input
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Ex: Mariana Castro"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+              </Field>
+              <Field label="Cidade e Estado">
+                <Input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Ex: São Paulo, SP"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+              </Field>
+              <Field label="WhatsApp de Atendimento da Loja">
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(11) 99999-0000"
+                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 font-mono"
+                />
+              </Field>
+            </div>
 
-      {/* ── Seção dedicada: Categorias & Formas de Pagamento da Loja ─────── */}
-      <CustomOptionsSettingsSection storeId={storeId} />
+            {/* Logotipo Oficial */}
+            <div className="pt-4 border-t border-border/60">
+              <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="w-full sm:w-48 shrink-0 space-y-2">
+                  <Label className="text-xs font-semibold text-foreground/90 tracking-tight">
+                    Logotipo oficial da loja
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Aparece no cabeçalho da sua vitrine online e nos comprovantes digitais. Recomendado formato quadrado (PNG ou JPG).
+                  </p>
+                </div>
+                <div className="w-40 max-w-[160px]">
+                  <ImageUploader
+                    currentUrl={logoUrl || null}
+                    bucket="store-logos"
+                    folder="logos"
+                    onUploaded={setLogoUrl}
+                    placeholder="Adicionar logo"
+                    aspect="square"
+                  />
+                </div>
+              </div>
+            </div>
 
-      <section className="panel p-6 sm:p-7">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold">Plano & Assinatura</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Plano atual:{" "}
-              <span className="font-semibold capitalize text-foreground">
-                {profile?.plan ?? "essencial"}
-              </span>
-              {profile?.prolabore_target
-                ? ` · retirada planejada de ${brl(Number(profile.prolabore_target))} por mês`
-                : ""}
+            <div className="flex justify-end pt-2">
+              <Button
+                className="h-11 rounded-xl px-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 cursor-pointer"
+                disabled={saveProfile.isPending}
+                onClick={() => saveProfile.mutate()}
+              >
+                {saveProfile.isPending ? "Salvando dados..." : "Salvar alterações"}
+              </Button>
+            </div>
+          </section>
+        </TabsContent>
+
+        {/* ════ ABA 2: Canais & Modelo de Venda ════════════════════════════════ */}
+        <TabsContent value="canais" className="space-y-6 mt-2">
+          <section className="panel p-6 sm:p-7 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-4 border-b border-border/60">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Store className="size-4" />
+                  </span>
+                  <h2 className="text-base font-semibold text-foreground">Modelo de Atuação da Boutique</h2>
+                  <Badge
+                    variant={vitrineAtiva ? "default" : "secondary"}
+                    className="text-[10px] uppercase font-bold tracking-wider"
+                  >
+                    {businessModel === "fisica"
+                      ? "Loja Física"
+                      : businessModel === "hibrida"
+                      ? "Física + Online"
+                      : "100% Loja Online"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                  Defina como você atende suas clientes. O Vestui reorganiza automaticamente os menus, ferramentas e rotinas sob medida para o seu negócio.
+                </p>
+              </div>
+
+              {vitrineAtiva && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl px-4 text-xs font-semibold shrink-0 shadow-2xs hover:bg-secondary"
+                >
+                  <Link to="/loja/configuracao">
+                    Personalizar Vitrine <ArrowRight className="ml-1.5 size-3.5" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+
+            {/* ── 3 Cards Interativos de Seleção (Padrão Apple) ── */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              {/* Card 1: Apenas Loja Física */}
+              <button
+                type="button"
+                onClick={() => void handleSelectBusinessModel("fisica")}
+                className={cn(
+                  "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
+                  businessModel === "fisica"
+                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                    : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50",
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-xl transition-colors",
+                      businessModel === "fisica"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-surface-muted text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    <Building2 className="size-4.5" />
+                  </span>
+                  {businessModel === "fisica" ? (
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                      <Check className="size-3 stroke-[3]" />
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Balcão
+                    </span>
+                  )}
+                </div>
+                <h3 className="mt-3.5 text-sm font-semibold text-foreground">Apenas Loja Física</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Vendas no balcão presencial, caixa diário e controle de fiado. Sem vitrine digital.
+                </p>
+              </button>
+
+              {/* Card 2: Física + Online (Híbrida) */}
+              <button
+                type="button"
+                onClick={() => void handleSelectBusinessModel("hibrida")}
+                className={cn(
+                  "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
+                  businessModel === "hibrida"
+                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                    : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50",
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-xl transition-colors",
+                      businessModel === "hibrida"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-surface-muted text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    <Store className="size-4.5" />
+                  </span>
+                  {businessModel === "hibrida" ? (
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                      <Check className="size-3 stroke-[3]" />
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      Mais escolhido
+                    </span>
+                  )}
+                </div>
+                <h3 className="mt-3.5 text-sm font-semibold text-foreground">Física + Loja Online</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Balcão físico com caixa e fiado + vitrine no WhatsApp e Instagram com alternador rápido.
+                </p>
+              </button>
+
+              {/* Card 3: Apenas Loja Online */}
+              <button
+                type="button"
+                onClick={() => void handleSelectBusinessModel("online")}
+                className={cn(
+                  "group relative flex flex-col text-left rounded-2xl border p-4.5 transition-all duration-200 cursor-pointer",
+                  businessModel === "online"
+                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                    : "border-border bg-card hover:border-border/80 hover:bg-surface-muted/50",
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-xl transition-colors",
+                      businessModel === "online"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-surface-muted text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    <Globe className="size-4.5" />
+                  </span>
+                  {businessModel === "online" ? (
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                      <Check className="size-3 stroke-[3]" />
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      100% Digital
+                    </span>
+                  )}
+                </div>
+                <h3 className="mt-3.5 text-sm font-semibold text-foreground">Apenas Loja Online</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Vendas exclusivamente digitais. Foco total em pedidos, catálogo e Vestui Pay, sem balcão.
+                </p>
+              </button>
+            </div>
+          </section>
+
+          {/* ── Resumo de Departamentos & Categorias do Catálogo ── */}
+          <section className="panel p-6 sm:p-7 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Tags className="size-4" />
+                  </span>
+                  <h2 className="text-base font-semibold text-foreground">Departamentos Oficiais da Loja</h2>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Categorias universais sincronizadas no Estoque, Precificação e na Vitrine Online.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-border bg-card text-xs font-semibold hover:border-primary/40 hover:text-primary transition-all cursor-pointer h-9 px-3.5 shadow-2xs"
+                >
+                  <Link to="/estoque" search={{ tab: "categorias" }}>
+                    <ExternalLink className="size-3.5 mr-1.5" />
+                    Gerenciar no Estoque
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCategoryManagerOpen(true)}
+                  className="rounded-xl text-xs font-semibold hover:bg-secondary cursor-pointer h-9 px-3"
+                >
+                  <Pencil className="size-3.5 mr-1.5" />
+                  Edição Rápida
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {storeCategories.map((c) => {
+                const count = inventoryItems.filter(
+                  (i) =>
+                    (i.category || "").toLowerCase().trim() === c.slug.toLowerCase() ||
+                    (i.category || "").toLowerCase().trim() === c.name.toLowerCase(),
+                ).length;
+
+                return (
+                  <div
+                    key={c.id}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-surface-muted/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border"
+                  >
+                    <span>{c.name}</span>
+                    <span className="rounded-md bg-card border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground font-semibold">
+                      {count} {count === 1 ? "peça" : "peças"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </TabsContent>
+
+        {/* ════ ABA 3: Caixa & Formas de Pagamento ═════════════════════════════ */}
+        <TabsContent value="caixa" className="space-y-6 mt-2">
+          <CustomOptionsSettingsSection storeId={storeId} />
+        </TabsContent>
+
+        {/* ════ ABA 4: Equipe & Acessos ════════════════════════════════════════ */}
+        <TabsContent value="equipe" className="space-y-6 mt-2">
+          <section className="panel p-6 sm:p-7 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Equipe da Boutique</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Cadastre quem atua no balcão e no atendimento para organizar responsabilidades e vendas.
+                </p>
+              </div>
+            </div>
+
+            {/* Formulário de Novo Colaborador */}
+            <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Adicionar Colaborador
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="Nome do colaborador">
+                  <Input
+                    value={memberName}
+                    onChange={(e) => setMemberName(e.target.value)}
+                    placeholder="Ex: Júlia Santos"
+                    className="h-10 rounded-xl bg-card border-border"
+                  />
+                </Field>
+                <Field label="E-mail (opcional)">
+                  <Input
+                    value={memberEmail}
+                    onChange={(e) => setMemberEmail(e.target.value)}
+                    placeholder="julia@loja.com"
+                    className="h-10 rounded-xl bg-card border-border"
+                  />
+                </Field>
+                <Field label="Função / Cargo">
+                  <Select value={memberRole} onValueChange={setMemberRole}>
+                    <SelectTrigger className="h-10 rounded-xl bg-card border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vendedora">Vendedora</SelectItem>
+                      <SelectItem value="gerente">Gerente</SelectItem>
+                      <SelectItem value="caixa">Caixa / Financeiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              <div className="flex justify-end pt-1">
+                <Button
+                  className="h-10 rounded-xl px-5 text-xs font-semibold gap-1.5 cursor-pointer"
+                  disabled={addMember.isPending || !memberName.trim()}
+                  onClick={() => addMember.mutate()}
+                >
+                  <Plus className="size-3.5" /> Adicionar membro
+                </Button>
+              </div>
+            </div>
+
+            {/* Lista de Membros */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Colaboradores Cadastrados ({members.length})
+              </h3>
+              {members.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border/60 bg-surface-muted/20 p-8 text-center space-y-2">
+                  <Users className="mx-auto size-7 text-muted-foreground/30" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum colaborador cadastrado ainda.</p>
+                  <p className="text-xs text-muted-foreground/70">Cadastre vendedoras para atribuir atendimentos e comissões.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/60 rounded-2xl border border-border/70 bg-card overflow-hidden">
+                  {members.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-4 p-4 hover:bg-surface-muted/30 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm shrink-0">
+                          {m.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{m.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="inline-flex items-center rounded-md bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground capitalize border border-border/60">
+                              {m.role}
+                            </span>
+                            {m.email && (
+                              <span className="text-xs text-muted-foreground truncate">{m.email}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <ConfirmDelete
+                        onConfirm={() => removeMember.mutate(m.id)}
+                        description={`${m.name} será removido da equipe.`}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer shrink-0"
+                            title="Remover colaborador"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        </TabsContent>
+
+        {/* ════ ABA 5: Plano & Conta ══════════════════════════════════════════ */}
+        <TabsContent value="conta" className="space-y-6 mt-2">
+          {/* Card: Assinatura */}
+          <section className="panel p-6 sm:p-7 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Sparkles className="size-4" />
+                  </span>
+                  <h2 className="text-base font-semibold text-foreground">Plano & Assinatura</h2>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gerencie sua licença de uso do Vestui e recursos contratados.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                className="h-10 rounded-xl px-5 text-xs font-bold gradient-primary shadow-glow cursor-pointer shrink-0"
+                onClick={() => setSubModalOpen(true)}
+              >
+                <Sparkles className="size-3.5 mr-1.5" />
+                Gerenciar Assinatura / Upgrade
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Plano atual da loja:</span>
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary capitalize">
+                    {profile?.plan ?? "Essencial"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Acesso completo a gestão de estoque por grade, caixa com PDV, cobrança amigável de fiado e relatórios DRE.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Card: Meta de Pró-labore Institucional */}
+          <section className="panel p-6 sm:p-7 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-border/60">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <Wallet className="size-4" />
+                  </span>
+                  <h2 className="text-base font-semibold text-foreground">Pró-Labore da Lojista (Meta Mensal)</h2>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Defina o valor planejado de retirada mensal. O acompanhamento das retiradas reais vs a meta é feito no Hub Financeiro.
+                </p>
+              </div>
+
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-border bg-card text-xs font-semibold hover:border-primary/40 hover:text-primary transition-all cursor-pointer h-9 px-3.5 shadow-2xs shrink-0"
+              >
+                <Link to="/prolabore">
+                  Painel de Pró-Labore <ArrowRight className="ml-1.5 size-3.5" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-end gap-3 max-w-md">
+              <div className="flex-1 w-full space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground/90">
+                  Meta mensal de retirada (R$)
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="3000,00"
+                  className="h-10 rounded-xl bg-card border-border font-mono text-sm"
+                />
+              </div>
+              <Button
+                className="h-10 rounded-xl px-5 text-xs font-semibold cursor-pointer shrink-0"
+                disabled={saveProfile.isPending}
+                onClick={() => saveProfile.mutate()}
+              >
+                {saveProfile.isPending ? "Salvando..." : "Salvar meta"}
+              </Button>
+            </div>
+          </section>
+
+          {/* Card: Segurança & Sessão */}
+          <section className="panel p-6 sm:p-7 space-y-4 border border-border/60">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-4.5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Segurança & Sessão</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Você está autenticada com acesso administrativo à loja.
             </p>
-          </div>
-          <Button
-            type="button"
-            className="rounded-full px-5 text-xs font-semibold shadow-glow cursor-pointer"
-            onClick={() => setSubModalOpen(true)}
-          >
-            <Sparkles className="size-3.5 mr-1.5" />
-            Gerenciar Assinatura / Upgrade
-          </Button>
-        </div>
-
-        <Button
-          variant="ghost"
-          className="mt-6 rounded-full text-destructive cursor-pointer"
-          onClick={() => void signOut()}
-        >
-          <LogOut className="size-4" /> Sair da conta
-        </Button>
-      </section>
+            <div className="pt-2">
+              <ConfirmDelete
+                title="Deseja realmente sair da sua conta?"
+                description="Você precisará informar seu e-mail e senha novamente para acessar a plataforma."
+                confirmLabel="Sim, sair da conta"
+                onConfirm={() => void signOut()}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-xl px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border cursor-pointer transition-colors"
+                  >
+                    <LogOut className="size-3.5 mr-2" />
+                    Encerrar sessão / Sair da conta
+                  </Button>
+                }
+              />
+            </div>
+          </section>
+        </TabsContent>
+      </Tabs>
 
       <SubscriptionModal open={subModalOpen} onOpenChange={setSubModalOpen} />
       <CategoryManagerDialog
@@ -642,7 +934,7 @@ function Configuracoes() {
   );
 }
 
-// ── Seção Dedicada de Categorias & Formas de Pagamento (Apple Level) ────────
+// ── Seção Dedicada de Categorias & Formas de Pagamento (Padrão Shopify / PDV) ─
 function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
   const [tab, setTab] = useState<"entry" | "exit" | "pay">("entry");
   const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
@@ -668,8 +960,14 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
   const baseExit = EXIT_CATEGORIES as readonly { value: string; label: string }[];
   const basePay = PAYMENT_METHODS as readonly { value: string; label: string }[];
 
-  const activeKind = tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
-  const activeCustoms = tab === "entry" ? customOpts.entryCategories : tab === "exit" ? customOpts.exitCategories : customOpts.paymentMethods;
+  const activeKind =
+    tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
+  const activeCustoms =
+    tab === "entry"
+      ? customOpts.entryCategories
+      : tab === "exit"
+      ? customOpts.exitCategories
+      : customOpts.paymentMethods;
   const activeBases = tab === "entry" ? baseEntry : tab === "exit" ? baseExit : basePay;
 
   const handleSaveEdit = (kind: keyof CustomOptionsStore, value: string) => {
@@ -717,53 +1015,53 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
     if (kind === "exitCategories") addCustomExit(storeId, trimmed);
     if (kind === "paymentMethods") addCustomPaymentMethod(storeId, trimmed);
     setNewLabel("");
-    toast.success("Nova opção adicionada");
+    toast.success("Nova opção adicionada com sucesso!");
   };
 
   return (
-    <section id="categorias-pagamentos" className="panel p-6 sm:p-7 space-y-5">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <section id="categorias-pagamentos" className="panel p-6 sm:p-7 space-y-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border/60">
         <div>
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            <Tags className="h-5 w-5 text-primary" />
-            Categorias & Formas de Pagamento
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <CreditCard className="size-4.5 text-primary" />
+            Classificações do Caixa & Formas de Pagamento
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Gerencie as opções exibidas nos formulários de lançamento do caixa.
+            Gerencie as opções exibidas nos formulários de lançamento e fechamento de caixa no balcão (PDV).
           </p>
         </div>
       </div>
 
-      {/* ── Segmented Tabs Apple Style ────────────────────────────────────── */}
-      <div className="flex rounded-xl bg-surface-muted p-1 gap-1 max-w-md">
+      {/* ── Sub-Abas Segmentadas ────────────────────────────────────────── */}
+      <div className="flex rounded-xl bg-surface-muted/70 border border-border/60 p-1 gap-1 max-w-lg">
         <button
           type="button"
           onClick={() => setTab("entry")}
-          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
             tab === "entry"
-              ? "bg-card text-emerald-600 shadow-sm dark:text-emerald-400"
+              ? "bg-card text-emerald-600 shadow-xs dark:text-emerald-400"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Categorias de Entrada
+          Receitas (Entrada)
         </button>
         <button
           type="button"
           onClick={() => setTab("exit")}
-          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
             tab === "exit"
-              ? "bg-card text-rose-600 shadow-sm dark:text-rose-400"
+              ? "bg-card text-rose-600 shadow-xs dark:text-rose-400"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Categorias de Saída
+          Despesas (Saída)
         </button>
         <button
           type="button"
           onClick={() => setTab("pay")}
-          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all ${
+          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
             tab === "pay"
-              ? "bg-card text-primary shadow-sm"
+              ? "bg-card text-primary shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -772,42 +1070,42 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
       </div>
 
       {/* ── Adição Rápida de Opção ────────────────────────────────────────── */}
-      <div className="flex gap-2 max-w-md">
+      <div className="flex gap-2 max-w-lg">
         <Input
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder={
             tab === "entry"
-              ? "Nova categoria de entrada…"
+              ? "Nova classificação de receita... Ex: Venda Instagram"
               : tab === "exit"
-              ? "Nova categoria de saída…"
-              : "Nova forma de pagamento…"
+              ? "Nova classificação de despesa... Ex: Energia / Luz"
+              : "Nova forma de pagamento... Ex: Pix Maquininha"
           }
-          className="h-10 rounded-xl text-xs"
+          className="h-10 rounded-xl text-xs bg-card border-border"
           onKeyDown={(e) => {
             if (e.key === "Enter") handleAdd(activeKind);
           }}
         />
         <Button
           size="sm"
-          className="h-10 rounded-xl px-4 text-xs font-semibold shrink-0"
+          className="h-10 rounded-xl px-4 text-xs font-semibold shrink-0 cursor-pointer"
           disabled={!newLabel.trim()}
           onClick={() => handleAdd(activeKind)}
         >
-          <Plus className="h-4 w-4 mr-1" /> Criar
+          <Plus className="size-3.5 mr-1" /> Criar
         </Button>
       </div>
 
       {/* ── Lista de Opções da Aba Ativa ──────────────────────────────────── */}
-      <div className="grid gap-2 sm:grid-cols-2 max-w-3xl pt-2">
+      <div className="grid gap-2 sm:grid-cols-2 max-w-3xl pt-1">
         {/* Opções Padrão */}
         {activeBases.map((item) => (
           <div
             key={item.value}
-            className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-3 text-xs"
+            className="flex items-center justify-between rounded-xl border border-border/60 bg-card p-3 text-xs shadow-2xs"
           >
             <span className="font-medium text-foreground">{item.label}</span>
-            <Badge variant="outline" className="rounded-full text-[10px] text-muted-foreground">
+            <Badge variant="outline" className="rounded-full text-[10px] text-muted-foreground border-border/70">
               Padrão
             </Badge>
           </div>
@@ -820,7 +1118,7 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
           return (
             <div
               key={item.value}
-              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary-soft/20 p-2.5 px-3 text-xs"
+              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-2.5 px-3 text-xs shadow-2xs"
             >
               {isEditing ? (
                 <div className="flex flex-1 items-center gap-2 mr-2">
@@ -828,14 +1126,14 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
                     autoFocus
                     value={editLabel}
                     onChange={(e) => setEditLabel(e.target.value)}
-                    className="h-8 rounded-lg text-xs"
+                    className="h-8 rounded-lg text-xs bg-card"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSaveEdit(activeKind, item.value);
                     }}
                   />
                   <Button
                     size="sm"
-                    className="h-8 rounded-lg px-3 text-xs"
+                    className="h-8 rounded-lg px-3 text-xs cursor-pointer"
                     onClick={() => handleSaveEdit(activeKind, item.value)}
                   >
                     Salvar
@@ -848,18 +1146,18 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
+                      className="size-7 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
                       onClick={() => handleStartEdit(item.value, item.label)}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="size-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      className="size-7 rounded-lg text-destructive hover:bg-destructive/10 cursor-pointer"
                       onClick={() => handleDelete(activeKind, item.value)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </>
@@ -874,8 +1172,8 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-foreground/90 tracking-tight">{label}</Label>
       {children}
     </div>
   );
