@@ -1,5 +1,6 @@
 import type { CategoryBarSettings, ThemeSettings } from "@/lib/theme-engine/schema";
 import type { ShowcaseProduct } from "@/lib/showcase-store";
+import { DEFAULT_STORE_CATEGORIES, getCategoryLabel } from "@/lib/categories";
 
 interface Props {
   settings: CategoryBarSettings;
@@ -11,7 +12,7 @@ export function CategoryBarSection({ settings, theme, products = [] }: Props) {
   if (!settings.enabled) return null;
 
   // Derive unique categories from real inventory data
-  const categories = Array.from(new Set(products.map((p) => p.category))).sort();
+  const rawCategories = Array.from(new Set(products.map((p) => p.category))).sort();
 
   return (
     <section
@@ -33,7 +34,7 @@ export function CategoryBarSection({ settings, theme, products = [] }: Props) {
               Todos
             </span>
           </li>
-          {categories.map((cat) => (
+          {rawCategories.map((cat) => (
             <li key={cat} className="shrink-0">
               <span
                 className="flex h-9 items-center px-4 text-[12px] uppercase tracking-[0.1em] border transition-colors cursor-pointer"
@@ -44,7 +45,7 @@ export function CategoryBarSection({ settings, theme, products = [] }: Props) {
                   fontFamily: `'${theme.fontBody}', sans-serif`,
                 }}
               >
-                {cat}
+                {getCategoryLabel(DEFAULT_STORE_CATEGORIES, cat)}
               </span>
             </li>
           ))}

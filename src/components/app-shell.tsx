@@ -67,7 +67,7 @@ const GESTAO_NAV: NavItem[] = [
   },
   {
     to: "/estoque",
-    label: "Roupas & Estoque",
+    label: "Produtos & Estoque",
     icon: Boxes,
     isMatch: (p) => p.startsWith("/estoque"),
   },
@@ -118,7 +118,7 @@ const GESTAO_ONLINE_NAV: NavItem[] = [
   },
   {
     to: "/estoque",
-    label: "Roupas & Estoque",
+    label: "Produtos & Estoque",
     icon: Boxes,
     isMatch: (p) => p.startsWith("/estoque"),
   },
@@ -215,7 +215,7 @@ function getMainNavFisica(): NavItem[] {
 const MOBILE_PRIMARY_FISICA: NavItem[] = [
   { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p) => p === "/painel" },
   { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p) => p === "/caixa" },
-  { to: "/estoque", label: "Roupas", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
+  { to: "/estoque", label: "Estoque", icon: Boxes, isMatch: (p) => p.startsWith("/estoque") },
   { to: "/clientes", label: "Clientes", icon: Users, isMatch: (p) => p.startsWith("/clientes") },
 ];
 

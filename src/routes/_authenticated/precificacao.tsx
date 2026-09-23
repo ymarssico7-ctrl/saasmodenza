@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -68,9 +68,10 @@ import {
   computeReversePricing,
   computeLotBreakEven,
   getMarginHealth,
-  INVENTORY_CATEGORIES,
   type MarginHealth,
 } from "@/lib/finance";
+import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
+import { SupplierCombobox } from "@/components/supplier-combobox";
 import { useStore } from "@/lib/store-context";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
@@ -240,6 +241,7 @@ function sortCanonicalSizes(sizes: string[]): string[] {
 function Precificacao() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
+  const { categories: storeCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
   // ── Modo Principal (2 Modos Estratégicos) ─────────────────────────
@@ -250,7 +252,7 @@ function Precificacao() {
 
   // ── Identificação da Peça ─────────────────────────────────────────
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Vestidos");
+  const [category, setCategory] = useState("");
 
   // ── Modo 1: Precificação Rápida ───────────────────────────────────
   const [wholesale, setWholesale] = useState("49,90");
@@ -1309,14 +1311,20 @@ function Precificacao() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <Sparkles className="size-3.5 text-primary" />
-                <span>Categoria / Referência</span>
+                <span>Categoria</span>
               </Label>
-              <Input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ex: Vestidos / REF-204"
-                className="h-11 rounded-xl font-medium text-sm bg-card shadow-2xs"
-              />
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-11 rounded-xl font-medium text-sm bg-card shadow-2xs border-border">
+                  <SelectValue placeholder="Selecione categoria..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {storeCategories.map((c) => (
+                    <SelectItem key={c.id} value={c.slug}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -3136,12 +3144,12 @@ function Precificacao() {
               <Label className="text-xs font-semibold text-muted-foreground">Categoria</Label>
               <Select value={entryCategory} onValueChange={setEntryCategory}>
                 <SelectTrigger className="h-10 rounded-xl">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione categoria..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {INVENTORY_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
+                  {storeCategories.map((c) => (
+                    <SelectItem key={c.id} value={c.slug}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -3160,11 +3168,10 @@ function Precificacao() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground">Fornecedor</Label>
-              <Input
+              <SupplierCombobox
                 value={entrySupplier}
-                onChange={(e) => setEntrySupplier(e.target.value)}
-                placeholder="Ex: Brás Moda"
-                className="h-10 rounded-xl text-xs"
+                onChange={setEntrySupplier}
+                placeholder="Selecione ou busque parceiro..."
               />
             </div>
           </div>

@@ -35,6 +35,7 @@ import {
   type ShowcaseProduct,
 } from "@/lib/showcase-store";
 import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings";
+import { parseStoreCategories, getCategoryLabel } from "@/lib/categories";
 import { generatePixPayload, generatePixQrCodeUrl } from "@/lib/pix";
 import { calculateOrderNet } from "@/lib/fees";
 
@@ -153,23 +154,59 @@ function VitrineLayout() {
     }
   }, [allProducts]);
 
-  // ── Filtros dinâmicos ─────────────────────────────────────────
+  // ── Categorias Dinâmicas da Loja ──────────────────────────────
+  const storeCategories = useMemo(() => {
+    return parseStoreCategories(store?.metadata as Record<string, unknown> | null, store?.id ?? storeSlug);
+  }, [store?.metadata, store?.id, storeSlug]);
+
+  // ── Filtros dinâmicos com Nomes Oficiais e Elegantes ──────────
   const categorias = useMemo(() => {
-    const unique = Array.from(
-      new Set(allProducts.filter((p) => p.showcase.ativo !== false).map((p) => p.category)),
-    ).sort();
-    return ["Tudo", ...unique];
-  }, [allProducts]);
+    const activeProducts = allProducts.filter((p) => p.showcase.ativo !== false);
+    const usedSlugs = new Set(activeProducts.map((p) => (p.category || "").toLowerCase().trim()));
+
+    const list: Array<{ value: string; label: string }> = [{ value: "Tudo", label: "Tudo" }];
+
+    for (const sc of storeCategories) {
+      if (
+        usedSlugs.has(sc.slug.toLowerCase()) ||
+        usedSlugs.has(sc.name.toLowerCase()) ||
+        usedSlugs.has(sc.id.toLowerCase())
+      ) {
+        list.push({ value: sc.slug, label: sc.name });
+      }
+    }
+
+    for (const slug of usedSlugs) {
+      if (
+        slug &&
+        !list.some(
+          (item) =>
+            item.value.toLowerCase() === slug || item.label.toLowerCase() === slug,
+        )
+      ) {
+        list.push({ value: slug, label: getCategoryLabel(storeCategories, slug) });
+      }
+    }
+
+    return list;
+  }, [allProducts, storeCategories]);
 
   const produtos = useMemo(
     () =>
-      allProducts.filter(
-        (p) =>
-          p.showcase.ativo !== false &&
-          (categoria === "Tudo" || p.category === categoria) &&
-          p.name.toLowerCase().includes(busca.toLowerCase()),
-      ),
-    [allProducts, busca, categoria],
+      allProducts.filter((p) => {
+        if (p.showcase.ativo === false) return false;
+        if (categoria !== "Tudo") {
+          const catObj = storeCategories.find((c) => c.slug === categoria);
+          const pCat = (p.category || "").toLowerCase().trim();
+          const match =
+            pCat === categoria.toLowerCase().trim() ||
+            (catObj &&
+              (pCat === catObj.name.toLowerCase() || pCat === catObj.id.toLowerCase()));
+          if (!match) return false;
+        }
+        return p.name.toLowerCase().includes(busca.toLowerCase());
+      }),
+    [allProducts, busca, categoria, storeCategories],
   );
 
   const destaques = allProducts.filter((p) => p.showcase.ativo !== false && p.showcase.destaque);
@@ -424,18 +461,18 @@ function VitrineLayout() {
 
         {/* Categorias */}
         <div className="mb-6 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {categorias.map((cat) => (
+          {categorias.map((catItem) => (
             <button
-              key={cat}
-              onClick={() => setCategoria(cat)}
-              className="flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all"
+              key={catItem.value}
+              onClick={() => setCategoria(catItem.value)}
+              className="flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer"
               style={
-                categoria === cat
+                categoria === catItem.value
                   ? { backgroundColor: cor, color: "#fff" }
                   : { backgroundColor: "#fff", color: "#374151", border: "1px solid #e5e7eb" }
               }
             >
-              {cat}
+              {catItem.label}
             </button>
           ))}
         </div>
@@ -496,7 +533,9 @@ function VitrineLayout() {
                     <p className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-2">
                       {p.name}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-gray-400">{p.category}</p>
+                    <p className="mt-0.5 text-[11px] text-gray-400">
+                      {getCategoryLabel(storeCategories, p.category)}
+                    </p>
                     <div className="mt-2 flex items-baseline gap-1.5">
                       {p.showcase.precoOculto ? (
                         <span className="text-xs text-gray-400">Consulte preço</span>
@@ -674,7 +713,7 @@ function ProductModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                {product.category}
+                {getCategoryLabel(storeCategories, product.category)}
               </p>
               <h2 className="mt-1 font-display text-xl font-bold text-gray-900">{product.name}</h2>
             </div>

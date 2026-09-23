@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,7 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { brl, toNumber } from "@/lib/format";
 import { inventoryQuery } from "@/lib/db";
-import { INVENTORY_CATEGORIES, labelOf } from "@/lib/finance";
+import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
 import {
   mergeInventoryWithShowcase,
   patchShowcaseConfig,
@@ -82,6 +82,9 @@ function ProdutosPage() {
     [rawItems, showcaseVersion],
   );
 
+  // ── Categorias Dinâmicas da Loja ──────────────────────────────────
+  const { categories: storeCategories } = useStoreCategories();
+
   // ── UI State ──────────────────────────────────────────────────────
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("todas");
@@ -98,18 +101,24 @@ function ProdutosPage() {
 
   // ── Derived ───────────────────────────────────────────────────────
   const categoriasDisponiveis = useMemo(() => {
-    const vals = Array.from(new Set(rawItems.map((i) => i.category)));
-    return vals.map((v) => ({ value: v, label: labelOf(INVENTORY_CATEGORIES, v) }));
-  }, [rawItems]);
+    return storeCategories.map((c) => ({ value: c.slug, label: c.name }));
+  }, [storeCategories]);
 
   const visiveis = useMemo(
     () =>
-      produtos.filter(
-        (p) =>
-          (categoria === "todas" || p.category === categoria) &&
-          p.name.toLowerCase().includes(busca.toLowerCase()),
-      ),
-    [produtos, busca, categoria],
+      produtos.filter((p) => {
+        if (categoria !== "todas") {
+          const catObj = storeCategories.find((c) => c.slug === categoria);
+          const pCat = (p.category || "").toLowerCase().trim();
+          const match =
+            pCat === categoria.toLowerCase().trim() ||
+            (catObj &&
+              (pCat === catObj.name.toLowerCase() || pCat === catObj.id.toLowerCase()));
+          if (!match) return false;
+        }
+        return p.name.toLowerCase().includes(busca.toLowerCase());
+      }),
+    [produtos, busca, categoria, storeCategories],
   );
 
   const emPromocaoProduto = produtos.find((p) => p.id === promocaoId) ?? null;
@@ -396,7 +405,7 @@ function ProdutosPage() {
                         {p.emPromocao ? <Tag tone="warning">Em promoção</Tag> : null}
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {labelOf(INVENTORY_CATEGORIES, p.category)}
+                        {getCategoryLabel(storeCategories, p.category)}
                         {p.color ? ` · ${p.color}` : ""}
                         {" · estoque "}
                         {p.totalEstoque}

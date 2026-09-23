@@ -442,28 +442,32 @@ function Estoque() {
                 />
               </Field>
               <Field label="Categoria">
-                <div className="flex gap-1.5">
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors flex-1">
-                      <SelectValue placeholder="Selecione uma categoria..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {storeCategories.map((c) => (
-                        <SelectItem key={c.id} value={c.slug}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <button
-                    type="button"
-                    onClick={() => setCategoryManagerOpen(true)}
-                    title="Gerenciar categorias da loja"
-                    className="size-11 shrink-0 rounded-xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center cursor-pointer"
-                  >
-                    <Settings2 className="size-4" />
-                  </button>
-                </div>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
+                    <SelectValue placeholder="Selecione uma categoria..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {storeCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.slug}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                    <div className="p-1 border-t border-border/60 mt-1">
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setCategoryManagerOpen(true);
+                        }}
+                        className="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer text-left"
+                      >
+                        <Plus className="size-3.5" />
+                        + Gerenciar categorias da loja...
+                      </button>
+                    </div>
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="Cor">
                 <Input
@@ -737,6 +741,18 @@ function Estoque() {
                   <SelectItem value="out_of_stock">Esgotadas</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Gerenciar Categorias da Loja */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCategoryManagerOpen(true)}
+                className="h-9 gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-semibold text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer shrink-0"
+              >
+                <Layers className="size-3.5 text-primary" />
+                <span>Categorias</span>
+              </Button>
             </div>
           )}
         </div>
@@ -987,28 +1003,32 @@ function Estoque() {
                   />
                 </Field>
                 <Field label="Categoria">
-                  <div className="flex gap-1.5">
-                    <Select value={editCategory} onValueChange={setEditCategory}>
-                      <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors flex-1">
-                        <SelectValue placeholder="Selecione uma categoria..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {storeCategories.map((c) => (
-                          <SelectItem key={c.id} value={c.slug}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <button
-                      type="button"
-                      onClick={() => setCategoryManagerOpen(true)}
-                      title="Gerenciar categorias da loja"
-                      className="size-11 shrink-0 rounded-xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center cursor-pointer"
-                    >
-                      <Settings2 className="size-4" />
-                    </button>
-                  </div>
+                  <Select value={editCategory} onValueChange={setEditCategory}>
+                    <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
+                      <SelectValue placeholder="Selecione uma categoria..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {storeCategories.map((c) => (
+                        <SelectItem key={c.id} value={c.slug}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                      <div className="p-1 border-t border-border/60 mt-1">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCategoryManagerOpen(true);
+                          }}
+                          className="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer text-left"
+                        >
+                          <Plus className="size-3.5" />
+                          + Gerenciar categorias da loja...
+                        </button>
+                      </div>
+                    </SelectContent>
+                  </Select>
                 </Field>
                 <Field label="Cor">
                   <Input

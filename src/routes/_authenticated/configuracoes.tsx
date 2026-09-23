@@ -26,7 +26,10 @@ import {
   profileQuery,
   updateDemoProfile,
   currentUserId,
+  inventoryQuery,
 } from "@/lib/db";
+import { useStoreCategories } from "@/lib/categories";
+import { CategoryManagerDialog } from "@/components/category-manager-dialog";
 import { brl, toNumber } from "@/lib/format";
 import { ENTRY_CATEGORIES, EXIT_CATEGORIES, PAYMENT_METHODS } from "@/lib/finance";
 import {
@@ -71,6 +74,9 @@ function Configuracoes() {
   const { store, storeId, isDemoMode } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
+  const { categories: storeCategories } = useStoreCategories();
+  const { data: inventoryItems = [] } = useQuery(inventoryQuery());
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 
   const [businessModel, setBusinessModelState] = useState<BusinessModel>(() =>
     getBusinessModel(storeId, store?.metadata),
@@ -465,6 +471,53 @@ function Configuracoes() {
         </div>
       </section>
 
+      {/* ── Categorias do Catálogo (Nível Shopify) ── */}
+      <section className="panel p-6 sm:p-7">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Tags className="size-4" />
+              </span>
+              <h2 className="text-base font-semibold text-foreground">Categorias do Catálogo</h2>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Departamentos oficiais da sua boutique. São sincronizados no Estoque, na Precificação e na Vitrine Online.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setCategoryManagerOpen(true)}
+            className="rounded-xl border-border bg-card text-xs font-semibold hover:border-primary/40 hover:text-primary transition-all cursor-pointer h-10 px-4 shrink-0 shadow-2xs"
+          >
+            <Pencil className="size-3.5 mr-1.5" />
+            Gerenciar categorias
+          </Button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2 pt-2">
+          {storeCategories.map((c) => {
+            const count = inventoryItems.filter(
+              (i) => (i.category || "").toLowerCase().trim() === c.slug.toLowerCase() ||
+                     (i.category || "").toLowerCase().trim() === c.name.toLowerCase()
+            ).length;
+
+            return (
+              <div
+                key={c.id}
+                className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-surface-muted/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border"
+              >
+                <span>{c.name}</span>
+                <span className="rounded-md bg-card border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground font-semibold">
+                  {count} {count === 1 ? "peça" : "peças"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="panel p-6 sm:p-7">
         <h2 className="text-base font-semibold">Equipe</h2>
@@ -580,6 +633,11 @@ function Configuracoes() {
       </section>
 
       <SubscriptionModal open={subModalOpen} onOpenChange={setSubModalOpen} />
+      <CategoryManagerDialog
+        open={categoryManagerOpen}
+        onOpenChange={setCategoryManagerOpen}
+        items={inventoryItems}
+      />
     </div>
   );
 }
