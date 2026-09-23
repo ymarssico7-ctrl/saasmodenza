@@ -2149,7 +2149,7 @@ function Caixa() {
                   setShowProductPopover(true);
                 }}
                 placeholder={descriptionPlaceholder}
-                className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                className="h-12 rounded-2xl pr-10 bg-card border-border hover:border-foreground/25 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary placeholder:text-muted-foreground/75 transition-colors"
               />
               {selectedProduct ? (
                 <button
@@ -2165,7 +2165,7 @@ function Caixa() {
                   <X className="h-4 w-4" />
                 </button>
               ) : (
-                <Package className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                <Package className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50 pointer-events-none" />
               )}
             </div>
 
@@ -2298,17 +2298,17 @@ function Caixa() {
             {basket.length === 0 && (isEntrada || !!selectedProductId || category === "compra_estoque" || category === "perda_avaria" || category === "estorno_devolucao") && (
               <Field label="Quantidade" className="w-full sm:w-36 shrink-0">
                 <div
-                  className={`h-12 flex items-center justify-between px-1.5 py-1 rounded-full border overflow-hidden transition-all ${
+                  className={`h-12 flex items-center justify-between px-1.5 py-1 rounded-2xl border transition-all ${
                     quantity > 1
                       ? "border-primary/40 bg-primary-soft/15 ring-1 ring-primary/20 shadow-2xs"
-                      : "border-border/70 bg-card shadow-2xs"
+                      : "border-border bg-card shadow-2xs hover:border-foreground/25"
                   }`}
                 >
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(quantity - 1)}
                     disabled={quantity <= 1}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-muted/70 text-muted-foreground transition-all hover:bg-surface-muted hover:text-foreground active:scale-95 disabled:opacity-20 disabled:pointer-events-none cursor-pointer"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-surface-muted/80 text-foreground/70 transition-all hover:bg-surface-muted hover:text-foreground active:scale-95 disabled:opacity-25 disabled:pointer-events-none cursor-pointer border border-border/50"
                     title="Diminuir quantidade"
                     aria-label="Diminuir quantidade"
                   >
@@ -2356,15 +2356,15 @@ function Caixa() {
                           e.currentTarget.blur();
                         }
                       }}
-                      className={`w-7 sm:w-8 bg-transparent text-center font-sans text-base font-semibold tracking-tight border-none outline-none p-0 focus:ring-0 cursor-text tabular-nums leading-none ${
+                      className={`w-7 sm:w-8 bg-transparent text-center font-sans text-base font-bold tracking-tight border-none outline-none p-0 focus:ring-0 cursor-text tabular-nums leading-none ${
                         quantity > 1 ? "text-primary" : "text-foreground"
                       }`}
                       title="Digite a quantidade ou use as setas ↑ e ↓ do teclado"
                       aria-label="Quantidade da peça"
                     />
                     <span
-                      className={`text-xs font-medium select-none pointer-events-none leading-none ${
-                        quantity > 1 ? "text-primary/70" : "text-muted-foreground/75"
+                      className={`text-xs font-semibold select-none pointer-events-none leading-none ${
+                        quantity > 1 ? "text-primary/70" : "text-foreground/60"
                       }`}
                     >
                       un.
@@ -2374,7 +2374,7 @@ function Caixa() {
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(quantity + 1)}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-all hover:bg-primary/20 hover:scale-105 active:scale-95 cursor-pointer"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all hover:bg-primary/20 hover:scale-105 active:scale-95 cursor-pointer border border-primary/20"
                     title="Aumentar quantidade"
                     aria-label="Aumentar quantidade"
                   >
@@ -2389,10 +2389,10 @@ function Caixa() {
               <div className="relative">
                 {/* Badge de sinal — fundo semântico colorido */}
                 <span
-                  className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-md text-[11px] font-black leading-none select-none ${
+                  className={`absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold leading-none select-none border transition-colors ${
                     isEntrada
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                      : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                      : "bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300"
                   }`}
                 >
                   {isEntrada ? "+" : "−"}
@@ -2401,8 +2401,8 @@ function Caixa() {
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Digite o valor…"
-                  className={`h-12 rounded-2xl pl-10 font-mono font-bold text-base tracking-tight bg-card border-border/70 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 placeholder:font-sans placeholder:font-normal placeholder:text-xs placeholder:text-muted-foreground/50 ${
+                  placeholder="0,00"
+                  className={`h-12 rounded-2xl pl-11 font-mono font-bold text-base tracking-tight bg-card border-border hover:border-foreground/25 shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary placeholder:font-mono placeholder:font-semibold placeholder:text-muted-foreground/75 ${
                     basket.length > 0 ? "pr-20" : "pr-3"
                   }`}
                 />
@@ -2420,7 +2420,7 @@ function Caixa() {
           <div className={`transition-all duration-200 ${showDiscount ? "sm:col-span-2 lg:col-span-3 -mt-2 mb-1" : "sm:col-span-2 lg:col-span-1 -mt-2 mb-1"}`}>
             {hasItemDiscounts && discountNum <= 0 ? (
               /* Modo por peça ativo: exibe resumo do total de descontos, bloqueando o global */
-              <div className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-bold select-none">
+              <div className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold select-none">
                 <Percent className="size-3.5 shrink-0" />
                 <span>Desconto por peça ativo: −{brl(basketTotalDiscount)}</span>
               </div>
@@ -2432,7 +2432,7 @@ function Caixa() {
                   <button
                     type="button"
                     onClick={() => setShowDiscount(true)}
-                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-amber-500/12 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all hover:bg-amber-500/20 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-800 dark:text-amber-300 text-xs font-bold transition-all hover:bg-amber-500/25 cursor-pointer shadow-2xs"
                     title="Editar desconto da venda"
                   >
                     <Percent className="size-3.5 shrink-0" />
@@ -2442,14 +2442,14 @@ function Caixa() {
                         const pctStr = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
                         return discountType === "pct" ? (
                           /* Modo %: percentual é primário */
-                          <><strong>−{pctStr}</strong><span className="opacity-55 ml-1 font-normal">({brl(calculatedDiscount)})</span></>
+                          <><strong>−{pctStr}</strong><span className="opacity-70 ml-1 font-normal">({brl(calculatedDiscount)})</span></>
                         ) : (
                           /* Modo R$: valor em reais é primário */
-                          <><strong>−{brl(calculatedDiscount)}</strong><span className="opacity-55 ml-1 font-normal">({pctStr})</span></>
+                          <><strong>−{brl(calculatedDiscount)}</strong><span className="opacity-70 ml-1 font-normal">({pctStr})</span></>
                         );
                       })()}
                     </span>
-                    <ChevronDown className="size-3 opacity-60" />
+                    <ChevronDown className="size-3 opacity-70" />
                   </button>
                   <button
                     type="button"
@@ -2457,7 +2457,7 @@ function Caixa() {
                       setDiscountValue("");
                       setShowDiscount(false);
                     }}
-                    className="flex items-center justify-center size-9 rounded-xl border border-border/60 bg-surface-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/8 transition-all cursor-pointer shrink-0"
+                    className="flex items-center justify-center size-9 rounded-xl border border-border bg-surface-muted/70 text-foreground/70 hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10 transition-all cursor-pointer shrink-0 shadow-2xs"
                     title="Remover desconto"
                     aria-label="Remover desconto"
                   >
@@ -2469,11 +2469,11 @@ function Caixa() {
                 <button
                   type="button"
                   onClick={() => setShowDiscount(true)}
-                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-dashed border-border hover:border-primary/50 bg-surface-muted/40 hover:bg-primary-soft/30 text-muted-foreground hover:text-primary text-xs font-semibold transition-all cursor-pointer select-none"
+                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-dashed border-border/90 hover:border-primary/50 bg-card hover:bg-primary-soft/30 text-foreground/80 hover:text-primary text-xs font-semibold transition-all cursor-pointer select-none shadow-2xs"
                 >
-                  <Percent className="size-3.5 shrink-0" />
+                  <Percent className="size-3.5 shrink-0 text-primary" />
                   <span>{isEntrada ? "Aplicar desconto na venda" : "Aplicar abatimento"}</span>
-                  <ChevronDown className="size-3 opacity-60" />
+                  <ChevronDown className="size-3 opacity-70" />
                 </button>
               )
             ) : (
@@ -2959,7 +2959,7 @@ function Caixa() {
                 setCategory(v);
               }}
             >
-              <SelectTrigger className="h-12 rounded-2xl bg-card border-border/70 text-xs font-medium shadow-2xs">
+              <SelectTrigger className="h-12 rounded-2xl bg-card border-border hover:border-foreground/25 text-xs font-semibold text-foreground shadow-2xs transition-colors">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -2997,7 +2997,7 @@ function Caixa() {
                 }
               }}
             >
-              <SelectTrigger className="h-12 rounded-2xl bg-card border-border/70 text-xs font-medium shadow-2xs">
+              <SelectTrigger className="h-12 rounded-2xl bg-card border-border hover:border-foreground/25 text-xs font-semibold text-foreground shadow-2xs transition-colors">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -3028,12 +3028,12 @@ function Caixa() {
                     key={m}
                     type="button"
                     onClick={() => setDateMode(m)}
-                    className={`flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl border text-xs font-medium transition-all cursor-pointer ${
+                    className={`flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl border text-xs font-semibold transition-all cursor-pointer ${
                       dateMode === m
                         ? isEntrada
-                          ? "border-emerald-600/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold shadow-2xs"
-                          : "border-rose-600/40 bg-rose-500/10 text-rose-700 dark:text-rose-400 font-semibold shadow-2xs"
-                        : "border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground shadow-2xs"
+                          ? "border-emerald-600/50 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-bold shadow-2xs"
+                          : "border-rose-600/50 bg-rose-500/15 text-rose-800 dark:text-rose-300 font-bold shadow-2xs"
+                        : "border-border bg-card text-foreground/75 hover:border-foreground/25 hover:text-foreground shadow-2xs"
                     }`}
                   >
                     {m === "custom" ? (
@@ -3050,18 +3050,18 @@ function Caixa() {
                     type="date"
                     value={customDate}
                     onChange={(e) => setCustomDate(e.target.value)}
-                    className="h-10 rounded-xl text-xs font-medium bg-card"
+                    className="h-10 rounded-xl text-xs font-medium bg-card border-border"
                   />
                   {customDate > todayISO() && (
-                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                       ⚠️ Data futura: este lançamento entrará no fluxo de {customDate.slice(0, 7)}.
                     </p>
                   )}
                 </div>
               )}
               {dateMode !== "custom" && (
-                <p className="text-[11px] font-medium text-muted-foreground/80 flex items-center gap-1.5">
-                  <Clock className="size-3 opacity-60" />
+                <p className="text-[11px] font-semibold text-foreground/70 flex items-center gap-1.5 pt-0.5">
+                  <Clock className="size-3 text-primary opacity-80" />
                   {(() => {
                     const dStr = dateMode === "hoje" ? todayISO() : yesterdayISO();
                     const [y, m, d] = dStr.split("-").map(Number);
@@ -3096,7 +3096,7 @@ function Caixa() {
                     setShowCustomerPopover(true);
                   }}
                   placeholder="Digite o nome ou telefone da cliente…"
-                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className="h-12 rounded-2xl pr-10 bg-card border-border hover:border-foreground/25 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary placeholder:text-muted-foreground/75 transition-colors"
                 />
                 {selectedCustomer ? (
                   <button
@@ -3107,7 +3107,7 @@ function Caixa() {
                     <X className="h-4 w-4" />
                   </button>
                 ) : (
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                  <User className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50 pointer-events-none" />
                 )}
               </div>
 
@@ -3218,7 +3218,7 @@ function Caixa() {
                     setShowCustomerPopover(true);
                   }}
                   placeholder="Selecione a cliente que recebeu o estorno / devolução…"
-                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className="h-12 rounded-2xl pr-10 bg-card border-border hover:border-foreground/25 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary placeholder:text-muted-foreground/75 transition-colors"
                 />
                 {selectedCustomer ? (
                   <button
@@ -3229,7 +3229,7 @@ function Caixa() {
                     <X className="h-4 w-4" />
                   </button>
                 ) : (
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                  <User className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50 pointer-events-none" />
                 )}
               </div>
 
@@ -3367,7 +3367,7 @@ function Caixa() {
                     }
                   }}
                   placeholder="Ex: Confecção Bella Moda, Malharia Sul, Atacado Brás…"
-                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className="h-12 rounded-2xl pr-10 bg-card border-border hover:border-foreground/25 placeholder:text-muted-foreground/75 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                 />
                 {supplierName ? (
                   <button
@@ -3382,7 +3382,7 @@ function Caixa() {
                     <X className="h-4 w-4" />
                   </button>
                 ) : (
-                  <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                  <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50 pointer-events-none" />
                 )}
               </div>
 
@@ -3572,7 +3572,7 @@ function Caixa() {
                             ? "Ex: Sócia, Titular da loja…"
                             : "Ex: Gráfica, Eletricista, Marceneiro…"
                   }
-                  className="h-12 rounded-2xl pr-10 bg-card border-border/70 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className="h-12 rounded-2xl pr-10 bg-card border-border hover:border-foreground/25 placeholder:text-muted-foreground/75 text-sm shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                 />
                 {supplierName ? (
                   <button
@@ -3587,7 +3587,7 @@ function Caixa() {
                     <X className="h-4 w-4" />
                   </button>
                 ) : (
-                  <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                  <Building2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50 pointer-events-none" />
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground/70">
@@ -3883,7 +3883,7 @@ function Caixa() {
                       setShowCustomerPopover(true);
                     }}
                     placeholder="Selecione ou busque a cliente pelo nome/telefone…"
-                    className="h-11 rounded-xl pr-9 bg-white dark:bg-card"
+                    className="h-11 rounded-xl pr-9 bg-white dark:bg-card border-border hover:border-foreground/25 placeholder:text-muted-foreground/75 transition-colors"
                   />
                   {selectedCustomer ? (
                     <button
@@ -3894,7 +3894,7 @@ function Caixa() {
                       <X className="h-4 w-4" />
                     </button>
                   ) : (
-                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50 pointer-events-none" />
                   )}
                 </div>
 
@@ -3999,10 +3999,10 @@ function Caixa() {
         )}
 
         {/* ── Barra de Ação Inferior (Ergonomia Fitts + Bilateral Balance) ── */}
-        <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-border/40 pt-5">
+        <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-border/60 pt-5">
           {/* Total da Operação à Esquerda — sem card/borda desnecessária */}
           <div className="flex flex-col justify-center gap-0.5 min-w-0">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60 leading-none">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-foreground/60 leading-none">
               Total da operação
             </span>
             <div className="flex items-baseline gap-2 mt-1">
@@ -4012,7 +4012,7 @@ function Caixa() {
                     ? isEntrada
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
-                    : "text-muted-foreground/50"
+                    : "text-foreground/40"
                 }`}
               >
                 {brl(netAmount)}
@@ -4033,10 +4033,10 @@ function Caixa() {
 
           {/* Botão de Envio à Direita */}
           <Button
-            className={`h-12 rounded-2xl px-8 text-sm font-bold tracking-tight transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 w-full sm:w-auto ${
+            className={`h-12 rounded-2xl px-8 text-sm font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto ${
               isEntrada
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
-                : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 disabled:bg-surface-muted disabled:border disabled:border-border/70 disabled:text-muted-foreground/50 disabled:shadow-none"
+                : "bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20 disabled:bg-surface-muted disabled:border disabled:border-border/70 disabled:text-muted-foreground/50 disabled:shadow-none"
             }`}
             disabled={create.isPending || netAmount <= 0}
             onClick={handleTriggerSubmit}
@@ -4795,7 +4795,7 @@ function Field({
   return (
     <div className={`space-y-2 ${className ?? ""}`}>
       {typeof label === "string" ? (
-        <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
+        <Label className="text-xs font-semibold text-foreground/90 tracking-tight">{label}</Label>
       ) : (
         label
       )}
