@@ -2,11 +2,13 @@ import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Minus, Pencil, Plus, Search, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
+import { Boxes, Calculator, Layers, Minus, Pencil, Plus, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { SupplierCombobox } from "@/components/supplier-combobox";
+import { CategoryManagerDialog } from "@/components/category-manager-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +30,8 @@ import {
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { inventoryQuery, pricingsQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
-import { INVENTORY_CATEGORIES, SIZE_GRID, labelOf, computePricing } from "@/lib/finance";
+import { SIZE_GRID, computePricing } from "@/lib/finance";
+import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@/lib/mutations";
@@ -62,8 +65,12 @@ function Estoque() {
   const { data: items = [] } = useQuery(inventoryQuery());
   const { data: pricings = [] } = useQuery(pricingsQuery());
 
+  // ── Categorias Dinâmicas da Loja (Nível Shopify) ──────────────────────────
+  const { categories: storeCategories } = useStoreCategories();
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("vestido");
+  const [category, setCategory] = useState("");
   const [color, setColor] = useState("");
   const [supplier, setSupplier] = useState("");
   const [cost, setCost] = useState("");
@@ -85,7 +92,7 @@ function Estoque() {
         const matchName = i.name.toLowerCase().includes(q);
         const matchColor = i.color?.toLowerCase().includes(q) ?? false;
         const matchSupplier = i.supplier?.toLowerCase().includes(q) ?? false;
-        const matchCat = labelOf(INVENTORY_CATEGORIES, i.category).toLowerCase().includes(q);
+        const matchCat = getCategoryLabel(storeCategories, i.category).toLowerCase().includes(q);
         if (!matchName && !matchColor && !matchSupplier && !matchCat) return false;
       }
       if (categoryFilter !== "all" && i.category !== categoryFilter) {
@@ -99,7 +106,7 @@ function Estoque() {
       }
       return true;
     });
-  }, [items, searchQuery, categoryFilter, statusFilter]);
+  }, [items, searchQuery, categoryFilter, statusFilter, storeCategories]);
 
   const handleUseSampleAsTemplate = () => {
     setName("Vestido Midi Linho Cru");
@@ -198,7 +205,7 @@ function Estoque() {
   // ── Edição e Ajuste de Grade (Apple UX) ──────────────────────────────────
   const [editingItem, setEditingItem] = useState<(typeof items)[0] | null>(null);
   const [editName, setEditName] = useState("");
-  const [editCategory, setEditCategory] = useState("vestido");
+  const [editCategory, setEditCategory] = useState("");
   const [editColor, setEditColor] = useState("");
   const [editSupplier, setEditSupplier] = useState("");
   const [editCost, setEditCost] = useState("");
@@ -435,18 +442,28 @@ function Estoque() {
                 />
               </Field>
               <Field label="Categoria">
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INVENTORY_CATEGORIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-1.5">
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors flex-1">
+                      <SelectValue placeholder="Selecione uma categoria..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {storeCategories.map((c) => (
+                        <SelectItem key={c.id} value={c.slug}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryManagerOpen(true)}
+                    title="Gerenciar categorias da loja"
+                    className="size-11 shrink-0 rounded-xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center cursor-pointer"
+                  >
+                    <Settings2 className="size-4" />
+                  </button>
+                </div>
               </Field>
               <Field label="Cor">
                 <Input
@@ -457,11 +474,9 @@ function Estoque() {
                 />
               </Field>
               <Field label="Fornecedor (Opcional)">
-                <Input
+                <SupplierCombobox
                   value={supplier}
-                  onChange={(e) => setSupplier(e.target.value)}
-                  placeholder="Ex: Confecção Bella Moda"
-                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                  onChange={setSupplier}
                 />
               </Field>
               <Field label="Custo da peça (R$)">
@@ -703,9 +718,9 @@ function Estoque() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as categorias</SelectItem>
-                  {INVENTORY_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
+                  {storeCategories.map((c) => (
+                    <SelectItem key={c.id} value={c.slug}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -861,9 +876,9 @@ function Estoque() {
                         {i.name}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {labelOf(INVENTORY_CATEGORIES, i.category)}
+                        {getCategoryLabel(storeCategories, i.category)}
                         {i.color ? ` · ${i.color}` : ""}
-                        {i.supplier ? ` · Fornecedor: ${i.supplier}` : ""}
+                        {i.supplier ? ` · ${i.supplier}` : ""}
                       </p>
 
                       {/* Grade Limpa (Apenas tamanhos positivos ou Esgotado) */}
@@ -972,18 +987,28 @@ function Estoque() {
                   />
                 </Field>
                 <Field label="Categoria">
-                  <Select value={editCategory} onValueChange={setEditCategory}>
-                    <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INVENTORY_CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-1.5">
+                    <Select value={editCategory} onValueChange={setEditCategory}>
+                      <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors flex-1">
+                        <SelectValue placeholder="Selecione uma categoria..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {storeCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.slug}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryManagerOpen(true)}
+                      title="Gerenciar categorias da loja"
+                      className="size-11 shrink-0 rounded-xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center cursor-pointer"
+                    >
+                      <Settings2 className="size-4" />
+                    </button>
+                  </div>
                 </Field>
                 <Field label="Cor">
                   <Input
@@ -994,11 +1019,9 @@ function Estoque() {
                   />
                 </Field>
                 <Field label="Fornecedor (Opcional)">
-                  <Input
+                  <SupplierCombobox
                     value={editSupplier}
-                    onChange={(e) => setEditSupplier(e.target.value)}
-                    placeholder="Bras Moda"
-                    className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                    onChange={setEditSupplier}
                   />
                 </Field>
                 <Field label="Custo da peça (R$)">
@@ -1211,6 +1234,17 @@ function Estoque() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* ── Modal de Gestão de Categorias (Nível Shopify) ── */}
+      <CategoryManagerDialog
+        open={categoryManagerOpen}
+        onOpenChange={setCategoryManagerOpen}
+        items={items}
+        onCategoryCreated={(slug) => {
+          setCategory(slug);
+          setEditCategory(slug);
+        }}
+      />
     </div>
   );
 }
