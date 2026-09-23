@@ -48,27 +48,32 @@ import {
   updateSupplier,
   deleteSupplier,
 } from "@/lib/mutations";
-import { EXIT_CATEGORIES } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/fornecedores")({
   head: () => ({
     meta: [
-      { title: "Fornecedores & Gastos — Vestui" },
+      { title: "Fornecedores de Mercadoria — Vestui" },
       {
         name: "description",
         content:
-          "Cadastre seus fornecedores, acompanhe gastos por parceiro e mantenha um histórico financeiro completo.",
+          "Cadastre suas confecções e fornecedores parceiros, acompanhe compras e mantenha contato direto.",
       },
     ],
   }),
   component: Fornecedores,
 });
 
-// Categorias relevantes para fornecedores (sem estorno que é de cliente)
-const SUPPLIER_CATEGORIES = EXIT_CATEGORIES.filter(
-  (c) => c.value !== "estorno_devolucao",
-);
+// Categorias de fornecedor para moda — apenas parceiros comerciais reais
+const SUPPLIER_CATEGORIES = [
+  { value: "compra_estoque", label: "Confecção / Roupas" },
+  { value: "calcado_fornecedor", label: "Calçados" },
+  { value: "acessorio_fornecedor", label: "Acessórios" },
+  { value: "embalagem", label: "Embalagens & Etiquetas" },
+  { value: "tecido_aviamento", label: "Tecidos & Aviamentos" },
+  { value: "frete", label: "Frete / Logística" },
+  { value: "outro_fornecedor", label: "Outro" },
+];
 
 function categoryLabel(value: string | null): string {
   if (!value) return "Geral";
@@ -79,16 +84,16 @@ function categoryColor(value: string | null): string {
   switch (value) {
     case "compra_estoque":
       return "bg-primary/10 text-primary border-primary/20";
+    case "calcado_fornecedor":
+      return "bg-amber-500/10 text-amber-600 border-amber-400/20";
+    case "acessorio_fornecedor":
+      return "bg-violet-500/10 text-violet-600 border-violet-400/20";
+    case "embalagem":
+      return "bg-teal-500/10 text-teal-600 border-teal-400/20";
+    case "tecido_aviamento":
+      return "bg-rose-500/10 text-rose-600 border-rose-400/20";
     case "frete":
       return "bg-sky-500/10 text-sky-600 border-sky-400/20";
-    case "aluguel":
-      return "bg-amber-500/10 text-amber-600 border-amber-400/20";
-    case "marketing":
-      return "bg-violet-500/10 text-violet-600 border-violet-400/20";
-    case "prolabore":
-      return "bg-emerald-500/10 text-emerald-600 border-emerald-400/20";
-    case "perda_avaria":
-      return "bg-destructive/10 text-destructive border-destructive/20";
     default:
       return "bg-surface-muted text-muted-foreground border-border";
   }
@@ -292,9 +297,9 @@ function Fornecedores() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Financeiro"
-        title="Fornecedores & Gastos"
-        description="Cadastre seus fornecedores, acompanhe quanto você gasta com cada um e mantenha contato com 1 clique."
+        eyebrow="Catálogo & Compras"
+        title="Fornecedores de Mercadoria"
+        description="Cadastre confecções e parceiros, acompanhe compras por fornecedor e mantenha contato direto pelo WhatsApp."
         action={
           <Button
             className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer"

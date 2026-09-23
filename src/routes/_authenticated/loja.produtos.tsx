@@ -275,6 +275,19 @@ function ProdutosPage() {
           }
         />
 
+        {/* Banner: Sincronia com Estoque */}
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-1">
+            <Sparkles className="size-4 text-primary shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Catálogo sincronizado com o Estoque</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Preço, categoria e quantidade são espelhados do estoque físico. Aqui você controla visibilidade, ordem, destaque e promoções na vitrine.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Barra de busca + categorias */}
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="relative min-w-0">

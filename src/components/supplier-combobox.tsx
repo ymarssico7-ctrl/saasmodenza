@@ -243,7 +243,7 @@ export function SupplierCombobox({
               className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
               onClick={() => setOpen(false)}
             >
-              Fornecedores & Gastos
+              Fornecedores
               <ExternalLink className="size-3" />
             </Link>
           </div>

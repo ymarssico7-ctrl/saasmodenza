@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo, useEffect } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Layers, Minus, Pencil, Plus, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
+import { Boxes, Calculator, Check, Layers, Minus, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -27,18 +27,28 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { inventoryQuery, pricingsQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { SIZE_GRID, computePricing } from "@/lib/finance";
-import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
+import { useStoreCategories, getCategoryLabel, createCategorySlug, DEFAULT_STORE_CATEGORIES } from "@/lib/categories";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@/lib/mutations";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
+type EstoqueSearch = {
+  tab?: "pecas" | "categorias";
+  cat?: string;
+};
+
 export const Route = createFileRoute("/_authenticated/estoque")({
+  validateSearch: (search: Record<string, unknown>): EstoqueSearch => ({
+    tab: search.tab === "categorias" ? "categorias" : "pecas",
+    cat: typeof search.cat === "string" ? search.cat : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Estoque por grade — Vestui" },
@@ -66,8 +76,76 @@ function Estoque() {
   const { data: pricings = [] } = useQuery(pricingsQuery());
 
   // ── Categorias Dinâmicas da Loja (Nível Shopify) ──────────────────────────
-  const { categories: storeCategories } = useStoreCategories();
+  const { categories: storeCategories, saveCategories, isSaving: isSavingCats } = useStoreCategories();
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+
+  // ── Sub-abas: Peças em Estoque / Categorias do Catálogo ────────────────────
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const [activeTab, setActiveTab] = useState<"pecas" | "categorias">(search.tab ?? "pecas");
+  const [newCatName, setNewCatName] = useState("");
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
+
+  useEffect(() => {
+    if (search.tab && search.tab !== activeTab) setActiveTab(search.tab);
+  }, [search.tab]);
+
+  const handleTabChange = (val: string) => {
+    const newTab = val as "pecas" | "categorias";
+    setActiveTab(newTab);
+    void navigate({ search: (prev) => ({ ...prev, tab: newTab }) });
+  };
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      if (item.category) {
+        const key = item.category.toLowerCase().trim();
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [items]);
+
+  const handleAddCategory = () => {
+    const trimmed = newCatName.trim();
+    if (!trimmed) return;
+    const existingSlugs = storeCategories.map((c) => c.slug);
+    const slug = createCategorySlug(trimmed, existingSlugs);
+    const newCat = { id: slug, name: trimmed, slug };
+    void saveCategories([...storeCategories, newCat]);
+    setNewCatName("");
+    toast.success(`Categoria "${trimmed}" criada com sucesso!`);
+  };
+
+  const handleRenameCategory = (id: string) => {
+    const trimmed = editingCatName.trim();
+    if (!trimmed) return;
+    const updated = storeCategories.map((c) =>
+      c.id === id ? { ...c, name: trimmed } : c
+    );
+    void saveCategories(updated);
+    setEditingCatId(null);
+    setEditingCatName("");
+    toast.success("Categoria renomeada!");
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    const cat = storeCategories.find((c) => c.id === id);
+    const count = categoryCounts.get(cat?.slug ?? "") ?? 0;
+    if (count > 0) {
+      toast.error(`Não é possível excluir: ${count} peça${count > 1 ? "s" : ""} usa${count > 1 ? "m" : ""} essa categoria.`);
+      return;
+    }
+    void saveCategories(storeCategories.filter((c) => c.id !== id));
+    toast.success("Categoria removida.");
+  };
+
+  const handleRestoreDefaults = () => {
+    void saveCategories(DEFAULT_STORE_CATEGORIES);
+    toast.success("Categorias de moda restauradas!");
+  };
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -82,7 +160,7 @@ function Estoque() {
 
   // ── Filtros e Busca Rápida no Estoque (Apple UX) ──────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState(search.cat ?? "all");
   const [statusFilter, setStatusFilter] = useState<"all" | "in_stock" | "out_of_stock">("all");
 
   const filteredItems = useMemo(() => {
@@ -350,6 +428,27 @@ function Estoque() {
           </p>
         </div>
       </div>
+
+      {/* ── Sub-Abas: Peças em Estoque / Categorias do Catálogo ────────────── */}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <TabsList className="h-10 rounded-xl bg-surface-muted/60 border border-border/60 p-1">
+            <TabsTrigger value="pecas" className="rounded-lg px-4 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-xs">
+              <Shirt className="mr-1.5 size-3.5" />
+              Peças em Estoque
+            </TabsTrigger>
+            <TabsTrigger value="categorias" className="rounded-lg px-4 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-xs">
+              <Layers className="mr-1.5 size-3.5" />
+              Categorias do Catálogo
+              <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                {storeCategories.length}
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
+        <TabsContent value="pecas" className="space-y-6 mt-6">
 
       <section className="panel p-6 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -981,6 +1080,166 @@ function Estoque() {
         )}
       </section>
 
+        </TabsContent>
+
+        {/* ══ ABA: Categorias do Catálogo ════════════════════════════════════ */}
+        <TabsContent value="categorias" className="mt-6">
+          <section className="panel p-6 sm:p-7 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Categorias do Catálogo</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  As categorias aqui são universais — usadas no estoque, na vitrine online e nos filtros de toda a plataforma.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRestoreDefaults}
+                disabled={isSavingCats}
+                className="h-9 gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-semibold text-foreground/70 hover:text-foreground hover:border-foreground/30 transition-all cursor-pointer shrink-0"
+              >
+                <RotateCcw className="size-3.5" />
+                Restaurar padrões de moda
+              </Button>
+            </div>
+
+            {/* Adicionar nova categoria */}
+            <div className="flex items-center gap-2">
+              <Input
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
+                placeholder="Nova categoria... Ex: Moda Fitness"
+                className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors text-sm"
+              />
+              <Button
+                type="button"
+                onClick={handleAddCategory}
+                disabled={!newCatName.trim() || isSavingCats}
+                className="h-10 rounded-xl px-4 text-xs font-semibold gap-1.5 shrink-0 cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                Adicionar
+              </Button>
+            </div>
+
+            {/* Grid de categorias */}
+            {storeCategories.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/60 bg-surface-muted/30 p-8 text-center space-y-2">
+                <Layers className="mx-auto size-8 text-muted-foreground/30" />
+                <p className="text-sm font-medium text-muted-foreground">Nenhuma categoria ainda.</p>
+                <p className="text-xs text-muted-foreground/70">Adicione acima ou restaure as categorias padrão de moda.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {storeCategories.map((cat) => {
+                  const count = categoryCounts.get(cat.slug) ?? categoryCounts.get(cat.id) ?? 0;
+                  const isEditing = editingCatId === cat.id;
+                  return (
+                    <div
+                      key={cat.id}
+                      className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col gap-3"
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editingCatName}
+                            onChange={(e) => setEditingCatName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); handleRenameCategory(cat.id); }
+                              if (e.key === "Escape") { setEditingCatId(null); }
+                            }}
+                            autoFocus
+                            className="h-8 rounded-lg text-sm bg-card border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            className="size-8 rounded-lg shrink-0 cursor-pointer"
+                            onClick={() => handleRenameCategory(cat.id)}
+                            disabled={isSavingCats}
+                          >
+                            <Check className="size-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                            onClick={() => setEditingCatId(null)}
+                          >
+                            <X className="size-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{cat.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {count > 0 ? `${count} peça${count > 1 ? "s" : ""}` : "Sem peças"}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 border border-border/60 bg-surface-muted/50 rounded-xl p-0.5 shrink-0">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
+                              title="Renomear"
+                              onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
+                            >
+                              <Pencil className="size-3" />
+                            </Button>
+                            <ConfirmDelete
+                              onConfirm={() => handleDeleteCategory(cat.id)}
+                              description={count > 0
+                                ? `"${cat.name}" tem ${count} peça${count > 1 ? "s" : ""} e não pode ser excluída.`
+                                : `A categoria "${cat.name}" será removida permanentemente.`
+                              }
+                              trigger={
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                  title="Excluir"
+                                  disabled={count > 0}
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Filtrar no estoque */}
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategoryFilter(cat.slug);
+                            handleTabChange("pecas");
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-surface-muted/40 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+                        >
+                          <Search className="size-3" />
+                          {count > 0 ? `Ver ${count} peça${count > 1 ? "s" : ""} no estoque` : "Ver no estoque"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </TabsContent>
+
+      </Tabs>
+
       {/* ── Sheet de Edição e Ajuste de Grade (Apple UX) ───────────────── */}
       <Sheet open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
@@ -989,6 +1248,7 @@ function Estoque() {
             <SheetDescription>
               Ajuste as quantidades por tamanho, custo e preço de venda.
             </SheetDescription>
+
           </SheetHeader>
 
           {editingItem && (

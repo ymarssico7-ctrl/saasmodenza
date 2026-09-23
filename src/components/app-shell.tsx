@@ -89,7 +89,7 @@ const GESTAO_NAV: NavItem[] = [
   },
   {
     to: "/fornecedores",
-    label: "Fornecedores & Gastos",
+    label: "Fornecedores",
     icon: Truck,
     isMatch: (p) => p.startsWith("/fornecedores"),
   },
@@ -141,7 +141,7 @@ const GESTAO_ONLINE_NAV: NavItem[] = [
   },
   {
     to: "/fornecedores",
-    label: "Fornecedores & Gastos",
+    label: "Fornecedores",
     icon: Truck,
     isMatch: (p) => p.startsWith("/fornecedores"),
   },
@@ -245,7 +245,7 @@ const MOBILE_MORE_FISICA: NavItem[] = [
     section: "Catálogo & Compras",
     isMatch: (p) => p.startsWith("/precificacao"),
   },
-  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   {
     to: "/relatorio",
     label: "Lucro Real & DRE",
@@ -274,7 +274,7 @@ const MOBILE_MORE_GESTAO: NavItem[] = [
     section: "Catálogo & Compras",
     isMatch: (p) => p.startsWith("/precificacao"),
   },
-  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   {
     to: "/relatorio",
     label: "Lucro Real & DRE",
@@ -363,7 +363,7 @@ const MOBILE_MORE_ONLINE_GESTAO: NavItem[] = [
     section: "Catálogo & Compras",
     isMatch: (p) => p.startsWith("/precificacao"),
   },
-  { to: "/fornecedores", label: "Fornecedores & Gastos", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, isMatch: (p) => p.startsWith("/fornecedores") },
   { to: "/metas", label: "Metas & Planejamento", icon: Target, isMatch: (p) => p.startsWith("/metas") },
 ];
 
