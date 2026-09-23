@@ -2,10 +2,13 @@ import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeft,
   BadgeDollarSign,
   Boxes,
   Calculator,
   CircleDollarSign,
+  CreditCard,
+  Globe,
   HandCoins,
   LayoutDashboard,
   Link2,
@@ -35,7 +38,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
-import { profileQuery } from "@/lib/db";
+import { profileQuery, membersQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { isVitrineAtiva, getBusinessModel, type BusinessModel } from "@/lib/vitrine-settings";
@@ -456,6 +459,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search }) as Record<string, unknown>;
+  const isConfiguracoes = pathname.startsWith("/configuracoes");
+  const currentSettingsTab = (typeof search?.tab === "string" ? search.tab : "geral") || "geral";
+  const { data: members = [] } = useQuery(membersQuery());
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
 
   // ── Modelo de atuação & ativação da Vitrine Online ─────────────────────────
@@ -577,53 +584,137 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
-        <Link to="/painel" className="px-2">
-          <Logo />
-        </Link>
+        {isConfiguracoes ? (
+          <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none">
+            {/* Botão de retorno ao Admin (Shopify style) */}
+            <Link
+              to="/painel"
+              className="group flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer mb-2"
+            >
+              <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <span>Voltar ao Início</span>
+            </Link>
 
-        {/* Alternador de modo (pílula Apple) — visível apenas quando vitrine está ativa */}
-        {vitrineAtiva && (
-          <div className="mt-5">
-            <ModeToggle
-              mode={sidebarMode}
-              onChange={handleModeChange}
-              businessModel={businessModel}
-              badgeCount={pendingOrderCount}
-            />
+            {/* Card de Identificação da Loja (Shopify Imagem 5) */}
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-sidebar-border/80 bg-card p-3 shadow-2xs">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs shrink-0">
+                {storeName.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
+              </div>
+            </div>
+
+            <div className="px-2.5 pb-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                Configurações
+              </p>
+            </div>
+
+            <nav className="flex flex-col gap-1">
+              {[
+                { tab: "geral", label: "Geral", icon: Store },
+                { tab: "canais", label: "Canais de Venda", icon: Globe },
+                { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
+                { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
+                { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
+              ].map((item) => {
+                const active = currentSettingsTab === item.tab;
+                return (
+                  <Link
+                    key={item.tab}
+                    to="/configuracoes"
+                    search={{ tab: item.tab }}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-150 cursor-pointer",
+                      active
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        "size-4 shrink-0 transition-colors",
+                        active
+                          ? "text-primary-foreground"
+                          : "text-muted-foreground group-hover:text-foreground",
+                      )}
+                    />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.2 text-[10px] font-bold",
+                          active
+                            ? "bg-white/20 text-white"
+                            : "bg-surface-muted text-muted-foreground",
+                        )}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
-        )}
+        ) : (
+          <>
+            <Link to="/painel" className="px-2">
+              <Logo />
+            </Link>
 
-        {/* Navegação plana com seções visuais e transição fluida */}
-        <nav className={cn("flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]", vitrineAtiva ? "mt-0" : "mt-6")}>
-          <div
-            key={`${sidebarMode}-${businessModel}`}
-            className="flex flex-col gap-1 animate-in fade-in-60 slide-in-from-left-1.5 duration-200 ease-out"
-          >
-            {mainNav.map((item) => (
-              <div key={item.to} className="flex flex-col">
-                {item.section && (
-                  <div className="px-4 pt-4 pb-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                      {item.section}
-                    </p>
-                  </div>
-                )}
-                <NavItemLink
-                  item={item}
-                  active={isNavActive(item)}
-                  badgeCount={getBadge(item)}
+            {/* Alternador de modo (pílula Apple) — visível apenas quando vitrine está ativa */}
+            {vitrineAtiva && (
+              <div className="mt-5">
+                <ModeToggle
+                  mode={sidebarMode}
+                  onChange={handleModeChange}
+                  businessModel={businessModel}
+                  badgeCount={pendingOrderCount}
                 />
               </div>
-            ))}
-          </div>
+            )}
 
-          <div className="mt-4 border-t border-sidebar-border/60 pt-2">
-            <NavItemLink
-              item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
-              active={pathname === "/configuracoes"}
-            />
-          </div>
-        </nav>
+            {/* Navegação plana com seções visuais e transição fluida */}
+            <nav
+              className={cn(
+                "flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+                vitrineAtiva ? "mt-0" : "mt-6",
+              )}
+            >
+              <div
+                key={`${sidebarMode}-${businessModel}`}
+                className="flex flex-col gap-1 animate-in fade-in-60 slide-in-from-left-1.5 duration-200 ease-out"
+              >
+                {mainNav.map((item) => (
+                  <div key={item.to} className="flex flex-col">
+                    {item.section && (
+                      <div className="px-4 pt-4 pb-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                          {item.section}
+                        </p>
+                      </div>
+                    )}
+                    <NavItemLink
+                      item={item}
+                      active={isNavActive(item)}
+                      badgeCount={getBadge(item)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 border-t border-sidebar-border/60 pt-2">
+                <NavItemLink
+                  item={{ to: "/configuracoes", label: "Configurações", icon: Settings }}
+                  active={pathname === "/configuracoes"}
+                />
+              </div>
+            </nav>
+          </>
+        )}
 
 
         {/* Banner de Trial */}

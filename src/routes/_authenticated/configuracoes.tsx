@@ -7,17 +7,13 @@ import {
   Building2,
   Check,
   CreditCard,
-  ExternalLink,
   Globe,
   LogOut,
   Pencil,
   Plus,
-  Settings,
   ShieldCheck,
-  ShoppingBag,
   Sparkles,
   Store,
-  Tags,
   Trash2,
   Users,
   Wallet,
@@ -29,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -45,10 +40,7 @@ import {
   profileQuery,
   updateDemoProfile,
   currentUserId,
-  inventoryQuery,
 } from "@/lib/db";
-import { useStoreCategories } from "@/lib/categories";
-import { CategoryManagerDialog } from "@/components/category-manager-dialog";
 import { brl, toNumber } from "@/lib/format";
 import { ENTRY_CATEGORIES, EXIT_CATEGORIES, PAYMENT_METHODS } from "@/lib/finance";
 import {
@@ -71,7 +63,7 @@ import {
 } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-type ConfiguracoesTab = "perfil" | "canais" | "caixa" | "equipe" | "conta";
+type ConfiguracoesTab = "geral" | "canais" | "caixa" | "equipe" | "plano";
 
 type ConfiguracoesSearch = {
   tab?: ConfiguracoesTab;
@@ -79,22 +71,22 @@ type ConfiguracoesSearch = {
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   validateSearch: (search: Record<string, unknown>): ConfiguracoesSearch => {
-    const validTabs: ConfiguracoesTab[] = ["perfil", "canais", "caixa", "equipe", "conta"];
+    const validTabs: ConfiguracoesTab[] = ["geral", "canais", "caixa", "equipe", "plano"];
     const tab =
       typeof search.tab === "string" && validTabs.includes(search.tab as ConfiguracoesTab)
         ? (search.tab as ConfiguracoesTab)
-        : "perfil";
+        : "geral";
     return { tab };
   },
   head: () => ({
     meta: [
-      { title: "Configurações da Loja — Vestui" },
+      { title: "Configurações — Vestui" },
       {
         name: "description",
-        content: "Ajuste os dados da loja, modelo de atendimento, caixa, equipe e assinatura.",
+        content: "Ajuste os dados da loja, canais de venda, regras do caixa, equipe e assinatura.",
       },
-      { property: "og:title", content: "Configurações da Loja — Vestui" },
-      { property: "og:description", content: "Central oficial de configurações da boutique." },
+      { property: "og:title", content: "Configurações — Vestui" },
+      { property: "og:description", content: "Configurações da sua loja no Vestui." },
     ],
   }),
   component: Configuracoes,
@@ -107,22 +99,11 @@ function Configuracoes() {
   const { store, storeId } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
-  const { categories: storeCategories } = useStoreCategories();
-  const { data: inventoryItems = [] } = useQuery(inventoryQuery());
 
-  const [activeTab, setActiveTab] = useState<ConfiguracoesTab>(search.tab ?? "perfil");
-  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  const activeTab: ConfiguracoesTab = search.tab ?? "geral";
   const [subModalOpen, setSubModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (search.tab && search.tab !== activeTab) {
-      setActiveTab(search.tab);
-    }
-  }, [search.tab, activeTab]);
-
-  const handleTabChange = (val: string) => {
-    const nextTab = val as ConfiguracoesTab;
-    setActiveTab(nextTab);
+  const handleTabChange = (nextTab: ConfiguracoesTab) => {
     void navigate({ search: (prev) => ({ ...prev, tab: nextTab }) });
   };
 
@@ -286,7 +267,7 @@ function Configuracoes() {
 
   const addMember = useMutation({
     mutationFn: async () => {
-      if (!memberName.trim()) throw new Error("Informe o nome");
+      if (!memberName.trim()) throw new Error("Informe o nome do colaborador");
       return insertMember(storeId, memberName.trim(), memberEmail.trim() || null, memberRole);
     },
     onSuccess: () => {
@@ -301,7 +282,7 @@ function Configuracoes() {
   const removeMember = useMutation({
     mutationFn: async (id: string) => deleteMember(storeId, id),
     onSuccess: () => {
-      toast.success("Membro removido da equipe.");
+      toast.success("Colaborador removido da equipe.");
       void queryClient.invalidateQueries({ queryKey: ["members"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -314,82 +295,76 @@ function Configuracoes() {
     navigate({ to: "/auth", replace: true });
   }
 
+  // ── Metadados do cabeçalho conforme a aba ativa (Padrão Shopify Imagem 5) ──
+  const tabMetadata = {
+    geral: {
+      title: "Geral",
+      description: "Informações oficiais da empresa, contato e logotipo da sua boutique.",
+    },
+    canais: {
+      title: "Canais de Venda",
+      description: "Defina como você atende suas clientes (Balcão Físico vs Vitrine Digital).",
+    },
+    caixa: {
+      title: "Caixa & Pagamentos",
+      description: "Classificações de receitas, despesas e formas de pagamento aceitas no balcão (PDV).",
+    },
+    equipe: {
+      title: "Usuários & Equipe",
+      description: "Gerencie quem atua no balcão e no atendimento para organizar responsabilidades.",
+    },
+    plano: {
+      title: "Plano & Assinatura",
+      description: "Detalhes da sua licença de uso do Vestui, metas financeiras e segurança.",
+    },
+  }[activeTab];
+
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-6 max-w-4xl">
+      {/* ── Navegador Mobile (visível apenas em telas menores onde a sidebar desktop está oculta) ── */}
+      <div className="lg:hidden overflow-x-auto pb-1 scrollbar-none">
+        <div className="inline-flex gap-1.5 p-1 rounded-2xl bg-surface-muted border border-border/60">
+          {[
+            { tab: "geral", label: "Geral" },
+            { tab: "canais", label: "Canais" },
+            { tab: "caixa", label: "Caixa" },
+            { tab: "equipe", label: `Equipe${members.length > 0 ? ` (${members.length})` : ""}` },
+            { tab: "plano", label: "Plano" },
+          ].map((item) => (
+            <button
+              key={item.tab}
+              type="button"
+              onClick={() => handleTabChange(item.tab as ConfiguracoesTab)}
+              className={cn(
+                "rounded-xl px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer",
+                activeTab === item.tab
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Cabeçalho Oficial (Shopify style — direto e objetivo) ─────────── */}
       <PageHeader
         eyebrow="Configurações"
-        title="Central da Loja"
-        description="Gerencie a identidade da boutique, canais de venda, regras do caixa, equipe e assinatura."
+        title={tabMetadata.title}
+        description={tabMetadata.description}
       />
 
-      {/* ── Barra de Navegação de Configurações (Nível Shopify / Linear) ──────── */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="overflow-x-auto pb-1 scrollbar-none">
-          <TabsList className="h-11 rounded-2xl bg-surface-muted/70 p-1 border border-border/60 gap-1 inline-flex min-w-full sm:min-w-0">
-            <TabsTrigger
-              value="perfil"
-              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-            >
-              <Store className="size-3.5 text-primary" />
-              <span>Perfil da Loja</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="canais"
-              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-            >
-              <Globe className="size-3.5 text-sky-500" />
-              <span>Canais & Modelo</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="caixa"
-              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-            >
-              <CreditCard className="size-3.5 text-emerald-500" />
-              <span>Caixa & Pagamentos</span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="equipe"
-              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-            >
-              <Users className="size-3.5 text-violet-500" />
-              <span>Equipe & Acessos</span>
-              {members.length > 0 && (
-                <span className="ml-1 rounded-full bg-violet-500/10 px-1.5 py-0.2 text-[10px] font-bold text-violet-600 dark:text-violet-400">
-                  {members.length}
-                </span>
-              )}
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="conta"
-              className="rounded-xl px-4 py-2 text-xs font-semibold gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
-            >
-              <Sparkles className="size-3.5 text-amber-500" />
-              <span>Plano & Conta</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* ════ ABA 1: Perfil da Loja ═════════════════════════════════════════ */}
-        <TabsContent value="perfil" className="space-y-6 mt-2">
-          <section className="panel p-6 sm:p-7 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Identidade & Contato</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Dados oficiais da sua boutique exibidos nos recibos, vitrine e no atendimento pelo WhatsApp.
-                </p>
-              </div>
-              <Button
-                className="h-10 rounded-xl px-6 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 shrink-0 cursor-pointer"
-                disabled={saveProfile.isPending}
-                onClick={() => saveProfile.mutate()}
-              >
-                {saveProfile.isPending ? "Salvando..." : "Salvar alterações"}
-              </Button>
+      {/* ════ ABA 1: Geral ══════════════════════════════════════════════════ */}
+      {activeTab === "geral" && (
+        <div className="space-y-6">
+          {/* Card: Informações da empresa */}
+          <section className="panel p-6 sm:p-7 space-y-5">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Informações da empresa</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Nome comercial e dados da proprietária da loja.
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -417,7 +392,20 @@ function Configuracoes() {
                   className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
               </Field>
-              <Field label="WhatsApp de Atendimento da Loja">
+            </div>
+          </section>
+
+          {/* Card: Contato da loja */}
+          <section className="panel p-6 sm:p-7 space-y-5">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Informações de contato da loja</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Utilizado para atendimento das clientes e envio de comprovantes via WhatsApp.
+              </p>
+            </div>
+
+            <div className="max-w-md">
+              <Field label="WhatsApp oficial de atendimento">
                 <Input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -426,45 +414,46 @@ function Configuracoes() {
                 />
               </Field>
             </div>
+          </section>
 
-            {/* Logotipo Oficial */}
-            <div className="pt-4 border-t border-border/60">
-              <div className="flex flex-col sm:flex-row gap-6 items-start">
-                <div className="w-full sm:w-48 shrink-0 space-y-2">
-                  <Label className="text-xs font-semibold text-foreground/90 tracking-tight">
-                    Logotipo oficial da loja
-                  </Label>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Aparece no cabeçalho da sua vitrine online e nos comprovantes digitais. Recomendado formato quadrado (PNG ou JPG).
-                  </p>
-                </div>
-                <div className="w-40 max-w-[160px]">
-                  <ImageUploader
-                    currentUrl={logoUrl || null}
-                    bucket="store-logos"
-                    folder="logos"
-                    onUploaded={setLogoUrl}
-                    placeholder="Adicionar logo"
-                    aspect="square"
-                  />
-                </div>
+          {/* Card: Logotipo da loja */}
+          <section className="panel p-6 sm:p-7 space-y-5">
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div className="w-full sm:w-56 shrink-0 space-y-2">
+                <h2 className="text-base font-semibold text-foreground">Logotipo da loja</h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Aparece no cabeçalho da sua vitrine online e nos comprovantes digitais. Recomendado: formato quadrado (PNG ou JPG) com fundo transparente.
+                </p>
+              </div>
+              <div className="w-40 max-w-[160px]">
+                <ImageUploader
+                  currentUrl={logoUrl || null}
+                  bucket="store-logos"
+                  folder="logos"
+                  onUploaded={setLogoUrl}
+                  placeholder="Adicionar logo"
+                  aspect="square"
+                />
               </div>
             </div>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                className="h-11 rounded-xl px-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 cursor-pointer"
-                disabled={saveProfile.isPending}
-                onClick={() => saveProfile.mutate()}
-              >
-                {saveProfile.isPending ? "Salvando dados..." : "Salvar alterações"}
-              </Button>
-            </div>
           </section>
-        </TabsContent>
 
-        {/* ════ ABA 2: Canais & Modelo de Venda ════════════════════════════════ */}
-        <TabsContent value="canais" className="space-y-6 mt-2">
+          {/* Barra de ação de salvar */}
+          <div className="flex justify-end pt-2">
+            <Button
+              className="h-11 rounded-xl px-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 cursor-pointer"
+              disabled={saveProfile.isPending}
+              onClick={() => saveProfile.mutate()}
+            >
+              {saveProfile.isPending ? "Salvando alterações..." : "Salvar alterações"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ════ ABA 2: Canais de Venda ════════════════════════════════════════ */}
+      {activeTab === "canais" && (
+        <div className="space-y-6">
           <section className="panel p-6 sm:p-7 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-4 border-b border-border/60">
               <div className="space-y-1">
@@ -472,7 +461,7 @@ function Configuracoes() {
                   <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Store className="size-4" />
                   </span>
-                  <h2 className="text-base font-semibold text-foreground">Modelo de Atuação da Boutique</h2>
+                  <h2 className="text-base font-semibold text-foreground">Modelo de Atuação da Loja</h2>
                   <Badge
                     variant={vitrineAtiva ? "default" : "secondary"}
                     className="text-[10px] uppercase font-bold tracking-wider"
@@ -485,7 +474,7 @@ function Configuracoes() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-                  Defina como você atende suas clientes. O Vestui reorganiza automaticamente os menus, ferramentas e rotinas sob medida para o seu negócio.
+                  Defina como você atende suas clientes. O Vestui adapta automaticamente a barra lateral e as ferramentas do dia a dia.
                 </p>
               </div>
 
@@ -503,7 +492,7 @@ function Configuracoes() {
               )}
             </div>
 
-            {/* ── 3 Cards Interativos de Seleção (Padrão Apple) ── */}
+            {/* ── 3 Cards Interativos de Seleção (Padrão Apple / Shopify) ── */}
             <div className="grid gap-3 sm:grid-cols-3">
               {/* Card 1: Apenas Loja Física */}
               <button
@@ -620,86 +609,25 @@ function Configuracoes() {
               </button>
             </div>
           </section>
+        </div>
+      )}
 
-          {/* ── Resumo de Departamentos & Categorias do Catálogo ── */}
-          <section className="panel p-6 sm:p-7 space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Tags className="size-4" />
-                  </span>
-                  <h2 className="text-base font-semibold text-foreground">Departamentos Oficiais da Loja</h2>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Categorias universais sincronizadas no Estoque, Precificação e na Vitrine Online.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl border-border bg-card text-xs font-semibold hover:border-primary/40 hover:text-primary transition-all cursor-pointer h-9 px-3.5 shadow-2xs"
-                >
-                  <Link to="/estoque" search={{ tab: "categorias" }}>
-                    <ExternalLink className="size-3.5 mr-1.5" />
-                    Gerenciar no Estoque
-                  </Link>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCategoryManagerOpen(true)}
-                  className="rounded-xl text-xs font-semibold hover:bg-secondary cursor-pointer h-9 px-3"
-                >
-                  <Pencil className="size-3.5 mr-1.5" />
-                  Edição Rápida
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              {storeCategories.map((c) => {
-                const count = inventoryItems.filter(
-                  (i) =>
-                    (i.category || "").toLowerCase().trim() === c.slug.toLowerCase() ||
-                    (i.category || "").toLowerCase().trim() === c.name.toLowerCase(),
-                ).length;
-
-                return (
-                  <div
-                    key={c.id}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-surface-muted/60 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border"
-                  >
-                    <span>{c.name}</span>
-                    <span className="rounded-md bg-card border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground font-semibold">
-                      {count} {count === 1 ? "peça" : "peças"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </TabsContent>
-
-        {/* ════ ABA 3: Caixa & Formas de Pagamento ═════════════════════════════ */}
-        <TabsContent value="caixa" className="space-y-6 mt-2">
+      {/* ════ ABA 3: Caixa & Pagamentos ═════════════════════════════════════ */}
+      {activeTab === "caixa" && (
+        <div className="space-y-6">
           <CustomOptionsSettingsSection storeId={storeId} />
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ════ ABA 4: Equipe & Acessos ════════════════════════════════════════ */}
-        <TabsContent value="equipe" className="space-y-6 mt-2">
+      {/* ════ ABA 4: Usuários & Equipe ══════════════════════════════════════ */}
+      {activeTab === "equipe" && (
+        <div className="space-y-6">
           <section className="panel p-6 sm:p-7 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Equipe da Boutique</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Cadastre quem atua no balcão e no atendimento para organizar responsabilidades e vendas.
-                </p>
-              </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Equipe da Boutique</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Cadastre quem atua no balcão e no atendimento para organizar responsabilidades e vendas.
+              </p>
             </div>
 
             {/* Formulário de Novo Colaborador */}
@@ -762,7 +690,10 @@ function Configuracoes() {
               ) : (
                 <ul className="divide-y divide-border/60 rounded-2xl border border-border/70 bg-card overflow-hidden">
                   {members.map((m) => (
-                    <li key={m.id} className="flex items-center justify-between gap-4 p-4 hover:bg-surface-muted/30 transition-colors">
+                    <li
+                      key={m.id}
+                      className="flex items-center justify-between gap-4 p-4 hover:bg-surface-muted/30 transition-colors"
+                    >
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm shrink-0">
                           {m.name.slice(0, 2).toUpperCase()}
@@ -799,10 +730,12 @@ function Configuracoes() {
               )}
             </div>
           </section>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ════ ABA 5: Plano & Conta ══════════════════════════════════════════ */}
-        <TabsContent value="conta" className="space-y-6 mt-2">
+      {/* ════ ABA 5: Plano & Assinatura ═════════════════════════════════════ */}
+      {activeTab === "plano" && (
+        <div className="space-y-6">
           {/* Card: Assinatura */}
           <section className="panel p-6 sm:p-7 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
@@ -921,15 +854,10 @@ function Configuracoes() {
               />
             </div>
           </section>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <SubscriptionModal open={subModalOpen} onOpenChange={setSubModalOpen} />
-      <CategoryManagerDialog
-        open={categoryManagerOpen}
-        onOpenChange={setCategoryManagerOpen}
-        items={inventoryItems}
-      />
     </div>
   );
 }
