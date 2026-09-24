@@ -3,8 +3,11 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  BadgePercent,
+  BarChart3,
+  Bell,
   Boxes,
-  ChevronDown,
+  ChevronRight,
   CircleDollarSign,
   CreditCard,
   Eye,
@@ -30,14 +33,21 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery, membersQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
-import { isVitrineAtiva, getBusinessModel, type BusinessModel } from "@/lib/vitrine-settings";
+import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-// ─── Tipos da Navegação Hierárquica (Padrão Shopify) ──────────────────────────
+// ─── Tipos da Navegação Hierárquica (Padrão Shopify Oficial) ───────────────────
 type NavChildItem = {
   to: string;
   label: string;
@@ -105,7 +115,7 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
         {
           to: "/estoque",
           search: { tab: "categorias" },
-          label: "Categorias do Catálogo",
+          label: "Coleções & Categorias",
           isMatch: (p, s) => p.startsWith("/estoque") && s?.tab === "categorias",
         },
         {
@@ -150,8 +160,6 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
       to: "/caixa",
       isMatch: (p) =>
         p === "/caixa" ||
-        p.startsWith("/relatorio") ||
-        p.startsWith("/metas") ||
         p.startsWith("/prolabore") ||
         p.startsWith("/loja/recebimentos"),
       children: [
@@ -159,16 +167,6 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
           to: "/caixa",
           label: "Caixa & Balcão (PDV)",
           isMatch: (p) => p === "/caixa",
-        },
-        {
-          to: "/relatorio",
-          label: "DRE & Lucro Real",
-          isMatch: (p) => p.startsWith("/relatorio"),
-        },
-        {
-          to: "/metas",
-          label: "Metas do Mês",
-          isMatch: (p) => p.startsWith("/metas"),
         },
         {
           to: "/prolabore",
@@ -179,6 +177,32 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
           to: "/loja/recebimentos",
           label: "Vestui Pay (Recebimentos)",
           isMatch: (p) => p.startsWith("/loja/recebimentos"),
+        },
+      ],
+    },
+    {
+      id: "descontos",
+      label: "Descontos & Cupons",
+      icon: BadgePercent,
+      to: "/loja/cupons",
+      isMatch: (p) => p.startsWith("/loja/cupons"),
+    },
+    {
+      id: "analises",
+      label: "Análises & DRE",
+      icon: BarChart3,
+      to: "/relatorio",
+      isMatch: (p) => p.startsWith("/relatorio") || p.startsWith("/metas"),
+      children: [
+        {
+          to: "/relatorio",
+          label: "Lucro Real & DRE",
+          isMatch: (p) => p.startsWith("/relatorio"),
+        },
+        {
+          to: "/metas",
+          label: "Metas & Planejamento",
+          isMatch: (p) => p.startsWith("/metas"),
         },
       ],
     },
@@ -195,6 +219,7 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
       isMatch: (p) =>
         p.startsWith("/loja") &&
         !p.startsWith("/loja/pedidos") &&
+        !p.startsWith("/loja/cupons") &&
         !p.startsWith("/loja/recebimentos"),
       children: [
         {
@@ -215,11 +240,6 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
             p.startsWith("/loja/personalizar") ||
             p.startsWith("/loja/compartilhar") ||
             p === "/loja",
-        },
-        {
-          to: "/loja/cupons",
-          label: "Cupons & Descontos",
-          isMatch: (p) => p.startsWith("/loja/cupons"),
         },
         {
           to: "/loja/frete",
@@ -269,56 +289,12 @@ function isGroupActive(
   return false;
 }
 
-// ─── Linha de Item Filho com Recuo ──────────────────────────────────────────
-function NavChildRow({
-  child,
-  pathname,
-  search,
-  badgeCount,
-  onClick,
-}: {
-  child: NavChildItem;
-  pathname: string;
-  search: Record<string, unknown>;
-  badgeCount?: number;
-  onClick?: () => void;
-}) {
-  const active = isChildActive(child, pathname, search);
-  return (
-    <Link
-      to={child.to as any}
-      search={child.search as any}
-      preload="intent"
-      onClick={onClick}
-      className={cn(
-        "group relative flex items-center justify-between rounded-xl px-2.5 py-1.5 text-[12px] transition-all duration-150 cursor-pointer",
-        active
-          ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground font-medium",
-      )}
-    >
-      <span className="truncate">{child.label}</span>
-      {child.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
-        <span
-          className={cn(
-            "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold",
-            active ? "bg-white text-primary" : "bg-red-500 text-white animate-pulse",
-          )}
-        >
-          {badgeCount > 9 ? "9+" : badgeCount}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-// ─── Linha do Grupo Mestre (com Accordion e Preview de Canal) ────────────────
+// ─── Linha do Grupo Mestre (Padrão Shopify Oficial — Sem Setas Laterais) ──────
 function NavGroupRow({
   group,
   pathname,
   search,
   isExpanded,
-  onToggle,
   onNavigate,
   badgeCount,
   storeSlug,
@@ -328,7 +304,6 @@ function NavGroupRow({
   pathname: string;
   search: Record<string, unknown>;
   isExpanded: boolean;
-  onToggle: () => void;
   onNavigate: () => void;
   badgeCount?: number;
   storeSlug?: string | null;
@@ -341,10 +316,10 @@ function NavGroupRow({
     <div className="flex flex-col">
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-xl px-2.5 py-2 text-xs transition-all duration-150 select-none",
+          "group relative flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] transition-all duration-150 select-none",
           groupActive
-            ? "bg-sidebar-accent/80 text-foreground font-semibold"
-            : "text-muted-foreground hover:bg-sidebar-accent/40 hover:text-foreground font-medium",
+            ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
+            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
         )}
       >
         <Link
@@ -371,54 +346,54 @@ function NavGroupRow({
           )}
         </Link>
 
-        <div className="flex items-center gap-0.5">
-          {group.externalPreview && storeSlug && (
-            <a
-              href={`https://${storeSlug}.vestui.com.br`}
-              target="_blank"
-              rel="noreferrer"
-              title="Abrir Vitrine Online em nova aba"
-              className="p-1 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Eye className="size-3.5" />
-            </a>
-          )}
-
-          {hasChildren && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onToggle();
-              }}
-              className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-              aria-label={isExpanded ? "Recolher sub-menu" : "Expandir sub-menu"}
-            >
-              <ChevronDown
-                className={cn(
-                  "size-3.5 transition-transform duration-200",
-                  isExpanded ? "rotate-0" : "-rotate-90",
-                )}
-              />
-            </button>
-          )}
-        </div>
+        {/* Pré-visualização rápida da Vitrine (olho discreto estilo Shopify) */}
+        {group.externalPreview && storeSlug && (
+          <a
+            href={`https://${storeSlug}.vestui.com.br`}
+            target="_blank"
+            rel="noreferrer"
+            title="Abrir Vitrine Online em nova aba"
+            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Eye className="size-3.5" />
+          </a>
+        )}
       </div>
 
+      {/* Sub-itens desdobrados — Padrão Shopify Prints 2, 3 e 4 (Sem bordas pesadas, sem ícones nos filhos) */}
       {hasChildren && isExpanded && (
-        <div className="ml-3 pl-2.5 my-0.5 flex flex-col gap-0.5 border-l border-sidebar-border/70 animate-in fade-in-50 slide-in-from-top-1 duration-150">
-          {group.children!.map((child) => (
-            <NavChildRow
-              key={child.label}
-              child={child}
-              pathname={pathname}
-              search={search}
-              badgeCount={badgeCount}
-              onClick={onItemClick}
-            />
-          ))}
+        <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 slide-in-from-top-1 duration-150">
+          {group.children!.map((child) => {
+            const active = isChildActive(child, pathname, search);
+            return (
+              <Link
+                key={child.label}
+                to={child.to as any}
+                search={child.search as any}
+                preload="intent"
+                onClick={onItemClick}
+                className={cn(
+                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-1.5 text-[12.5px] transition-all duration-150 cursor-pointer",
+                  active
+                    ? "font-semibold text-foreground bg-sidebar-accent/60"
+                    : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
+                )}
+              >
+                <span className="truncate">{child.label}</span>
+                {child.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
+                  <span
+                    className={cn(
+                      "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold",
+                      active ? "bg-primary text-primary-foreground" : "bg-red-500 text-white animate-pulse",
+                    )}
+                  >
+                    {badgeCount > 9 ? "9+" : badgeCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
@@ -461,7 +436,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // ── Árvore de Navegação Unificada ─────────────────────────────────────────
   const navGroups = useMemo(() => getNavGroups(vitrineAtiva), [vitrineAtiva]);
 
-  // ── Estado de Expansão dos Acordeons (Auto-expand ativo) ───────────────────
+  // ── Estado de Expansão dos Acordeons (Auto-expand no grupo ativo) ─────────
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -523,8 +498,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Sidebar Desktop (Shopify-Level) ─────────────────────────────────── */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex">
+      {/* ── Sidebar Desktop (Padrão Shopify Oficial) ─────────────────────────── */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-3.5 py-4 lg:flex">
         {isConfiguracoes ? (
           <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none">
             {/* Botão de retorno ao Admin (Shopify style) */}
@@ -538,7 +513,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             {/* Card de Identificação da Loja (Shopify Style) */}
             <div className="mb-4 flex items-center gap-3 rounded-2xl border border-sidebar-border/80 bg-card p-3 shadow-2xs">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs shrink-0">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 font-bold text-xs shrink-0">
                 {storeName.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
@@ -548,9 +523,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="px-2.5 pb-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                Configurações
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground">Configurações</p>
             </div>
 
             <nav className="flex flex-col gap-1">
@@ -602,19 +575,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         ) : (
           <>
-            <Link to="/painel" className="px-2">
-              <Logo />
-            </Link>
+            {/* Header da Marca (Alinhado) */}
+            <div className="px-2 pt-1 pb-3 flex items-center">
+              <Link to="/painel">
+                <Logo />
+              </Link>
+            </div>
 
             {/* Navegação Hierárquica Multinível (Padrão Shopify Oficial) */}
-            <nav className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {navGroups.map((group) => (
                 <div key={group.id} className="flex flex-col">
                   {group.section && (
-                    <div className="px-2.5 pt-4 pb-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                        {group.section}
-                      </p>
+                    <div className="flex items-center gap-1 px-2.5 pt-5 pb-1.5 text-xs font-semibold text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer select-none">
+                      <span>{group.section}</span>
+                      <ChevronRight className="size-3 text-muted-foreground/50" />
                     </div>
                   )}
                   <NavGroupRow
@@ -622,9 +597,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     pathname={pathname}
                     search={search}
                     isExpanded={Boolean(expandedGroups[group.id])}
-                    onToggle={() =>
-                      setExpandedGroups((prev) => ({ ...prev, [group.id]: !prev[group.id] }))
-                    }
                     onNavigate={() =>
                       setExpandedGroups((prev) => ({ ...prev, [group.id]: true }))
                     }
@@ -637,26 +609,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {/* ── Rodapé Fixo da Sidebar (Configurações & Perfil da Boutique) ──── */}
-        <div className="mt-auto pt-3 border-t border-sidebar-border/70 flex flex-col gap-2">
+        {/* ── Rodapé Fixo da Sidebar (Padrão Shopify Oficial — Sem Card Caixote) ──── */}
+        <div className="mt-auto pt-3 border-t border-sidebar-border/70 flex flex-col gap-1">
           {!isConfiguracoes && (
             <Link
               to="/configuracoes"
               search={{ tab: "geral" }}
               className={cn(
-                "group flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium transition-all duration-150 cursor-pointer",
+                "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all duration-150 cursor-pointer",
                 isConfiguracoes
                   ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                   : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
               )}
             >
-              <div className="flex items-center gap-2.5">
-                <Settings className="size-4 shrink-0 transition-transform group-hover:rotate-45" />
-                <span>Configurações</span>
-              </div>
-              <span className="text-[10px] font-mono text-muted-foreground/60 uppercase group-hover:text-foreground/80">
-                Ajustes
-              </span>
+              <Settings className="size-4 shrink-0 transition-transform group-hover:rotate-45" />
+              <span>Configurações</span>
             </Link>
           )}
 
@@ -664,58 +631,81 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {trialStatus === "active" && daysLeftInTrial !== null && (
             <div
               className={cn(
-                "rounded-2xl px-3.5 py-2.5 text-xs transition-all",
+                "my-1 rounded-xl px-3 py-2 text-xs transition-all",
                 isTrialUrgent
                   ? "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                   : "border border-primary/20 bg-primary/5 text-primary",
               )}
             >
-              <p className="font-semibold text-[11.5px]">
+              <p className="font-semibold text-[11px]">
                 {isTrialUrgent ? "⚠ " : "✨ "}
                 {daysLeftInTrial} {daysLeftInTrial === 1 ? "dia restante" : "dias de avaliação"}
               </p>
-              <p className="mt-0.5 text-[10.5px] opacity-80">
-                {isTrialUrgent
-                  ? "Assine agora para não perder o acesso"
-                  : "Período gratuito ativo — explore à vontade"}
+              <p className="text-[10px] opacity-80">
+                {isTrialUrgent ? "Assine para manter o acesso" : "Período gratuito ativo"}
               </p>
             </div>
           )}
 
-          {/* Card de Identificação da Loja (Base da Sidebar) */}
-          <div className="rounded-2xl border border-sidebar-border/80 bg-card p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              {isProfileLoading ? (
-                <div className="flex-1 space-y-1.5 min-w-0 pr-2">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              ) : (
+          {/* Linha da Boutique com Dropdown Menu (Padrão Shopify Print 1: [ML] Minha loja 🔔) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 hover:bg-sidebar-accent/80 transition-colors cursor-pointer group text-left outline-none"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs shrink-0">
-                    {storeName.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-foreground">{storeName}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{ownerName}</p>
-                  </div>
+                  {isProfileLoading ? (
+                    <Skeleton className="size-7 rounded-lg" />
+                  ) : (
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-teal-500/15 text-teal-600 dark:text-teal-400 font-bold text-[11px] shrink-0">
+                      {storeName.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="truncate text-xs font-semibold text-foreground">{storeName}</span>
                 </div>
-              )}
-              {isProfileLoading ? (
-                <Skeleton className="h-4 w-12 rounded-full" />
-              ) : (
-                <span className="ml-2 shrink-0 rounded-full border border-primary/20 bg-primary-soft px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-accent-foreground">
+                <Bell className="size-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
+              <div className="px-2.5 py-2">
+                <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
+                <span className="mt-1.5 inline-block rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">
                   {planLabel}
                 </span>
-              )}
-            </div>
-            <button
-              onClick={() => void signOut()}
-              className="mt-2.5 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
-            >
-              <LogOut className="size-3" /> Sair da conta
-            </button>
-          </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "geral" }}
+                  className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                >
+                  <Settings className="size-3.5 text-muted-foreground" />
+                  <span>Configurações da Loja</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "plano" }}
+                  className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                >
+                  <Sparkles className="size-3.5 text-amber-500" />
+                  <span>Plano & Assinatura</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => void signOut()}
+                className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
+              >
+                <LogOut className="size-3.5" />
+                <span>Sair da conta</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
@@ -742,10 +732,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {navGroups.map((group) => (
               <div key={group.id} className="flex flex-col">
                 {group.section && (
-                  <div className="px-2.5 pt-4 pb-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                      {group.section}
-                    </p>
+                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1.5 text-xs font-semibold text-muted-foreground/80">
+                    <span>{group.section}</span>
+                    <ChevronRight className="size-3 text-muted-foreground/50" />
                   </div>
                 )}
                 <NavGroupRow
@@ -753,9 +742,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   pathname={pathname}
                   search={search}
                   isExpanded={Boolean(expandedGroups[group.id])}
-                  onToggle={() =>
-                    setExpandedGroups((prev) => ({ ...prev, [group.id]: !prev[group.id] }))
-                  }
                   onNavigate={() =>
                     setExpandedGroups((prev) => ({ ...prev, [group.id]: true }))
                   }
@@ -839,10 +825,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {navGroups.map((group) => (
               <div key={group.id} className="flex flex-col">
                 {group.section && (
-                  <div className="px-2.5 pt-4 pb-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                      {group.section}
-                    </p>
+                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground/80">
+                    <span>{group.section}</span>
+                    <ChevronRight className="size-3 text-muted-foreground/50" />
                   </div>
                 )}
                 <NavGroupRow
@@ -850,9 +835,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   pathname={pathname}
                   search={search}
                   isExpanded={Boolean(expandedGroups[group.id])}
-                  onToggle={() =>
-                    setExpandedGroups((prev) => ({ ...prev, [group.id]: !prev[group.id] }))
-                  }
                   onNavigate={() =>
                     setExpandedGroups((prev) => ({ ...prev, [group.id]: true }))
                   }
