@@ -688,7 +688,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Sidebar Desktop (Padrão Shopify Oficial) ─────────────────────────── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar py-3 transition-[width,padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex shrink-0 select-none",
+          "fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar text-sidebar-foreground py-3 transition-[width,padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex shrink-0 select-none",
           isCollapsed ? "w-[64px] px-2" : "w-[260px] px-3.5",
         )}
       >
@@ -869,7 +869,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {/* Header com Logo e Botão de Recolher */}
               <div className="flex items-center justify-between px-1 pt-1 pb-3 shrink-0">
                 <Link to="/painel">
-                  <Logo />
+                  <Logo textClassName="text-sidebar-foreground" />
                 </Link>
                 <button
                   type="button"
