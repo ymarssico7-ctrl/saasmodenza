@@ -7,19 +7,15 @@ import {
   BarChart3,
   Bell,
   Boxes,
-  Calculator,
-  ChevronRight,
   CircleDollarSign,
   CreditCard,
   Eye,
   Globe,
   HandCoins,
   LayoutDashboard,
-  Link2,
   LogOut,
   Menu,
   MoreHorizontal,
-  Palette,
   Settings,
   Share2,
   ShoppingBag,
@@ -55,15 +51,15 @@ import { useAccess } from "@/lib/useAccess";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-// ─── Tipos da Navegação ───────────────────────────────────────────────────────
+// ─── Tipos da Navegação (Padrão Shopify — Macro-grupos + Progressive Disclosure) ──
 type NavSubItem = {
   to: string;
   label: string;
   search?: Record<string, string>;
-  isMatch?: (pathname: string, search: Record<string, unknown>) => boolean;
+  isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-type NavItem = {
+type NavGroupItem = {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -73,21 +69,13 @@ type NavItem = {
   badgeKey?: "pedidos";
   externalPreview?: boolean;
   children?: NavSubItem[];
-  isMatch?: (pathname: string, search: Record<string, unknown>) => boolean;
+  isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-// ─── Hierarquia UX Inteligente — Contexto Boutique de Moda ───────────────────
-//
-//  Princípios aplicados:
-//  • Fitts's Law → ações de maior frequência ficam no topo
-//  • Caixa & PDV = ação crítica para loja física (várias vezes/dia)
-//    → sobe para 3ª posição, logo após Início e Pedidos
-//  • Finanças/Relatórios = consulta mensal → ficam no final
-//  • Seções agrupadas por fluxo de trabalho, não por categoria lógica
-//
-function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
-  const items: NavItem[] = [
-    // ── Ações Primárias (Alta Frequência) ────────────────────────────────────
+// ─── Árvore de Navegação — Padrão Shopify Adaptado à Rotina de Boutique ──────
+function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
+  const items: NavGroupItem[] = [
+    // ── Acesso Operacional Rápido (Alta Frequência Diária) ───────────────────
     {
       id: "painel",
       label: "Início",
@@ -96,133 +84,146 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
       isMatch: (p) => p === "/painel",
     },
     {
-      id: "pedidos",
-      label: "Pedidos Online",
-      icon: ShoppingBag,
-      to: "/loja/pedidos",
-      badgeKey: "pedidos",
-      isMatch: (p) => p.startsWith("/loja/pedidos"),
-    },
-    {
       id: "caixa",
       label: "Caixa & PDV",
       icon: Wallet,
       to: "/caixa",
       isMatch: (p) => p === "/caixa",
     },
-
-    // ── Catálogo & Estoque ────────────────────────────────────────────────────
     {
-      id: "pecas",
-      label: "Peças em Estoque",
+      id: "pedidos",
+      label: "Pedidos",
+      icon: ShoppingBag,
+      to: "/loja/pedidos",
+      badgeKey: "pedidos",
+      isMatch: (p) => p.startsWith("/loja/pedidos"),
+    },
+
+    // ── Macro-grupos Principais (Elegantes e Concisos estilo Shopify) ────────
+    {
+      id: "produtos",
+      label: "Produtos",
       icon: Boxes,
       to: "/estoque",
       search: { tab: "pecas" },
-      section: "Catálogo & Estoque",
-      isMatch: (p, s) => p.startsWith("/estoque") && s?.tab !== "categorias",
+      isMatch: (p) =>
+        p.startsWith("/estoque") ||
+        p.startsWith("/precificacao") ||
+        p.startsWith("/fornecedores"),
+      children: [
+        {
+          to: "/estoque",
+          search: { tab: "pecas" },
+          label: "Peças em Estoque",
+          isMatch: (p, s) => p.startsWith("/estoque") && s?.tab !== "categorias",
+        },
+        {
+          to: "/estoque",
+          search: { tab: "categorias" },
+          label: "Coleções & Categorias",
+          isMatch: (p, s) => p.startsWith("/estoque") && s?.tab === "categorias",
+        },
+        {
+          to: "/precificacao",
+          label: "Precificação & Markup",
+          isMatch: (p) => p.startsWith("/precificacao"),
+        },
+        {
+          to: "/fornecedores",
+          label: "Fornecedores",
+          isMatch: (p) => p.startsWith("/fornecedores"),
+        },
+      ],
     },
-    {
-      id: "categorias",
-      label: "Coleções & Categorias",
-      icon: Tag,
-      to: "/estoque",
-      search: { tab: "categorias" },
-      isMatch: (p, s) => p.startsWith("/estoque") && s?.tab === "categorias",
-    },
-    {
-      id: "precificacao",
-      label: "Precificação & Markup",
-      icon: Calculator,
-      to: "/precificacao",
-      isMatch: (p) => p.startsWith("/precificacao"),
-    },
-    {
-      id: "fornecedores",
-      label: "Fornecedores",
-      icon: Truck,
-      to: "/fornecedores",
-      isMatch: (p) => p.startsWith("/fornecedores"),
-    },
-
-    // ── Clientes & Fidelidade ─────────────────────────────────────────────────
     {
       id: "clientes",
-      label: "Carteira de Clientes & VIPs",
+      label: "Clientes",
       icon: Users,
       to: "/clientes",
       search: { tab: "clientes" },
-      section: "Clientes & Fidelidade",
-      isMatch: (p, s) => p.startsWith("/clientes") && s?.tab !== "fiado",
+      isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
+      children: [
+        {
+          to: "/clientes",
+          search: { tab: "clientes" },
+          label: "Carteira de Clientes",
+          isMatch: (p, s) => p.startsWith("/clientes") && s?.tab !== "fiado",
+        },
+        {
+          to: "/clientes",
+          search: { tab: "fiado" },
+          label: "Caderninho de Fiado",
+          isMatch: (p, s) =>
+            (p.startsWith("/clientes") && s?.tab === "fiado") ||
+            p.startsWith("/fiado"),
+        },
+      ],
     },
     {
-      id: "fiado",
-      label: "Caderninho de Fiado",
-      icon: HandCoins,
-      to: "/clientes",
-      search: { tab: "fiado" },
-      isMatch: (p, s) =>
-        (p.startsWith("/clientes") && s?.tab === "fiado") ||
-        p.startsWith("/fiado"),
-    },
-
-    // ── Marketing & Crescimento ───────────────────────────────────────────────
-    {
-      id: "cupons",
-      label: "Cupons & Descontos",
+      id: "marketing",
+      label: "Marketing",
       icon: BadgePercent,
       to: "/loja/cupons",
-      section: "Marketing & Crescimento",
-      isMatch: (p) => p.startsWith("/loja/cupons"),
+      isMatch: (p) =>
+        p.startsWith("/loja/cupons") ||
+        p.startsWith("/loja/compartilhar") ||
+        p.startsWith("/metas"),
+      children: [
+        {
+          to: "/loja/cupons",
+          label: "Cupons & Descontos",
+          isMatch: (p) => p.startsWith("/loja/cupons"),
+        },
+        {
+          to: "/loja/compartilhar",
+          label: "Divulgação & Link da Bio",
+          isMatch: (p) => p.startsWith("/loja/compartilhar"),
+        },
+        {
+          to: "/metas",
+          label: "Metas de Venda",
+          isMatch: (p) => p.startsWith("/metas"),
+        },
+      ],
     },
     {
-      id: "compartilhar",
-      label: "Divulgação & Link da Bio",
-      icon: Share2,
-      to: "/loja/compartilhar",
-      isMatch: (p) => p.startsWith("/loja/compartilhar"),
-    },
-    {
-      id: "metas",
-      label: "Metas & Planejamento",
-      icon: Target,
-      to: "/metas",
-      isMatch: (p) => p.startsWith("/metas"),
-    },
-
-    // ── Finanças ──────────────────────────────────────────────────────────────
-    {
-      id: "vestuipay",
-      label: "Vestui Pay (Recebimentos)",
-      icon: CreditCard,
-      to: "/loja/recebimentos",
-      section: "Finanças",
-      isMatch: (p) => p.startsWith("/loja/recebimentos"),
-    },
-    {
-      id: "relatorio",
-      label: "Lucro Real & DRE",
+      id: "financas",
+      label: "Finanças",
       icon: BarChart3,
       to: "/relatorio",
-      isMatch: (p) => p.startsWith("/relatorio"),
-    },
-    {
-      id: "prolabore",
-      label: "Pró-Labore da Lojista",
-      icon: CircleDollarSign,
-      to: "/prolabore",
-      isMatch: (p) => p.startsWith("/prolabore"),
+      isMatch: (p) =>
+        p.startsWith("/relatorio") ||
+        p.startsWith("/prolabore") ||
+        p.startsWith("/loja/recebimentos"),
+      children: [
+        {
+          to: "/relatorio",
+          label: "Lucro Real & DRE",
+          isMatch: (p) => p.startsWith("/relatorio"),
+        },
+        {
+          to: "/prolabore",
+          label: "Pró-Labore da Lojista",
+          isMatch: (p) => p.startsWith("/prolabore"),
+        },
+        {
+          to: "/loja/recebimentos",
+          label: "Vestui Pay (Recebimentos)",
+          isMatch: (p) => p.startsWith("/loja/recebimentos"),
+        },
+      ],
     },
   ];
 
-  // ── Loja Digital (Vitrine) ────────────────────────────────────────────────
+  // ── Canais de Venda (Loja Digital) ─────────────────────────────────────────
   if (vitrineAtiva) {
     items.push({
       id: "vitrine",
       label: "Vitrine Online",
       icon: Store,
       to: "/loja/produtos",
+      section: "Canais de vendas",
       externalPreview: true,
-      section: "Loja Digital",
       isMatch: (p) =>
         p.startsWith("/loja") &&
         !p.startsWith("/loja/pedidos") &&
@@ -267,7 +268,7 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
       icon: Globe,
       to: "/configuracoes",
       search: { tab: "canais" },
-      section: "Loja Digital",
+      section: "Canais de vendas",
       isMatch: (p, s) => p.startsWith("/configuracoes") && s?.tab === "canais",
     });
   }
@@ -275,27 +276,8 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
   return items;
 }
 
-// ─── Verificadores de Ativação ────────────────────────────────────────────────
-function isItemActive(
-  item: NavItem,
-  pathname: string,
-  search: Record<string, unknown>,
-): boolean {
-  if (item.isMatch) return item.isMatch(pathname, search);
-  return pathname === item.to;
-}
-
-function isSubActive(
-  sub: NavSubItem,
-  pathname: string,
-  search: Record<string, unknown>,
-): boolean {
-  if (sub.isMatch) return sub.isMatch(pathname, search);
-  return pathname === sub.to;
-}
-
-// ─── Linha de Navegação (Sem setas, sem acordeão falso) ───────────────────────
-function NavRow({
+// ─── Linha de Grupo e Sub-itens (Padrão Shopify — Zero Setas) ────────────────
+function NavGroupRow({
   item,
   pathname,
   search,
@@ -303,28 +285,24 @@ function NavRow({
   storeSlug,
   onItemClick,
 }: {
-  item: NavItem;
+  item: NavGroupItem;
   pathname: string;
   search: Record<string, unknown>;
   badgeCount?: number;
   storeSlug?: string | null;
   onItemClick?: () => void;
 }) {
-  const active = isItemActive(item, pathname, search);
-  const isVitrineOpen =
-    item.id === "vitrine" &&
-    pathname.startsWith("/loja") &&
-    !pathname.startsWith("/loja/pedidos") &&
-    !pathname.startsWith("/loja/cupons") &&
-    !pathname.startsWith("/loja/recebimentos") &&
-    !pathname.startsWith("/loja/compartilhar");
+  const isGroupActive = item.isMatch(pathname, search);
+  const hasChildren = Boolean(item.children && item.children.length > 0);
+  const isExpanded = hasChildren && isGroupActive;
 
   return (
     <div className="flex flex-col">
+      {/* Item Principal (1ª linha) */}
       <div
         className={cn(
           "group relative flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] transition-all duration-150 select-none",
-          active
+          isGroupActive
             ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
         )}
@@ -339,10 +317,13 @@ function NavRow({
           <item.icon
             className={cn(
               "size-4 shrink-0 transition-colors",
-              active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+              isGroupActive
+                ? "text-primary"
+                : "text-muted-foreground group-hover:text-foreground",
             )}
           />
           <span className="truncate">{item.label}</span>
+
           {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
             <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-2xs animate-pulse">
               {badgeCount > 9 ? "9+" : badgeCount}
@@ -350,7 +331,7 @@ function NavRow({
           )}
         </Link>
 
-        {/* Botão de olho para abrir vitrine em nova aba */}
+        {/* Botão de preview da vitrine (Shopify Style) */}
         {item.externalPreview && storeSlug && (
           <a
             href={`https://${storeSlug}.vestui.com.br`}
@@ -365,11 +346,11 @@ function NavRow({
         )}
       </div>
 
-      {/* Sub-itens da Vitrine quando expandida */}
-      {item.children && isVitrineOpen && (
+      {/* Sub-itens desdobrados (Elegantes com indentação pura — Estilo Imagens 3 e 4 da Shopify) */}
+      {hasChildren && isExpanded && (
         <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 slide-in-from-top-1 duration-150">
-          {item.children.map((child) => {
-            const isChildActive = isSubActive(child, pathname, search);
+          {item.children!.map((child) => {
+            const isChildActive = child.isMatch(pathname, search);
             return (
               <Link
                 key={child.label}
@@ -378,7 +359,7 @@ function NavRow({
                 preload="intent"
                 onClick={onItemClick}
                 className={cn(
-                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-1.5 text-[12.5px] transition-all duration-150 cursor-pointer",
+                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-1.5 text-[12.5px] transition-all duration-150 cursor-pointer select-none",
                   isChildActive
                     ? "font-semibold text-foreground bg-sidebar-accent/60"
                     : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
@@ -427,7 +408,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [storeId, store?.metadata]);
 
-  const navItems = useMemo(() => getCockpitNav(vitrineAtiva), [vitrineAtiva]);
+  const navItems = useMemo(() => getShopifyNav(vitrineAtiva), [vitrineAtiva]);
 
   // Badge de pedidos pendentes
   const pendingOrderCount = useMemo(() => {
@@ -477,18 +458,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  // ─── Renderização das Seções de Navegação ─────────────────────────────────
+  // ── Renderizador de Lista de Navegação ─────────────────────────────────────
   function renderNavItems(onItemClick?: () => void) {
     return navItems.map((item) => (
       <div key={item.id} className="flex flex-col">
         {item.section && (
-          <div className="flex items-center px-2.5 pt-4 pb-1">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 select-none">
+          <div className="px-2.5 pt-3.5 pb-1 select-none">
+            <span className="text-[11px] font-semibold text-muted-foreground/60">
               {item.section}
             </span>
           </div>
         )}
-        <NavRow
+        <NavGroupRow
           item={item}
           pathname={pathname}
           search={search}
@@ -502,12 +483,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-
-      {/* ── Sidebar Desktop ──────────────────────────────────────────────────── */}
+      {/* ── Sidebar Desktop (Padrão Shopify Oficial) ─────────────────────────── */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-3.5 py-4 lg:flex">
-
         {isConfiguracoes ? (
-          /* ── Modo Configurações (Shopify-style settings sidebar) ─────────── */
+          /* ── Modo Configurações (Coluna vertical dedicada) ───────────────── */
           <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
             <Link
               to="/painel"
@@ -576,9 +555,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
         ) : (
-          /* ── Modo Principal — Fix do espaço em branco:
-               div explícita (não Fragment) com flex-col + flex-1 + min-h-0
-               garante que a <nav> ocupa exatamente o espaço restante ─── */
+          /* ── Modo Painel Principal — Padrão Shopify ──────────────────────── */
           <div className="flex flex-col flex-1 min-h-0">
             {/* Logo */}
             <div className="px-2 pt-1 pb-3 flex items-center shrink-0">
@@ -587,14 +564,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
 
-            {/* Navegação — flex-1 + min-h-0 elimina o vácuo em branco */}
+            {/* Navegação Limpa e Organizada */}
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {renderNavItems()}
             </nav>
           </div>
         )}
 
-        {/* ── Rodapé Fixo da Sidebar ────────────────────────────────────────── */}
+        {/* ── Rodapé Fixo da Sidebar (Configurações + Perfil da Loja) ──────────── */}
         <div className="mt-auto pt-3 border-t border-sidebar-border/70 flex flex-col gap-1 shrink-0">
           {!isConfiguracoes && (
             <Link
@@ -632,7 +609,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {/* Perfil da Boutique com Dropdown */}
+          {/* Perfil da Boutique com Dropdown (Estilo [ML] Minha Loja 🔔 da Shopify) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
