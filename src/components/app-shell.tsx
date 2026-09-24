@@ -13,7 +13,6 @@ import {
   Globe,
   HandCoins,
   LayoutDashboard,
-  Link2,
   LogOut,
   Menu,
   MoreHorizontal,
@@ -278,16 +277,6 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
     });
   }
 
-  // Canal adicional de divulgação rápida (WhatsApp / Link da Bio)
-  items.push({
-    id: "linkbio",
-    label: "Link da Bio & WhatsApp",
-    icon: Link2,
-    to: "/loja/compartilhar",
-    section: !vitrineAtiva ? "Canais de vendas" : undefined,
-    isMatch: (p) => p.startsWith("/loja/compartilhar"),
-  });
-
   return items;
 }
 
@@ -369,7 +358,7 @@ function NavGroupRow({
       {/* Item Principal (1ª linha) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] transition-all duration-150 select-none",
+          "group relative flex items-center justify-between rounded-xl px-2.5 py-2.5 text-[13.5px] transition-all duration-150 select-none",
           isCurrentGroupRoute
             ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
@@ -384,7 +373,7 @@ function NavGroupRow({
         >
           <item.icon
             className={cn(
-              "size-4 shrink-0 transition-colors",
+              "size-[17px] shrink-0 transition-colors",
               isCurrentGroupRoute
                 ? "text-primary"
                 : "text-muted-foreground group-hover:text-foreground",
@@ -427,7 +416,7 @@ function NavGroupRow({
                 preload="intent"
                 onClick={onItemClick}
                 className={cn(
-                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-1.5 text-[12.5px] transition-all duration-150 cursor-pointer select-none",
+                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-all duration-150 cursor-pointer select-none",
                   isChildActive
                     ? "font-semibold text-foreground bg-sidebar-accent/60"
                     : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
@@ -686,14 +675,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Navegação Limpa e Organizada */}
-            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {renderNavItems()}
-              
-              {/* Widget de Produtividade da Boutique (Preenchimento Inteligente de UX) */}
-              <div className="pt-2">
-                <SidebarGoalCard />
-              </div>
             </nav>
+
+            {/* Widget de Meta — ancorado naturalmente acima do rodapé (elimina o vácuo) */}
+            <div className="mt-auto shrink-0 pb-1">
+              <SidebarGoalCard />
+            </div>
           </div>
         )}
 
