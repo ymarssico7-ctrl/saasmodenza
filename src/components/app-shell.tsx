@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, memo } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -281,27 +281,30 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
 }
 
 // ─── Widget de Produtividade da Boutique (Preenchimento Inteligente de UX) ───
-function SidebarGoalCard() {
+const SidebarGoalCard = memo(function SidebarGoalCard() {
   const { data: goals = [] } = useQuery(goalsQuery());
   const { data: all = [] } = useQuery(transactionsQuery());
   const txs = all as unknown as Transaction[];
   const month = monthStart(0);
   const mPrefix = month.slice(0, 7);
 
-  const currentGoal = goals.find((g) => g.month?.slice(0, 7) === mPrefix);
-  const goalAmount = Number(currentGoal?.target_amount ?? 0);
+  const { goalAmount, revenue, progress } = useMemo(() => {
+    const currentGoal = goals.find((g) => g.month?.slice(0, 7) === mPrefix);
+    const amount = Number(currentGoal?.target_amount ?? 0);
 
-  const monthTransactions = txs.filter((t) => t.occurred_on?.slice(0, 7) === mPrefix);
-  const grossSales = sumBy(monthTransactions, "entrada");
-  const refunds = sumByCategories(monthTransactions, "saida", REFUND_CATEGORIES);
-  const revenue = Math.max(grossSales - refunds, 0);
+    const monthTransactions = txs.filter((t) => t.occurred_on?.slice(0, 7) === mPrefix);
+    const grossSales = sumBy(monthTransactions, "entrada");
+    const refunds = sumByCategories(monthTransactions, "saida", REFUND_CATEGORIES);
+    const rev = Math.max(grossSales - refunds, 0);
 
-  const progress = goalAmount > 0 ? Math.min((revenue / goalAmount) * 100, 100) : 0;
+    const prog = amount > 0 ? Math.min((rev / amount) * 100, 100) : 0;
+    return { goalAmount: amount, revenue: rev, progress: prog };
+  }, [goals, txs, mPrefix]);
 
   return (
     <Link
       to="/metas"
-      className="mx-1 my-2 block rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/25 hover:bg-sidebar-accent/50 p-3 transition-colors group cursor-pointer"
+      className="mx-1 my-2 block rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/25 hover:bg-sidebar-accent/50 p-3 transition-colors duration-100 ease-out group cursor-pointer"
     >
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5">
@@ -328,10 +331,10 @@ function SidebarGoalCard() {
       )}
     </Link>
   );
-}
+});
 
 // ─── Linha de Grupo e Sub-itens (Padrão Shopify — Toggle Interativo Sem Travar) ──
-function NavGroupRow({
+const NavGroupRow = memo(function NavGroupRow({
   item,
   pathname,
   search,
@@ -358,7 +361,7 @@ function NavGroupRow({
       {/* Item Principal (1ª linha) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-xl px-2.5 py-2.5 text-[13.5px] transition-all duration-150 select-none",
+          "group relative flex items-center justify-between rounded-xl px-2.5 py-2.5 text-[13.5px] transition-colors duration-100 ease-out select-none",
           isCurrentGroupRoute
             ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
@@ -373,7 +376,7 @@ function NavGroupRow({
         >
           <item.icon
             className={cn(
-              "size-[17px] shrink-0 transition-colors",
+              "size-[17px] shrink-0 transition-colors duration-100",
               isCurrentGroupRoute
                 ? "text-primary"
                 : "text-muted-foreground group-hover:text-foreground",
@@ -395,7 +398,7 @@ function NavGroupRow({
             target="_blank"
             rel="noreferrer"
             title="Abrir Vitrine Online"
-            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-100"
             onClick={(e) => e.stopPropagation()}
           >
             <Eye className="size-3.5" />
@@ -403,9 +406,9 @@ function NavGroupRow({
         )}
       </div>
 
-      {/* Sub-itens desdobrados (Abre e fecha suavemente) */}
+      {/* Sub-itens desdobrados (Abre e fecha com fade-in leve e GPU-accelerated) */}
       {hasChildren && isOpen && (
-        <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 slide-in-from-top-1 duration-150">
+        <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 duration-100">
           {item.children!.map((child) => {
             const isChildActive = child.isMatch(pathname, search);
             return (
@@ -416,7 +419,7 @@ function NavGroupRow({
                 preload="intent"
                 onClick={onItemClick}
                 className={cn(
-                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-all duration-150 cursor-pointer select-none",
+                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out cursor-pointer select-none",
                   isChildActive
                     ? "font-semibold text-foreground bg-sidebar-accent/60"
                     : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
@@ -430,7 +433,7 @@ function NavGroupRow({
       )}
     </div>
   );
-}
+});
 
 // ─── Componente Principal AppShell ───────────────────────────────────────────
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -467,52 +470,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navItems = useMemo(() => getShopifyNav(vitrineAtiva), [vitrineAtiva]);
 
-  // ── Estado Interativo de Toggle dos Grupos (Abre e fecha suavemente) ────────
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // ── Modelo de Accordion Estrito (Apenas 1 grupo aberto por vez) ───────────
+  const currentRouteGroupId = useMemo(() => {
+    const match = navItems.find(
+      (item) => item.children && item.children.length > 0 && item.isMatch(pathname, search),
+    );
+    return match ? match.id : null;
+  }, [navItems, pathname, search]);
 
-  // Sincroniza abertura automática quando a rota muda
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(currentRouteGroupId);
+
+  // Sincroniza abertura/fechamento automático ao navegar entre rotas
   useEffect(() => {
-    const activeItem = navItems.find((item) => item.children && item.isMatch(pathname, search));
-    if (activeItem) {
-      setOpenGroups((prev) => {
-        // Se ainda não houve toggle explícito nesta rota, abre por padrão
-        if (prev[activeItem.id] === undefined) {
-          return { ...prev, [activeItem.id]: true };
-        }
-        return prev;
-      });
-    }
-  }, [pathname, search, navItems]);
-
-  const isGroupOpen = (item: NavGroupItem) => {
-    if (!item.children || item.children.length === 0) return false;
-    if (openGroups[item.id] !== undefined) {
-      return openGroups[item.id];
-    }
-    return item.isMatch(pathname, search);
-  };
+    // Se navegou para uma rota de grupo, abre esse grupo.
+    // Se navegou para Início, Caixa, Pedidos ou Metas, fecha qualquer grupo aberto (economiza 100% de espaço)!
+    setActiveGroupId(currentRouteGroupId);
+  }, [pathname, currentRouteGroupId]);
 
   const handleToggle = (item: NavGroupItem, e: React.MouseEvent, onItemClick?: () => void) => {
+    // Se for item sem filhos (Início, Caixa & PDV, Pedidos, Metas & Vendas):
     if (!item.children || item.children.length === 0) {
+      // Fecha qualquer grupo aberto para economizar espaço!
+      setActiveGroupId(null);
       onItemClick?.();
       return;
     }
 
-    const currentlyOpen = isGroupOpen(item);
+    const isCurrentlyOpen = activeGroupId === item.id;
     const isCurrentRoute = item.isMatch(pathname, search);
 
-    if (currentlyOpen) {
-      // Já está aberto -> toggle FECHAR!
+    if (isCurrentlyOpen) {
+      // Já está aberto -> clica para fechar!
       e.preventDefault();
-      setOpenGroups((prev) => ({ ...prev, [item.id]: false }));
+      setActiveGroupId(null);
     } else {
-      // Está fechado -> toggle ABRIR!
-      setOpenGroups((prev) => ({ ...prev, [item.id]: true }));
+      // Está fechado -> abre este grupo e FECHA AUTOMATICAMENTE TODOS OS OUTROS!
+      setActiveGroupId(item.id);
       if (isCurrentRoute) {
-        // Já está na rota, apenas expande sem recarregar
+        // Já está na rota do grupo, apenas expande sem recarregar
         e.preventDefault();
       } else {
-        // Navega normalmente para a página padrão do grupo
+        // Navega para a página padrão do grupo
         onItemClick?.();
       }
     }
@@ -583,7 +581,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           search={search}
           badgeCount={pendingOrderCount}
           storeSlug={store?.slug}
-          isOpen={isGroupOpen(item)}
+          isOpen={activeGroupId === item.id}
           onToggle={(group, e) => handleToggle(group, e, onItemClick)}
           onItemClick={onItemClick}
         />
