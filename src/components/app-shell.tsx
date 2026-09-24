@@ -7,19 +7,27 @@ import {
   BarChart3,
   Bell,
   Boxes,
+  Calculator,
   ChevronRight,
   CircleDollarSign,
   CreditCard,
   Eye,
   Globe,
+  HandCoins,
   LayoutDashboard,
+  Link2,
   LogOut,
   Menu,
   MoreHorizontal,
+  Palette,
   Settings,
+  Share2,
   ShoppingBag,
   Sparkles,
   Store,
+  Tag,
+  Target,
+  Truck,
   Users,
   Wallet,
   X,
@@ -47,31 +55,30 @@ import { useAccess } from "@/lib/useAccess";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-// ─── Tipos da Navegação Hierárquica (Padrão Shopify Oficial) ───────────────────
-type NavChildItem = {
+// ─── Tipos da Navegação (Padrão Cockpit Shopify) ──────────────────────────────
+type NavSubItem = {
   to: string;
   label: string;
   search?: Record<string, string>;
-  badgeKey?: "pedidos";
   isMatch?: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-type NavGroupItem = {
+type NavItem = {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   to: string;
   search?: Record<string, string>;
-  badgeKey?: "pedidos";
   section?: string;
-  children?: NavChildItem[];
-  isMatch?: (pathname: string, search: Record<string, unknown>) => boolean;
+  badgeKey?: "pedidos";
   externalPreview?: boolean;
+  children?: NavSubItem[];
+  isMatch?: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-// ─── Construtor da Árvore de Navegação Unificada ─────────────────────────────
-function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
-  const groups: NavGroupItem[] = [
+// ─── Construtor da Árvore de Navegação Cockpit Completo (Zero Espaço em Branco) 
+function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
+  const items: NavItem[] = [
     {
       id: "painel",
       label: "Início",
@@ -86,141 +93,132 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
       to: "/loja/pedidos",
       badgeKey: "pedidos",
       isMatch: (p) => p.startsWith("/loja/pedidos"),
-      children: [
-        {
-          to: "/loja/pedidos",
-          label: "Todos os Pedidos",
-          badgeKey: "pedidos",
-          isMatch: (p) => p.startsWith("/loja/pedidos"),
-        },
-      ],
     },
+
+    // ── Catálogo & Compras ──
     {
-      id: "produtos",
-      label: "Produtos",
+      id: "pecas",
+      label: "Peças em Estoque",
       icon: Boxes,
       to: "/estoque",
       search: { tab: "pecas" },
-      isMatch: (p) =>
-        p.startsWith("/estoque") ||
-        p.startsWith("/precificacao") ||
-        p.startsWith("/fornecedores"),
-      children: [
-        {
-          to: "/estoque",
-          search: { tab: "pecas" },
-          label: "Peças em Estoque",
-          isMatch: (p, s) => p.startsWith("/estoque") && s?.tab !== "categorias",
-        },
-        {
-          to: "/estoque",
-          search: { tab: "categorias" },
-          label: "Coleções & Categorias",
-          isMatch: (p, s) => p.startsWith("/estoque") && s?.tab === "categorias",
-        },
-        {
-          to: "/precificacao",
-          label: "Precificação & Margem",
-          isMatch: (p) => p.startsWith("/precificacao"),
-        },
-        {
-          to: "/fornecedores",
-          label: "Fornecedores de Mercadoria",
-          isMatch: (p) => p.startsWith("/fornecedores"),
-        },
-      ],
+      section: "Catálogo & Compras",
+      isMatch: (p, s) => p.startsWith("/estoque") && s?.tab !== "categorias",
     },
     {
+      id: "categorias",
+      label: "Coleções & Categorias",
+      icon: Tag,
+      to: "/estoque",
+      search: { tab: "categorias" },
+      isMatch: (p, s) => p.startsWith("/estoque") && s?.tab === "categorias",
+    },
+    {
+      id: "precificacao",
+      label: "Precificação & Markup",
+      icon: Calculator,
+      to: "/precificacao",
+      isMatch: (p) => p.startsWith("/precificacao"),
+    },
+    {
+      id: "fornecedores",
+      label: "Fornecedores de Mercadoria",
+      icon: Truck,
+      to: "/fornecedores",
+      isMatch: (p) => p.startsWith("/fornecedores"),
+    },
+
+    // ── Clientes & Relacionamento ──
+    {
       id: "clientes",
-      label: "Clientes",
+      label: "Carteira de Clientes & VIPs",
       icon: Users,
       to: "/clientes",
       search: { tab: "clientes" },
-      isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
-      children: [
-        {
-          to: "/clientes",
-          search: { tab: "clientes" },
-          label: "Clientes & VIPs",
-          isMatch: (p, s) => p.startsWith("/clientes") && s?.tab !== "fiado",
-        },
-        {
-          to: "/clientes",
-          search: { tab: "fiado" },
-          label: "Caderninho de Fiado",
-          isMatch: (p, s) =>
-            (p.startsWith("/clientes") && s?.tab === "fiado") || p.startsWith("/fiado"),
-        },
-      ],
+      section: "Clientes & Fidelidade",
+      isMatch: (p, s) => p.startsWith("/clientes") && s?.tab !== "fiado",
     },
     {
-      id: "financas",
-      label: "Finanças & PDV",
-      icon: Wallet,
-      to: "/caixa",
-      isMatch: (p) =>
-        p === "/caixa" ||
-        p.startsWith("/prolabore") ||
-        p.startsWith("/loja/recebimentos"),
-      children: [
-        {
-          to: "/caixa",
-          label: "Caixa & Balcão (PDV)",
-          isMatch: (p) => p === "/caixa",
-        },
-        {
-          to: "/prolabore",
-          label: "Pró-Labore da Lojista",
-          isMatch: (p) => p.startsWith("/prolabore"),
-        },
-        {
-          to: "/loja/recebimentos",
-          label: "Vestui Pay (Recebimentos)",
-          isMatch: (p) => p.startsWith("/loja/recebimentos"),
-        },
-      ],
+      id: "fiado",
+      label: "Caderninho de Fiado",
+      icon: HandCoins,
+      to: "/clientes",
+      search: { tab: "fiado" },
+      isMatch: (p, s) => (p.startsWith("/clientes") && s?.tab === "fiado") || p.startsWith("/fiado"),
     },
+
+    // ── Crescimento & Marketing ──
     {
-      id: "descontos",
-      label: "Descontos & Cupons",
+      id: "cupons",
+      label: "Cupons & Descontos",
       icon: BadgePercent,
       to: "/loja/cupons",
+      section: "Crescimento & Vendas",
       isMatch: (p) => p.startsWith("/loja/cupons"),
     },
     {
-      id: "analises",
-      label: "Análises & DRE",
+      id: "metas",
+      label: "Metas & Planejamento",
+      icon: Target,
+      to: "/metas",
+      isMatch: (p) => p.startsWith("/metas"),
+    },
+    {
+      id: "compartilhar",
+      label: "Divulgação & Link da Bio",
+      icon: Share2,
+      to: "/loja/compartilhar",
+      isMatch: (p) => p.startsWith("/loja/compartilhar"),
+    },
+
+    // ── Finanças & Inteligência ──
+    {
+      id: "relatorio",
+      label: "Lucro Real & DRE",
       icon: BarChart3,
       to: "/relatorio",
-      isMatch: (p) => p.startsWith("/relatorio") || p.startsWith("/metas"),
-      children: [
-        {
-          to: "/relatorio",
-          label: "Lucro Real & DRE",
-          isMatch: (p) => p.startsWith("/relatorio"),
-        },
-        {
-          to: "/metas",
-          label: "Metas & Planejamento",
-          isMatch: (p) => p.startsWith("/metas"),
-        },
-      ],
+      section: "Finanças & Inteligência",
+      isMatch: (p) => p.startsWith("/relatorio"),
+    },
+    {
+      id: "prolabore",
+      label: "Pró-Labore da Lojista",
+      icon: CircleDollarSign,
+      to: "/prolabore",
+      isMatch: (p) => p.startsWith("/prolabore"),
+    },
+    {
+      id: "vestuipay",
+      label: "Vestui Pay (Recebimentos)",
+      icon: CreditCard,
+      to: "/loja/recebimentos",
+      isMatch: (p) => p.startsWith("/loja/recebimentos"),
+    },
+
+    // ── Canais de Venda (Loja Física & Digital) ──
+    {
+      id: "caixa",
+      label: "Caixa & PDV (Balcão Físico)",
+      icon: Wallet,
+      to: "/caixa",
+      section: "Canais de vendas",
+      isMatch: (p) => p === "/caixa",
     },
   ];
 
   if (vitrineAtiva) {
-    groups.push({
+    items.push({
       id: "vitrine",
-      label: "Vitrine Online",
+      label: "Vitrine Online (Loja Digital)",
       icon: Store,
       to: "/loja/produtos",
-      section: "Canais de vendas",
       externalPreview: true,
       isMatch: (p) =>
         p.startsWith("/loja") &&
         !p.startsWith("/loja/pedidos") &&
         !p.startsWith("/loja/cupons") &&
-        !p.startsWith("/loja/recebimentos"),
+        !p.startsWith("/loja/recebimentos") &&
+        !p.startsWith("/loja/compartilhar"),
       children: [
         {
           to: "/loja/produtos",
@@ -238,7 +236,6 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
           isMatch: (p) =>
             p.startsWith("/loja/configuracao") ||
             p.startsWith("/loja/personalizar") ||
-            p.startsWith("/loja/compartilhar") ||
             p === "/loja",
         },
         {
@@ -254,100 +251,96 @@ function getNavGroups(vitrineAtiva: boolean): NavGroupItem[] {
       ],
     });
   } else {
-    groups.push({
+    items.push({
       id: "ativar_vitrine",
       label: "Ativar Vitrine Online",
       icon: Globe,
       to: "/configuracoes",
       search: { tab: "canais" },
-      section: "Canais de vendas",
       isMatch: (p, s) => p.startsWith("/configuracoes") && s?.tab === "canais",
     });
   }
 
-  return groups;
+  return items;
 }
 
-// ─── Auxiliares de Correspondência de Rota ──────────────────────────────────
-function isChildActive(
-  child: NavChildItem,
+// ─── Verificador de Ativação ────────────────────────────────────────────────
+function isItemActive(
+  item: NavItem,
   pathname: string,
   search: Record<string, unknown>,
 ): boolean {
-  if (child.isMatch) return child.isMatch(pathname, search);
-  return pathname === child.to;
+  if (item.isMatch) return item.isMatch(pathname, search);
+  return pathname === item.to;
 }
 
-function isGroupActive(
-  group: NavGroupItem,
+function isSubActive(
+  sub: NavSubItem,
   pathname: string,
   search: Record<string, unknown>,
 ): boolean {
-  if (group.isMatch && group.isMatch(pathname, search)) return true;
-  if (group.children?.some((c) => isChildActive(c, pathname, search))) return true;
-  if (group.to && pathname === group.to) return true;
-  return false;
+  if (sub.isMatch) return sub.isMatch(pathname, search);
+  return pathname === sub.to;
 }
 
-// ─── Linha do Grupo Mestre (Padrão Shopify Oficial — Sem Setas Laterais) ──────
-function NavGroupRow({
-  group,
+// ─── Linha de Navegação (Padrão Shopify — Zero Setas Laterais) ────────────────
+function NavRow({
+  item,
   pathname,
   search,
-  isExpanded,
-  onNavigate,
   badgeCount,
   storeSlug,
   onItemClick,
 }: {
-  group: NavGroupItem;
+  item: NavItem;
   pathname: string;
   search: Record<string, unknown>;
-  isExpanded: boolean;
-  onNavigate: () => void;
   badgeCount?: number;
   storeSlug?: string | null;
   onItemClick?: () => void;
 }) {
-  const groupActive = isGroupActive(group, pathname, search);
-  const hasChildren = Boolean(group.children && group.children.length > 0);
+  const active = isItemActive(item, pathname, search);
+  const isVitrineOpen =
+    item.id === "vitrine" &&
+    pathname.startsWith("/loja") &&
+    !pathname.startsWith("/loja/pedidos") &&
+    !pathname.startsWith("/loja/cupons") &&
+    !pathname.startsWith("/loja/recebimentos") &&
+    !pathname.startsWith("/loja/compartilhar");
 
   return (
     <div className="flex flex-col">
       <div
         className={cn(
           "group relative flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] transition-all duration-150 select-none",
-          groupActive
+          active
             ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
         )}
       >
         <Link
-          to={group.to as any}
-          search={group.search as any}
+          to={item.to as any}
+          search={item.search as any}
           preload="intent"
-          onClick={() => {
-            onNavigate();
-            onItemClick?.();
-          }}
+          onClick={onItemClick}
           className="flex flex-1 items-center gap-2.5 min-w-0 cursor-pointer"
         >
-          <group.icon
+          <item.icon
             className={cn(
               "size-4 shrink-0 transition-colors",
-              groupActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+              active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
             )}
           />
-          <span className="truncate">{group.label}</span>
-          {group.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
+          <span className="truncate">{item.label}</span>
+          {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
             <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-2xs animate-pulse">
               {badgeCount > 9 ? "9+" : badgeCount}
             </span>
           )}
         </Link>
 
-        {/* Pré-visualização rápida da Vitrine (olho discreto estilo Shopify) */}
-        {group.externalPreview && storeSlug && (
+        {/* Botão de olho para preview da vitrine (Shopify Style) */}
+        {item.externalPreview && storeSlug && (
           <a
             href={`https://${storeSlug}.vestui.com.br`}
             target="_blank"
@@ -361,11 +354,11 @@ function NavGroupRow({
         )}
       </div>
 
-      {/* Sub-itens desdobrados — Padrão Shopify Prints 2, 3 e 4 (Sem bordas pesadas, sem ícones nos filhos) */}
-      {hasChildren && isExpanded && (
+      {/* Sub-itens desdobrados da Vitrine Online quando ativa */}
+      {item.children && isVitrineOpen && (
         <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 slide-in-from-top-1 duration-150">
-          {group.children!.map((child) => {
-            const active = isChildActive(child, pathname, search);
+          {item.children.map((child) => {
+            const isChildActive = isSubActive(child, pathname, search);
             return (
               <Link
                 key={child.label}
@@ -375,22 +368,12 @@ function NavGroupRow({
                 onClick={onItemClick}
                 className={cn(
                   "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-1.5 text-[12.5px] transition-all duration-150 cursor-pointer",
-                  active
+                  isChildActive
                     ? "font-semibold text-foreground bg-sidebar-accent/60"
                     : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
                 )}
               >
                 <span className="truncate">{child.label}</span>
-                {child.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
-                  <span
-                    className={cn(
-                      "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold",
-                      active ? "bg-primary text-primary-foreground" : "bg-red-500 text-white animate-pulse",
-                    )}
-                  >
-                    {badgeCount > 9 ? "9+" : badgeCount}
-                  </span>
-                )}
               </Link>
             );
           })}
@@ -433,19 +416,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [storeId, store?.metadata]);
 
-  // ── Árvore de Navegação Unificada ─────────────────────────────────────────
-  const navGroups = useMemo(() => getNavGroups(vitrineAtiva), [vitrineAtiva]);
-
-  // ── Estado de Expansão dos Acordeons (Auto-expand no grupo ativo) ─────────
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    navGroups.forEach((g) => {
-      if (g.children && isGroupActive(g, pathname, search)) {
-        setExpandedGroups((prev) => (prev[g.id] ? prev : { ...prev, [g.id]: true }));
-      }
-    });
-  }, [pathname, search, navGroups]);
+  // ── Lista Cockpit de Navegação ─────────────────────────────────────────────
+  const navItems = useMemo(() => getCockpitNav(vitrineAtiva), [vitrineAtiva]);
 
   // Badge de pedidos pendentes
   const pendingOrderCount = useMemo(() => {
@@ -485,8 +457,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       to: "/estoque",
       label: "Estoque",
       icon: Boxes,
-      isMatch: (p: string) =>
-        p.startsWith("/estoque") || p.startsWith("/precificacao") || p.startsWith("/fornecedores"),
+      isMatch: (p: string) => p.startsWith("/estoque") || p.startsWith("/precificacao") || p.startsWith("/fornecedores"),
     },
     {
       to: "/clientes",
@@ -498,7 +469,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Sidebar Desktop (Padrão Shopify Oficial) ─────────────────────────── */}
+      {/* ── Sidebar Desktop (Padrão Cockpit Shopify Oficial — Sem Vácuo em Branco) ─── */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-3.5 py-4 lg:flex">
         {isConfiguracoes ? (
           <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none">
@@ -575,31 +546,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         ) : (
           <>
-            {/* Header da Marca (Alinhado) */}
+            {/* Header da Marca (Alinhado com a Sidebar) */}
             <div className="px-2 pt-1 pb-3 flex items-center">
               <Link to="/painel">
                 <Logo />
               </Link>
             </div>
 
-            {/* Navegação Hierárquica Multinível (Padrão Shopify Oficial) */}
+            {/* Navegação Cockpit Completa — Preenchimento Harmonioso e Zero Vácuo Branco */}
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {navGroups.map((group) => (
-                <div key={group.id} className="flex flex-col">
-                  {group.section && (
-                    <div className="flex items-center gap-1 px-2.5 pt-5 pb-1.5 text-xs font-semibold text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer select-none">
-                      <span>{group.section}</span>
-                      <ChevronRight className="size-3 text-muted-foreground/50" />
+              {navItems.map((item) => (
+                <div key={item.id} className="flex flex-col">
+                  {item.section && (
+                    <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-[11px] font-semibold text-muted-foreground/75 select-none">
+                      <span>{item.section}</span>
+                      {item.section === "Canais de vendas" && (
+                        <ChevronRight className="size-3 text-muted-foreground/50" />
+                      )}
                     </div>
                   )}
-                  <NavGroupRow
-                    group={group}
+                  <NavRow
+                    item={item}
                     pathname={pathname}
                     search={search}
-                    isExpanded={Boolean(expandedGroups[group.id])}
-                    onNavigate={() =>
-                      setExpandedGroups((prev) => ({ ...prev, [group.id]: true }))
-                    }
                     badgeCount={pendingOrderCount}
                     storeSlug={store?.slug}
                   />
@@ -729,22 +698,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {mobileMenuOpen && (
         <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
           <nav className="flex flex-col gap-1 pb-20">
-            {navGroups.map((group) => (
-              <div key={group.id} className="flex flex-col">
-                {group.section && (
-                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1.5 text-xs font-semibold text-muted-foreground/80">
-                    <span>{group.section}</span>
-                    <ChevronRight className="size-3 text-muted-foreground/50" />
+            {navItems.map((item) => (
+              <div key={item.id} className="flex flex-col">
+                {item.section && (
+                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-[11px] font-semibold text-muted-foreground/75">
+                    <span>{item.section}</span>
+                    {item.section === "Canais de vendas" && (
+                      <ChevronRight className="size-3 text-muted-foreground/50" />
+                    )}
                   </div>
                 )}
-                <NavGroupRow
-                  group={group}
+                <NavRow
+                  item={item}
                   pathname={pathname}
                   search={search}
-                  isExpanded={Boolean(expandedGroups[group.id])}
-                  onNavigate={() =>
-                    setExpandedGroups((prev) => ({ ...prev, [group.id]: true }))
-                  }
                   badgeCount={pendingOrderCount}
                   storeSlug={store?.slug}
                   onItemClick={() => setMobileMenuOpen(false)}
@@ -822,22 +789,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SheetHeader>
 
           <nav className="flex flex-col gap-1 px-4 py-3">
-            {navGroups.map((group) => (
-              <div key={group.id} className="flex flex-col">
-                {group.section && (
-                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-xs font-semibold text-muted-foreground/80">
-                    <span>{group.section}</span>
-                    <ChevronRight className="size-3 text-muted-foreground/50" />
+            {navItems.map((item) => (
+              <div key={item.id} className="flex flex-col">
+                {item.section && (
+                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-[11px] font-semibold text-muted-foreground/75">
+                    <span>{item.section}</span>
+                    {item.section === "Canais de vendas" && (
+                      <ChevronRight className="size-3 text-muted-foreground/50" />
+                    )}
                   </div>
                 )}
-                <NavGroupRow
-                  group={group}
+                <NavRow
+                  item={item}
                   pathname={pathname}
                   search={search}
-                  isExpanded={Boolean(expandedGroups[group.id])}
-                  onNavigate={() =>
-                    setExpandedGroups((prev) => ({ ...prev, [group.id]: true }))
-                  }
                   badgeCount={pendingOrderCount}
                   storeSlug={store?.slug}
                   onItemClick={() => setMoreSheetOpen(false)}
