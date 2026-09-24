@@ -13,6 +13,7 @@ import {
   Globe,
   HandCoins,
   LayoutDashboard,
+  Link2,
   LogOut,
   Menu,
   MoreHorizontal,
@@ -31,6 +32,7 @@ import {
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   Sheet,
   SheetContent,
@@ -45,11 +47,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { profileQuery, membersQuery } from "@/lib/db";
+import { profileQuery, membersQuery, goalsQuery, transactionsQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
+import { brlCompact, monthStart } from "@/lib/format";
+import { REFUND_CATEGORIES, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
 
 // ─── Tipos da Navegação (Padrão Shopify — Macro-grupos + Progressive Disclosure) ──
 type NavSubItem = {
@@ -72,7 +76,7 @@ type NavGroupItem = {
   isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-// ─── Árvore de Navegação — Padrão Shopify Adaptado à Rotina de Boutique ──────
+// ─── Árvore de Navegação — Padrão Shopify Adaptado com Distribuição Inteligente ───
 function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
   const items: NavGroupItem[] = [
     // ── Acesso Operacional Rápido (Alta Frequência Diária) ───────────────────
@@ -99,7 +103,7 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
       isMatch: (p) => p.startsWith("/loja/pedidos"),
     },
 
-    // ── Macro-grupos Principais (Elegantes e Concisos estilo Shopify) ────────
+    // ── Macro-grupos Principais (Elegantes e Concisos) ───────────────────────
     {
       id: "produtos",
       label: "Produtos",
@@ -160,14 +164,20 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
       ],
     },
     {
+      id: "metas",
+      label: "Metas & Vendas",
+      icon: Target,
+      to: "/metas",
+      isMatch: (p) => p.startsWith("/metas"),
+    },
+    {
       id: "marketing",
       label: "Marketing",
       icon: BadgePercent,
       to: "/loja/cupons",
       isMatch: (p) =>
         p.startsWith("/loja/cupons") ||
-        p.startsWith("/loja/compartilhar") ||
-        p.startsWith("/metas"),
+        p.startsWith("/loja/compartilhar"),
       children: [
         {
           to: "/loja/cupons",
@@ -176,13 +186,8 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
         },
         {
           to: "/loja/compartilhar",
-          label: "Divulgação & Link da Bio",
+          label: "Divulgação & Redes",
           isMatch: (p) => p.startsWith("/loja/compartilhar"),
-        },
-        {
-          to: "/metas",
-          label: "Metas de Venda",
-          isMatch: (p) => p.startsWith("/metas"),
         },
       ],
     },
@@ -273,16 +278,78 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
     });
   }
 
+  // Canal adicional de divulgação rápida (WhatsApp / Link da Bio)
+  items.push({
+    id: "linkbio",
+    label: "Link da Bio & WhatsApp",
+    icon: Link2,
+    to: "/loja/compartilhar",
+    section: !vitrineAtiva ? "Canais de vendas" : undefined,
+    isMatch: (p) => p.startsWith("/loja/compartilhar"),
+  });
+
   return items;
 }
 
-// ─── Linha de Grupo e Sub-itens (Padrão Shopify — Zero Setas) ────────────────
+// ─── Widget de Produtividade da Boutique (Preenchimento Inteligente de UX) ───
+function SidebarGoalCard() {
+  const { data: goals = [] } = useQuery(goalsQuery());
+  const { data: all = [] } = useQuery(transactionsQuery());
+  const txs = all as unknown as Transaction[];
+  const month = monthStart(0);
+  const mPrefix = month.slice(0, 7);
+
+  const currentGoal = goals.find((g) => g.month?.slice(0, 7) === mPrefix);
+  const goalAmount = Number(currentGoal?.target_amount ?? 0);
+
+  const monthTransactions = txs.filter((t) => t.occurred_on?.slice(0, 7) === mPrefix);
+  const grossSales = sumBy(monthTransactions, "entrada");
+  const refunds = sumByCategories(monthTransactions, "saida", REFUND_CATEGORIES);
+  const revenue = Math.max(grossSales - refunds, 0);
+
+  const progress = goalAmount > 0 ? Math.min((revenue / goalAmount) * 100, 100) : 0;
+
+  return (
+    <Link
+      to="/metas"
+      className="mx-1 my-2 block rounded-2xl border border-sidebar-border/70 bg-sidebar-accent/25 hover:bg-sidebar-accent/50 p-3 transition-colors group cursor-pointer"
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Target className="size-3.5 text-primary shrink-0" />
+          <span className="text-[11px] font-bold text-foreground">Meta do Mês</span>
+        </div>
+        <span className="text-[10px] font-semibold text-primary group-hover:underline">
+          {goalAmount > 0 ? `${Math.round(progress)}%` : "Definir →"}
+        </span>
+      </div>
+
+      {goalAmount > 0 ? (
+        <div className="space-y-1">
+          <Progress value={progress} className="h-1.5 bg-sidebar-border" />
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium">
+            <span>{brlCompact(revenue)}</span>
+            <span>{brlCompact(goalAmount)}</span>
+          </div>
+        </div>
+      ) : (
+        <p className="text-[10.5px] text-muted-foreground line-clamp-2 leading-relaxed">
+          Defina sua meta para acompanhar o faturamento deste mês.
+        </p>
+      )}
+    </Link>
+  );
+}
+
+// ─── Linha de Grupo e Sub-itens (Padrão Shopify — Toggle Interativo Sem Travar) ──
 function NavGroupRow({
   item,
   pathname,
   search,
   badgeCount,
   storeSlug,
+  isOpen,
+  onToggle,
   onItemClick,
 }: {
   item: NavGroupItem;
@@ -290,11 +357,12 @@ function NavGroupRow({
   search: Record<string, unknown>;
   badgeCount?: number;
   storeSlug?: string | null;
+  isOpen: boolean;
+  onToggle: (item: NavGroupItem, e: React.MouseEvent) => void;
   onItemClick?: () => void;
 }) {
-  const isGroupActive = item.isMatch(pathname, search);
+  const isCurrentGroupRoute = item.isMatch(pathname, search);
   const hasChildren = Boolean(item.children && item.children.length > 0);
-  const isExpanded = hasChildren && isGroupActive;
 
   return (
     <div className="flex flex-col">
@@ -302,7 +370,7 @@ function NavGroupRow({
       <div
         className={cn(
           "group relative flex items-center justify-between rounded-xl px-2.5 py-2 text-[13px] transition-all duration-150 select-none",
-          isGroupActive
+          isCurrentGroupRoute
             ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
         )}
@@ -311,13 +379,13 @@ function NavGroupRow({
           to={item.to as any}
           search={item.search as any}
           preload="intent"
-          onClick={onItemClick}
+          onClick={(e) => onToggle(item, e)}
           className="flex flex-1 items-center gap-2.5 min-w-0 cursor-pointer"
         >
           <item.icon
             className={cn(
               "size-4 shrink-0 transition-colors",
-              isGroupActive
+              isCurrentGroupRoute
                 ? "text-primary"
                 : "text-muted-foreground group-hover:text-foreground",
             )}
@@ -346,8 +414,8 @@ function NavGroupRow({
         )}
       </div>
 
-      {/* Sub-itens desdobrados (Elegantes com indentação pura — Estilo Imagens 3 e 4 da Shopify) */}
-      {hasChildren && isExpanded && (
+      {/* Sub-itens desdobrados (Abre e fecha suavemente) */}
+      {hasChildren && isOpen && (
         <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 slide-in-from-top-1 duration-150">
           {item.children!.map((child) => {
             const isChildActive = child.isMatch(pathname, search);
@@ -409,6 +477,57 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [storeId, store?.metadata]);
 
   const navItems = useMemo(() => getShopifyNav(vitrineAtiva), [vitrineAtiva]);
+
+  // ── Estado Interativo de Toggle dos Grupos (Abre e fecha suavemente) ────────
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // Sincroniza abertura automática quando a rota muda
+  useEffect(() => {
+    const activeItem = navItems.find((item) => item.children && item.isMatch(pathname, search));
+    if (activeItem) {
+      setOpenGroups((prev) => {
+        // Se ainda não houve toggle explícito nesta rota, abre por padrão
+        if (prev[activeItem.id] === undefined) {
+          return { ...prev, [activeItem.id]: true };
+        }
+        return prev;
+      });
+    }
+  }, [pathname, search, navItems]);
+
+  const isGroupOpen = (item: NavGroupItem) => {
+    if (!item.children || item.children.length === 0) return false;
+    if (openGroups[item.id] !== undefined) {
+      return openGroups[item.id];
+    }
+    return item.isMatch(pathname, search);
+  };
+
+  const handleToggle = (item: NavGroupItem, e: React.MouseEvent, onItemClick?: () => void) => {
+    if (!item.children || item.children.length === 0) {
+      onItemClick?.();
+      return;
+    }
+
+    const currentlyOpen = isGroupOpen(item);
+    const isCurrentRoute = item.isMatch(pathname, search);
+
+    if (currentlyOpen) {
+      // Já está aberto -> toggle FECHAR!
+      e.preventDefault();
+      setOpenGroups((prev) => ({ ...prev, [item.id]: false }));
+    } else {
+      // Está fechado -> toggle ABRIR!
+      setOpenGroups((prev) => ({ ...prev, [item.id]: true }));
+      if (isCurrentRoute) {
+        // Já está na rota, apenas expande sem recarregar
+        e.preventDefault();
+      } else {
+        // Navega normalmente para a página padrão do grupo
+        onItemClick?.();
+      }
+    }
+  };
 
   // Badge de pedidos pendentes
   const pendingOrderCount = useMemo(() => {
@@ -475,6 +594,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           search={search}
           badgeCount={pendingOrderCount}
           storeSlug={store?.slug}
+          isOpen={isGroupOpen(item)}
+          onToggle={(group, e) => handleToggle(group, e, onItemClick)}
           onItemClick={onItemClick}
         />
       </div>
@@ -567,6 +688,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Navegação Limpa e Organizada */}
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {renderNavItems()}
+              
+              {/* Widget de Produtividade da Boutique (Preenchimento Inteligente de UX) */}
+              <div className="pt-2">
+                <SidebarGoalCard />
+              </div>
             </nav>
           </div>
         )}
@@ -693,6 +819,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="flex flex-col gap-1 pb-20">
             {renderNavItems(() => setMobileMenuOpen(false))}
 
+            <div className="mt-2">
+              <SidebarGoalCard />
+            </div>
+
             <div className="mt-4 border-t border-border/60 pt-3">
               <Link
                 to="/configuracoes"
@@ -764,6 +894,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="flex flex-col gap-1 px-4 py-3">
             {renderNavItems(() => setMoreSheetOpen(false))}
+
+            <div className="mt-2">
+              <SidebarGoalCard />
+            </div>
 
             <div className="mt-4 border-t border-border/40 pt-3">
               <Link
