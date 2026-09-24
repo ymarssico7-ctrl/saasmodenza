@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Boxes,
+  ChevronDown,
   CircleDollarSign,
   CreditCard,
   Eye,
@@ -358,10 +359,10 @@ const NavGroupRow = memo(function NavGroupRow({
 
   return (
     <div className="flex flex-col">
-      {/* Item Principal (1ª linha) */}
+      {/* Item Principal (1ª linha com feedback tátil suave) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-xl px-2.5 py-2.5 text-[13.5px] transition-colors duration-100 ease-out select-none",
+          "group relative flex items-center justify-between rounded-xl px-2.5 py-2.5 text-[13.5px] transition-colors duration-150 ease-out select-none active:scale-[0.985]",
           isCurrentGroupRoute
             ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
@@ -376,7 +377,7 @@ const NavGroupRow = memo(function NavGroupRow({
         >
           <item.icon
             className={cn(
-              "size-[17px] shrink-0 transition-colors duration-100",
+              "size-[17px] shrink-0 transition-colors duration-150",
               isCurrentGroupRoute
                 ? "text-primary"
                 : "text-muted-foreground group-hover:text-foreground",
@@ -391,6 +392,23 @@ const NavGroupRow = memo(function NavGroupRow({
           )}
         </Link>
 
+        {/* Micro-Chevron giratório nos itens com filhos (Padrão Apple/Stripe) */}
+        {hasChildren && (
+          <button
+            type="button"
+            onClick={(e) => onToggle(item, e)}
+            className="p-1 rounded-md text-muted-foreground/45 hover:text-foreground group-hover:text-muted-foreground/75 transition-colors cursor-pointer"
+            aria-label={isOpen ? "Recolher opções" : "Expandir opções"}
+          >
+            <ChevronDown
+              className={cn(
+                "size-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                isOpen && "rotate-180 text-foreground/80",
+              )}
+            />
+          </button>
+        )}
+
         {/* Botão de preview da vitrine (Shopify Style) */}
         {item.externalPreview && storeSlug && (
           <a
@@ -398,7 +416,7 @@ const NavGroupRow = memo(function NavGroupRow({
             target="_blank"
             rel="noreferrer"
             title="Abrir Vitrine Online"
-            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-100"
+            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <Eye className="size-3.5" />
@@ -406,29 +424,40 @@ const NavGroupRow = memo(function NavGroupRow({
         )}
       </div>
 
-      {/* Sub-itens desdobrados (Abre e fecha com fade-in leve e GPU-accelerated) */}
-      {hasChildren && isOpen && (
-        <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 duration-100">
-          {item.children!.map((child) => {
-            const isChildActive = child.isMatch(pathname, search);
-            return (
-              <Link
-                key={child.label}
-                to={child.to as any}
-                search={child.search as any}
-                preload="intent"
-                onClick={onItemClick}
-                className={cn(
-                  "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out cursor-pointer select-none",
-                  isChildActive
-                    ? "font-semibold text-foreground bg-sidebar-accent/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
-                )}
-              >
-                <span className="truncate">{child.label}</span>
-              </Link>
-            );
-          })}
+      {/* Sub-itens com física líquida contínua (CSS Grid 0fr -> 1fr, suave tanto ao abrir quanto ao fechar) */}
+      {hasChildren && (
+        <div
+          className={cn(
+            "grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            isOpen
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0 pointer-events-none",
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="my-0.5 flex flex-col gap-0.5 py-0.5">
+              {item.children!.map((child) => {
+                const isChildActive = child.isMatch(pathname, search);
+                return (
+                  <Link
+                    key={child.label}
+                    to={child.to as any}
+                    search={child.search as any}
+                    preload="intent"
+                    onClick={onItemClick}
+                    className={cn(
+                      "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out active:scale-[0.99] cursor-pointer select-none",
+                      isChildActive
+                        ? "font-semibold text-foreground bg-sidebar-accent/60"
+                        : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
+                    )}
+                  >
+                    <span className="truncate">{child.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>
