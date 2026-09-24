@@ -55,7 +55,7 @@ import { useAccess } from "@/lib/useAccess";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-// ─── Tipos da Navegação (Padrão Cockpit Shopify) ──────────────────────────────
+// ─── Tipos da Navegação ───────────────────────────────────────────────────────
 type NavSubItem = {
   to: string;
   label: string;
@@ -76,9 +76,18 @@ type NavItem = {
   isMatch?: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-// ─── Construtor da Árvore de Navegação Cockpit Completo (Zero Espaço em Branco) 
+// ─── Hierarquia UX Inteligente — Contexto Boutique de Moda ───────────────────
+//
+//  Princípios aplicados:
+//  • Fitts's Law → ações de maior frequência ficam no topo
+//  • Caixa & PDV = ação crítica para loja física (várias vezes/dia)
+//    → sobe para 3ª posição, logo após Início e Pedidos
+//  • Finanças/Relatórios = consulta mensal → ficam no final
+//  • Seções agrupadas por fluxo de trabalho, não por categoria lógica
+//
 function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
   const items: NavItem[] = [
+    // ── Ações Primárias (Alta Frequência) ────────────────────────────────────
     {
       id: "painel",
       label: "Início",
@@ -88,21 +97,28 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
     },
     {
       id: "pedidos",
-      label: "Pedidos",
+      label: "Pedidos Online",
       icon: ShoppingBag,
       to: "/loja/pedidos",
       badgeKey: "pedidos",
       isMatch: (p) => p.startsWith("/loja/pedidos"),
     },
+    {
+      id: "caixa",
+      label: "Caixa & PDV",
+      icon: Wallet,
+      to: "/caixa",
+      isMatch: (p) => p === "/caixa",
+    },
 
-    // ── Catálogo & Compras ──
+    // ── Catálogo & Estoque ────────────────────────────────────────────────────
     {
       id: "pecas",
       label: "Peças em Estoque",
       icon: Boxes,
       to: "/estoque",
       search: { tab: "pecas" },
-      section: "Catálogo & Compras",
+      section: "Catálogo & Estoque",
       isMatch: (p, s) => p.startsWith("/estoque") && s?.tab !== "categorias",
     },
     {
@@ -122,13 +138,13 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
     },
     {
       id: "fornecedores",
-      label: "Fornecedores de Mercadoria",
+      label: "Fornecedores",
       icon: Truck,
       to: "/fornecedores",
       isMatch: (p) => p.startsWith("/fornecedores"),
     },
 
-    // ── Clientes & Relacionamento ──
+    // ── Clientes & Fidelidade ─────────────────────────────────────────────────
     {
       id: "clientes",
       label: "Carteira de Clientes & VIPs",
@@ -144,24 +160,19 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
       icon: HandCoins,
       to: "/clientes",
       search: { tab: "fiado" },
-      isMatch: (p, s) => (p.startsWith("/clientes") && s?.tab === "fiado") || p.startsWith("/fiado"),
+      isMatch: (p, s) =>
+        (p.startsWith("/clientes") && s?.tab === "fiado") ||
+        p.startsWith("/fiado"),
     },
 
-    // ── Crescimento & Marketing ──
+    // ── Marketing & Crescimento ───────────────────────────────────────────────
     {
       id: "cupons",
       label: "Cupons & Descontos",
       icon: BadgePercent,
       to: "/loja/cupons",
-      section: "Crescimento & Vendas",
+      section: "Marketing & Crescimento",
       isMatch: (p) => p.startsWith("/loja/cupons"),
-    },
-    {
-      id: "metas",
-      label: "Metas & Planejamento",
-      icon: Target,
-      to: "/metas",
-      isMatch: (p) => p.startsWith("/metas"),
     },
     {
       id: "compartilhar",
@@ -170,14 +181,28 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
       to: "/loja/compartilhar",
       isMatch: (p) => p.startsWith("/loja/compartilhar"),
     },
+    {
+      id: "metas",
+      label: "Metas & Planejamento",
+      icon: Target,
+      to: "/metas",
+      isMatch: (p) => p.startsWith("/metas"),
+    },
 
-    // ── Finanças & Inteligência ──
+    // ── Finanças ──────────────────────────────────────────────────────────────
+    {
+      id: "vestuipay",
+      label: "Vestui Pay (Recebimentos)",
+      icon: CreditCard,
+      to: "/loja/recebimentos",
+      section: "Finanças",
+      isMatch: (p) => p.startsWith("/loja/recebimentos"),
+    },
     {
       id: "relatorio",
       label: "Lucro Real & DRE",
       icon: BarChart3,
       to: "/relatorio",
-      section: "Finanças & Inteligência",
       isMatch: (p) => p.startsWith("/relatorio"),
     },
     {
@@ -187,32 +212,17 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
       to: "/prolabore",
       isMatch: (p) => p.startsWith("/prolabore"),
     },
-    {
-      id: "vestuipay",
-      label: "Vestui Pay (Recebimentos)",
-      icon: CreditCard,
-      to: "/loja/recebimentos",
-      isMatch: (p) => p.startsWith("/loja/recebimentos"),
-    },
-
-    // ── Canais de Venda (Loja Física & Digital) ──
-    {
-      id: "caixa",
-      label: "Caixa & PDV (Balcão Físico)",
-      icon: Wallet,
-      to: "/caixa",
-      section: "Canais de vendas",
-      isMatch: (p) => p === "/caixa",
-    },
   ];
 
+  // ── Loja Digital (Vitrine) ────────────────────────────────────────────────
   if (vitrineAtiva) {
     items.push({
       id: "vitrine",
-      label: "Vitrine Online (Loja Digital)",
+      label: "Vitrine Online",
       icon: Store,
       to: "/loja/produtos",
       externalPreview: true,
+      section: "Loja Digital",
       isMatch: (p) =>
         p.startsWith("/loja") &&
         !p.startsWith("/loja/pedidos") &&
@@ -257,6 +267,7 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
       icon: Globe,
       to: "/configuracoes",
       search: { tab: "canais" },
+      section: "Loja Digital",
       isMatch: (p, s) => p.startsWith("/configuracoes") && s?.tab === "canais",
     });
   }
@@ -264,7 +275,7 @@ function getCockpitNav(vitrineAtiva: boolean): NavItem[] {
   return items;
 }
 
-// ─── Verificador de Ativação ────────────────────────────────────────────────
+// ─── Verificadores de Ativação ────────────────────────────────────────────────
 function isItemActive(
   item: NavItem,
   pathname: string,
@@ -283,7 +294,7 @@ function isSubActive(
   return pathname === sub.to;
 }
 
-// ─── Linha de Navegação (Padrão Shopify — Zero Setas Laterais) ────────────────
+// ─── Linha de Navegação (Sem setas, sem acordeão falso) ───────────────────────
 function NavRow({
   item,
   pathname,
@@ -339,13 +350,13 @@ function NavRow({
           )}
         </Link>
 
-        {/* Botão de olho para preview da vitrine (Shopify Style) */}
+        {/* Botão de olho para abrir vitrine em nova aba */}
         {item.externalPreview && storeSlug && (
           <a
             href={`https://${storeSlug}.vestui.com.br`}
             target="_blank"
             rel="noreferrer"
-            title="Abrir Vitrine Online em nova aba"
+            title="Abrir Vitrine Online"
             className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
@@ -354,7 +365,7 @@ function NavRow({
         )}
       </div>
 
-      {/* Sub-itens desdobrados da Vitrine Online quando ativa */}
+      {/* Sub-itens da Vitrine quando expandida */}
       {item.children && isVitrineOpen && (
         <div className="my-0.5 flex flex-col gap-0.5 animate-in fade-in-50 slide-in-from-top-1 duration-150">
           {item.children.map((child) => {
@@ -383,7 +394,7 @@ function NavRow({
   );
 }
 
-// ─── Componente Principal AppShell ──────────────────────────────────────────
+// ─── Componente Principal AppShell ───────────────────────────────────────────
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
@@ -398,7 +409,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: members = [] } = useQuery(membersQuery());
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
 
-  // ── Modelo de negócio & ativação da Vitrine Online ─────────────────────────
+  // ── Ativação da Vitrine Online ────────────────────────────────────────────
   const [vitrineAtiva, setVitrineAtiva] = useState(() => isVitrineAtiva(storeId, store?.metadata));
 
   useEffect(() => {
@@ -416,7 +427,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [storeId, store?.metadata]);
 
-  // ── Lista Cockpit de Navegação ─────────────────────────────────────────────
   const navItems = useMemo(() => getCockpitNav(vitrineAtiva), [vitrineAtiva]);
 
   // Badge de pedidos pendentes
@@ -449,7 +459,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return "Vestui";
   })();
 
-  // ── Abas Principais da Barra Inferior Mobile ──────────────────────────────
+  // ── Abas Principais Mobile ────────────────────────────────────────────────
   const mobilePrimary = [
     { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p: string) => p === "/painel" },
     { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p: string) => p === "/caixa" },
@@ -467,23 +477,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
+  // ─── Renderização das Seções de Navegação ─────────────────────────────────
+  function renderNavItems(onItemClick?: () => void) {
+    return navItems.map((item) => (
+      <div key={item.id} className="flex flex-col">
+        {item.section && (
+          <div className="flex items-center px-2.5 pt-4 pb-1">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 select-none">
+              {item.section}
+            </span>
+          </div>
+        )}
+        <NavRow
+          item={item}
+          pathname={pathname}
+          search={search}
+          badgeCount={pendingOrderCount}
+          storeSlug={store?.slug}
+          onItemClick={onItemClick}
+        />
+      </div>
+    ));
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Sidebar Desktop (Padrão Cockpit Shopify Oficial — Sem Vácuo em Branco) ─── */}
+
+      {/* ── Sidebar Desktop ──────────────────────────────────────────────────── */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-3.5 py-4 lg:flex">
+
         {isConfiguracoes ? (
-          <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none">
-            {/* Botão de retorno ao Admin (Shopify style) */}
+          /* ── Modo Configurações (Shopify-style settings sidebar) ─────────── */
+          <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
             <Link
               to="/painel"
-              className="group flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer mb-2"
+              className="group flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer mb-2 shrink-0"
             >
               <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
               <span>Voltar ao Início</span>
             </Link>
 
-            {/* Card de Identificação da Loja (Shopify Style) */}
-            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-sidebar-border/80 bg-card p-3 shadow-2xs">
+            {/* Card de identidade da loja */}
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-sidebar-border/80 bg-card p-3 shadow-2xs shrink-0">
               <div className="flex size-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 font-bold text-xs shrink-0">
                 {storeName.slice(0, 2).toUpperCase()}
               </div>
@@ -493,7 +528,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="px-2.5 pb-1.5">
+            <div className="px-2.5 pb-1.5 shrink-0">
               <p className="text-xs font-semibold text-muted-foreground">Configurações</p>
             </div>
 
@@ -521,19 +556,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <item.icon
                       className={cn(
                         "size-4 shrink-0 transition-colors",
-                        active
-                          ? "text-primary-foreground"
-                          : "text-muted-foreground group-hover:text-foreground",
+                        active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground",
                       )}
                     />
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span
                         className={cn(
-                          "rounded-full px-1.5 py-0.2 text-[10px] font-bold",
-                          active
-                            ? "bg-white/20 text-white"
-                            : "bg-surface-muted text-muted-foreground",
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                          active ? "bg-white/20 text-white" : "bg-surface-muted text-muted-foreground",
                         )}
                       >
                         {item.badge}
@@ -545,41 +576,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
         ) : (
-          <>
-            {/* Header da Marca (Alinhado com a Sidebar) */}
-            <div className="px-2 pt-1 pb-3 flex items-center">
+          /* ── Modo Principal — Fix do espaço em branco:
+               div explícita (não Fragment) com flex-col + flex-1 + min-h-0
+               garante que a <nav> ocupa exatamente o espaço restante ─── */
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Logo */}
+            <div className="px-2 pt-1 pb-3 flex items-center shrink-0">
               <Link to="/painel">
                 <Logo />
               </Link>
             </div>
 
-            {/* Navegação Cockpit Completa — Preenchimento Harmonioso e Zero Vácuo Branco */}
-            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {navItems.map((item) => (
-                <div key={item.id} className="flex flex-col">
-                  {item.section && (
-                    <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-[11px] font-semibold text-muted-foreground/75 select-none">
-                      <span>{item.section}</span>
-                      {item.section === "Canais de vendas" && (
-                        <ChevronRight className="size-3 text-muted-foreground/50" />
-                      )}
-                    </div>
-                  )}
-                  <NavRow
-                    item={item}
-                    pathname={pathname}
-                    search={search}
-                    badgeCount={pendingOrderCount}
-                    storeSlug={store?.slug}
-                  />
-                </div>
-              ))}
+            {/* Navegação — flex-1 + min-h-0 elimina o vácuo em branco */}
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {renderNavItems()}
             </nav>
-          </>
+          </div>
         )}
 
-        {/* ── Rodapé Fixo da Sidebar (Padrão Shopify Oficial — Sem Card Caixote) ──── */}
-        <div className="mt-auto pt-3 border-t border-sidebar-border/70 flex flex-col gap-1">
+        {/* ── Rodapé Fixo da Sidebar ────────────────────────────────────────── */}
+        <div className="mt-auto pt-3 border-t border-sidebar-border/70 flex flex-col gap-1 shrink-0">
           {!isConfiguracoes && (
             <Link
               to="/configuracoes"
@@ -616,7 +632,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {/* Linha da Boutique com Dropdown Menu (Padrão Shopify Print 1: [ML] Minha loja 🔔) */}
+          {/* Perfil da Boutique com Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -678,7 +694,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ── Topbar Mobile ─────────────────────────────────────────────────── */}
+      {/* ── Topbar Mobile ─────────────────────────────────────────────────────── */}
       <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between px-4 lg:hidden">
         <Link to="/painel">
           <Logo />
@@ -694,30 +710,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Button>
       </header>
 
-      {/* ── Mobile Overlay Menu Completo ──────────────────────────────────── */}
+      {/* ── Mobile Overlay Menu ────────────────────────────────────────────────── */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
           <nav className="flex flex-col gap-1 pb-20">
-            {navItems.map((item) => (
-              <div key={item.id} className="flex flex-col">
-                {item.section && (
-                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-[11px] font-semibold text-muted-foreground/75">
-                    <span>{item.section}</span>
-                    {item.section === "Canais de vendas" && (
-                      <ChevronRight className="size-3 text-muted-foreground/50" />
-                    )}
-                  </div>
-                )}
-                <NavRow
-                  item={item}
-                  pathname={pathname}
-                  search={search}
-                  badgeCount={pendingOrderCount}
-                  storeSlug={store?.slug}
-                  onItemClick={() => setMobileMenuOpen(false)}
-                />
-              </div>
-            ))}
+            {renderNavItems(() => setMobileMenuOpen(false))}
 
             <div className="mt-4 border-t border-border/60 pt-3">
               <Link
@@ -741,12 +738,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* ── Main Content ──────────────────────────────────────────────────── */}
+      {/* ── Main Content ───────────────────────────────────────────────────────── */}
       <main className="pb-24 lg:pb-5 lg:pl-[268px]">
         <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8 sm:py-5 lg:pb-4">{children}</div>
       </main>
 
-      {/* ── Bottom Tab Bar (Mobile) ────────────────────────────────────────── */}
+      {/* ── Bottom Tab Bar (Mobile) ────────────────────────────────────────────── */}
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex h-[72px] items-center justify-around px-2 lg:hidden">
         {mobilePrimary.map((item) => {
           const active = item.isMatch(pathname);
@@ -776,7 +773,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </button>
       </nav>
 
-      {/* ── Sheet "Mais" (Mobile Completo) ─────────────────────────────────── */}
+      {/* ── Sheet "Mais" (Mobile Completo) ────────────────────────────────────── */}
       <Sheet open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
         <SheetContent
           side="bottom"
@@ -789,26 +786,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SheetHeader>
 
           <nav className="flex flex-col gap-1 px-4 py-3">
-            {navItems.map((item) => (
-              <div key={item.id} className="flex flex-col">
-                {item.section && (
-                  <div className="flex items-center gap-1 px-2.5 pt-4 pb-1 text-[11px] font-semibold text-muted-foreground/75">
-                    <span>{item.section}</span>
-                    {item.section === "Canais de vendas" && (
-                      <ChevronRight className="size-3 text-muted-foreground/50" />
-                    )}
-                  </div>
-                )}
-                <NavRow
-                  item={item}
-                  pathname={pathname}
-                  search={search}
-                  badgeCount={pendingOrderCount}
-                  storeSlug={store?.slug}
-                  onItemClick={() => setMoreSheetOpen(false)}
-                />
-              </div>
-            ))}
+            {renderNavItems(() => setMoreSheetOpen(false))}
 
             <div className="mt-4 border-t border-border/40 pt-3">
               <Link
