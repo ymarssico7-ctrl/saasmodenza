@@ -43,6 +43,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@/components/ui/hover-card";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -363,31 +368,125 @@ const NavGroupRow = memo(function NavGroupRow({
   const hasChildren = Boolean(item.children && item.children.length > 0);
 
   if (isCollapsed) {
+    if (hasChildren) {
+      return (
+        <div className="flex flex-col items-center py-0.5">
+          <HoverCard openDelay={80} closeDelay={150}>
+            <HoverCardTrigger asChild>
+              <Link
+                to={item.to as any}
+                search={item.search as any}
+                preload="intent"
+                onClick={onItemClick}
+                className={cn(
+                  "group relative flex size-9 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer select-none active:scale-95 outline-none",
+                  isCurrentGroupRoute
+                    ? "bg-white/12 text-white shadow-2xs"
+                    : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "size-4.5 shrink-0 transition-opacity duration-150",
+                    isCurrentGroupRoute ? "opacity-100 text-white" : "opacity-55 group-hover:opacity-100",
+                  )}
+                />
+                {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500 animate-pulse" />
+                )}
+              </Link>
+            </HoverCardTrigger>
+
+            <HoverCardContent
+              side="right"
+              align="start"
+              sideOffset={12}
+              className="z-50 w-52 p-1.5 bg-[#18181B] border border-white/10 shadow-2xl rounded-xl text-sidebar-foreground select-none"
+            >
+              {/* Cabeçalho do Grupo (Link direto) */}
+              <Link
+                to={item.to as any}
+                search={item.search as any}
+                preload="intent"
+                onClick={onItemClick}
+                className="flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold text-white/95 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <span>{item.label}</span>
+                {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-2xs">
+                    {badgeCount}
+                  </span>
+                )}
+              </Link>
+
+              <div className="my-1 h-px bg-white/8" />
+
+              {/* Lista de Sub-itens Interativos */}
+              <div className="flex flex-col gap-0.5">
+                {item.children!.map((child) => {
+                  const isChildActive = child.isMatch(pathname, search);
+                  return (
+                    <Link
+                      key={child.label}
+                      to={child.to as any}
+                      search={child.search as any}
+                      preload="intent"
+                      onClick={onItemClick}
+                      className={cn(
+                        "flex items-center justify-between px-2.5 py-1.5 text-[12.5px] rounded-lg transition-colors cursor-pointer select-none",
+                        isChildActive
+                          ? "bg-white/15 text-white font-medium"
+                          : "text-sidebar-foreground/70 hover:text-white hover:bg-white/10 font-normal",
+                      )}
+                    >
+                      <span className="truncate">{child.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        </div>
+      );
+    }
+
+    // Se NÃO tiver filhos (como Início, Caixa & PDV, Pedidos, Metas & Vendas):
     return (
       <div className="flex flex-col items-center py-0.5">
-        <Link
-          to={item.to as any}
-          search={item.search as any}
-          preload="intent"
-          onClick={(e) => onToggle(item, e)}
-          title={item.label}
-          className={cn(
-            "group relative flex size-9 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer select-none active:scale-95",
-            isCurrentGroupRoute
-              ? "bg-white/12 text-white shadow-2xs"
-              : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
-          )}
-        >
-          <item.icon
-            className={cn(
-              "size-4.5 shrink-0 transition-opacity duration-150",
-              isCurrentGroupRoute ? "opacity-100 text-white" : "opacity-55 group-hover:opacity-100",
-            )}
-          />
-          {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500 animate-pulse" />
-          )}
-        </Link>
+        <HoverCard openDelay={80} closeDelay={100}>
+          <HoverCardTrigger asChild>
+            <Link
+              to={item.to as any}
+              search={item.search as any}
+              preload="intent"
+              onClick={onItemClick}
+              className={cn(
+                "group relative flex size-9 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer select-none active:scale-95 outline-none",
+                isCurrentGroupRoute
+                  ? "bg-white/12 text-white shadow-2xs"
+                  : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
+              )}
+            >
+              <item.icon
+                className={cn(
+                  "size-4.5 shrink-0 transition-opacity duration-150",
+                  isCurrentGroupRoute ? "opacity-100 text-white" : "opacity-55 group-hover:opacity-100",
+                )}
+              />
+              {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500 animate-pulse" />
+              )}
+            </Link>
+          </HoverCardTrigger>
+          <HoverCardContent
+            side="right"
+            align="center"
+            sideOffset={12}
+            className="z-50 w-auto px-2.5 py-1 text-xs font-medium bg-[#18181B] border border-white/10 shadow-xl rounded-lg text-white whitespace-nowrap select-none"
+          >
+            {item.label}
+          </HoverCardContent>
+        </HoverCard>
       </div>
     );
   }
@@ -672,9 +771,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isOpen={activeGroupId === item.id}
           isCollapsed={collapsed}
           onToggle={(group, e) => {
-            if (collapsed) {
-              setIsCollapsed(false);
-            }
             handleToggle(group, e, onItemClick);
           }}
           onItemClick={onItemClick}
