@@ -983,7 +983,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => {
-                    navigate({ to: "/produtos" });
+                    navigate({ to: "/estoque", search: { tab: "pecas" } });
                   }}
                   className="flex w-full items-center gap-2 rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left"
                 >
