@@ -359,13 +359,13 @@ const NavGroupRow = memo(function NavGroupRow({
 
   return (
     <div className="flex flex-col">
-      {/* Item Principal (1ª linha com feedback tátil suave) */}
+      {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-xl px-2.5 py-2.5 text-[13.5px] transition-colors duration-150 ease-out select-none active:scale-[0.985]",
+          "group relative flex items-center justify-between rounded-lg px-2.5 py-2.5 text-[13px] transition-colors duration-150 ease-out select-none active:scale-[0.985]",
           isCurrentGroupRoute
-            ? "bg-sidebar-accent text-foreground font-semibold shadow-2xs"
-            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground font-medium",
+            ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+            : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 font-normal",
         )}
       >
         <Link
@@ -377,10 +377,10 @@ const NavGroupRow = memo(function NavGroupRow({
         >
           <item.icon
             className={cn(
-              "size-[17px] shrink-0 transition-colors duration-150",
+              "size-4 shrink-0 transition-opacity duration-150 text-sidebar-foreground",
               isCurrentGroupRoute
-                ? "text-primary"
-                : "text-muted-foreground group-hover:text-foreground",
+                ? "opacity-100"
+                : "opacity-45 group-hover:opacity-70",
             )}
           />
           <span className="truncate">{item.label}</span>
@@ -392,31 +392,31 @@ const NavGroupRow = memo(function NavGroupRow({
           )}
         </Link>
 
-        {/* Micro-Chevron giratório nos itens com filhos (Padrão Apple/Stripe) */}
+        {/* Micro-Chevron giratório (Padrão Apple/Stripe) */}
         {hasChildren && (
           <button
             type="button"
             onClick={(e) => onToggle(item, e)}
-            className="p-1 rounded-md text-muted-foreground/45 hover:text-foreground group-hover:text-muted-foreground/75 transition-colors cursor-pointer"
+            className="p-1 rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground/70 group-hover:text-sidebar-foreground/50 transition-colors cursor-pointer"
             aria-label={isOpen ? "Recolher opções" : "Expandir opções"}
           >
             <ChevronDown
               className={cn(
-                "size-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                isOpen && "rotate-180 text-foreground/80",
+                "size-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] text-sidebar-foreground",
+                isOpen ? "rotate-180 opacity-70" : "opacity-30 group-hover:opacity-55",
               )}
             />
           </button>
         )}
 
-        {/* Botão de preview da vitrine (Shopify Style) */}
+        {/* Botão de preview da vitrine */}
         {item.externalPreview && storeSlug && (
           <a
             href={`https://${storeSlug}.vestui.com.br`}
             target="_blank"
             rel="noreferrer"
             title="Abrir Vitrine Online"
-            className="p-1 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150"
+            className="p-1 rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground/80 hover:bg-white/8 transition-colors duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <Eye className="size-3.5" />
@@ -424,7 +424,7 @@ const NavGroupRow = memo(function NavGroupRow({
         )}
       </div>
 
-      {/* Sub-itens com física líquida contínua (CSS Grid 0fr -> 1fr, suave tanto ao abrir quanto ao fechar) */}
+      {/* Sub-itens com física líquida contínua (CSS Grid 0fr → 1fr) */}
       {hasChildren && (
         <div
           className={cn(
@@ -446,10 +446,10 @@ const NavGroupRow = memo(function NavGroupRow({
                     preload="intent"
                     onClick={onItemClick}
                     className={cn(
-                      "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out active:scale-[0.99] cursor-pointer select-none",
+                      "group relative flex items-center justify-between rounded-md pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out active:scale-[0.99] cursor-pointer select-none",
                       isChildActive
-                        ? "font-semibold text-foreground bg-sidebar-accent/60"
-                        : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-normal",
+                        ? "font-medium text-sidebar-foreground bg-sidebar-accent"
+                        : "text-sidebar-foreground/50 hover:text-sidebar-foreground/85 hover:bg-sidebar-accent font-normal",
                     )}
                   >
                     <span className="truncate">{child.label}</span>
@@ -599,7 +599,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div key={item.id} className="flex flex-col">
         {item.section && (
           <div className="px-2.5 pt-3.5 pb-1 select-none">
-            <span className="text-[11px] font-semibold text-muted-foreground/60">
+            <span className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">
               {item.section}
             </span>
           </div>
@@ -627,25 +627,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
             <Link
               to="/painel"
-              className="group flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all cursor-pointer mb-2 shrink-0"
+              className="group flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-normal text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 transition-colors cursor-pointer mb-2 shrink-0"
             >
-              <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5 opacity-60 group-hover:opacity-90" />
               <span>Voltar ao Início</span>
             </Link>
 
             {/* Card de identidade da loja */}
-            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-sidebar-border/80 bg-card p-3 shadow-2xs shrink-0">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 font-bold text-xs shrink-0">
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shrink-0">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs shrink-0">
                 {storeName.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
+                <p className="text-xs font-medium text-sidebar-foreground truncate">{storeName}</p>
+                <p className="text-[11px] text-sidebar-foreground/45 truncate">{ownerName}</p>
               </div>
             </div>
 
             <div className="px-2.5 pb-1.5 shrink-0">
-              <p className="text-xs font-semibold text-muted-foreground">Configurações</p>
+              <p className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">Configurações</p>
             </div>
 
             <nav className="flex flex-col gap-1">
@@ -663,16 +663,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     to="/configuracoes"
                     search={{ tab: item.tab }}
                     className={cn(
-                      "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-150 cursor-pointer",
+                      "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-normal transition-colors duration-150 cursor-pointer",
                       active
-                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",
+                        ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                        : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
                     )}
                   >
                     <item.icon
                       className={cn(
-                        "size-4 shrink-0 transition-colors",
-                        active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground",
+                        "size-4 shrink-0 transition-opacity text-sidebar-foreground",
+                        active ? "opacity-100" : "opacity-45 group-hover:opacity-70",
                       )}
                     />
                     <span className="flex-1 truncate">{item.label}</span>
@@ -680,7 +680,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <span
                         className={cn(
                           "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                          active ? "bg-white/20 text-white" : "bg-surface-muted text-muted-foreground",
+                          active ? "bg-white/15 text-sidebar-foreground" : "bg-white/8 text-sidebar-foreground/60",
                         )}
                       >
                         {item.badge}
@@ -705,28 +705,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {renderNavItems()}
             </nav>
-
-            {/* Widget de Meta — ancorado naturalmente acima do rodapé (elimina o vácuo) */}
-            <div className="mt-auto shrink-0 pb-1">
-              <SidebarGoalCard />
-            </div>
           </div>
         )}
 
         {/* ── Rodapé Fixo da Sidebar (Configurações + Perfil da Loja) ──────────── */}
-        <div className="mt-auto pt-3 border-t border-sidebar-border/70 flex flex-col gap-1 shrink-0">
+        <div className="mt-auto pt-3 border-t border-white/10 flex flex-col gap-1 shrink-0">
           {!isConfiguracoes && (
             <Link
               to="/configuracoes"
               search={{ tab: "geral" }}
               className={cn(
-                "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all duration-150 cursor-pointer",
+                "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
                 isConfiguracoes
-                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+                  ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                  : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
               )}
             >
-              <Settings className="size-4 shrink-0 transition-transform group-hover:rotate-45" />
+              <Settings className="size-4 shrink-0 opacity-50 group-hover:opacity-80 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
               <span>Configurações</span>
             </Link>
           )}
@@ -735,40 +730,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {trialStatus === "active" && daysLeftInTrial !== null && (
             <div
               className={cn(
-                "my-1 rounded-xl px-3 py-2 text-xs transition-all",
+                "my-1 rounded-lg px-3 py-2 text-xs transition-all",
                 isTrialUrgent
-                  ? "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                  : "border border-primary/20 bg-primary/5 text-primary",
+                  ? "border border-amber-400/25 bg-amber-400/10 text-amber-200"
+                  : "border border-white/10 bg-white/5 text-sidebar-foreground/70",
               )}
             >
-              <p className="font-semibold text-[11px]">
+              <p className="font-medium text-[11px]">
                 {isTrialUrgent ? "⚠ " : "✨ "}
                 {daysLeftInTrial} {daysLeftInTrial === 1 ? "dia restante" : "dias de avaliação"}
               </p>
-              <p className="text-[10px] opacity-80">
+              <p className="text-[10px] opacity-70">
                 {isTrialUrgent ? "Assine para manter o acesso" : "Período gratuito ativo"}
               </p>
             </div>
           )}
 
-          {/* Perfil da Boutique com Dropdown (Estilo [ML] Minha Loja 🔔 da Shopify) */}
+          {/* Perfil da Boutique com Dropdown (Padrão Shopify) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 hover:bg-sidebar-accent/80 transition-colors cursor-pointer group text-left outline-none"
+                className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {isProfileLoading ? (
                     <Skeleton className="size-7 rounded-lg" />
                   ) : (
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-teal-500/15 text-teal-600 dark:text-teal-400 font-bold text-[11px] shrink-0">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0">
                       {storeName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
-                  <span className="truncate text-xs font-semibold text-foreground">{storeName}</span>
+                  <span className="truncate text-xs font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">{storeName}</span>
                 </div>
-                <Bell className="size-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors shrink-0" />
+                <Bell className="size-3.5 text-sidebar-foreground/35 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
@@ -831,29 +826,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Mobile Overlay Menu ────────────────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-16 z-30 bg-background/95 px-4 py-4 backdrop-blur-xl lg:hidden overflow-y-auto">
+        <div className="fixed inset-0 top-16 z-30 bg-sidebar px-4 py-4 lg:hidden overflow-y-auto">
           <nav className="flex flex-col gap-1 pb-20">
             {renderNavItems(() => setMobileMenuOpen(false))}
 
-            <div className="mt-2">
-              <SidebarGoalCard />
-            </div>
-
-            <div className="mt-4 border-t border-border/60 pt-3">
+            <div className="mt-4 border-t border-white/10 pt-3">
               <Link
                 to="/configuracoes"
                 search={{ tab: "geral" }}
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-normal text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90"
               >
-                <Settings className="size-4 shrink-0" />
+                <Settings className="size-4 shrink-0 opacity-50" />
                 <span>Configurações</span>
               </Link>
             </div>
 
             <button
               onClick={() => void signOut()}
-              className="mt-4 flex items-center gap-2 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer"
+              className="mt-4 flex items-center gap-2 px-2.5 text-xs font-normal text-sidebar-foreground/40 hover:text-sidebar-foreground/75 cursor-pointer"
             >
               <LogOut className="size-3.5" /> Sair da conta
             </button>
