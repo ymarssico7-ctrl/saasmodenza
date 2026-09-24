@@ -81,7 +81,7 @@ export function PainelKpisBento({
   return (
     <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Faturamento Total
@@ -123,7 +123,7 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 2: SAÍDAS DO MÊS ────────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saídas do Mês
@@ -154,22 +154,11 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 3: SOBRA NO CAIXA (LUCRO REAL) ─────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Sobra no Caixa
-            </span>
-            {profit > 0 ? (
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                Positivo
-              </span>
-            ) : profit < 0 ? (
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                Atenção
-              </span>
-            ) : null}
-          </div>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Sobra no Caixa
+          </span>
           <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <TrendingUp className="size-4" />
           </div>
@@ -179,7 +168,11 @@ export function PainelKpisBento({
           <h3
             className={cn(
               "numeric text-2xl font-bold tracking-tight",
-              profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground",
+              profit > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : profit < 0
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-foreground",
             )}
           >
             {mascaraSaldo(profit)}
@@ -201,25 +194,11 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 4: META DO MÊS ──────────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-all duration-300 hover:shadow-lift hover:-translate-y-0.5 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Meta do Mês
-            </span>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                metaDefinida
-                  ? metaAtingida
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-primary-soft text-primary"
-                  : "bg-secondary text-muted-foreground",
-              )}
-            >
-              {metaDefinida ? (metaAtingida ? "Batida!" : `${progressClamp.toFixed(0)}%`) : "Sem meta"}
-            </span>
-          </div>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Meta do Mês
+          </span>
           <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
             <Target className="size-4" />
           </div>

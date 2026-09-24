@@ -17,6 +17,9 @@ import {
   LogOut,
   Menu,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
   Settings,
   Share2,
   ShoppingBag,
@@ -342,6 +345,7 @@ const NavGroupRow = memo(function NavGroupRow({
   badgeCount,
   storeSlug,
   isOpen,
+  isCollapsed = false,
   onToggle,
   onItemClick,
 }: {
@@ -351,11 +355,42 @@ const NavGroupRow = memo(function NavGroupRow({
   badgeCount?: number;
   storeSlug?: string | null;
   isOpen: boolean;
+  isCollapsed?: boolean;
   onToggle: (item: NavGroupItem, e: React.MouseEvent) => void;
   onItemClick?: () => void;
 }) {
   const isCurrentGroupRoute = item.isMatch(pathname, search);
   const hasChildren = Boolean(item.children && item.children.length > 0);
+
+  if (isCollapsed) {
+    return (
+      <div className="flex flex-col items-center py-0.5">
+        <Link
+          to={item.to as any}
+          search={item.search as any}
+          preload="intent"
+          onClick={(e) => onToggle(item, e)}
+          title={item.label}
+          className={cn(
+            "group relative flex size-9 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer select-none active:scale-95",
+            isCurrentGroupRoute
+              ? "bg-white/12 text-white shadow-2xs"
+              : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
+          )}
+        >
+          <item.icon
+            className={cn(
+              "size-4.5 shrink-0 transition-opacity duration-150",
+              isCurrentGroupRoute ? "opacity-100 text-white" : "opacity-55 group-hover:opacity-100",
+            )}
+          />
+          {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500 animate-pulse" />
+          )}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
@@ -593,16 +628,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
+  // ── Controle de Sidebar Recolhível (Padrão Shopify Imagens 4 e 5) ───────────
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("vestui_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("vestui_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
   // ── Renderizador de Lista de Navegação ─────────────────────────────────────
-  function renderNavItems(onItemClick?: () => void) {
+  function renderNavItems(onItemClick?: () => void, collapsed = false) {
     return navItems.map((item) => (
       <div key={item.id} className="flex flex-col">
         {item.section && (
-          <div className="px-2.5 pt-3.5 pb-1 select-none">
-            <span className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">
-              {item.section}
-            </span>
-          </div>
+          collapsed ? (
+            <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
+          ) : (
+            <div className="px-2.5 pt-3.5 pb-1 select-none">
+              <span className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">
+                {item.section}
+              </span>
+            </div>
+          )
         )}
         <NavGroupRow
           item={item}
@@ -611,7 +670,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           badgeCount={pendingOrderCount}
           storeSlug={store?.slug}
           isOpen={activeGroupId === item.id}
-          onToggle={(group, e) => handleToggle(group, e, onItemClick)}
+          isCollapsed={collapsed}
+          onToggle={(group, e) => {
+            if (collapsed) {
+              setIsCollapsed(false);
+            }
+            handleToggle(group, e, onItemClick);
+          }}
           onItemClick={onItemClick}
         />
       </div>
@@ -619,152 +684,316 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background lg:bg-sidebar lg:h-screen lg:overflow-hidden flex flex-col">
       {/* ── Sidebar Desktop (Padrão Shopify Oficial) ─────────────────────────── */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[268px] flex-col border-r border-sidebar-border bg-sidebar px-3.5 py-4 lg:flex">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar py-3 transition-[width,padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex shrink-0 select-none",
+          isCollapsed ? "w-[64px] px-2" : "w-[260px] px-3.5",
+        )}
+      >
         {isConfiguracoes ? (
           /* ── Modo Configurações (Coluna vertical dedicada) ───────────────── */
-          <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
-            <Link
-              to="/painel"
-              className="group flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-normal text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 transition-colors cursor-pointer mb-2 shrink-0"
-            >
-              <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5 opacity-60 group-hover:opacity-90" />
-              <span>Voltar ao Início</span>
-            </Link>
+          isCollapsed ? (
+            <div className="flex flex-1 flex-col items-center overflow-y-auto scrollbar-none min-h-0 py-1">
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                title="Expandir navegação"
+                className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10 transition-colors cursor-pointer mb-2"
+                aria-label="Expandir navegação"
+              >
+                <PanelLeftOpen className="size-4" />
+              </button>
 
-            {/* Card de identidade da loja */}
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shrink-0">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs shrink-0">
-                {storeName.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-sidebar-foreground truncate">{storeName}</p>
-                <p className="text-[11px] text-sidebar-foreground/45 truncate">{ownerName}</p>
-              </div>
-            </div>
+              <Link
+                to="/painel"
+                title="Voltar ao Início"
+                className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer mb-2"
+              >
+                <ArrowLeft className="size-4" />
+              </Link>
 
-            <div className="px-2.5 pb-1.5 shrink-0">
-              <p className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">Configurações</p>
-            </div>
+              <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
 
-            <nav className="flex flex-col gap-1">
-              {[
-                { tab: "geral", label: "Geral", icon: Store },
-                { tab: "canais", label: "Canais de Venda", icon: Globe },
-                { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
-                { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
-                { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
-              ].map((item) => {
-                const active = currentSettingsTab === item.tab;
-                return (
-                  <Link
-                    key={item.tab}
-                    to="/configuracoes"
-                    search={{ tab: item.tab }}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-normal transition-colors duration-150 cursor-pointer",
-                      active
-                        ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                        : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
-                    )}
-                  >
-                    <item.icon
+              <nav className="flex flex-col gap-1.5 items-center">
+                {[
+                  { tab: "geral", label: "Geral", icon: Store },
+                  { tab: "canais", label: "Canais de Venda", icon: Globe },
+                  { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
+                  { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
+                  { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
+                ].map((item) => {
+                  const active = currentSettingsTab === item.tab;
+                  return (
+                    <Link
+                      key={item.tab}
+                      to="/configuracoes"
+                      search={{ tab: item.tab }}
+                      title={item.label}
                       className={cn(
-                        "size-4 shrink-0 transition-opacity text-sidebar-foreground",
-                        active ? "opacity-100" : "opacity-45 group-hover:opacity-70",
+                        "relative flex size-9 items-center justify-center rounded-lg transition-colors cursor-pointer",
+                        active
+                          ? "bg-white/12 text-white"
+                          : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                       )}
-                    />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
+                <Link
+                  to="/painel"
+                  className="group flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-normal text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5 opacity-60 group-hover:opacity-90" />
+                  <span>Voltar ao Início</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  title="Recolher navegação"
+                  className="flex size-7 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                  aria-label="Recolher navegação"
+                >
+                  <PanelLeftClose className="size-3.5" />
+                </button>
+              </div>
+
+              {/* Card de identidade da loja */}
+              <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 shrink-0">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs shrink-0">
+                  {storeName.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-sidebar-foreground truncate">{storeName}</p>
+                  <p className="text-[11px] text-sidebar-foreground/45 truncate">{ownerName}</p>
+                </div>
+              </div>
+
+              <div className="px-2.5 pb-1.5 shrink-0">
+                <p className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">Configurações</p>
+              </div>
+
+              <nav className="flex flex-col gap-1">
+                {[
+                  { tab: "geral", label: "Geral", icon: Store },
+                  { tab: "canais", label: "Canais de Venda", icon: Globe },
+                  { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
+                  { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
+                  { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
+                ].map((item) => {
+                  const active = currentSettingsTab === item.tab;
+                  return (
+                    <Link
+                      key={item.tab}
+                      to="/configuracoes"
+                      search={{ tab: item.tab }}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-normal transition-colors duration-150 cursor-pointer",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                          : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
+                      )}
+                    >
+                      <item.icon
                         className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                          active ? "bg-white/15 text-sidebar-foreground" : "bg-white/8 text-sidebar-foreground/60",
+                          "size-4 shrink-0 transition-opacity text-sidebar-foreground",
+                          active ? "opacity-100" : "opacity-45 group-hover:opacity-70",
                         )}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+                      />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                            active ? "bg-white/15 text-sidebar-foreground" : "bg-white/8 text-sidebar-foreground/60",
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          )
         ) : (
           /* ── Modo Painel Principal — Padrão Shopify ──────────────────────── */
-          <div className="flex flex-col flex-1 min-h-0">
-            {/* Logo */}
-            <div className="px-2 pt-1 pb-3 flex items-center shrink-0">
-              <Link to="/painel">
-                <Logo />
-              </Link>
-            </div>
+          isCollapsed ? (
+            <div className="flex flex-col flex-1 min-h-0 items-center">
+              {/* Topo em modo recolhido: Botão expandir + Logo compact */}
+              <div className="flex flex-col items-center gap-2 pt-1 pb-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  title="Expandir navegação"
+                  className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10 transition-colors cursor-pointer group"
+                  aria-label="Expandir navegação"
+                >
+                  <PanelLeftOpen className="size-4.5 transition-transform group-hover:scale-105" />
+                </button>
+                <Link to="/painel" title="Início — Vestui" className="flex items-center justify-center mt-1">
+                  <Logo compact />
+                </Link>
+              </div>
 
-            {/* Navegação Limpa e Organizada */}
-            <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {renderNavItems()}
-            </nav>
-          </div>
+              {/* Botão de Pesquisa compacto */}
+              <div className="flex justify-center pb-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  title="Pesquisar"
+                  className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                >
+                  <Search className="size-4" />
+                </button>
+              </div>
+
+              {/* Navegação de ícones compacta */}
+              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 w-full items-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {renderNavItems(undefined, true)}
+              </nav>
+            </div>
+          ) : (
+            <div className="flex flex-col flex-1 min-h-0">
+              {/* Header com Logo e Botão de Recolher */}
+              <div className="flex items-center justify-between px-1 pt-1 pb-3 shrink-0">
+                <Link to="/painel">
+                  <Logo />
+                </Link>
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  title="Recolher navegação"
+                  className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                  aria-label="Recolher navegação"
+                >
+                  <PanelLeftClose className="size-4" />
+                </button>
+              </div>
+
+              {/* Barra de Pesquisa elegante (Padrão Shopify Imagem 1) */}
+              <div className="px-1 pb-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate({ to: "/produtos" });
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left"
+                >
+                  <Search className="size-3.5 opacity-60 shrink-0" />
+                  <span className="flex-1">Pesquisar</span>
+                </button>
+              </div>
+
+              {/* Navegação Limpa e Organizada */}
+              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {renderNavItems(undefined, false)}
+              </nav>
+            </div>
+          )
         )}
 
         {/* ── Rodapé Fixo da Sidebar (Configurações + Perfil da Loja) ──────────── */}
-        <div className="mt-auto pt-3 border-t border-white/10 flex flex-col gap-1 shrink-0">
+        <div className="mt-auto pt-3 border-t border-white/10 flex flex-col gap-1.5 shrink-0">
           {!isConfiguracoes && (
-            <Link
-              to="/configuracoes"
-              search={{ tab: "geral" }}
-              className={cn(
-                "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
-                isConfiguracoes
-                  ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                  : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
-              )}
-            >
-              <Settings className="size-4 shrink-0 opacity-50 group-hover:opacity-80 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
-              <span>Configurações</span>
-            </Link>
+            isCollapsed ? (
+              <Link
+                to="/configuracoes"
+                search={{ tab: "geral" }}
+                title="Configurações"
+                className={cn(
+                  "flex size-9 items-center justify-center rounded-lg mx-auto transition-colors cursor-pointer",
+                  isConfiguracoes
+                    ? "bg-white/12 text-white"
+                    : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                )}
+              >
+                <Settings className="size-4 shrink-0 transition-transform hover:rotate-45 text-sidebar-foreground" />
+              </Link>
+            ) : (
+              <Link
+                to="/configuracoes"
+                search={{ tab: "geral" }}
+                className={cn(
+                  "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
+                  isConfiguracoes
+                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
+                )}
+              >
+                <Settings className="size-4 shrink-0 opacity-50 group-hover:opacity-80 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
+                <span>Configurações</span>
+              </Link>
+            )
           )}
 
           {/* Banner de Trial */}
           {trialStatus === "active" && daysLeftInTrial !== null && (
-            <div
-              className={cn(
-                "my-1 rounded-lg px-3 py-2 text-xs transition-all",
-                isTrialUrgent
-                  ? "border border-amber-400/25 bg-amber-400/10 text-amber-200"
-                  : "border border-white/10 bg-white/5 text-sidebar-foreground/70",
-              )}
-            >
-              <p className="font-medium text-[11px]">
-                {isTrialUrgent ? "⚠ " : "✨ "}
-                {daysLeftInTrial} {daysLeftInTrial === 1 ? "dia restante" : "dias de avaliação"}
-              </p>
-              <p className="text-[10px] opacity-70">
-                {isTrialUrgent ? "Assine para manter o acesso" : "Período gratuito ativo"}
-              </p>
-            </div>
+            isCollapsed ? (
+              <div
+                title={`${daysLeftInTrial} dias de avaliação`}
+                className="size-2 rounded-full bg-amber-400 mx-auto my-1 animate-pulse"
+              />
+            ) : (
+              <div
+                className={cn(
+                  "my-1 rounded-lg px-3 py-2 text-xs transition-all",
+                  isTrialUrgent
+                    ? "border border-amber-400/25 bg-amber-400/10 text-amber-200"
+                    : "border border-white/10 bg-white/5 text-sidebar-foreground/70",
+                )}
+              >
+                <p className="font-medium text-[11px]">
+                  {isTrialUrgent ? "⚠ " : "✨ "}
+                  {daysLeftInTrial} {daysLeftInTrial === 1 ? "dia restante" : "dias de avaliação"}
+                </p>
+                <p className="text-[10px] opacity-70">
+                  {isTrialUrgent ? "Assine para manter o acesso" : "Período gratuito ativo"}
+                </p>
+              </div>
+            )
           )}
 
           {/* Perfil da Boutique com Dropdown (Padrão Shopify) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {isProfileLoading ? (
-                    <Skeleton className="size-7 rounded-lg" />
-                  ) : (
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0">
-                      {storeName.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <span className="truncate text-xs font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">{storeName}</span>
-                </div>
-                <Bell className="size-3.5 text-sidebar-foreground/35 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
-              </button>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  title={storeName}
+                  className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none"
+                >
+                  {storeName.slice(0, 2).toUpperCase()}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isProfileLoading ? (
+                      <Skeleton className="size-7 rounded-lg" />
+                    ) : (
+                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0">
+                        {storeName.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="truncate text-xs font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">{storeName}</span>
+                  </div>
+                  <Bell className="size-3.5 text-sidebar-foreground/35 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
+                </button>
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
               <div className="px-2.5 py-2">
@@ -852,9 +1081,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* ── Main Content ───────────────────────────────────────────────────────── */}
-      <main className="pb-24 lg:pb-5 lg:pl-[268px]">
-        <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8 sm:py-5 lg:pb-4">{children}</div>
+      {/* ── Main Content (Floating Panel Effect — Padrão Shopify Imagem 1, 3 e 4) ─ */}
+      <main
+        className={cn(
+          "flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pb-24 lg:pb-0 lg:h-screen lg:overflow-hidden lg:py-2.5 lg:pr-2.5 lg:pl-0",
+          isCollapsed ? "lg:pl-[64px]" : "lg:pl-[260px]",
+        )}
+      >
+        {/* Painel Flutuante Branco com borda sutil e cantos arredondados */}
+        <div className="flex-1 h-full bg-background rounded-none lg:rounded-2xl border-none lg:border lg:border-white/10 shadow-none lg:shadow-2xs overflow-y-auto min-w-0 scrollbar-thin">
+          <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8 sm:py-5 lg:pb-8">
+            {children}
+          </div>
+        </div>
       </main>
 
       {/* ── Bottom Tab Bar (Mobile) ────────────────────────────────────────────── */}
