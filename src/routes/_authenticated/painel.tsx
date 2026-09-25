@@ -643,7 +643,7 @@ function Painel() {
                 "h-9 gap-1.5 rounded-full border px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer",
                 ocultarSaldos
                   ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                  : "border-border/60 bg-transparent hover:bg-card text-muted-foreground hover:text-foreground",
               )}
             >
               {ocultarSaldos ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
@@ -653,7 +653,7 @@ function Painel() {
               asChild
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 rounded-full border border-border/80 bg-card px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer shadow-2xs"
+              className="h-9 gap-1.5 rounded-full border border-border/70 bg-card/80 hover:bg-card px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs"
             >
               <Link to="/caixa">
                 <Plus className="size-3.5" /> Lançar Despesa
@@ -662,7 +662,7 @@ function Painel() {
             <Button
               asChild
               size="sm"
-              className="h-9 gap-1.5 rounded-full px-3.5 font-semibold bg-primary text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer text-xs"
+              className="h-9 gap-1.5 rounded-full px-4 font-semibold gradient-primary text-primary-foreground shadow-glow hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-xs"
             >
               <Link to="/caixa">
                 <Store className="size-3.5 mr-0.5" /> + Nova Venda
@@ -711,9 +711,9 @@ function Painel() {
       />
 
       {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}
-      <div className="grid gap-4 lg:grid-cols-12 items-stretch">
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 items-stretch">
         {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo de Vendas + Histórico Recente ── */}
-        <div className="flex flex-col gap-4 lg:col-span-7">
+        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7">
           <PainelGraficoVendas
             transactions={txs}
             orders={orders}
@@ -729,7 +729,7 @@ function Painel() {
         </div>
 
         {/* ── Coluna Direita (~42% = 5 colunas): Radar Online (Topo) + Saúde do Estoque ── */}
-        <div className="flex flex-col gap-4 lg:col-span-5">
+        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5">
           <PainelRadarPedidosOnline
             pedidosPendentes={pedidosPendentes}
             totalPedidosNovos={pedidosNovosCount}

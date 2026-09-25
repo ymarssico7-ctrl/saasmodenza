@@ -534,10 +534,10 @@ const NavGroupRow = memo(function NavGroupRow({
       {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-lg px-2.5 py-2.5 text-[13px] transition-colors duration-150 ease-out select-none active:scale-[0.985]",
+          "group relative flex items-center justify-between rounded-lg px-2.5 py-2.5 text-[13px] transition-all duration-150 ease-out select-none active:scale-[0.985]",
           isCurrentGroupRoute
-            ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-            : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 font-normal",
+            ? "bg-white/10 text-white font-medium shadow-2xs"
+            : "text-sidebar-foreground/60 hover:bg-white/6 hover:text-sidebar-foreground/95 font-normal",
         )}
       >
         <Link
@@ -549,10 +549,10 @@ const NavGroupRow = memo(function NavGroupRow({
         >
           <item.icon
             className={cn(
-              "size-4 shrink-0 transition-opacity duration-150 text-sidebar-foreground",
+              "size-4 shrink-0 transition-opacity duration-150",
               isCurrentGroupRoute
-                ? "opacity-100"
-                : "opacity-45 group-hover:opacity-70",
+                ? "opacity-100 text-white"
+                : "opacity-45 group-hover:opacity-75 text-sidebar-foreground",
             )}
           />
           <span className="truncate">{item.label}</span>
@@ -620,8 +620,8 @@ const NavGroupRow = memo(function NavGroupRow({
                     className={cn(
                       "group relative flex items-center justify-between rounded-md pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out active:scale-[0.99] cursor-pointer select-none",
                       isChildActive
-                        ? "font-medium text-sidebar-foreground bg-sidebar-accent"
-                        : "text-sidebar-foreground/50 hover:text-sidebar-foreground/85 hover:bg-sidebar-accent font-normal",
+                        ? "font-medium text-white bg-white/10 shadow-2xs"
+                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground/95 hover:bg-white/5 font-normal",
                     )}
                   >
                     <span className="truncate">{child.label}</span>
@@ -806,8 +806,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           collapsed ? (
             <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
           ) : (
-            <div className="px-2.5 pt-3.5 pb-1 select-none">
-              <span className="text-[11px] font-medium text-sidebar-foreground/35 uppercase tracking-wider">
+            <div className="px-2.5 pt-4 pb-1.5 select-none">
+              <span className="text-[11px] font-semibold text-sidebar-foreground/45 tracking-wide">
                 {item.section}
               </span>
             </div>

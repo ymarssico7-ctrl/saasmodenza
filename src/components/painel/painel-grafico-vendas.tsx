@@ -194,7 +194,7 @@ export function PainelGraficoVendas({
   );
 
   return (
-    <section className="panel p-4 sm:p-5 transition-all duration-300">
+    <section className="panel p-5 sm:p-6 transition-all duration-200 hover:shadow-lift">
       {/* ── Topo do Gráfico: Título, Resumo Executivo & Seletor de Período ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -203,7 +203,7 @@ export function PainelGraficoVendas({
               <TrendingUp className="size-3.5" />
             </div>
             <h2 className="text-sm font-semibold text-foreground">
-              Ritmo de Vendas
+              Ritmo de vendas
             </h2>
           </div>
           <div className="mt-1 flex items-baseline gap-2 pl-8">
@@ -306,12 +306,12 @@ export function PainelGraficoVendas({
                 <stop
                   offset="0%"
                   stopColor="var(--color-primary)"
-                  stopOpacity={0.28}
+                  stopOpacity={0.35}
                 />
                 <stop
-                  offset="95%"
+                  offset="100%"
                   stopColor="var(--color-primary)"
-                  stopOpacity={0.01}
+                  stopOpacity={0.0}
                 />
               </linearGradient>
             </defs>
@@ -391,7 +391,7 @@ export function PainelGraficoVendas({
               type="monotone"
               dataKey="vendas"
               stroke="var(--color-primary)"
-              strokeWidth={2.5}
+              strokeWidth={3}
               fill="url(#fillVendasPainel)"
               dot={false}
               activeDot={{

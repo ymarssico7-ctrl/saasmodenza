@@ -97,7 +97,7 @@ export function PainelRadarPedidosOnline({
   return (
     <section
       className={cn(
-        "panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300",
+        "panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift",
         temPendentes &&
           "bg-slate-950 text-white border-slate-800 shadow-md dark:bg-slate-900/95",
         className,
@@ -300,7 +300,7 @@ export function PainelCapitalEstoque({
   className,
 }: PainelCapitalEstoqueProps) {
   return (
-    <section className={cn("panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300", className)}>
+    <section className={cn("panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift", className)}>
       <div>
         {/* Cabeçalho Fiel ao Design Original que o Lojista Amou */}
         <div className="flex items-center justify-between">
@@ -681,7 +681,7 @@ export function PainelUltimasVendas({
   const temTransacoes = ultimas.length > 0;
 
   return (
-    <section className={cn("panel flex flex-col justify-between p-4 sm:p-5 transition-all duration-300", className)}>
+    <section className={cn("panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift", className)}>
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
@@ -691,7 +691,7 @@ export function PainelUltimasVendas({
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Movimentações Recentes
+                Movimentações recentes
               </h2>
               <p className="text-[11px] text-muted-foreground">
                 Últimas entradas e saídas registradas na loja
