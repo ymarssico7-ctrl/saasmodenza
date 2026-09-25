@@ -21,8 +21,6 @@ import {
   Wallet,
   BookOpen,
   ArrowRight,
-  Shirt,
-  User,
   CornerDownLeft,
 } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -35,14 +33,30 @@ interface GlobalSearchDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// ── Páginas & Navegação do Vestui ──────────────────────────────────────────
-const SYSTEM_PAGES = [
+// ── Botões de Acesso aos Módulos Principais (Visíveis no estado inicial) ───
+const MAIN_MODULE_BUTTONS = [
   {
-    title: "Início / Painel",
-    description: "Visão geral, faturamento e resumo financeiro",
-    icon: LayoutGrid,
-    to: "/painel",
-    keywords: ["dashboard", "home", "painel", "inicio", "resumo", "vendas"],
+    title: "Peças em Estoque",
+    description: "Catálogo completo, grade de tamanhos e precificação",
+    icon: Boxes,
+    to: "/estoque",
+    search: { tab: "pecas" },
+    keywords: ["estoque", "pecas", "produtos", "roupas", "catalogo", "grade"],
+  },
+  {
+    title: "Coleções & Categorias",
+    description: "Categorias de produtos e organização do catálogo",
+    icon: Tag,
+    to: "/estoque",
+    search: { tab: "categorias" },
+    keywords: ["categorias", "colecoes", "catalogo", "secoes"],
+  },
+  {
+    title: "Lista de Clientes",
+    description: "Carteira de clientes, histórico de compras e contatos",
+    icon: Users,
+    to: "/clientes",
+    keywords: ["clientes", "contatos", "compradores", "crm", "fidelidade"],
   },
   {
     title: "Caixa & PDV",
@@ -59,48 +73,11 @@ const SYSTEM_PAGES = [
     keywords: ["pedidos", "encomendas", "checkout", "vendas online"],
   },
   {
-    title: "Peças em Estoque",
-    description: "Grade de tamanhos, custo e preço de venda",
-    icon: Boxes,
-    to: "/estoque",
-    search: { tab: "pecas" },
-    keywords: ["estoque", "pecas", "produtos", "roupas", "vestidos", "blusas", "tamanhos", "grades"],
-  },
-  {
-    title: "Coleções & Categorias",
-    description: "Categorias de produtos e organização do catálogo",
-    icon: Tag,
-    to: "/estoque",
-    search: { tab: "categorias" },
-    keywords: ["categorias", "colecoes", "catalogo", "secoes"],
-  },
-  {
     title: "Precificação & Markup",
     description: "Calculadora de margem, markup e lucro por peça",
     icon: Calculator,
     to: "/precificacao",
     keywords: ["precificacao", "markup", "margem", "lucro", "custo", "calculadora"],
-  },
-  {
-    title: "Fornecedores",
-    description: "Gestão de fornecedores e compras",
-    icon: Truck,
-    to: "/fornecedores",
-    keywords: ["fornecedores", "compras", "parceiros", "marcas"],
-  },
-  {
-    title: "Lista de Clientes",
-    description: "Base de contatos, histórico e cadastro",
-    icon: Users,
-    to: "/clientes",
-    keywords: ["clientes", "contatos", "compradores", "crm", "fidelidade"],
-  },
-  {
-    title: "Fiado & Crediário",
-    description: "Controle de notas promissórias e parcelas a receber",
-    icon: BookOpen,
-    to: "/fiado",
-    keywords: ["fiado", "crediario", "promissoria", "devedores", "receber"],
   },
   {
     title: "Metas & Vendas",
@@ -124,20 +101,6 @@ const SYSTEM_PAGES = [
     keywords: ["vitrine", "loja online", "e-commerce", "site"],
   },
   {
-    title: "Produtos na Vitrine",
-    description: "Publicar, ocultar e promover peças na loja",
-    icon: Sparkles,
-    to: "/loja/produtos",
-    keywords: ["vitrine produtos", "promocoes", "destaques"],
-  },
-  {
-    title: "Cupons de Desconto",
-    description: "Criar e gerenciar cupons promocionais",
-    icon: Ticket,
-    to: "/loja/cupons",
-    keywords: ["cupons", "desconto", "promocao"],
-  },
-  {
     title: "Configurações da Loja",
     description: "Nome, WhatsApp, frete e integrações",
     icon: Sliders,
@@ -153,7 +116,7 @@ const SYSTEM_PAGES = [
   },
 ];
 
-// ── Ações Rápidas ──────────────────────────────────────────────────────────
+// ── Ações Rápidas (Padronizadas como Botões) ──────────────────────────────
 const QUICK_ACTIONS = [
   {
     id: "action-nova-peca",
@@ -194,9 +157,11 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
-  // Dados reais do estoque e clientes via TanStack Query
+  // Dados em tempo real
   const { data: inventoryItems = [] } = useQuery(inventoryQuery());
   const { data: customers = [] } = useQuery(customersQuery());
+
+  const hasSearch = search.trim().length > 0;
 
   // Limpa o termo de busca ao abrir/fechar
   useEffect(() => {
@@ -246,7 +211,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                 value={search}
                 onValueChange={setSearch}
                 autoFocus
-                placeholder="Pesquisar peças, clientes, páginas ou ações rápidas..."
+                placeholder="Pesquisar módulos, peças, clientes ou ações..."
                 className="flex-1 bg-transparent text-[14px] text-white placeholder:text-white/40 outline-none select-text"
               />
               {search && (
@@ -270,10 +235,124 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                 Nenhum resultado encontrado para &ldquo;<span className="text-white/70 font-medium">{search}</span>&rdquo;.
               </CommandPrimitive.Empty>
 
-              {/* ⚡ Grupo: Ações Rápidas */}
+              {/* ─────────────────────────────────────────────────────────────
+                  1. ESTADO DE BUSCA ATIVA (Apenas quando o usuário digita)
+                  ───────────────────────────────────────────────────────────── */}
+              {hasSearch && (
+                <>
+                  {/* 👗 Peças Encontradas no Estoque (Formatadas como Botão) */}
+                  {inventoryItems.length > 0 && (
+                    <CommandPrimitive.Group
+                      heading="Peças no Estoque"
+                      className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
+                    >
+                      {inventoryItems.map((item) => {
+                        const stock = getProductStock(item);
+                        return (
+                          <CommandPrimitive.Item
+                            key={`search-item-${item.id}`}
+                            value={`${item.name} ${item.category ?? ""} ${item.color ?? ""} ${item.sale_price}`}
+                            onSelect={() => handleSelect("/estoque", { tab: "pecas" })}
+                            className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {item.photo_url ? (
+                                <img
+                                  src={item.photo_url}
+                                  alt={item.name}
+                                  className="size-7 rounded-lg object-cover shrink-0 border border-white/10"
+                                />
+                              ) : (
+                                <div className="flex size-7 items-center justify-center rounded-lg bg-white/8 text-white/60 border border-white/10 shrink-0">
+                                  <Boxes className="size-3.5" />
+                                </div>
+                              )}
+                              <div className="truncate">
+                                <p className="font-medium text-[13px] text-white truncate">{item.name}</p>
+                                <p className="text-[11px] text-white/45 truncate">
+                                  {item.category ?? "Geral"} {item.color ? `· ${item.color}` : ""} · Estoque: {stock} un.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-3">
+                              <span className="font-semibold text-xs text-white/90">
+                                {brl(item.sale_price ?? 0)}
+                              </span>
+                              <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity" />
+                            </div>
+                          </CommandPrimitive.Item>
+                        );
+                      })}
+                    </CommandPrimitive.Group>
+                  )}
+
+                  {/* 👥 Clientes Encontrados (Formatados como Botão) */}
+                  {customers.length > 0 && (
+                    <CommandPrimitive.Group
+                      heading="Clientes"
+                      className="mt-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
+                    >
+                      {customers.map((c) => (
+                        <CommandPrimitive.Item
+                          key={`search-client-${c.id}`}
+                          value={`${c.name} ${c.phone ?? ""} ${c.city ?? ""}`}
+                          onSelect={() => handleSelect("/clientes")}
+                          className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0">
+                              <Users className="size-3.5" />
+                            </div>
+                            <div className="truncate">
+                              <p className="font-medium text-[13px] text-white truncate">{c.name}</p>
+                              <p className="text-[11px] text-white/45 truncate">
+                                {c.phone ? `${c.phone} ` : ""}
+                                {c.city ? `· ${c.city}` : "Cliente cadastrada"}
+                              </p>
+                            </div>
+                          </div>
+                          <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity shrink-0 ml-2" />
+                        </CommandPrimitive.Item>
+                      ))}
+                    </CommandPrimitive.Group>
+                  )}
+                </>
+              )}
+
+              {/* ─────────────────────────────────────────────────────────────
+                  2. MÓDULOS DE ACESSO (Padrão de Botões Elegantes e Simétricos)
+                  ───────────────────────────────────────────────────────────── */}
+              <CommandPrimitive.Group
+                heading={hasSearch ? "Páginas & Módulos" : "Módulos de Acesso Rápido"}
+                className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
+              >
+                {MAIN_MODULE_BUTTONS.map((module) => (
+                  <CommandPrimitive.Item
+                    key={module.to + (module.search?.tab ?? "")}
+                    value={`${module.title} ${module.description} ${module.keywords.join(" ")}`}
+                    onSelect={() => handleSelect(module.to, module.search)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/8 text-white/70 border border-white/10 shrink-0">
+                        <module.icon className="size-3.5" />
+                      </div>
+                      <div className="truncate">
+                        <p className="font-medium text-[13px] text-white truncate">{module.title}</p>
+                        <p className="text-[11px] text-white/45 truncate">{module.description}</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity shrink-0 ml-2" />
+                  </CommandPrimitive.Item>
+                ))}
+              </CommandPrimitive.Group>
+
+              {/* ─────────────────────────────────────────────────────────────
+                  3. AÇÕES RÁPIDAS
+                  ───────────────────────────────────────────────────────────── */}
               <CommandPrimitive.Group
                 heading="Ações Rápidas"
-                className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
+                className="mt-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
               >
                 {QUICK_ACTIONS.map((action) => (
                   <CommandPrimitive.Item
@@ -289,109 +368,6 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                       <div className="truncate">
                         <p className="font-medium text-[13px] text-white truncate">{action.title}</p>
                         <p className="text-[11px] text-white/45 truncate">{action.subtitle}</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity shrink-0 ml-2" />
-                  </CommandPrimitive.Item>
-                ))}
-              </CommandPrimitive.Group>
-
-              {/* 👗 Grupo: Peças em Estoque (Tempo Real) */}
-              {inventoryItems.length > 0 && (
-                <CommandPrimitive.Group
-                  heading="Peças no Estoque"
-                  className="mt-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
-                >
-                  {inventoryItems.map((item) => {
-                    const stock = getProductStock(item);
-                    return (
-                      <CommandPrimitive.Item
-                        key={item.id}
-                        value={`${item.name} ${item.category ?? ""} ${item.color ?? ""} ${item.sale_price}`}
-                        onSelect={() => handleSelect("/estoque", { tab: "pecas" })}
-                        className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {item.photo_url ? (
-                            <img
-                              src={item.photo_url}
-                              alt={item.name}
-                              className="size-7.5 rounded-lg object-cover shrink-0 border border-white/10"
-                            />
-                          ) : (
-                            <div className="flex size-7.5 items-center justify-center rounded-lg bg-white/8 text-white/60 shrink-0">
-                              <Shirt className="size-3.5" />
-                            </div>
-                          )}
-                          <div className="truncate">
-                            <p className="font-medium text-[13px] text-white truncate">{item.name}</p>
-                            <p className="text-[11px] text-white/45 truncate">
-                              {item.category ?? "Geral"} {item.color ? `· ${item.color}` : ""} · Estoque: {stock} un.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-3">
-                          <span className="font-semibold text-xs text-white/90">
-                            {brl(item.sale_price ?? 0)}
-                          </span>
-                          <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity" />
-                        </div>
-                      </CommandPrimitive.Item>
-                    );
-                  })}
-                </CommandPrimitive.Group>
-              )}
-
-              {/* 👥 Grupo: Clientes Cadastrados (Tempo Real) */}
-              {customers.length > 0 && (
-                <CommandPrimitive.Group
-                  heading="Clientes"
-                  className="mt-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
-                >
-                  {customers.map((c) => (
-                    <CommandPrimitive.Item
-                      key={c.id}
-                      value={`${c.name} ${c.phone ?? ""} ${c.city ?? ""}`}
-                      onSelect={() => handleSelect("/clientes")}
-                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0">
-                          <User className="size-3.5" />
-                        </div>
-                        <div className="truncate">
-                          <p className="font-medium text-[13px] text-white truncate">{c.name}</p>
-                          <p className="text-[11px] text-white/45 truncate">
-                            {c.phone ? `${c.phone} ` : ""}
-                            {c.city ? `· ${c.city}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                      <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity shrink-0 ml-2" />
-                    </CommandPrimitive.Item>
-                  ))}
-                </CommandPrimitive.Group>
-              )}
-
-              {/* 🧭 Grupo: Navegação / Páginas do Sistema */}
-              <CommandPrimitive.Group
-                heading="Páginas do Sistema"
-                className="mt-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-white/40"
-              >
-                {SYSTEM_PAGES.map((page) => (
-                  <CommandPrimitive.Item
-                    key={page.to + (page.search?.tab ?? "")}
-                    value={`${page.title} ${page.description} ${page.keywords.join(" ")}`}
-                    onSelect={() => handleSelect(page.to, page.search)}
-                    className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/8 text-white/70 border border-white/10 shrink-0">
-                        <page.icon className="size-3.5" />
-                      </div>
-                      <div className="truncate">
-                        <p className="font-medium text-[13px] text-white truncate">{page.title}</p>
-                        <p className="text-[11px] text-white/45 truncate">{page.description}</p>
                       </div>
                     </div>
                     <ArrowRight className="size-3.5 text-white/30 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity shrink-0 ml-2" />
