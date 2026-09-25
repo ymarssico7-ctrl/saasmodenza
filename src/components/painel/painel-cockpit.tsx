@@ -97,7 +97,7 @@ export function PainelRadarPedidosOnline({
   return (
     <section
       className={cn(
-        "panel flex flex-col justify-between p-6 sm:p-7 transition-all duration-300 hover:shadow-lift",
+        "panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift",
         temPendentes &&
           "bg-slate-950 text-white border-slate-800 shadow-md dark:bg-slate-900/95",
         className,
@@ -109,10 +109,10 @@ export function PainelRadarPedidosOnline({
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                "grid size-6.5 place-items-center rounded-lg transition-colors shadow-2xs",
+                "grid size-6 place-items-center rounded-lg transition-colors",
                 temPendentes
                   ? "bg-slate-800 text-emerald-400"
-                  : "bg-primary-soft text-primary",
+                  : "bg-secondary text-foreground",
               )}
             >
               <ShoppingBag className="size-3.5" />
@@ -300,12 +300,12 @@ export function PainelCapitalEstoque({
   className,
 }: PainelCapitalEstoqueProps) {
   return (
-    <section className={cn("panel flex flex-col justify-between p-6 sm:p-7 transition-all duration-300 hover:shadow-lift", className)}>
+    <section className={cn("panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift", className)}>
       <div>
         {/* Cabeçalho Fiel ao Design Original que o Lojista Amou */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-6.5 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-2xs">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
               <Package className="size-3.5" />
             </div>
             <div>
@@ -681,12 +681,12 @@ export function PainelUltimasVendas({
   const temTransacoes = ultimas.length > 0;
 
   return (
-    <section className={cn("panel flex flex-col justify-between p-6 sm:p-7 transition-all duration-300 hover:shadow-lift", className)}>
+    <section className={cn("panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift", className)}>
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-6.5 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
               <Receipt className="size-3.5" />
             </div>
             <div>

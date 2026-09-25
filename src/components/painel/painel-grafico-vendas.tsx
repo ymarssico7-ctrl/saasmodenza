@@ -194,19 +194,19 @@ export function PainelGraficoVendas({
   );
 
   return (
-    <section className="panel p-6 sm:p-7 transition-all duration-300 hover:shadow-lift">
+    <section className="panel p-5 sm:p-6 transition-all duration-200 hover:shadow-lift">
       {/* ── Topo do Gráfico: Título, Resumo Executivo & Seletor de Período ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <div className="grid size-6.5 place-items-center rounded-lg bg-primary-soft text-primary shadow-2xs">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground/80 shadow-2xs">
               <TrendingUp className="size-3.5" />
             </div>
             <h2 className="text-sm font-semibold text-foreground">
               Ritmo de vendas
             </h2>
           </div>
-          <div className="mt-1 flex items-baseline gap-2 pl-8.5">
+          <div className="mt-1 flex items-baseline gap-2 pl-8">
             <span className="numeric text-lg font-bold tracking-tight text-foreground">
               {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalPeriodo)}
             </span>
@@ -221,7 +221,7 @@ export function PainelGraficoVendas({
 
         {/* Seletores de Período (Pills Compactas) */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-0.5 rounded-full border border-border/70 bg-secondary/50 p-0.5 text-[11px] shadow-2xs">
+          <div className="flex items-center gap-0.5 rounded-full border border-border/80 bg-secondary/60 p-0.5 text-[11px] shadow-2xs">
             <button
               type="button"
               onClick={() => setPeriodo("7d")}
@@ -280,38 +280,33 @@ export function PainelGraficoVendas({
                 type="date"
                 value={dataInicioCustom}
                 onChange={(e) => setDataInicioCustom(e.target.value)}
-                className="h-6.5 rounded-md border border-border/80 bg-card px-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                className="h-6 rounded-md border border-border/80 bg-card px-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
               />
               <span className="text-muted-foreground text-[10px]">a</span>
               <input
                 type="date"
                 value={dataFimCustom}
                 onChange={(e) => setDataFimCustom(e.target.value)}
-                className="h-6.5 rounded-md border border-border/80 bg-card px-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
+                className="h-6 rounded-md border border-border/80 bg-card px-1.5 text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
               />
             </div>
           )}
         </div>
       </div>
 
-      {/* ── O Gráfico Interativo com Recharts (Canvas Nobre de 260px) ── */}
-      <div className="mt-5 h-[260px] w-full">
+      {/* ── O Gráfico Interativo com Recharts (Canvas Nobre de 230px) ── */}
+      <div className="mt-4 h-[230px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ left: -14, right: 12, top: 12, bottom: 0 }}
+            margin={{ left: -12, right: 12, top: 10, bottom: 0 }}
           >
             <defs>
               <linearGradient id="fillVendasPainel" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
                   stopColor="var(--color-primary)"
-                  stopOpacity={0.28}
-                />
-                <stop
-                  offset="65%"
-                  stopColor="var(--color-primary)"
-                  stopOpacity={0.05}
+                  stopOpacity={0.35}
                 />
                 <stop
                   offset="100%"
@@ -324,8 +319,8 @@ export function PainelGraficoVendas({
             <CartesianGrid
               vertical={false}
               stroke="var(--color-border)"
-              strokeDasharray="4 4"
-              opacity={0.35}
+              strokeDasharray="3 3"
+              opacity={0.5}
             />
 
             <XAxis
@@ -333,7 +328,7 @@ export function PainelGraficoVendas({
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-              dy={8}
+              dy={6}
             />
 
             <YAxis
@@ -356,15 +351,15 @@ export function PainelGraficoVendas({
                 if (!data) return null;
 
                 return (
-                  <div className="rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl p-3.5 shadow-lifted text-xs space-y-1.5 min-w-[170px]">
-                    <div className="text-[11px] text-muted-foreground font-medium flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
+                  <div className="rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md p-3 shadow-lifted text-xs space-y-1 min-w-[160px]">
+                    <div className="text-[11px] text-muted-foreground font-medium flex items-center justify-between gap-2 border-b border-border/50 pb-1.5">
                       <span>{data.dataFull}</span>
                       <span className="text-[10px] text-primary font-semibold">
                         {data.diaSemana}
                       </span>
                     </div>
 
-                    <div className="pt-0.5">
+                    <div className="pt-1">
                       <span className="text-[11px] text-muted-foreground block">
                         Faturamento do dia:
                       </span>
@@ -373,7 +368,7 @@ export function PainelGraficoVendas({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/30">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                       <span>
                         {data.qtdVendas}{" "}
                         {data.qtdVendas === 1 ? "venda" : "vendas"}
@@ -400,10 +395,10 @@ export function PainelGraficoVendas({
               fill="url(#fillVendasPainel)"
               dot={false}
               activeDot={{
-                r: 5.5,
+                r: 5,
                 fill: "var(--color-primary)",
                 stroke: "var(--color-card)",
-                strokeWidth: 2.5,
+                strokeWidth: 2,
               }}
             />
           </AreaChart>
@@ -412,7 +407,7 @@ export function PainelGraficoVendas({
 
       {/* Nota sutil caso ainda não haja vendas no período */}
       {totalPeriodo === 0 && (
-        <div className="mt-3 text-center">
+        <div className="mt-2 text-center">
           <p className="text-[11px] text-muted-foreground/70">
             Novas vendas confirmadas entrarão na curva automaticamente
           </p>

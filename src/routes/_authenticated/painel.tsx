@@ -533,75 +533,75 @@ function Painel() {
   // ── Skeletons com Geometria Exata (Apple Standard) ────────────────────────
   if (isProfileLoading || isTxsLoading || isInventoryLoading) {
     return (
-      <div className="space-y-6 sm:space-y-8 pb-8">
-        <div className="space-y-2 py-1">
-          <Skeleton className="h-4 w-28 rounded-full" />
-          <Skeleton className="h-9 w-52 sm:h-10 rounded-xl" />
-          <Skeleton className="h-4 w-72 rounded-full" />
+      <div className="space-y-4 pb-8">
+        <div className="space-y-1.5">
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-8 w-44 sm:h-9" />
+          <Skeleton className="h-3.5 w-60" />
         </div>
 
-        {/* Topo: Faixa de 4 KPIs com padding generoso */}
-        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 md:grid-cols-4">
+        {/* Topo: Faixa de 4 KPIs em largura total (Padrão Prodex) */}
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="panel p-5 sm:p-6 lg:p-7 space-y-4 min-h-[155px] flex flex-col justify-between">
+            <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-3.5 w-24 rounded-full" />
-                <Skeleton className="h-9 w-9 rounded-xl" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-8 rounded-xl" />
               </div>
-              <Skeleton className="h-9 w-32 rounded-lg" />
-              <Skeleton className="h-3.5 w-40 rounded-full" />
+              <Skeleton className="h-8 w-28" />
+              <Skeleton className="h-3 w-36" />
             </div>
           ))}
         </div>
 
         {/* Grid Contínuo Skeletons (7/5) */}
-        <div className="grid gap-6 sm:gap-8 lg:grid-cols-12 items-start">
+        <div className="grid gap-4 lg:grid-cols-12 items-start">
           {/* Coluna Esquerda: Gráfico + Feed */}
-          <div className="flex flex-col gap-6 sm:gap-8 lg:col-span-7">
-            <div className="panel p-6 sm:p-7 space-y-4">
+          <div className="flex flex-col gap-4 lg:col-span-7">
+            <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-36 rounded-md" />
-                <Skeleton className="h-7 w-44 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-36 rounded-full" />
               </div>
-              <Skeleton className="h-[220px] w-full rounded-2xl" />
+              <Skeleton className="h-[180px] w-full rounded-xl" />
             </div>
 
-            <div className="panel p-6 sm:p-7 space-y-4">
+            <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-44 rounded-md" />
-                <Skeleton className="h-4 w-20 rounded-full" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-20" />
               </div>
-              <div className="space-y-2.5 pt-1">
-                <Skeleton className="h-12 w-full rounded-xl" />
-                <Skeleton className="h-12 w-full rounded-xl" />
+              <div className="space-y-2 pt-1">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
               </div>
-              <Skeleton className="h-8 w-full rounded-xl" />
+              <Skeleton className="h-7 w-full rounded-xl" />
             </div>
           </div>
 
           {/* Coluna Direita: Radar + Estoque */}
-          <div className="flex flex-col gap-6 sm:gap-8 lg:col-span-5">
-            <div className="panel p-6 sm:p-7 space-y-4">
+          <div className="flex flex-col gap-4 lg:col-span-5">
+            <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-40 rounded-md" />
-                <Skeleton className="h-6 w-28 rounded-full" />
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-5 w-24 rounded-full" />
               </div>
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-9 w-full rounded-xl" />
+              <Skeleton className="h-14 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-xl" />
             </div>
 
-            <div className="panel p-6 sm:p-7 space-y-4">
+            <div className="panel p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-36 rounded-md" />
-                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-20 rounded-full" />
               </div>
-              <Skeleton className="h-2.5 w-full rounded-full" />
+              <Skeleton className="h-2 w-full rounded-full" />
               <div className="space-y-2 pt-1">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-full" />
               </div>
-              <Skeleton className="h-9 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-xl" />
             </div>
           </div>
         </div>
@@ -612,8 +612,8 @@ function Painel() {
 
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-8">
-      {/* ── CABEÇALHO ESSENCIAL (Padrão Apple HIG & Shopify) ──── */}
+    <div className="space-y-4 pb-2">
+      {/* ── CABEÇALHO ESSENCIAL (Padrão Apple HIG & Stripe — 2 Linhas Limpas) ──── */}
       <PageHeader
         title={`${timeGreeting}, ${greetingName}`}
         description={
@@ -628,7 +628,7 @@ function Painel() {
           </span>
         }
         action={
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="outline"
@@ -640,7 +640,7 @@ function Painel() {
                   : "Ocultar saldos para privacidade no balcão"
               }
               className={cn(
-                "h-9.5 gap-1.5 rounded-full border px-3.5 text-xs font-medium transition-all shadow-2xs cursor-pointer",
+                "h-9 gap-1.5 rounded-full border px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer",
                 ocultarSaldos
                   ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
                   : "border-border/60 bg-transparent hover:bg-card text-muted-foreground hover:text-foreground",
@@ -653,7 +653,7 @@ function Painel() {
               asChild
               variant="outline"
               size="sm"
-              className="h-9.5 gap-1.5 rounded-full border border-border/70 bg-card/90 hover:bg-card px-4 text-xs font-medium text-foreground/85 hover:text-foreground hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs"
+              className="h-9 gap-1.5 rounded-full border border-border/70 bg-card/80 hover:bg-card px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground hover:-translate-y-0.5 transition-all cursor-pointer shadow-2xs"
             >
               <Link to="/caixa">
                 <Plus className="size-3.5" /> Lançar Despesa
@@ -662,7 +662,7 @@ function Painel() {
             <Button
               asChild
               size="sm"
-              className="h-9.5 gap-1.5 rounded-full px-5 font-semibold gradient-primary text-primary-foreground shadow-glow hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-xs"
+              className="h-9 gap-1.5 rounded-full px-4 font-semibold gradient-primary text-primary-foreground shadow-glow hover:shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-xs"
             >
               <Link to="/caixa">
                 <Store className="size-3.5 mr-0.5" /> + Nova Venda
@@ -684,7 +684,7 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. FAIXA DE KPIS MACRO FULL-WIDTH (4 CARDS — PADRÃO HERO NUMBERS) ── */}
+      {/* ── 1. FAIXA DE KPIS MACRO FULL-WIDTH (4 CARDS — PADRÃO PRODEX) ── */}
       <PainelKpisBento
         revenue={revenue}
         netRevenue={netRevenue}
@@ -710,10 +710,10 @@ function Painel() {
         mascaraSaldo={mascaraSaldo}
       />
 
-      {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (COM ESPAÇAMENTO GENEROSO) ── */}
-      <div className="grid gap-6 sm:gap-8 lg:grid-cols-12 items-stretch">
+      {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 items-stretch">
         {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo de Vendas + Histórico Recente ── */}
-        <div className="flex flex-col gap-6 sm:gap-8 lg:col-span-7">
+        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7">
           <PainelGraficoVendas
             transactions={txs}
             orders={orders}
@@ -729,7 +729,7 @@ function Painel() {
         </div>
 
         {/* ── Coluna Direita (~42% = 5 colunas): Radar Online (Topo) + Saúde do Estoque ── */}
-        <div className="flex flex-col gap-6 sm:gap-8 lg:col-span-5">
+        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5">
           <PainelRadarPedidosOnline
             pedidosPendentes={pedidosPendentes}
             totalPedidosNovos={pedidosNovosCount}
