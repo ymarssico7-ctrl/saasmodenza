@@ -163,8 +163,8 @@ export function VestuiGuideBanner({
 
   const guideTitle = mode === "gestao" ? "Guia Financeiro" : "Aceleração da Vitrine";
 
-  // ── Se concluído e dispensado ───────────────────────────────────────────────
-  if (isAllDone && dismissed) return null;
+  // ── Se concluído e dispensado ou se a loja já possui vendas ativas ────────
+  if (isAllDone && (dismissed || hasSales)) return null;
 
   // ── Se dispensado pelo usuário: Chip discreto Apple HIG ────────────────────
   if (dismissed) {
@@ -186,31 +186,31 @@ export function VestuiGuideBanner({
     );
   }
 
-  // ── Se 100% concluído e não dispensado ──────────────────────────────────────
+  // ── Se 100% concluído (para nova loja recém-configurada) ────────────────────
   if (isAllDone) {
     return (
       <div
         className={cn(
-          "flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/70 px-4 py-2 text-xs backdrop-blur-md shadow-2xs",
+          "flex items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft/40 px-4 py-2.5 text-xs backdrop-blur-md shadow-2xs transition-all",
           className,
         )}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-            <CheckCircle2 className="size-3.5" />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="flex size-6 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+            <Sparkles className="size-3.5" />
           </span>
           <span className="font-medium text-foreground truncate">
             {mode === "gestao"
-              ? "Sua loja está 100% configurada! Painel financeiro calibrado."
+              ? "Sua loja está 100% configurada e calibrada para lucrar."
               : "Vitrine 100% pronta! Pronta para faturar no digital."}
           </span>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer shrink-0"
         >
-          Dispensar
+          Entendido
         </button>
       </div>
     );

@@ -534,10 +534,10 @@ const NavGroupRow = memo(function NavGroupRow({
       {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-lg px-2.5 py-2.5 text-[13px] transition-all duration-150 ease-out select-none active:scale-[0.985]",
+          "group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200 ease-out select-none active:scale-[0.985]",
           isCurrentGroupRoute
-            ? "bg-white/10 text-white font-medium shadow-2xs"
-            : "text-sidebar-foreground/60 hover:bg-white/6 hover:text-sidebar-foreground/95 font-normal",
+            ? "bg-white/12 text-white font-medium shadow-2xs"
+            : "text-sidebar-foreground/60 hover:bg-white/8 hover:text-white hover:translate-x-0.5 font-normal",
         )}
       >
         <Link
@@ -618,10 +618,10 @@ const NavGroupRow = memo(function NavGroupRow({
                     preload="intent"
                     onClick={onItemClick}
                     className={cn(
-                      "group relative flex items-center justify-between rounded-md pl-9 pr-2.5 py-2 text-[12.5px] transition-colors duration-100 ease-out active:scale-[0.99] cursor-pointer select-none",
+                      "group relative flex items-center justify-between rounded-lg pl-9 pr-2.5 py-2 text-[12.5px] transition-all duration-150 ease-out active:scale-[0.99] cursor-pointer select-none",
                       isChildActive
-                        ? "font-medium text-white bg-white/10 shadow-2xs"
-                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground/95 hover:bg-white/5 font-normal",
+                        ? "font-medium text-white bg-white/12 shadow-2xs"
+                        : "text-sidebar-foreground/55 hover:text-white hover:bg-white/6 hover:translate-x-0.5 font-normal",
                     )}
                   >
                     <span className="truncate">{child.label}</span>
@@ -804,10 +804,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div key={item.id} className="flex flex-col">
         {item.section && (
           collapsed ? (
-            <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
+            <div className="my-2.5 h-px w-6 bg-white/10 mx-auto" />
           ) : (
-            <div className="px-2.5 pt-4 pb-1.5 select-none">
-              <span className="text-[11px] font-semibold text-sidebar-foreground/45 tracking-wide">
+            <div className="px-3 pt-5 pb-2 select-none flex items-center justify-between">
+              <span className="text-[10px] font-bold text-sidebar-foreground/40 uppercase tracking-[0.16em]">
                 {item.section}
               </span>
             </div>
@@ -1029,15 +1029,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {/* Barra de Pesquisa elegante (Padrão Minimalista) */}
-              <div className="px-1 pb-2 shrink-0">
+              {/* Barra de Pesquisa elegante (Padrão Shopify / Apple) */}
+              <div className="px-1 pb-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsSearchOpen(true)}
-                  className="flex w-full items-center gap-2 rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left group"
+                  className="flex w-full items-center justify-between rounded-xl bg-white/6 px-3 py-2 text-xs text-sidebar-foreground/50 hover:bg-white/10 hover:text-white transition-all cursor-pointer text-left group border border-white/6 shadow-2xs"
                 >
-                  <Search className="size-3.5 opacity-60 shrink-0 group-hover:opacity-90 transition-opacity" />
-                  <span className="flex-1">Pesquisar...</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Search className="size-3.5 opacity-60 shrink-0 group-hover:opacity-90 transition-opacity" />
+                    <span className="truncate text-xs font-normal">Pesquisar...</span>
+                  </div>
+                  <kbd className="hidden sm:inline-block rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-mono text-sidebar-foreground/50">
+                    ⌘K
+                  </kbd>
                 </button>
               </div>
 
@@ -1117,26 +1122,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   title={storeName}
-                  className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none"
+                  className="flex size-8.5 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-primary text-white font-bold text-xs mx-auto hover:opacity-90 shadow-2xs transition-all cursor-pointer outline-none"
                 >
                   {storeName.slice(0, 2).toUpperCase()}
                 </button>
               ) : (
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 hover:bg-white/8 transition-all cursor-pointer group text-left outline-none"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {isProfileLoading ? (
-                      <Skeleton className="size-7 rounded-lg" />
+                      <Skeleton className="size-8 rounded-xl" />
                     ) : (
-                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0">
+                      <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-primary text-white font-bold text-[11px] shadow-2xs shrink-0">
                         {storeName.slice(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <span className="truncate text-xs font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">{storeName}</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-semibold text-white/90 group-hover:text-white transition-colors">{storeName}</span>
+                      <span className="block truncate text-[10.5px] text-sidebar-foreground/45">{ownerName}</span>
+                    </div>
                   </div>
-                  <Bell className="size-3.5 text-sidebar-foreground/35 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
+                  <Bell className="size-3.5 text-sidebar-foreground/35 group-hover:text-sidebar-foreground/80 transition-colors shrink-0" />
                 </button>
               )}
             </DropdownMenuTrigger>
@@ -1246,7 +1254,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {/* Painel Flutuante Branco com borda sutil e cantos arredondados */}
         <div className="flex-1 h-full bg-background rounded-none lg:rounded-2xl border-none lg:border lg:border-white/10 shadow-none lg:shadow-2xs overflow-y-auto min-w-0 scrollbar-thin">
-          <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8 sm:py-5 lg:pb-8">
+          <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8 lg:pb-12">
             {children}
           </div>
         </div>
