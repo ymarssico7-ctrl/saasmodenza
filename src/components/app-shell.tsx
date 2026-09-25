@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, memo } from "react";
+import { useState, useMemo, useEffect, useRef, memo } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -366,6 +366,21 @@ const NavGroupRow = memo(function NavGroupRow({
 }) {
   const isCurrentGroupRoute = item.isMatch(pathname, search);
   const hasChildren = Boolean(item.children && item.children.length > 0);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll fluido ao expandir próximo ao rodapé (Padrão Apple/Shopify)
+  useEffect(() => {
+    if (isOpen && !isCollapsed && hasChildren) {
+      const timer = setTimeout(() => {
+        rowRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }, 180);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isCollapsed, hasChildren]);
 
   if (isCollapsed) {
     if (hasChildren) {
@@ -492,7 +507,7 @@ const NavGroupRow = memo(function NavGroupRow({
   }
 
   return (
-    <div className="flex flex-col">
+    <div ref={rowRef} className="flex flex-col scroll-mb-3">
       {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
@@ -1004,7 +1019,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               {/* Navegação Limpa e Organizada */}
-              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 pb-3 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, false)}
               </nav>
             </div>
@@ -1173,8 +1188,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Mobile Overlay Menu ────────────────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-16 z-30 bg-sidebar px-4 py-4 lg:hidden overflow-y-auto">
-          <nav className="flex flex-col gap-1 pb-20">
+        <div className="fixed inset-0 top-16 z-30 bg-sidebar px-4 py-4 lg:hidden overflow-y-auto scroll-smooth">
+          <nav className="flex flex-col gap-1 pb-20 scroll-smooth">
             {renderNavItems(() => setMobileMenuOpen(false))}
 
             <div className="mt-4 border-t border-white/10 pt-3">
