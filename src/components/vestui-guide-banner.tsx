@@ -186,35 +186,8 @@ export function VestuiGuideBanner({
     );
   }
 
-  // ── Se 100% concluído e não dispensado ──────────────────────────────────────
-  if (isAllDone) {
-    return (
-      <div
-        className={cn(
-          "flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/70 px-4 py-2 text-xs backdrop-blur-md shadow-2xs",
-          className,
-        )}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-            <CheckCircle2 className="size-3.5" />
-          </span>
-          <span className="font-medium text-foreground truncate">
-            {mode === "gestao"
-              ? "Sua loja está 100% configurada! Painel financeiro calibrado."
-              : "Vitrine 100% pronta! Pronta para faturar no digital."}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
-        >
-          Dispensar
-        </button>
-      </div>
-    );
-  }
+  // ── Se 100% concluído: sumir silenciosamente (banner removido para limpar o dashboard) ──
+  if (isAllDone) return null;
 
   // ── BANNER APPLE HIG ULTRA-COMPACTO (~44px) ────────────────────────────────
   return (
