@@ -288,25 +288,39 @@ function ProdutosPage() {
           </div>
         </div>
 
-        {/* Barra de busca + categorias */}
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {/* ── Barra de Busca & Filtros por Categoria (Padrão Shopify / Apple) ── */}
+        <div className="flex flex-col gap-3">
+          {/* Linha de Busca com largura total e estável */}
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar peça pelo nome"
-              className="h-11 rounded-full border-border bg-card pl-9"
+              placeholder="Buscar peça pelo nome na vitrine..."
+              className="h-11 w-full rounded-2xl border-border bg-card pl-10 pr-10 text-sm shadow-2xs hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all placeholder:text-muted-foreground/60"
             />
+            {busca && (
+              <button
+                type="button"
+                onClick={() => setBusca("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                title="Limpar busca"
+              >
+                <X className="size-4" />
+              </button>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          {/* Linha de Categorias (Pílulas com rolagem horizontal suave no mobile/tablet e wrap limpo no desktop) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
             <button
+              type="button"
               onClick={() => setCategoria("todas")}
               className={cn(
-                "rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-200",
+                "inline-flex shrink-0 items-center justify-center rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
                 categoria === "todas"
-                  ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground",
+                  ? "gradient-primary text-primary-foreground shadow-xs"
+                  : "border border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground hover:bg-secondary/40",
               )}
             >
               Todas
@@ -314,12 +328,13 @@ function ProdutosPage() {
             {categoriasDisponiveis.map((c) => (
               <button
                 key={c.value}
+                type="button"
                 onClick={() => setCategoria(c.value)}
                 className={cn(
-                  "rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-200",
+                  "inline-flex shrink-0 items-center justify-center rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
                   categoria === c.value
-                    ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    ? "gradient-primary text-primary-foreground shadow-xs"
+                    : "border border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground hover:bg-secondary/40",
                 )}
               >
                 {c.label}
