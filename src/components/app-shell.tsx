@@ -368,19 +368,43 @@ const NavGroupRow = memo(function NavGroupRow({
   const hasChildren = Boolean(item.children && item.children.length > 0);
   const rowRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll fluido ao expandir próximo ao rodapé (Padrão Apple/Shopify)
+  // Auto-scroll fluido e instantâneo ao expandir próximo ao rodapé (Padrão Apple/Shopify — 0ms Delay)
   useEffect(() => {
-    if (isOpen && !isCollapsed && hasChildren) {
-      const timer = setTimeout(() => {
-        rowRef.current?.scrollIntoView({
+    if (!isOpen || isCollapsed || !hasChildren || !rowRef.current) return;
+
+    const scrollContainer =
+      (rowRef.current.closest("nav") as HTMLElement | null) ||
+      (rowRef.current.closest(".overflow-y-auto") as HTMLElement | null);
+    if (!scrollContainer) return;
+
+    // Dispara no 1º frame gráfico (0ms de delay) em sincronia total com a animação de abertura
+    const frameId = requestAnimationFrame(() => {
+      if (!rowRef.current || !scrollContainer) return;
+
+      const rowRect = rowRef.current.getBoundingClientRect();
+      const containerRect = scrollContainer.getBoundingClientRect();
+
+      // Altura projetada dos filhos (calcula de imediato sem esperar o CSS terminar)
+      const childrenCount = item.children?.length ?? 5;
+      const projectedChildrenHeight = childrenCount * 37 + 8;
+      const headerHeight = rowRef.current.firstElementChild?.clientHeight || 40;
+
+      // Posição calculada do rodapé do grupo após a expansão completa
+      const currentTopInContainer = rowRect.top - containerRect.top + scrollContainer.scrollTop;
+      const projectedBottom = currentTopInContainer + headerHeight + projectedChildrenHeight + 16;
+      const visibleBottom = scrollContainer.scrollTop + scrollContainer.clientHeight;
+
+      if (projectedBottom > visibleBottom) {
+        const targetScroll = projectedBottom - scrollContainer.clientHeight;
+        scrollContainer.scrollTo({
+          top: targetScroll,
           behavior: "smooth",
-          block: "nearest",
-          inline: "nearest",
         });
-      }, 180);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, isCollapsed, hasChildren]);
+      }
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [isOpen, isCollapsed, hasChildren, item.children]);
 
   if (isCollapsed) {
     if (hasChildren) {
@@ -1019,7 +1043,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               {/* Navegação Limpa e Organizada */}
-              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 pb-3 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, false)}
               </nav>
             </div>
@@ -1188,8 +1212,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Mobile Overlay Menu ────────────────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-16 z-30 bg-sidebar px-4 py-4 lg:hidden overflow-y-auto scroll-smooth">
-          <nav className="flex flex-col gap-1 pb-20 scroll-smooth">
+        <div className="fixed inset-0 top-16 z-30 bg-sidebar px-4 py-4 lg:hidden overflow-y-auto">
+          <nav className="flex flex-col gap-1 pb-20">
             {renderNavItems(() => setMobileMenuOpen(false))}
 
             <div className="mt-4 border-t border-white/10 pt-3">
