@@ -992,20 +992,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {/* Barra de Pesquisa elegante (Padrão Shopify / Apple Spotlight) */}
+              {/* Barra de Pesquisa elegante (Padrão Minimalista) */}
               <div className="px-1 pb-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsSearchOpen(true)}
-                  className="flex w-full items-center justify-between rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left group"
+                  className="flex w-full items-center gap-2 rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left group"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Search className="size-3.5 opacity-60 shrink-0 group-hover:opacity-90 transition-opacity" />
-                    <span className="truncate">Pesquisar...</span>
-                  </div>
-                  <kbd className="hidden sm:inline-flex h-4 items-center gap-0.5 rounded border border-white/15 bg-white/5 px-1 font-mono text-[9px] font-medium text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60">
-                    <span className="text-[10px]">⌘</span>K
-                  </kbd>
+                  <Search className="size-3.5 opacity-60 shrink-0 group-hover:opacity-90 transition-opacity" />
+                  <span className="flex-1">Pesquisar...</span>
                 </button>
               </div>
 
