@@ -368,7 +368,7 @@ const NavGroupRow = memo(function NavGroupRow({
   const hasChildren = Boolean(item.children && item.children.length > 0);
   const rowRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll fluido e instantâneo ao expandir próximo ao rodapé (Padrão Apple/Shopify — 0ms Delay)
+  // Auto-scroll fluido, contínuo e sincronizado quadro a quadro (Padrão Apple/Shopify — 0ms Delay, imune ao clamp)
   useEffect(() => {
     if (!isOpen || isCollapsed || !hasChildren || !rowRef.current) return;
 
@@ -377,34 +377,33 @@ const NavGroupRow = memo(function NavGroupRow({
       (rowRef.current.closest(".overflow-y-auto") as HTMLElement | null);
     if (!scrollContainer) return;
 
-    // Dispara no 1º frame gráfico (0ms de delay) em sincronia total com a animação de abertura
-    const frameId = requestAnimationFrame(() => {
-      if (!rowRef.current || !scrollContainer) return;
+    const rowEl = rowRef.current;
+    const startTime = performance.now();
+    const duration = 260; // ms — acompanha perfeitamente os 200ms da animação CSS do accordion
+    let animId: number;
 
-      const rowRect = rowRef.current.getBoundingClientRect();
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const rowRect = rowEl.getBoundingClientRect();
       const containerRect = scrollContainer.getBoundingClientRect();
+      const targetBottomLimit = containerRect.bottom - 12; // 12px de respiro do rodapé
 
-      // Altura projetada dos filhos (calcula de imediato sem esperar o CSS terminar)
-      const childrenCount = item.children?.length ?? 5;
-      const projectedChildrenHeight = childrenCount * 37 + 8;
-      const headerHeight = rowRef.current.firstElementChild?.clientHeight || 40;
-
-      // Posição calculada do rodapé do grupo após a expansão completa
-      const currentTopInContainer = rowRect.top - containerRect.top + scrollContainer.scrollTop;
-      const projectedBottom = currentTopInContainer + headerHeight + projectedChildrenHeight + 16;
-      const visibleBottom = scrollContainer.scrollTop + scrollContainer.clientHeight;
-
-      if (projectedBottom > visibleBottom) {
-        const targetScroll = projectedBottom - scrollContainer.clientHeight;
-        scrollContainer.scrollTo({
-          top: targetScroll,
-          behavior: "smooth",
-        });
+      // Conforme o CSS expande os filhos, ajusta o scroll imediatamente para mantê-los visíveis
+      if (rowRect.bottom > targetBottomLimit) {
+        const overflow = rowRect.bottom - targetBottomLimit;
+        scrollContainer.scrollTop += overflow;
       }
-    });
 
-    return () => cancelAnimationFrame(frameId);
-  }, [isOpen, isCollapsed, hasChildren, item.children]);
+      if (progress < 1) {
+        animId = requestAnimationFrame(step);
+      }
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [isOpen, isCollapsed, hasChildren]);
 
   if (isCollapsed) {
     if (hasChildren) {
