@@ -8,6 +8,7 @@ import {
   Bell,
   Boxes,
   ChevronDown,
+  ChevronRight,
   CircleDollarSign,
   CreditCard,
   Eye,
@@ -534,7 +535,7 @@ const NavGroupRow = memo(function NavGroupRow({
       {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-lg px-2.5 py-2.5 text-[13px] transition-all duration-150 ease-out select-none active:scale-[0.985]",
+          "group relative flex items-center justify-between rounded-lg px-2.5 py-1.5 min-h-[34px] text-[13px] transition-all duration-150 ease-out select-none active:scale-[0.985]",
           isCurrentGroupRoute
             ? "bg-white/10 text-white font-medium shadow-2xs"
             : "text-sidebar-foreground/60 hover:bg-white/6 hover:text-sidebar-foreground/95 font-normal",
@@ -564,18 +565,23 @@ const NavGroupRow = memo(function NavGroupRow({
           )}
         </Link>
 
-        {/* Micro-Chevron giratório (Padrão Apple/Stripe) */}
+        {/* Micro-Chevron giratório sutil no repouso (Padrão Shopify Polaris) */}
         {hasChildren && (
           <button
             type="button"
             onClick={(e) => onToggle(item, e)}
-            className="p-1 rounded-md text-sidebar-foreground/30 hover:text-sidebar-foreground/70 group-hover:text-sidebar-foreground/50 transition-colors cursor-pointer"
+            className={cn(
+              "p-0.5 rounded-md text-sidebar-foreground transition-all cursor-pointer",
+              isOpen
+                ? "opacity-75"
+                : "opacity-0 group-hover:opacity-45 hover:!opacity-80",
+            )}
             aria-label={isOpen ? "Recolher opções" : "Expandir opções"}
           >
             <ChevronDown
               className={cn(
                 "size-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] text-sidebar-foreground",
-                isOpen ? "rotate-180 opacity-70" : "opacity-30 group-hover:opacity-55",
+                isOpen && "rotate-180",
               )}
             />
           </button>
@@ -806,9 +812,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           collapsed ? (
             <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
           ) : (
-            <div className="px-2.5 pt-4 pb-1.5 select-none">
-              <span className="text-[11px] font-semibold text-sidebar-foreground/45 tracking-wide">
+            <div className="px-2.5 pt-4 pb-1 select-none flex items-center justify-between">
+              <span className="text-[11.5px] font-medium text-sidebar-foreground/45 flex items-center gap-1">
                 {item.section}
+                <ChevronRight className="size-3 opacity-40" />
               </span>
             </div>
           )
@@ -1029,15 +1036,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {/* Barra de Pesquisa elegante (Padrão Minimalista) */}
+              {/* Barra de Pesquisa elegante (Padrão Shopify Polaris) */}
               <div className="px-1 pb-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsSearchOpen(true)}
-                  className="flex w-full items-center gap-2 rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left group"
+                  className="flex h-8 w-full items-center gap-2 rounded-lg bg-white/[0.05] border border-white/[0.07] px-2.5 text-xs text-sidebar-foreground/50 hover:bg-white/[0.09] hover:text-sidebar-foreground/85 transition-all cursor-pointer text-left group shadow-2xs"
                 >
-                  <Search className="size-3.5 opacity-60 shrink-0 group-hover:opacity-90 transition-opacity" />
-                  <span className="flex-1">Pesquisar...</span>
+                  <Search className="size-3.5 opacity-50 shrink-0 group-hover:opacity-85 transition-opacity" />
+                  <span className="flex-1 text-[12.5px]">Pesquisar...</span>
                 </button>
               </div>
 
