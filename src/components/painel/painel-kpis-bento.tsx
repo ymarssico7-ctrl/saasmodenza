@@ -79,15 +79,15 @@ export function PainelKpisBento({
   const estoqueVal = stockPurchases ?? 0;
 
   return (
-    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-4.5 transition-all duration-200 hover:border-border/80 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Faturamento Total
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-            <Wallet className="size-4" />
+          <div className="grid size-7.5 shrink-0 place-items-center rounded-lg bg-secondary/80 text-foreground/70 shadow-2xs">
+            <Wallet className="size-3.5" />
           </div>
         </div>
 
@@ -98,21 +98,21 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé Límpido: Balcão & Vitrine sem truncamento */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px] whitespace-nowrap">
+        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
-            <span className="font-mono">••••••••</span>
+            <span className="font-mono text-xs">••••••••</span>
           ) : (
             <>
               <span className="inline-flex items-center gap-1 shrink-0">
-                <Store className="size-3 text-muted-foreground/70 shrink-0" />
+                <Store className="size-3 text-muted-foreground/60 shrink-0" />
                 <span>Balcão: <strong className="font-semibold text-foreground">{mascaraSaldo(fisicaRevenue)}</strong></span>
               </span>
-              <span className="text-muted-foreground/30 select-none px-0.5">·</span>
+              <span className="text-border/60 select-none px-0.5">·</span>
               <span className="inline-flex items-center gap-1 shrink-0">
-                <ShoppingBag className={cn("size-3 shrink-0", pedidosNovosCount > 0 ? "text-rose-500" : "text-muted-foreground/70")} />
+                <ShoppingBag className={cn("size-3 shrink-0", pedidosNovosCount > 0 ? "text-primary" : "text-muted-foreground/60")} />
                 <span>Vitrine: <strong className="font-semibold text-foreground">{mascaraSaldo(onlineRevenue)}</strong></span>
                 {pedidosNovosCount > 0 && (
-                  <Link to="/loja/pedidos" className="text-[10px] font-bold text-rose-500 hover:underline">
+                  <Link to="/loja/pedidos" className="text-[10px] font-bold text-primary hover:underline">
                     ({pedidosNovosCount})
                   </Link>
                 )}
@@ -123,13 +123,13 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 2: SAÍDAS DO MÊS ────────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-4.5 transition-all duration-200 hover:border-border/80 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saídas do Mês
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-            <Receipt className="size-4" />
+          <div className="grid size-7.5 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-2xs">
+            <Receipt className="size-3.5" />
           </div>
         </div>
 
@@ -140,13 +140,13 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Contas e Compras de Estoque */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px] whitespace-nowrap">
+        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
-            <span className="font-mono">••••••••</span>
+            <span className="font-mono text-xs">••••••••</span>
           ) : (
             <>
               <span className="shrink-0">Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong></span>
-              <span className="text-muted-foreground/30 select-none px-0.5">·</span>
+              <span className="text-border/60 select-none px-0.5">·</span>
               <span className="shrink-0">Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong></span>
             </>
           )}
@@ -154,13 +154,13 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 3: SOBRA NO CAIXA (LUCRO REAL) ─────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-4.5 transition-all duration-200 hover:border-border/80 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Sobra no Caixa
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-            <TrendingUp className="size-4" />
+          <div className="grid size-7.5 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs">
+            <TrendingUp className="size-3.5" />
           </div>
         </div>
 
@@ -179,28 +179,44 @@ export function PainelKpisBento({
           </h3>
         </div>
 
-        {/* Rodapé: Margem e Status de Caixa */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px] whitespace-nowrap">
+        {/* Rodapé: Margem e Status de Caixa — Zero truncamento garantido */}
+        <div className="pt-2.5 border-t border-border/50 flex items-center justify-between text-[11px] min-h-[26px]">
           {ocultarSaldos ? (
-            <span className="font-mono">••••••••</span>
+            <span className="font-mono text-xs">••••••••</span>
           ) : (
             <>
-              <span className="shrink-0">Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong></span>
-              <span className="text-muted-foreground/30 select-none px-0.5">·</span>
-              <span className="truncate">{netRevenue > 0 ? "Caixa positivo" : "Caixa estável"}</span>
+              <span className="shrink-0 text-muted-foreground">Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong></span>
+              <span className="inline-flex items-center gap-1 shrink-0 font-medium text-foreground/80">
+                <span className={cn("size-1.5 rounded-full shrink-0", profit >= 0 ? "bg-emerald-500" : "bg-rose-500")} />
+                <span>{profit > 0 ? "Caixa positivo" : profit === 0 ? "Caixa neutro" : "Atenção no caixa"}</span>
+              </span>
             </>
           )}
         </div>
       </div>
 
       {/* ── CARD 4: META DO MÊS ──────────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-4.5 transition-all duration-200 hover:border-border/80 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Meta do Mês
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/80 shadow-2xs">
-            <Target className="size-4" />
+          <div className="flex items-center gap-1.5">
+            {metaDefinida && (
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-bold tracking-tight",
+                  metaAtingida
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
+                {progressClamp.toFixed(0)}%
+              </span>
+            )}
+            <div className="grid size-7.5 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-2xs">
+              <Target className="size-3.5" />
+            </div>
           </div>
         </div>
 
@@ -213,7 +229,7 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Barra de Progresso ou Ação Limpa */}
-        <div className="pt-2 border-t border-border/50 flex flex-col justify-center min-h-[26px]">
+        <div className="pt-2.5 border-t border-border/50 flex flex-col justify-center min-h-[26px]">
           {metaDefinida ? (
             <div className="space-y-1.5">
               <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
@@ -225,7 +241,7 @@ export function PainelKpisBento({
                   style={{ width: `${progressClamp}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground whitespace-nowrap">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                 <span className="shrink-0" title={`Meta: ${brl(goalTarget)}`}>
                   Alvo: <strong className="font-semibold text-foreground">{ocultarSaldos ? "R$ ••••" : brlCompact(goalTarget)}</strong>
                 </span>
