@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { GlobalSearchDialog } from "@/components/global-search-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -602,6 +603,19 @@ const NavGroupRow = memo(function NavGroupRow({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // ── Atalho Global de Pesquisa (⌘K / Ctrl+K — Padrão Shopify / Apple) ─────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
   const { store, storeId } = useStore();
   const navigate = useNavigate();
@@ -947,8 +961,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="flex justify-center pb-2 shrink-0">
                 <button
                   type="button"
-                  onClick={toggleCollapse}
-                  title="Pesquisar"
+                  onClick={() => setIsSearchOpen(true)}
+                  title="Pesquisar (Ctrl+K)"
                   className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
                 >
                   <Search className="size-4" />
@@ -978,17 +992,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {/* Barra de Pesquisa elegante (Padrão Shopify Imagem 1) */}
+              {/* Barra de Pesquisa elegante (Padrão Shopify / Apple Spotlight) */}
               <div className="px-1 pb-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    navigate({ to: "/estoque", search: { tab: "pecas" } });
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left"
+                  onClick={() => setIsSearchOpen(true)}
+                  className="flex w-full items-center justify-between rounded-lg bg-white/6 px-2.5 py-1.5 text-xs text-sidebar-foreground/45 hover:bg-white/10 hover:text-sidebar-foreground/80 transition-colors cursor-pointer text-left group"
                 >
-                  <Search className="size-3.5 opacity-60 shrink-0" />
-                  <span className="flex-1">Pesquisar</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Search className="size-3.5 opacity-60 shrink-0 group-hover:opacity-90 transition-opacity" />
+                    <span className="truncate">Pesquisar...</span>
+                  </div>
+                  <kbd className="hidden sm:inline-flex h-4 items-center gap-0.5 rounded border border-white/15 bg-white/5 px-1 font-mono text-[9px] font-medium text-sidebar-foreground/40 group-hover:text-sidebar-foreground/60">
+                    <span className="text-[10px]">⌘</span>K
+                  </kbd>
                 </button>
               </div>
 
@@ -1138,15 +1155,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link to="/painel">
           <Logo />
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full"
-          onClick={() => setMobileMenuOpen((v) => !v)}
-          aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-        >
-          {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => setIsSearchOpen(true)}
+            aria-label="Pesquisar"
+          >
+            <Search className="size-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </Button>
+        </div>
       </header>
 
       {/* ── Mobile Overlay Menu ────────────────────────────────────────────────── */}
@@ -1267,6 +1295,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </SheetContent>
       </Sheet>
+
+      {/* Modal Spotlight / Motor de Busca Global (Padrão Shopify / Apple) */}
+      <GlobalSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </div>
   );
 }
