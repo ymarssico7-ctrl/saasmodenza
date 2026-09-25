@@ -173,13 +173,6 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
       ],
     },
     {
-      id: "metas",
-      label: "Metas & Vendas",
-      icon: Target,
-      to: "/metas",
-      isMatch: (p) => p.startsWith("/metas"),
-    },
-    {
       id: "marketing",
       label: "Marketing",
       icon: BadgePercent,
@@ -207,9 +200,15 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
       to: "/relatorio",
       isMatch: (p) =>
         p.startsWith("/relatorio") ||
+        p.startsWith("/metas") ||
         p.startsWith("/prolabore") ||
         p.startsWith("/loja/recebimentos"),
       children: [
+        {
+          to: "/metas",
+          label: "Metas & Vendas",
+          isMatch: (p) => p.startsWith("/metas"),
+        },
         {
           to: "/relatorio",
           label: "Lucro Real & DRE",
