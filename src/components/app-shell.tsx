@@ -14,6 +14,7 @@ import {
   Eye,
   Globe,
   HandCoins,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -93,7 +94,7 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
     {
       id: "painel",
       label: "Início",
-      icon: LayoutDashboard,
+      icon: Home,
       to: "/painel",
       isMatch: (p) => p === "/painel",
     },
@@ -243,7 +244,8 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
         !p.startsWith("/loja/pedidos") &&
         !p.startsWith("/loja/cupons") &&
         !p.startsWith("/loja/recebimentos") &&
-        !p.startsWith("/loja/compartilhar"),
+        !p.startsWith("/loja/compartilhar") &&
+        !p.startsWith("/loja/integracoes"),
       children: [
         {
           to: "/loja/produtos",
@@ -268,11 +270,6 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
           label: "Frete & Entregas",
           isMatch: (p) => p.startsWith("/loja/frete"),
         },
-        {
-          to: "/loja/integracoes",
-          label: "Integrações",
-          isMatch: (p) => p.startsWith("/loja/integracoes"),
-        },
       ],
     });
   } else {
@@ -286,6 +283,16 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
       isMatch: (p, s) => p.startsWith("/configuracoes") && s?.tab === "canais",
     });
   }
+
+  // ── Apps & Extensões (Padrão Shopify Oficial) ──────────────────────────────
+  items.push({
+    id: "apps",
+    label: "Integrações",
+    icon: Sparkles,
+    to: "/loja/integracoes",
+    section: "Apps",
+    isMatch: (p) => p.startsWith("/loja/integracoes"),
+  });
 
   return items;
 }
@@ -565,27 +572,6 @@ const NavGroupRow = memo(function NavGroupRow({
           )}
         </Link>
 
-        {/* Micro-Chevron giratório sutil no repouso (Padrão Shopify Polaris) */}
-        {hasChildren && (
-          <button
-            type="button"
-            onClick={(e) => onToggle(item, e)}
-            className={cn(
-              "p-0.5 rounded-md text-sidebar-foreground transition-all cursor-pointer",
-              isOpen
-                ? "opacity-75"
-                : "opacity-0 group-hover:opacity-45 hover:!opacity-80",
-            )}
-            aria-label={isOpen ? "Recolher opções" : "Expandir opções"}
-          >
-            <ChevronDown
-              className={cn(
-                "size-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] text-sidebar-foreground",
-                isOpen && "rotate-180",
-              )}
-            />
-          </button>
-        )}
 
         {/* Botão de preview da vitrine */}
         {item.externalPreview && storeSlug && (
@@ -1020,7 +1006,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0">
-              {/* Header com Logo e Botão de Recolher */}
+              {/* Header com Logo e Botão de Recolher (Padrão Shopify) */}
               <div className="flex items-center justify-between px-1 pt-1 pb-3 shrink-0">
                 <Link to="/painel">
                   <Logo textClassName="text-sidebar-foreground" />
@@ -1029,10 +1015,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   onClick={toggleCollapse}
                   title="Recolher navegação"
-                  className="flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                  className="flex size-7 items-center justify-center rounded-md border border-white/10 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/10 transition-colors cursor-pointer"
                   aria-label="Recolher navegação"
                 >
-                  <PanelLeftClose className="size-4" />
+                  <PanelLeftClose className="size-3.5" />
                 </button>
               </div>
 
@@ -1045,6 +1031,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <Search className="size-3.5 opacity-50 shrink-0 group-hover:opacity-85 transition-opacity" />
                   <span className="flex-1 text-[12.5px]">Pesquisar...</span>
+                  <kbd className="hidden sm:inline-flex h-4 items-center gap-0.5 rounded border border-white/15 bg-white/5 px-1 font-mono text-[9px] text-sidebar-foreground/40 font-normal">
+                    Ctrl K
+                  </kbd>
                 </button>
               </div>
 
@@ -1056,8 +1045,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )
         )}
 
-        {/* ── Rodapé Fixo da Sidebar (Configurações + Perfil da Loja) ──────────── */}
-        <div className="mt-auto pt-3 border-t border-white/10 flex flex-col gap-1.5 shrink-0">
+        {/* ── Rodapé Fixo da Sidebar (Padrão Oficial Shopify Polaris: 3 Linhas) ── */}
+        <div className="mt-auto pt-2.5 border-t border-white/10 flex flex-col gap-1 shrink-0">
+          {/* Linha 1: Configurações */}
           {!isConfiguracoes && (
             isCollapsed ? (
               <Link
@@ -1078,72 +1068,52 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 to="/configuracoes"
                 search={{ tab: "geral" }}
                 className={cn(
-                  "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
+                  "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
                   isConfiguracoes
                     ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90",
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/95",
                 )}
               >
-                <Settings className="size-4 shrink-0 opacity-50 group-hover:opacity-80 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
+                <Settings className="size-4 shrink-0 opacity-55 group-hover:opacity-85 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
                 <span>Configurações</span>
               </Link>
             )
           )}
 
-          {/* Banner de Trial */}
-          {trialStatus === "active" && daysLeftInTrial !== null && (
-            isCollapsed ? (
-              <div
-                title={`${daysLeftInTrial} dias de avaliação`}
-                className="size-2 rounded-full bg-amber-400 mx-auto my-1 animate-pulse"
-              />
-            ) : (
-              <div
-                className={cn(
-                  "my-1 rounded-lg px-3 py-2 text-xs transition-all",
-                  isTrialUrgent
-                    ? "border border-amber-400/25 bg-amber-400/10 text-amber-200"
-                    : "border border-white/10 bg-white/5 text-sidebar-foreground/70",
-                )}
-              >
-                <p className="font-medium text-[11px]">
-                  {isTrialUrgent ? "⚠ " : "✨ "}
-                  {daysLeftInTrial} {daysLeftInTrial === 1 ? "dia restante" : "dias de avaliação"}
-                </p>
-                <p className="text-[10px] opacity-70">
-                  {isTrialUrgent ? "Assine para manter o acesso" : "Período gratuito ativo"}
-                </p>
-              </div>
-            )
-          )}
-
-          {/* Perfil da Boutique com Dropdown (Padrão Shopify) */}
+          {/* Linha 2: Perfil da Boutique com Dropdown (Squircle com Iniciais + Sino) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               {isCollapsed ? (
                 <button
                   type="button"
                   title={storeName}
-                  className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none"
+                  className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none border border-white/10"
                 >
                   {storeName.slice(0, 2).toUpperCase()}
                 </button>
               ) : (
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {isProfileLoading ? (
                       <Skeleton className="size-7 rounded-lg" />
                     ) : (
-                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0">
+                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0 border border-white/10">
                         {storeName.slice(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <span className="truncate text-xs font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">{storeName}</span>
+                    <span className="truncate text-[13px] font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">
+                      {storeName}
+                    </span>
                   </div>
-                  <Bell className="size-3.5 text-sidebar-foreground/35 group-hover:text-sidebar-foreground/70 transition-colors shrink-0" />
+                  <div className="relative flex items-center justify-center p-1 rounded-md text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80 hover:bg-white/10 transition-colors">
+                    <Bell className="size-3.5 shrink-0" />
+                    {pendingOrderCount > 0 && (
+                      <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-red-500 animate-pulse" />
+                    )}
+                  </div>
                 </button>
               )}
             </DropdownMenuTrigger>
@@ -1186,6 +1156,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Linha 3: Status do Trial / Plano (Padrão Shopify Oficial) */}
+          {trialStatus === "active" && daysLeftInTrial !== null ? (
+            isCollapsed ? (
+              <div
+                title={`${daysLeftInTrial} dias restantes no teste`}
+                className="size-2 rounded-full bg-amber-400 mx-auto my-1 animate-pulse"
+              />
+            ) : (
+              <Link
+                to="/configuracoes"
+                search={{ tab: "plano" }}
+                className="group flex items-center justify-between px-2.5 py-1 text-[11.5px] text-sidebar-foreground/50 hover:text-sidebar-foreground/85 transition-colors cursor-pointer select-none"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full shrink-0",
+                      isTrialUrgent ? "bg-red-400 animate-pulse" : "bg-emerald-400",
+                    )}
+                  />
+                  <span className="font-medium text-sidebar-foreground/75">Teste</span>
+                  <span className="opacity-40">•</span>
+                  <span>{daysLeftInTrial === 1 ? "Falta 1 dia" : `Faltam ${daysLeftInTrial} dias`}</span>
+                </span>
+                <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Assinar →
+                </span>
+              </Link>
+            )
+          ) : isActive ? (
+            !isCollapsed && (
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] text-sidebar-foreground/40 select-none">
+                <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span>Plano {planLabel}</span>
+              </div>
+            )
+          ) : null}
         </div>
       </aside>
 

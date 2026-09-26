@@ -11,11 +11,11 @@ export function Logo({
 }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      <span className="relative flex size-9 items-center justify-center rounded-[0.85rem] bg-primary text-primary-foreground shadow-glow shrink-0">
-        <span className="font-display text-[15px] font-semibold tracking-tight">V</span>
+      <span className="relative flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-2xs shrink-0">
+        <span className="font-display text-[14px] font-bold tracking-tight">V</span>
       </span>
       {compact ? null : (
-        <span className={cn("font-display text-[17px] font-semibold tracking-tight text-current", textClassName)}>
+        <span className={cn("font-display text-[15px] font-semibold tracking-tight text-current", textClassName)}>
           Vestui
         </span>
       )}
