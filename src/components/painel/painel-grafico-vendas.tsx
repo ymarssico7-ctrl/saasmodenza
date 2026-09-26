@@ -306,7 +306,7 @@ export function PainelGraficoVendas({
                 <stop
                   offset="0%"
                   stopColor="var(--color-primary)"
-                  stopOpacity={0.35}
+                  stopOpacity={0.22}
                 />
                 <stop
                   offset="100%"
@@ -320,7 +320,7 @@ export function PainelGraficoVendas({
               vertical={false}
               stroke="var(--color-border)"
               strokeDasharray="3 3"
-              opacity={0.5}
+              opacity={0.35}
             />
 
             <XAxis
@@ -391,11 +391,11 @@ export function PainelGraficoVendas({
               type="monotone"
               dataKey="vendas"
               stroke="var(--color-primary)"
-              strokeWidth={3}
+              strokeWidth={2}
               fill="url(#fillVendasPainel)"
               dot={false}
               activeDot={{
-                r: 5,
+                r: 4,
                 fill: "var(--color-primary)",
                 stroke: "var(--color-card)",
                 strokeWidth: 2,

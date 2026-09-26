@@ -825,10 +825,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background lg:bg-sidebar lg:h-screen lg:overflow-hidden flex flex-col">
-      {/* ── Sidebar Desktop (Padrão Shopify Oficial) ─────────────────────────── */}
+      {/* ── Sidebar Desktop (Padrão Shopify Oficial + Ambient Glow) ───────────── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar text-sidebar-foreground py-3 transition-[width,padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex shrink-0 select-none",
+          "fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar text-sidebar-foreground py-3 transition-[width,padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex shrink-0 select-none sidebar-ambient-glow",
           isCollapsed ? "w-[64px] px-2" : "w-[260px] px-3.5",
         )}
       >
