@@ -535,10 +535,10 @@ const NavGroupRow = memo(function NavGroupRow({
       {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-lg px-2.5 py-1.5 min-h-[34px] text-[13px] transition-all duration-150 ease-out select-none active:scale-[0.985]",
+          "group relative flex items-center justify-between rounded-lg px-3 py-2 min-h-[38px] text-[13.5px] transition-all duration-150 ease-out select-none active:scale-[0.985] outline-none focus:outline-none ring-0",
           isCurrentGroupRoute
             ? "bg-white/10 text-white font-medium shadow-2xs"
-            : "text-sidebar-foreground/60 hover:bg-white/6 hover:text-sidebar-foreground/95 font-normal",
+            : "text-sidebar-foreground/70 hover:bg-white/6 hover:text-white font-normal",
         )}
       >
         <Link
@@ -546,14 +546,14 @@ const NavGroupRow = memo(function NavGroupRow({
           search={item.search as any}
           preload="intent"
           onClick={(e) => onToggle(item, e)}
-          className="flex flex-1 items-center gap-2.5 min-w-0 cursor-pointer"
+          className="flex flex-1 items-center gap-2.5 min-w-0 cursor-pointer outline-none focus:outline-none ring-0"
         >
           <item.icon
             className={cn(
               "size-4 shrink-0 transition-opacity duration-150",
               isCurrentGroupRoute
                 ? "opacity-100 text-white"
-                : "opacity-45 group-hover:opacity-75 text-sidebar-foreground",
+                : "opacity-55 group-hover:opacity-85 text-sidebar-foreground",
             )}
           />
           <span className="truncate">{item.label}</span>
@@ -812,7 +812,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           collapsed ? (
             <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
           ) : (
-            <div className="px-2.5 pt-4 pb-1 select-none flex items-center justify-between">
+            <div className="px-3 mt-5 mb-1.5 select-none flex items-center justify-between">
               <span className="text-[11.5px] font-medium text-sidebar-foreground/45 flex items-center gap-1">
                 {item.section}
                 <ChevronRight className="size-3 opacity-40" />
@@ -1049,7 +1049,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               {/* Navegação Limpa e Organizada */}
-              <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 pr-1 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <nav className="flex flex-col gap-1.5 overflow-y-auto min-h-0 pr-1 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, false)}
               </nav>
             </div>
