@@ -308,21 +308,22 @@
   }
 }
 
-/* ─── Sidebar Ambient Glow — Padrão Shopify Polaris Oficial (Imagem 2) ────────
+/* ─── Sidebar Ambient Glow — Padrão Shopify Polaris Oficial (Imagem 3) ────────
    Efeito de iluminação atmosférica visível de estúdio no rodapé da sidebar.
-   Aura em tom rubi/vinho com difusão aveludada criando profundidade OLED premium.
+   Aura em tom rubi/vinho com difusão aveludada cobrindo os 40% inferiores da barra.
    ─────────────────────────────────────────────────────────────────────────── */
 @utility sidebar-ambient-glow {
   background-color: var(--sidebar);
   background-image:
     radial-gradient(
-      ellipse 280px 240px at 15% 100%,
-      rgba(225, 29, 72, 0.20) 0%,
-      rgba(139, 92, 246, 0.11) 38%,
-      transparent 75%
+      ellipse 360px 420px at 10% 100%,
+      rgba(225, 29, 72, 0.28) 0%,
+      rgba(168, 85, 247, 0.16) 40%,
+      rgba(88, 28, 135, 0.08) 65%,
+      transparent 85%
     ),
     radial-gradient(
-      circle 320px at 95% 5%,
+      circle 300px at 95% 5%,
       rgba(255, 255, 255, 0.025) 0%,
       transparent 65%
     );
@@ -334,13 +335,14 @@
   background-color: var(--sidebar) !important;
   background-image:
     radial-gradient(
-      ellipse 300px 260px at 15% 100%,
-      rgba(225, 29, 72, 0.22) 0%,
-      rgba(139, 92, 246, 0.12) 40%,
-      transparent 75%
+      ellipse 360px 420px at 10% 100%,
+      rgba(225, 29, 72, 0.28) 0%,
+      rgba(168, 85, 247, 0.16) 40%,
+      rgba(88, 28, 135, 0.08) 65%,
+      transparent 85%
     ),
     radial-gradient(
-      circle 320px at 95% 5%,
+      circle 300px at 95% 5%,
       rgba(255, 255, 255, 0.025) 0%,
       transparent 65%
     ) !important;

@@ -542,7 +542,7 @@ const NavGroupRow = memo(function NavGroupRow({
       {/* Item Principal — Active state ultra-sutil (Padrão Shopify/Apple) */}
       <div
         className={cn(
-          "group relative flex items-center justify-between rounded-lg px-3 py-2 min-h-[38px] text-[13.5px] transition-all duration-150 ease-out select-none active:scale-[0.985] outline-none focus:outline-none ring-0",
+          "group relative flex items-center justify-between rounded-lg px-2.5 py-1.5 min-h-[34px] text-[13px] transition-all duration-150 ease-out select-none active:scale-[0.985] outline-none focus:outline-none ring-0",
           isCurrentGroupRoute
             ? "bg-white/10 text-white font-medium shadow-2xs"
             : "text-sidebar-foreground/70 hover:bg-white/6 hover:text-white font-normal",
@@ -829,7 +829,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 hidden flex-col bg-sidebar text-sidebar-foreground py-3 transition-[width,padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:flex shrink-0 select-none sidebar-ambient-glow",
-          isCollapsed ? "w-[64px] px-2" : "w-[260px] px-3.5",
+          isCollapsed ? "w-[60px] px-1.5" : "w-[240px] px-2.5",
         )}
       >
         {isConfiguracoes ? (
@@ -1256,12 +1256,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         className={cn(
           "flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pb-24 lg:pb-0 lg:h-screen lg:overflow-hidden lg:py-2.5 lg:pr-2.5 lg:pl-0",
-          isCollapsed ? "lg:pl-[64px]" : "lg:pl-[260px]",
+          isCollapsed ? "lg:pl-[60px]" : "lg:pl-[240px]",
         )}
       >
         {/* Painel Flutuante Branco com borda sutil e cantos arredondados */}
         <div className="flex-1 h-full bg-background rounded-none lg:rounded-2xl border-none lg:border lg:border-white/10 shadow-none lg:shadow-2xs overflow-y-auto min-w-0 scrollbar-thin">
-          <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8 sm:py-5 lg:pb-8">
+          <div className="mx-auto w-full max-w-[1380px] px-4 py-4 sm:px-6 sm:py-5 lg:pb-8">
             {children}
           </div>
         </div>
