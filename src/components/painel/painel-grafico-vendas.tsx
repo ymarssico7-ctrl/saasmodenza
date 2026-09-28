@@ -199,14 +199,12 @@ export function PainelGraficoVendas({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground/80 shadow-2xs">
-              <TrendingUp className="size-3.5" />
-            </div>
+            <TrendingUp className="size-4 text-muted-foreground/50 shrink-0" />
             <h2 className="text-sm font-semibold text-foreground">
               Ritmo de vendas
             </h2>
           </div>
-          <div className="mt-1 flex items-baseline gap-2 pl-8">
+          <div className="mt-1 flex items-baseline gap-2 pl-6">
             <span className="numeric text-lg font-bold tracking-tight text-foreground">
               {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalPeriodo)}
             </span>
@@ -390,16 +388,21 @@ export function PainelGraficoVendas({
             <Area
               type="monotone"
               dataKey="vendas"
-              stroke="var(--color-primary)"
-              strokeWidth={2}
-              fill="url(#fillVendasPainel)"
+              stroke={totalPeriodo === 0 ? "var(--color-border)" : "var(--color-primary)"}
+              strokeWidth={totalPeriodo === 0 ? 1.5 : 2}
+              strokeDasharray={totalPeriodo === 0 ? "4 4" : undefined}
+              fill={totalPeriodo === 0 ? "transparent" : "url(#fillVendasPainel)"}
               dot={false}
-              activeDot={{
-                r: 4,
-                fill: "var(--color-primary)",
-                stroke: "var(--color-card)",
-                strokeWidth: 2,
-              }}
+              activeDot={
+                totalPeriodo === 0
+                  ? false
+                  : {
+                      r: 4,
+                      fill: "var(--color-primary)",
+                      stroke: "var(--color-card)",
+                      strokeWidth: 2,
+                    }
+              }
             />
           </AreaChart>
         </ResponsiveContainer>

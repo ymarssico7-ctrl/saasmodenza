@@ -86,9 +86,7 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Faturamento Total
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/70 shadow-2xs">
-            <Wallet className="size-4" />
-          </div>
+          <Wallet className="size-4 text-muted-foreground/45 shrink-0" />
         </div>
 
         <div className="my-1.5">
@@ -128,9 +126,7 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saídas do Mês
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/70 shadow-2xs">
-            <Receipt className="size-4" />
-          </div>
+          <Receipt className="size-4 text-muted-foreground/45 shrink-0" />
         </div>
 
         <div className="my-1.5">
@@ -159,27 +155,16 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Sobra no Caixa
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/70 shadow-2xs">
-            <TrendingUp className="size-4" />
-          </div>
+          <TrendingUp className="size-4 text-muted-foreground/45 shrink-0" />
         </div>
 
         <div className="my-1.5">
-          <h3
-            className={cn(
-              "numeric text-2xl font-bold tracking-tight",
-              profit > 0
-                ? "text-success dark:text-success"
-                : profit < 0
-                  ? "text-destructive dark:text-destructive"
-                  : "text-foreground",
-            )}
-          >
+          <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
             {mascaraSaldo(profit)}
           </h3>
         </div>
 
-        {/* Rodapé: Margem e Status — sem dot redundante, texto limpo */}
+        {/* Rodapé: Margem e Status com pílula refinada */}
         <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
@@ -187,7 +172,12 @@ export function PainelKpisBento({
             <>
               <span className="shrink-0">Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong></span>
               <span className="text-muted-foreground/30 select-none px-0.5">·</span>
-              <span className="shrink-0">{profit > 0 ? "Caixa positivo" : profit === 0 ? "Caixa neutro" : "Atenção no caixa"}</span>
+              <span className={cn(
+                "inline-flex items-center gap-1 font-medium",
+                profit > 0 ? "text-emerald-700 dark:text-emerald-400" : profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"
+              )}>
+                {profit > 0 ? "Caixa positivo" : profit === 0 ? "Caixa neutro" : "Atenção no caixa"}
+              </span>
             </>
           )}
         </div>
@@ -199,9 +189,7 @@ export function PainelKpisBento({
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Meta do Mês
           </span>
-          <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-secondary text-foreground/70 shadow-2xs">
-            <Target className="size-4" />
-          </div>
+          <Target className="size-4 text-muted-foreground/45 shrink-0" />
         </div>
 
         <div className="my-1.5">
@@ -230,8 +218,9 @@ export function PainelKpisBento({
                   Alvo: <strong className="font-semibold text-foreground">{ocultarSaldos ? "R$ ••••" : brlCompact(goalTarget)}</strong>
                 </span>
                 {dailyTarget !== undefined && dailyTarget > 0 && !metaAtingida && (
-                  <span className="font-medium text-foreground/75 shrink-0 ml-1.5" title={`Necessário por dia útil: ${brl(dailyTarget)}`}>
-                    {ocultarSaldos ? "R$ ••••" : brlCompact(dailyTarget)}/dia
+                  <span className="inline-flex items-center gap-1 font-medium text-foreground/75 shrink-0" title={`Necessário por dia útil: ${brl(dailyTarget)}`}>
+                    <span className="text-muted-foreground/30 select-none">·</span>
+                    <span>Ritmo: <strong className="font-semibold text-foreground">{ocultarSaldos ? "R$ ••••" : brlCompact(dailyTarget)}</strong>/dia</span>
                   </span>
                 )}
               </div>

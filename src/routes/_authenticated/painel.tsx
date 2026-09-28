@@ -643,7 +643,7 @@ function Painel() {
                 "h-9 gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer",
                 ocultarSaldos
                   ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-                  : "border-border/60 bg-transparent hover:bg-card text-muted-foreground hover:text-foreground",
+                  : "border-border/70 bg-card hover:bg-secondary/60 text-muted-foreground hover:text-foreground",
               )}
             >
               {ocultarSaldos ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
@@ -653,7 +653,7 @@ function Painel() {
               asChild
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 rounded-lg border border-border/70 bg-card hover:bg-secondary/60 px-3.5 text-xs font-medium text-foreground/80 hover:text-foreground transition-all cursor-pointer shadow-2xs"
+              className="h-9 gap-1.5 rounded-lg border border-border/70 bg-card hover:bg-secondary/60 px-3.5 text-xs font-medium text-foreground/85 hover:text-foreground transition-all cursor-pointer shadow-2xs"
             >
               <Link to="/caixa">
                 <Plus className="size-3.5" /> Lançar Despesa
@@ -662,7 +662,7 @@ function Painel() {
             <Button
               asChild
               size="sm"
-              className="h-9 gap-1.5 rounded-lg px-4 font-semibold gradient-primary text-primary-foreground shadow-2xs hover:shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer text-xs"
+              className="h-9 gap-1.5 rounded-lg px-4 font-semibold bg-[#18181B] text-white hover:bg-black/90 active:scale-[0.98] shadow-2xs hover:shadow-xs transition-all cursor-pointer text-xs ring-1 ring-white/10 dark:bg-primary dark:text-primary-foreground"
             >
               <Link to="/caixa">
                 <Store className="size-3.5 mr-0.5" /> + Nova Venda

@@ -83,62 +83,62 @@
 :root {
   --radius: 1rem;
 
-  /* ── Canvas: Alabaster Pearl — quente e acolhedor (hue 85°, elimina efeito hospitalar) ── */
-  --background: oklch(0.978 0.003 85);
+  /* ── Canvas: Cashmere Studio Paper — separação de 4.5% para o card branco (#FFFFFF) ── */
+  --background: oklch(0.963 0.003 85);
   --foreground: oklch(0.185 0.006 280);
   --surface: oklch(1 0 0);
-  --surface-muted: oklch(0.964 0.004 85);
+  --surface-muted: oklch(0.948 0.004 85);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.185 0.006 280);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.185 0.006 280);
 
-  /* ── Primária: Royal Indigo equilibrado (chroma reduzido de 0.222→0.185, mais elegante) ── */
-  --primary: oklch(0.48 0.185 262);
+  /* ── Primária: Deep Haute Couture Indigo (chroma 0.165, autoridade e sofisticação) ── */
+  --primary: oklch(0.44 0.165 262);
   --primary-foreground: oklch(0.99 0.002 262);
-  --primary-soft: oklch(0.950 0.022 262);
-  --primary-glow: oklch(0.58 0.165 262 / 0.28);
+  --primary-soft: oklch(0.945 0.020 262);
+  --primary-glow: oklch(0.50 0.150 262 / 0.25);
 
-  /* ── Secundária: Tom neutro quente (hue 80°, harmônico com Alabaster) ── */
-  --secondary: oklch(0.955 0.005 80);
+  /* ── Secundária: Tom neutro quente (hue 80°, harmônico com Cashmere Paper) ── */
+  --secondary: oklch(0.948 0.004 80);
   --secondary-foreground: oklch(0.26 0.008 280);
-  --muted: oklch(0.955 0.005 80);
-  --muted-foreground: oklch(0.50 0.010 280);
-  --accent: oklch(0.950 0.020 262);
-  --accent-foreground: oklch(0.38 0.16 262);
+  --muted: oklch(0.948 0.004 80);
+  --muted-foreground: oklch(0.48 0.010 280);
+  --accent: oklch(0.945 0.018 262);
+  --accent-foreground: oklch(0.36 0.15 262);
 
-  /* ── Semânticas: calibradas para harmonia (sem neon, tons densos e sóbrios) ── */
+  /* ── Semânticas: calibradas para harmonia de luxo (sem saturação de marca-texto) ── */
   --destructive: oklch(0.55 0.185 22);
   --destructive-foreground: oklch(0.99 0.002 22);
-  /* Boutique Emerald — sereno e rico, substitui verde-limão fluorescente */
-  --success: oklch(0.52 0.13 152);
+  /* Boutique Emerald — sereno e rico */
+  --success: oklch(0.50 0.125 152);
   --success-foreground: oklch(0.99 0.002 152);
-  --success-soft: oklch(0.948 0.038 152);
-  /* Warm Honey Amber — nobre, sem alarme */
+  --success-soft: oklch(0.945 0.035 152);
+  /* Warm Honey Amber */
   --warning: oklch(0.68 0.130 72);
   --warning-foreground: oklch(0.22 0.03 72);
-  --warning-soft: oklch(0.958 0.045 80);
+  --warning-soft: oklch(0.955 0.040 80);
   --danger: oklch(0.55 0.185 22);
   --danger-foreground: oklch(0.99 0.002 22);
-  --danger-soft: oklch(0.955 0.030 22);
-  --info: oklch(0.48 0.185 262);
+  --danger-soft: oklch(0.950 0.030 22);
+  --info: oklch(0.44 0.165 262);
   --info-foreground: oklch(0.99 0.002 262);
-  --info-soft: oklch(0.950 0.022 262);
+  --info-soft: oklch(0.945 0.020 262);
 
-  /* ── Bordas: neutro quente (hue 80°), sem reflexo azul/lavanda) ── */
-  --border: oklch(0.912 0.004 80);
-  --input: oklch(0.912 0.004 80);
-  --ring: oklch(0.48 0.185 262);
+  /* ── Bordas: neutro quente refinado (hue 80°, recorte nítido e sutil) ── */
+  --border: oklch(0.908 0.003 80);
+  --input: oklch(0.908 0.003 80);
+  --ring: oklch(0.44 0.165 262);
 
-  /* ── Gráficos: índigo soberano + esmeralda + âmbar (paleta editorial sofisticada) ── */
-  --chart-1: oklch(0.48 0.185 262);
-  --chart-2: oklch(0.52 0.13 152);
+  /* ── Gráficos: paleta editorial sofisticada ── */
+  --chart-1: oklch(0.44 0.165 262);
+  --chart-2: oklch(0.50 0.125 152);
   --chart-3: oklch(0.68 0.130 72);
   --chart-4: oklch(0.60 0.17 320);
   --chart-5: oklch(0.58 0.10 228);
 
-  /* ── Sidebar: Obsidian Slate Premium (tom mais frio e premium que antes) ── */
-  --sidebar: oklch(0.172 0.008 265);
+  /* ── Sidebar: Obsidian Slate Premium ── */
+  --sidebar: oklch(0.165 0.008 265);
   --sidebar-foreground: oklch(0.94 0.003 262);
   --sidebar-primary: oklch(0.68 0.175 262);
   --sidebar-primary-foreground: oklch(0.12 0.02 262);
@@ -223,7 +223,7 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.022em;
+    letter-spacing: -0.028em;
   }
 }
 
@@ -308,41 +308,44 @@
   }
 }
 
-/* ─── Sidebar Ambient Glow — Padrão Shopify Polaris (Imagem 2) ──────────────
-   Efeito de iluminação atmosférica multicamada no rodapé da sidebar.
-   Reproduz o glow rubi/vinho suave que cria profundidade tridimensional,
-   como em um display OLED premium (Shopify, macOS, Arc Browser).
+/* ─── Sidebar Ambient Glow — Padrão Shopify Polaris Oficial (Imagem 2) ────────
+   Efeito de iluminação atmosférica visível de estúdio no rodapé da sidebar.
+   Aura em tom rubi/vinho com difusão aveludada criando profundidade OLED premium.
    ─────────────────────────────────────────────────────────────────────────── */
 @utility sidebar-ambient-glow {
-  position: relative;
+  background-color: var(--sidebar);
+  background-image:
+    radial-gradient(
+      ellipse 280px 240px at 15% 100%,
+      rgba(225, 29, 72, 0.20) 0%,
+      rgba(139, 92, 246, 0.11) 38%,
+      transparent 75%
+    ),
+    radial-gradient(
+      circle 320px at 95% 5%,
+      rgba(255, 255, 255, 0.025) 0%,
+      transparent 65%
+    );
+  background-repeat: no-repeat;
+  background-attachment: local;
+}
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    /* Camada 1: Glow radial no canto inferior esquerdo (vinho/rubi suave) */
-    background:
-      radial-gradient(
-        ellipse 75% 45% at 18% 100%,
-        rgba(220, 38, 80, 0.10) 0%,
-        rgba(148, 64, 210, 0.06) 45%,
-        transparent 72%
-      ),
-      /* Camada 2: Micro-luz etérea no topo (simula reflexo de display) */
-      linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.018) 0%,
-        transparent 20%
-      );
-    border-radius: inherit;
-  }
-
-  & > * {
-    position: relative;
-    z-index: 1;
-  }
+.sidebar-ambient-glow {
+  background-color: var(--sidebar) !important;
+  background-image:
+    radial-gradient(
+      ellipse 300px 260px at 15% 100%,
+      rgba(225, 29, 72, 0.22) 0%,
+      rgba(139, 92, 246, 0.12) 40%,
+      transparent 75%
+    ),
+    radial-gradient(
+      circle 320px at 95% 5%,
+      rgba(255, 255, 255, 0.025) 0%,
+      transparent 65%
+    ) !important;
+  background-repeat: no-repeat !important;
+  background-attachment: local !important;
 }
 
 @utility custom-scrollbar {
