@@ -1981,63 +1981,86 @@ function Caixa() {
       {/* ── KPIs — Cockpit Financeiro Premium ────────────────────────────────── */}
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Saldo de Hoje */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        <div className="p-4 sm:p-5 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col justify-between min-h-[135px] hover:border-border/80 transition-colors duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Saldo de hoje</span>
             <Wallet className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
           </div>
-          <h3 className={`numeric text-3xl font-bold tracking-tight leading-none ${
-            todayBalance < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
-          }`}>
-            {brl(todayBalance)}
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">Hoje</p>
+          <div className="my-1.5">
+            <h3 className={`numeric text-2xl font-bold tracking-tight ${
+              todayBalance < 0 ? "text-destructive dark:text-destructive" : "text-foreground"
+            }`}>
+              {brl(todayBalance)}
+            </h3>
+          </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[24px]">
+            <span>Hoje</span>
+            <span className="text-muted-foreground/50">Fluxo diário</span>
+          </div>
         </div>
 
         {/* Card 2: Entradas do Mês */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        <div className="p-4 sm:p-5 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col justify-between min-h-[135px] hover:border-border/80 transition-colors duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Entradas do mês</span>
             <ArrowUpRight className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
           </div>
-          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-            {brl(revenue)}
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">Este mês</p>
+          <div className="my-1.5">
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
+              {brl(revenue)}
+            </h3>
+          </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[24px]">
+            <span>Este mês</span>
+            <span className="text-muted-foreground/50">Receita bruta</span>
+          </div>
         </div>
 
         {/* Card 3: Saídas do Mês */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        <div className="p-4 sm:p-5 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col justify-between min-h-[135px] hover:border-border/80 transition-colors duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Saídas do mês</span>
             <ArrowDownRight className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
           </div>
-          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-            {brl(expenses)}
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">Este mês</p>
+          <div className="my-1.5">
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
+              {brl(expenses)}
+            </h3>
+          </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[24px]">
+            <span>Este mês</span>
+            <span className="text-muted-foreground/50">Despesas e compras</span>
+          </div>
         </div>
 
-        {/* Card 4: Resultado do Mês — único acento semântico da tela */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        {/* Card 4: Resultado do Mês — Quiet Luxury unificado */}
+        <div className="p-4 sm:p-5 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col justify-between min-h-[135px] hover:border-border/80 transition-colors duration-200">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Resultado do mês</span>
             <TrendingUp className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
           </div>
-          <h3 className={`numeric text-3xl font-bold tracking-tight leading-none ${
-            revenue - expenses > 0
-              ? "text-emerald-700 dark:text-emerald-400"
-              : revenue - expenses < 0
-              ? "text-rose-600 dark:text-rose-400"
-              : "text-foreground"
-          }`}>
-            {brl(Math.abs(revenue - expenses))}
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">
-            {revenue > 0
-              ? `${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}% de margem`
-              : "Este mês"}
-          </p>
+          <div className="my-1.5">
+            <h3 className="numeric text-2xl font-bold tracking-tight text-foreground">
+              {brl(Math.abs(revenue - expenses))}
+            </h3>
+          </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[24px]">
+            <span>
+              {revenue > 0
+                ? `${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}% de margem`
+                : "Este mês"}
+            </span>
+            <span className={cn(
+              "font-medium",
+              revenue - expenses > 0
+                ? "text-emerald-700 dark:text-emerald-400"
+                : revenue - expenses < 0
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-muted-foreground"
+            )}>
+              {revenue - expenses > 0 ? "Lucro" : revenue - expenses < 0 ? "Prejuízo" : "Neutro"}
+            </span>
+          </div>
         </div>
       </div>
 
