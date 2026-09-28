@@ -2050,14 +2050,13 @@ function Caixa() {
                 ? `${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}% de margem`
                 : "Este mês"}
             </span>
-            <span className={cn(
-              "font-medium",
+            <span className={`font-medium ${
               revenue - expenses > 0
                 ? "text-emerald-700 dark:text-emerald-400"
                 : revenue - expenses < 0
                   ? "text-rose-600 dark:text-rose-400"
                   : "text-muted-foreground"
-            )}>
+            }`}>
               {revenue - expenses > 0 ? "Lucro" : revenue - expenses < 0 ? "Prejuízo" : "Neutro"}
             </span>
           </div>
