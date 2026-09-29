@@ -41,7 +41,7 @@ function ResetPassword() {
   return (
     <div className="flex min-h-screen items-center justify-center px-5">
       <div className="panel w-full max-w-[400px] p-8">
-        <Logo />
+        <Logo variant="light" />
         <h1 className="mt-6 text-2xl font-semibold">Nova senha</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Escolha uma senha com pelo menos 6 caracteres.

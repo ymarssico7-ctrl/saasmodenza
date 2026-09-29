@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -250,7 +250,7 @@ function Onboarding() {
   return (
     <div className="flex min-h-screen items-center justify-center px-5 py-14">
       <div className="w-full max-w-[460px]">
-        <Logo />
+        <Logo variant="light" />
         <div className="mt-8 flex gap-2">
           {steps.map((_, i) => (
             <span

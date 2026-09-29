@@ -103,7 +103,7 @@ function AuthPage() {
         <div className="absolute -right-24 -top-24 size-[420px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <div className="absolute -bottom-32 -left-16 size-[380px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <Link to="/" className="relative">
-          <Logo variant="light" textClassName="text-primary-foreground text-base" />
+          <Logo variant="dark" className="h-8" />
         </Link>
         <div className="relative max-w-md">
           <h2 className="font-display text-[2.6rem] font-semibold leading-[1.05]">

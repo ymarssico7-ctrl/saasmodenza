@@ -73,7 +73,7 @@ function Landing() {
     <div className="min-h-screen bg-background">
       <header className="glass sticky top-0 z-40">
         <div className="mx-auto flex h-[72px] w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Logo />
+          <Logo variant="light" />
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
             <a href="#recursos" className="transition-colors hover:text-foreground">
               Recursos
@@ -207,7 +207,7 @@ function Landing() {
 
       <footer className="border-t border-border py-10">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-5 text-xs text-muted-foreground sm:flex-row sm:px-8">
-          <Logo />
+          <Logo variant="light" />
           <p>© {new Date().getFullYear()} Vestui. Gestão financeira e loja online para moda.</p>
         </div>
       </footer>
