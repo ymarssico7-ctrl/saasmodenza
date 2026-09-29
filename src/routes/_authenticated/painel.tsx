@@ -662,7 +662,7 @@ function Painel() {
             <Button
               asChild
               size="sm"
-              className="h-9 gap-1.5 rounded-lg px-4 font-semibold bg-[#18181B] text-white hover:bg-black/90 active:scale-[0.98] shadow-2xs hover:shadow-xs transition-all cursor-pointer text-xs ring-1 ring-white/10 dark:bg-primary dark:text-primary-foreground"
+              className="gradient-primary h-9 gap-1.5 rounded-lg px-4 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
             >
               <Link to="/caixa">
                 <Store className="size-3.5 mr-0.5" /> + Nova Venda
