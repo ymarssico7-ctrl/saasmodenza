@@ -11,8 +11,8 @@ export function Logo({
 }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      {/* Badge Circular Perfeito (Padrão Imagem 3) em Azul Cobalto Elétrico */}
-      <span className="relative flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-2xs shrink-0 select-none">
+      {/* Squircle Apple HIG — rounded-[10px] idêntico ao ícone de app iOS */}
+      <span className="relative flex size-8 items-center justify-center rounded-[10px] bg-primary text-primary-foreground shadow-sm shrink-0 select-none">
         <span className="font-display text-[14px] font-bold tracking-tight">V</span>
       </span>
       {compact ? null : (
