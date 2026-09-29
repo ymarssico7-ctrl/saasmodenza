@@ -93,19 +93,19 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.185 0.006 280);
 
-  /* ── Primária: Deep Haute Couture Indigo (chroma 0.165, autoridade e sofisticação) ── */
-  --primary: oklch(0.44 0.165 262);
-  --primary-foreground: oklch(0.99 0.002 262);
-  --primary-soft: oklch(0.945 0.020 262);
-  --primary-glow: oklch(0.50 0.150 262 / 0.25);
+  /* ── Primária: Vestui Mauve Premium — hue 295° Mauve-Violet (alta costura, único no mercado SaaS BR) ── */
+  --primary: oklch(0.42 0.155 295);
+  --primary-foreground: oklch(0.99 0.002 295);
+  --primary-soft: oklch(0.948 0.016 295);
+  --primary-glow: oklch(0.48 0.140 295 / 0.25);
 
   /* ── Secundária: Tom neutro quente (hue 80°, harmônico com Cashmere Paper) ── */
   --secondary: oklch(0.948 0.004 80);
   --secondary-foreground: oklch(0.26 0.008 280);
   --muted: oklch(0.948 0.004 80);
   --muted-foreground: oklch(0.48 0.010 280);
-  --accent: oklch(0.945 0.018 262);
-  --accent-foreground: oklch(0.36 0.15 262);
+  --accent: oklch(0.948 0.016 295);
+  --accent-foreground: oklch(0.34 0.14 295);
 
   /* ── Semânticas: calibradas para harmonia de luxo (sem saturação de marca-texto) ── */
   --destructive: oklch(0.55 0.185 22);
@@ -121,31 +121,31 @@
   --danger: oklch(0.55 0.185 22);
   --danger-foreground: oklch(0.99 0.002 22);
   --danger-soft: oklch(0.950 0.030 22);
-  --info: oklch(0.44 0.165 262);
-  --info-foreground: oklch(0.99 0.002 262);
-  --info-soft: oklch(0.945 0.020 262);
+  --info: oklch(0.42 0.155 295);
+  --info-foreground: oklch(0.99 0.002 295);
+  --info-soft: oklch(0.948 0.016 295);
 
   /* ── Bordas: neutro quente refinado (hue 80°, recorte nítido e sutil) ── */
   --border: oklch(0.908 0.003 80);
   --input: oklch(0.908 0.003 80);
-  --ring: oklch(0.44 0.165 262);
+  --ring: oklch(0.42 0.155 295);
 
   /* ── Gráficos: paleta editorial sofisticada ── */
-  --chart-1: oklch(0.44 0.165 262);
+  --chart-1: oklch(0.42 0.155 295);
   --chart-2: oklch(0.50 0.125 152);
   --chart-3: oklch(0.68 0.130 72);
   --chart-4: oklch(0.60 0.17 320);
   --chart-5: oklch(0.58 0.10 228);
 
-  /* ── Sidebar: Obsidian Slate Premium ── */
-  --sidebar: oklch(0.165 0.008 265);
-  --sidebar-foreground: oklch(0.94 0.003 262);
-  --sidebar-primary: oklch(0.68 0.175 262);
-  --sidebar-primary-foreground: oklch(0.12 0.02 262);
+  /* ── Sidebar: Mauve Obsidian — DNA da marca (versão escura do primário 295°) ── */
+  --sidebar: oklch(0.155 0.018 295);
+  --sidebar-foreground: oklch(0.94 0.003 295);
+  --sidebar-primary: oklch(0.70 0.170 295);
+  --sidebar-primary-foreground: oklch(0.12 0.02 295);
   --sidebar-accent: oklch(1 0 0 / 8%);
   --sidebar-accent-foreground: oklch(0.97 0 0);
   --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.68 0.175 262);
+  --sidebar-ring: oklch(0.70 0.170 295);
 }
 
 .dark {
@@ -158,17 +158,17 @@
   --popover: oklch(0.203 0.014 285);
   --popover-foreground: oklch(0.965 0.004 285);
 
-  --primary: oklch(0.65 0.185 273);
-  --primary-foreground: oklch(0.14 0.02 285);
-  --primary-soft: oklch(0.28 0.06 273);
-  --primary-glow: oklch(0.65 0.185 273 / 0.4);
+  --primary: oklch(0.65 0.175 295);
+  --primary-foreground: oklch(0.14 0.02 295);
+  --primary-soft: oklch(0.28 0.06 295);
+  --primary-glow: oklch(0.65 0.175 295 / 0.4);
 
   --secondary: oklch(0.25 0.014 285);
   --secondary-foreground: oklch(0.965 0.004 285);
   --muted: oklch(0.25 0.014 285);
   --muted-foreground: oklch(0.7 0.012 285);
-  --accent: oklch(0.28 0.06 273);
-  --accent-foreground: oklch(0.86 0.08 273);
+  --accent: oklch(0.28 0.06 295);
+  --accent-foreground: oklch(0.86 0.08 295);
 
   --destructive: oklch(0.66 0.19 25);
   --destructive-foreground: oklch(0.14 0.02 285);
@@ -181,28 +181,28 @@
   --danger: oklch(0.66 0.19 25);
   --danger-foreground: oklch(0.14 0.02 285);
   --danger-soft: oklch(0.31 0.07 25);
-  --info: oklch(0.65 0.185 273);
-  --info-foreground: oklch(0.14 0.02 285);
-  --info-soft: oklch(0.28 0.06 273);
+  --info: oklch(0.65 0.175 295);
+  --info-foreground: oklch(0.14 0.02 295);
+  --info-soft: oklch(0.28 0.06 295);
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.65 0.185 273);
+  --ring: oklch(0.65 0.175 295);
 
-  --chart-1: oklch(0.65 0.185 273);
+  --chart-1: oklch(0.65 0.175 295);
   --chart-2: oklch(0.7 0.14 158);
   --chart-3: oklch(0.78 0.15 72);
   --chart-4: oklch(0.7 0.16 320);
   --chart-5: oklch(0.7 0.1 230);
 
-  --sidebar: oklch(0.185 0.013 285);
+  --sidebar: oklch(0.175 0.018 295);
   --sidebar-foreground: oklch(0.965 0.004 285);
-  --sidebar-primary: oklch(0.65 0.185 273);
-  --sidebar-primary-foreground: oklch(0.14 0.02 285);
-  --sidebar-accent: oklch(0.28 0.06 273);
-  --sidebar-accent-foreground: oklch(0.86 0.08 273);
+  --sidebar-primary: oklch(0.65 0.175 295);
+  --sidebar-primary-foreground: oklch(0.14 0.02 295);
+  --sidebar-accent: oklch(0.28 0.06 295);
+  --sidebar-accent-foreground: oklch(0.86 0.08 295);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.65 0.185 273);
+  --sidebar-ring: oklch(0.65 0.175 295);
 }
 
 @layer base {
@@ -291,12 +291,12 @@
 }
 
 @utility gradient-primary {
-  /* Royal Indigo soberano — do índigo profundo ao índigo médio, sem neon */
-  background-image: linear-gradient(135deg, oklch(0.48 0.185 262) 0%, oklch(0.42 0.195 258) 100%);
+  /* Vestui Mauve Premium — do mauve profundo ao violet intenso, assinatura da marca */
+  background-image: linear-gradient(135deg, oklch(0.46 0.165 295) 0%, oklch(0.40 0.175 290) 100%);
 }
 
 @utility gradient-text {
-  background-image: linear-gradient(135deg, oklch(0.48 0.185 262) 0%, oklch(0.42 0.195 258) 100%);
+  background-image: linear-gradient(135deg, oklch(0.46 0.165 295) 0%, oklch(0.40 0.175 290) 100%);
   background-clip: text;
   color: transparent;
 }
@@ -317,9 +317,9 @@
   background-image:
     radial-gradient(
       ellipse 360px 420px at 10% 100%,
-      rgba(225, 29, 72, 0.28) 0%,
-      rgba(168, 85, 247, 0.16) 40%,
-      rgba(88, 28, 135, 0.08) 65%,
+      rgba(167, 139, 250, 0.20) 0%,
+      rgba(126, 34, 206, 0.12) 40%,
+      rgba(88, 28, 135, 0.06) 65%,
       transparent 85%
     ),
     radial-gradient(
@@ -336,9 +336,9 @@
   background-image:
     radial-gradient(
       ellipse 360px 420px at 10% 100%,
-      rgba(225, 29, 72, 0.28) 0%,
-      rgba(168, 85, 247, 0.16) 40%,
-      rgba(88, 28, 135, 0.08) 65%,
+      rgba(167, 139, 250, 0.20) 0%,
+      rgba(126, 34, 206, 0.12) 40%,
+      rgba(88, 28, 135, 0.06) 65%,
       transparent 85%
     ),
     radial-gradient(
