@@ -69,6 +69,7 @@ export interface PainelRadarPedidosOnlineProps {
   mascaraSaldo: (valor: number) => string;
   onCopiarLink?: (() => void) | undefined;
   className?: string | undefined;
+  totalPedidosConcluidos?: number | undefined;
 }
 
 export function PainelRadarPedidosOnline({
@@ -82,17 +83,9 @@ export function PainelRadarPedidosOnline({
   mascaraSaldo,
   onCopiarLink,
   className,
+  totalPedidosConcluidos = 0,
 }: PainelRadarPedidosOnlineProps) {
   const temPendentes = pedidosPendentes.length > 0;
-
-  const handleCopy = () => {
-    if (onCopiarLink) {
-      onCopiarLink();
-    } else if (vitrineUrl) {
-      void navigator.clipboard?.writeText(vitrineUrl);
-      toast.success("Link da vitrine copiado!");
-    }
-  };
 
   return (
     <section
@@ -106,29 +99,39 @@ export function PainelRadarPedidosOnline({
       <div>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div
               className={cn(
-                "grid size-6 place-items-center rounded-lg transition-colors",
+                "grid size-7 place-items-center rounded-xl transition-colors",
                 temPendentes
                   ? "bg-slate-800 text-emerald-400"
                   : "bg-secondary text-foreground",
               )}
             >
-              <ShoppingBag className="size-3.5" />
+              <ShoppingBag className="size-4" />
             </div>
-            <h2
-              className={cn(
-                "text-sm font-semibold",
-                temPendentes ? "text-white" : "text-foreground",
-              )}
-            >
-              Pedidos da Vitrine
-            </h2>
+            <div>
+              <h2
+                className={cn(
+                  "text-sm font-semibold tracking-tight",
+                  temPendentes ? "text-white" : "text-foreground",
+                )}
+              >
+                Pedidos da Vitrine
+              </h2>
+              <p
+                className={cn(
+                  "text-[11px]",
+                  temPendentes ? "text-slate-400" : "text-muted-foreground",
+                )}
+              >
+                Expedição e logística da loja
+              </p>
+            </div>
           </div>
 
           {temPendentes ? (
-            <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[11px] text-emerald-300 font-semibold flex items-center gap-1.5">
+            <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-0.5 text-[11px] text-emerald-300 font-semibold flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -136,7 +139,7 @@ export function PainelRadarPedidosOnline({
               {totalPedidosNovos} a despachar
             </span>
           ) : (
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               Tudo em dia
             </span>
@@ -145,7 +148,7 @@ export function PainelRadarPedidosOnline({
 
         {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação */}
         {temPendentes ? (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3.5 space-y-2">
             <div className="flex items-baseline justify-between text-xs text-slate-400">
               <span>
                 Total a despachar:{" "}
@@ -205,66 +208,64 @@ export function PainelRadarPedidosOnline({
             </div>
           </div>
         ) : (
-          /* Conteúdo: 2) Estado vazio — padrão Apple/Shopify: zero caixas, tipografia pura */
-          <div className="mt-5 space-y-4">
-            {/* Métrica direta e limpa */}
-            <div>
-              <p className="numeric text-[28px] font-bold leading-none tracking-tight text-foreground">
-                0
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                pedidos aguardando separação
-              </p>
-            </div>
+          /* Conteúdo: 2) Proposta A: Padrão Shopify Polaris — Métrica Dupla Limpa e Balanceada */
+          <div className="mt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3 transition-colors">
+                <span className="text-[11px] font-medium text-muted-foreground block">
+                  A despachar hoje
+                </span>
+                <span className="numeric text-2xl font-bold tracking-tight text-foreground block mt-0.5">
+                  0
+                </span>
+                <span className="text-[10.5px] text-muted-foreground/75 mt-0.5 block truncate">
+                  Nenhum pacote pendente
+                </span>
+              </div>
 
-            {/* Link da vitrine em linha única — sem caixas, discreto e funcional */}
-            <div className="flex items-center gap-0 text-[11px] text-muted-foreground/70">
-              <span className="truncate font-mono">
-                {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
-              </span>
-              <span className="mx-1.5 shrink-0 select-none">·</span>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="shrink-0 font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                Copiar
-              </button>
-              {vitrineUrl && (
-                <>
-                  <span className="mx-1.5 shrink-0 select-none">·</span>
-                  <a
-                    href={vitrineUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 font-semibold text-primary hover:underline transition-colors"
-                  >
-                    Abrir ↗
-                  </a>
-                </>
-              )}
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3 transition-colors">
+                <span className="text-[11px] font-medium text-muted-foreground block">
+                  Concluídos no mês
+                </span>
+                <span className="numeric text-2xl font-bold tracking-tight text-foreground block mt-0.5">
+                  {totalPedidosConcluidos}
+                </span>
+                <span className="text-[10.5px] text-muted-foreground/75 mt-0.5 block truncate">
+                  {totalPedidosConcluidos === 1 ? "Pedido entregue" : "Pedidos entregues"}
+                </span>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Rodapé fluido */}
-      <Link
-        to="/loja/pedidos"
+      {/* Rodapé Alinhado — Padrão Shopify Polaris */}
+      <div
         className={cn(
-          "mt-4 pt-3 border-t flex items-center justify-center gap-1 text-xs font-medium transition-colors",
+          "mt-4 pt-3 border-t flex items-center justify-between text-xs transition-colors",
           temPendentes
-            ? "border-slate-800 text-slate-300 hover:text-white"
-            : "border-border/50 text-muted-foreground hover:text-foreground",
+            ? "border-slate-800 text-slate-300"
+            : "border-border/50 text-muted-foreground",
         )}
       >
-        <span>
+        <span className="text-[11px]">
           {temPendentes
-            ? `Central de Pedidos da Vitrine (${totalPedidosNovos})`
-            : "Central de Pedidos Online"}
+            ? `${totalPedidosNovos} ${totalPedidosNovos === 1 ? "pedido aguardando" : "pedidos aguardando"}`
+            : "Vitrine pronta para vender"}
         </span>
-        <ChevronRight className="size-3.5" />
-      </Link>
+        <Link
+          to="/loja/pedidos"
+          className={cn(
+            "font-semibold flex items-center gap-1 transition-colors cursor-pointer",
+            temPendentes
+              ? "text-white hover:underline"
+              : "text-primary hover:underline",
+          )}
+        >
+          <span>Central de Pedidos</span>
+          <ChevronRight className="size-3.5" />
+        </Link>
+      </div>
     </section>
   );
 }

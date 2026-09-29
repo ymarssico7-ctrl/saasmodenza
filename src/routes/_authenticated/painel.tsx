@@ -152,6 +152,10 @@ function Painel() {
     return orders.filter((o) => o.status === "em_separacao").length;
   }, [orders]);
 
+  const pedidosConcluidosCount = React.useMemo(() => {
+    return orders.filter((o) => o.status === "enviado" || o.status === "entregue").length;
+  }, [orders]);
+
   // ── Gestão da Vitrine Online & Radar de Pedidos Pendentes ──────────────────
   const origin =
     typeof window !== "undefined" && window.location.origin
@@ -734,6 +738,7 @@ function Painel() {
             pedidosPendentes={pedidosPendentes}
             totalPedidosNovos={pedidosNovosCount}
             valorTotalNovos={pedidosNovosValor}
+            totalPedidosConcluidos={pedidosConcluidosCount}
             vitrineAtiva={vitrineAtiva}
             vitrineUrl={vitrineUrl}
             vitrineDisplay={vitrineDisplay}
