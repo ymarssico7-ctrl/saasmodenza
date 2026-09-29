@@ -8,7 +8,6 @@ import {
   Package,
   Plus,
   Receipt,
-  Share2,
   Shirt,
   ShoppingBag,
   Sparkles,
@@ -216,10 +215,25 @@ export function PainelRadarPedidosOnline({
             </div>
           </div>
         ) : (
-          /* Conteúdo: 2) Quando NÃO há pedidos pendentes (Vitrine Ativa 24h) */
-          <div className="mt-2.5 space-y-2.5">
+          /* Conteúdo: 2) Quando NÃO há pedidos pendentes (Zen Minimalista) */
+          <div className="mt-3.5 space-y-3">
+            {/* Estado Visual de Paz Operacional */}
+            <div className="flex items-center gap-3 rounded-2xl bg-secondary/35 border border-border/40 p-3">
+              <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-4.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-foreground">
+                  Nenhum pedido aguardando separação
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Sua vitrine online está ativa e pronta para novas vendas
+                </p>
+              </div>
+            </div>
+
             {/* Box do Link da Vitrine com Botão Copiar */}
-            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
+            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-card px-3 py-2 text-xs shadow-2xs">
               <span className="truncate text-muted-foreground text-[11px] font-mono">
                 {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
               </span>
@@ -246,38 +260,6 @@ export function PainelRadarPedidosOnline({
                   </a>
                 )}
               </div>
-            </div>
-
-            {/* Micro-Painel de Ativação e Compartilhamento (Elimina o Vazio Vertical) */}
-            <div className="grid grid-cols-2 gap-2 pt-0.5">
-              <div className="rounded-xl border border-border/50 bg-secondary/25 p-2.5 flex flex-col justify-between">
-                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground block">
-                  Status Operacional
-                </span>
-                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-1">
-                  <span className="size-1.5 rounded-full bg-emerald-500 inline-block" /> Fila Zerada
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (vitrineUrl) {
-                    const text = encodeURIComponent(`Olá! Conheça as peças e novidades da nossa loja na nossa vitrine online: ${vitrineUrl}`);
-                    window.open(`https://wa.me/?text=${text}`, "_blank");
-                  } else {
-                    handleCopy();
-                  }
-                }}
-                className="rounded-xl border border-border/50 bg-secondary/25 p-2.5 text-left hover:bg-secondary/50 transition-colors group cursor-pointer flex flex-col justify-between"
-                title="Divulgar vitrine no WhatsApp"
-              >
-                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground block">
-                  Divulgação Rápida
-                </span>
-                <span className="text-xs font-semibold text-primary flex items-center gap-1 mt-1 group-hover:underline">
-                  <Share2 className="size-3 shrink-0" /> WhatsApp ➔
-                </span>
-              </button>
             </div>
           </div>
         )}
