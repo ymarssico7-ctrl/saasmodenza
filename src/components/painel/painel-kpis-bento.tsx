@@ -83,7 +83,7 @@ export function PainelKpisBento({
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
       <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Faturamento Total
           </span>
           <Wallet className="size-4 text-muted-foreground/45 shrink-0" />
@@ -123,7 +123,7 @@ export function PainelKpisBento({
       {/* ── CARD 2: SAÍDAS DO MÊS ────────────────────────────────────────── */}
       <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Saídas do Mês
           </span>
           <Receipt className="size-4 text-muted-foreground/45 shrink-0" />
@@ -152,7 +152,7 @@ export function PainelKpisBento({
       {/* ── CARD 3: SOBRA NO CAIXA (LUCRO REAL) ─────────────────────────── */}
       <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Sobra no Caixa
           </span>
           <TrendingUp className="size-4 text-muted-foreground/45 shrink-0" />
@@ -186,10 +186,17 @@ export function PainelKpisBento({
       {/* ── CARD 4: META DO MÊS ──────────────────────────────────────────── */}
       <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Meta do Mês
           </span>
-          <Target className="size-4 text-muted-foreground/45 shrink-0" />
+          <div className="flex items-center gap-1.5">
+            {metaDefinida && (
+              <span className="rounded-full bg-primary/10 px-1.5 py-0.2 text-[10px] font-semibold text-primary">
+                {goalProgress.toFixed(1)}%
+              </span>
+            )}
+            <Target className="size-4 text-muted-foreground/45 shrink-0" />
+          </div>
         </div>
 
         <div className="my-1.5">
@@ -204,13 +211,13 @@ export function PainelKpisBento({
         <div className="pt-2 border-t border-border/50 flex flex-col justify-center min-h-[26px]">
           {metaDefinida ? (
             <div className="space-y-1.5">
-              <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-secondary/80 border border-border/40 overflow-hidden">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
                     metaAtingida ? "bg-emerald-500" : "bg-primary",
                   )}
-                  style={{ width: `${progressClamp}%` }}
+                  style={{ width: `${Math.max(progressClamp, progressClamp > 0 ? 2 : 0)}%` }}
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-muted-foreground whitespace-nowrap">

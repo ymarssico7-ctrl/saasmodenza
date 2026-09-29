@@ -28,7 +28,7 @@ export function BoutiqueMentor() {
   return (
     <>
       {/* ── Ícone Flutuante Compacto Apple (Design de Alto Padrão - 40px) ── */}
-      <div className="fixed bottom-5 right-5 z-40">
+      <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40">
         <button
           type="button"
           onClick={toggleCoach}

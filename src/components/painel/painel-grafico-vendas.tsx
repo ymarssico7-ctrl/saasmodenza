@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Area,
   AreaChart,
@@ -410,10 +411,16 @@ export function PainelGraficoVendas({
 
       {/* Nota sutil caso ainda não haja vendas no período */}
       {totalPeriodo === 0 && (
-        <div className="mt-2 text-center">
-          <p className="text-[11px] text-muted-foreground/70">
-            Novas vendas confirmadas entrarão na curva automaticamente
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5 text-center px-4">
+          <p className="text-[11px] text-muted-foreground/75">
+            Novas vendas confirmadas entrarão na curva automaticamente.
           </p>
+          <Link
+            to="/caixa"
+            className="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-0.5"
+          >
+            Abrir Caixa &amp; PDV ➔
+          </Link>
         </div>
       )}
     </section>

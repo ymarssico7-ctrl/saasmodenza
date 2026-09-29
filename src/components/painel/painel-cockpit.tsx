@@ -8,6 +8,7 @@ import {
   Package,
   Plus,
   Receipt,
+  Share2,
   Shirt,
   ShoppingBag,
   Sparkles,
@@ -216,11 +217,11 @@ export function PainelRadarPedidosOnline({
           </div>
         ) : (
           /* Conteúdo: 2) Quando NÃO há pedidos pendentes (Vitrine Ativa 24h) */
-          <div className="mt-2.5 space-y-2">
+          <div className="mt-2.5 space-y-2.5">
             {/* Box do Link da Vitrine com Botão Copiar */}
             <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
               <span className="truncate text-muted-foreground text-[11px] font-mono">
-                {vitrineDisplay || "modaly.app/vitrine/sualoja"}
+                {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
@@ -245,6 +246,38 @@ export function PainelRadarPedidosOnline({
                   </a>
                 )}
               </div>
+            </div>
+
+            {/* Micro-Painel de Ativação e Compartilhamento (Elimina o Vazio Vertical) */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <div className="rounded-xl border border-border/50 bg-secondary/25 p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground block">
+                  Status Operacional
+                </span>
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-1">
+                  <span className="size-1.5 rounded-full bg-emerald-500 inline-block" /> Fila Zerada
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (vitrineUrl) {
+                    const text = encodeURIComponent(`Olá! Conheça as peças e novidades da nossa loja na nossa vitrine online: ${vitrineUrl}`);
+                    window.open(`https://wa.me/?text=${text}`, "_blank");
+                  } else {
+                    handleCopy();
+                  }
+                }}
+                className="rounded-xl border border-border/50 bg-secondary/25 p-2.5 text-left hover:bg-secondary/50 transition-colors group cursor-pointer flex flex-col justify-between"
+                title="Divulgar vitrine no WhatsApp"
+              >
+                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground block">
+                  Divulgação Rápida
+                </span>
+                <span className="text-xs font-semibold text-primary flex items-center gap-1 mt-1 group-hover:underline">
+                  <Share2 className="size-3 shrink-0" /> WhatsApp ➔
+                </span>
+              </button>
             </div>
           </div>
         )}
@@ -325,7 +358,7 @@ export function PainelCapitalEstoque({
 
         {/* Barra Apple HIG de Distribuição de Acervo */}
         {totalCatalogItems > 0 && (
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary gap-0.5 flex">
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary/80 border border-border/40 gap-0.5 flex">
             {healthyStockCount > 0 && (
               <div
                 style={{ width: `${(healthyStockCount / totalCatalogItems) * 100}%` }}
@@ -353,42 +386,40 @@ export function PainelCapitalEstoque({
         {/* A Lista Limpa com Pontos Coloridos Rigorosamente Alinhada */}
         <ul className="mt-3 divide-y divide-border/50 text-xs">
           <li className="flex items-center justify-between py-2 text-muted-foreground">
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 min-w-0">
               <span
                 className={cn(
-                  "size-2 rounded-full",
+                  "size-2 rounded-full shrink-0",
                   outOfStockCount > 0 ? "bg-rose-500" : "bg-muted-foreground/40",
                 )}
               />
-              <span>Modelos esgotados</span>
-            </span>
-            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground/90 shrink-0">Modelos esgotados</span>
               {outOfStockCount > 0 && outOfStockSampleName && (
                 <Link
                   to="/estoque"
-                  className="text-[11px] text-rose-600 dark:text-rose-400 font-medium hover:underline flex items-center gap-0.5"
+                  className="hidden sm:inline-flex items-center rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors truncate max-w-[130px]"
+                  title={`Repor ${outOfStockSampleName}`}
                 >
-                  <span className="truncate max-w-[120px]">{outOfStockSampleName} zerado</span>
-                  <span className="text-[10px] opacity-75">· Repor ➔</span>
+                  Repor {outOfStockSampleName} ➔
                 </Link>
               )}
-              <span className="numeric font-medium text-foreground">
-                {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
-              </span>
-            </div>
+            </span>
+            <span className={cn("numeric font-medium shrink-0", outOfStockCount > 0 ? "text-rose-600 dark:text-rose-400 font-semibold" : "text-foreground")}>
+              {outOfStockCount} {outOfStockCount === 1 ? "modelo" : "modelos"}
+            </span>
           </li>
           <li className="flex items-center justify-between py-2 text-muted-foreground">
             <span className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-amber-500" />
+              <span className="size-2 rounded-full bg-amber-500 shrink-0" />
               <span>Últimas unidades (&lt; 3 un.)</span>
             </span>
-            <span className="numeric font-medium text-foreground">
+            <span className={cn("numeric font-medium", lowStockCount > 0 ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-foreground")}>
               {lowStockCount} {lowStockCount === 1 ? "modelo" : "modelos"}
             </span>
           </li>
           <li className="flex items-center justify-between py-2 text-muted-foreground">
             <span className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-emerald-500" />
+              <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
               <span>Modelos com estoque saudável</span>
             </span>
             <span className="numeric font-medium text-foreground">
