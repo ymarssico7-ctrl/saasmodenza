@@ -510,14 +510,14 @@ function Configuracoes() {
                     className={cn(
                       "flex size-9 items-center justify-center rounded-xl transition-colors",
                       businessModel === "fisica"
-                        ? "bg-primary text-white shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-surface-muted text-muted-foreground group-hover:text-foreground",
                     )}
                   >
                     <Building2 className="size-4.5" />
                   </span>
                   {businessModel === "fisica" ? (
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                       <Check className="size-3 stroke-[3]" />
                     </span>
                   ) : (
@@ -548,14 +548,14 @@ function Configuracoes() {
                     className={cn(
                       "flex size-9 items-center justify-center rounded-xl transition-colors",
                       businessModel === "hibrida"
-                        ? "bg-primary text-white shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-surface-muted text-muted-foreground group-hover:text-foreground",
                     )}
                   >
                     <Store className="size-4.5" />
                   </span>
                   {businessModel === "hibrida" ? (
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                       <Check className="size-3 stroke-[3]" />
                     </span>
                   ) : (
@@ -586,14 +586,14 @@ function Configuracoes() {
                     className={cn(
                       "flex size-9 items-center justify-center rounded-xl transition-colors",
                       businessModel === "online"
-                        ? "bg-primary text-white shadow-sm"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-surface-muted text-muted-foreground group-hover:text-foreground",
                     )}
                   >
                     <Globe className="size-4.5" />
                   </span>
                   {businessModel === "online" ? (
-                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-white">
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                       <Check className="size-3 stroke-[3]" />
                     </span>
                   ) : (

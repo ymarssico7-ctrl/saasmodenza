@@ -188,12 +188,12 @@ function Relatorio() {
         <TabsContent value="dre" className="space-y-8 mt-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-muted-foreground shadow-2xs">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="size-2 rounded-full bg-success" />
               <span className="font-semibold text-foreground">DRE Gerencial</span> · Conciliação Operacional & Caixa
             </div>
             {prolaboreWithdrawals > 0 && (
               <span className="text-xs text-muted-foreground">
-                Pró-labore retirado: <strong className="text-foreground">{brl(prolaboreWithdrawals)}</strong>
+                Pró-labore retirado: <strong className="text-foreground font-semibold numeric">{brl(prolaboreWithdrawals)}</strong>
               </span>
             )}
           </div>
@@ -201,6 +201,7 @@ function Relatorio() {
           {/* DRE em 7 Camadas */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Receita Bruta"
               value={brl(grossRevenue)}
               tone="primary"
@@ -211,32 +212,38 @@ function Relatorio() {
               }
             />
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Estornos / Devoluções"
               value={refunds > 0 ? `− ${brl(refunds)}` : brl(0)}
               hint="Dedução da Receita Bruta"
             />
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Receita Líquida"
               value={brl(netRevenue)}
               hint={formatVariationHint(netRevenue, previousNetRevenue)}
             />
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Despesas da Loja (OPEX)"
               value={brl(opexExpenses)}
               hint="Aluguel, marketing, frete, luz"
             />
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Lucro Operacional"
               value={brl(operatingProfit)}
               tone={operatingProfit >= 0 ? "positive" : "negative"}
               hint={netRevenue > 0 ? `Margem ${pct((operatingProfit / netRevenue) * 100)}` : "—"}
             />
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Compras de Estoque"
               value={brl(stockPurchases)}
               hint={stockPurchases > 0 ? "Patrimônio novo na arara" : "Sem reposição no mês"}
             />
             <StatCard
+              className="p-4 sm:p-5 [&_p.numeric]:text-xl sm:[&_p.numeric]:text-2xl"
               label="Sobra no Caixa"
               value={brl(retainedProfit)}
               tone={retainedProfit >= 0 ? "positive" : "negative"}

@@ -2050,13 +2050,14 @@ function Caixa() {
                 ? `${((revenue - expenses) / revenue * 100).toFixed(1).replace(".", ",")}% de margem`
                 : "Este mês"}
             </span>
-            <span className={`font-medium ${
+            <span className={cn(
+              "font-medium",
               revenue - expenses > 0
-                ? "text-emerald-700 dark:text-emerald-400"
+                ? "text-success"
                 : revenue - expenses < 0
-                  ? "text-rose-600 dark:text-rose-400"
+                  ? "text-destructive"
                   : "text-muted-foreground"
-            }`}>
+            )}>
               {revenue - expenses > 0 ? "Lucro" : revenue - expenses < 0 ? "Prejuízo" : "Neutro"}
             </span>
           </div>
@@ -2092,25 +2093,27 @@ function Caixa() {
           <button
             type="button"
             onClick={() => handleKindChange("entrada")}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold transition-all cursor-pointer",
               isEntrada
                 ? "bg-card text-foreground shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+            )}
           >
-            <span className={`size-2 rounded-full ${isEntrada ? "bg-emerald-500 shadow-xs" : "bg-muted-foreground/40"}`} />
+            <span className={cn("size-2 rounded-full", isEntrada ? "bg-success shadow-xs" : "bg-muted-foreground/40")} />
             Entrada
           </button>
           <button
             type="button"
             onClick={() => handleKindChange("saida")}
-            className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold transition-all cursor-pointer",
               !isEntrada
                 ? "bg-card text-foreground shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+            )}
           >
-            <span className={`size-2 rounded-full ${!isEntrada ? "bg-rose-500 shadow-xs" : "bg-muted-foreground/40"}`} />
+            <span className={cn("size-2 rounded-full", !isEntrada ? "bg-destructive shadow-xs" : "bg-muted-foreground/40")} />
             Saída
           </button>
         </div>
@@ -3988,18 +3991,19 @@ function Caixa() {
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <span
-                className={`font-mono text-2xl font-black leading-none tracking-tight ${
+                className={cn(
+                  "numeric text-2xl font-bold leading-none tracking-tight",
                   netAmount > 0
                     ? isEntrada
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-rose-600 dark:text-rose-400"
-                    : "text-foreground/40"
-                }`}
+                      ? "text-success"
+                      : "text-destructive"
+                    : "text-foreground/40",
+                )}
               >
                 {brl(netAmount)}
               </span>
               {calculatedDiscount > 0 && (
-                <span className="text-xs text-muted-foreground/60 line-through font-mono">
+                <span className="text-xs text-muted-foreground/60 line-through numeric">
                   {brl(grossAmount)}
                 </span>
               )}
@@ -4014,11 +4018,12 @@ function Caixa() {
 
           {/* Botão de Envio à Direita */}
           <Button
-            className={`h-12 rounded-2xl px-8 text-sm font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto ${
+            className={cn(
+              "h-12 rounded-2xl px-8 text-sm font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto shadow-soft",
               isEntrada
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 disabled:bg-surface-muted disabled:border disabled:border-border/70 disabled:text-muted-foreground/50 disabled:shadow-none"
-                : "bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20 disabled:bg-surface-muted disabled:border disabled:border-border/70 disabled:text-muted-foreground/50 disabled:shadow-none"
-            }`}
+                ? "bg-success hover:bg-success/90 text-success-foreground disabled:bg-surface-muted disabled:border disabled:border-border/70 disabled:text-muted-foreground/50 disabled:shadow-none"
+                : "bg-destructive hover:bg-destructive/90 text-destructive-foreground disabled:bg-surface-muted disabled:border disabled:border-border/70 disabled:text-muted-foreground/50 disabled:shadow-none",
+            )}
             disabled={create.isPending || netAmount <= 0}
             onClick={handleTriggerSubmit}
           >
@@ -4525,9 +4530,9 @@ function Caixa() {
                     <span className="font-bold text-foreground">{group.label}</span>
                     <span className="text-[11px] text-muted-foreground">({group.txs.length} {group.txs.length === 1 ? "operação" : "operações"})</span>
                   </div>
-                  <div className="flex items-center gap-1.5 font-mono text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 numeric text-xs font-semibold">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans">Saldo do dia:</span>
-                    <span className={group.total >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                    <span className={group.total >= 0 ? "text-success font-bold" : "text-destructive font-bold"}>
                       {group.total >= 0 ? "+" : ""}{brl(group.total)}
                     </span>
                   </div>
@@ -4574,11 +4579,11 @@ function Caixa() {
                               </Badge>
                               {t.category === "venda_online" && (
                                 calcD1Date(t.occurred_on) > today ? (
-                                  <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.2 text-[10px] font-semibold text-amber-700">
+                                  <span className="rounded-full bg-warning-soft border border-warning/20 px-2 py-0.5 text-[10px] font-semibold text-warning-foreground">
                                     ⏳ D+1
                                   </span>
                                 ) : (
-                                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.2 text-[10px] font-semibold text-emerald-700">
+                                  <span className="rounded-full bg-success-soft border border-success/20 px-2 py-0.5 text-[10px] font-semibold text-success">
                                     🟢 Liquidado
                                   </span>
                                 )
@@ -4590,11 +4595,12 @@ function Caixa() {
                         <div className="flex shrink-0 items-center gap-3">
                           <div className="text-right">
                             <p
-                              className={`font-mono text-sm font-bold ${
+                              className={cn(
+                                "numeric text-sm font-bold",
                                 t.kind === "entrada"
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : "text-rose-600 dark:text-rose-400"
-                              }`}
+                                  ? "text-success"
+                                  : "text-destructive",
+                              )}
                             >
                               {t.kind === "entrada" ? "+" : "−"} {brl(Number(t.amount))}
                             </p>
@@ -4602,7 +4608,7 @@ function Caixa() {
                           <ConfirmDelete
                             onConfirm={() => remove.mutate(t)}
                             icon={
-                              <div className="flex size-11 items-center justify-center rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 shadow-2xs">
+                              <div className="flex size-11 items-center justify-center rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive shadow-2xs">
                                 <Trash2 className="size-5" />
                               </div>
                             }
@@ -4654,11 +4660,12 @@ function Caixa() {
 
                                       <div className="text-right shrink-0">
                                         <span
-                                          className={`font-mono text-xs font-bold ${
+                                          className={cn(
+                                            "numeric text-xs font-bold",
                                             isEntry
-                                              ? "text-emerald-600 dark:text-emerald-400"
-                                              : "text-rose-600 dark:text-rose-400"
-                                          }`}
+                                              ? "text-success"
+                                              : "text-destructive",
+                                          )}
                                         >
                                           {isEntry ? "+" : "−"} {brl(Number(t.amount))}
                                         </span>
@@ -4668,11 +4675,12 @@ function Caixa() {
                                     {/* Callout Visual de Ajuste no Estoque */}
                                     {linkedProd && (
                                       <div
-                                        className={`mt-2.5 flex items-center gap-2 rounded-xl p-2.5 text-xs ${
+                                        className={cn(
+                                          "mt-2.5 flex items-center gap-2 rounded-xl p-2.5 text-xs",
                                           isEntry || t.category === "perda_avaria"
-                                            ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                            : "border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                        }`}
+                                            ? "border border-success/25 bg-success-soft text-success"
+                                            : "border border-warning/25 bg-warning-soft text-warning-foreground",
+                                        )}
                                       >
                                         <RotateCcw className="size-4 shrink-0" />
                                         <p className="font-medium text-[11px] leading-tight">

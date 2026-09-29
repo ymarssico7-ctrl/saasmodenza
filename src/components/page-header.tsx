@@ -1,19 +1,25 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+export interface PageHeaderProps {
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}
+
 export function PageHeader({
   eyebrow,
   title,
   description,
   action,
+  actions,
   className,
-}: {
-  eyebrow?: ReactNode;
-  title: ReactNode;
-  description?: ReactNode;
-  action?: ReactNode;
-  className?: string;
-}) {
+}: PageHeaderProps) {
+  const actionContent = action ?? actions;
+
   return (
     <header
       className={cn(
@@ -21,10 +27,10 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="space-y-1 sm:space-y-1.5">
+      <div className="space-y-1 sm:space-y-1.5 min-w-0">
         {eyebrow ? (
           typeof eyebrow === "string" ? (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {eyebrow}
             </p>
           ) : (
@@ -46,7 +52,12 @@ export function PageHeader({
           )
         ) : null}
       </div>
-      {action ? <div className="flex shrink-0 items-center gap-2 pt-1 sm:pt-0">{action}</div> : null}
+      {actionContent ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 pt-1 sm:pt-0">
+          {actionContent}
+        </div>
+      ) : null}
     </header>
   );
 }
+

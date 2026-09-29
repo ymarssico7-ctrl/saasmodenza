@@ -98,48 +98,66 @@ function Metas() {
 
       <FinanceiroTabs />
 
-      <section className="panel bg-primary p-7 text-primary-foreground sm:p-9">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/60">
-          Meta de {monthLabel(month).toLowerCase()}
-        </p>
-        <p className="numeric mt-3 text-[2.6rem] font-semibold leading-none">
-          {goalAmount > 0 ? brl(goalAmount) : "Sem meta"}
-        </p>
+      <section className="panel p-6 sm:p-8 relative overflow-hidden bg-card border border-border shadow-soft">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Meta de {monthLabel(month).toLowerCase()}
+            </p>
+            <p className="numeric mt-2 text-3xl sm:text-[2.6rem] font-bold tracking-tight text-foreground leading-none">
+              {goalAmount > 0 ? brl(goalAmount) : "Sem meta"}
+            </p>
+          </div>
+          {goalAmount > 0 && (
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold",
+                missing === 0
+                  ? "bg-success-soft text-success border border-success/20"
+                  : "bg-primary-soft text-primary border border-primary/20",
+              )}>
+                {missing === 0 ? "🎉 Meta batida!" : `${pct(progress)} concluído`}
+              </span>
+            </div>
+          )}
+        </div>
+
         {goalAmount > 0 ? (
           <>
-            <Progress value={progress} className="mt-7 h-2.5 bg-primary-foreground/20" />
-            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+            <Progress value={progress} className="mt-6 h-2.5 bg-secondary" />
+            <div className="mt-5 grid gap-4 text-sm sm:grid-cols-3 pt-4 border-t border-border/60">
               <div>
-                <p className="text-primary-foreground/80">
-                  Faturamento Líquido: <span className="numeric font-semibold">{brl(revenue)}</span>
-                </p>
+                <p className="text-xs text-muted-foreground">Faturamento Líquido</p>
+                <p className="numeric text-lg font-bold text-foreground mt-0.5">{brl(revenue)}</p>
                 {onlineSales > 0 ? (
-                  <p className="text-[11px] text-primary-foreground/70 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     ({brl(Math.max(0, revenue - onlineSales))} balcão · {brl(onlineSales)} vitrine)
                   </p>
                 ) : refunds > 0 ? (
-                  <p className="text-[11px] text-primary-foreground/70 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     ({brl(grossSales)} brutos − {brl(refunds)} estornos)
                   </p>
                 ) : null}
               </div>
-              <p className="text-primary-foreground/80">
-                Falta: <span className="numeric font-semibold">{brl(missing)}</span>
-              </p>
-              <p className="text-primary-foreground/80">
-                Projeção: <span className="numeric font-semibold">{brl(projection)}</span>
-              </p>
+              <div>
+                <p className="text-xs text-muted-foreground">Falta para a meta</p>
+                <p className="numeric text-lg font-bold text-foreground mt-0.5">{brl(missing)}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {missing > 0 ? `${brl(perDay)} / dia restante` : "100% atingido"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Projeção de fechamento</p>
+                <p className="numeric text-lg font-bold text-foreground mt-0.5">{brl(projection)}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Com base no ritmo diário atual
+                </p>
+              </div>
             </div>
-            <p className="mt-5 text-xs text-primary-foreground/60">
-              {missing === 0
-                ? `🎉 Meta batida! Você faturou ${pct((revenue / goalAmount) * 100)} do planejado.`
-                : `${pct(progress)} concluído · precisa de ${brl(perDay)} por dia para bater a meta`
-              }
-            </p>
           </>
         ) : (
-          <p className="mt-4 text-sm text-primary-foreground/70">
-            Defina abaixo quanto você quer faturar neste mês.
+          <p className="mt-4 text-sm text-muted-foreground">
+            Defina abaixo quanto você quer faturar neste mês para ativar o acompanhamento de ritmo.
           </p>
         )}
       </section>

@@ -662,8 +662,8 @@ function ClientesPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-foreground truncate">{c.nome}</p>
                           {c.vip && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 border border-warning/30 px-2 py-0.5 text-[10px] font-bold text-warning-foreground">
-                              <Star className="size-2.5 fill-warning text-warning" /> VIP
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                              <Star className="size-2.5 fill-amber-500 text-amber-500" /> VIP
                             </span>
                           )}
                           {c.saldoDevedor > 0 && (
@@ -676,7 +676,7 @@ function ClientesPage() {
                               className="inline-flex items-center gap-1 rounded-full bg-destructive/10 border border-destructive/20 px-2 py-0.5 text-[10px] font-semibold text-destructive hover:bg-destructive/20 cursor-pointer"
                               title="Ver fiados deste cliente"
                             >
-                              <AlertCircle className="size-2.5" /> Deve {brl(c.saldoDevedor)} →
+                              <AlertCircle className="size-2.5" /> Deve <span className="numeric font-bold">{brl(c.saldoDevedor)}</span> →
                             </button>
                           )}
                         </div>
@@ -687,14 +687,14 @@ function ClientesPage() {
 
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           <span>
-                            <strong className="text-foreground font-semibold">
+                            <strong className="text-foreground font-semibold numeric">
                               {brl(c.totalGasto)}
                             </strong>{" "}
                             comprados
                           </span>
                           <span>·</span>
                           <span>
-                            <strong className="text-foreground font-semibold">
+                            <strong className="text-foreground font-semibold numeric">
                               {c.totalPedidos}
                             </strong>{" "}
                             {c.totalPedidos === 1 ? "pedido" : "pedidos"}
@@ -728,7 +728,7 @@ function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => abrirWhatsAppCliente(c.telefone, c.nome)}
-                          className="h-9 rounded-full gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                          className="h-9 rounded-full gap-1.5 text-xs font-semibold text-success hover:bg-success-soft hover:text-success border-border transition-colors cursor-pointer"
                         >
                           <MessageCircle className="size-3.5" /> WhatsApp
                         </Button>

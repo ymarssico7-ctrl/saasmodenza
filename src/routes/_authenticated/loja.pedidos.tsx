@@ -641,13 +641,14 @@ function PedidosPage() {
                             </p>
                             {currentStock !== null && (
                               <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                className={cn(
+                                  "text-[10px] px-2.5 py-0.5 rounded-full font-medium border",
                                   currentStock >= item.qtd
-                                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                    ? "bg-success-soft text-success border-success/20"
                                     : currentStock > 0
-                                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 font-semibold"
-                                    : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 font-semibold"
-                                }`}
+                                    ? "bg-warning-soft text-warning-foreground border-warning/20 font-semibold"
+                                    : "bg-danger-soft text-danger border-destructive/20 font-semibold"
+                                )}
                               >
                                 {currentStock >= item.qtd
                                   ? `✓ ${currentStock} un. em estoque`

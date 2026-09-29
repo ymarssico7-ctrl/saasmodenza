@@ -85,15 +85,15 @@ function categoryColor(value: string | null): string {
     case "compra_estoque":
       return "bg-primary/10 text-primary border-primary/20";
     case "calcado_fornecedor":
-      return "bg-amber-500/10 text-amber-600 border-amber-400/20";
+      return "bg-warning-soft text-warning-foreground border-warning/20";
     case "acessorio_fornecedor":
-      return "bg-violet-500/10 text-violet-600 border-violet-400/20";
+      return "bg-accent text-accent-foreground border-accent";
     case "embalagem":
-      return "bg-teal-500/10 text-teal-600 border-teal-400/20";
+      return "bg-secondary text-secondary-foreground border-border";
     case "tecido_aviamento":
-      return "bg-rose-500/10 text-rose-600 border-rose-400/20";
+      return "bg-surface-muted text-foreground border-border";
     case "frete":
-      return "bg-sky-500/10 text-sky-600 border-sky-400/20";
+      return "bg-primary/10 text-primary border-primary/20";
     default:
       return "bg-surface-muted text-muted-foreground border-border";
   }
@@ -405,14 +405,14 @@ function Fornecedores() {
 
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <span>
-                        <strong className="text-foreground font-semibold">
+                        <strong className="text-foreground font-semibold numeric">
                           {brl(f.totalGasto)}
                         </strong>{" "}
                         gasto total
                       </span>
                       <span>·</span>
                       <span>
-                        <strong className="text-foreground font-semibold">
+                        <strong className="text-foreground font-semibold numeric">
                           {f.countTxs}
                         </strong>{" "}
                         {f.countTxs === 1 ? "transação" : "transações"}
@@ -429,7 +429,7 @@ function Fornecedores() {
                       {f.gastoMes > 0 && (
                         <>
                           <span>·</span>
-                          <span className="text-amber-600 font-semibold">
+                          <span className="text-warning-foreground font-semibold numeric">
                             {brl(f.gastoMes)} este mês
                           </span>
                         </>

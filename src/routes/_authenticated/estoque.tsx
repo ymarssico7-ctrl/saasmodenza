@@ -385,7 +385,7 @@ function Estoque() {
       {/* ── Cockpit de Estoque — Padrão Premium Unificado ───────────────────── */}
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-3">
         {/* Card 1: Peças em estoque */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        <div className="panel p-5 sm:p-6 flex flex-col gap-3 transition-all duration-300 hover:shadow-lift">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Peças em estoque</span>
             <Boxes className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
@@ -399,7 +399,7 @@ function Estoque() {
         </div>
 
         {/* Card 2: Valor investido */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        <div className="panel p-5 sm:p-6 flex flex-col gap-3 transition-all duration-300 hover:shadow-lift">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Valor investido</span>
             <Tag className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
@@ -413,7 +413,7 @@ function Estoque() {
         </div>
 
         {/* Card 3: Potencial de venda */}
-        <div className="p-5 sm:p-6 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col gap-3 hover:border-border/80 transition-colors duration-200">
+        <div className="panel p-5 sm:p-6 flex flex-col gap-3 transition-all duration-300 hover:shadow-lift">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Potencial de venda</span>
             <TrendingUp className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
@@ -858,14 +858,14 @@ function Estoque() {
 
         {items.length === 0 ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 via-card to-card p-5 sm:p-6 shadow-soft">
+            <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5 sm:p-6 shadow-soft">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-border/60">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex size-7 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                  <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Sparkles className="size-4" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
                       Modo Playground · Peça de Demonstração
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -875,7 +875,7 @@ function Estoque() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="text-[11px] rounded-full border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                  className="text-[11px] rounded-full border-primary/30 bg-primary/10 text-primary"
                 >
                   Não afeta seu caixa real
                 </Badge>
@@ -916,7 +916,7 @@ function Estoque() {
                     <p className="numeric text-base font-semibold text-foreground">R$ 179,90</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       custo R$ 65,00 ·{" "}
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="font-semibold text-success">
                         lucro R$ 114,90 (64%)
                       </span>
                     </p>
