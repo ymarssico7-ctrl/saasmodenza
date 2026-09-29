@@ -103,7 +103,7 @@ function AuthPage() {
         <div className="absolute -right-24 -top-24 size-[420px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <div className="absolute -bottom-32 -left-16 size-[380px] rounded-full bg-primary-foreground/10 blur-3xl" />
         <Link to="/" className="relative">
-          <span className="font-display text-lg font-semibold tracking-tight">Vestui</span>
+          <Logo variant="light" textClassName="text-primary-foreground text-base" />
         </Link>
         <div className="relative max-w-md">
           <h2 className="font-display text-[2.6rem] font-semibold leading-[1.05]">
@@ -122,7 +122,7 @@ function AuthPage() {
       <main className="flex items-center justify-center px-5 py-14 sm:px-10">
         <div className="w-full max-w-[400px]">
           <Link to="/" className="lg:hidden">
-            <Logo />
+            <Logo variant="light" />
           </Link>
 
           {sent ? (

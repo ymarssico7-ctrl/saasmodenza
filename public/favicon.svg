@@ -1,4 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="18" fill="#3A3AF0"/>
-  <text x="32" y="42" text-anchor="middle" fill="#FFFFFF" font-family="'Sora', system-ui, -apple-system, sans-serif" font-weight="700" font-size="38" letter-spacing="-1">V</text>
+  <!-- Squircle background — Electric Cobalt matching --primary -->
+  <rect width="64" height="64" rx="18" fill="#1A3FD4"/>
+  <!-- V mark — pétala esquerda (azul cobalto claro) -->
+  <path
+    d="M14 14 C14 14 20 14 26 32 C29 40 31 46 32 48 C33 46 35 40 38 32 C44 14 50 14 50 14 C50 14 46 14 42 24 C39 32 36 40 32 52 C28 40 25 32 22 24 C18 14 14 14 14 14 Z"
+    fill="#4A90E8"
+    opacity="0.92"
+  />
+  <!-- V mark — pétala direita (navy escuro para contraste) -->
+  <path
+    d="M32 48 C33 46 35 40 38 32 C44 14 50 14 50 14 C50 14 46 14 42 24 C39 32 36 40 32 52 C32 51 32 49.5 32 48 Z"
+    fill="#051035"
+    opacity="0.85"
+  />
 </svg>
