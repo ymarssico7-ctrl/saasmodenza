@@ -104,7 +104,7 @@ export function PainelRadarPedidosOnline({
       )}
     >
       <div>
-        {/* Cabeçalho */}
+        {/* Cabeçalho — Idêntico à Imagem 1 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
@@ -117,14 +117,24 @@ export function PainelRadarPedidosOnline({
             >
               <ShoppingBag className="size-3.5" />
             </div>
-            <h2
-              className={cn(
-                "text-sm font-semibold",
-                temPendentes ? "text-white" : "text-foreground",
-              )}
-            >
-              Pedidos da Vitrine
-            </h2>
+            <div>
+              <h2
+                className={cn(
+                  "text-sm font-semibold",
+                  temPendentes ? "text-white" : "text-foreground",
+                )}
+              >
+                Radar de Pedidos Online
+              </h2>
+              <p
+                className={cn(
+                  "text-[11px]",
+                  temPendentes ? "text-slate-400" : "text-muted-foreground",
+                )}
+              >
+                Expedição e separação da vitrine
+              </p>
+            </div>
           </div>
 
           {temPendentes ? (
@@ -133,12 +143,12 @@ export function PainelRadarPedidosOnline({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
               </span>
-              {totalPedidosNovos} a despachar
+              {totalPedidosNovos} {totalPedidosNovos === 1 ? "a despachar" : "a despachar"}
             </span>
           ) : (
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              Tudo em dia
+              Tudo despachado
             </span>
           )}
         </div>
@@ -205,54 +215,46 @@ export function PainelRadarPedidosOnline({
             </div>
           </div>
         ) : (
-          /* Conteúdo: 2) Estado vazio — padrão Apple/Shopify: zero caixas, tipografia pura */
-          <div className="mt-5 space-y-4">
-            {/* Métrica direta e limpa */}
-            <div>
-              <p className="numeric text-[28px] font-bold leading-none tracking-tight text-foreground">
-                0
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                pedidos aguardando separação
-              </p>
-            </div>
-
-            {/* Link da vitrine em linha única — sem caixas, discreto e funcional */}
-            <div className="flex items-center gap-0 text-[11px] text-muted-foreground/70">
-              <span className="truncate font-mono">
+          /* Conteúdo: 2) Quando NÃO há pedidos pendentes — EXATAMENTE IDÊNTICO À IMAGEM 1 */
+          <div className="mt-3.5 space-y-2">
+            {/* Box do Link da Vitrine com Botão Copiar */}
+            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
+              <span className="truncate text-muted-foreground text-[11px] font-mono">
                 {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
               </span>
-              <span className="mx-1.5 shrink-0 select-none">·</span>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="shrink-0 font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                Copiar
-              </button>
-              {vitrineUrl && (
-                <>
-                  <span className="mx-1.5 shrink-0 select-none">·</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Copiar link da vitrine"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
+                >
+                  <Copy className="size-3" />
+                  <span>Copiar</span>
+                </button>
+                {vitrineUrl && (
                   <a
                     href={vitrineUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 font-semibold text-primary hover:underline transition-colors"
+                    title="Abrir vitrine"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline transition-colors cursor-pointer px-1.5 py-0.5"
                   >
-                    Abrir ↗
+                    <span>Abrir</span>
+                    <ExternalLink className="size-3" />
                   </a>
-                </>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Rodapé fluido */}
+      {/* Link de Fechamento Integrado e Fluido — Idêntico à Imagem 1 */}
       <Link
         to="/loja/pedidos"
         className={cn(
-          "mt-4 pt-3 border-t flex items-center justify-center gap-1 text-xs font-medium transition-colors",
+          "mt-3 pt-2.5 border-t flex items-center justify-center gap-1 text-xs font-medium transition-colors",
           temPendentes
             ? "border-slate-800 text-slate-300 hover:text-white"
             : "border-border/50 text-muted-foreground hover:text-foreground",

@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   Area,
   AreaChart,
@@ -76,7 +75,28 @@ export function PainelGraficoVendas({
   ocultarSaldos,
   mascaraSaldo,
 }: PainelGraficoVendasProps) {
-  const [periodo, setPeriodo] = useState<PeriodoGrafico>("7d");
+  const [periodo, setPeriodo] = useState<PeriodoGrafico>(() => {
+    const hoje = new Date();
+    const seteDiasAtras = new Date(hoje);
+    seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+    const seteDiasStr = seteDiasAtras.toISOString().slice(0, 10);
+
+    const temVendas7d =
+      transactions.some((t) => t.kind === "entrada" && (t.occurred_on || "").slice(0, 10) >= seteDiasStr) ||
+      orders.some((o) => ((o as { created_at?: string; criadoEm?: string }).created_at || (o as { created_at?: string; criadoEm?: string }).criadoEm || "").slice(0, 10) >= seteDiasStr);
+
+    if (temVendas7d) return "7d";
+
+    const trintaDiasAtras = new Date(hoje);
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const trintaDiasStr = trintaDiasAtras.toISOString().slice(0, 10);
+
+    const temVendas30d =
+      transactions.some((t) => t.kind === "entrada" && (t.occurred_on || "").slice(0, 10) >= trintaDiasStr) ||
+      orders.some((o) => ((o as { created_at?: string; criadoEm?: string }).created_at || (o as { created_at?: string; criadoEm?: string }).criadoEm || "").slice(0, 10) >= trintaDiasStr);
+
+    return temVendas30d ? "30d" : "7d";
+  });
   const [dataInicioCustom, setDataInicioCustom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 14);
@@ -202,7 +222,7 @@ export function PainelGraficoVendas({
           <div className="flex items-center gap-2">
             <TrendingUp className="size-4 text-muted-foreground/50 shrink-0" />
             <h2 className="text-sm font-semibold text-foreground">
-              Ritmo de vendas
+              Ritmo de Vendas
             </h2>
           </div>
           <div className="mt-1 flex items-baseline gap-2 pl-6">
@@ -408,21 +428,6 @@ export function PainelGraficoVendas({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-
-      {/* Nota sutil caso ainda não haja vendas no período */}
-      {totalPeriodo === 0 && (
-        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5 text-center px-4">
-          <p className="text-[11px] text-muted-foreground/75">
-            Novas vendas confirmadas entrarão na curva automaticamente.
-          </p>
-          <Link
-            to="/caixa"
-            className="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-0.5"
-          >
-            Abrir Caixa &amp; PDV ➔
-          </Link>
-        </div>
-      )}
     </section>
   );
 }
