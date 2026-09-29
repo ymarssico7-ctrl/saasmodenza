@@ -1007,7 +1007,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) : (
             <div className="flex flex-col flex-1 min-h-0">
               {/* Header com Logo e Botão de Recolher (Padrão Shopify) */}
-              <div className="flex items-center justify-between px-1 pt-1 pb-3 shrink-0">
+              <div className="flex items-center justify-between px-2 pt-1.5 pb-3 shrink-0">
                 <Link to="/painel" className="flex items-center">
                   <Logo />
                 </Link>
