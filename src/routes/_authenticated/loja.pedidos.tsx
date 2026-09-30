@@ -33,6 +33,7 @@ import {
   ShoppingBag,
   Globe,
   AlertTriangle,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery } from "@/lib/db";
@@ -42,6 +43,13 @@ import { PageHeader } from "@/components/loja/page-header";
 import { StatusBadge, Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -745,262 +753,128 @@ function PedidosPage() {
 
   return (
     <div className="space-y-4">
-      {/* ── PageHeader Padronizado Shopify ───────────────────────────────────── */}
+      {/* ── PageHeader Calmo (Apple / Linear Standard) ─────────────────────────── */}
       <PageHeader
-        eyebrow="Vendas da Loja"
-        title="Pedidos & Vendas Online"
-        description="Acompanhe pedidos recebidos na vitrine, aprove para baixar o estoque e notifique clientes pelo WhatsApp com 1 clique."
+        eyebrow="Vendas Online"
+        title="Pedidos"
+        description="Acompanhe vendas recebidas na vitrine, aprove para baixar o estoque e notifique clientes."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSincronizar}
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary transition-all"
-            >
-              <RefreshCw className={cn("mr-2 h-3.5 w-3.5", sincronizando && "animate-spin text-primary")} />
-              Sincronizar
-            </Button>
-
+          <div className="flex items-center gap-2">
             <Button
               asChild
               variant="outline"
               size="sm"
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary"
-            >
-              <Link to="/loja/produtos">
-                <Store className="mr-2 h-3.5 w-3.5 text-primary" /> Catálogo
-              </Link>
-            </Button>
-
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary"
+              className="h-9 sm:h-9.5 rounded-full border-border/80 bg-card px-3.5 text-xs font-medium hover:bg-secondary text-foreground shadow-2xs transition-all"
             >
               <a href={vitrineUrl} target="_blank" rel="noreferrer">
-                <Globe className="mr-2 h-3.5 w-3.5 text-emerald-500" /> Ver Vitrine
-                <ExternalLink className="ml-1 h-3 w-3 opacity-50" />
+                <Globe className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+                <span>Ver Vitrine</span>
+                <ExternalLink className="ml-1 h-3 w-3 opacity-40" />
               </a>
             </Button>
 
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary"
-            >
-              <Link to="/loja/configuracao">
-                <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Configurações
-              </Link>
-            </Button>
-
-            <Button
-              onClick={gerarPedidoTeste}
-              size="sm"
-              className="h-10 rounded-full bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 text-xs font-semibold shadow-2xs transition-all"
-            >
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Simular Pedido
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 sm:h-9.5 w-9 sm:w-9.5 rounded-full border-border/80 bg-card p-0 text-xs font-semibold hover:bg-secondary text-foreground shadow-2xs cursor-pointer"
+                  title="Mais opções e ações"
+                >
+                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  <span className="sr-only">Mais opções</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 rounded-2xl p-1.5 shadow-lifted">
+                <DropdownMenuItem
+                  onClick={handleSincronizar}
+                  className="cursor-pointer rounded-xl text-xs py-2"
+                >
+                  <RefreshCw className={cn("mr-2 h-3.5 w-3.5", sincronizando && "animate-spin text-primary")} />
+                  <span>Sincronizar pedidos</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer rounded-xl text-xs py-2">
+                  <Link to="/loja/produtos">
+                    <Store className="mr-2 h-3.5 w-3.5 text-primary" />
+                    <span>Gerenciar catálogo</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer rounded-xl text-xs py-2">
+                  <Link to="/loja/configuracao">
+                    <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Configurações da loja</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuItem
+                  onClick={gerarPedidoTeste}
+                  className="cursor-pointer rounded-xl text-xs py-2 text-primary focus:text-primary font-medium"
+                >
+                  <Sparkles className="mr-2 h-3.5 w-3.5" />
+                  <span>Simular pedido de teste</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
 
-      {/* ── Cockpit de Triagem Operacional (Mini-Funil Compacto e Acionável) ───── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Card 1: Aguardando Confirmação */}
-        <button
-          type="button"
-          onClick={() => setFiltroStatus(filtroStatus === "novo" ? "todos" : "novo")}
-          className={cn(
-            "p-3.5 px-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer group",
-            filtroStatus === "novo"
-              ? "border-amber-500/80 bg-amber-500/10 shadow-sm ring-1 ring-amber-500/50"
-              : novosCount > 0
-              ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50 hover:bg-amber-500/10"
-              : "border-border bg-card hover:bg-secondary/40",
-          )}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-                novosCount > 0
-                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                  : "bg-secondary text-muted-foreground",
-              )}
-            >
-              <Clock className={cn("size-4", novosCount > 0 && "animate-pulse")} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">Aguardando Confirmação</p>
-              <p className="text-[11px] text-muted-foreground truncate">Aprovar p/ baixar estoque</p>
-            </div>
-          </div>
-          <div className="shrink-0 pl-2">
-            <span
-              className={cn(
-                "num-display text-sm font-bold px-2 py-0.5 rounded-lg",
-                novosCount > 0
-                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                  : "text-muted-foreground",
-              )}
-            >
-              {novosCount}
-            </span>
-          </div>
-        </button>
-
-        {/* Card 2: Em Preparação */}
-        <button
-          type="button"
-          onClick={() =>
-            setFiltroStatus(
-              filtroStatus === "confirmado" || filtroStatus === "em_separacao"
-                ? "todos"
-                : "em_separacao",
-            )
-          }
-          className={cn(
-            "p-3.5 px-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer group",
-            filtroStatus === "em_separacao" || filtroStatus === "confirmado"
-              ? "border-primary/80 bg-primary/10 shadow-sm ring-1 ring-primary/50"
-              : separacaoCount > 0
-              ? "border-primary/30 bg-primary/5 hover:border-primary/50 hover:bg-primary/10"
-              : "border-border bg-card hover:bg-secondary/40",
-          )}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-                separacaoCount > 0
-                  ? "bg-primary/20 text-primary"
-                  : "bg-secondary text-muted-foreground",
-              )}
-            >
-              <Layers className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">Em Preparação</p>
-              <p className="text-[11px] text-muted-foreground truncate">Separar e embalar peças</p>
-            </div>
-          </div>
-          <div className="shrink-0 pl-2">
-            <span
-              className={cn(
-                "num-display text-sm font-bold px-2 py-0.5 rounded-lg",
-                separacaoCount > 0
-                  ? "bg-primary/20 text-primary"
-                  : "text-muted-foreground",
-              )}
-            >
-              {separacaoCount}
-            </span>
-          </div>
-        </button>
-
-        {/* Card 3: Em Transporte */}
-        <button
-          type="button"
-          onClick={() => setFiltroStatus(filtroStatus === "enviado" ? "todos" : "enviado")}
-          className={cn(
-            "p-3.5 px-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer group",
-            filtroStatus === "enviado"
-              ? "border-sky-500/80 bg-sky-500/10 shadow-sm ring-1 ring-sky-500/50"
-              : enviadosCount > 0
-              ? "border-sky-500/30 bg-sky-500/5 hover:border-sky-500/50 hover:bg-sky-500/10"
-              : "border-border bg-card hover:bg-secondary/40",
-          )}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-                enviadosCount > 0
-                  ? "bg-sky-500/20 text-sky-700 dark:text-sky-300"
-                  : "bg-secondary text-muted-foreground",
-              )}
-            >
-              <Truck className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">Em Transporte</p>
-              <p className="text-[11px] text-muted-foreground truncate">A caminho da cliente</p>
-            </div>
-          </div>
-          <div className="shrink-0 pl-2">
-            <span
-              className={cn(
-                "num-display text-sm font-bold px-2 py-0.5 rounded-lg",
-                enviadosCount > 0
-                  ? "bg-sky-500/20 text-sky-700 dark:text-sky-300"
-                  : "text-muted-foreground",
-              )}
-            >
-              {enviadosCount}
-            </span>
-          </div>
-        </button>
-      </div>
-
-      {/* ── Container de Gestão: Abas + Barra de Busca + Tabela de Pedidos ───── */}
-      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-        {/* Abas Superiores Shopify Style */}
-        <div className="flex items-center gap-1.5 overflow-x-auto p-2.5 sm:p-3 border-b border-border bg-secondary/20">
+      {/* ── Container de Gestão Calmo: Abas + Busca + Tabela de Pedidos ───────── */}
+      <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
+        {/* Abas Superiores Segmentadas (Apple / Linear Standard) */}
+        <div className="flex items-center gap-1 overflow-x-auto p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
           {ABAS_STATUS.map((tab, idx) => {
             const active = filtroStatus === tab.valor;
             const count =
               tab.valor === "todos"
                 ? lista.length
                 : lista.filter((p) => p.status === tab.valor).length;
-            const isSeparation = idx === 5; // right before "Entregues"
+            const isSeparation = idx === 5; // antes de "Entregues"
 
             return (
               <div key={tab.valor} className="flex items-center shrink-0">
                 {isSeparation && (
-                  <div className="h-5 w-px bg-border/80 mx-1.5 hidden sm:block shrink-0" />
+                  <div className="h-4 w-px bg-border/60 mx-1.5 hidden sm:block shrink-0" />
                 )}
                 <button
                   onClick={() => setFiltroStatus(tab.valor)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap",
+                    "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap",
                     active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                      ? "bg-background text-foreground font-semibold shadow-xs border border-border/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                   )}
                 >
                   <span>{tab.label}</span>
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded-full text-[10.5px] font-bold transition-colors",
-                      active
-                        ? "bg-white/20 text-white"
-                        : count > 0 && tab.valor === "novo"
-                        ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/30"
-                        : count > 0
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "bg-secondary text-muted-foreground/70",
-                    )}
-                  >
-                    {count}
-                  </span>
+                  {count > 0 && (
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.2 rounded-full text-[10.5px] font-bold transition-colors",
+                        tab.valor === "novo"
+                          ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                          : active
+                          ? "bg-secondary text-foreground font-semibold"
+                          : "bg-secondary text-muted-foreground",
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
                 </button>
               </div>
             );
           })}
         </div>
 
-        {/* Barra de Filtros Integrada (Alinhamento Rígido em Linha Única) */}
-        <div className="p-3.5 sm:p-4 border-b border-border/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-card">
+        {/* Barra de Filtros Integrada (Alinhamento em Linha Única) */}
+        <div className="p-3 sm:p-3.5 border-b border-border/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-card">
           <div className="relative flex-1 min-w-0">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
             <Input
-              placeholder="Buscar por pedido (#1042), cliente, telefone ou produto..."
+              placeholder="Buscar por cliente, pedido (#1042) ou produto..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="h-10 pl-9 pr-8 text-xs rounded-xl bg-background border-border w-full"
+              className="h-9 sm:h-9.5 pl-9 pr-8 text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border focus:bg-background transition-all w-full"
             />
             {busca && (
               <button
@@ -1016,10 +890,10 @@ function PedidosPage() {
           <div className="flex items-center gap-2 shrink-0">
             {/* Filtro de Pagamento */}
             <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
-              <SelectTrigger className="h-10 w-[155px] text-xs rounded-xl bg-background border-border shrink-0">
+              <SelectTrigger className="h-9 sm:h-9.5 w-[145px] text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
                 <SelectValue placeholder="Pagamento" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl shadow-lifted">
                 <SelectItem value="todos">Todos pagamentos</SelectItem>
                 <SelectItem value="pix">Pix</SelectItem>
                 <SelectItem value="cartao">Cartão de crédito</SelectItem>
@@ -1027,7 +901,7 @@ function PedidosPage() {
               </SelectContent>
             </Select>
 
-            {/* Filtro de Período Shopify Style */}
+            {/* Filtro de Período */}
             <Select
               value={filtroPeriodo}
               onValueChange={(val: "todos" | "hoje" | "7dias" | "mes" | "data_custom") => {
@@ -1035,11 +909,11 @@ function PedidosPage() {
                 if (val !== "data_custom") setFiltroData("");
               }}
             >
-              <SelectTrigger className="h-10 w-[140px] text-xs rounded-xl bg-background border-border shrink-0">
-                <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground shrink-0" />
+              <SelectTrigger className="h-9 sm:h-9.5 w-[135px] text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
+                <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground/60 shrink-0" />
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl shadow-lifted">
                 <SelectItem value="todos">Todo o período</SelectItem>
                 <SelectItem value="hoje">Hoje</SelectItem>
                 <SelectItem value="7dias">Últimos 7 dias</SelectItem>
@@ -1048,13 +922,13 @@ function PedidosPage() {
               </SelectContent>
             </Select>
 
-            {/* Input de Data Personalizada (visível somente se selecionar data específica) */}
+            {/* Input de Data Personalizada */}
             {filtroPeriodo === "data_custom" && (
               <Input
                 type="date"
                 value={filtroData}
                 onChange={(e) => setFiltroData(e.target.value)}
-                className="h-10 w-auto text-xs rounded-xl bg-background border-border shrink-0 animate-in fade-in zoom-in-95 duration-150"
+                className="h-9 sm:h-9.5 w-auto text-xs rounded-xl bg-secondary/30 border-border/70 shrink-0 animate-in fade-in zoom-in-95 duration-150"
                 title="Escolha a data do pedido"
               />
             )}
@@ -1074,7 +948,7 @@ function PedidosPage() {
                   setFiltroData("");
                   setFiltroStatus("todos");
                 }}
-                className="h-10 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0"
+                className="h-9 sm:h-9.5 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0"
               >
                 <X className="size-3.5 mr-1" /> Limpar
               </Button>
@@ -1082,71 +956,53 @@ function PedidosPage() {
           </div>
         </div>
 
-        {/* ── Tabela de Pedidos / Empty State ───────────────────────────────── */}
+        {/* ── Tabela de Pedidos / Empty State Zen ───────────────────────────── */}
         {visiveis.length === 0 ? (
-          <div className="py-8 px-4 sm:py-10 sm:px-6 text-center">
+          <div className="py-12 px-4 sm:py-16 sm:px-6 text-center">
             {lista.length === 0 ? (
-              <div className="max-w-md mx-auto space-y-4">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                  <PackageSearch className="size-6" />
+              <div className="max-w-sm mx-auto space-y-4">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground/80">
+                  <PackageSearch className="size-6 stroke-[1.5]" />
                 </div>
-                <div className="space-y-1.5">
-                  <h3 className="text-base font-semibold text-foreground">Sua central de pedidos está pronta</h3>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-foreground">Tudo em dia por aqui</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Quando as clientes finalizarem compras na sua vitrine online ou WhatsApp, os pedidos aparecerão aqui
-                    automaticamente para você aprovar e despachar.
+                    Sua vitrine está ativa. Novos pedidos feitos no site ou WhatsApp aparecerão aqui para você despachar.
                   </p>
                 </div>
 
-                {/* 3 Cartões de Ação para Ativação */}
-                <div className="grid gap-2.5 pt-2 text-left sm:grid-cols-3">
-                  <button
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       navigator.clipboard.writeText(vitrineUrl);
                       toast.success("Link da vitrine copiado!", {
                         description: "Cole no seu Instagram ou envie pelo WhatsApp.",
                       });
                     }}
-                    className="p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-xs group cursor-pointer"
+                    className="h-9 rounded-full border-border/80 bg-card text-xs font-medium hover:bg-secondary text-foreground shadow-2xs"
                   >
-                    <div className="flex items-center justify-between text-primary font-semibold mb-1">
-                      <span>Copiar link</span>
-                      <Copy className="size-3.5 opacity-60 group-hover:opacity-100" />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-snug">Divulgue sua vitrine nas redes sociais.</p>
-                  </button>
-
-                  <Link
-                    to="/loja/produtos"
-                    className="p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-xs group cursor-pointer block"
-                  >
-                    <div className="flex items-center justify-between text-primary font-semibold mb-1">
-                      <span>Catálogo</span>
-                      <Store className="size-3.5 opacity-60 group-hover:opacity-100" />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-snug">Verifique se as peças têm fotos e preços.</p>
-                  </Link>
-
-                  <button
+                    <Copy className="mr-1.5 size-3.5 opacity-60" /> Copiar link da vitrine
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={gerarPedidoTeste}
-                    className="p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-xs group cursor-pointer text-left"
+                    className="h-9 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground"
                   >
-                    <div className="flex items-center justify-between text-primary font-semibold mb-1">
-                      <span>Simular pedido</span>
-                      <Sparkles className="size-3.5 opacity-60 group-hover:opacity-100 text-primary" />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-snug">Crie 1 pedido de teste para ver o fluxo.</p>
-                  </button>
+                    <Sparkles className="mr-1.5 size-3.5 text-primary" /> Simular pedido
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="max-w-sm mx-auto space-y-3">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
-                  <Filter className="size-6" />
+                <div className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground/80">
+                  <Filter className="size-5 stroke-[1.5]" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">Nenhum pedido encontrado com estes filtros</h3>
+                <h3 className="text-sm font-semibold text-foreground">Nenhum pedido encontrado</h3>
                 <p className="text-xs text-muted-foreground">
-                  Tente alterar a busca textual ou selecionar outra aba de status.
+                  Tente alterar os filtros selecionados ou a busca textual.
                 </p>
                 <Button
                   variant="outline"
@@ -1158,7 +1014,7 @@ function PedidosPage() {
                     setFiltroData("");
                     setFiltroStatus("todos");
                   }}
-                  className="rounded-full text-xs"
+                  className="rounded-full text-xs h-8"
                 >
                   Limpar todos os filtros
                 </Button>
