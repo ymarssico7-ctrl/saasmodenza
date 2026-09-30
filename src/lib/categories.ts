@@ -66,7 +66,7 @@ export function parseStoreCategories(
 ): StoreCategory[] {
   // 1. Tenta carregar do metadata da loja (Supabase)
   if (storeMetadata && typeof storeMetadata === "object") {
-    const cats = (storeMetadata as Record<string, unknown>).categories;
+    const cats = (storeMetadata as Record<string, unknown>)["categories"];
     if (Array.isArray(cats) && cats.length > 0) {
       return cats as StoreCategory[];
     }

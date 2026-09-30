@@ -64,7 +64,7 @@ type ClientesSearch = {
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   validateSearch: (search: Record<string, unknown>): ClientesSearch => ({
-    tab: search.tab === "fiado" ? "fiado" : "clientes",
+    tab: search["tab"] === "fiado" ? "fiado" : "clientes",
   }),
   head: () => ({
     meta: [

@@ -73,8 +73,8 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   validateSearch: (search: Record<string, unknown>): ConfiguracoesSearch => {
     const validTabs: ConfiguracoesTab[] = ["geral", "canais", "caixa", "equipe", "plano"];
     const tab =
-      typeof search.tab === "string" && validTabs.includes(search.tab as ConfiguracoesTab)
-        ? (search.tab as ConfiguracoesTab)
+      typeof search["tab"] === "string" && validTabs.includes(search["tab"] as ConfiguracoesTab)
+        ? (search["tab"] as ConfiguracoesTab)
         : "geral";
     return { tab };
   },

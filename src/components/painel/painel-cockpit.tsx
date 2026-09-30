@@ -712,7 +712,7 @@ export function PainelUltimasVendas({
               const isEntrada = tx.kind === "entrada";
               const isOnline = tx.category === "venda_online";
               const desc =
-                tx.notes ||
+                (tx as any).notes ||
                 (isOnline
                   ? "Venda Vitrine Online"
                   : isEntrada

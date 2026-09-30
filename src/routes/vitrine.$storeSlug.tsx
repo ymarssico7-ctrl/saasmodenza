@@ -35,7 +35,7 @@ import {
   type ShowcaseProduct,
 } from "@/lib/showcase-store";
 import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings";
-import { parseStoreCategories, getCategoryLabel } from "@/lib/categories";
+import { parseStoreCategories, getCategoryLabel, type StoreCategory } from "@/lib/categories";
 import { generatePixPayload, generatePixQrCodeUrl } from "@/lib/pix";
 import { calculateOrderNet } from "@/lib/fees";
 
@@ -603,6 +603,7 @@ function VitrineLayout() {
           product={selectedProduct}
           cor={cor}
           storeName={storeName}
+          storeCategories={storeCategories}
           onClose={() => setSelectedProduct(null)}
           onCartOpen={() => setCartOpen(true)}
         />
@@ -628,12 +629,14 @@ function ProductModal({
   product,
   cor,
   storeName,
+  storeCategories,
   onClose,
   onCartOpen,
 }: {
   product: ShowcaseProduct;
   cor: string;
   storeName: string;
+  storeCategories: StoreCategory[];
   onClose: () => void;
   onCartOpen: () => void;
 }) {

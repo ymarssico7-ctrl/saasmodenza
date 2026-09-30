@@ -130,13 +130,13 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
           to: "/estoque",
           search: { tab: "pecas" },
           label: "Peças em Estoque",
-          isMatch: (p, s) => p.startsWith("/estoque") && s?.tab !== "categorias",
+          isMatch: (p, s) => p.startsWith("/estoque") && s?.["tab"] !== "categorias",
         },
         {
           to: "/estoque",
           search: { tab: "categorias" },
           label: "Coleções & Categorias",
-          isMatch: (p, s) => p.startsWith("/estoque") && s?.tab === "categorias",
+          isMatch: (p, s) => p.startsWith("/estoque") && s?.["tab"] === "categorias",
         },
         {
           to: "/precificacao",
@@ -162,14 +162,14 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
           to: "/clientes",
           search: { tab: "clientes" },
           label: "Carteira de Clientes",
-          isMatch: (p, s) => p.startsWith("/clientes") && s?.tab !== "fiado",
+          isMatch: (p, s) => p.startsWith("/clientes") && s?.["tab"] !== "fiado",
         },
         {
           to: "/clientes",
           search: { tab: "fiado" },
           label: "Caderninho de Fiado",
           isMatch: (p, s) =>
-            (p.startsWith("/clientes") && s?.tab === "fiado") ||
+            (p.startsWith("/clientes") && s?.["tab"] === "fiado") ||
             p.startsWith("/fiado"),
         },
       ],
@@ -280,7 +280,7 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
       to: "/configuracoes",
       search: { tab: "canais" },
       section: "Canais de vendas",
-      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.tab === "canais",
+      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] === "canais",
     });
   }
 
@@ -652,7 +652,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = (useRouterState({ select: (s) => s.location.search }) || {}) as Record<string, unknown>;
   const isConfiguracoes = pathname.startsWith("/configuracoes");
-  const currentSettingsTab = (typeof search?.tab === "string" ? search.tab : "geral") || "geral";
+  const currentSettingsTab = (typeof search?.["tab"] === "string" ? search["tab"] : "geral") || "geral";
   const { data: members = [] } = useQuery(membersQuery());
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
 
@@ -817,7 +817,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onToggle={(group, e) => {
             handleToggle(group, e, onItemClick);
           }}
-          onItemClick={onItemClick}
+          {...(onItemClick ? { onItemClick } : {})}
         />
       </div>
     ));
@@ -869,7 +869,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.tab}
                       to="/configuracoes"
-                      search={{ tab: item.tab }}
+                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "equipe" | "plano" }}
                       title={item.label}
                       className={cn(
                         "relative flex size-9 items-center justify-center rounded-lg transition-colors cursor-pointer",
@@ -936,7 +936,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.tab}
                       to="/configuracoes"
-                      search={{ tab: item.tab }}
+                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "equipe" | "plano" }}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-normal transition-colors duration-150 cursor-pointer",
                         active

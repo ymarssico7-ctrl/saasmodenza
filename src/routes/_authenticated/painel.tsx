@@ -478,7 +478,7 @@ function Painel() {
     if (!rawStore) return "";
     return rawStore
       .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
   }, [rawStore]);
 

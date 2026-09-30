@@ -97,6 +97,7 @@ import {
   insertCustomer,
   insertSupplier,
 } from "@/lib/mutations";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/caixa")({
   head: () => ({
@@ -1211,9 +1212,9 @@ function Caixa() {
 
     const firstItem: SaleBasketItem = {
       id: "item-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
-      productId: selectedProductId ?? undefined,
+      ...(selectedProductId ? { productId: selectedProductId } : {}),
       productName: description.trim() || selectedProduct?.name || "Peça",
-      size: selectedProductSize || undefined,
+      ...(selectedProductSize ? { size: selectedProductSize } : {}),
       quantity,
       unitPrice: unitPrice > 0 ? unitPrice : currentPrice / quantity,
       totalPrice: currentPrice,
@@ -1347,13 +1348,16 @@ function Caixa() {
     setBasket((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
-        const disc = value <= 0 ? undefined : { type, value };
-        const itemDiscount = disc ? calcItemDiscount(item, disc.type, disc.value) : 0;
+        const itemDiscount = value > 0 ? calcItemDiscount(item, type, value) : 0;
+        if (value <= 0) {
+          const { discount: _d, ...rest } = item;
+          return { ...rest, netPrice: Number(item.totalPrice.toFixed(2)) } as SaleBasketItem;
+        }
         return {
           ...item,
-          discount: disc,
+          discount: { type, value },
           netPrice: Number((item.totalPrice - itemDiscount).toFixed(2)),
-        };
+        } as SaleBasketItem;
       })
     );
   };
@@ -1505,14 +1509,15 @@ function Caixa() {
           ? [
               {
                 id: "active-item",
-                productId: selectedProductId ?? undefined,
+                ...(selectedProductId ? { productId: selectedProductId } : {}),
                 productName: description.trim() || selectedProduct?.name || "Peça",
-                size: selectedProductSize || undefined,
+                ...(selectedProductSize ? { size: selectedProductSize } : {}),
                 quantity,
                 unitPrice: unitPrice > 0 ? unitPrice : grossAmount / quantity,
                 totalPrice: grossAmount,
+                netPrice: grossAmount,
                 deductStock: !!selectedProductId && deductStock,
-              },
+              } as SaleBasketItem,
             ]
           : [];
 
@@ -1558,12 +1563,16 @@ function Caixa() {
         finalDescription = `${prefix}: ${summary}`;
       } else {
         const single = allItems[0];
-        finalDescription = single.productName;
-        if (single.size && !finalDescription.toLowerCase().includes(single.size.toLowerCase())) {
-          finalDescription += ` [Tam: ${single.size}]`;
-        }
-        if (single.quantity > 1) {
-          finalDescription += ` (${single.quantity} un.)`;
+        if (!single) {
+          finalDescription = description.trim() || "Peça";
+        } else {
+          finalDescription = single.productName;
+          if (single.size && !finalDescription.toLowerCase().includes(single.size.toLowerCase())) {
+            finalDescription += ` [Tam: ${single.size}]`;
+          }
+          if (single.quantity > 1) {
+            finalDescription += ` (${single.quantity} un.)`;
+          }
         }
       }
 
@@ -1723,7 +1732,7 @@ function Caixa() {
 
       // Extrai quantidade real da descrição: "(5 un.)" ou "(5 peças)"
       const qtyMatch = t.description.match(/\((\d+)\s*un\.\)/) || t.description.match(/\((\d+)\s*peças?\)/i);
-      const itemQty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
+      const itemQty = qtyMatch ? parseInt(qtyMatch[1] ?? "1", 10) : 1;
 
       // Limpa TODOS os annotations [xxx: yyy] e sufixos para obter o nome base do produto
       const cleanName = t.description
@@ -3341,7 +3350,7 @@ function Caixa() {
                     } else if (e.key === "Enter") {
                       e.preventDefault();
                       if (supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
-                        setSupplierName(matchingSuppliers[supplierHighlight].name);
+                        setSupplierName(matchingSuppliers[supplierHighlight]!.name);
                         setShowSupplierPopover(false);
                         setSupplierHighlight(-1);
                       } else if (supplierHighlight === matchingSuppliers.length) {
@@ -3536,7 +3545,7 @@ function Caixa() {
                     } else if (e.key === "Enter") {
                       e.preventDefault();
                       if (supplierHighlight >= 0 && supplierHighlight < matchingSuppliers.length) {
-                        setSupplierName(matchingSuppliers[supplierHighlight].name);
+                        setSupplierName(matchingSuppliers[supplierHighlight]!.name);
                         setShowSupplierPopover(false);
                         setSupplierHighlight(-1);
                       } else if (supplierHighlight === matchingSuppliers.length) {

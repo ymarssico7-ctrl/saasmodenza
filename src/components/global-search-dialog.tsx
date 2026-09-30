@@ -295,7 +295,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                       {customers.map((c) => (
                         <CommandPrimitive.Item
                           key={`search-client-${c.id}`}
-                          value={`${c.name} ${c.phone ?? ""} ${c.city ?? ""}`}
+                          value={`${c.name} ${c.phone ?? ""} ${(c as any).city ?? ""}`}
                           onSelect={() => handleSelect("/clientes")}
                           className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/85 data-[selected=true]:bg-white/10 data-[selected=true]:text-white cursor-pointer select-none transition-colors group mb-0.5"
                         >
@@ -307,7 +307,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                               <p className="font-medium text-[13px] text-white truncate">{c.name}</p>
                               <p className="text-[11px] text-white/45 truncate">
                                 {c.phone ? `${c.phone} ` : ""}
-                                {c.city ? `· ${c.city}` : "Cliente cadastrada"}
+                                {(c as any).city ? `· ${(c as any).city}` : "Cliente cadastrada"}
                               </p>
                             </div>
                           </div>

@@ -355,7 +355,7 @@ export function PainelGraficoVendas({
               axisLine={false}
               width={52}
               domain={maxVenda > 0 ? [0, "auto"] : [0, 100]}
-              ticks={maxVenda > 0 ? undefined : [0, 50, 100]}
+              {...(maxVenda > 0 ? {} : { ticks: [0, 50, 100] })}
               allowDecimals={false}
               tickFormatter={(v: number) =>
                 ocultarSaldos ? "••••" : brlCompact(v)

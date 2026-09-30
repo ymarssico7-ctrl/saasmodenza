@@ -16,6 +16,7 @@ import { brl, monthLabel, monthStart, pct, toNumber } from "@/lib/format";
 import { REFUND_CATEGORIES, projectMonth, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { upsertGoal, deleteGoal } from "@/lib/mutations";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({

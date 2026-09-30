@@ -249,7 +249,7 @@ export const suppliersQuery = () =>
         if (error.code === "42P01") return [] as SupplierRow[];
         throw new Error(error.message);
       }
-      return (data ?? []) as SupplierRow[];
+      return (data ?? []) as unknown as SupplierRow[];
     },
   });
 

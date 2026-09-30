@@ -46,8 +46,8 @@ type EstoqueSearch = {
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   validateSearch: (search: Record<string, unknown>): EstoqueSearch => ({
-    tab: search.tab === "categorias" ? "categorias" : "pecas",
-    cat: typeof search.cat === "string" ? search.cat : undefined,
+    tab: search["tab"] === "categorias" ? "categorias" : "pecas",
+    ...(typeof search["cat"] === "string" ? { cat: search["cat"] } : {}),
   }),
   head: () => ({
     meta: [
