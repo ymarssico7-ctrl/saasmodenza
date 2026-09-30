@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -93,11 +93,11 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
     meta: [
-      { title: "Pedidos & Vendas Online â€” Modaly" },
+      { title: "Pedidos & Vendas Online — Modaly" },
       {
         name: "description",
         content:
-          "Central de pedidos da vitrine online e WhatsApp: aprove pedidos, baixe estoque automaticamente e acompanhe entregas com padrÃ£o Shopify.",
+          "Central de pedidos da vitrine online e WhatsApp: aprove pedidos, baixe estoque automaticamente e acompanhe entregas com padrão Shopify.",
       },
     ],
   }),
@@ -107,8 +107,8 @@ export const Route = createFileRoute("/_authenticated/loja/pedidos")({
 function mapPedidoPaymentMethod(pagamento: string): string {
   const p = (pagamento || "").toLowerCase();
   if (p.includes("pix")) return "pix";
-  if (p.includes("dÃ©bito") || p.includes("debito")) return "debito";
-  if (p.includes("crÃ©dito") || p.includes("credito") || p.includes("cartÃ£o") || p.includes("cartao")) return "credito";
+  if (p.includes("débito") || p.includes("debito")) return "debito";
+  if (p.includes("crédito") || p.includes("credito") || p.includes("cartão") || p.includes("cartao")) return "credito";
   if (p.includes("dinheiro")) return "dinheiro";
   return "pix";
 }
@@ -134,23 +134,23 @@ const ABAS_STATUS: { valor: StatusPedido | "todos"; label: string }[] = [
   { valor: "todos", label: "Todos" },
   { valor: "novo", label: "A Confirmar" },
   { valor: "confirmado", label: "Confirmados" },
-  { valor: "em_separacao", label: "Em SeparaÃ§Ã£o" },
+  { valor: "em_separacao", label: "Em Separação" },
   { valor: "enviado", label: "A Caminho" },
   { valor: "entregue", label: "Entregues" },
   { valor: "cancelado", label: "Cancelados" },
 ];
 
 function formatOrderDate(iso: string) {
-  if (!iso) return "â€”";
+  if (!iso) return "—";
   try {
     const d = new Date(iso);
     const hoje = new Date();
     const isHoje = d.toDateString() === hoje.toDateString();
     const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    if (isHoje) return `Hoje Ã s ${hora}`;
+    if (isHoje) return `Hoje às ${hora}`;
     const ontem = new Date(hoje);
     ontem.setDate(ontem.getDate() - 1);
-    if (d.toDateString() === ontem.toDateString()) return `Ontem Ã s ${hora}`;
+    if (d.toDateString() === ontem.toDateString()) return `Ontem às ${hora}`;
     return d.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -167,7 +167,7 @@ function OrderStatusStepper({ status }: { status: StatusPedido }) {
     return (
       <div className="flex items-center gap-2.5 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs text-destructive font-medium">
         <X className="size-4 shrink-0" />
-        <span>Este pedido foi cancelado e nÃ£o gerou movimentaÃ§Ã£o financeira ativa ou teve estoque estornado.</span>
+        <span>Este pedido foi cancelado e não gerou movimentação financeira ativa ou teve estoque estornado.</span>
       </div>
     );
   }
@@ -175,7 +175,7 @@ function OrderStatusStepper({ status }: { status: StatusPedido }) {
   const steps: { key: StatusPedido; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "novo", label: "Recebido", icon: Clock },
     { key: "confirmado", label: "Confirmado", icon: CheckCircle2 },
-    { key: "em_separacao", label: "SeparaÃ§Ã£o", icon: Layers },
+    { key: "em_separacao", label: "Separação", icon: Layers },
     { key: "enviado", label: "A caminho", icon: Truck },
     { key: "entregue", label: "Entregue", icon: Check },
   ];
@@ -243,7 +243,7 @@ function PedidosPage() {
   const { storeId, store } = useStore();
   const queryClient = useQueryClient();
 
-  // Estados de Filtros e Busca (PadrÃ£o Shopify IndexTable)
+  // Estados de Filtros e Busca (Padrão Shopify IndexTable)
   const [filtroStatus, setFiltroStatus] = useState<StatusPedido | "todos">("todos");
   const [busca, setBusca] = useState("");
   const [filtroPagamento, setFiltroPagamento] = useState("todos");
@@ -286,7 +286,7 @@ function PedidosPage() {
     enabled: !!storeId,
   });
 
-  // Supabase Realtime: escuta novos pedidos ou atualizaÃ§Ãµes em tempo real
+  // Supabase Realtime: escuta novos pedidos ou atualizações em tempo real
   useEffect(() => {
     if (!storeId) return;
 
@@ -305,7 +305,7 @@ function PedidosPage() {
           osc.stop(ctx.currentTime + i * 0.12 + 0.15);
         });
       } catch {
-        /* Safari / permissÃ£o negada: ignora silenciosamente */
+        /* Safari / permissão negada: ignora silenciosamente */
       }
     }
 
@@ -328,14 +328,14 @@ function PedidosPage() {
             const pagamento = (row["payment_method"] as string | undefined) ?? "";
             const metodosLabel: Record<string, string> = {
               pix: "Pix",
-              cartao: "CartÃ£o",
+              cartao: "Cartão",
               dinheiro: "Dinheiro",
               boleto: "Boleto",
             };
             const metodoLabel = metodosLabel[pagamento] ?? pagamento;
 
             playNotificationSound();
-            toast.success(`ðŸ›ï¸ Novo Pedido ${numero} recebido!`, {
+            toast.success(`🛍️ Novo Pedido ${numero} recebido!`, {
               description: metodoLabel ? `Forma de pagamento: ${metodoLabel}` : "Acesse os pedidos para conferir.",
               duration: 6000,
               action: {
@@ -374,7 +374,7 @@ function PedidosPage() {
       const enderecoFormatado =
         [
           addr.rua,
-          addr.numero && `nÂº ${addr.numero}`,
+          addr.numero && `nº ${addr.numero}`,
           addr.bairro,
           addr.cep && `CEP ${addr.cep}`,
           addr.complemento,
@@ -398,7 +398,7 @@ function PedidosPage() {
         row.payment_method === "pix"
           ? "Pix"
           : row.payment_method === "cartao"
-          ? "CartÃ£o de crÃ©dito"
+          ? "Cartão de crédito"
           : "Dinheiro na entrega";
 
       return {
@@ -446,7 +446,7 @@ function PedidosPage() {
     localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
   };
 
-  // KPIs DinÃ¢micos de Alto NÃ­vel (Shopify Cockpit Operacional)
+  // KPIs Dinâmicos de Alto Nível (Shopify Cockpit Operacional)
   const novosCount = useMemo(() => lista.filter((p) => p.status === "novo").length, [lista]);
   const separacaoCount = useMemo(
     () => lista.filter((p) => p.status === "confirmado" || p.status === "em_separacao").length,
@@ -460,16 +460,16 @@ function PedidosPage() {
       // 1. Filtro por status de aba
       if (filtroStatus !== "todos" && p.status !== filtroStatus) return false;
 
-      // 2. Filtro por mÃ©todo de pagamento
+      // 2. Filtro por método de pagamento
       if (filtroPagamento !== "todos") {
         const pag = p.pagamento.toLowerCase();
         if (filtroPagamento === "pix" && !pag.includes("pix")) return false;
-        if (filtroPagamento === "cartao" && !pag.includes("cartÃ£o") && !pag.includes("cartao") && !pag.includes("crÃ©dito"))
+        if (filtroPagamento === "cartao" && !pag.includes("cartão") && !pag.includes("cartao") && !pag.includes("crédito"))
           return false;
         if (filtroPagamento === "dinheiro" && !pag.includes("dinheiro")) return false;
       }
 
-      // 3. Filtro por perÃ­odo
+      // 3. Filtro por período
       if (filtroPeriodo === "hoje") {
         const hojeStr = new Date().toISOString().slice(0, 10);
         if (p.criadoEm.slice(0, 10) !== hojeStr) return false;
@@ -483,7 +483,7 @@ function PedidosPage() {
         if (p.criadoEm.slice(0, 10) !== filtroData) return false;
       }
 
-      // 4. Busca textual universal (nome, telefone, nÃºmero do pedido ou item)
+      // 4. Busca textual universal (nome, telefone, número do pedido ou item)
       if (busca.trim()) {
         const termo = busca.toLowerCase();
         const bateNome = p.cliente.toLowerCase().includes(termo);
@@ -497,7 +497,7 @@ function PedidosPage() {
     });
   }, [lista, filtroStatus, filtroPagamento, filtroPeriodo, filtroData, busca]);
 
-  // PaginaÃ§Ã£o: voltar para pÃ¡gina 1 ao alterar qualquer filtro
+  // Paginação: voltar para página 1 ao alterar qualquer filtro
   useEffect(() => {
     setPaginaAtual(1);
   }, [filtroStatus, filtroPagamento, filtroPeriodo, filtroData, busca]);
@@ -508,7 +508,7 @@ function PedidosPage() {
 
   const pedidoAberto = lista.find((p) => p.id === aberto) ?? null;
 
-  // AÃ§Ãµes de fluxo e avanÃ§o de status
+  // Ações de fluxo e avanço de status
   const executarAvancoStatus = async (pedido: Pedido) => {
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
@@ -546,7 +546,7 @@ function PedidosPage() {
       void insertTransaction({
         storeId,
         kind: "entrada",
-        description: `Venda online â€” Pedido ${pedido.numero} (${pedido.cliente})`,
+        description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
         amount: valorLiquido,
         category: "venda_online",
         payment_method: mapPedidoPaymentMethod(pedido.pagamento),
@@ -555,13 +555,13 @@ function PedidosPage() {
         void queryClient.invalidateQueries({ queryKey: ["transactions"] });
       });
 
-      toast.success("Pedido confirmado! âœ…", {
-        description: `Estoque baixado e R$ ${valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lanÃ§ado no Caixa (lÃ­quido).`,
+      toast.success("Pedido confirmado! ✅", {
+        description: `Estoque baixado e R$ ${valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa (líquido).`,
         duration: 5000,
       });
     } else {
       toast.success(`Status atualizado para "${statusPedidoLabel[proximo]}"`, {
-        description: `Pedido ${pedido.numero} â€” ${pedido.cliente}`,
+        description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
       });
     }
   };
@@ -625,7 +625,7 @@ function PedidosPage() {
         void insertTransaction({
           storeId,
           kind: "saida",
-          description: `Estorno de pedido online cancelado â€” Pedido ${pedido.numero} (${pedido.cliente})`,
+          description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
           amount: valorLiquido,
           category: "estorno_devolucao",
           payment_method: mapPedidoPaymentMethod(pedido.pagamento),
@@ -634,7 +634,7 @@ function PedidosPage() {
           void queryClient.invalidateQueries({ queryKey: ["transactions"] });
         });
       }
-      toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorLiquido)} lanÃ§ado no Caixa.`);
+      toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorLiquido)} lançado no Caixa.`);
     } else {
       toast.info(`Pedido ${pedido.numero} cancelado sem impacto no caixa.`);
     }
@@ -651,14 +651,14 @@ function PedidosPage() {
     const novaLista = lista.filter((p) => p.id !== id);
     persistir(novaLista);
     setAberto(null);
-    toast.success("Pedido excluÃ­do do histÃ³rico", {
+    toast.success("Pedido excluído do histórico", {
       description: pedido ? `Pedido ${pedido.numero} removido.` : undefined,
     });
   };
 
   const salvarRastreio = async (pedidoId: string) => {
     if (!codigoRastreio.trim()) {
-      toast.error("Informe o cÃ³digo de rastreio.");
+      toast.error("Informe o código de rastreio.");
       return;
     }
     const cod = codigoRastreio.trim().toUpperCase();
@@ -673,7 +673,7 @@ function PedidosPage() {
     const novaLista = lista.map((p) => (p.id === pedidoId ? { ...p, rastreio: cod } : p));
     persistir(novaLista);
     setCodigoRastreio("");
-    toast.success("CÃ³digo de rastreio salvo!", { description: `CÃ³digo: ${cod}` });
+    toast.success("Código de rastreio salvo!", { description: `Código: ${cod}` });
   };
 
   const avisarWhatsApp = (pedido: Pedido, tipo?: "padrao" | "rastreio") => {
@@ -682,9 +682,9 @@ function PedidosPage() {
     let msg = "";
 
     if (tipo === "rastreio" && pedido.rastreio) {
-      msg = `OlÃ¡, ${pedido.cliente}! ðŸ‘‹\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* jÃ¡ foi despachado e estÃ¡ a caminho! ðŸ“¦ðŸ’¨\n\nCÃ³digo de rastreamento: *${pedido.rastreio}*\n\nAcompanhe nos Correios:\nhttps://rastreamento.correios.com.br/app/index.php?codigo=${pedido.rastreio}\n\nQualquer dÃºvida estamos Ã  disposiÃ§Ã£o! ðŸ’œ`;
+      msg = `Olá, ${pedido.cliente}! 👋\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* já foi despachado e está a caminho! 📦💨\n\nCódigo de rastreamento: *${pedido.rastreio}*\n\nAcompanhe nos Correios:\nhttps://rastreamento.correios.com.br/app/index.php?codigo=${pedido.rastreio}\n\nQualquer dúvida estamos à disposição! 💜`;
     } else {
-      msg = `OlÃ¡, ${pedido.cliente}! ðŸ‘‹\n\nAqui Ã© da *${nomeLoja}*. Passando para avisar que seu pedido *${pedido.numero}* estÃ¡ *${statusTexto}*! âœ¨\n\nTotal: ${brl(totalPedido(pedido))}\n${pedido.rastreio ? `Rastreio: ${pedido.rastreio}\n` : ""}Qualquer dÃºvida estamos Ã  disposiÃ§Ã£o! ðŸ’œ`;
+      msg = `Olá, ${pedido.cliente}! 👋\n\nAqui é da *${nomeLoja}*. Passando para avisar que seu pedido *${pedido.numero}* está *${statusTexto}*! ✨\n\nTotal: ${brl(totalPedido(pedido))}\n${pedido.rastreio ? `Rastreio: ${pedido.rastreio}\n` : ""}Qualquer dúvida estamos à disposição! 💜`;
     }
 
     const phoneDigits = (pedido.telefone || "").replace(/\D/g, "");
@@ -698,9 +698,9 @@ function PedidosPage() {
   };
 
   const copiarEnderecoEtiqueta = (p: Pedido) => {
-    const texto = `DESTINATÃRIO:\n${p.cliente}\n${p.endereco}\nTel: ${p.telefone}`;
+    const texto = `DESTINATÁRIO:\n${p.cliente}\n${p.endereco}\nTel: ${p.telefone}`;
     navigator.clipboard.writeText(texto);
-    toast.success("EndereÃ§o copiado para etiqueta!", {
+    toast.success("Endereço copiado para etiqueta!", {
       description: "Pronto para colar nos Correios ou Melhor Envio.",
     });
   };
@@ -712,7 +712,7 @@ function PedidosPage() {
     toast.success("Pedidos sincronizados em tempo real!");
   };
 
-  // Simular Pedido de Teste (Onboarding / DemonstraÃ§Ã£o)
+  // Simular Pedido de Teste (Onboarding / Demonstração)
   const gerarPedidoTeste = () => {
     const numero = `#${Math.floor(1000 + Math.random() * 9000)}`;
     const itemExemplo = inventoryItems[0]
@@ -720,7 +720,7 @@ function PedidosPage() {
           produtoId: inventoryItems[0].id,
           nome: inventoryItems[0].name,
           tamanho: Object.keys(inventoryItems[0].sizes || {})[0] || "M",
-          cor: "PadrÃ£o",
+          cor: "Padrão",
           qtd: 1,
           preco: 189.9,
         }
@@ -736,7 +736,7 @@ function PedidosPage() {
     const novoPedido: Pedido = {
       id: `demo_${Date.now()}`,
       numero,
-      cliente: "Mariana Alvarenga (DemonstraÃ§Ã£o)",
+      cliente: "Mariana Alvarenga (Demonstração)",
       telefone: "(31) 99876-5432",
       email: "mariana.alvarenga@email.com",
       cidade: "Belo Horizonte",
@@ -745,7 +745,7 @@ function PedidosPage() {
       origem: "Checkout",
       pagamento: "Pix",
       entrega: "Entrega expressa",
-      endereco: "Rua Fernandes Tourinho, 480 â€” Savassi, Belo Horizonte/MG, CEP 30112-000",
+      endereco: "Rua Fernandes Tourinho, 480 — Savassi, Belo Horizonte/MG, CEP 30112-000",
       frete: 14.0,
       desconto: 0,
       taxaOperadora: 0,
@@ -755,8 +755,8 @@ function PedidosPage() {
 
     const novaLista = [novoPedido, ...lista];
     persistir(novaLista);
-    toast.success(`Pedido de teste ${numero} criado! ðŸŽ‰`, {
-      description: "Clique sobre ele na lista para testar a aprovaÃ§Ã£o, baixa de estoque e o aviso WhatsApp.",
+    toast.success(`Pedido de teste ${numero} criado! 🎉`, {
+      description: "Clique sobre ele na lista para testar a aprovação, baixa de estoque e o aviso WhatsApp.",
     });
   };
 
@@ -764,7 +764,7 @@ function PedidosPage() {
 
   return (
     <div className="space-y-4">
-      {/* â”€â”€ PageHeader Calmo (Apple / Linear Standard) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── PageHeader Calmo (Apple / Linear Standard) ─────────────────────────── */}
       <PageHeader
         eyebrow="Vendas Online"
         title={
@@ -799,10 +799,10 @@ function PedidosPage() {
                   variant="outline"
                   size="sm"
                   className="h-9 sm:h-9.5 w-9 sm:w-9.5 rounded-full border-border/80 bg-card p-0 text-xs font-semibold hover:bg-secondary text-foreground shadow-2xs cursor-pointer"
-                  title="Mais opÃ§Ãµes e aÃ§Ãµes"
+                  title="Mais opções e ações"
                 >
                   <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                  <span className="sr-only">Mais opÃ§Ãµes</span>
+                  <span className="sr-only">Mais opções</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 rounded-2xl p-1.5 shadow-lifted">
@@ -816,13 +816,13 @@ function PedidosPage() {
                 <DropdownMenuItem asChild className="cursor-pointer rounded-xl text-xs py-2">
                   <Link to="/loja/produtos">
                     <Store className="mr-2 h-3.5 w-3.5 text-primary" />
-                    <span>Gerenciar catÃ¡logo</span>
+                    <span>Gerenciar catálogo</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer rounded-xl text-xs py-2">
                   <Link to="/loja/configuracao">
                     <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                    <span>ConfiguraÃ§Ãµes da loja</span>
+                    <span>Configurações da loja</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1" />
@@ -839,9 +839,9 @@ function PedidosPage() {
         }
       />
 
-      {/* â”€â”€ Container de GestÃ£o Calmo: Abas + Busca + Tabela de Pedidos â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Container de Gestão Calmo: Abas + Busca + Tabela de Pedidos ───────── */}
       <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
-        {/* Abas Superiores Segmentadas (Apple / Linear Standard com Micro-PÃ­lulas) */}
+        {/* Abas Superiores Segmentadas (Apple / Linear Standard com Micro-Pílulas) */}
         <div className="flex items-center gap-1 overflow-x-auto p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
           {ABAS_STATUS.map((tab, idx) => {
             const active = filtroStatus === tab.valor;
@@ -884,7 +884,7 @@ function PedidosPage() {
           })}
         </div>
 
-        {/* Barra de Filtros Integrada (Alinhamento em Linha Ãšnica) */}
+        {/* Barra de Filtros Integrada (Alinhamento em Linha Única) */}
         <div className="p-3 sm:p-3.5 border-b border-border/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-card">
           <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
@@ -914,12 +914,12 @@ function PedidosPage() {
               <SelectContent className="rounded-xl shadow-lifted">
                 <SelectItem value="todos">Todos pagamentos</SelectItem>
                 <SelectItem value="pix">Pix</SelectItem>
-                <SelectItem value="cartao">CartÃ£o de crÃ©dito</SelectItem>
+                <SelectItem value="cartao">Cartão de crédito</SelectItem>
                 <SelectItem value="dinheiro">Dinheiro</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* Filtro de PerÃ­odo */}
+            {/* Filtro de Período */}
             <Select
               value={filtroPeriodo}
               onValueChange={(val: "todos" | "hoje" | "7dias" | "mes" | "data_custom") => {
@@ -929,14 +929,14 @@ function PedidosPage() {
             >
               <SelectTrigger className="h-9 sm:h-9.5 w-[135px] text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
                 <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground/60 shrink-0" />
-                <SelectValue placeholder="PerÃ­odo" />
+                <SelectValue placeholder="Período" />
               </SelectTrigger>
               <SelectContent className="rounded-xl shadow-lifted">
-                <SelectItem value="todos">Todo o perÃ­odo</SelectItem>
+                <SelectItem value="todos">Todo o período</SelectItem>
                 <SelectItem value="hoje">Hoje</SelectItem>
-                <SelectItem value="7dias">Ãšltimos 7 dias</SelectItem>
-                <SelectItem value="mes">Este mÃªs</SelectItem>
-                <SelectItem value="data_custom">Data especÃ­fica...</SelectItem>
+                <SelectItem value="7dias">Últimos 7 dias</SelectItem>
+                <SelectItem value="mes">Este mês</SelectItem>
+                <SelectItem value="data_custom">Data específica...</SelectItem>
               </SelectContent>
             </Select>
 
@@ -974,7 +974,7 @@ function PedidosPage() {
           </div>
         </div>
 
-        {/* â”€â”€ Tabela de Pedidos / Empty State Zen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── Tabela de Pedidos / Empty State Zen ───────────────────────────── */}
         {visiveis.length === 0 ? (
           <div className="py-12 px-4 sm:py-16 sm:px-6 text-center">
             {lista.length === 0 ? (
@@ -985,7 +985,7 @@ function PedidosPage() {
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-foreground">Tudo em dia por aqui</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Sua vitrine estÃ¡ ativa. Novos pedidos feitos no site ou WhatsApp aparecerÃ£o aqui para vocÃª despachar.
+                    Sua vitrine está ativa. Novos pedidos feitos no site ou WhatsApp aparecerão aqui para você despachar.
                   </p>
                 </div>
 
@@ -1041,13 +1041,13 @@ function PedidosPage() {
           </div>
         ) : (
           <div>
-            {/* â”€â”€ IndexTable Header (Shopify Polaris â€” visÃ­vel em md+) â”€â”€ */}
-            <div className="hidden md:grid md:grid-cols-[1.5fr_1.3fr_1fr_auto] items-center gap-4 px-5 py-2 border-b border-border/50 bg-secondary/25">
+            {/* ── IndexTable Header (Shopify Polaris — visível em md+) ── */}
+            <div className="hidden md:grid md:grid-cols-[1.5fr_1.3fr_1fr_auto] items-center gap-4 px-5 py-2.5 border-b border-border/50 bg-secondary/25">
               <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60 pl-[3.875rem]">
-                Pedido & Cliente
+                Pedido &amp; Cliente
               </span>
               <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Itens / PeÃ§as
+                Itens / Peças
               </span>
               <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Pagamento
@@ -1100,11 +1100,11 @@ function PedidosPage() {
                         <p className="mt-1 font-semibold text-xs text-foreground truncate">{p.cliente}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
                           <span>{formatOrderDate(p.criadoEm)}</span>
-                          <span>â€¢</span>
+                          <span>•</span>
                           <span>{p.entrega}</span>
                           {p.cidade && (
                             <>
-                              <span>â€¢</span>
+                              <span>•</span>
                               <span>{p.cidade}</span>
                             </>
                           )}
@@ -1112,7 +1112,7 @@ function PedidosPage() {
                       </div>
                     </div>
 
-                    {/* Col 2: PeÃ§as & ComposiÃ§Ã£o do Carrinho (Alinhado Ã  Esquerda) */}
+                    {/* Col 2: Peças & Composição do Carrinho (Alinhado à Esquerda) */}
                     <div className="min-w-0 pl-[3.875rem] md:pl-0">
                       <p className="text-xs font-semibold text-foreground truncate">
                         {p.itens[0] ? `${p.itens[0].qtd}x ${p.itens[0].nome}` : "Nenhum item"}
@@ -1122,9 +1122,9 @@ function PedidosPage() {
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                         {p.itens[0]?.tamanho ? `Tam: ${p.itens[0].tamanho}` : ""}
-                        {p.itens[0]?.tamanho && p.itens[0]?.cor ? " â€¢ " : ""}
+                        {p.itens[0]?.tamanho && p.itens[0]?.cor ? " • " : ""}
                         {p.itens[0]?.cor ? `Cor: ${p.itens[0].cor}` : ""}
-                        {` â€¢ ${totalQtd} ${totalQtd === 1 ? "peÃ§a" : "peÃ§as"}`}
+                        {` • ${totalQtd} ${totalQtd === 1 ? "peça" : "peças"}`}
                       </p>
                     </div>
 
@@ -1146,19 +1146,19 @@ function PedidosPage() {
                           )}
                         />
                         <span className="truncate">
-                          {p.status === "novo" ? "Aguardando confirmaÃ§Ã£o" : "Recebimento confirmado"}
+                          {p.status === "novo" ? "Aguardando confirmação" : "Recebimento confirmado"}
                         </span>
                       </p>
                     </div>
 
-                    {/* Col 4: Total Financeiro & AÃ§Ãµes RÃ¡pidas */}
+                    {/* Col 4: Total Financeiro & Ações Rápidas */}
                     <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pl-[3.875rem] md:pl-0 min-w-[130px]">
                       <div className="text-left md:text-right">
                         <p className="num-display text-sm font-bold text-foreground">
                           {brl(totalPedido(p))}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grÃ¡tis"}
+                          {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grátis"}
                         </p>
                       </div>
 
@@ -1183,14 +1183,14 @@ function PedidosPage() {
               })}
             </ul>
 
-            {/* â”€â”€ RodapÃ© da Tabela: Contagem + PaginaÃ§Ã£o â”€â”€ */}
+            {/* ── Rodapé da Tabela: Contagem + Paginação ── */}
             <div className="flex items-center justify-between gap-4 px-5 py-3 border-t border-border/50 bg-secondary/15">
               <p className="text-[11px] text-muted-foreground">
                 Exibindo{" "}
                 <span className="font-semibold text-foreground">
                   {visiveis.length === 0
                     ? 0
-                    : `${(paginaFinal - 1) * POR_PAGINA + 1}â€“${Math.min(paginaFinal * POR_PAGINA, visiveis.length)}`}
+                    : `${(paginaFinal - 1) * POR_PAGINA + 1}–${Math.min(paginaFinal * POR_PAGINA, visiveis.length)}`}
                 </span>{" "}
                 de{" "}
                 <span className="font-semibold text-foreground">{visiveis.length}</span>{" "}
@@ -1218,7 +1218,7 @@ function PedidosPage() {
                     onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
                     className="h-7 px-3 text-xs rounded-lg border-border/70 bg-card disabled:opacity-40"
                   >
-                    PrÃ³xima
+                    Próxima
                   </Button>
                 </div>
               )}
@@ -1227,11 +1227,11 @@ function PedidosPage() {
         )}
       </div>
 
-      {/* â”€â”€ Sheet / Drawer de Detalhes do Pedido (PadrÃ£o Shopify Polaris) â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Sheet / Drawer de Detalhes do Pedido (Padrão Shopify Polaris) ────── */}
       <Sheet open={pedidoAberto !== null} onOpenChange={(o) => !o && setAberto(null)}>
         {pedidoAberto ? (
           <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0 border-l border-border bg-card">
-            {/* CabeÃ§alho do Drawer */}
+            {/* Cabeçalho do Drawer */}
             <div className="p-6 border-b border-border bg-secondary/15">
               <SheetHeader className="text-left space-y-2">
                 <div className="flex items-center justify-between gap-3">
@@ -1255,7 +1255,7 @@ function PedidosPage() {
               {/* 1. Stepper Visual do Ciclo do Pedido */}
               <OrderStatusStepper status={pedidoAberto.status} />
 
-              {/* 2. Card do Cliente & Contato RÃ¡pido */}
+              {/* 2. Card do Cliente & Contato Rápido */}
               <div className="rounded-2xl border border-border bg-surface p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-foreground">
@@ -1285,7 +1285,7 @@ function PedidosPage() {
                   {pedidoAberto.email && <p className="text-muted-foreground">{pedidoAberto.email}</p>}
                 </div>
 
-                {/* EndereÃ§o de Entrega */}
+                {/* Endereço de Entrega */}
                 {pedidoAberto.endereco && (
                   <div className="pt-2 border-t border-border/60">
                     <div className="flex items-start justify-between gap-2">
@@ -1298,7 +1298,7 @@ function PedidosPage() {
                         size="sm"
                         onClick={() => copiarEnderecoEtiqueta(pedidoAberto)}
                         className="h-7 px-2 text-[11px] rounded-lg shrink-0 gap-1 text-muted-foreground hover:text-foreground"
-                        title="Copiar endereÃ§o formatado para etiqueta dos Correios"
+                        title="Copiar endereço formatado para etiqueta dos Correios"
                       >
                         <Copy className="size-3" /> Copiar etiqueta
                       </Button>
@@ -1307,12 +1307,12 @@ function PedidosPage() {
                 )}
               </div>
 
-              {/* 3. Itens do Pedido com VerificaÃ§Ã£o de Estoque FÃ­sico */}
+              {/* 3. Itens do Pedido com Verificação de Estoque Físico */}
               <div className="rounded-2xl border border-border bg-surface p-4 space-y-3">
                 <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                   <span className="text-xs font-bold text-foreground flex items-center gap-2">
                     <ShoppingBag className="size-3.5 text-primary" />
-                    <span>PeÃ§as do Pedido ({pedidoAberto.itens.length})</span>
+                    <span>Peças do Pedido ({pedidoAberto.itens.length})</span>
                   </span>
                   <span className="text-xs text-muted-foreground">Valor total</span>
                 </div>
@@ -1333,14 +1333,14 @@ function PedidosPage() {
                             />
                           ) : (
                             <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-sm">
-                              ðŸ‘—
+                              👗
                             </div>
                           )}
 
                           <div className="min-w-0">
                             <p className="font-semibold text-foreground truncate">{item.nome}</p>
                             <p className="text-muted-foreground text-[11px]">
-                              Tam. {item.tamanho} â€¢ {item.cor} â€¢ Qtd: {item.qtd}
+                              Tam. {item.tamanho} • {item.cor} • Qtd: {item.qtd}
                             </p>
                             {currentStock !== null && (
                               <div className="mt-1">
@@ -1355,10 +1355,10 @@ function PedidosPage() {
                                   )}
                                 >
                                   {currentStock >= item.qtd
-                                    ? `âœ“ ${currentStock} un. em estoque`
+                                    ? `✓ ${currentStock} un. em estoque`
                                     : currentStock > 0
-                                    ? `âš ï¸ Apenas ${currentStock} un. em estoque`
-                                    : "âŒ Esgotado na grade"}
+                                    ? `⚠️ Apenas ${currentStock} un. em estoque`
+                                    : "❌ Esgotado na grade"}
                                 </span>
                               </div>
                             )}
@@ -1376,7 +1376,7 @@ function PedidosPage() {
                 {/* Subtotais & Descontos */}
                 <div className="space-y-1.5 pt-3 border-t border-border/60 text-xs">
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal das peÃ§as</span>
+                    <span>Subtotal das peças</span>
                     <span className="num-display">
                       {brl(pedidoAberto.itens.reduce((a, i) => a + i.preco * i.qtd, 0))}
                     </span>
@@ -1384,13 +1384,13 @@ function PedidosPage() {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Frete ({pedidoAberto.entrega})</span>
                     <span className="num-display">
-                      {pedidoAberto.frete > 0 ? `+ ${brl(pedidoAberto.frete)}` : "GrÃ¡tis"}
+                      {pedidoAberto.frete > 0 ? `+ ${brl(pedidoAberto.frete)}` : "Grátis"}
                     </span>
                   </div>
                   {pedidoAberto.desconto > 0 && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Cupom de desconto ({pedidoAberto.cupom ?? "PromoÃ§Ã£o"})</span>
-                      <span className="num-display text-success">âˆ’ {brl(pedidoAberto.desconto)}</span>
+                      <span>Cupom de desconto ({pedidoAberto.cupom ?? "Promoção"})</span>
+                      <span className="num-display text-success">− {brl(pedidoAberto.desconto)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border/60">
@@ -1399,19 +1399,19 @@ function PedidosPage() {
                   </div>
                 </div>
 
-                {/* Extrato ContÃ¡bil Transparente */}
+                {/* Extrato Contábil Transparente */}
                 <div className="rounded-xl border border-border/80 bg-secondary/30 p-3 space-y-1 text-xs">
                   <p className="font-semibold text-foreground text-[11px] uppercase tracking-wider">
-                    Extrato LÃ­quido no Caixa
+                    Extrato Líquido no Caixa
                   </p>
                   {pedidoAberto.taxaOperadora !== undefined && pedidoAberto.taxaOperadora > 0 ? (
                     <>
                       <div className="flex justify-between text-muted-foreground text-[11px]">
-                        <span>Taxa de processamento de cartÃ£o (3,5%)</span>
-                        <span className="text-destructive font-medium">âˆ’ {brl(pedidoAberto.taxaOperadora)}</span>
+                        <span>Taxa de processamento de cartão (3,5%)</span>
+                        <span className="text-destructive font-medium">− {brl(pedidoAberto.taxaOperadora)}</span>
                       </div>
                       <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
-                        <span>LÃ­quido a receber na conta</span>
+                        <span>Líquido a receber na conta</span>
                         <span>
                           {brl(
                             pedidoAberto.valorLiquido ??
@@ -1424,10 +1424,10 @@ function PedidosPage() {
                     <>
                       <div className="flex justify-between text-muted-foreground text-[11px]">
                         <span>Taxa de processamento ({pedidoAberto.pagamento})</span>
-                        <span className="text-emerald-600 font-medium">R$ 0,00 (GrÃ¡tis)</span>
+                        <span className="text-emerald-600 font-medium">R$ 0,00 (Grátis)</span>
                       </div>
                       <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
-                        <span>LÃ­quido a receber no Caixa</span>
+                        <span>Líquido a receber no Caixa</span>
                         <span>{brl(totalPedido(pedidoAberto))}</span>
                       </div>
                     </>
@@ -1435,7 +1435,7 @@ function PedidosPage() {
                 </div>
               </div>
 
-              {/* 4. LogÃ­stica, Envio & Rastreio */}
+              {/* 4. Logística, Envio & Rastreio */}
               <div className="rounded-2xl border border-border bg-surface p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground flex items-center gap-2">
@@ -1448,7 +1448,7 @@ function PedidosPage() {
                 {pedidoAberto.rastreio ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between rounded-xl bg-secondary/50 p-2.5">
-                      <span className="text-xs text-muted-foreground">CÃ³digo de rastreio:</span>
+                      <span className="text-xs text-muted-foreground">Código de rastreio:</span>
                       <a
                         href={`https://rastreamento.correios.com.br/app/index.php?codigo=${pedidoAberto.rastreio}`}
                         target="_blank"
@@ -1474,7 +1474,7 @@ function PedidosPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Input
-                        placeholder="Inserir cÃ³digo de rastreio (ex: BR849201773BR)"
+                        placeholder="Inserir código de rastreio (ex: BR849201773BR)"
                         value={codigoRastreio}
                         onChange={(e) => setCodigoRastreio(e.target.value)}
                         className="h-9 rounded-xl text-xs font-mono uppercase"
@@ -1492,7 +1492,7 @@ function PedidosPage() {
                 )}
               </div>
 
-              {/* 5. AÃ§Ãµes de AvanÃ§o e Gerenciamento */}
+              {/* 5. Ações de Avanço e Gerenciamento */}
               <div className="pt-2 flex flex-col gap-2.5">
                 {pedidoAberto.status !== "entregue" && pedidoAberto.status !== "cancelado" ? (
                   <Button
@@ -1505,7 +1505,7 @@ function PedidosPage() {
                       </>
                     ) : (
                       <>
-                        AvanÃ§ar para "
+                        Avançar para "
                         {
                           statusPedidoLabel[
                             fluxoStatus[
@@ -1542,11 +1542,11 @@ function PedidosPage() {
                         <AlertDialogTitle>Cancelar pedido {pedidoAberto.numero}?</AlertDialogTitle>
                         <AlertDialogDescription>
                           {pedidoAberto.status === "novo" ? (
-                            "Este pedido ainda nÃ£o foi confirmado, portanto nÃ£o alterou seu estoque nem registrou entradas no caixa. Ele serÃ¡ marcado como cancelado sem nenhum impacto financeiro."
+                            "Este pedido ainda não foi confirmado, portanto não alterou seu estoque nem registrou entradas no caixa. Ele será marcado como cancelado sem nenhum impacto financeiro."
                           ) : (
                             <>
-                              Como este pedido jÃ¡ foi confirmado, o estoque dos itens serÃ¡ devolvido Ã  grade fÃ­sica e o valor de{" "}
-                              <strong className="font-semibold text-foreground">{brl(totalPedido(pedidoAberto))}</strong> serÃ¡ registrado como estorno no Caixa.
+                              Como este pedido já foi confirmado, o estoque dos itens será devolvido à grade física e o valor de{" "}
+                              <strong className="font-semibold text-foreground">{brl(totalPedido(pedidoAberto))}</strong> será registrado como estorno no Caixa.
                             </>
                           )}
                         </AlertDialogDescription>
@@ -1569,14 +1569,14 @@ function PedidosPage() {
                         variant="ghost"
                         className="h-10 rounded-full text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                       >
-                        <Trash2 className="mr-1.5 size-3.5" /> Excluir pedido cancelado do histÃ³rico
+                        <Trash2 className="mr-1.5 size-3.5" /> Excluir pedido cancelado do histórico
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="rounded-3xl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir pedido {pedidoAberto.numero}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Este pedido jÃ¡ estÃ¡ cancelado e serÃ¡ removido permanentemente do seu histÃ³rico.
+                          Este pedido já está cancelado e será removido permanentemente do seu histórico.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -1585,7 +1585,7 @@ function PedidosPage() {
                           className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
                           onClick={() => excluirPedido(pedidoAberto.id)}
                         >
-                          Sim, excluir do histÃ³rico
+                          Sim, excluir do histórico
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -1597,7 +1597,7 @@ function PedidosPage() {
         ) : null}
       </Sheet>
 
-      {/* â”€â”€ DiÃ¡logo Guardrail de ConfirmaÃ§Ã£o com Estoque Insuficiente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Diálogo Guardrail de Confirmação com Estoque Insuficiente ────────── */}
       <AlertDialog
         open={pedidoConfirmarSemEstoque !== null}
         onOpenChange={(o) => !o && setPedidoConfirmarSemEstoque(null)}
@@ -1605,12 +1605,12 @@ function PedidosPage() {
         <AlertDialogContent className="rounded-3xl max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-display text-base">
-              <span>âš ï¸ AtenÃ§Ã£o ao estoque da peÃ§a</span>
+              <span>⚠️ Atenção ao estoque da peça</span>
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 pt-1 text-sm text-muted-foreground">
                 <p>
-                  Um ou mais itens do pedido <strong>{pedidoConfirmarSemEstoque?.numero}</strong> estÃ£o com saldo insuficiente no estoque fÃ­sico da loja:
+                  Um ou mais itens do pedido <strong>{pedidoConfirmarSemEstoque?.numero}</strong> estão com saldo insuficiente no estoque físico da loja:
                 </p>
                 <ul className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3 text-xs dark:border-amber-900/40 dark:bg-amber-950/20 space-y-1.5 text-foreground">
                   {pedidoConfirmarSemEstoque?.itens.map((it, idx) => {
@@ -1619,7 +1619,7 @@ function PedidosPage() {
                     return (
                       <li key={idx} className="flex justify-between items-center gap-2">
                         <span className="truncate">
-                          {it.nome} (Tam. {it.tamanho} â€¢ {it.qtd} un.)
+                          {it.nome} (Tam. {it.tamanho} • {it.qtd} un.)
                         </span>
                         <span
                           className={
@@ -1628,7 +1628,7 @@ function PedidosPage() {
                               : "text-muted-foreground shrink-0"
                           }
                         >
-                          {st === null ? "â€”" : st <= 0 ? "Esgotado (0 un.)" : `${st} un. em estoque`}
+                          {st === null ? "—" : st <= 0 ? "Esgotado (0 un.)" : `${st} un. em estoque`}
                         </span>
                       </li>
                     );
@@ -1659,7 +1659,7 @@ function PedidosPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* â”€â”€ DiÃ¡logo Guardrail de PeÃ§as ExcluÃ­das do CatÃ¡logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Diálogo Guardrail de Peças Excluídas do Catálogo ──────────────── */}
       <AlertDialog
         open={pedidoComPecaExcluida !== null}
         onOpenChange={(o) => !o && setPedidoComPecaExcluida(null)}
@@ -1667,24 +1667,24 @@ function PedidosPage() {
         <AlertDialogContent className="rounded-3xl max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive font-display text-base">
-              <span>âš ï¸ PeÃ§as removidas do catÃ¡logo</span>
+              <span>⚠️ Peças removidas do catálogo</span>
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 pt-1 text-sm text-muted-foreground">
                 <p>
-                  As seguintes peÃ§as do pedido <strong>{pedidoComPecaExcluida?.pedido.numero}</strong> foram
-                  removidas do estoque e nÃ£o existem mais no catÃ¡logo:
+                  As seguintes peças do pedido <strong>{pedidoComPecaExcluida?.pedido.numero}</strong> foram
+                  removidas do estoque e não existem mais no catálogo:
                 </p>
                 <ul className="rounded-2xl border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1.5 text-foreground">
                   {pedidoComPecaExcluida?.nomes.map((nome, idx) => (
                     <li key={idx} className="flex items-center gap-2">
-                      <span className="text-destructive">âœ•</span>
+                      <span className="text-destructive">✕</span>
                       <span>{nome}</span>
                     </li>
                   ))}
                 </ul>
                 <p className="text-xs">
-                  A baixa de estoque dessas peÃ§as serÃ¡ ignorada. O valor do pedido serÃ¡ lanÃ§ado normalmente no Caixa.
+                  A baixa de estoque dessas peças será ignorada. O valor do pedido será lançado normalmente no Caixa.
                   Deseja confirmar mesmo assim?
                 </p>
               </div>
