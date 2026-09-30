@@ -756,7 +756,31 @@ function PedidosPage() {
       {/* ── PageHeader Calmo (Apple / Linear Standard) ─────────────────────────── */}
       <PageHeader
         eyebrow="Vendas Online"
-        title="Pedidos"
+        title={
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span>Pedidos</span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors",
+                novosCount > 0
+                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                  : "bg-secondary/60 text-muted-foreground border-border/60",
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full shrink-0",
+                  novosCount > 0 ? "bg-amber-500 animate-pulse" : "bg-emerald-500",
+                )}
+              />
+              <span className="text-[11px] font-medium">
+                {novosCount > 0
+                  ? `${novosCount} ${novosCount === 1 ? "aguardando confirmação" : "aguardando confirmação"}`
+                  : "Tudo em dia"}
+              </span>
+            </span>
+          </div>
+        }
         description="Acompanhe vendas recebidas na vitrine, aprove para baixar o estoque e notifique clientes."
         actions={
           <div className="flex items-center gap-2">
@@ -821,7 +845,7 @@ function PedidosPage() {
 
       {/* ── Container de Gestão Calmo: Abas + Busca + Tabela de Pedidos ───────── */}
       <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
-        {/* Abas Superiores Segmentadas (Apple / Linear Standard) */}
+        {/* Abas Superiores Segmentadas (Apple / Linear Standard com Micro-Pílulas) */}
         <div className="flex items-center gap-1 overflow-x-auto p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
           {ABAS_STATUS.map((tab, idx) => {
             const active = filtroStatus === tab.valor;
@@ -839,27 +863,25 @@ function PedidosPage() {
                 <button
                   onClick={() => setFiltroStatus(tab.valor)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap",
                     active
                       ? "bg-background text-foreground font-semibold shadow-xs border border-border/60"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                   )}
                 >
                   <span>{tab.label}</span>
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.2 rounded-full text-[10.5px] font-bold transition-colors",
-                        tab.valor === "novo"
-                          ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30"
-                          : active
-                          ? "bg-secondary text-foreground font-semibold"
-                          : "bg-secondary text-muted-foreground",
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.2 rounded-full text-[10.5px] num-display transition-colors",
+                      count > 0 && tab.valor === "novo"
+                        ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold"
+                        : count > 0
+                        ? "bg-primary/10 text-primary font-bold"
+                        : "bg-secondary/70 text-muted-foreground/60 font-medium",
+                    )}
+                  >
+                    {count}
+                  </span>
                 </button>
               </div>
             );
