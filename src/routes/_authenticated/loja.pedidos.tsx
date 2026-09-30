@@ -1032,12 +1032,14 @@ function PedidosPage() {
           </div>
         ) : (
           <div>
-            {/* ── IndexTable Header (Shopify Polaris — perfeitamente alinhado) ── */}
-            <div className="hidden md:grid md:grid-cols-[1.6fr_1.2fr_1fr_auto] items-center gap-4 px-5 py-2.5 border-b border-border/50 bg-secondary/15 text-[11px] font-medium text-muted-foreground/70 tracking-wide">
-              <span>Pedido &amp; Cliente</span>
+            {/* ── IndexTable Header (Shopify Polaris 6-Colunas — Alinhamento Sub-pixel) ── */}
+            <div className="hidden md:grid md:grid-cols-[135px_1.4fr_1.2fr_1.1fr_110px_56px] items-center gap-4 px-5 py-2.5 border-b border-border/50 bg-secondary/15 text-[11px] font-medium text-muted-foreground/70 tracking-wide">
+              <span>Pedido</span>
+              <span>Cliente</span>
               <span>Itens</span>
               <span>Pagamento</span>
-              <span className="text-right min-w-[130px]">Total</span>
+              <span className="text-right">Total</span>
+              <span className="sr-only">Ações</span>
             </div>
 
             <ul className="divide-y divide-border/60">
@@ -1053,10 +1055,10 @@ function PedidosPage() {
                       setAberto(p.id);
                       setCodigoRastreio("");
                     }}
-                    className="group relative grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr_1fr_auto] items-start md:items-center gap-3 md:gap-4 p-3.5 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
+                    className="group relative grid grid-cols-1 md:grid-cols-[135px_1.4fr_1.2fr_1.1fr_110px_56px] items-start md:items-center gap-3 md:gap-4 p-3.5 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
                   >
-                    {/* Col 1: Pedido & Cliente (Desinchado e Elegante — 2 Linhas) */}
-                    <div className="flex items-center gap-3 min-w-0">
+                    {/* Col 1: Pedido (Miniatura + Número + Badge Status) */}
+                    <div className="flex items-center gap-2.5 min-w-0">
                       {primeiraFoto ? (
                         <img
                           src={primeiraFoto}
@@ -1070,29 +1072,29 @@ function PedidosPage() {
                         </div>
                       )}
 
-                      <div className="min-w-0 flex-1">
-                        {/* Linha 1: Número do Pedido + Nome do Cliente + Badge Status */}
-                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                          <span className="num-display text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                            {p.numero}
-                          </span>
-                          <span className="text-muted-foreground/40 font-normal text-xs">•</span>
-                          <span className="font-semibold text-xs text-foreground truncate max-w-[160px] sm:max-w-[200px]">
-                            {nomeClienteLimpo}
-                          </span>
+                      <div className="min-w-0 flex flex-col">
+                        <span className="num-display text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                          {p.numero}
+                        </span>
+                        <div className="mt-0.5">
                           <StatusBadge status={p.status} />
                         </div>
-
-                        {/* Linha 2: Data + Canal de Origem */}
-                        <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                          <span>{formatOrderDate(p.criadoEm)}</span>
-                          <span>•</span>
-                          <span>{p.origem === "WhatsApp" ? "WhatsApp" : "Vitrine Online"}</span>
-                        </p>
                       </div>
                     </div>
 
-                    {/* Col 2: Peças & Composição */}
+                    {/* Col 2: Cliente (Nome + Data / Origem) */}
+                    <div className="min-w-0 pl-[3.25rem] md:pl-0">
+                      <p className="font-semibold text-xs text-foreground truncate">
+                        {nomeClienteLimpo}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
+                        <span>{formatOrderDate(p.criadoEm)}</span>
+                        <span>•</span>
+                        <span>{p.origem === "WhatsApp" ? "WhatsApp" : "Vitrine"}</span>
+                      </p>
+                    </div>
+
+                    {/* Col 3: Peças & Composição */}
                     <div className="min-w-0 pl-[3.25rem] md:pl-0">
                       <p className="text-xs font-semibold text-foreground truncate">
                         {p.itens[0] ? `${p.itens[0].qtd}x ${p.itens[0].nome}` : "Nenhum item"}
@@ -1108,7 +1110,7 @@ function PedidosPage() {
                       </p>
                     </div>
 
-                    {/* Col 3: Forma & Status de Pagamento */}
+                    {/* Col 4: Forma & Status de Pagamento */}
                     <div className="min-w-0 pl-[3.25rem] md:pl-0">
                       <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                         {p.pagamento.toLowerCase().includes("pix") ? (
@@ -1131,32 +1133,31 @@ function PedidosPage() {
                       </p>
                     </div>
 
-                    {/* Col 4: Total Financeiro & Ações Rápidas */}
-                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pl-[3.25rem] md:pl-0 min-w-[130px]">
-                      <div className="text-left md:text-right">
-                        <p className="num-display text-sm font-bold text-foreground">
-                          {brl(totalPedido(p))}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grátis"}
-                        </p>
-                      </div>
+                    {/* Col 5: Total Financeiro (Cravado exatamente abaixo do cabeçalho Total) */}
+                    <div className="text-left md:text-right pl-[3.25rem] md:pl-0">
+                      <p className="num-display text-sm font-bold text-foreground">
+                        {brl(totalPedido(p))}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grátis"}
+                      </p>
+                    </div>
 
-                      <div className="flex items-center gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                          title="Enviar mensagem no WhatsApp"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            avisarWhatsApp(p, p.rastreio ? "rastreio" : "padrao");
-                          }}
-                        >
-                          <MessageCircle className="size-4" />
-                        </Button>
-                        <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
-                      </div>
+                    {/* Col 6: Ações Rápidas (WhatsApp + Chevron isolados de Total) */}
+                    <div className="flex items-center justify-end gap-0.5 pl-[3.25rem] md:pl-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        title="Enviar mensagem no WhatsApp"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          avisarWhatsApp(p, p.rastreio ? "rastreio" : "padrao");
+                        }}
+                      >
+                        <MessageCircle className="size-4" />
+                      </Button>
+                      <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </li>
                 );
