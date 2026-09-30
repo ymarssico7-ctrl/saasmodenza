@@ -39,7 +39,6 @@ import { inventoryQuery } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/loja/page-header";
-import { StatCard } from "@/components/stat-card";
 import { StatusBadge, Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -240,6 +239,7 @@ function PedidosPage() {
   const [filtroStatus, setFiltroStatus] = useState<StatusPedido | "todos">("todos");
   const [busca, setBusca] = useState("");
   const [filtroPagamento, setFiltroPagamento] = useState("todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<"todos" | "hoje" | "7dias" | "mes" | "data_custom">("todos");
   const [filtroData, setFiltroData] = useState("");
 
   const [aberto, setAberto] = useState<string | null>(null);
@@ -436,22 +436,13 @@ function PedidosPage() {
     localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
   };
 
-  // KPIs Dinâmicos de Alto Nível (Shopify Cockpit)
-  const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+  // KPIs Dinâmicos de Alto Nível (Shopify Cockpit Operacional)
   const novosCount = useMemo(() => lista.filter((p) => p.status === "novo").length, [lista]);
   const separacaoCount = useMemo(
     () => lista.filter((p) => p.status === "confirmado" || p.status === "em_separacao").length,
     [lista],
   );
   const enviadosCount = useMemo(() => lista.filter((p) => p.status === "enviado").length, [lista]);
-
-  const { totalMes, pedidosMesCount } = useMemo(() => {
-    const pedidosMes = lista.filter(
-      (p) => p.status !== "cancelado" && p.criadoEm.slice(0, 7) === currentMonthPrefix,
-    );
-    const sum = pedidosMes.reduce((acc, p) => acc + totalPedido(p), 0);
-    return { totalMes: sum, pedidosMesCount: pedidosMes.length };
-  }, [lista, currentMonthPrefix]);
 
   // Filtros aplicados de busca e status
   const visiveis = useMemo(() => {
@@ -468,8 +459,19 @@ function PedidosPage() {
         if (filtroPagamento === "dinheiro" && !pag.includes("dinheiro")) return false;
       }
 
-      // 3. Filtro por data
-      if (filtroData && p.criadoEm.slice(0, 10) !== filtroData) return false;
+      // 3. Filtro por período
+      if (filtroPeriodo === "hoje") {
+        const hojeStr = new Date().toISOString().slice(0, 10);
+        if (p.criadoEm.slice(0, 10) !== hojeStr) return false;
+      } else if (filtroPeriodo === "7dias") {
+        const seteDiasAtras = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+        if (p.criadoEm.slice(0, 10) < seteDiasAtras) return false;
+      } else if (filtroPeriodo === "mes") {
+        const mesAtual = new Date().toISOString().slice(0, 7);
+        if (p.criadoEm.slice(0, 7) !== mesAtual) return false;
+      } else if (filtroPeriodo === "data_custom" && filtroData) {
+        if (p.criadoEm.slice(0, 10) !== filtroData) return false;
+      }
 
       // 4. Busca textual universal (nome, telefone, número do pedido ou item)
       if (busca.trim()) {
@@ -483,7 +485,7 @@ function PedidosPage() {
 
       return true;
     });
-  }, [lista, filtroStatus, filtroPagamento, filtroData, busca]);
+  }, [lista, filtroStatus, filtroPagamento, filtroPeriodo, filtroData, busca]);
 
   const pedidoAberto = lista.find((p) => p.id === aberto) ?? null;
 
@@ -742,7 +744,7 @@ function PedidosPage() {
   const vitrineUrl = store?.slug ? `https://${store.slug}.modaly.com.br` : "/vitrine";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ── PageHeader Padronizado Shopify ───────────────────────────────────── */}
       <PageHeader
         eyebrow="Vendas da Loja"
@@ -797,34 +799,120 @@ function PedidosPage() {
         }
       />
 
-      {/* ── Cockpit Operacional (4 KPIs de Ação Imediata) ────────────────────── */}
-      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="A Confirmar"
-          value={String(novosCount)}
-          tone={novosCount > 0 ? "warning" : "default"}
-          hint={novosCount > 0 ? "⚠️ Aguardando aprovação para baixar estoque" : "Nenhum pedido novo pendente"}
-          icon={<Clock className="size-4" />}
-        />
-        <StatCard
-          label="Em Separação"
-          value={String(separacaoCount)}
-          hint={separacaoCount > 0 ? "Prontos para embalar e etiquetar" : "Fila de separação limpa"}
-          icon={<Layers className="size-4" />}
-        />
-        <StatCard
-          label="A Caminho"
-          value={String(enviadosCount)}
-          hint={enviadosCount > 0 ? "Pacotes em trânsito com a cliente" : "Nenhum pacote em trânsito"}
-          icon={<Truck className="size-4" />}
-        />
-        <StatCard
-          label="Faturamento Online (Mês)"
-          value={brl(totalMes)}
-          tone="primary"
-          hint={`${pedidosMesCount} ${pedidosMesCount === 1 ? "venda confirmada" : "vendas confirmadas"} este mês`}
-          icon={<Wallet className="size-4" />}
-        />
+      {/* ── Cockpit Operacional Compacto (3 Mini-Cards Clicáveis ~74px) ───── */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {/* Card 1: A Confirmar */}
+        <button
+          type="button"
+          onClick={() => setFiltroStatus(filtroStatus === "novo" ? "todos" : "novo")}
+          className={cn(
+            "flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left group",
+            filtroStatus === "novo"
+              ? "bg-amber-500/10 border-amber-500/40 shadow-sm ring-1 ring-amber-500/20"
+              : "bg-card border-border hover:border-amber-500/30 hover:bg-secondary/40 shadow-2xs",
+          )}
+        >
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
+                A Confirmar
+              </span>
+              {novosCount > 0 && (
+                <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
+              )}
+            </div>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="num-display text-xl font-bold text-foreground">
+                {novosCount}
+              </span>
+              <span className="text-[11px] text-muted-foreground truncate">
+                {novosCount > 0 ? "aguardando aprovação" : "tudo conferido"}
+              </span>
+            </div>
+          </div>
+          <div
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-xl transition-all",
+              filtroStatus === "novo"
+                ? "bg-amber-500 text-white shadow-2xs"
+                : "bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-105",
+            )}
+          >
+            <Clock className="size-4" />
+          </div>
+        </button>
+
+        {/* Card 2: Em Separação */}
+        <button
+          type="button"
+          onClick={() => setFiltroStatus(filtroStatus === "em_separacao" ? "todos" : "em_separacao")}
+          className={cn(
+            "flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left group",
+            filtroStatus === "em_separacao"
+              ? "bg-primary/10 border-primary/40 shadow-sm ring-1 ring-primary/20"
+              : "bg-card border-border hover:border-primary/30 hover:bg-secondary/40 shadow-2xs",
+          )}
+        >
+          <div className="min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
+              Em Separação
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="num-display text-xl font-bold text-foreground">
+                {separacaoCount}
+              </span>
+              <span className="text-[11px] text-muted-foreground truncate">
+                {separacaoCount > 0 ? "para embalar" : "fila limpa"}
+              </span>
+            </div>
+          </div>
+          <div
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-xl transition-all",
+              filtroStatus === "em_separacao"
+                ? "bg-primary text-white shadow-2xs"
+                : "bg-primary/10 text-primary group-hover:scale-105",
+            )}
+          >
+            <Layers className="size-4" />
+          </div>
+        </button>
+
+        {/* Card 3: A Caminho */}
+        <button
+          type="button"
+          onClick={() => setFiltroStatus(filtroStatus === "enviado" ? "todos" : "enviado")}
+          className={cn(
+            "flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left group",
+            filtroStatus === "enviado"
+              ? "bg-indigo-500/10 border-indigo-500/40 shadow-sm ring-1 ring-indigo-500/20"
+              : "bg-card border-border hover:border-indigo-500/30 hover:bg-secondary/40 shadow-2xs",
+          )}
+        >
+          <div className="min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
+              A Caminho
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="num-display text-xl font-bold text-foreground">
+                {enviadosCount}
+              </span>
+              <span className="text-[11px] text-muted-foreground truncate">
+                {enviadosCount > 0 ? "em trânsito" : "nenhum envio"}
+              </span>
+            </div>
+          </div>
+          <div
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-xl transition-all",
+              filtroStatus === "enviado"
+                ? "bg-indigo-500 text-white shadow-2xs"
+                : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-105",
+            )}
+          >
+            <Truck className="size-4" />
+          </div>
+        </button>
       </div>
 
       {/* ── Container de Gestão: Abas + Barra de Busca + Tabela de Pedidos ───── */}
@@ -891,7 +979,7 @@ function PedidosPage() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Filtro de Pagamento */}
             <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
-              <SelectTrigger className="h-10 w-[150px] text-xs rounded-xl bg-background border-border">
+              <SelectTrigger className="h-10 w-[140px] text-xs rounded-xl bg-background border-border">
                 <SelectValue placeholder="Pagamento" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -902,23 +990,50 @@ function PedidosPage() {
               </SelectContent>
             </Select>
 
-            {/* Filtro de Data */}
-            <Input
-              type="date"
-              value={filtroData}
-              onChange={(e) => setFiltroData(e.target.value)}
-              className="h-10 w-auto text-xs rounded-xl bg-background border-border"
-              title="Filtrar por data do pedido"
-            />
+            {/* Filtro de Período Shopify Style */}
+            <Select
+              value={filtroPeriodo}
+              onValueChange={(val: "todos" | "hoje" | "7dias" | "mes" | "data_custom") => {
+                setFiltroPeriodo(val);
+                if (val !== "data_custom") setFiltroData("");
+              }}
+            >
+              <SelectTrigger className="h-10 w-[145px] text-xs rounded-xl bg-background border-border">
+                <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="todos">Todo o período</SelectItem>
+                <SelectItem value="hoje">Hoje</SelectItem>
+                <SelectItem value="7dias">Últimos 7 dias</SelectItem>
+                <SelectItem value="mes">Este mês</SelectItem>
+                <SelectItem value="data_custom">Data específica...</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* Limpar filtros */}
-            {(busca || filtroPagamento !== "todos" || filtroData || filtroStatus !== "todos") && (
+            {/* Input de Data Personalizada (visível somente se selecionar data específica) */}
+            {filtroPeriodo === "data_custom" && (
+              <Input
+                type="date"
+                value={filtroData}
+                onChange={(e) => setFiltroData(e.target.value)}
+                className="h-10 w-auto text-xs rounded-xl bg-background border-border animate-in fade-in zoom-in-95 duration-150"
+                title="Escolha a data do pedido"
+              />
+            )}
+
+            {/* Limpar filtros se houver algum ativo */}
+            {(busca ||
+              filtroPagamento !== "todos" ||
+              filtroPeriodo !== "todos" ||
+              filtroStatus !== "todos") && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setBusca("");
                   setFiltroPagamento("todos");
+                  setFiltroPeriodo("todos");
                   setFiltroData("");
                   setFiltroStatus("todos");
                 }}
@@ -977,11 +1092,11 @@ function PedidosPage() {
 
                   <button
                     onClick={gerarPedidoTeste}
-                    className="p-3.5 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-xs group cursor-pointer text-left"
+                    className="p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-xs group cursor-pointer text-left"
                   >
-                    <div className="flex items-center justify-between text-primary font-bold mb-1">
+                    <div className="flex items-center justify-between text-primary font-semibold mb-1">
                       <span>Simular pedido</span>
-                      <Sparkles className="size-3.5 text-primary" />
+                      <Sparkles className="size-3.5 opacity-60 group-hover:opacity-100 text-primary" />
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-snug">Crie 1 pedido de teste para ver o fluxo.</p>
                   </button>
@@ -1002,6 +1117,7 @@ function PedidosPage() {
                   onClick={() => {
                     setBusca("");
                     setFiltroPagamento("todos");
+                    setFiltroPeriodo("todos");
                     setFiltroData("");
                     setFiltroStatus("todos");
                   }}
