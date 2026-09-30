@@ -239,6 +239,17 @@ function OrderStatusStepper({ status }: { status: StatusPedido }) {
   );
 }
 
+function isPedidoSimulado(p: Pedido | null | undefined): boolean {
+  if (!p) return false;
+  return (
+    Boolean(p.isSimulacao) ||
+    p.id.startsWith("demo_") ||
+    p.id.startsWith("teste_") ||
+    p.cliente.toLowerCase().includes("demonstração") ||
+    p.cliente.toLowerCase().includes("demonstracao")
+  );
+}
+
 function PedidosPage() {
   const { storeId, store } = useStore();
   const queryClient = useQueryClient();
@@ -254,6 +265,7 @@ function PedidosPage() {
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [sincronizando, setSincronizando] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [versaoLocal, setVersaoLocal] = useState(0);
   const POR_PAGINA = 10;
   const [pedidoConfirmarSemEstoque, setPedidoConfirmarSemEstoque] = useState<Pedido | null>(null);
   const [pedidoComPecaExcluida, setPedidoComPecaExcluida] = useState<{ pedido: Pedido; nomes: string[] } | null>(null);
@@ -440,10 +452,11 @@ function PedidosPage() {
     } catch {
       return doBanco;
     }
-  }, [dbOrders, storeId]);
+  }, [dbOrders, storeId, versaoLocal]);
 
   const persistir = (novaLista: Pedido[]) => {
     localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
+    setVersaoLocal((v) => v + 1);
   };
 
   // KPIs Dinâmicos de Alto Nível (Shopify Cockpit Operacional)
@@ -514,23 +527,35 @@ function PedidosPage() {
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
     const proximo = fluxoStatus[atual + 1]!;
 
-    try {
-      const payload: { status: StatusPedido; payment_status?: string } = {
-        status: proximo,
-      };
-      if (proximo === "confirmado") {
-        payload.payment_status = "pago";
+    const isSimulacao = isPedidoSimulado(pedido);
+
+    if (!isSimulacao) {
+      try {
+        const payload: { status: StatusPedido; payment_status?: string } = {
+          status: proximo,
+        };
+        if (proximo === "confirmado") {
+          payload.payment_status = "pago";
+        }
+        await supabase.from("orders").update(payload).eq("id", pedido.id);
+        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+      } catch (err) {
+        console.error("Erro ao atualizar status no Supabase:", err);
       }
-      await supabase.from("orders").update(payload).eq("id", pedido.id);
-      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-    } catch (err) {
-      console.error("Erro ao atualizar status no Supabase:", err);
     }
 
     const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
     persistir(novaLista);
 
     if (pedido.status === "novo" && proximo === "confirmado") {
+      if (isSimulacao) {
+        toast.success("🧪 [Simulação] Pedido aprovado!", {
+          description: "Fluxo simulado: em uma venda real, a peça seria baixada e o valor lançado no Caixa.",
+          duration: 5000,
+        });
+        return;
+      }
+
       if (pedido.itens?.length) {
         const deducoes = pedido.itens.map((item) =>
           adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
@@ -560,13 +585,25 @@ function PedidosPage() {
         duration: 5000,
       });
     } else {
-      toast.success(`Status atualizado para "${statusPedidoLabel[proximo]}"`, {
-        description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
-      });
+      toast.success(
+        isSimulacao
+          ? `🧪 [Simulação] Status avançado para "${statusPedidoLabel[proximo]}"`
+          : `Status atualizado para "${statusPedidoLabel[proximo]}"`,
+        {
+          description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
+        },
+      );
     }
   };
 
   const tentarAvancarStatus = (pedido: Pedido) => {
+    // 🧪 Modo Simulação: avanço 100% livre sem travar em estoque do BD
+    if (isPedidoSimulado(pedido)) {
+      void executarAvancoStatus(pedido);
+      setAberto(null);
+      return;
+    }
+
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     const proximo = fluxoStatus[atual + 1];
     if (pedido.status === "novo" && proximo === "confirmado" && pedido.itens?.length) {
@@ -595,23 +632,31 @@ function PedidosPage() {
     const pedido = lista.find((p) => p.id === id);
     if (!pedido) return;
     const statusAnterior = pedido.status;
+    const isSimulacao = isPedidoSimulado(pedido);
 
-    try {
-      await supabase
-        .from("orders")
-        .update({
-          status: "cancelado",
-          payment_status: "cancelado",
-        })
-        .eq("id", id);
-      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-    } catch (err) {
-      console.error("Erro ao cancelar no Supabase:", err);
+    if (!isSimulacao) {
+      try {
+        await supabase
+          .from("orders")
+          .update({
+            status: "cancelado",
+            payment_status: "cancelado",
+          })
+          .eq("id", id);
+        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+      } catch (err) {
+        console.error("Erro ao cancelar no Supabase:", err);
+      }
     }
 
     const novaLista = lista.map((p) => (p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p));
     persistir(novaLista);
     setAberto(null);
+
+    if (isSimulacao) {
+      toast.info(`🧪 [Simulação] Pedido ${pedido.numero} cancelado (sem impacto no banco).`);
+      return;
+    }
 
     if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
       if (pedido.itens?.length) {
@@ -642,17 +687,21 @@ function PedidosPage() {
 
   const excluirPedido = async (id: string) => {
     const pedido = lista.find((p) => p.id === id);
-    try {
-      await supabase.from("orders").delete().eq("id", id);
-      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-    } catch (err) {
-      console.error("Erro ao excluir do Supabase:", err);
+    const isSimulacao = isPedidoSimulado(pedido);
+
+    if (!isSimulacao) {
+      try {
+        await supabase.from("orders").delete().eq("id", id);
+        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+      } catch (err) {
+        console.error("Erro ao excluir do Supabase:", err);
+      }
     }
     const novaLista = lista.filter((p) => p.id !== id);
     persistir(novaLista);
     setAberto(null);
     toast.success("Pedido excluído do histórico", {
-      description: pedido ? `Pedido ${pedido.numero} removido.` : undefined,
+      description: pedido ? `Pedido ${pedido.numero} removido instantaneamente.` : undefined,
     });
   };
 
@@ -662,12 +711,16 @@ function PedidosPage() {
       return;
     }
     const cod = codigoRastreio.trim().toUpperCase();
+    const pedido = lista.find((p) => p.id === pedidoId);
+    const isSimulacao = isPedidoSimulado(pedido);
 
-    try {
-      await supabase.from("orders").update({ tracking_code: cod }).eq("id", pedidoId);
-      void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-    } catch (err) {
-      console.error("Erro ao salvar rastreio no Supabase:", err);
+    if (!isSimulacao) {
+      try {
+        await supabase.from("orders").update({ tracking_code: cod }).eq("id", pedidoId);
+        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+      } catch (err) {
+        console.error("Erro ao salvar rastreio no Supabase:", err);
+      }
     }
 
     const novaLista = lista.map((p) => (p.id === pedidoId ? { ...p, rastreio: cod } : p));
@@ -736,7 +789,7 @@ function PedidosPage() {
     const novoPedido: Pedido = {
       id: `demo_${Date.now()}`,
       numero,
-      cliente: "Mariana Alvarenga (Demonstração)",
+      cliente: "Mariana Alvarenga",
       telefone: "(31) 99876-5432",
       email: "mariana.alvarenga@email.com",
       cidade: "Belo Horizonte",
@@ -751,6 +804,7 @@ function PedidosPage() {
       taxaOperadora: 0,
       valorLiquido: itemExemplo.preco * itemExemplo.qtd + 14.0,
       itens: [itemExemplo],
+      isSimulacao: true,
     };
 
     const novaLista = [novoPedido, ...lista];
@@ -899,7 +953,7 @@ function PedidosPage() {
           <div className="flex items-center gap-2 shrink-0">
             {/* Filtro de Pagamento */}
             <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
-              <SelectTrigger className="h-9 sm:h-9.5 w-[145px] text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
+              <SelectTrigger className="h-9 sm:h-9.5 min-w-[165px] w-auto px-3.5 text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
                 <SelectValue placeholder="Pagamento" />
               </SelectTrigger>
               <SelectContent className="rounded-xl shadow-lifted">
@@ -918,7 +972,7 @@ function PedidosPage() {
                 if (val !== "data_custom") setFiltroData("");
               }}
             >
-              <SelectTrigger className="h-9 sm:h-9.5 w-[135px] text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
+              <SelectTrigger className="h-9 sm:h-9.5 min-w-[160px] w-auto px-3.5 text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border shrink-0">
                 <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground/60 shrink-0" />
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
@@ -1073,9 +1127,16 @@ function PedidosPage() {
                       )}
 
                       <div className="min-w-0 flex flex-col">
-                        <span className="num-display text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                          {p.numero}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="num-display text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                            {p.numero}
+                          </span>
+                          {isPedidoSimulado(p) && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              🧪 Simulação
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-0.5">
                           <StatusBadge status={p.status} />
                         </div>
@@ -1221,6 +1282,11 @@ function PedidosPage() {
                       {pedidoAberto.numero}
                     </span>
                     <StatusBadge status={pedidoAberto.status} />
+                    {isPedidoSimulado(pedidoAberto) && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                        🧪 Simulação
+                      </span>
+                    )}
                   </div>
                   <Tag tone={pedidoAberto.origem === "WhatsApp" ? "success" : "primary"}>
                     {pedidoAberto.origem === "WhatsApp" ? "WhatsApp" : "Vitrine Online"}
@@ -1233,6 +1299,18 @@ function PedidosPage() {
             </div>
 
             <div className="space-y-5 p-6">
+              {isPedidoSimulado(pedidoAberto) && (
+                <div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-xs text-amber-900 dark:text-amber-200">
+                  <Sparkles className="size-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold">Modo de Prática / Simulação Ativo</p>
+                    <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+                      Você pode avançar todo o fluxo livremente. Este pedido de teste não altera o estoque físico nem registra entradas no seu Caixa real.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* 1. Stepper Visual do Ciclo do Pedido */}
               <OrderStatusStepper status={pedidoAberto.status} />
 

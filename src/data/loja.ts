@@ -66,6 +66,7 @@ export type Pedido = {
   email?: string | undefined;
   taxaOperadora?: number | undefined;
   valorLiquido?: number | undefined;
+  isSimulacao?: boolean | undefined;
   itens: {
     produtoId: string;
     nome: string;
