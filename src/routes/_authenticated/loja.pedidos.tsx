@@ -799,121 +799,24 @@ function PedidosPage() {
         }
       />
 
-      {/* ── Cockpit Operacional Compacto (3 Mini-Cards Clicáveis ~74px) ───── */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {/* Card 1: A Confirmar */}
-        <button
-          type="button"
-          onClick={() => setFiltroStatus(filtroStatus === "novo" ? "todos" : "novo")}
-          className={cn(
-            "flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left group",
-            filtroStatus === "novo"
-              ? "bg-amber-500/10 border-amber-500/40 shadow-sm ring-1 ring-amber-500/20"
-              : "bg-card border-border hover:border-amber-500/30 hover:bg-secondary/40 shadow-2xs",
-          )}
-        >
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
-                A Confirmar
-              </span>
-              {novosCount > 0 && (
-                <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
-              )}
-            </div>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="num-display text-xl font-bold text-foreground">
-                {novosCount}
-              </span>
-              <span className="text-[11px] text-muted-foreground truncate">
-                {novosCount > 0 ? "aguardando aprovação" : "tudo conferido"}
-              </span>
-            </div>
-          </div>
-          <div
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-xl transition-all",
-              filtroStatus === "novo"
-                ? "bg-amber-500 text-white shadow-2xs"
-                : "bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-105",
-            )}
-          >
-            <Clock className="size-4" />
-          </div>
-        </button>
-
-        {/* Card 2: Em Separação */}
-        <button
-          type="button"
-          onClick={() => setFiltroStatus(filtroStatus === "em_separacao" ? "todos" : "em_separacao")}
-          className={cn(
-            "flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left group",
-            filtroStatus === "em_separacao"
-              ? "bg-primary/10 border-primary/40 shadow-sm ring-1 ring-primary/20"
-              : "bg-card border-border hover:border-primary/30 hover:bg-secondary/40 shadow-2xs",
-          )}
-        >
-          <div className="min-w-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
-              Em Separação
+      {/* ── Banner Operacional Shopify (Ativo apenas quando houver novos pedidos) ── */}
+      {novosCount > 0 && (
+        <div className="flex items-center justify-between gap-3 p-3 px-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs shadow-2xs">
+          <div className="flex items-center gap-2.5 text-amber-800 dark:text-amber-300 font-medium">
+            <Clock className="size-4 shrink-0 text-amber-600 animate-pulse" />
+            <span>
+              Você tem <strong>{novosCount} {novosCount === 1 ? "novo pedido" : "novos pedidos"}</strong> aguardando confirmação para baixar estoque e lançar no caixa.
             </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="num-display text-xl font-bold text-foreground">
-                {separacaoCount}
-              </span>
-              <span className="text-[11px] text-muted-foreground truncate">
-                {separacaoCount > 0 ? "para embalar" : "fila limpa"}
-              </span>
-            </div>
           </div>
-          <div
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-xl transition-all",
-              filtroStatus === "em_separacao"
-                ? "bg-primary text-white shadow-2xs"
-                : "bg-primary/10 text-primary group-hover:scale-105",
-            )}
+          <button
+            type="button"
+            onClick={() => setFiltroStatus("novo")}
+            className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline shrink-0 cursor-pointer"
           >
-            <Layers className="size-4" />
-          </div>
-        </button>
-
-        {/* Card 3: A Caminho */}
-        <button
-          type="button"
-          onClick={() => setFiltroStatus(filtroStatus === "enviado" ? "todos" : "enviado")}
-          className={cn(
-            "flex items-center justify-between p-3 sm:px-4 sm:py-2.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left group",
-            filtroStatus === "enviado"
-              ? "bg-indigo-500/10 border-indigo-500/40 shadow-sm ring-1 ring-indigo-500/20"
-              : "bg-card border-border hover:border-indigo-500/30 hover:bg-secondary/40 shadow-2xs",
-          )}
-        >
-          <div className="min-w-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
-              A Caminho
-            </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="num-display text-xl font-bold text-foreground">
-                {enviadosCount}
-              </span>
-              <span className="text-[11px] text-muted-foreground truncate">
-                {enviadosCount > 0 ? "em trânsito" : "nenhum envio"}
-              </span>
-            </div>
-          </div>
-          <div
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-xl transition-all",
-              filtroStatus === "enviado"
-                ? "bg-indigo-500 text-white shadow-2xs"
-                : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:scale-105",
-            )}
-          >
-            <Truck className="size-4" />
-          </div>
-        </button>
-      </div>
+            Ver pedidos pendentes →
+          </button>
+        </div>
+      )}
 
       {/* ── Container de Gestão: Abas + Barra de Busca + Tabela de Pedidos ───── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
@@ -979,7 +882,7 @@ function PedidosPage() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Filtro de Pagamento */}
             <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
-              <SelectTrigger className="h-10 w-[140px] text-xs rounded-xl bg-background border-border">
+              <SelectTrigger className="h-10 min-w-[165px] text-xs rounded-xl bg-background border-border">
                 <SelectValue placeholder="Pagamento" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1047,11 +950,11 @@ function PedidosPage() {
 
         {/* ── Tabela de Pedidos / Empty State ───────────────────────────────── */}
         {visiveis.length === 0 ? (
-          <div className="p-8 sm:p-12 text-center">
+          <div className="py-8 px-4 sm:py-10 sm:px-6 text-center">
             {lista.length === 0 ? (
-              <div className="max-w-md mx-auto space-y-5">
-                <div className="mx-auto flex size-14 items-center justify-center rounded-3xl border border-primary/20 bg-primary/10 text-primary">
-                  <PackageSearch className="size-7" />
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <PackageSearch className="size-6" />
                 </div>
                 <div className="space-y-1.5">
                   <h3 className="text-base font-semibold text-foreground">Sua central de pedidos está pronta</h3>
