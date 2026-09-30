@@ -775,7 +775,7 @@ function PedidosPage() {
               />
               <span className="text-[11px] font-medium">
                 {novosCount > 0
-                  ? `${novosCount} ${novosCount === 1 ? "aguardando confirmação" : "aguardando confirmação"}`
+                  ? `${novosCount} ${novosCount === 1 ? "pendente" : "pendentes"}`
                   : "Tudo em dia"}
               </span>
             </span>
@@ -1056,25 +1056,24 @@ function PedidosPage() {
                     setAberto(p.id);
                     setCodigoRastreio("");
                   }}
-                  className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
+                  className="group relative grid grid-cols-1 md:grid-cols-[1.8fr_1.2fr_1fr_1fr] items-start md:items-center gap-3 md:gap-4 p-4 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
                 >
-                  {/* Bloco 1: Pedido + Cliente + Avatar */}
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                    {/* Miniatura do produto ou Avatar com iniciais */}
+                  {/* Col 1: Pedido & Cliente & Miniatura */}
+                  <div className="flex items-center gap-3.5 min-w-0">
                     {primeiraFoto ? (
                       <img
                         src={primeiraFoto}
                         alt={p.itens[0]?.nome ?? "Produto"}
                         loading="lazy"
-                        className="size-11 shrink-0 rounded-2xl object-cover border border-border/80 shadow-2xs"
+                        className="aspect-square size-12 shrink-0 rounded-xl object-cover border border-border/80 shadow-2xs"
                       />
                     ) : (
-                      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-foreground font-bold text-xs border border-border">
+                      <div className="flex aspect-square size-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground font-bold text-xs border border-border">
                         {p.cliente.slice(0, 2).toUpperCase()}
                       </div>
                     )}
 
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="num-display text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                           {p.numero}
@@ -1100,48 +1099,61 @@ function PedidosPage() {
                     </div>
                   </div>
 
-                  {/* Bloco 2: Itens + Pagamento + Valores */}
-                  <div className="flex items-center justify-between md:justify-end gap-5 shrink-0 pl-14 md:pl-0">
-                    {/* Resumo de Peças */}
-                    <div className="hidden lg:block text-right max-w-[200px]">
-                      <p className="text-xs font-medium text-foreground truncate">
-                        {p.itens[0]?.nome}
-                        {p.itens.length > 1 ? ` +${p.itens.length - 1}` : ""}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {totalQtd} {totalQtd === 1 ? "peça" : "peças"}
-                      </p>
-                    </div>
+                  {/* Col 2: Peças & Composição do Carrinho (Alinhado à Esquerda) */}
+                  <div className="min-w-0 pl-[3.875rem] md:pl-0">
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      {p.itens[0] ? `${p.itens[0].qtd}x ${p.itens[0].nome}` : "Nenhum item"}
+                      {p.itens.length > 1
+                        ? ` +${p.itens.length - 1} ${p.itens.length === 2 ? "outro" : "outros"}`
+                        : ""}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {p.itens[0]?.tamanho ? `Tam: ${p.itens[0].tamanho}` : ""}
+                      {p.itens[0]?.tamanho && p.itens[0]?.cor ? " • " : ""}
+                      {p.itens[0]?.cor ? `Cor: ${p.itens[0].cor}` : ""}
+                      {` • ${totalQtd} ${totalQtd === 1 ? "peça" : "peças"}`}
+                    </p>
+                  </div>
 
-                    {/* Forma de Pagamento */}
-                    <div className="text-right">
-                      <div className="flex items-center gap-1.5 justify-end text-xs font-medium text-foreground">
-                        {p.pagamento.toLowerCase().includes("pix") ? (
-                          <QrCode className="size-3.5 text-emerald-500" />
-                        ) : (
-                          <CreditCard className="size-3.5 text-indigo-500" />
+                  {/* Col 3: Forma & Status de Pagamento */}
+                  <div className="min-w-0 pl-[3.875rem] md:pl-0">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      {p.pagamento.toLowerCase().includes("pix") ? (
+                        <QrCode className="size-3.5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <CreditCard className="size-3.5 text-indigo-500 shrink-0" />
+                      )}
+                      <span className="truncate">{p.pagamento}</span>
+                    </div>
+                    <p className="text-[10.5px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full shrink-0",
+                          p.status === "novo" ? "bg-amber-500" : "bg-emerald-500",
                         )}
-                        <span>{p.pagamento}</span>
-                      </div>
-                      <p className="text-[10.5px] text-muted-foreground">
+                      />
+                      <span className="truncate">
                         {p.status === "novo" ? "Aguardando confirmação" : "Recebimento confirmado"}
-                      </p>
-                    </div>
+                      </span>
+                    </p>
+                  </div>
 
-                    {/* Total em Destaque */}
-                    <div className="text-right min-w-[90px]">
-                      <p className="num-display text-sm font-bold text-foreground">{brl(totalPedido(p))}</p>
+                  {/* Col 4: Total Financeiro & Ações Rápidas */}
+                  <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pl-[3.875rem] md:pl-0">
+                    <div className="text-left md:text-right">
+                      <p className="num-display text-sm font-bold text-foreground">
+                        {brl(totalPedido(p))}
+                      </p>
                       <p className="text-[10px] text-muted-foreground">
                         {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grátis"}
                       </p>
                     </div>
 
-                    {/* Ação Rápida WhatsApp no Hover */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-9 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        className="size-8.5 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                         title="Enviar mensagem no WhatsApp"
                         onClick={(e) => {
                           e.stopPropagation();
