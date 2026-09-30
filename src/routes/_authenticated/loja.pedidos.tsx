@@ -767,17 +767,8 @@ function PedidosPage() {
       {/* ── PageHeader Calmo (Apple / Linear Standard) ─────────────────────────── */}
       <PageHeader
         eyebrow="Vendas Online"
-        title={
-          <div className="flex flex-wrap items-center gap-3">
-            <span>Pedidos</span>
-            {novosCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-amber-500 text-white text-[11px] font-bold num-display leading-none shadow-sm">
-                {novosCount}
-              </span>
-            )}
-          </div>
-        }
-        description="Acompanhe vendas recebidas na vitrine, aprove para baixar o estoque e notifique clientes."
+        title="Pedidos"
+        description="Acompanhe e despache os pedidos da sua vitrine online e WhatsApp com tranquilidade."
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -1041,26 +1032,19 @@ function PedidosPage() {
           </div>
         ) : (
           <div>
-            {/* ── IndexTable Header (Shopify Polaris — visível em md+) ── */}
-            <div className="hidden md:grid md:grid-cols-[1.5fr_1.3fr_1fr_auto] items-center gap-4 px-5 py-2.5 border-b border-border/50 bg-secondary/25">
-              <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60 pl-[3.875rem]">
-                Pedido &amp; Cliente
-              </span>
-              <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Itens / Peças
-              </span>
-              <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Pagamento
-              </span>
-              <span className="text-[10.5px] font-semibold uppercase tracking-widest text-muted-foreground/60 text-right min-w-[130px]">
-                Total
-              </span>
+            {/* ── IndexTable Header (Shopify Polaris — perfeitamente alinhado) ── */}
+            <div className="hidden md:grid md:grid-cols-[1.6fr_1.2fr_1fr_auto] items-center gap-4 px-5 py-2.5 border-b border-border/50 bg-secondary/15 text-[11px] font-medium text-muted-foreground/70 tracking-wide">
+              <span>Pedido &amp; Cliente</span>
+              <span>Itens</span>
+              <span>Pagamento</span>
+              <span className="text-right min-w-[130px]">Total</span>
             </div>
 
             <ul className="divide-y divide-border/60">
               {visivelsPagina.map((p) => {
                 const primeiraFoto = p.itens[0]?.produtoId ? getProductPhoto(p.itens[0].produtoId) : null;
                 const totalQtd = p.itens.reduce((acc, it) => acc + it.qtd, 0);
+                const nomeClienteLimpo = p.cliente.replace(/\s*\(Demonstração\)/gi, "").trim();
 
                 return (
                   <li
@@ -1069,51 +1053,47 @@ function PedidosPage() {
                       setAberto(p.id);
                       setCodigoRastreio("");
                     }}
-                    className="group relative grid grid-cols-1 md:grid-cols-[1.5fr_1.3fr_1fr_auto] items-start md:items-center gap-3 md:gap-4 p-4 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
+                    className="group relative grid grid-cols-1 md:grid-cols-[1.6fr_1.2fr_1fr_auto] items-start md:items-center gap-3 md:gap-4 p-3.5 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
                   >
-                    {/* Col 1: Pedido & Cliente & Miniatura */}
-                    <div className="flex items-center gap-3.5 min-w-0">
+                    {/* Col 1: Pedido & Cliente (Desinchado e Elegante — 2 Linhas) */}
+                    <div className="flex items-center gap-3 min-w-0">
                       {primeiraFoto ? (
                         <img
                           src={primeiraFoto}
                           alt={p.itens[0]?.nome ?? "Produto"}
                           loading="lazy"
-                          className="aspect-square size-12 shrink-0 rounded-xl object-cover border border-border/80 shadow-2xs"
+                          className="aspect-square size-10 shrink-0 rounded-xl object-cover border border-border/80 shadow-2xs"
                         />
                       ) : (
-                        <div className="flex aspect-square size-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground font-bold text-xs border border-border">
-                          {p.cliente.slice(0, 2).toUpperCase()}
+                        <div className="flex aspect-square size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/80 text-muted-foreground border border-border/70">
+                          <ShoppingBag className="size-4 stroke-[1.6]" />
                         </div>
                       )}
 
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="num-display text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                        {/* Linha 1: Número do Pedido + Nome do Cliente + Badge Status */}
+                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                          <span className="num-display text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                             {p.numero}
                           </span>
+                          <span className="text-muted-foreground/40 font-normal text-xs">•</span>
+                          <span className="font-semibold text-xs text-foreground truncate max-w-[160px] sm:max-w-[200px]">
+                            {nomeClienteLimpo}
+                          </span>
                           <StatusBadge status={p.status} />
-                          <Tag tone={p.origem === "WhatsApp" ? "success" : "primary"}>
-                            {p.origem === "WhatsApp" ? "WhatsApp" : "Vitrine Online"}
-                          </Tag>
                         </div>
 
-                        <p className="mt-1 font-semibold text-xs text-foreground truncate">{p.cliente}</p>
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                        {/* Linha 2: Data + Canal de Origem */}
+                        <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
                           <span>{formatOrderDate(p.criadoEm)}</span>
                           <span>•</span>
-                          <span>{p.entrega}</span>
-                          {p.cidade && (
-                            <>
-                              <span>•</span>
-                              <span>{p.cidade}</span>
-                            </>
-                          )}
+                          <span>{p.origem === "WhatsApp" ? "WhatsApp" : "Vitrine Online"}</span>
                         </p>
                       </div>
                     </div>
 
-                    {/* Col 2: Peças & Composição do Carrinho (Alinhado à Esquerda) */}
-                    <div className="min-w-0 pl-[3.875rem] md:pl-0">
+                    {/* Col 2: Peças & Composição */}
+                    <div className="min-w-0 pl-[3.25rem] md:pl-0">
                       <p className="text-xs font-semibold text-foreground truncate">
                         {p.itens[0] ? `${p.itens[0].qtd}x ${p.itens[0].nome}` : "Nenhum item"}
                         {p.itens.length > 1
@@ -1129,7 +1109,7 @@ function PedidosPage() {
                     </div>
 
                     {/* Col 3: Forma & Status de Pagamento */}
-                    <div className="min-w-0 pl-[3.875rem] md:pl-0">
+                    <div className="min-w-0 pl-[3.25rem] md:pl-0">
                       <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                         {p.pagamento.toLowerCase().includes("pix") ? (
                           <QrCode className="size-3.5 text-emerald-500 shrink-0" />
@@ -1146,13 +1126,13 @@ function PedidosPage() {
                           )}
                         />
                         <span className="truncate">
-                          {p.status === "novo" ? "Aguardando confirmação" : "Recebimento confirmado"}
+                          {p.status === "novo" ? "Aguardando confirmação" : "Confirmado"}
                         </span>
                       </p>
                     </div>
 
                     {/* Col 4: Total Financeiro & Ações Rápidas */}
-                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pl-[3.875rem] md:pl-0 min-w-[130px]">
+                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pl-[3.25rem] md:pl-0 min-w-[130px]">
                       <div className="text-left md:text-right">
                         <p className="num-display text-sm font-bold text-foreground">
                           {brl(totalPedido(p))}
@@ -1166,7 +1146,7 @@ function PedidosPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-8.5 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                          className="size-8 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                           title="Enviar mensagem no WhatsApp"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1232,7 +1212,7 @@ function PedidosPage() {
         {pedidoAberto ? (
           <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0 border-l border-border bg-card">
             {/* Cabeçalho do Drawer */}
-            <div className="p-6 border-b border-border bg-secondary/15">
+            <div className="p-6 pr-12 border-b border-border bg-secondary/15">
               <SheetHeader className="text-left space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
