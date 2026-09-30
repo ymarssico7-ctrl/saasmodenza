@@ -795,83 +795,217 @@ function PedidosPage() {
                 <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Configurações
               </Link>
             </Button>
+
+            <Button
+              onClick={gerarPedidoTeste}
+              size="sm"
+              className="h-10 rounded-full bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 text-xs font-semibold shadow-2xs transition-all"
+            >
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Simular Pedido
+            </Button>
           </div>
         }
       />
 
-      {/* ── Banner Operacional Shopify (Ativo apenas quando houver novos pedidos) ── */}
-      {novosCount > 0 && (
-        <div className="flex items-center justify-between gap-3 p-3 px-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs shadow-2xs">
-          <div className="flex items-center gap-2.5 text-amber-800 dark:text-amber-300 font-medium">
-            <Clock className="size-4 shrink-0 text-amber-600 animate-pulse" />
-            <span>
-              Você tem <strong>{novosCount} {novosCount === 1 ? "novo pedido" : "novos pedidos"}</strong> aguardando confirmação para baixar estoque e lançar no caixa.
+      {/* ── Cockpit de Triagem Operacional (Mini-Funil Compacto e Acionável) ───── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Card 1: Aguardando Confirmação */}
+        <button
+          type="button"
+          onClick={() => setFiltroStatus(filtroStatus === "novo" ? "todos" : "novo")}
+          className={cn(
+            "p-3.5 px-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer group",
+            filtroStatus === "novo"
+              ? "border-amber-500/80 bg-amber-500/10 shadow-sm ring-1 ring-amber-500/50"
+              : novosCount > 0
+              ? "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50 hover:bg-amber-500/10"
+              : "border-border bg-card hover:bg-secondary/40",
+          )}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                novosCount > 0
+                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                  : "bg-secondary text-muted-foreground",
+              )}
+            >
+              <Clock className={cn("size-4", novosCount > 0 && "animate-pulse")} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">Aguardando Confirmação</p>
+              <p className="text-[11px] text-muted-foreground truncate">Aprovar p/ baixar estoque</p>
+            </div>
+          </div>
+          <div className="shrink-0 pl-2">
+            <span
+              className={cn(
+                "num-display text-sm font-bold px-2 py-0.5 rounded-lg",
+                novosCount > 0
+                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                  : "text-muted-foreground",
+              )}
+            >
+              {novosCount}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setFiltroStatus("novo")}
-            className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline shrink-0 cursor-pointer"
-          >
-            Ver pedidos pendentes →
-          </button>
-        </div>
-      )}
+        </button>
+
+        {/* Card 2: Em Preparação */}
+        <button
+          type="button"
+          onClick={() =>
+            setFiltroStatus(
+              filtroStatus === "confirmado" || filtroStatus === "em_separacao"
+                ? "todos"
+                : "em_separacao",
+            )
+          }
+          className={cn(
+            "p-3.5 px-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer group",
+            filtroStatus === "em_separacao" || filtroStatus === "confirmado"
+              ? "border-primary/80 bg-primary/10 shadow-sm ring-1 ring-primary/50"
+              : separacaoCount > 0
+              ? "border-primary/30 bg-primary/5 hover:border-primary/50 hover:bg-primary/10"
+              : "border-border bg-card hover:bg-secondary/40",
+          )}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                separacaoCount > 0
+                  ? "bg-primary/20 text-primary"
+                  : "bg-secondary text-muted-foreground",
+              )}
+            >
+              <Layers className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">Em Preparação</p>
+              <p className="text-[11px] text-muted-foreground truncate">Separar e embalar peças</p>
+            </div>
+          </div>
+          <div className="shrink-0 pl-2">
+            <span
+              className={cn(
+                "num-display text-sm font-bold px-2 py-0.5 rounded-lg",
+                separacaoCount > 0
+                  ? "bg-primary/20 text-primary"
+                  : "text-muted-foreground",
+              )}
+            >
+              {separacaoCount}
+            </span>
+          </div>
+        </button>
+
+        {/* Card 3: Em Transporte */}
+        <button
+          type="button"
+          onClick={() => setFiltroStatus(filtroStatus === "enviado" ? "todos" : "enviado")}
+          className={cn(
+            "p-3.5 px-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer group",
+            filtroStatus === "enviado"
+              ? "border-sky-500/80 bg-sky-500/10 shadow-sm ring-1 ring-sky-500/50"
+              : enviadosCount > 0
+              ? "border-sky-500/30 bg-sky-500/5 hover:border-sky-500/50 hover:bg-sky-500/10"
+              : "border-border bg-card hover:bg-secondary/40",
+          )}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                enviadosCount > 0
+                  ? "bg-sky-500/20 text-sky-700 dark:text-sky-300"
+                  : "bg-secondary text-muted-foreground",
+              )}
+            >
+              <Truck className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">Em Transporte</p>
+              <p className="text-[11px] text-muted-foreground truncate">A caminho da cliente</p>
+            </div>
+          </div>
+          <div className="shrink-0 pl-2">
+            <span
+              className={cn(
+                "num-display text-sm font-bold px-2 py-0.5 rounded-lg",
+                enviadosCount > 0
+                  ? "bg-sky-500/20 text-sky-700 dark:text-sky-300"
+                  : "text-muted-foreground",
+              )}
+            >
+              {enviadosCount}
+            </span>
+          </div>
+        </button>
+      </div>
 
       {/* ── Container de Gestão: Abas + Barra de Busca + Tabela de Pedidos ───── */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
         {/* Abas Superiores Shopify Style */}
-        <div className="flex items-center gap-1 overflow-x-auto p-3.5 border-b border-border bg-secondary/20">
-          {ABAS_STATUS.map((tab) => {
+        <div className="flex items-center gap-1.5 overflow-x-auto p-2.5 sm:p-3 border-b border-border bg-secondary/20">
+          {ABAS_STATUS.map((tab, idx) => {
             const active = filtroStatus === tab.valor;
             const count =
               tab.valor === "todos"
                 ? lista.length
                 : lista.filter((p) => p.status === tab.valor).length;
+            const isSeparation = idx === 5; // right before "Entregues"
 
             return (
-              <button
-                key={tab.valor}
-                onClick={() => setFiltroStatus(tab.valor)}
-                className={cn(
-                  "flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap",
-                  active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              <div key={tab.valor} className="flex items-center shrink-0">
+                {isSeparation && (
+                  <div className="h-5 w-px bg-border/80 mx-1.5 hidden sm:block shrink-0" />
                 )}
-              >
-                <span>{tab.label}</span>
-                <span
+                <button
+                  onClick={() => setFiltroStatus(tab.valor)}
                   className={cn(
-                    "px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-colors",
+                    "flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap",
                     active
-                      ? "bg-white/20 text-white"
-                      : count > 0 && tab.valor === "novo"
-                      ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold"
-                      : "bg-secondary text-muted-foreground",
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
-                  {count}
-                </span>
-              </button>
+                  <span>{tab.label}</span>
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[10.5px] font-bold transition-colors",
+                      active
+                        ? "bg-white/20 text-white"
+                        : count > 0 && tab.valor === "novo"
+                        ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/30"
+                        : count > 0
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "bg-secondary text-muted-foreground/70",
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              </div>
             );
           })}
         </div>
 
-        {/* Barra de Filtros Integrada (Busca Universal, Pagamento, Data) */}
-        <div className="p-4 border-b border-border/80 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card">
-          <div className="relative flex-1">
+        {/* Barra de Filtros Integrada (Alinhamento Rígido em Linha Única) */}
+        <div className="p-3.5 sm:p-4 border-b border-border/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-card">
+          <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por pedido (#1042), cliente, telefone ou produto..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="h-10 pl-9 pr-8 text-xs rounded-xl bg-background border-border"
+              className="h-10 pl-9 pr-8 text-xs rounded-xl bg-background border-border w-full"
             />
             {busca && (
               <button
                 onClick={() => setBusca("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
                 title="Limpar busca"
               >
                 <X className="size-3.5" />
@@ -879,10 +1013,10 @@ function PedidosPage() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Filtro de Pagamento */}
             <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
-              <SelectTrigger className="h-10 min-w-[165px] text-xs rounded-xl bg-background border-border">
+              <SelectTrigger className="h-10 w-[155px] text-xs rounded-xl bg-background border-border shrink-0">
                 <SelectValue placeholder="Pagamento" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -901,8 +1035,8 @@ function PedidosPage() {
                 if (val !== "data_custom") setFiltroData("");
               }}
             >
-              <SelectTrigger className="h-10 w-[145px] text-xs rounded-xl bg-background border-border">
-                <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground" />
+              <SelectTrigger className="h-10 w-[140px] text-xs rounded-xl bg-background border-border shrink-0">
+                <CalendarDays className="size-3.5 mr-1.5 text-muted-foreground shrink-0" />
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -920,7 +1054,7 @@ function PedidosPage() {
                 type="date"
                 value={filtroData}
                 onChange={(e) => setFiltroData(e.target.value)}
-                className="h-10 w-auto text-xs rounded-xl bg-background border-border animate-in fade-in zoom-in-95 duration-150"
+                className="h-10 w-auto text-xs rounded-xl bg-background border-border shrink-0 animate-in fade-in zoom-in-95 duration-150"
                 title="Escolha a data do pedido"
               />
             )}
@@ -940,7 +1074,7 @@ function PedidosPage() {
                   setFiltroData("");
                   setFiltroStatus("todos");
                 }}
-                className="h-10 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+                className="h-10 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl shrink-0"
               >
                 <X className="size-3.5 mr-1" /> Limpar
               </Button>
