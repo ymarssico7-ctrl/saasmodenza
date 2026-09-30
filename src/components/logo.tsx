@@ -27,9 +27,9 @@ export function Logo({
       <img
         src={variant === "light" ? vestuiMarkLight : vestuiMarkDark}
         alt="Vestui"
-        width={22}
-        height={22}
-        className={cn("size-[22px] object-contain shrink-0 select-none", className)}
+        width={24}
+        height={24}
+        className={cn("size-6 object-contain shrink-0 select-none", className)}
         draggable={false}
       />
     );
@@ -39,8 +39,8 @@ export function Logo({
     <img
       src={variant === "light" ? vestuiLogoLight : vestuiLogoDark}
       alt="Vestui"
-      height={21}
-      className={cn("h-[21px] w-auto object-contain shrink-0 select-none", className)}
+      height={24.5}
+      className={cn("h-[24.5px] w-auto object-contain shrink-0 select-none", className)}
       draggable={false}
     />
   );
