@@ -16,13 +16,30 @@ import {
   Settings,
   Store,
   Wallet,
+  Search,
+  Copy,
+  Plus,
+  Clock,
+  ArrowUpRight,
+  Check,
+  ChevronRight,
+  Filter,
+  Sparkles,
+  UserRound,
+  Phone,
+  MapPin,
+  Receipt,
+  Layers,
+  ShoppingBag,
+  Globe,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/loja/page-header";
-import { SectionCard, EmptyState } from "@/components/loja/section-card";
+import { StatCard } from "@/components/stat-card";
 import { StatusBadge, Tag } from "@/components/loja/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +61,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { brl } from "@/lib/format";
+import { brl, brlCompact } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { restoreOrderStock, adjustInventoryStock, insertTransaction } from "@/lib/mutations";
 import { calculateOrderNet } from "@/lib/fees";
@@ -62,22 +86,16 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
     meta: [
-      { title: "Pedidos da loja — Vestui" },
+      { title: "Pedidos & Vendas Online — Modaly" },
       {
         name: "description",
         content:
-          "Acompanhe pedidos por status, atualize etapas de entrega, registre rastreio e avise a cliente por WhatsApp.",
+          "Central de pedidos da vitrine online e WhatsApp: aprove pedidos, baixe estoque automaticamente e acompanhe entregas com padrão Shopify.",
       },
     ],
   }),
   component: PedidosPage,
 });
-
-const filtros: { valor: StatusPedido | "todos"; label: string }[] = [
-  { valor: "todos", label: "Todos" },
-  ...fluxoStatus.map((s) => ({ valor: s, label: statusPedidoLabel[s] })),
-  { valor: "cancelado", label: "Cancelado" },
-];
 
 function mapPedidoPaymentMethod(pagamento: string): string {
   const p = (pagamento || "").toLowerCase();
@@ -105,13 +123,128 @@ type CustomerAddressObj = {
   cidade?: string;
 };
 
+const ABAS_STATUS: { valor: StatusPedido | "todos"; label: string }[] = [
+  { valor: "todos", label: "Todos" },
+  { valor: "novo", label: "A Confirmar" },
+  { valor: "confirmado", label: "Confirmados" },
+  { valor: "em_separacao", label: "Em Separação" },
+  { valor: "enviado", label: "A Caminho" },
+  { valor: "entregue", label: "Entregues" },
+  { valor: "cancelado", label: "Cancelados" },
+];
+
+function formatOrderDate(iso: string) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    const hoje = new Date();
+    const isHoje = d.toDateString() === hoje.toDateString();
+    const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    if (isHoje) return `Hoje às ${hora}`;
+    const ontem = new Date(hoje);
+    ontem.setDate(ontem.getDate() - 1);
+    if (d.toDateString() === ontem.toDateString()) return `Ontem às ${hora}`;
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function OrderStatusStepper({ status }: { status: StatusPedido }) {
+  if (status === "cancelado") {
+    return (
+      <div className="flex items-center gap-2.5 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs text-destructive font-medium">
+        <X className="size-4 shrink-0" />
+        <span>Este pedido foi cancelado e não gerou movimentação financeira ativa ou teve estoque estornado.</span>
+      </div>
+    );
+  }
+
+  const steps: { key: StatusPedido; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: "novo", label: "Recebido", icon: Clock },
+    { key: "confirmado", label: "Confirmado", icon: CheckCircle2 },
+    { key: "em_separacao", label: "Separação", icon: Layers },
+    { key: "enviado", label: "A caminho", icon: Truck },
+    { key: "entregue", label: "Entregue", icon: Check },
+  ];
+
+  const orderFlow: StatusPedido[] = ["novo", "confirmado", "em_separacao", "enviado", "entregue"];
+  const currentIndex = orderFlow.indexOf(status);
+
+  return (
+    <div className="rounded-2xl border border-border/80 bg-secondary/30 p-3.5">
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        Linha do tempo da entrega
+      </p>
+      <div className="relative flex items-center justify-between">
+        {/* Linha de fundo cinza */}
+        <div className="absolute left-4 right-4 top-4 h-0.5 bg-border -translate-y-1/2 z-0" />
+        {/* Linha de progresso ativa */}
+        <div
+          className="absolute left-4 top-4 h-0.5 bg-primary -translate-y-1/2 z-0 transition-all duration-300"
+          style={{
+            width: currentIndex >= 0 ? `${(currentIndex / (steps.length - 1)) * 100}%` : "0%",
+            maxWidth: "calc(100% - 32px)",
+          }}
+        />
+
+        {steps.map((step, idx) => {
+          const isCompleted = currentIndex > idx || status === "entregue";
+          const isCurrent = currentIndex === idx;
+          const IconComponent = step.icon;
+
+          return (
+            <div key={step.key} className="relative z-10 flex flex-col items-center">
+              <div
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full border-2 transition-all duration-200 text-xs",
+                  isCurrent
+                    ? "border-primary bg-primary text-primary-foreground shadow-glow scale-110"
+                    : isCompleted
+                    ? "border-primary bg-primary/20 text-primary font-bold"
+                    : "border-border bg-card text-muted-foreground",
+                )}
+              >
+                <IconComponent className="size-3.5" />
+              </div>
+              <span
+                className={cn(
+                  "mt-1.5 text-[10.5px] font-medium whitespace-nowrap",
+                  isCurrent
+                    ? "text-primary font-bold"
+                    : isCompleted
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground",
+                )}
+              >
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PedidosPage() {
   const { storeId, store } = useStore();
   const queryClient = useQueryClient();
-  const [filtro, setFiltro] = useState<StatusPedido | "todos">("todos");
-  const [data, setData] = useState("");
+
+  // Estados de Filtros e Busca (Padrão Shopify IndexTable)
+  const [filtroStatus, setFiltroStatus] = useState<StatusPedido | "todos">("todos");
+  const [busca, setBusca] = useState("");
+  const [filtroPagamento, setFiltroPagamento] = useState("todos");
+  const [filtroData, setFiltroData] = useState("");
+
   const [aberto, setAberto] = useState<string | null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
+  const [sincronizando, setSincronizando] = useState(false);
   const [pedidoConfirmarSemEstoque, setPedidoConfirmarSemEstoque] = useState<Pedido | null>(null);
   const [pedidoComPecaExcluida, setPedidoComPecaExcluida] = useState<{ pedido: Pedido; nomes: string[] } | null>(null);
 
@@ -120,6 +253,7 @@ function PedidosPage() {
   const inventoryItems = rawInventory as unknown as Array<{
     id: string;
     name: string;
+    photo_url?: string | null;
     sizes: Record<string, number> | null;
   }>;
 
@@ -146,7 +280,6 @@ function PedidosPage() {
   useEffect(() => {
     if (!storeId) return;
 
-    /** Som de notificação via Web Audio API (sem assets externos) */
     function playNotificationSound() {
       try {
         const ctx = new AudioContext();
@@ -161,7 +294,9 @@ function PedidosPage() {
           osc.start(ctx.currentTime + i * 0.12);
           osc.stop(ctx.currentTime + i * 0.12 + 0.15);
         });
-      } catch { /* Safari / permissão negada: ignora silenciosamente */ }
+      } catch {
+        /* Safari / permissão negada: ignora silenciosamente */
+      }
     }
 
     const channel = supabase
@@ -177,7 +312,6 @@ function PedidosPage() {
         (payload) => {
           void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
 
-          // Notificação apenas em novos pedidos (INSERT)
           if (payload.eventType === "INSERT") {
             const row = payload.new as Record<string, unknown>;
             const numero = (row["numero"] as string | undefined) ?? "#--";
@@ -192,7 +326,7 @@ function PedidosPage() {
 
             playNotificationSound();
             toast.success(`🛍️ Novo Pedido ${numero} recebido!`, {
-              description: metodoLabel ? `Forma de pagamento: ${metodoLabel}` : "Acesse os pedidos para ver detalhes.",
+              description: metodoLabel ? `Forma de pagamento: ${metodoLabel}` : "Acesse os pedidos para conferir.",
               duration: 6000,
               action: {
                 label: "Ver agora",
@@ -209,11 +343,15 @@ function PedidosPage() {
     };
   }, [storeId, queryClient]);
 
-  // Consulta o saldo atual de um produto e tamanho
   const getItemStock = (produtoId: string, tamanho: string): number | null => {
     const prod = inventoryItems.find((p) => p.id === produtoId);
     if (!prod || !prod.sizes) return null;
     return prod.sizes[tamanho] ?? 0;
+  };
+
+  const getProductPhoto = (produtoId: string): string | null => {
+    const prod = inventoryItems.find((p) => p.id === produtoId);
+    return prod?.photo_url ?? null;
   };
 
   // Mapeia os pedidos do Supabase e mescla com cache local se houver
@@ -294,29 +432,67 @@ function PedidosPage() {
     }
   }, [dbOrders, storeId]);
 
-  // Persiste cache local como fallback
   const persistir = (novaLista: Pedido[]) => {
     localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
   };
 
-  const visiveis = useMemo(
-    () =>
-      lista.filter(
-        (p) =>
-          (filtro === "todos" || p.status === filtro) &&
-          (data === "" || p.criadoEm.slice(0, 10) === data),
-      ),
-    [lista, filtro, data],
+  // KPIs Dinâmicos de Alto Nível (Shopify Cockpit)
+  const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+  const novosCount = useMemo(() => lista.filter((p) => p.status === "novo").length, [lista]);
+  const separacaoCount = useMemo(
+    () => lista.filter((p) => p.status === "confirmado" || p.status === "em_separacao").length,
+    [lista],
   );
+  const enviadosCount = useMemo(() => lista.filter((p) => p.status === "enviado").length, [lista]);
+
+  const { totalMes, pedidosMesCount } = useMemo(() => {
+    const pedidosMes = lista.filter(
+      (p) => p.status !== "cancelado" && p.criadoEm.slice(0, 7) === currentMonthPrefix,
+    );
+    const sum = pedidosMes.reduce((acc, p) => acc + totalPedido(p), 0);
+    return { totalMes: sum, pedidosMesCount: pedidosMes.length };
+  }, [lista, currentMonthPrefix]);
+
+  // Filtros aplicados de busca e status
+  const visiveis = useMemo(() => {
+    return lista.filter((p) => {
+      // 1. Filtro por status de aba
+      if (filtroStatus !== "todos" && p.status !== filtroStatus) return false;
+
+      // 2. Filtro por método de pagamento
+      if (filtroPagamento !== "todos") {
+        const pag = p.pagamento.toLowerCase();
+        if (filtroPagamento === "pix" && !pag.includes("pix")) return false;
+        if (filtroPagamento === "cartao" && !pag.includes("cartão") && !pag.includes("cartao") && !pag.includes("crédito"))
+          return false;
+        if (filtroPagamento === "dinheiro" && !pag.includes("dinheiro")) return false;
+      }
+
+      // 3. Filtro por data
+      if (filtroData && p.criadoEm.slice(0, 10) !== filtroData) return false;
+
+      // 4. Busca textual universal (nome, telefone, número do pedido ou item)
+      if (busca.trim()) {
+        const termo = busca.toLowerCase();
+        const bateNome = p.cliente.toLowerCase().includes(termo);
+        const bateNumero = p.numero.toLowerCase().includes(termo);
+        const bateTelefone = p.telefone.replace(/\D/g, "").includes(termo.replace(/\D/g, ""));
+        const bateItem = p.itens.some((it) => it.nome.toLowerCase().includes(termo));
+        if (!bateNome && !bateNumero && !bateTelefone && !bateItem) return false;
+      }
+
+      return true;
+    });
+  }, [lista, filtroStatus, filtroPagamento, filtroData, busca]);
 
   const pedidoAberto = lista.find((p) => p.id === aberto) ?? null;
 
+  // Ações de fluxo e avanço de status
   const executarAvancoStatus = async (pedido: Pedido) => {
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
     const proximo = fluxoStatus[atual + 1]!;
 
-    // 1) Atualiza no Supabase
     try {
       const payload: { status: StatusPedido; payment_status?: string } = {
         status: proximo,
@@ -324,22 +500,15 @@ function PedidosPage() {
       if (proximo === "confirmado") {
         payload.payment_status = "pago";
       }
-      await supabase
-        .from("orders")
-        .update(payload)
-        .eq("id", pedido.id);
+      await supabase.from("orders").update(payload).eq("id", pedido.id);
       void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
     } catch (err) {
       console.error("Erro ao atualizar status no Supabase:", err);
     }
 
-    // 2) Cache local
-    const novaLista = lista.map((p) =>
-      p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p,
-    );
+    const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
     persistir(novaLista);
 
-    // 3) Se novo -> confirmado: baixa estoque e lança no caixa
     if (pedido.status === "novo" && proximo === "confirmado") {
       if (pedido.itens?.length) {
         const deducoes = pedido.itens.map((item) =>
@@ -379,9 +548,7 @@ function PedidosPage() {
   const tentarAvancarStatus = (pedido: Pedido) => {
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     const proximo = fluxoStatus[atual + 1];
-    // Se for confirmação de pedido novo, valida requisitos
     if (pedido.status === "novo" && proximo === "confirmado" && pedido.itens?.length) {
-      // 1) Verifica se algum produto foi excluído do catálogo de estoque
       const pecasExcluidas = pedido.itens
         .filter((it) => !inventoryItems.find((inv) => inv.id === it.produtoId))
         .map((it) => it.nome ?? it.produtoId);
@@ -390,7 +557,6 @@ function PedidosPage() {
         return;
       }
 
-      // 2) Verifica se há falta de estoque na grade
       const temFalta = pedido.itens.some((it) => {
         const st = getItemStock(it.produtoId, it.tamanho);
         return st !== null && st < it.qtd;
@@ -409,7 +575,6 @@ function PedidosPage() {
     if (!pedido) return;
     const statusAnterior = pedido.status;
 
-    // 1) Atualiza no Supabase
     try {
       await supabase
         .from("orders")
@@ -423,14 +588,10 @@ function PedidosPage() {
       console.error("Erro ao cancelar no Supabase:", err);
     }
 
-    // 2) Cache local
-    const novaLista = lista.map((p) =>
-      p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p,
-    );
+    const novaLista = lista.map((p) => (p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p));
     persistir(novaLista);
     setAberto(null);
 
-    // 3) Se o pedido já havia baixado estoque, estorna
     if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
       if (pedido.itens?.length) {
         void restoreOrderStock(storeId, pedido.itens).then(() => {
@@ -482,189 +643,640 @@ function PedidosPage() {
     const cod = codigoRastreio.trim().toUpperCase();
 
     try {
-      await supabase
-        .from("orders")
-        .update({ tracking_code: cod })
-        .eq("id", pedidoId);
+      await supabase.from("orders").update({ tracking_code: cod }).eq("id", pedidoId);
       void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
     } catch (err) {
       console.error("Erro ao salvar rastreio no Supabase:", err);
     }
 
-    const novaLista = lista.map((p) =>
-      p.id === pedidoId ? { ...p, rastreio: cod } : p,
-    );
+    const novaLista = lista.map((p) => (p.id === pedidoId ? { ...p, rastreio: cod } : p));
     persistir(novaLista);
     setCodigoRastreio("");
-    toast.success("Código de rastreio salvo!", {
-      description: `Código: ${cod}`,
+    toast.success("Código de rastreio salvo!", { description: `Código: ${cod}` });
+  };
+
+  const avisarWhatsApp = (pedido: Pedido, tipo?: "padrao" | "rastreio") => {
+    const nomeLoja = store?.name ?? "nossa loja";
+    const statusTexto = statusPedidoLabel[pedido.status].toLowerCase();
+    let msg = "";
+
+    if (tipo === "rastreio" && pedido.rastreio) {
+      msg = `Olá, ${pedido.cliente}! 👋\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* já foi despachado e está a caminho! 📦💨\n\nCódigo de rastreamento: *${pedido.rastreio}*\n\nAcompanhe nos Correios:\nhttps://rastreamento.correios.com.br/app/index.php?codigo=${pedido.rastreio}\n\nQualquer dúvida estamos à disposição! 💜`;
+    } else {
+      msg = `Olá, ${pedido.cliente}! 👋\n\nAqui é da *${nomeLoja}*. Passando para avisar que seu pedido *${pedido.numero}* está *${statusTexto}*! ✨\n\nTotal: ${brl(totalPedido(pedido))}\n${pedido.rastreio ? `Rastreio: ${pedido.rastreio}\n` : ""}Qualquer dúvida estamos à disposição! 💜`;
+    }
+
+    const phoneDigits = (pedido.telefone || "").replace(/\D/g, "");
+    const encoded = encodeURIComponent(msg);
+    if (phoneDigits.length >= 8) {
+      const phone = phoneDigits.startsWith("55") ? phoneDigits : `55${phoneDigits}`;
+      window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank", "noopener,noreferrer");
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const copiarEnderecoEtiqueta = (p: Pedido) => {
+    const texto = `DESTINATÁRIO:\n${p.cliente}\n${p.endereco}\nTel: ${p.telefone}`;
+    navigator.clipboard.writeText(texto);
+    toast.success("Endereço copiado para etiqueta!", {
+      description: "Pronto para colar nos Correios ou Melhor Envio.",
     });
   };
 
+  const handleSincronizar = async () => {
+    setSincronizando(true);
+    await recarregarPedidos();
+    setTimeout(() => setSincronizando(false), 500);
+    toast.success("Pedidos sincronizados em tempo real!");
+  };
+
+  // Simular Pedido de Teste (Onboarding / Demonstração)
+  const gerarPedidoTeste = () => {
+    const numero = `#${Math.floor(1000 + Math.random() * 9000)}`;
+    const itemExemplo = inventoryItems[0]
+      ? {
+          produtoId: inventoryItems[0].id,
+          nome: inventoryItems[0].name,
+          tamanho: Object.keys(inventoryItems[0].sizes || {})[0] || "M",
+          cor: "Padrão",
+          qtd: 1,
+          preco: 189.9,
+        }
+      : {
+          produtoId: "demo-item",
+          nome: "Vestido Midi Floral",
+          tamanho: "M",
+          cor: "Estampa Exclusiva",
+          qtd: 1,
+          preco: 229.9,
+        };
+
+    const novoPedido: Pedido = {
+      id: `demo_${Date.now()}`,
+      numero,
+      cliente: "Mariana Alvarenga (Demonstração)",
+      telefone: "(31) 99876-5432",
+      email: "mariana.alvarenga@email.com",
+      cidade: "Belo Horizonte",
+      criadoEm: new Date().toISOString(),
+      status: "novo",
+      origem: "Checkout",
+      pagamento: "Pix",
+      entrega: "Entrega expressa",
+      endereco: "Rua Fernandes Tourinho, 480 — Savassi, Belo Horizonte/MG, CEP 30112-000",
+      frete: 14.0,
+      desconto: 0,
+      taxaOperadora: 0,
+      valorLiquido: itemExemplo.preco * itemExemplo.qtd + 14.0,
+      itens: [itemExemplo],
+    };
+
+    const novaLista = [novoPedido, ...lista];
+    persistir(novaLista);
+    toast.success(`Pedido de teste ${numero} criado! 🎉`, {
+      description: "Clique sobre ele na lista para testar a aprovação, baixa de estoque e o aviso WhatsApp.",
+    });
+  };
+
+  const vitrineUrl = store?.slug ? `https://${store.slug}.modaly.com.br` : "/vitrine";
+
   return (
     <div className="space-y-6">
+      {/* ── PageHeader Padronizado Shopify ───────────────────────────────────── */}
       <PageHeader
         eyebrow="Vendas da Loja"
-        title="Pedidos da Vitrine & Insta"
-        description="Todo pedido confirmado baixa o estoque automaticamente e registra a entrada no seu caixa."
+        title="Pedidos & Vendas Online"
+        description="Acompanhe pedidos recebidos na vitrine, aprove para baixar o estoque e notifique clientes pelo WhatsApp com 1 clique."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                void recarregarPedidos();
-                toast.success("Pedidos atualizados em tempo real!");
-              }}
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+              onClick={handleSincronizar}
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary transition-all"
             >
-              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Sincronizar
+              <RefreshCw className={cn("mr-2 h-3.5 w-3.5", sincronizando && "animate-spin text-primary")} />
+              Sincronizar
             </Button>
+
             <Button
               asChild
               variant="outline"
               size="sm"
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary"
             >
               <Link to="/loja/produtos">
-                <Store className="mr-2 h-3.5 w-3.5 text-primary" /> Catálogo da Vitrine
+                <Store className="mr-2 h-3.5 w-3.5 text-primary" /> Catálogo
               </Link>
             </Button>
+
             <Button
               asChild
               variant="outline"
               size="sm"
-              className="h-10 rounded-full border-border bg-card text-xs font-semibold"
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary"
+            >
+              <a href={vitrineUrl} target="_blank" rel="noreferrer">
+                <Globe className="mr-2 h-3.5 w-3.5 text-emerald-500" /> Ver Vitrine
+                <ExternalLink className="ml-1 h-3 w-3 opacity-50" />
+              </a>
+            </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-full border-border bg-card text-xs font-semibold hover:bg-secondary"
             >
               <Link to="/loja/configuracao">
-                <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Configurar Vitrine
+                <Settings className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Configurações
               </Link>
             </Button>
           </div>
         }
       />
 
-      <div className="flex flex-wrap gap-2">
-        {filtros.map((f) => (
-          <button
-            key={f.valor}
-            onClick={() => setFiltro(f.valor)}
-            className={cn(
-              "rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-200",
-              filtro === f.valor
-                ? "gradient-primary border-transparent text-primary-foreground shadow-glow"
-                : "border-border bg-card text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-        <Input
-          type="date"
-          value={data}
-          onChange={(e) => setData(e.target.value)}
-          className="h-9 w-auto rounded-full border-border bg-card text-xs"
+      {/* ── Cockpit Operacional (4 KPIs de Ação Imediata) ────────────────────── */}
+      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="A Confirmar"
+          value={String(novosCount)}
+          tone={novosCount > 0 ? "warning" : "default"}
+          hint={novosCount > 0 ? "⚠️ Aguardando aprovação para baixar estoque" : "Nenhum pedido novo pendente"}
+          icon={<Clock className="size-4" />}
+        />
+        <StatCard
+          label="Em Separação"
+          value={String(separacaoCount)}
+          hint={separacaoCount > 0 ? "Prontos para embalar e etiquetar" : "Fila de separação limpa"}
+          icon={<Layers className="size-4" />}
+        />
+        <StatCard
+          label="A Caminho"
+          value={String(enviadosCount)}
+          hint={enviadosCount > 0 ? "Pacotes em trânsito com a cliente" : "Nenhum pacote em trânsito"}
+          icon={<Truck className="size-4" />}
+        />
+        <StatCard
+          label="Faturamento Online (Mês)"
+          value={brl(totalMes)}
+          tone="primary"
+          hint={`${pedidosMesCount} ${pedidosMesCount === 1 ? "venda confirmada" : "vendas confirmadas"} este mês`}
+          icon={<Wallet className="size-4" />}
         />
       </div>
 
-      <SectionCard bodyClassName="p-0">
-        {visiveis.length === 0 ? (
-          <EmptyState
-            icon={<PackageSearch className="h-7 w-7" />}
-            title={lista.length === 0 ? "Nenhum pedido ainda" : "Nenhum pedido encontrado"}
-            description={
-              lista.length === 0
-                ? "Quando suas clientes fizerem pedidos pela vitrine, eles aparecerão aqui."
-                : "Tente outro filtro de status ou data para ver os pedidos."
-            }
-          />
-        ) : (
-          <ul className="divide-y divide-border/70">
-            {visiveis.map((p) => (
-              <li
-                key={p.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => { setAberto(p.id); setCodigoRastreio(""); }}
-                onKeyDown={(e) => e.key === "Enter" && (setAberto(p.id), setCodigoRastreio(""))}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-5 py-4 transition-colors duration-200 hover:bg-secondary/50 cursor-pointer"
+      {/* ── Container de Gestão: Abas + Barra de Busca + Tabela de Pedidos ───── */}
+      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+        {/* Abas Superiores Shopify Style */}
+        <div className="flex items-center gap-1 overflow-x-auto p-3.5 border-b border-border bg-secondary/20">
+          {ABAS_STATUS.map((tab) => {
+            const active = filtroStatus === tab.valor;
+            const count =
+              tab.valor === "todos"
+                ? lista.length
+                : lista.filter((p) => p.status === tab.valor).length;
+
+            return (
+              <button
+                key={tab.valor}
+                onClick={() => setFiltroStatus(tab.valor)}
+                className={cn(
+                  "flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                )}
               >
-                <div className="min-w-0">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span className="num-display text-sm font-semibold">{p.numero}</span>
-                    <StatusBadge status={p.status} />
-                    <Tag tone={p.origem === "WhatsApp" ? "success" : "primary"}>{p.origem}</Tag>
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-colors",
+                    active
+                      ? "bg-white/20 text-white"
+                      : count > 0 && tab.valor === "novo"
+                      ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold"
+                      : "bg-secondary text-muted-foreground",
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Barra de Filtros Integrada (Busca Universal, Pagamento, Data) */}
+        <div className="p-4 border-b border-border/80 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por pedido (#1042), cliente, telefone ou produto..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="h-10 pl-9 pr-8 text-xs rounded-xl bg-background border-border"
+            />
+            {busca && (
+              <button
+                onClick={() => setBusca("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                title="Limpar busca"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filtro de Pagamento */}
+            <Select value={filtroPagamento} onValueChange={setFiltroPagamento}>
+              <SelectTrigger className="h-10 w-[150px] text-xs rounded-xl bg-background border-border">
+                <SelectValue placeholder="Pagamento" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="todos">Todos pagamentos</SelectItem>
+                <SelectItem value="pix">Pix</SelectItem>
+                <SelectItem value="cartao">Cartão de crédito</SelectItem>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filtro de Data */}
+            <Input
+              type="date"
+              value={filtroData}
+              onChange={(e) => setFiltroData(e.target.value)}
+              className="h-10 w-auto text-xs rounded-xl bg-background border-border"
+              title="Filtrar por data do pedido"
+            />
+
+            {/* Limpar filtros */}
+            {(busca || filtroPagamento !== "todos" || filtroData || filtroStatus !== "todos") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setBusca("");
+                  setFiltroPagamento("todos");
+                  setFiltroData("");
+                  setFiltroStatus("todos");
+                }}
+                className="h-10 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+              >
+                <X className="size-3.5 mr-1" /> Limpar
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Tabela de Pedidos / Empty State ───────────────────────────────── */}
+        {visiveis.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center">
+            {lista.length === 0 ? (
+              <div className="max-w-md mx-auto space-y-5">
+                <div className="mx-auto flex size-14 items-center justify-center rounded-3xl border border-primary/20 bg-primary/10 text-primary">
+                  <PackageSearch className="size-7" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-base font-semibold text-foreground">Sua central de pedidos está pronta</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Quando as clientes finalizarem compras na sua vitrine online ou WhatsApp, os pedidos aparecerão aqui
+                    automaticamente para você aprovar e despachar.
+                  </p>
+                </div>
+
+                {/* 3 Cartões de Ação para Ativação */}
+                <div className="grid gap-2.5 pt-2 text-left sm:grid-cols-3">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(vitrineUrl);
+                      toast.success("Link da vitrine copiado!", {
+                        description: "Cole no seu Instagram ou envie pelo WhatsApp.",
+                      });
+                    }}
+                    className="p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-xs group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between text-primary font-semibold mb-1">
+                      <span>Copiar link</span>
+                      <Copy className="size-3.5 opacity-60 group-hover:opacity-100" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">Divulgue sua vitrine nas redes sociais.</p>
+                  </button>
+
+                  <Link
+                    to="/loja/produtos"
+                    className="p-3.5 rounded-2xl border border-border bg-secondary/30 hover:bg-secondary/60 transition-all text-xs group cursor-pointer block"
+                  >
+                    <div className="flex items-center justify-between text-primary font-semibold mb-1">
+                      <span>Catálogo</span>
+                      <Store className="size-3.5 opacity-60 group-hover:opacity-100" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">Verifique se as peças têm fotos e preços.</p>
+                  </Link>
+
+                  <button
+                    onClick={gerarPedidoTeste}
+                    className="p-3.5 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-xs group cursor-pointer text-left"
+                  >
+                    <div className="flex items-center justify-between text-primary font-bold mb-1">
+                      <span>Simular pedido</span>
+                      <Sparkles className="size-3.5 text-primary" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">Crie 1 pedido de teste para ver o fluxo.</p>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="max-w-sm mx-auto space-y-3">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-secondary text-muted-foreground">
+                  <Filter className="size-6" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Nenhum pedido encontrado com estes filtros</h3>
+                <p className="text-xs text-muted-foreground">
+                  Tente alterar a busca textual ou selecionar outra aba de status.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setBusca("");
+                    setFiltroPagamento("todos");
+                    setFiltroData("");
+                    setFiltroStatus("todos");
+                  }}
+                  className="rounded-full text-xs"
+                >
+                  Limpar todos os filtros
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {visiveis.map((p) => {
+              const primeiraFoto = p.itens[0]?.produtoId ? getProductPhoto(p.itens[0].produtoId) : null;
+              const totalQtd = p.itens.reduce((acc, it) => acc + it.qtd, 0);
+
+              return (
+                <li
+                  key={p.id}
+                  onClick={() => {
+                    setAberto(p.id);
+                    setCodigoRastreio("");
+                  }}
+                  className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:px-5 transition-all duration-150 hover:bg-surface-muted/60 cursor-pointer"
+                >
+                  {/* Bloco 1: Pedido + Cliente + Avatar */}
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                    {/* Miniatura do produto ou Avatar com iniciais */}
+                    {primeiraFoto ? (
+                      <img
+                        src={primeiraFoto}
+                        alt={p.itens[0]?.nome ?? "Produto"}
+                        loading="lazy"
+                        className="size-11 shrink-0 rounded-2xl object-cover border border-border/80 shadow-2xs"
+                      />
+                    ) : (
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-foreground font-bold text-xs border border-border">
+                        {p.cliente.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="num-display text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                          {p.numero}
+                        </span>
+                        <StatusBadge status={p.status} />
+                        <Tag tone={p.origem === "WhatsApp" ? "success" : "primary"}>
+                          {p.origem === "WhatsApp" ? "WhatsApp" : "Vitrine Online"}
+                        </Tag>
+                      </div>
+
+                      <p className="mt-1 font-semibold text-xs text-foreground truncate">{p.cliente}</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                        <span>{formatOrderDate(p.criadoEm)}</span>
+                        <span>•</span>
+                        <span>{p.entrega}</span>
+                        {p.cidade && (
+                          <>
+                            <span>•</span>
+                            <span>{p.cidade}</span>
+                          </>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-1 truncate text-sm font-medium">{p.cliente}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {dateTimeBR(p.criadoEm)} · {p.entrega} · {p.pagamento}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="num-display text-sm font-semibold">{brl(totalPedido(p))}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {p.itens.length} {p.itens.length === 1 ? "item" : "itens"}
-                  </p>
-                </div>
-              </li>
-            ))}
+
+                  {/* Bloco 2: Itens + Pagamento + Valores */}
+                  <div className="flex items-center justify-between md:justify-end gap-5 shrink-0 pl-14 md:pl-0">
+                    {/* Resumo de Peças */}
+                    <div className="hidden lg:block text-right max-w-[200px]">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {p.itens[0]?.nome}
+                        {p.itens.length > 1 ? ` +${p.itens.length - 1}` : ""}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {totalQtd} {totalQtd === 1 ? "peça" : "peças"}
+                      </p>
+                    </div>
+
+                    {/* Forma de Pagamento */}
+                    <div className="text-right">
+                      <div className="flex items-center gap-1.5 justify-end text-xs font-medium text-foreground">
+                        {p.pagamento.toLowerCase().includes("pix") ? (
+                          <QrCode className="size-3.5 text-emerald-500" />
+                        ) : (
+                          <CreditCard className="size-3.5 text-indigo-500" />
+                        )}
+                        <span>{p.pagamento}</span>
+                      </div>
+                      <p className="text-[10.5px] text-muted-foreground">
+                        {p.status === "novo" ? "Aguardando confirmação" : "Recebimento confirmado"}
+                      </p>
+                    </div>
+
+                    {/* Total em Destaque */}
+                    <div className="text-right min-w-[90px]">
+                      <p className="num-display text-sm font-bold text-foreground">{brl(totalPedido(p))}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grátis"}
+                      </p>
+                    </div>
+
+                    {/* Ação Rápida WhatsApp no Hover */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 rounded-full text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                        title="Enviar mensagem no WhatsApp"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          avisarWhatsApp(p, p.rastreio ? "rastreio" : "padrao");
+                        }}
+                      >
+                        <MessageCircle className="size-4" />
+                      </Button>
+                      <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
-      </SectionCard>
+      </div>
 
+      {/* ── Sheet / Drawer de Detalhes do Pedido (Padrão Shopify Polaris) ────── */}
       <Sheet open={pedidoAberto !== null} onOpenChange={(o) => !o && setAberto(null)}>
         {pedidoAberto ? (
-          <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-            <SheetHeader className="text-left">
-              <SheetTitle className="flex items-center gap-3">
-                <span className="num-display">{pedidoAberto.numero}</span>
-                <StatusBadge status={pedidoAberto.status} />
-              </SheetTitle>
-              <SheetDescription>
-                {pedidoAberto.cliente} · {dateTimeBR(pedidoAberto.criadoEm)}
-              </SheetDescription>
-            </SheetHeader>
+          <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0 border-l border-border bg-card">
+            {/* Cabeçalho do Drawer */}
+            <div className="p-6 border-b border-border bg-secondary/15">
+              <SheetHeader className="text-left space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="num-display text-xl font-bold tracking-tight text-foreground">
+                      {pedidoAberto.numero}
+                    </span>
+                    <StatusBadge status={pedidoAberto.status} />
+                  </div>
+                  <Tag tone={pedidoAberto.origem === "WhatsApp" ? "success" : "primary"}>
+                    {pedidoAberto.origem === "WhatsApp" ? "WhatsApp" : "Vitrine Online"}
+                  </Tag>
+                </div>
+                <SheetDescription className="text-xs text-muted-foreground">
+                  Recebido em {dateTimeBR(pedidoAberto.criadoEm)}
+                </SheetDescription>
+              </SheetHeader>
+            </div>
 
-            <div className="space-y-4 px-4 pb-8">
-              {/* Itens */}
-              <SectionCard title="Itens do pedido" bodyClassName="p-3">
-                <ul className="divide-y divide-border/70">
+            <div className="space-y-5 p-6">
+              {/* 1. Stepper Visual do Ciclo do Pedido */}
+              <OrderStatusStepper status={pedidoAberto.status} />
+
+              {/* 2. Card do Cliente & Contato Rápido */}
+              <div className="rounded-2xl border border-border bg-surface p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                    <UserRound className="size-3.5 text-primary" />
+                    <span>Dados da Cliente</span>
+                  </div>
+                  {pedidoAberto.telefone && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => avisarWhatsApp(pedidoAberto, pedidoAberto.rastreio ? "rastreio" : "padrao")}
+                      className="h-8 rounded-full text-xs font-semibold text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5"
+                    >
+                      <MessageCircle className="size-3.5" /> Chamar WhatsApp
+                    </Button>
+                  )}
+                </div>
+
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold text-foreground text-sm">{pedidoAberto.cliente}</p>
+                  {pedidoAberto.telefone && (
+                    <p className="text-muted-foreground flex items-center gap-1.5">
+                      <Phone className="size-3 text-muted-foreground" />
+                      {pedidoAberto.telefone}
+                    </p>
+                  )}
+                  {pedidoAberto.email && <p className="text-muted-foreground">{pedidoAberto.email}</p>}
+                </div>
+
+                {/* Endereço de Entrega */}
+                {pedidoAberto.endereco && (
+                  <div className="pt-2 border-t border-border/60">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-1.5 min-w-0">
+                        <MapPin className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                        <p className="text-xs text-muted-foreground leading-relaxed">{pedidoAberto.endereco}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copiarEnderecoEtiqueta(pedidoAberto)}
+                        className="h-7 px-2 text-[11px] rounded-lg shrink-0 gap-1 text-muted-foreground hover:text-foreground"
+                        title="Copiar endereço formatado para etiqueta dos Correios"
+                      >
+                        <Copy className="size-3" /> Copiar etiqueta
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Itens do Pedido com Verificação de Estoque Físico */}
+              <div className="rounded-2xl border border-border bg-surface p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                    <ShoppingBag className="size-3.5 text-primary" />
+                    <span>Peças do Pedido ({pedidoAberto.itens.length})</span>
+                  </span>
+                  <span className="text-xs text-muted-foreground">Valor total</span>
+                </div>
+
+                <ul className="divide-y divide-border/60">
                   {pedidoAberto.itens.map((item, i) => {
                     const currentStock = getItemStock(item.produtoId, item.tamanho);
+                    const photo = getProductPhoto(item.produtoId);
+
                     return (
-                      <li key={i} className="flex items-center justify-between py-2.5 text-sm">
-                        <div className="min-w-0 pr-2">
-                          <p className="font-medium truncate">{item.nome}</p>
-                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                            <p className="text-xs text-muted-foreground">
-                              Tam. {item.tamanho} · {item.cor} · Qtd. {item.qtd}
+                      <li key={i} className="flex items-center justify-between py-3 text-xs gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {photo ? (
+                            <img
+                              src={photo}
+                              alt={item.nome}
+                              className="size-12 shrink-0 rounded-xl object-cover border border-border"
+                            />
+                          ) : (
+                            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-sm">
+                              👗
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{item.nome}</p>
+                            <p className="text-muted-foreground text-[11px]">
+                              Tam. {item.tamanho} • {item.cor} • Qtd: {item.qtd}
                             </p>
                             {currentStock !== null && (
-                              <span
-                                className={cn(
-                                  "text-[10px] px-2.5 py-0.5 rounded-full font-medium border",
-                                  currentStock >= item.qtd
-                                    ? "bg-success-soft text-success border-success/20"
+                              <div className="mt-1">
+                                <span
+                                  className={cn(
+                                    "text-[10px] px-2 py-0.5 rounded-full font-medium border",
+                                    currentStock >= item.qtd
+                                      ? "bg-success-soft text-success border-success/20"
+                                      : currentStock > 0
+                                      ? "bg-warning-soft text-warning border-warning/20 font-semibold"
+                                      : "bg-danger-soft text-danger border-destructive/20 font-semibold",
+                                  )}
+                                >
+                                  {currentStock >= item.qtd
+                                    ? `✓ ${currentStock} un. em estoque`
                                     : currentStock > 0
-                                    ? "bg-warning-soft text-warning-foreground border-warning/20 font-semibold"
-                                    : "bg-danger-soft text-danger border-destructive/20 font-semibold"
-                                )}
-                              >
-                                {currentStock >= item.qtd
-                                  ? `✓ ${currentStock} un. em estoque`
-                                  : currentStock > 0
-                                  ? `⚠️ Apenas ${currentStock} un. em estoque`
-                                  : "❌ Esgotado na grade"}
-                              </span>
+                                    ? `⚠️ Apenas ${currentStock} un. em estoque`
+                                    : "❌ Esgotado na grade"}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <p className="num-display font-semibold shrink-0">{brl(item.preco * item.qtd)}</p>
+
+                        <p className="num-display font-bold text-foreground shrink-0 text-sm">
+                          {brl(item.preco * item.qtd)}
+                        </p>
                       </li>
                     );
                   })}
                 </ul>
-                <div className="mt-3 flex flex-col gap-1.5 border-t border-border/70 pt-3 text-sm">
+
+                {/* Subtotais & Descontos */}
+                <div className="space-y-1.5 pt-3 border-t border-border/60 text-xs">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal das peças</span>
                     <span className="num-display">
@@ -679,156 +1291,142 @@ function PedidosPage() {
                   </div>
                   {pedidoAberto.desconto > 0 && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Cupom {pedidoAberto.cupom}</span>
-                      <span className="num-display text-success">
-                        − {brl(pedidoAberto.desconto)}
-                      </span>
+                      <span>Cupom de desconto ({pedidoAberto.cupom ?? "Promoção"})</span>
+                      <span className="num-display text-success">− {brl(pedidoAberto.desconto)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-base font-semibold border-t border-border/40 pt-1.5">
+                  <div className="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border/60">
                     <span>Total pago pela cliente</span>
-                    <span className="num-display font-bold">{brl(totalPedido(pedidoAberto))}</span>
-                  </div>
-
-                  {/* Extrato contábil transparente */}
-                  <div className="mt-2 rounded-xl border border-border/80 bg-secondary/40 p-3 space-y-1 text-xs">
-                    <p className="font-semibold text-foreground">Extrato líquido da venda</p>
-                    {pedidoAberto.taxaOperadora !== undefined && pedidoAberto.taxaOperadora > 0 ? (
-                      <>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Taxa operadora de cartão (3,5%)</span>
-                          <span className="text-destructive font-medium">− {brl(pedidoAberto.taxaOperadora)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
-                          <span>Líquido a receber na conta</span>
-                          <span>{brl(pedidoAberto.valorLiquido ?? Math.max(totalPedido(pedidoAberto) - pedidoAberto.taxaOperadora, 0))}</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground pt-0.5">
-                          A taxa é descontada da venda pela operadora de cartão. Custo Vestui: R$ 0,00.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Taxa de processamento ({pedidoAberto.pagamento})</span>
-                          <span className="text-emerald-600 font-medium">R$ 0,00 (Grátis)</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
-                          <span>Líquido a receber na conta</span>
-                          <span>{brl(totalPedido(pedidoAberto))}</span>
-                        </div>
-                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 pt-0.5">
-                          ✓ Venda direta com 100% do valor limpo para sua loja.
-                        </p>
-                      </>
-                    )}
-                    <div className="pt-2 border-t border-border/60 flex justify-end">
-                      <Link
-                        to="/loja/recebimentos"
-                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 transition-colors"
-                      >
-                        <Wallet className="h-3.5 w-3.5" />
-                        Ver liquidação no Vestui Pay →
-                      </Link>
-                    </div>
+                    <span className="num-display text-base text-primary">{brl(totalPedido(pedidoAberto))}</span>
                   </div>
                 </div>
-              </SectionCard>
 
-              {/* Entrega & Rastreio */}
-              <SectionCard title="Entrega" bodyClassName="p-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex gap-2">
-                    <Truck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <p className="font-medium">{pedidoAberto.entrega}</p>
-                  </div>
-                  <p className="pl-6 text-xs text-muted-foreground leading-relaxed">{pedidoAberto.endereco}</p>
-
-                  {pedidoAberto.rastreio ? (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between rounded-xl bg-secondary/50 px-3 py-2">
-                        <span className="text-xs text-muted-foreground">Cód. rastreio</span>
-                        <span className="num-display text-xs font-bold font-mono text-primary">
-                          {pedidoAberto.rastreio}
+                {/* Extrato Contábil Transparente */}
+                <div className="rounded-xl border border-border/80 bg-secondary/30 p-3 space-y-1 text-xs">
+                  <p className="font-semibold text-foreground text-[11px] uppercase tracking-wider">
+                    Extrato Líquido no Caixa
+                  </p>
+                  {pedidoAberto.taxaOperadora !== undefined && pedidoAberto.taxaOperadora > 0 ? (
+                    <>
+                      <div className="flex justify-between text-muted-foreground text-[11px]">
+                        <span>Taxa de processamento de cartão (3,5%)</span>
+                        <span className="text-destructive font-medium">− {brl(pedidoAberto.taxaOperadora)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
+                        <span>Líquido a receber na conta</span>
+                        <span>
+                          {brl(
+                            pedidoAberto.valorLiquido ??
+                              Math.max(totalPedido(pedidoAberto) - pedidoAberto.taxaOperadora, 0),
+                          )}
                         </span>
                       </div>
-                      {pedidoAberto.telefone && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 w-full rounded-xl text-xs font-semibold text-green-700 border-green-200 bg-green-50 hover:bg-green-100 flex items-center justify-center gap-1.5"
-                          onClick={() => {
-                            const phoneDigits = pedidoAberto.telefone.replace(/\D/g, "");
-                            const phone = phoneDigits.startsWith("55") ? phoneDigits : `55${phoneDigits}`;
-                            const msg = `Olá, ${pedidoAberto.cliente}! 👋\n\nSeu pedido *${pedidoAberto.numero}* foi enviado! 📦\n\nCódigo de rastreamento: *${pedidoAberto.rastreio}*\n\nAcompanhe nos Correios:\nhttps://rastreamento.correios.com.br/app/index.php?codigo=${pedidoAberto.rastreio}`;
-                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
-                          }}
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" /> Avisar rastreio no WhatsApp da cliente
-                        </Button>
-                      )}
-                    </div>
+                    </>
                   ) : (
-                    <div className="mt-3 space-y-1.5">
+                    <>
+                      <div className="flex justify-between text-muted-foreground text-[11px]">
+                        <span>Taxa de processamento ({pedidoAberto.pagamento})</span>
+                        <span className="text-emerald-600 font-medium">R$ 0,00 (Grátis)</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-lg p-2 mt-1">
+                        <span>Líquido a receber no Caixa</span>
+                        <span>{brl(totalPedido(pedidoAberto))}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* 4. Logística, Envio & Rastreio */}
+              <div className="rounded-2xl border border-border bg-surface p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                    <Truck className="size-3.5 text-primary" />
+                    <span>Envio & Rastreamento</span>
+                  </span>
+                  <Tag>{pedidoAberto.entrega}</Tag>
+                </div>
+
+                {pedidoAberto.rastreio ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-xl bg-secondary/50 p-2.5">
+                      <span className="text-xs text-muted-foreground">Código de rastreio:</span>
+                      <a
+                        href={`https://rastreamento.correios.com.br/app/index.php?codigo=${pedidoAberto.rastreio}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="num-display text-xs font-mono font-bold text-primary hover:underline flex items-center gap-1"
+                      >
+                        {pedidoAberto.rastreio}
+                        <ExternalLink className="size-3 opacity-60" />
+                      </a>
+                    </div>
+                    {pedidoAberto.telefone && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => avisarWhatsApp(pedidoAberto, "rastreio")}
+                        className="h-9 w-full rounded-xl text-xs font-semibold text-emerald-600 border-emerald-500/30 bg-emerald-50/50 hover:bg-emerald-100/60 dark:bg-emerald-950/20 gap-1.5"
+                      >
+                        <MessageCircle className="size-3.5" /> Avisar rastreio no WhatsApp da cliente
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
                       <Input
                         placeholder="Inserir código de rastreio (ex: BR849201773BR)"
                         value={codigoRastreio}
                         onChange={(e) => setCodigoRastreio(e.target.value)}
-                        className="h-10 rounded-xl text-xs font-mono uppercase"
+                        className="h-9 rounded-xl text-xs font-mono uppercase"
                       />
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 w-full rounded-xl text-xs font-semibold"
                         onClick={() => void salvarRastreio(pedidoAberto.id)}
+                        className="h-9 rounded-xl text-xs font-semibold shrink-0"
                       >
-                        Salvar rastreio
+                        Salvar
                       </Button>
                     </div>
-                  )}
-                </div>
-              </SectionCard>
+                  </div>
+                )}
+              </div>
 
-              {/* Avançar */}
-              <div className="flex flex-col gap-2">
+              {/* 5. Ações de Avanço e Gerenciamento */}
+              <div className="pt-2 flex flex-col gap-2.5">
                 {pedidoAberto.status !== "entregue" && pedidoAberto.status !== "cancelado" ? (
                   <Button
-                    className="gradient-primary h-11 rounded-full shadow-glow cursor-pointer"
+                    className="gradient-primary h-11 rounded-full shadow-glow font-semibold cursor-pointer"
                     onClick={() => tentarAvancarStatus(pedidoAberto)}
                   >
-                    Marcar como "
-                    {
-                      statusPedidoLabel[
-                        fluxoStatus[
-                          fluxoStatus.indexOf(pedidoAberto.status as (typeof fluxoStatus)[number]) +
-                            1
-                        ] ?? pedidoAberto.status
-                      ]
-                    }
-                    "
+                    {pedidoAberto.status === "novo" ? (
+                      <>
+                        <CheckCircle2 className="size-4 mr-2" /> Aprovar Pedido & Baixar Estoque
+                      </>
+                    ) : (
+                      <>
+                        Avançar para "
+                        {
+                          statusPedidoLabel[
+                            fluxoStatus[
+                              fluxoStatus.indexOf(pedidoAberto.status as (typeof fluxoStatus)[number]) + 1
+                            ] ?? pedidoAberto.status
+                          ]
+                        }
+                        "
+                      </>
+                    )}
                   </Button>
                 ) : null}
 
                 <Button
                   variant="outline"
-                  className="h-11 rounded-full"
-                  onClick={() => {
-                    const nomeLoja = store?.name ?? "nossa loja";
-                    const rastreioInfo = pedidoAberto.rastreio
-                      ? ` Código de rastreio: ${pedidoAberto.rastreio}.`
-                      : "";
-                    const msg = `Olá, ${pedidoAberto.cliente}! Aqui é da ${nomeLoja}. Seu pedido ${pedidoAberto.numero} está ${statusPedidoLabel[pedidoAberto.status].toLowerCase()}.${rastreioInfo} Qualquer dúvida estamos à disposição! 💜`;
-                    const digits = (pedidoAberto.telefone || "").replace(/\D/g, "");
-                    const encoded = encodeURIComponent(msg);
-                    if (digits.length >= 8) {
-                      const phone = digits.startsWith("55") ? digits : `55${digits}`;
-                      window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank", "noopener,noreferrer");
-                    } else {
-                      window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank", "noopener,noreferrer");
-                    }
-                  }}
+                  className="h-10 rounded-full text-xs font-semibold"
+                  onClick={() => avisarWhatsApp(pedidoAberto, "padrao")}
                 >
-                  <MessageCircle className="mr-2 h-4 w-4" /> Avisar no WhatsApp
+                  <MessageCircle className="mr-2 size-4 text-emerald-500" /> Notificar status no WhatsApp
                 </Button>
 
                 {pedidoAberto.status !== "cancelado" ? (
@@ -836,12 +1434,12 @@ function PedidosPage() {
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="h-11 rounded-full text-danger hover:bg-danger-soft hover:text-danger cursor-pointer"
+                        className="h-10 rounded-full text-xs text-danger hover:bg-danger-soft hover:text-danger cursor-pointer"
                       >
-                        <X className="mr-2 h-4 w-4" /> Cancelar pedido
+                        <X className="mr-1.5 size-3.5" /> Cancelar pedido
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="rounded-3xl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Cancelar pedido {pedidoAberto.numero}?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -849,16 +1447,16 @@ function PedidosPage() {
                             "Este pedido ainda não foi confirmado, portanto não alterou seu estoque nem registrou entradas no caixa. Ele será marcado como cancelado sem nenhum impacto financeiro."
                           ) : (
                             <>
-                              Como este pedido já foi confirmado, o estoque dos itens será devolvido à grade e o valor de{" "}
+                              Como este pedido já foi confirmado, o estoque dos itens será devolvido à grade física e o valor de{" "}
                               <strong className="font-semibold text-foreground">{brl(totalPedido(pedidoAberto))}</strong> será registrado como estorno no Caixa.
                             </>
                           )}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogCancel className="rounded-full">Voltar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-danger text-danger-foreground hover:bg-danger/90"
+                          className="rounded-full bg-danger text-danger-foreground hover:bg-danger/90 cursor-pointer"
                           onClick={() => cancelar(pedidoAberto.id)}
                         >
                           Sim, cancelar pedido
@@ -871,12 +1469,12 @@ function PedidosPage() {
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="h-11 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                        className="h-10 rounded-full text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" /> Excluir pedido cancelado
+                        <Trash2 className="mr-1.5 size-3.5" /> Excluir pedido cancelado do histórico
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="rounded-3xl">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir pedido {pedidoAberto.numero}?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -884,9 +1482,9 @@ function PedidosPage() {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogCancel className="rounded-full">Voltar</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
                           onClick={() => excluirPedido(pedidoAberto.id)}
                         >
                           Sim, excluir do histórico
@@ -922,8 +1520,16 @@ function PedidosPage() {
                     const isShortage = st !== null && st < it.qtd;
                     return (
                       <li key={idx} className="flex justify-between items-center gap-2">
-                        <span className="truncate">{it.nome} (Tam. {it.tamanho} • {it.qtd} un.)</span>
-                        <span className={isShortage ? "text-rose-600 dark:text-rose-400 font-semibold shrink-0" : "text-muted-foreground shrink-0"}>
+                        <span className="truncate">
+                          {it.nome} (Tam. {it.tamanho} • {it.qtd} un.)
+                        </span>
+                        <span
+                          className={
+                            isShortage
+                              ? "text-rose-600 dark:text-rose-400 font-semibold shrink-0"
+                              : "text-muted-foreground shrink-0"
+                          }
+                        >
                           {st === null ? "—" : st <= 0 ? "Esgotado (0 un.)" : `${st} un. em estoque`}
                         </span>
                       </li>
@@ -931,7 +1537,8 @@ function PedidosPage() {
                   })}
                 </ul>
                 <p className="text-xs">
-                  Deseja confirmar o pedido e registrar a entrada de <strong>{pedidoConfirmarSemEstoque ? brl(totalPedido(pedidoConfirmarSemEstoque)) : ""}</strong> no Caixa mesmo assim?
+                  Deseja confirmar o pedido e registrar a entrada de{" "}
+                  <strong>{pedidoConfirmarSemEstoque ? brl(totalPedido(pedidoConfirmarSemEstoque)) : ""}</strong> no Caixa mesmo assim?
                 </p>
               </div>
             </AlertDialogDescription>
