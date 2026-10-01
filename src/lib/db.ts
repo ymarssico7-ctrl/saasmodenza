@@ -291,6 +291,7 @@ export const ordersQuery = (storeId?: string) =>
         if (storeId) {
           try {
             const stored =
+              localStorage.getItem(`vestui_orders_v2_${storeId}`) ||
               localStorage.getItem(`vestui_orders_${storeId}`) ||
               localStorage.getItem(`vestuli_orders_${storeId}`);
             if (stored) return JSON.parse(stored);
@@ -311,6 +312,7 @@ export const ordersQuery = (storeId?: string) =>
 
         try {
           const stored =
+            localStorage.getItem(`vestui_orders_v2_${storeId}`) ||
             localStorage.getItem(`vestui_orders_${storeId}`) ||
             localStorage.getItem(`vestuli_orders_${storeId}`);
           if (!stored) return doBanco;
@@ -324,6 +326,7 @@ export const ordersQuery = (storeId?: string) =>
       } catch {
         try {
           const stored =
+            localStorage.getItem(`vestui_orders_v2_${storeId}`) ||
             localStorage.getItem(`vestui_orders_${storeId}`) ||
             localStorage.getItem(`vestuli_orders_${storeId}`);
           if (stored) return JSON.parse(stored);

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -76,7 +76,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { notifySimOrdersChanged } from "@/lib/sim-orders";
+import {
+  loadStoredOrders,
+  saveStoredOrders,
+  notifySimOrdersChanged,
+  SIM_ORDERS_EVENT,
+} from "@/lib/sim-orders";
 import { brl, brlCompact } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { restoreOrderStock, adjustInventoryStock, insertTransaction } from "@/lib/mutations";
@@ -114,13 +119,7 @@ function mapPedidoPaymentMethod(pagamento: string): string {
   return "pix";
 }
 
-function pedidosKey(storeId: string) {
-  return `vestui_orders_${storeId}`;
-}
-
-function legacyPedidosKey(storeId: string) {
-  return `vestuli_orders_${storeId}`;
-}
+// Chaves gerenciadas centralizadamente por @/lib/sim-orders
 
 type CustomerAddressObj = {
   rua?: string;
@@ -251,6 +250,69 @@ function isPedidoSimulado(p: Pedido | null | undefined): boolean {
   );
 }
 
+
+function mapDbRowToPedido(row: any): Pedido {
+  const addr =
+    typeof row.customer_address === "object" && row.customer_address
+      ? (row.customer_address as CustomerAddressObj)
+      : {};
+  const enderecoFormatado =
+    [
+      addr.rua,
+      addr.numero && `nº ${addr.numero}`,
+      addr.bairro,
+      addr.cep && `CEP ${addr.cep}`,
+      addr.complemento,
+    ]
+      .filter(Boolean)
+      .join(", ") ||
+    (typeof row.customer_address === "string" ? row.customer_address : "");
+
+  const itens = Array.isArray(row.items)
+    ? (row.items as Array<{
+        produtoId: string;
+        nome: string;
+        tamanho: string;
+        cor: string;
+        qtd: number;
+        preco: number;
+      }>)
+    : [];
+
+  const metodoPagamento =
+    row.payment_method === "pix"
+      ? "Pix"
+      : row.payment_method === "cartao"
+      ? "Cartão de crédito"
+      : "Dinheiro na entrega";
+
+  return {
+    id: String(row.id),
+    numero: row.numero || `#${String(row.id).slice(0, 6)}`,
+    cliente: row.customer_name || "Cliente",
+    telefone: row.customer_phone || "",
+    email: row.customer_email || undefined,
+    cidade: addr.bairro || "",
+    criadoEm: row.created_at || new Date().toISOString(),
+    status: (row.status || "novo") as StatusPedido,
+    origem: "Checkout" as const,
+    pagamento: metodoPagamento,
+    entrega: row.frete_tipo || "Entrega",
+    endereco: enderecoFormatado,
+    rastreio: row.tracking_code || undefined,
+    frete: Number(row.frete_valor || 0),
+    desconto: Number(row.desconto || 0),
+    cupom: row.cupom || undefined,
+    taxaOperadora: Number(row.payment_fee || 0),
+    valorLiquido: Number(
+      row.net_amount ||
+        Math.max(Number(row.total || 0) - Number(row.payment_fee || 0), 0),
+    ),
+    itens,
+    isSimulacao: Boolean(row.isSimulacao) || String(row.id).startsWith("demo_"),
+  };
+}
+
 function PedidosPage() {
   const { storeId, store } = useStore();
   const queryClient = useQueryClient();
@@ -266,8 +328,16 @@ function PedidosPage() {
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [sincronizando, setSincronizando] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [versaoLocal, setVersaoLocal] = useState(0);
   const POR_PAGINA = 10;
+
+  // ── Estado Reativo Centralizado (Optimistic 0ms UI) ────────────────────────
+  const [lista, setLista] = useState<Pedido[]>(() => {
+    if (!storeId) return [];
+    return loadStoredOrders<Pedido>(storeId);
+  });
+
+  // Rastreia IDs excluídos pelo usuário para evitar que o refetch assíncrono do Supabase ressuscite pedidos excluídos
+  const deletedIdsRef = useRef<Set<string>>(new Set());
   const [pedidoConfirmarSemEstoque, setPedidoConfirmarSemEstoque] = useState<Pedido | null>(null);
   const [pedidoComPecaExcluida, setPedidoComPecaExcluida] = useState<{ pedido: Pedido; nomes: string[] } | null>(null);
 
@@ -336,26 +406,43 @@ function PedidosPage() {
           void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
 
           if (payload.eventType === "INSERT") {
-            const row = payload.new as Record<string, unknown>;
-            const numero = (row["numero"] as string | undefined) ?? "#--";
-            const pagamento = (row["payment_method"] as string | undefined) ?? "";
-            const metodosLabel: Record<string, string> = {
-              pix: "Pix",
-              cartao: "Cartão",
-              dinheiro: "Dinheiro",
-              boleto: "Boleto",
-            };
-            const metodoLabel = metodosLabel[pagamento] ?? pagamento;
+            const row = payload.new as Record<string, any>;
+            const mapped = mapDbRowToPedido(row);
+            setLista((prev) => {
+              if (prev.some((p) => p.id === mapped.id)) return prev;
+              const atualizada = [mapped, ...prev];
+              if (storeId) saveStoredOrders(storeId, atualizada);
+              return atualizada;
+            });
 
             playNotificationSound();
-            toast.success(`🛍️ Novo Pedido ${numero} recebido!`, {
-              description: metodoLabel ? `Forma de pagamento: ${metodoLabel}` : "Acesse os pedidos para conferir.",
+            toast.success(`🛍️ Novo Pedido ${mapped.numero} recebido!`, {
+              description: `Cliente: ${mapped.cliente} · Total: ${brl(totalPedido(mapped))}`,
               duration: 6000,
               action: {
                 label: "Ver agora",
-                onClick: () => setAberto(row["id"] as string),
+                onClick: () => setAberto(mapped.id),
               },
             });
+          } else if (payload.eventType === "UPDATE") {
+            const row = payload.new as any;
+            const mapped = mapDbRowToPedido(row);
+            setLista((prev) => {
+              const atualizada = prev.map((p) => (p.id === mapped.id ? { ...p, ...mapped } : p));
+              if (storeId) saveStoredOrders(storeId, atualizada);
+              return atualizada;
+            });
+          } else if (payload.eventType === "DELETE") {
+            const oldRow = payload.old as any;
+            if (oldRow && oldRow.id) {
+              const id = String(oldRow.id);
+              deletedIdsRef.current.add(id);
+              setLista((prev) => {
+                const atualizada = prev.filter((p) => p.id !== id);
+                if (storeId) saveStoredOrders(storeId, atualizada);
+                return atualizada;
+              });
+            }
           }
         },
       )
@@ -377,88 +464,55 @@ function PedidosPage() {
     return prod?.photo_url ?? null;
   };
 
-  // Mapeia os pedidos do Supabase e mescla com cache local se houver
-  const lista = useMemo(() => {
-    const doBanco: Pedido[] = dbOrders.map((row) => {
-      const addr =
-        typeof row.customer_address === "object" && row.customer_address
-          ? (row.customer_address as CustomerAddressObj)
-          : {};
-      const enderecoFormatado =
-        [
-          addr.rua,
-          addr.numero && `nº ${addr.numero}`,
-          addr.bairro,
-          addr.cep && `CEP ${addr.cep}`,
-          addr.complemento,
-        ]
-          .filter(Boolean)
-          .join(", ") ||
-        (typeof row.customer_address === "string" ? row.customer_address : "");
+  // ── Sincronização entre Banco de Dados (Supabase) e Armazenamento Local ──────
+  useEffect(() => {
+    if (!storeId) return;
+    const dbMapped = (dbOrders || []).map(mapDbRowToPedido);
+    const stored = loadStoredOrders<Pedido>(storeId);
 
-      const itens = Array.isArray(row.items)
-        ? (row.items as Array<{
-            produtoId: string;
-            nome: string;
-            tamanho: string;
-            cor: string;
-            qtd: number;
-            preco: number;
-          }>)
-        : [];
+    if (stored.length > 0) {
+      // Map dos pedidos locais com alterações e status mais recentes (0ms)
+      const storedMap = new Map(stored.map((p) => [p.id, p]));
+      // Pedidos do banco que ainda não existem no local (novas compras na vitrine)
+      const novosDoBanco = dbMapped.filter(
+        (p) => !storedMap.has(p.id) && !deletedIdsRef.current.has(p.id)
+      );
 
-      const metodoPagamento =
-        row.payment_method === "pix"
-          ? "Pix"
-          : row.payment_method === "cartao"
-          ? "Cartão de crédito"
-          : "Dinheiro na entrega";
-
-      return {
-        id: row.id,
-        numero: row.numero || `#${row.id.slice(0, 6)}`,
-        cliente: row.customer_name || "Cliente",
-        telefone: row.customer_phone || "",
-        email: row.customer_email || undefined,
-        cidade: addr.bairro || "",
-        criadoEm: row.created_at,
-        status: (row.status || "novo") as StatusPedido,
-        origem: "Checkout" as const,
-        pagamento: metodoPagamento,
-        entrega: row.frete_tipo || "Entrega",
-        endereco: enderecoFormatado,
-        rastreio: row.tracking_code || undefined,
-        frete: Number(row.frete_valor || 0),
-        desconto: Number(row.desconto || 0),
-        cupom: row.cupom || undefined,
-        taxaOperadora: Number(row.payment_fee || 0),
-        valorLiquido: Number(
-          row.net_amount ||
-            Math.max(Number(row.total || 0) - Number(row.payment_fee || 0), 0),
-        ),
-        itens,
-      };
-    });
-
-    if (!storeId) return doBanco;
-    try {
-      const stored =
-        localStorage.getItem(pedidosKey(storeId)) ||
-        localStorage.getItem(legacyPedidosKey(storeId));
-      if (!stored) return doBanco;
-      const locais = JSON.parse(stored) as Pedido[];
-      const idsBanco = new Set(doBanco.map((p) => p.id));
-      const apenasLocais = locais.filter((p) => !idsBanco.has(p.id));
-      return [...doBanco, ...apenasLocais];
-    } catch {
-      return doBanco;
+      // Preserva pedidos armazenados locais que não foram deletados
+      const locaisValidos = stored.filter((p) => !deletedIdsRef.current.has(p.id));
+      const mesclados = [...novosDoBanco, ...locaisValidos];
+      setLista(mesclados);
+      saveStoredOrders(storeId, mesclados);
+    } else if (dbMapped.length > 0) {
+      const filtrados = dbMapped.filter((p) => !deletedIdsRef.current.has(p.id));
+      setLista(filtrados);
+      saveStoredOrders(storeId, filtrados);
     }
-  }, [dbOrders, storeId, versaoLocal]);
+  }, [dbOrders, storeId]);
 
+  // ── Escuta Sincronização em Tempo Real (Eventos de outras abas / intra-aba) ─
+  useEffect(() => {
+    if (!storeId) return;
+    const onSync = () => {
+      const stored = loadStoredOrders<Pedido>(storeId);
+      if (stored.length > 0) {
+        setLista(stored.filter((p) => !deletedIdsRef.current.has(p.id)));
+      }
+    };
+    window.addEventListener("storage", onSync);
+    window.addEventListener(SIM_ORDERS_EVENT, onSync);
+    return () => {
+      window.removeEventListener("storage", onSync);
+      window.removeEventListener(SIM_ORDERS_EVENT, onSync);
+    };
+  }, [storeId]);
+
+  // ── Função de Persistência com Atualização Otimista Imediata (0ms) ───────────
   const persistir = (novaLista: Pedido[]) => {
-    localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
-    notifySimOrdersChanged();
-    setVersaoLocal((v) => v + 1);
+    setLista(novaLista); // 🚀 ATUALIZAÇÃO SÍNCRONA E OTIMISTA DA UI EM 0ms!
+    if (storeId) {
+      saveStoredOrders(storeId, novaLista);
+    }
   };
 
   // KPIs Dinâmicos de Alto Nível (Shopify Cockpit Operacional)
@@ -688,8 +742,17 @@ function PedidosPage() {
   };
 
   const excluirPedido = async (id: string) => {
+    deletedIdsRef.current.add(id);
     const pedido = lista.find((p) => p.id === id);
     const isSimulacao = isPedidoSimulado(pedido);
+
+    const novaLista = lista.filter((p) => p.id !== id);
+    persistir(novaLista); // 🚀 0ms remoção visual instantânea
+    setAberto(null);
+
+    toast.success("Pedido excluído do histórico", {
+      description: pedido ? `Pedido ${pedido.numero} removido instantaneamente.` : undefined,
+    });
 
     if (!isSimulacao) {
       try {
@@ -699,12 +762,6 @@ function PedidosPage() {
         console.error("Erro ao excluir do Supabase:", err);
       }
     }
-    const novaLista = lista.filter((p) => p.id !== id);
-    persistir(novaLista);
-    setAberto(null);
-    toast.success("Pedido excluído do histórico", {
-      description: pedido ? `Pedido ${pedido.numero} removido instantaneamente.` : undefined,
-    });
   };
 
   const salvarRastreio = async (pedidoId: string) => {
