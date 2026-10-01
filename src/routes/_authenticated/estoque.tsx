@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Check, Layers, Minus, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
+import { Boxes, Calculator, Check, Layers, Minus, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -157,6 +157,7 @@ function Estoque() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [gradeMode, setGradeMode] = useState<"grade" | "unico">("grade");
   const [singleSizeQty, setSingleSizeQty] = useState("");
+  const [newPieceOpen, setNewPieceOpen] = useState(false);
 
   // ── Filtros e Busca Rápida no Estoque (Apple UX) ──────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -186,6 +187,14 @@ function Estoque() {
     });
   }, [items, searchQuery, categoryFilter, statusFilter, storeCategories]);
 
+  const outOfStockCount = useMemo(() => {
+    return items.filter((i) => {
+      const s = (i.sizes ?? {}) as Sizes;
+      const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+      return units <= 0;
+    }).length;
+  }, [items]);
+
   const handleUseSampleAsTemplate = () => {
     setName("Vestido Midi Linho Cru");
     setCategory("vestido");
@@ -195,8 +204,8 @@ function Estoque() {
     setPrice("179.90");
     setGradeMode("grade");
     setSizes({ PP: 1, P: 2, M: 3, G: 2, GG: 1 });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    toast.success("Modelo carregado no formulário acima!", {
+    setNewPieceOpen(true);
+    toast.success("Modelo carregado no formulário!", {
       description: "Edite o nome, fotos e valores para a sua peça real.",
     });
   };
@@ -258,6 +267,7 @@ function Estoque() {
       setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
       setSingleSizeQty("");
       setGradeMode("grade");
+      setNewPieceOpen(false);
       // Auto-publicar na vitrine se a flag estiver ativa
       if (newId && getAutoPublish()) {
         patchShowcaseConfig(newId, { ativo: true });
@@ -363,69 +373,132 @@ function Estoque() {
   return (
     <div className="space-y-10">
       <PageHeader
-        eyebrow="Estoque"
-        title="Suas peças, tamanho por tamanho"
-        description="Saiba quanto você tem parado em estoque e quanto isso pode virar em vendas."
+        eyebrow="Estoque & Catálogo"
+        title="Gestão de Acervo e Peças"
+        description="Controle de numeração, grade, capital investido e rentabilidade por peça."
         action={
-          vitrineAtiva ? (
+          <div className="flex items-center gap-2.5">
+            {vitrineAtiva && (
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 rounded-xl border-border bg-card px-3.5 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <Link to="/loja/produtos">
+                  <Store className="mr-2 size-3.5 text-primary" />
+                  Catálogo Vitrine
+                </Link>
+              </Button>
+            )}
             <Button
-              asChild
-              variant="outline"
-              className="h-10 rounded-2xl border-border bg-card px-4 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
+              type="button"
+              onClick={() => {
+                setName("");
+                setColor("");
+                setCost("");
+                setPrice("");
+                setPhotoUrl("");
+                setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+                setSingleSizeQty("");
+                setGradeMode("grade");
+                setNewPieceOpen(true);
+              }}
+              className="h-10 rounded-xl bg-primary text-primary-foreground font-semibold px-4 text-xs shadow-soft hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <Link to="/loja/produtos">
-                <Store className="mr-2 size-3.5 text-primary" />
-                Catálogo da Vitrine Online
-              </Link>
+              <Plus className="size-4" />
+              <span>Nova Peça</span>
             </Button>
-          ) : null
+          </div>
         }
       />
 
-      {/* ── Cockpit de Estoque — Padrão Premium Unificado ───────────────────── */}
-      <div className="grid gap-3 sm:gap-4 sm:grid-cols-3">
-        {/* Card 1: Peças em estoque */}
-        <div className="panel p-5 sm:p-6 flex flex-col gap-3 transition-all duration-300 hover:shadow-lift">
+      {/* ── Cockpit de Estoque — Padrão Premium Unificado (Apple & Polaris) ── */}
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Card 1: Peças em acervo */}
+        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Peças em estoque</span>
-            <Boxes className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Peças em Acervo</span>
+            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
+              <Boxes className="size-3.5 text-muted-foreground" />
+            </div>
           </div>
-          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-            {totalUnits} <span className="text-lg font-medium text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">
-            {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
-          </p>
+          <div>
+            <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+              {totalUnits} <span className="text-base font-medium text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+            </p>
+          </div>
         </div>
 
-        {/* Card 2: Valor investido */}
-        <div className="panel p-5 sm:p-6 flex flex-col gap-3 transition-all duration-300 hover:shadow-lift">
+        {/* Card 2: Capital Empatado */}
+        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Valor investido</span>
-            <Tag className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Capital Empatado</span>
+            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
+              <Tag className="size-3.5 text-muted-foreground" />
+            </div>
           </div>
-          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-            {brl(stockValue)}
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">
-            {totalUnits > 0 ? `Custo médio: ${brl(stockValue / totalUnits)} / peça` : "Sem peças em estoque"}
-          </p>
+          <div>
+            <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+              {brl(stockValue)}
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              {totalUnits > 0 ? `Custo médio: ${brl(stockValue / totalUnits)} / un.` : "Sem peças no acervo"}
+            </p>
+          </div>
         </div>
 
-        {/* Card 3: Potencial de venda */}
-        <div className="panel p-5 sm:p-6 flex flex-col gap-3 transition-all duration-300 hover:shadow-lift">
+        {/* Card 3: Potencial de Venda */}
+        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Potencial de venda</span>
-            <TrendingUp className="size-4 text-muted-foreground/40" strokeWidth={1.5} />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Faturamento Projetado</span>
+            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
+              <TrendingUp className="size-3.5 text-muted-foreground" />
+            </div>
           </div>
-          <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-            {brl(potential)}
-          </h3>
-          <p className="text-[11px] text-muted-foreground/70">
-            {potential > 0 && stockValue >= 0
-              ? `Lucro potencial de ${brl(potential - stockValue)} (${((potential - stockValue) / potential * 100).toFixed(1).replace(".", ",")}% de margem)`
-              : "Cadastre peças com custo e preço"}
-          </p>
+          <div>
+            <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+              {brl(potential)}
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              {potential > 0 && stockValue >= 0 ? (
+                <>
+                  Margem: <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{((potential - stockValue) / potential * 100).toFixed(1).replace(".", ",")}%</span> ({brl(potential - stockValue)} lucro)
+                </>
+              ) : (
+                "Aguardando precificação"
+              )}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Saúde & Giro do Estoque */}
+        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Saúde do Giro</span>
+            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
+              <Package className="size-3.5 text-muted-foreground" />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
+                {outOfStockCount > 0 ? outOfStockCount : "100%"}
+              </h3>
+              {outOfStockCount > 0 && (
+                <span className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                  {outOfStockCount === 1 ? "esgotado" : "esgotados"}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              {outOfStockCount > 0
+                ? "Requer reposição ou baixa"
+                : "Todas as peças com estoque ativo"}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -449,332 +522,6 @@ function Estoque() {
 
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
         <TabsContent value="pecas" className="space-y-6 mt-6">
-
-      <section className="panel p-6 sm:p-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold">Nova peça</h2>
-            <p className="text-xs text-muted-foreground">
-              Cadastre a peça com fotos, categoria e quantidade por tamanho.
-            </p>
-          </div>
-          {pricings.length > 0 && (
-            <Select
-              value=""
-              onValueChange={(pricingId) => {
-                const p = pricings.find((item) => item.id === pricingId);
-                if (p) {
-                  const r = computePricing({
-                    wholesale_cost: Number(p.wholesale_cost),
-                    freight_cost: Number(p.freight_cost),
-                    packaging_cost: Number(p.packaging_cost),
-                    other_costs: Number(p.other_costs),
-                    margin_pct: Number(p.margin_pct),
-                    tax_pct: Number(p.tax_pct),
-                    card_rate_pct: 3.5,
-                  });
-                  setName(p.name);
-                  setCost(r.realCost.toFixed(2).replace(".", ","));
-                  setPrice(r.suggestedPrice.toFixed(2).replace(".", ","));
-                  toast.success(`Valores importados da precificação "${p.name}"! 💡`, {
-                    description: `Custo: ${brl(r.realCost)} · Venda: ${brl(r.suggestedPrice)}`,
-                  });
-                }
-              }}
-            >
-              <SelectTrigger className="h-9 w-auto gap-1.5 rounded-2xl border-border bg-card px-3.5 text-xs font-semibold text-primary shadow-xs hover:border-primary/40 hover:bg-primary/5 transition-colors">
-                <Calculator className="size-3.5" /> Puxar da Precificação
-              </SelectTrigger>
-              <SelectContent>
-                {pricings.map((p) => {
-                  const r = computePricing({
-                    wholesale_cost: Number(p.wholesale_cost),
-                    freight_cost: Number(p.freight_cost),
-                    packaging_cost: Number(p.packaging_cost),
-                    other_costs: Number(p.other_costs),
-                    margin_pct: Number(p.margin_pct),
-                    tax_pct: Number(p.tax_pct),
-                    card_rate_pct: 3.5,
-                  });
-                  return (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} (Venda: {brl(r.suggestedPrice)})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        {/* ── Dados Principais + Foto Integrada ── */}
-        <div className="mt-6 flex flex-col md:flex-row gap-6 items-start">
-          {/* Foto da Peça (Clean & Compacto) */}
-          <div className="w-full md:w-44 shrink-0 flex flex-col gap-2">
-            <Label className="text-xs font-semibold text-foreground/90 tracking-tight">
-              Foto da peça (opcional)
-            </Label>
-            <div className="w-full max-w-[176px]">
-              <ImageUploader
-                currentUrl={photoUrl || null}
-                bucket="product-photos"
-                folder="inventory"
-                onUploaded={setPhotoUrl}
-                placeholder="Adicionar foto"
-                aspect="portrait"
-              />
-            </div>
-            <p className="text-[11px] text-muted-foreground/60 leading-tight">
-              Formatos JPG ou PNG. Recomendado 3:4.
-            </p>
-          </div>
-
-          {/* Grid de Campos */}
-          <div className="flex-1 w-full space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Nome da peça">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Vestido midi linho"
-                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
-                />
-              </Field>
-              <Field label="Categoria">
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
-                    <SelectValue placeholder="Selecione uma categoria..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {storeCategories.map((c) => (
-                      <SelectItem key={c.id} value={c.slug}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                    <div className="p-1 border-t border-border/60 mt-1">
-                      <button
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setCategoryManagerOpen(true);
-                        }}
-                        className="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer text-left"
-                      >
-                        <Plus className="size-3.5" />
-                        + Gerenciar categorias da loja...
-                      </button>
-                    </div>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Cor">
-                <Input
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  placeholder="Ex: Off-white, Preto..."
-                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
-                />
-              </Field>
-              <Field label="Fornecedor (Opcional)">
-                <SupplierCombobox
-                  value={supplier}
-                  onChange={setSupplier}
-                />
-              </Field>
-              <Field label="Custo da peça (R$)">
-                <Input
-                  inputMode="decimal"
-                  value={cost}
-                  onChange={(e) => setCost(e.target.value)}
-                  placeholder="0,00"
-                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
-                />
-              </Field>
-              <Field label="Preço de venda (R$)">
-                <Input
-                  inputMode="decimal"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0,00"
-                  className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
-                />
-              </Field>
-            </div>
-
-            {/* Rentabilidade Projetada por Peça */}
-            {(() => {
-              const costNum = toNumber(cost);
-              const priceNum = toNumber(price);
-              if (isNaN(costNum) || isNaN(priceNum) || priceNum <= 0) return null;
-              const margemReais = priceNum - costNum;
-              const margemPct = (margemReais / priceNum) * 100;
-              const markup = costNum > 0 ? (priceNum / costNum).toFixed(2) : null;
-              const abaixoCusto = costNum > 0 && priceNum < costNum;
-
-              return (
-                <div className="rounded-xl border border-border/70 bg-surface-muted/50 p-3 text-xs space-y-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground font-medium">Rentabilidade projetada por peça:</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      Margem: {brl(margemReais)} ({margemPct.toFixed(1)}%)
-                      {markup ? ` · Markup: ${markup}x` : ""}
-                    </span>
-                  </div>
-                  {abaixoCusto ? (
-                    <div className="rounded-lg bg-destructive/15 p-2 text-[11px] font-medium text-destructive leading-relaxed">
-                      ⚠️ Preço de venda menor que o custo de aquisição. Prejuízo de {brl(costNum - priceNum)} por peça.
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* ── Grade de Tamanhos & Botão Adicionar ── */}
-        <div className="mt-7 pt-5 border-t border-border/60">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Grade de tamanhos</Label>
-              <p className="text-[11px] text-muted-foreground">Defina a quantidade de peças disponíveis por tamanho</p>
-            </div>
-            <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-medium shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setGradeMode("grade")}
-                className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
-                  gradeMode === "grade"
-                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Grade P / M / G
-              </button>
-              <button
-                type="button"
-                onClick={() => setGradeMode("unico")}
-                className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
-                  gradeMode === "unico"
-                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Tamanho Único
-              </button>
-            </div>
-          </div>
-
-          {gradeMode === "grade" ? (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2.5 max-w-2xl">
-              {SIZE_GRID.map((s) => {
-                const currentQty = Number(sizes[s] ?? 0);
-                return (
-                  <div
-                    key={s}
-                    className="rounded-2xl border border-border/70 bg-card p-2.5 text-center space-y-1.5 shadow-2xs hover:border-border transition-colors"
-                  >
-                    <p className="text-xs font-bold text-foreground">{s}</p>
-                    <Input
-                      inputMode="numeric"
-                      className="h-8 text-center text-xs font-semibold p-1 bg-surface-muted/50 border-border/60"
-                      value={currentQty > 0 ? String(currentQty) : ""}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const val = e.target.value.trim();
-                        const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
-                        setSizes((prev) => ({ ...prev, [s]: isNaN(num) ? 0 : num }));
-                      }}
-                    />
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="size-6 rounded-full"
-                        disabled={currentQty <= 0}
-                        onClick={() =>
-                          setSizes((prev) => ({ ...prev, [s]: Math.max(0, currentQty - 1) }))
-                        }
-                      >
-                        <Minus className="size-3" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="size-6 rounded-full"
-                        onClick={() =>
-                          setSizes((prev) => ({ ...prev, [s]: currentQty + 1 }))
-                        }
-                      >
-                        <Plus className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="mt-4 max-w-sm rounded-2xl border border-border/70 bg-card p-4 space-y-3">
-              <Label className="text-xs font-semibold text-foreground">Quantidade (Tamanho Único)</Label>
-              <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="size-9 rounded-full shrink-0"
-                  disabled={Number(singleSizeQty || 0) <= 0}
-                  onClick={() =>
-                    setSingleSizeQty(String(Math.max(0, Number(singleSizeQty || 0) - 1)))
-                  }
-                >
-                  <Minus className="size-4" />
-                </Button>
-                <Input
-                  type="number"
-                  min="0"
-                  className="h-10 text-center font-bold text-lg bg-surface-muted/50 border-border/60"
-                  placeholder="0"
-                  value={singleSizeQty}
-                  onChange={(e) => setSingleSizeQty(e.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="size-9 rounded-full shrink-0"
-                  onClick={() =>
-                    setSingleSizeQty(String(Number(singleSizeQty || 0) + 1))
-                  }
-                >
-                  <Plus className="size-4" />
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground/70">
-                Ideal para bolsas, cintos, brincos, batas e acessórios sem variação de numeração.
-              </p>
-            </div>
-          )}
-
-          <div className="mt-6 flex justify-end">
-            <Button
-              className="h-12 rounded-2xl px-8 text-sm font-bold tracking-tight bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 transition-all cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto"
-              disabled={create.isPending}
-              onClick={() => create.mutate()}
-            >
-              {create.isPending ? (
-                "Adicionando..."
-              ) : (
-                <>
-                  <Plus className="size-4" />
-                  <span>Adicionar ao estoque</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </section>
 
       <section className="panel p-5 sm:p-7 border border-border/70 shadow-soft">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
@@ -840,6 +587,27 @@ function Estoque() {
                   <SelectItem value="out_of_stock">Esgotadas</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Botão Nova Peça Rápido na Barra */}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setName("");
+                  setColor("");
+                  setCost("");
+                  setPrice("");
+                  setPhotoUrl("");
+                  setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+                  setSingleSizeQty("");
+                  setGradeMode("grade");
+                  setNewPieceOpen(true);
+                }}
+                className="h-9 gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 text-xs font-semibold shadow-xs hover:bg-primary/90 transition-all cursor-pointer shrink-0"
+              >
+                <Plus className="size-3.5" />
+                <span>Nova Peça</span>
+              </Button>
 
               {/* Gerenciar Categorias da Loja */}
               <Button
@@ -969,8 +737,8 @@ function Estoque() {
                 >
                   {/* Lado Esquerdo: Miniatura da Peça + Dados */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-                    {/* Thumbnail / Foto */}
-                    <div className="relative size-16 sm:size-18 rounded-xl overflow-hidden bg-surface-muted border border-border/60 shrink-0 flex items-center justify-center">
+                    {/* Thumbnail / Foto no padrão 3:4 de Moda */}
+                    <div className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden bg-surface-muted border border-border/60 shrink-0 flex items-center justify-center">
                       {i.photo_url ? (
                         <img
                           src={i.photo_url}
@@ -990,16 +758,23 @@ function Estoque() {
                       <p className="truncate text-sm sm:text-base font-bold text-foreground">
                         {i.name}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {getCategoryLabel(storeCategories, i.category)}
-                        {i.color ? ` · ${i.color}` : ""}
-                        {i.supplier ? ` · ${i.supplier}` : ""}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground/80">
+                          {getCategoryLabel(storeCategories, i.category)}
+                        </span>
+                        {i.color && (
+                          <span className="text-[11px] text-muted-foreground">· {i.color}</span>
+                        )}
+                        {i.supplier && (
+                          <span className="text-[11px] text-muted-foreground/70">· {i.supplier}</span>
+                        )}
+                      </div>
 
                       {/* Grade Limpa (Apenas tamanhos positivos ou Esgotado) */}
                       {units <= 0 ? (
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="inline-flex items-center rounded-lg border border-border/70 bg-surface-muted/90 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                            <span className="size-1.5 rounded-full bg-rose-500" />
                             Esgotado
                           </span>
                           <span className="text-[11px] text-muted-foreground/70">
@@ -1007,7 +782,7 @@ function Estoque() {
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                           {availableSizes.map(([size, qty]) => (
                             <span
                               key={size}
@@ -1027,7 +802,7 @@ function Estoque() {
                   </div>
 
                   {/* Lado Direito: Preço, Rentabilidade e Ações */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/40">
+                  <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/40">
                     <div className="text-left sm:text-right">
                       <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground">
                         {brl(Number(i.sale_price))}
@@ -1239,6 +1014,346 @@ function Estoque() {
         </TabsContent>
 
       </Tabs>
+
+      {/* ── Sheet de Cadastro de Nova Peça (Padrão Shopify / Apple) ───── */}
+      <Sheet open={newPieceOpen} onOpenChange={setNewPieceOpen}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader className="text-left">
+            <div className="flex items-center justify-between gap-3 pr-6">
+              <SheetTitle>Cadastrar Nova Peça</SheetTitle>
+              {pricings.length > 0 && (
+                <Select
+                  value=""
+                  onValueChange={(pricingId) => {
+                    const p = pricings.find((item) => item.id === pricingId);
+                    if (p) {
+                      const r = computePricing({
+                        wholesale_cost: Number(p.wholesale_cost),
+                        freight_cost: Number(p.freight_cost),
+                        packaging_cost: Number(p.packaging_cost),
+                        other_costs: Number(p.other_costs),
+                        margin_pct: Number(p.margin_pct),
+                        tax_pct: Number(p.tax_pct),
+                        card_rate_pct: 3.5,
+                      });
+                      setName(p.name);
+                      setCost(r.realCost.toFixed(2).replace(".", ","));
+                      setPrice(r.suggestedPrice.toFixed(2).replace(".", ","));
+                      toast.success(`Valores importados de "${p.name}"! 💡`, {
+                        description: `Custo: ${brl(r.realCost)} · Venda: ${brl(r.suggestedPrice)}`,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-auto gap-1 rounded-xl border-border bg-card px-2.5 text-[11px] font-semibold text-primary shadow-xs hover:bg-primary/5 transition-colors">
+                    <Calculator className="size-3" /> Puxar Precificação
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pricings.map((p) => {
+                      const r = computePricing({
+                        wholesale_cost: Number(p.wholesale_cost),
+                        freight_cost: Number(p.freight_cost),
+                        packaging_cost: Number(p.packaging_cost),
+                        other_costs: Number(p.other_costs),
+                        margin_pct: Number(p.margin_pct),
+                        tax_pct: Number(p.tax_pct),
+                        card_rate_pct: 3.5,
+                      });
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} ({brl(r.suggestedPrice)})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <SheetDescription>
+              Adicione fotos, categoria, valores e quantidade por tamanho da sua peça.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-5 space-y-5 px-1 pb-10">
+            {/* Foto + Dados */}
+            <div className="flex flex-col sm:flex-row gap-5 items-start">
+              <div className="w-full sm:w-36 shrink-0 flex flex-col gap-1.5">
+                <Label className="text-xs font-semibold text-foreground/90 tracking-tight">
+                  Foto da peça
+                </Label>
+                <div className="w-full max-w-[144px]">
+                  <ImageUploader
+                    currentUrl={photoUrl || null}
+                    bucket="product-photos"
+                    folder="inventory"
+                    onUploaded={setPhotoUrl}
+                    placeholder="Adicionar foto"
+                    aspect="portrait"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground/60 leading-tight">
+                  JPG ou PNG (3:4)
+                </p>
+              </div>
+
+              <div className="flex-1 w-full space-y-3.5">
+                <Field label="Nome da peça">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Vestido midi linho"
+                    className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="Categoria">
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 transition-colors">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {storeCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.slug}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                        <div className="p-1 border-t border-border/60 mt-1">
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCategoryManagerOpen(true);
+                            }}
+                            className="w-full flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer text-left"
+                          >
+                            <Plus className="size-3.5" />
+                            + Gerenciar categorias...
+                          </button>
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label="Cor">
+                    <Input
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      placeholder="Ex: Off-white, Preto"
+                      className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Fornecedor (Opcional)">
+                  <SupplierCombobox
+                    value={supplier}
+                    onChange={setSupplier}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* Custo & Preço */}
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/50">
+              <Field label="Custo da peça (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="0,00"
+                  className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
+                />
+              </Field>
+
+              <Field label="Preço de venda (R$)">
+                <Input
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0,00"
+                  className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors font-mono"
+                />
+              </Field>
+            </div>
+
+            {/* Rentabilidade Projetada por Peça */}
+            {(() => {
+              const costNum = toNumber(cost);
+              const priceNum = toNumber(price);
+              if (isNaN(costNum) || isNaN(priceNum) || priceNum <= 0) return null;
+              const margemReais = priceNum - costNum;
+              const margemPct = (margemReais / priceNum) * 100;
+              const markup = costNum > 0 ? (priceNum / costNum).toFixed(2) : null;
+              const abaixoCusto = costNum > 0 && priceNum < costNum;
+
+              return (
+                <div className="rounded-xl border border-border/70 bg-surface-muted/50 p-3 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-muted-foreground font-medium">Rentabilidade por peça:</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      Margem: {brl(margemReais)} ({margemPct.toFixed(1)}%)
+                      {markup ? ` · Markup: ${markup}x` : ""}
+                    </span>
+                  </div>
+                  {abaixoCusto ? (
+                    <div className="rounded-lg bg-destructive/15 p-2 text-[11px] font-medium text-destructive leading-relaxed">
+                      ⚠️ Preço de venda menor que o custo. Prejuízo de {brl(costNum - priceNum)} por peça.
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()}
+
+            {/* Grade de tamanhos */}
+            <div className="pt-3 border-t border-border/60">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Grade de tamanhos</Label>
+                <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-medium shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setGradeMode("grade")}
+                    className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
+                      gradeMode === "grade"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Grade P / M / G
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGradeMode("unico")}
+                    className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
+                      gradeMode === "unico"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Tamanho Único
+                  </button>
+                </div>
+              </div>
+
+              {gradeMode === "grade" ? (
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {SIZE_GRID.map((s) => {
+                    const currentQty = Number(sizes[s] ?? 0);
+                    return (
+                      <div
+                        key={s}
+                        className="rounded-2xl border border-border/70 bg-card p-2 text-center space-y-1.5 shadow-2xs hover:border-border transition-colors"
+                      >
+                        <p className="text-xs font-bold text-foreground">{s}</p>
+                        <Input
+                          inputMode="numeric"
+                          className="h-8 text-center text-xs font-semibold p-1 bg-surface-muted/50 border-border/60"
+                          value={currentQty > 0 ? String(currentQty) : ""}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            const num = val === "" ? 0 : Math.max(0, Math.round(toNumber(val)));
+                            setSizes((prev) => ({ ...prev, [s]: isNaN(num) ? 0 : num }));
+                          }}
+                        />
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-6 rounded-full"
+                            disabled={currentQty <= 0}
+                            onClick={() =>
+                              setSizes((prev) => ({ ...prev, [s]: Math.max(0, currentQty - 1) }))
+                            }
+                          >
+                            <Minus className="size-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="size-6 rounded-full"
+                            onClick={() =>
+                              setSizes((prev) => ({ ...prev, [s]: currentQty + 1 }))
+                            }
+                          >
+                            <Plus className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 rounded-2xl border border-border/70 bg-card p-4 space-y-3">
+                  <Label className="text-xs font-semibold text-foreground">Quantidade (Tamanho Único)</Label>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-9 rounded-full shrink-0"
+                      disabled={Number(singleSizeQty || 0) <= 0}
+                      onClick={() =>
+                        setSingleSizeQty(String(Math.max(0, Number(singleSizeQty || 0) - 1)))
+                      }
+                    >
+                      <Minus className="size-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min="0"
+                      className="h-10 text-center font-bold text-lg bg-surface-muted/50 border-border/60"
+                      placeholder="0"
+                      value={singleSizeQty}
+                      onChange={(e) => setSingleSizeQty(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-9 rounded-full shrink-0"
+                      onClick={() =>
+                        setSingleSizeQty(String(Number(singleSizeQty || 0) + 1))
+                      }
+                    >
+                      <Plus className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 flex gap-3 border-t border-border/60">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 h-11 rounded-xl font-semibold border-border hover:bg-secondary cursor-pointer"
+                onClick={() => setNewPieceOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 h-11 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 cursor-pointer flex items-center justify-center gap-1.5"
+                disabled={create.isPending}
+                onClick={() => create.mutate()}
+              >
+                {create.isPending ? (
+                  "Cadastrando..."
+                ) : (
+                  <>
+                    <Plus className="size-4" />
+                    <span>Adicionar ao Estoque</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Sheet de Edição e Ajuste de Grade (Apple UX) ───────────────── */}
       <Sheet open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
