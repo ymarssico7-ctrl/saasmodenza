@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  ArrowRight,
   CheckCircle2,
   ChevronRight,
   Copy,
@@ -75,8 +76,6 @@ export interface PainelRadarPedidosOnlineProps {
 export function PainelRadarPedidosOnline({
   pedidosPendentes,
   totalPedidosNovos,
-  valorTotalNovos,
-  vitrineAtiva,
   vitrineUrl,
   vitrineDisplay,
   ocultarSaldos,
@@ -103,107 +102,84 @@ export function PainelRadarPedidosOnline({
       )}
     >
       <div>
-        {/* Cabeçalho — Padrão Apple HIG & Shopify Polaris harmonizado com Saúde do Estoque */}
+        {/* Cabeçalho minimalista — ícone neutro + pill única sem borda */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-6 place-items-center rounded-lg bg-primary/10 text-primary">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground/70">
               <ShoppingBag className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Pedidos da Vitrine
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                {temPendentes
-                  ? `${ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)} a despachar · ${pedidosPendentes.length} ${pedidosPendentes.length === 1 ? "pedido aguardando" : "pedidos aguardando"}`
-                  : "Expedição em dia · Nenhum pedido pendente"}
-              </p>
+              <h2 className="text-sm font-semibold text-foreground">Pedidos da Vitrine</h2>
+              <p className="text-[11px] text-muted-foreground">Expedição e separação</p>
             </div>
           </div>
 
-          {temPendentes ? (
-            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-emerald-500" />
-              {totalPedidosNovos} {totalPedidosNovos === 1 ? "a despachar" : "a despachar"}
-            </span>
-          ) : (
-            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-emerald-500" />
-              Tudo em dia
-            </span>
-          )}
+          {/* Pill de status — neutro, apenas o dot verde como acento */}
+          <span className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-foreground/80">
+            <span
+              className={cn(
+                "size-1.5 rounded-full",
+                temPendentes ? "bg-emerald-500" : "bg-emerald-400",
+              )}
+            />
+            {temPendentes ? `${totalPedidosNovos} aguardando` : "Em dia"}
+          </span>
         </div>
 
-        {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação (Linhas fluidas no padrão Polaris) */}
+        {/* Lista de pedidos — linhas limpas, sem boxes e sem badges coloridos */}
         {temPendentes ? (
-          <ul className="mt-3 divide-y divide-border/50 text-xs">
+          <ul className="mt-3 divide-y divide-border/40 text-xs">
             {pedidosPendentes.slice(0, 2).map((p) => {
               const cliente = p.customer_name || p.clienteNome || `Pedido #${p.id.slice(0, 6)}`;
               const itemSnippet = p.primeiroItemNome
-                ? `${p.primeiroItemNome}${p.itensQtd && p.itensQtd > 1 ? ` (+${p.itensQtd - 1})` : ""}`
+                ? `${p.primeiroItemNome}${p.itensQtd && p.itensQtd > 1 ? ` · +${p.itensQtd - 1}` : ""}`
                 : `${p.itensQtd ?? 1} ${(p.itensQtd ?? 1) === 1 ? "peça" : "peças"}`;
+              const treino = p.isSimulacao;
 
               return (
                 <li
                   key={p.id}
-                  className="group flex items-center justify-between py-2.5 first:pt-1 last:pb-1 transition-colors"
+                  className="group flex items-center justify-between gap-3 py-2.5 first:pt-2 last:pb-1"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground/80 shrink-0 font-mono text-[10px] font-bold">
-                      #{p.id.slice(0, 4)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-semibold text-xs text-foreground truncate max-w-[140px] sm:max-w-[180px]">
-                          {cliente}
-                        </span>
-                        <span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.2 text-[9px] font-semibold shrink-0">
-                          {p.status === "novo" ? "Novo" : "Em separação"}
-                        </span>
-                        {p.isSimulacao && (
-                          <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 text-[9px] text-amber-700 dark:text-amber-300 font-semibold shrink-0">
-                            🧪 Treino
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {itemSnippet}
-                      </p>
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-foreground">
+                      {cliente}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {itemSnippet}
+                      {treino ? <em className="not-italic opacity-60"> · treino</em> : null}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2.5 shrink-0 pl-2">
-                    <span className="numeric text-xs font-bold text-foreground">
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="numeric text-xs font-semibold text-foreground tabular-nums">
                       {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
                     </span>
-                    <Button
-                      asChild
-                      size="sm"
-                      className="h-7 rounded-lg text-[11px] font-semibold px-2.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer transition-all"
+                    <Link
+                      to="/loja/pedidos"
+                      className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      aria-label={`Separar pedido de ${cliente}`}
                     >
-                      <Link to="/loja/pedidos">
-                        Separar
-                      </Link>
-                    </Button>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
                   </div>
                 </li>
               );
             })}
           </ul>
         ) : (
-          /* Conteúdo: 2) Quando NÃO há pedidos pendentes */
+          /* Estado vazio — link da vitrine com copiar */
           <div className="mt-3.5 space-y-2">
-            {/* Box do Link da Vitrine com Botão Copiar */}
             <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
-              <span className="truncate text-muted-foreground text-[11px] font-mono">
+              <span className="truncate text-[11px] font-mono text-muted-foreground">
                 {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
               </span>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleCopy}
                   title="Copiar link da vitrine"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-1.5 py-0.5"
+                  className="inline-flex cursor-pointer items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Copy className="size-3" />
                   <span>Copiar</span>
@@ -214,7 +190,7 @@ export function PainelRadarPedidosOnline({
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Abrir vitrine"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline transition-colors cursor-pointer px-1.5 py-0.5"
+                    className="inline-flex cursor-pointer items-center gap-1 px-1.5 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:underline"
                   >
                     <span>Abrir</span>
                     <ExternalLink className="size-3" />
@@ -226,14 +202,14 @@ export function PainelRadarPedidosOnline({
         )}
       </div>
 
-      {/* Link de Fechamento Integrado e Fluido */}
+      {/* Rodapé — link discreto idêntico aos outros cards */}
       <Link
         to="/loja/pedidos"
-        className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        className="mt-3 flex items-center justify-center gap-1 border-t border-border/40 pt-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <span>
           {temPendentes
-            ? `Central de Pedidos da Vitrine (${totalPedidosNovos})`
+            ? `Central de Pedidos (${totalPedidosNovos})`
             : "Central de Pedidos Online"}
         </span>
         <ChevronRight className="size-3.5" />
@@ -241,6 +217,7 @@ export function PainelRadarPedidosOnline({
     </section>
   );
 }
+
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 2. PAINEL CAPITAL EM ESTOQUE & SAÚDE (Design Fiel Original que o Usuário Amou)
