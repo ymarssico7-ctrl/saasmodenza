@@ -1,13 +1,11 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  ArrowRight,
   CheckCircle2,
   ChevronRight,
   Copy,
   ExternalLink,
   Package,
-  PackageCheck,
   Plus,
   Receipt,
   Shirt,
@@ -106,148 +104,96 @@ export function PainelRadarPedidosOnline({
       )}
     >
       <div>
-        {/* Cabeçalho refinado — Padrão Apple HIG & Shopify Polaris */}
+        {/* Cabeçalho — gramática idêntica ao Saúde do Estoque */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="grid size-7 place-items-center rounded-xl bg-primary/10 text-primary border border-primary/15">
-              <ShoppingBag className="size-4" />
+          <div className="flex items-center gap-2">
+            <div className="grid size-6 place-items-center rounded-lg bg-secondary text-foreground">
+              <ShoppingBag className="size-3.5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground tracking-tight">
+              <h2 className="text-sm font-semibold text-foreground">
                 Pedidos da Vitrine
               </h2>
               <p className="text-[11px] text-muted-foreground">
                 {temPendentes
-                  ? `${ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)} a despachar · ${pedidosPendentes.length} ${pedidosPendentes.length === 1 ? "pedido aguardando" : "pedidos aguardando"}`
+                  ? `${ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)} a despachar · ${pedidosPendentes.length} ${pedidosPendentes.length === 1 ? "pedido" : "pedidos"}`
                   : "Expedição em dia · Nenhum pedido aguardando"}
               </p>
             </div>
           </div>
 
-          {/* Pill de status executiva com acabamento esmeralda sutil */}
-          {temPendentes ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {totalPedidosNovos} {totalPedidosNovos === 1 ? "a despachar" : "a despachar"}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-emerald-500" />
-              Em dia
-            </span>
-          )}
+          {/* Pill neutra — idêntica ao "X modelos" do Saúde do Estoque */}
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+            {temPendentes && <span className="size-1.5 rounded-full bg-emerald-500" />}
+            {temPendentes
+              ? `${totalPedidosNovos} ${totalPedidosNovos === 1 ? "a separar" : "a separar"}`
+              : "Em dia"}
+          </span>
         </div>
 
-        {/* Conteúdo com pedidos pendentes — Inset Micro-Cards de Alta Fidelidade */}
+        {/* Lista de pedidos — mesma estrutura ul/li do Saúde do Estoque */}
         {temPendentes ? (
-          <div className="mt-3.5 space-y-2.5">
-            {pedidosPendentes.slice(0, 2).map((p) => {
+          <ul className="mt-3 divide-y divide-border/50 text-xs">
+            {pedidosPendentes.slice(0, 3).map((p) => {
               const cliente = p.customer_name || p.clienteNome || "Cliente";
-              const initials =
-                cliente
-                  .split(" ")
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part) => part[0])
-                  .join("")
-                  .toUpperCase() || "P";
               const itemSnippet = p.primeiroItemNome
-                ? `${p.itensQtd ?? 1}x ${p.primeiroItemNome}${p.itensQtd && p.itensQtd > 1 ? ` (+${p.itensQtd - 1})` : ""}`
+                ? `${p.itensQtd ?? 1}x ${p.primeiroItemNome}`
                 : `${p.itensQtd ?? 1} ${(p.itensQtd ?? 1) === 1 ? "peça" : "peças"}`;
 
               return (
-                <div
-                  key={p.id}
-                  className="group relative rounded-2xl border border-border/70 bg-secondary/30 p-3.5 transition-all duration-200 hover:border-border hover:bg-secondary/50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary font-semibold text-xs border border-primary/15">
-                        {initials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="font-semibold text-xs text-foreground truncate max-w-[150px] sm:max-w-[200px]">
-                            {cliente}
-                          </h3>
-                          {p.isSimulacao && (
-                            <span className="rounded-full bg-muted border border-border px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground shrink-0">
-                              Modo Teste
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                          {itemSnippet}
-                          {p.pagamento ? ` · ${p.pagamento}` : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="numeric text-sm font-bold text-foreground">
-                        {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
+                <li key={p.id} className="flex items-center justify-between py-2 text-muted-foreground">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="font-medium text-foreground/90 block truncate">
+                        {cliente}
                       </span>
-                    </div>
-                  </div>
-
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="outline"
-                    className="mt-3 h-8 w-full rounded-xl text-xs font-medium border-border/80 bg-background/80 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-2xs cursor-pointer"
-                  >
-                    <Link to="/loja/pedidos">
-                      <PackageCheck className="size-3.5 mr-1.5" />
-                      Separar Pedido
-                    </Link>
-                  </Button>
-                </div>
+                      <span className="text-[10px] block truncate mt-0.5">
+                        {itemSnippet}{p.pagamento ? ` · ${p.pagamento}` : ""}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="numeric font-medium text-foreground shrink-0 ml-3">
+                    {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
+                  </span>
+                </li>
               );
             })}
-          </div>
+          </ul>
         ) : (
-          /* Estado Vazio — Expedição em Dia com Box da Vitrine */
-          <div className="mt-3.5 space-y-3">
-            <div className="rounded-2xl border border-border/60 bg-secondary/20 p-3.5 flex items-center justify-between gap-2 text-xs">
-              <div className="min-w-0">
-                <span className="font-medium text-foreground block text-[11px]">Link da Vitrine</span>
-                <span className="truncate text-muted-foreground text-[11px] font-mono block mt-0.5">
-                  {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Button
+          /* Estado vazio — link da vitrine discreto */
+          <div className="mt-3 space-y-1.5">
+            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
+              <span className="truncate text-[11px] font-mono text-muted-foreground">
+                {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={handleCopy}
-                  className="h-7 px-2.5 rounded-lg text-[11px] font-medium border-border/70 bg-card hover:bg-secondary cursor-pointer"
+                  className="inline-flex cursor-pointer items-center gap-1 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <Copy className="size-3 mr-1" />
-                  Copiar
-                </Button>
+                  <Copy className="size-3" />
+                  <span>Copiar</span>
+                </button>
                 {vitrineUrl && (
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 rounded-lg text-[11px] font-semibold text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                  <a
+                    href={vitrineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex cursor-pointer items-center gap-1 px-1.5 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:underline"
                   >
-                    <a href={vitrineUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="size-3" />
-                    </a>
-                  </Button>
+                    <span>Abrir</span>
+                    <ExternalLink className="size-3" />
+                  </a>
                 )}
               </div>
             </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed px-1">
-              Compartilhe o link no seu Instagram ou WhatsApp para receber pedidos direto na vitrine.
-            </p>
           </div>
         )}
       </div>
 
-      {/* Rodapé Integrado e Fluido */}
+      {/* Rodapé — idêntico ao "Gerenciar Estoque" do Saúde do Estoque */}
       <Link
         to="/loja/pedidos"
         className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
