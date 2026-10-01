@@ -103,113 +103,93 @@ export function PainelRadarPedidosOnline({
       )}
     >
       <div>
-        {/* Cabeçalho */}
+        {/* Cabeçalho — Padrão Apple HIG & Shopify Polaris harmonizado com Saúde do Estoque */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="grid size-6 place-items-center rounded-lg bg-primary/10 text-primary transition-colors">
+            <div className="grid size-6 place-items-center rounded-lg bg-primary/10 text-primary">
               <ShoppingBag className="size-3.5" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                Radar de Pedidos Online
+                Pedidos da Vitrine
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Expedição e separação da vitrine
+                {temPendentes
+                  ? `${ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)} a despachar · ${pedidosPendentes.length} ${pedidosPendentes.length === 1 ? "pedido aguardando" : "pedidos aguardando"}`
+                  : "Expedição em dia · Nenhum pedido pendente"}
               </p>
             </div>
           </div>
 
           {temPendentes ? (
-            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 shadow-2xs">
+            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               {totalPedidosNovos} {totalPedidosNovos === 1 ? "a despachar" : "a despachar"}
             </span>
           ) : (
             <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              Tudo despachado
+              Tudo em dia
             </span>
           )}
         </div>
 
-        {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação */}
+        {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação (Linhas fluidas no padrão Polaris) */}
         {temPendentes ? (
-          <div className="mt-3.5 space-y-2.5">
-            {/* Banner de aviso quando há pedidos simulados */}
-            {pedidosPendentes.some((p) => p.isSimulacao) && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                <span className="text-xs">🧪</span>
-                <span>
-                  {pedidosPendentes.filter((p) => p.isSimulacao).length === pedidosPendentes.length
-                    ? "Pedidos de simulação (modo treino)"
-                    : `${pedidosPendentes.filter((p) => p.isSimulacao).length} pedido(s) de simulação`}
-                </span>
-              </div>
-            )}
+          <ul className="mt-3 divide-y divide-border/50 text-xs">
+            {pedidosPendentes.slice(0, 2).map((p) => {
+              const cliente = p.customer_name || p.clienteNome || `Pedido #${p.id.slice(0, 6)}`;
+              const itemSnippet = p.primeiroItemNome
+                ? `${p.primeiroItemNome}${p.itensQtd && p.itensQtd > 1 ? ` (+${p.itensQtd - 1})` : ""}`
+                : `${p.itensQtd ?? 1} ${(p.itensQtd ?? 1) === 1 ? "peça" : "peças"}`;
 
-            <div className="flex items-baseline justify-between text-xs text-muted-foreground pt-0.5">
-              <span>
-                Total a despachar:{" "}
-                <strong className="text-foreground font-semibold">
-                  {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)}
-                </strong>
-              </span>
-              <span className="text-[11px] text-muted-foreground font-medium">
-                {pedidosPendentes.length} {pedidosPendentes.length === 1 ? "pedido" : "pedidos"}
-              </span>
-            </div>
-
-            {/* Lista dos 2 primeiros pedidos aguardando ação */}
-            <div className="space-y-1.5">
-              {pedidosPendentes.slice(0, 2).map((p) => {
-                const cliente = p.customer_name || p.clienteNome || `Pedido #${p.id.slice(0, 6)}`;
-                const itemSnippet = p.primeiroItemNome
-                  ? `${p.primeiroItemNome}${p.itensQtd && p.itensQtd > 1 ? ` (+${p.itensQtd - 1})` : ""}`
-                  : `${p.itensQtd ?? 1} ${(p.itensQtd ?? 1) === 1 ? "peça" : "peças"}`;
-
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between gap-2.5 rounded-xl border border-border/70 bg-secondary/35 hover:bg-secondary/60 p-2.5 sm:p-3 transition-colors shadow-2xs"
-                  >
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-xs text-foreground truncate">
+              return (
+                <li
+                  key={p.id}
+                  className="group flex items-center justify-between py-2.5 first:pt-1 last:pb-1 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground/80 shrink-0 font-mono text-[10px] font-bold">
+                      #{p.id.slice(0, 4)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-xs text-foreground truncate max-w-[140px] sm:max-w-[180px]">
                           {cliente}
                         </span>
-                        <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium shrink-0 border border-border/50">
+                        <span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.2 text-[9px] font-semibold shrink-0">
                           {p.status === "novo" ? "Novo" : "Em separação"}
                         </span>
                         {p.isSimulacao && (
-                          <span className="rounded-md bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 text-[9px] text-amber-700 dark:text-amber-400 font-semibold shrink-0">
+                          <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 text-[9px] text-amber-700 dark:text-amber-300 font-semibold shrink-0">
                             🧪 Treino
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                         {itemSnippet}
                       </p>
                     </div>
-
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <span className="numeric text-xs font-bold text-foreground">
-                        {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
-                      </span>
-                      <Button
-                        asChild
-                        size="sm"
-                        className="h-7 rounded-full text-[11px] font-semibold px-3 cursor-pointer shadow-2xs"
-                      >
-                        <Link to="/loja/pedidos">
-                          Separar ➔
-                        </Link>
-                      </Button>
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0 pl-2">
+                    <span className="numeric text-xs font-bold text-foreground">
+                      {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
+                    </span>
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-7 rounded-lg text-[11px] font-semibold px-2.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer transition-all"
+                    >
+                      <Link to="/loja/pedidos">
+                        Separar
+                      </Link>
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           /* Conteúdo: 2) Quando NÃO há pedidos pendentes */
           <div className="mt-3.5 space-y-2">
