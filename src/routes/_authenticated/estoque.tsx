@@ -416,98 +416,94 @@ function Estoque() {
         }
       />
 
-      {/* ── Faixa de Indicadores de Estoque (Padrão Bento Cards Modaly — Apple & Polaris) ── */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Acervo em Estoque */}
-        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
-              Acervo em Estoque
-            </span>
-            <Boxes className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
+      {/* ── Painel Executivo Fluido 3-em-1 (Padrão Quiet Luxury — Apple HIG & Polaris) ── */}
+      <div className="panel p-4 sm:p-5 rounded-2xl shadow-soft">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          {/* Pilar 1: Acervo Físico */}
+          <div className="flex flex-col justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Boxes className="size-3.5 text-muted-foreground/70" />
+              <span className="text-xs font-medium">Acervo em Estoque</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="numeric text-2xl font-bold tracking-tight text-foreground">
+                {totalUnits}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {totalUnits === 1 ? "peça ativa" : "peças ativas"}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Distribuídas em <strong className="font-semibold text-foreground/80">{items.length}</strong> {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+            </p>
           </div>
-          <div className="my-1.5">
-            <h3 className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {totalUnits} <span className="text-xs sm:text-sm font-normal text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
-            </h3>
-          </div>
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
-            <span>Modelos cadastrados</span>
-            <span className="font-semibold text-foreground/80">{items.length} {items.length === 1 ? "ref." : "refs."}</span>
-          </div>
-        </div>
 
-        {/* Card 2: Capital Investido */}
-        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
-              Capital Investido
-            </span>
-            <Wallet className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
-          </div>
-          <div className="my-1.5">
-            <h3 className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {brl(stockValue)}
-            </h3>
-          </div>
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
-            <span>Custo médio / peça</span>
-            <span className="font-semibold text-foreground/80">{brl(avgCost)}</span>
-          </div>
-        </div>
-
-        {/* Card 3: Potencial de Venda */}
-        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
-              Potencial de Venda
-            </span>
-            <TrendingUp className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
-          </div>
-          <div className="my-1.5">
-            <h3 className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {brl(potential)}
-            </h3>
-          </div>
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
-            <span>Margem estimada</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-              {potential > 0 && stockValue > 0 ? `+${markupPct.toFixed(0)}% markup` : "—"}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4: Saúde do Acervo */}
-        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
-              Saúde do Acervo
-            </span>
-            <Package className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
-          </div>
-          <div className="my-1.5">
-            <div className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  "size-2 rounded-full shrink-0",
-                  outOfStockCount > 0 ? "bg-rose-500" : "bg-emerald-500"
-                )}
-              />
-              <h3
-                className={cn(
-                  "numeric text-xl sm:text-2xl font-bold tracking-tight truncate",
-                  outOfStockCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
-                )}
-              >
-                {outOfStockCount > 0
-                  ? `${outOfStockCount} ${outOfStockCount === 1 ? "esgotado" : "esgotados"}`
-                  : "100% ativo"}
-              </h3>
+          {/* Pilar 2: Patrimônio & Potencial */}
+          <div className="flex flex-col justify-between gap-1.5 md:border-l md:border-border/60 md:pl-6">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <TrendingUp className="size-3.5 text-muted-foreground/70" />
+              <span className="text-xs font-medium">Patrimônio & Potencial</span>
+            </div>
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="numeric text-2xl font-bold tracking-tight text-foreground">
+                {brl(stockValue)}
+              </span>
+              <span className="text-xs text-muted-foreground/50 select-none px-0.5">➔</span>
+              <span className="numeric text-lg sm:text-xl font-semibold text-foreground/85">
+                {brl(potential)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <span className="text-muted-foreground">Custo médio {brl(avgCost)}</span>
+              {potential > 0 && stockValue > 0 && (
+                <>
+                  <span className="text-muted-foreground/40">·</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    +{markupPct.toFixed(0)}% markup
+                  </span>
+                </>
+              )}
             </div>
           </div>
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
-            <span>Disponibilidade</span>
-            <span className="font-semibold text-foreground/80">{activeRatio}% em linha</span>
+
+          {/* Pilar 3: Saúde da Grade & Reposição */}
+          <div className="flex flex-col justify-between gap-1.5 md:border-l md:border-border/60 md:pl-6">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Package className="size-3.5 text-muted-foreground/70" />
+              <span className="text-xs font-medium">Saúde da Grade</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="numeric text-2xl font-bold tracking-tight text-foreground">
+                {activeRatio}%
+              </span>
+              <span className="text-xs text-muted-foreground">disponibilidade ativa</span>
+            </div>
+            <div className="pt-0.5">
+              {outOfStockCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
+                  title="Clique para filtrar modelos esgotados"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-all cursor-pointer",
+                    statusFilter === "out_of_stock"
+                      ? "bg-rose-500 text-white shadow-2xs"
+                      : "bg-secondary hover:bg-rose-500/10 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 border border-border/50",
+                  )}
+                >
+                  <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
+                  <span>
+                    {outOfStockCount} {outOfStockCount === 1 ? "modelo esgotado" : "modelos esgotados"}
+                    {statusFilter === "out_of_stock" ? " (filtro ativo)" : " · Ver"}
+                  </span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  Grade 100% abastecida
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
