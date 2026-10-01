@@ -8,6 +8,7 @@ import {
   Check,
   CreditCard,
   Globe,
+  HandCoins,
   LogOut,
   Pencil,
   Plus,
@@ -25,6 +26,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  getFiadoConfig,
+  saveFiadoConfig,
+  setFiadoAtivo,
+  type FiadoConfig,
+} from "@/lib/fiado-settings";
 import {
   Select,
   SelectContent,
@@ -615,6 +623,7 @@ function Configuracoes() {
       {/* ════ ABA 3: Caixa & Pagamentos ═════════════════════════════════════ */}
       {activeTab === "caixa" && (
         <div className="space-y-6">
+          <FiadoSettingsCard storeId={storeId} />
           <CustomOptionsSettingsSection storeId={storeId} />
         </div>
       )}
@@ -1094,6 +1103,124 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+// ── Card de Configuração do Modo Fiado & Caderninho ──────────────────────────
+function FiadoSettingsCard({ storeId }: { storeId: string }) {
+  const [config, setConfig] = useState<FiadoConfig>(() => getFiadoConfig(storeId));
+  const [dias, setDias] = useState(String(config.diasVencimentoPadrao || 30));
+  const [template, setTemplate] = useState(config.mensagemCobrancaTemplate || "");
+
+  const handleToggleAtivo = (ativo: boolean) => {
+    const updated = { ...config, ativo };
+    setConfig(updated);
+    setFiadoAtivo(storeId, ativo);
+    toast.success(
+      ativo ? "Modo Fiado ativado com sucesso! 🤝" : "Modo Fiado desativado.",
+      {
+        description: ativo
+          ? "Caderninho de Fiado liberado na barra lateral, no Caixa e em Clientes."
+          : "Opção de fiado oculta no Caixa e na navegação da loja.",
+      },
+    );
+  };
+
+  const handleSaveConfig = () => {
+    const parsedDias = parseInt(dias, 10) || 30;
+    const updated: FiadoConfig = {
+      ...config,
+      diasVencimentoPadrao: parsedDias,
+      mensagemCobrancaTemplate: template.trim(),
+    };
+    setConfig(updated);
+    saveFiadoConfig(storeId, updated);
+    toast.success("Configurações do Modo Fiado salvas!");
+  };
+
+  return (
+    <section className="panel p-6 sm:p-7 space-y-6 border border-border/70 shadow-soft">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+        <div className="flex items-start gap-3.5">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <HandCoins className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+              Modo Fiado &amp; Caderninho de Vendas a Prazo
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ideal para boutiques que vendem na confiança e precisam de controle de cobrança e histórico.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 self-start sm:self-center">
+          <Switch
+            checked={config.ativo}
+            onCheckedChange={handleToggleAtivo}
+            id="toggle-modo-fiado"
+          />
+          <Label htmlFor="toggle-modo-fiado" className="text-xs font-semibold cursor-pointer">
+            {config.ativo ? "Ativado" : "Desativado"}
+          </Label>
+        </div>
+      </div>
+
+      {config.ativo ? (
+        <div className="space-y-4 pt-1 animate-in fade-in-50 duration-200">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">
+                Prazo padrão de vencimento (dias)
+              </Label>
+              <Input
+                type="number"
+                min="1"
+                max="180"
+                value={dias}
+                onChange={(e) => setDias(e.target.value)}
+                placeholder="30"
+                className="h-10 rounded-xl bg-card border-border"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Data sugerida automaticamente ao lançar uma venda fiado no Caixa.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">
+                Mensagem de Cobrança Amigável (WhatsApp)
+              </Label>
+              <textarea
+                rows={3}
+                value={template}
+                onChange={(e) => setTemplate(e.target.value)}
+                placeholder="Olá, {nome}! Tudo bem? Passando para lembrar com carinho da sua compra no valor de {valor} na {loja}..."
+                className="w-full rounded-xl border border-border bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Variáveis disponíveis: <code>{"{nome}"}</code>, <code>{"{valor}"}</code>, <code>{"{loja}"}</code>, <code>{"{descricao}"}</code>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              size="sm"
+              onClick={handleSaveConfig}
+              className="h-9 rounded-xl px-5 text-xs font-semibold cursor-pointer"
+            >
+              Salvar preferências de fiado
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-border/80 bg-surface-muted/30 p-4 text-xs text-muted-foreground">
+          O Modo Fiado está desligado nesta boutique. A opção &ldquo;Fiado&rdquo; não aparecerá no Caixa e a aba de Caderninho fica oculta para manter o sistema focado e limpo.
+        </div>
+      )}
     </section>
   );
 }

@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 import { brlCompact, monthStart } from "@/lib/format";
 import { REFUND_CATEGORIES, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
 import { loadStoredOrders, SIM_ORDERS_EVENT } from "@/lib/sim-orders";
+import { isFiadoAtivo, FIADO_SETTINGS_EVENT } from "@/lib/fiado-settings";
 
 // ─── Tipos da Navegação (Padrão Shopify — Macro-grupos + Progressive Disclosure) ──
 type NavSubItem = {
@@ -89,7 +90,7 @@ type NavGroupItem = {
 };
 
 // ─── Árvore de Navegação — Padrão Shopify Adaptado com Distribuição Inteligente ───
-function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
+function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGroupItem[] {
   const items: NavGroupItem[] = [
     // ── Acesso Operacional Rápido (Alta Frequência Diária) ───────────────────
     {
@@ -153,27 +154,31 @@ function getShopifyNav(vitrineAtiva: boolean): NavGroupItem[] {
     },
     {
       id: "clientes",
-      label: "Clientes",
+      label: fiadoAtivo ? "Clientes & Fiado" : "Clientes",
       icon: Users,
       to: "/clientes",
       search: { tab: "clientes" },
       isMatch: (p) => p.startsWith("/clientes") || p.startsWith("/fiado"),
-      children: [
-        {
-          to: "/clientes",
-          search: { tab: "clientes" },
-          label: "Carteira de Clientes",
-          isMatch: (p, s) => p.startsWith("/clientes") && s?.["tab"] !== "fiado",
-        },
-        {
-          to: "/clientes",
-          search: { tab: "fiado" },
-          label: "Caderninho de Fiado",
-          isMatch: (p, s) =>
-            (p.startsWith("/clientes") && s?.["tab"] === "fiado") ||
-            p.startsWith("/fiado"),
-        },
-      ],
+      ...(fiadoAtivo
+        ? {
+            children: [
+              {
+                to: "/clientes",
+                search: { tab: "clientes" },
+                label: "Carteira de Clientes",
+                isMatch: (p, s) => p.startsWith("/clientes") && s?.["tab"] !== "fiado",
+              },
+              {
+                to: "/clientes",
+                search: { tab: "fiado" },
+                label: "Caderninho de Fiado",
+                isMatch: (p, s) =>
+                  (p.startsWith("/clientes") && s?.["tab"] === "fiado") ||
+                  p.startsWith("/fiado"),
+              },
+            ],
+          }
+        : {}),
     },
     {
       id: "marketing",
@@ -657,25 +662,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: members = [] } = useQuery(membersQuery());
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
 
-  // ── Ativação da Vitrine Online ────────────────────────────────────────────
+  // ── Ativação da Vitrine Online & Modo Fiado ──────────────────────────────
   const [vitrineAtiva, setVitrineAtiva] = useState(() => isVitrineAtiva(storeId, store?.metadata));
+  const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
 
   useEffect(() => {
     setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
+    setFiadoAtivo(isFiadoAtivo(storeId));
     const handleChanged = () => {
       setVitrineAtiva(isVitrineAtiva(storeId, store?.metadata));
+      setFiadoAtivo(isFiadoAtivo(storeId));
     };
     window.addEventListener("business-model-changed", handleChanged);
     window.addEventListener("vitrine-settings-changed", handleChanged);
+    window.addEventListener(FIADO_SETTINGS_EVENT, handleChanged);
     window.addEventListener("storage", handleChanged);
     return () => {
       window.removeEventListener("business-model-changed", handleChanged);
       window.removeEventListener("vitrine-settings-changed", handleChanged);
+      window.removeEventListener(FIADO_SETTINGS_EVENT, handleChanged);
       window.removeEventListener("storage", handleChanged);
     };
   }, [storeId, store?.metadata]);
 
-  const navItems = useMemo(() => getShopifyNav(vitrineAtiva), [vitrineAtiva]);
+  const navItems = useMemo(() => getShopifyNav(vitrineAtiva, fiadoAtivo), [vitrineAtiva, fiadoAtivo]);
 
   // ── Modelo de Accordion Estrito (Apenas 1 grupo aberto por vez) ───────────
   const currentRouteGroupId = useMemo(() => {
@@ -774,7 +784,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       to: "/clientes",
-      label: "Clientes",
+      label: fiadoAtivo ? "Clientes & Fiado" : "Clientes",
       icon: Users,
       isMatch: (p: string) => p.startsWith("/clientes") || p.startsWith("/fiado"),
     },

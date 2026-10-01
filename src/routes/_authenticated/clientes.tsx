@@ -58,6 +58,7 @@ import {
 import { totalPedido, type Pedido } from "@/data/loja";
 import { cn } from "@/lib/utils";
 import { SIM_ORDERS_KEY, SIM_ORDERS_EVENT } from "@/lib/sim-orders";
+import { isFiadoAtivo, getFiadoConfig, FIADO_SETTINGS_EVENT } from "@/lib/fiado-settings";
 
 type ClientesSearch = {
   tab?: "clientes" | "fiado";
@@ -114,13 +115,38 @@ function ClientesPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
 
-  const [activeTab, setActiveTab] = useState<"clientes" | "fiado">(search.tab || "clientes");
+  const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
+  const [activeTab, setActiveTab] = useState<"clientes" | "fiado">(() => {
+    if (!isFiadoAtivo(storeId)) return "clientes";
+    return search.tab || "clientes";
+  });
+
+  useEffect(() => {
+    setFiadoAtivo(isFiadoAtivo(storeId));
+    const handleFiadoChanged = () => {
+      const ativo = isFiadoAtivo(storeId);
+      setFiadoAtivo(ativo);
+      if (!ativo && activeTab === "fiado") {
+        setActiveTab("clientes");
+      }
+    };
+    window.addEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
+    window.addEventListener("storage", handleFiadoChanged);
+    return () => {
+      window.removeEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
+      window.removeEventListener("storage", handleFiadoChanged);
+    };
+  }, [storeId, activeTab]);
 
   useEffect(() => {
     if (search.tab && search.tab !== activeTab) {
-      setActiveTab(search.tab);
+      if (search.tab === "fiado" && !fiadoAtivo) {
+        setActiveTab("clientes");
+      } else {
+        setActiveTab(search.tab);
+      }
     }
-  }, [search.tab, activeTab]);
+  }, [search.tab, activeTab, fiadoAtivo]);
 
   const handleTabChange = (t: string) => {
     const newTab = t as "clientes" | "fiado";
@@ -429,9 +455,19 @@ function ClientesPage() {
       return;
     }
     const telFormatado = digitos.length <= 11 ? `55${digitos}` : digitos;
-    const msg = encodeURIComponent(
-      `Olá ${nomeCliente}! Tudo bem? Passando para lembrar com carinho do seu fiado de ${brl(valor)} na loja com vencimento em ${formatDate(vencimento)}. Se precisar da chave Pix para facilitar o acerto, é só me pedir aqui! 💕`,
-    );
+    const config = getFiadoConfig(storeId);
+    let texto = config.mensagemCobrancaTemplate || "";
+    if (texto) {
+      texto = texto
+        .replace(/\{nome\}/g, nomeCliente)
+        .replace(/\{valor\}/g, brl(valor))
+        .replace(/\{vencimento\}/g, formatDate(vencimento))
+        .replace(/\{loja\}/g, "nossa boutique")
+        .replace(/\{descricao\}/g, "peças adquiridas");
+    } else {
+      texto = `Olá ${nomeCliente}! Tudo bem? Passando para lembrar com carinho do seu fiado de ${brl(valor)} na loja com vencimento em ${formatDate(vencimento)}. Se precisar da chave Pix para facilitar o acerto, é só me pedir aqui! 💕`;
+    }
+    const msg = encodeURIComponent(texto);
     window.open(`https://wa.me/${telFormatado}?text=${msg}`, "_blank");
   };
 
@@ -439,8 +475,12 @@ function ClientesPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Vendas & Atendimento"
-        title="Clientes & Fiado"
-        description="Gestão unificada da carteira de clientes, histórico de compras, títulos a receber e cobrança com 1 clique no WhatsApp."
+        title={fiadoAtivo ? "Clientes & Fiado" : "Carteira de Clientes"}
+        description={
+          fiadoAtivo
+            ? "Gestão unificada da carteira de clientes, histórico de compras, títulos a receber e cobrança com 1 clique no WhatsApp."
+            : "Gestão unificada da carteira de clientes, histórico de compras balcão e online e contato rápido via WhatsApp."
+        }
         action={
           <div className="flex items-center gap-2">
             {activeTab === "clientes" ? (
@@ -592,19 +632,21 @@ function ClientesPage() {
 
       {/* Alternador de Abas: Clientes & CRM vs. Caderninho de Fiado */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="rounded-full bg-secondary/80 p-1 border border-border">
-          <TabsTrigger value="clientes" className="rounded-full px-5 text-xs font-semibold">
-            <Users className="size-3.5 mr-1.5" /> Clientes & VIPs ({totalClientes})
-          </TabsTrigger>
-          <TabsTrigger value="fiado" className="rounded-full px-5 text-xs font-semibold">
-            <HandCoins className="size-3.5 mr-1.5" /> Caderninho de Fiado
-            {fiadosAbertos.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                {fiadosAbertos.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+        {fiadoAtivo && (
+          <TabsList className="rounded-full bg-secondary/80 p-1 border border-border">
+            <TabsTrigger value="clientes" className="rounded-full px-5 text-xs font-semibold">
+              <Users className="size-3.5 mr-1.5" /> Clientes &amp; VIPs ({totalClientes})
+            </TabsTrigger>
+            <TabsTrigger value="fiado" className="rounded-full px-5 text-xs font-semibold">
+              <HandCoins className="size-3.5 mr-1.5" /> Caderninho de Fiado
+              {fiadosAbertos.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                  {fiadosAbertos.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* ─── ABA 1: CLIENTES & CRM ────────────────────────────────────────────── */}
         <TabsContent value="clientes" className="space-y-6 mt-0">
@@ -622,13 +664,22 @@ function ClientesPage() {
               hint="Mais de R$ 500 em compras ou 3+ pedidos"
               icon={<Star className="size-4 text-warning" />}
             />
-            <StatCard
-              label="Fiado total pendente"
-              value={brl(totalFiadoPendente)}
-              tone={totalFiadoPendente > 0 ? "warning" : "default"}
-              hint={totalFiadoPendente > 0 ? "Clique em 'Caderninho de Fiado' para cobrar" : "Nenhum fiado em aberto"}
-              icon={<HandCoins className="size-4" />}
-            />
+            {fiadoAtivo ? (
+              <StatCard
+                label="Fiado total pendente"
+                value={brl(totalFiadoPendente)}
+                tone={totalFiadoPendente > 0 ? "warning" : "default"}
+                hint={totalFiadoPendente > 0 ? "Clique em 'Caderninho de Fiado' para cobrar" : "Nenhum fiado em aberto"}
+                icon={<HandCoins className="size-4" />}
+              />
+            ) : (
+              <StatCard
+                label="Total em Compras"
+                value={brl(clientes.reduce((acc, c) => acc + c.totalGasto, 0))}
+                hint="Soma do histórico dos clientes cadastrados"
+                icon={<ShoppingBag className="size-4 text-primary" />}
+              />
+            )}
           </div>
 
           {/* Barra de Busca */}
@@ -682,7 +733,7 @@ function ClientesPage() {
                               <Star className="size-2.5 fill-amber-500 text-amber-500" /> VIP
                             </span>
                           )}
-                          {c.saldoDevedor > 0 && (
+                          {fiadoAtivo && c.saldoDevedor > 0 && (
                             <button
                               type="button"
                               onClick={() => {
@@ -727,17 +778,19 @@ function ClientesPage() {
 
                     {/* Ações Rápidas */}
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setFiadoCustomerId(c.id);
-                          setModalNovoFiado(true);
-                        }}
-                        className="h-9 rounded-full gap-1.5 text-xs font-semibold cursor-pointer"
-                      >
-                        <Plus className="size-3.5" /> Fiado
-                      </Button>
+                      {fiadoAtivo && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setFiadoCustomerId(c.id);
+                            setModalNovoFiado(true);
+                          }}
+                          className="h-9 rounded-full gap-1.5 text-xs font-semibold cursor-pointer"
+                        >
+                          <Plus className="size-3.5" /> Fiado
+                        </Button>
+                      )}
 
                       {c.telefone && (
                         <Button
@@ -774,7 +827,8 @@ function ClientesPage() {
         </TabsContent>
 
         {/* ─── ABA 2: CADERNINHO DE FIADO ────────────────────────────────────────── */}
-        <TabsContent value="fiado" className="space-y-6 mt-0">
+        {fiadoAtivo && (
+          <TabsContent value="fiado" className="space-y-6 mt-0">
           {/* Métricas do Fiado */}
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard
@@ -984,7 +1038,8 @@ function ClientesPage() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
-    </div>
-  );
+      )}
+    </Tabs>
+  </div>
+);
 }

@@ -66,7 +66,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { transactionsQuery, customersQuery, inventoryQuery, suppliersQuery } from "@/lib/db";
+import { transactionsQuery, customersQuery, inventoryQuery, suppliersQuery, creditsQuery } from "@/lib/db";
+import { isFiadoAtivo, FIADO_SETTINGS_EVENT } from "@/lib/fiado-settings";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
   ENTRY_CATEGORIES,
@@ -855,7 +856,22 @@ function Caixa() {
   const { data: rawCustomers = [] } = useQuery(customersQuery());
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
   const { data: rawSuppliers = [] } = useQuery(suppliersQuery());
+  const { data: rawCredits = [] } = useQuery(creditsQuery());
   const txs = all as unknown as Transaction[];
+
+  // ── Modo Fiado Reativo ──────────────────────────────────────────────────────
+  const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
+
+  useEffect(() => {
+    setFiadoAtivo(isFiadoAtivo(storeId));
+    const handleFiadoChanged = () => setFiadoAtivo(isFiadoAtivo(storeId));
+    window.addEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
+    window.addEventListener("storage", handleFiadoChanged);
+    return () => {
+      window.removeEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
+      window.removeEventListener("storage", handleFiadoChanged);
+    };
+  }, [storeId]);
 
   type Customer = { id: string; name: string; phone: string | null };
   const customers = rawCustomers as unknown as Customer[];
@@ -1066,6 +1082,15 @@ function Caixa() {
 
   const isFiado = method === "fiado" && kind === "entrada";
   const isEntrada = kind === "entrada";
+
+  const selectedCustomerDebt = useMemo(() => {
+    const custId = isFiado ? fiadoCustomerId || selectedCustomerId : selectedCustomerId;
+    if (!custId || !fiadoAtivo) return 0;
+    const creditsList = rawCredits as unknown as { customer_id: string; amount: number; paid_amount: number }[];
+    return creditsList
+      .filter((c) => c.customer_id === custId)
+      .reduce((acc, c) => acc + (Number(c.amount) - Number(c.paid_amount)), 0);
+  }, [isFiado, fiadoCustomerId, selectedCustomerId, rawCredits, fiadoAtivo]);
 
   // ── Produto Selecionado do Estoque ────────────────────────────────────────
   const selectedProduct = useMemo(
@@ -1369,10 +1394,13 @@ function Caixa() {
       ? [...baseEntryCategories, ...customOpts.entryCategories]
       : [...baseExitCategories, ...customOpts.exitCategories];
 
-  const paymentOptions: { value: string; label: string }[] = [
-    ...basePaymentMethods,
-    ...customOpts.paymentMethods,
-  ];
+  const paymentOptions: { value: string; label: string }[] = useMemo(() => {
+    const list = [...basePaymentMethods, ...customOpts.paymentMethods];
+    if (!fiadoAtivo) {
+      return list.filter((m) => m.value !== "fiado");
+    }
+    return list;
+  }, [fiadoAtivo, customOpts.paymentMethods]);
 
   // Ajusta category/method ao trocar kind
   const handleKindChange = (next: "entrada" | "saida") => {
@@ -3858,8 +3886,16 @@ function Caixa() {
         {isFiado && (
           <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-5 dark:border-amber-800/40 dark:bg-amber-950/30 animate-in fade-in-50 slide-in-from-top-2">
             <p className="mb-3.5 text-xs font-semibold text-amber-900 dark:text-amber-300">
-              📋 Dados do Fiado — será registrado automaticamente na aba Fiado
+              📋 Dados do Fiado — será registrado automaticamente no Caderninho de Fiado
             </p>
+            {selectedCustomerDebt > 0 && (
+              <div className="mb-3.5 flex items-center gap-2 rounded-xl bg-amber-500/15 border border-amber-500/30 px-3.5 py-2.5 text-xs font-medium text-amber-900 dark:text-amber-200">
+                <AlertCircle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>
+                  Atenção: Esta cliente já possui <strong>{brl(selectedCustomerDebt)}</strong> em fiados pendentes no caderninho.
+                </span>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Cliente (Obrigatório para Fiado)" className="relative">
                 <div className="relative">
