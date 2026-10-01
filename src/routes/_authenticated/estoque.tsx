@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Check, Layers, Minus, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, X } from "lucide-react";
+import { Boxes, Calculator, Check, Layers, Minus, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -227,6 +227,10 @@ function Estoque() {
     return acc + (isNaN(salePrice) ? 0 : units * salePrice);
   }, 0);
 
+  const avgCost = totalUnits > 0 ? stockValue / totalUnits : 0;
+  const markupPct = stockValue > 0 ? ((potential - stockValue) / stockValue) * 100 : 0;
+  const activeRatio = items.length > 0 ? Math.round(((items.length - outOfStockCount) / items.length) * 100) : 100;
+
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome da peça");
@@ -412,73 +416,98 @@ function Estoque() {
         }
       />
 
-      {/* ── Régua de Acervo & Indicadores (Padrão Quiet Luxury — Apple HIG & Polaris) ── */}
-      <div className="rounded-2xl border border-border/70 bg-card p-3 sm:px-5 sm:py-3.5 shadow-2xs">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 sm:divide-x sm:divide-border/60">
-          {/* Métrica 1: Peças & Modelos */}
-          <div className="flex items-center gap-3">
-            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
-              <Boxes className="size-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium text-muted-foreground truncate">Acervo Total</p>
-              <p className="numeric text-sm sm:text-base font-bold text-foreground truncate">
-                {totalUnits} <span className="text-xs font-normal text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
-                <span className="text-muted-foreground/50 mx-1 font-normal">·</span>
-                <span className="text-xs font-normal text-muted-foreground">{items.length} {items.length === 1 ? "mod." : "mod."}</span>
-              </p>
-            </div>
+      {/* ── Faixa de Indicadores de Estoque (Padrão Bento Cards Modaly — Apple & Polaris) ── */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* Card 1: Acervo em Estoque */}
+        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
+              Acervo em Estoque
+            </span>
+            <Boxes className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
           </div>
-
-          {/* Métrica 2: Capital Empatado (Custo) */}
-          <div className="flex items-center gap-3 sm:pl-4">
-            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
-              <Tag className="size-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium text-muted-foreground truncate">Estoque a Custo</p>
-              <p className="numeric text-sm sm:text-base font-bold text-foreground truncate">
-                {brl(stockValue)}
-              </p>
-            </div>
+          <div className="my-1.5">
+            <h3 className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {totalUnits} <span className="text-xs sm:text-sm font-normal text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
+            </h3>
           </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
+            <span>Modelos cadastrados</span>
+            <span className="font-semibold text-foreground/80">{items.length} {items.length === 1 ? "ref." : "refs."}</span>
+          </div>
+        </div>
 
-          {/* Métrica 3: Faturamento Projetado & Margem */}
-          <div className="flex items-center gap-3 sm:pl-4">
-            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
-              <TrendingUp className="size-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium text-muted-foreground truncate">Estoque a Venda</p>
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="numeric text-sm sm:text-base font-bold text-foreground">
-                  {brl(potential)}
-                </span>
-                {potential > 0 && stockValue >= 0 && (
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
-                    +{((potential - stockValue) / potential * 100).toFixed(0)}%
-                  </span>
+        {/* Card 2: Capital Investido */}
+        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
+              Capital Investido
+            </span>
+            <Wallet className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
+          </div>
+          <div className="my-1.5">
+            <h3 className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {brl(stockValue)}
+            </h3>
+          </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
+            <span>Custo médio / peça</span>
+            <span className="font-semibold text-foreground/80">{brl(avgCost)}</span>
+          </div>
+        </div>
+
+        {/* Card 3: Potencial de Venda */}
+        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
+              Potencial de Venda
+            </span>
+            <TrendingUp className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
+          </div>
+          <div className="my-1.5">
+            <h3 className="numeric text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {brl(potential)}
+            </h3>
+          </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
+            <span>Margem estimada</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {potential > 0 && stockValue > 0 ? `+${markupPct.toFixed(0)}% markup` : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Saúde do Acervo */}
+        <div className="panel p-4 sm:p-5 flex flex-col justify-between min-h-[118px] sm:min-h-[126px] hover:border-border/80 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
+              Saúde do Acervo
+            </span>
+            <Package className="size-4 text-muted-foreground/45 shrink-0" strokeWidth={1.5} />
+          </div>
+          <div className="my-1.5">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "size-2 rounded-full shrink-0",
+                  outOfStockCount > 0 ? "bg-rose-500" : "bg-emerald-500"
                 )}
-              </div>
+              />
+              <h3
+                className={cn(
+                  "numeric text-xl sm:text-2xl font-bold tracking-tight truncate",
+                  outOfStockCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"
+                )}
+              >
+                {outOfStockCount > 0
+                  ? `${outOfStockCount} ${outOfStockCount === 1 ? "esgotado" : "esgotados"}`
+                  : "100% ativo"}
+              </h3>
             </div>
           </div>
-
-          {/* Métrica 4: Saúde & Giro */}
-          <div className="flex items-center gap-3 sm:pl-4">
-            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
-              <Package className="size-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium text-muted-foreground truncate">Saúde do Giro</p>
-              <div className="flex items-center gap-1.5">
-                <span className={`size-2 rounded-full shrink-0 ${outOfStockCount > 0 ? "bg-rose-500" : "bg-emerald-500"}`} />
-                <span className={`text-xs sm:text-sm font-semibold truncate ${outOfStockCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
-                  {outOfStockCount > 0
-                    ? `${outOfStockCount} ${outOfStockCount === 1 ? "esgotado" : "esgotados"}`
-                    : "100% ativo"}
-                </span>
-              </div>
-            </div>
+          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[22px]">
+            <span>Disponibilidade</span>
+            <span className="font-semibold text-foreground/80">{activeRatio}% em linha</span>
           </div>
         </div>
       </div>
