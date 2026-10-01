@@ -166,10 +166,21 @@ function Painel() {
   }, [orders]);
 
   const pedidosNovosCount = pedidosNovos.length;
-  const pedidosNovosValor = pedidosNovos.reduce(
-    (acc, o) => acc + (Number(o.total) || 0),
-    0,
-  );
+  const pedidosNovosValor = pedidosNovos.reduce((acc, o) => {
+    const rec = o as {
+      total?: number;
+      valorLiquido?: number;
+      itens?: Array<{ preco?: number; qtd?: number }>;
+      items?: Array<{ preco?: number; qtd?: number }>;
+    };
+    const itemsList = rec.itens || rec.items || [];
+    const val =
+      Number(rec.total) ||
+      rec.valorLiquido ||
+      itemsList.reduce((a, it) => a + (Number(it.preco) || 0) * (it.qtd || 1), 0) ||
+      0;
+    return acc + val;
+  }, 0);
 
   const pedidosEmSeparacaoCount = React.useMemo(() => {
     return orders.filter((o) => o.status === "em_separacao").length;
@@ -199,18 +210,37 @@ function Painel() {
       .map((o) => {
         const itensArr = o.itens || o.items || [];
         const primeiroItem = itensArr[0];
-        const record = o as { clienteNome?: string; customer_name?: string };
+        const record = o as {
+          clienteNome?: string;
+          customer_name?: string;
+          cliente?: string;
+          numero?: string;
+          valorLiquido?: number;
+          pagamento?: string;
+        };
         const simRecord = o as { isSimulacao?: boolean };
+        const totalCalc =
+          Number(o.total) ||
+          record.valorLiquido ||
+          itensArr.reduce((acc, it) => acc + (Number(it.preco) || 0) * (it.qtd || 1), 0) ||
+          0;
+        const nomeCliente =
+          record.cliente ||
+          record.clienteNome ||
+          record.customer_name ||
+          (record.numero ? `Pedido ${record.numero}` : `Pedido #${o.id.slice(0, 6)}`);
+
         return {
           id: o.id,
-          clienteNome: record.clienteNome,
-          customer_name: record.customer_name,
-          total: Number(o.total) || 0,
+          clienteNome: nomeCliente,
+          customer_name: nomeCliente,
+          total: totalCalc,
           status: o.status || "novo",
           created_at: o.created_at || o.criadoEm || "",
           itensQtd: itensArr.length > 0 ? itensArr.reduce((acc, it) => acc + (it.qtd || 1), 0) : 1,
           primeiroItemNome: primeiroItem?.nome || undefined,
           isSimulacao: simRecord.isSimulacao === true,
+          pagamento: record.pagamento,
         };
       });
   }, [orders]);
