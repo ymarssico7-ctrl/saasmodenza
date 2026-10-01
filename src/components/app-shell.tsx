@@ -65,6 +65,7 @@ import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 import { brlCompact, monthStart } from "@/lib/format";
 import { REFUND_CATEGORIES, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
+import { loadStoredOrders, SIM_ORDERS_EVENT } from "@/lib/sim-orders";
 
 // ─── Tipos da Navegação (Padrão Shopify — Macro-grupos + Progressive Disclosure) ──
 type NavSubItem = {
@@ -722,17 +723,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Badge de pedidos pendentes
-  const pendingOrderCount = useMemo(() => {
+  // Badge de pedidos pendentes — reativo (0ms, chave v2, cross-tab, simulações)
+  const [pendingOrderCount, setPendingOrderCount] = useState(() => {
     if (!storeId) return 0;
-    try {
-      const raw = localStorage.getItem(`vestui_orders_${storeId}`);
-      if (!raw) return 0;
-      const orders: { status?: string }[] = JSON.parse(raw);
-      return orders.filter((o) => o.status === "novo").length;
-    } catch {
-      return 0;
-    }
+    const orders = loadStoredOrders<{ status?: string }>(storeId);
+    return orders.filter((o) => o.status === "novo").length;
+  });
+
+  useEffect(() => {
+    if (!storeId) return;
+    const calcular = () => {
+      const orders = loadStoredOrders<{ status?: string }>(storeId);
+      setPendingOrderCount(orders.filter((o) => o.status === "novo").length);
+    };
+    calcular();
+    window.addEventListener("storage", calcular);
+    window.addEventListener(SIM_ORDERS_EVENT, calcular);
+    return () => {
+      window.removeEventListener("storage", calcular);
+      window.removeEventListener(SIM_ORDERS_EVENT, calcular);
+    };
   }, [storeId]);
 
   async function signOut() {
