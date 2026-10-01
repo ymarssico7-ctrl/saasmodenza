@@ -371,7 +371,7 @@ function Estoque() {
   });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Estoque & Catálogo"
         title="Gestão de Acervo e Peças"
@@ -412,92 +412,73 @@ function Estoque() {
         }
       />
 
-      {/* ── Cockpit de Estoque — Padrão Premium Unificado (Apple & Polaris) ── */}
-      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Peças em acervo */}
-        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Peças em Acervo</span>
-            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
-              <Boxes className="size-3.5 text-muted-foreground" />
+      {/* ── Régua de Acervo & Indicadores (Padrão Quiet Luxury — Apple HIG & Polaris) ── */}
+      <div className="rounded-2xl border border-border/70 bg-card p-3 sm:px-5 sm:py-3.5 shadow-2xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 sm:divide-x sm:divide-border/60">
+          {/* Métrica 1: Peças & Modelos */}
+          <div className="flex items-center gap-3">
+            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
+              <Boxes className="size-4 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-muted-foreground truncate">Acervo Total</p>
+              <p className="numeric text-sm sm:text-base font-bold text-foreground truncate">
+                {totalUnits} <span className="text-xs font-normal text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
+                <span className="text-muted-foreground/50 mx-1 font-normal">·</span>
+                <span className="text-xs font-normal text-muted-foreground">{items.length} {items.length === 1 ? "mod." : "mod."}</span>
+              </p>
             </div>
           </div>
-          <div>
-            <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-              {totalUnits} <span className="text-base font-medium text-muted-foreground">{totalUnits === 1 ? "peça" : "peças"}</span>
-            </h3>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
-            </p>
-          </div>
-        </div>
 
-        {/* Card 2: Capital Empatado */}
-        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Capital Empatado</span>
-            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
-              <Tag className="size-3.5 text-muted-foreground" />
+          {/* Métrica 2: Capital Empatado (Custo) */}
+          <div className="flex items-center gap-3 sm:pl-4">
+            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
+              <Tag className="size-4 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-muted-foreground truncate">Estoque a Custo</p>
+              <p className="numeric text-sm sm:text-base font-bold text-foreground truncate">
+                {brl(stockValue)}
+              </p>
             </div>
           </div>
-          <div>
-            <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-              {brl(stockValue)}
-            </h3>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              {totalUnits > 0 ? `Custo médio: ${brl(stockValue / totalUnits)} / un.` : "Sem peças no acervo"}
-            </p>
-          </div>
-        </div>
 
-        {/* Card 3: Potencial de Venda */}
-        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Faturamento Projetado</span>
-            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
-              <TrendingUp className="size-3.5 text-muted-foreground" />
+          {/* Métrica 3: Faturamento Projetado & Margem */}
+          <div className="flex items-center gap-3 sm:pl-4">
+            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
+              <TrendingUp className="size-4 text-muted-foreground" />
             </div>
-          </div>
-          <div>
-            <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-              {brl(potential)}
-            </h3>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              {potential > 0 && stockValue >= 0 ? (
-                <>
-                  Margem: <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{((potential - stockValue) / potential * 100).toFixed(1).replace(".", ",")}%</span> ({brl(potential - stockValue)} lucro)
-                </>
-              ) : (
-                "Aguardando precificação"
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Saúde & Giro do Estoque */}
-        <div className="panel p-5 sm:p-6 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lift">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Saúde do Giro</span>
-            <div className="grid size-7 place-items-center rounded-lg bg-secondary text-foreground">
-              <Package className="size-3.5 text-muted-foreground" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="numeric text-3xl font-bold tracking-tight leading-none text-foreground">
-                {outOfStockCount > 0 ? outOfStockCount : "100%"}
-              </h3>
-              {outOfStockCount > 0 && (
-                <span className="text-sm font-semibold text-rose-600 dark:text-rose-400">
-                  {outOfStockCount === 1 ? "esgotado" : "esgotados"}
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-muted-foreground truncate">Estoque a Venda</p>
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="numeric text-sm sm:text-base font-bold text-foreground">
+                  {brl(potential)}
                 </span>
-              )}
+                {potential > 0 && stockValue >= 0 && (
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
+                    +{((potential - stockValue) / potential * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              {outOfStockCount > 0
-                ? "Requer reposição ou baixa"
-                : "Todas as peças com estoque ativo"}
-            </p>
+          </div>
+
+          {/* Métrica 4: Saúde & Giro */}
+          <div className="flex items-center gap-3 sm:pl-4">
+            <div className="grid size-8 place-items-center rounded-xl bg-secondary text-foreground shrink-0">
+              <Package className="size-4 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-muted-foreground truncate">Saúde do Giro</p>
+              <div className="flex items-center gap-1.5">
+                <span className={`size-2 rounded-full shrink-0 ${outOfStockCount > 0 ? "bg-rose-500" : "bg-emerald-500"}`} />
+                <span className={`text-xs sm:text-sm font-semibold truncate ${outOfStockCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+                  {outOfStockCount > 0
+                    ? `${outOfStockCount} ${outOfStockCount === 1 ? "esgotado" : "esgotados"}`
+                    : "100% ativo"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
