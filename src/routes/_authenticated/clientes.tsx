@@ -57,6 +57,7 @@ import {
 } from "@/lib/mutations";
 import { totalPedido, type Pedido } from "@/data/loja";
 import { cn } from "@/lib/utils";
+import { SIM_ORDERS_KEY, SIM_ORDERS_EVENT } from "@/lib/sim-orders";
 
 type ClientesSearch = {
   tab?: "clientes" | "fiado";
@@ -152,15 +153,30 @@ function ClientesPage() {
   const [payments, setPayments] = useState<Record<string, string>>({});
   const [buscaFiado, setBuscaFiado] = useState("");
 
-  // Carrega pedidos da vitrine online para integrar LTV
+  // Carrega pedidos da vitrine online para integrar LTV de forma reativa (0ms)
   useEffect(() => {
     if (!storeId) return;
-    try {
-      const raw = localStorage.getItem(`vestui_orders_${storeId}`);
-      setOrders(raw ? (JSON.parse(raw) as Pedido[]) : []);
-    } catch {
-      setOrders([]);
-    }
+    const carregar = () => {
+      try {
+        const raw = localStorage.getItem(SIM_ORDERS_KEY(storeId));
+        const parsed = raw ? (JSON.parse(raw) as Pedido[]) : [];
+        setOrders(parsed.map((p) => ({ ...p, isSimulacao: true })));
+      } catch {
+        setOrders([]);
+      }
+    };
+
+    carregar();
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === SIM_ORDERS_KEY(storeId)) carregar();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(SIM_ORDERS_EVENT, carregar);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(SIM_ORDERS_EVENT, carregar);
+    };
   }, [storeId]);
 
   // Deriva o perfil completo unificado de cada cliente

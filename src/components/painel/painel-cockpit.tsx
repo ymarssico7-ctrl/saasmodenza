@@ -56,6 +56,7 @@ export interface PedidoRadarItem {
   criadoEm?: string | null | undefined;
   itensQtd?: number | undefined;
   primeiroItemNome?: string | undefined;
+  isSimulacao?: boolean | undefined;
 }
 
 export interface PainelRadarPedidosOnlineProps {
@@ -156,6 +157,18 @@ export function PainelRadarPedidosOnline({
         {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação */}
         {temPendentes ? (
           <div className="mt-3 space-y-2">
+            {/* Banner de aviso quando há pedidos simulados */}
+            {pedidosPendentes.some((p) => p.isSimulacao) && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-300">
+                <span>🧪</span>
+                <span>
+                  {pedidosPendentes.filter((p) => p.isSimulacao).length === pedidosPendentes.length
+                    ? "Pedidos de simulação (modo treino)"
+                    : `${pedidosPendentes.filter((p) => p.isSimulacao).length} pedido(s) de simulação`}
+                </span>
+              </div>
+            )}
+
             <div className="flex items-baseline justify-between text-xs text-slate-400">
               <span>
                 Total a despachar:{" "}
@@ -189,6 +202,11 @@ export function PainelRadarPedidosOnline({
                         <span className="rounded-md bg-slate-800 px-1.5 py-0.2 text-[9px] text-slate-300 font-medium shrink-0">
                           {p.status === "novo" ? "Novo" : "Em separação"}
                         </span>
+                        {p.isSimulacao && (
+                          <span className="rounded-md bg-amber-500/20 border border-amber-400/30 px-1.5 py-0.2 text-[9px] text-amber-300 font-medium shrink-0">
+                            🧪 Sim
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-slate-400 truncate">
                         {itemSnippet}

@@ -76,6 +76,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { notifySimOrdersChanged } from "@/lib/sim-orders";
 import { brl, brlCompact } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { restoreOrderStock, adjustInventoryStock, insertTransaction } from "@/lib/mutations";
@@ -456,6 +457,7 @@ function PedidosPage() {
 
   const persistir = (novaLista: Pedido[]) => {
     localStorage.setItem(pedidosKey(storeId), JSON.stringify(novaLista));
+    notifySimOrdersChanged();
     setVersaoLocal((v) => v + 1);
   };
 

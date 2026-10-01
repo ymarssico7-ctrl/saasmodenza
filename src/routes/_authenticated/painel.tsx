@@ -58,6 +58,7 @@ import {
   sumByExcluding,
   type Transaction,
 } from "@/lib/finance";
+import { mergeSimOrders, SIM_ORDERS_EVENT, SIM_ORDERS_KEY } from "@/lib/sim-orders";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
@@ -82,6 +83,7 @@ function Painel() {
   const queryClient = useQueryClient();
   const { storeId, store } = useStore();
   const { ocultarSaldos, togglePrivacidade, mascaraSaldo } = usePrivacyMode();
+  const [simVersao, setSimVersao] = React.useState(0);
   const { data: profile, isLoading: isProfileLoading } = useQuery(profileQuery());
   const { data: all = [], isLoading: isTxsLoading } = useQuery(transactionsQuery());
   const { data: inventory = [], isLoading: isInventoryLoading } = useQuery(inventoryQuery());
@@ -111,18 +113,39 @@ function Painel() {
     };
   }, [storeId, store?.metadata]);
 
+  // ── Reatividade para Pedidos Simulados ────────────────────────────────────
+  React.useEffect(() => {
+    const bump = () => setSimVersao((v) => v + 1);
+    // storage event: outras abas
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === SIM_ORDERS_KEY(storeId)) bump();
+    };
+    // evento customizado: mesma aba (storage não dispara para si mesmo)
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(SIM_ORDERS_EVENT, bump);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(SIM_ORDERS_EVENT, bump);
+    };
+  }, [storeId]);
+
   // ── Normalização de Pedidos com Filtro Temporal Estrito ───────────────────
   const orders = React.useMemo(() => {
-    return (rawOrders || []) as Array<{
+    // Mescla pedidos reais (Supabase) com simulados (localStorage).
+    // simVersao força re-execução quando um pedido simulado é criado/removido.
+    const merged = mergeSimOrders(rawOrders || [], storeId);
+    return merged as Array<{
       id: string;
       status?: string;
       total?: number;
       created_at?: string;
       criadoEm?: string;
+      isSimulacao?: boolean;
       itens?: Array<{ produtoId?: string; nome?: string; qtd?: number; preco?: number }>;
       items?: Array<{ produtoId?: string; nome?: string; qtd?: number; preco?: number }>;
     }>;
-  }, [rawOrders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawOrders, storeId, simVersao]);
 
   // Pedidos do mês vigente
   const currentMonthOrders = React.useMemo(() => {
@@ -177,6 +200,7 @@ function Painel() {
         const itensArr = o.itens || o.items || [];
         const primeiroItem = itensArr[0];
         const record = o as { clienteNome?: string; customer_name?: string };
+        const simRecord = o as { isSimulacao?: boolean };
         return {
           id: o.id,
           clienteNome: record.clienteNome,
@@ -186,6 +210,7 @@ function Painel() {
           created_at: o.created_at || o.criadoEm || "",
           itensQtd: itensArr.length > 0 ? itensArr.reduce((acc, it) => acc + (it.qtd || 1), 0) : 1,
           primeiroItemNome: primeiroItem?.nome || undefined,
+          isSimulacao: simRecord.isSimulacao === true,
         };
       });
   }, [orders]);
