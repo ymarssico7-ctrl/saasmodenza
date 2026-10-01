@@ -99,55 +99,33 @@ export function PainelRadarPedidosOnline({
     <section
       className={cn(
         "panel flex flex-col justify-between p-5 sm:p-6 transition-all duration-200 hover:shadow-lift",
-        temPendentes &&
-          "bg-slate-950 text-white border-slate-800 shadow-md dark:bg-slate-900/95",
         className,
       )}
     >
       <div>
-        {/* Cabeçalho — Idêntico à Imagem 1 */}
+        {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                "grid size-6 place-items-center rounded-lg transition-colors",
-                temPendentes
-                  ? "bg-slate-800 text-emerald-400"
-                  : "bg-secondary text-foreground",
-              )}
-            >
+            <div className="grid size-6 place-items-center rounded-lg bg-primary/10 text-primary transition-colors">
               <ShoppingBag className="size-3.5" />
             </div>
             <div>
-              <h2
-                className={cn(
-                  "text-sm font-semibold",
-                  temPendentes ? "text-white" : "text-foreground",
-                )}
-              >
+              <h2 className="text-sm font-semibold text-foreground">
                 Radar de Pedidos Online
               </h2>
-              <p
-                className={cn(
-                  "text-[11px]",
-                  temPendentes ? "text-slate-400" : "text-muted-foreground",
-                )}
-              >
+              <p className="text-[11px] text-muted-foreground">
                 Expedição e separação da vitrine
               </p>
             </div>
           </div>
 
           {temPendentes ? (
-            <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[11px] text-emerald-300 font-semibold flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-              </span>
+            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5 shadow-2xs">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
               {totalPedidosNovos} {totalPedidosNovos === 1 ? "a despachar" : "a despachar"}
             </span>
           ) : (
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               Tudo despachado
             </span>
@@ -156,11 +134,11 @@ export function PainelRadarPedidosOnline({
 
         {/* Conteúdo: 1) Quando HÁ pedidos pendentes de separação */}
         {temPendentes ? (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3.5 space-y-2.5">
             {/* Banner de aviso quando há pedidos simulados */}
             {pedidosPendentes.some((p) => p.isSimulacao) && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-300">
-                <span>🧪</span>
+              <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                <span className="text-xs">🧪</span>
                 <span>
                   {pedidosPendentes.filter((p) => p.isSimulacao).length === pedidosPendentes.length
                     ? "Pedidos de simulação (modo treino)"
@@ -169,14 +147,14 @@ export function PainelRadarPedidosOnline({
               </div>
             )}
 
-            <div className="flex items-baseline justify-between text-xs text-slate-400">
+            <div className="flex items-baseline justify-between text-xs text-muted-foreground pt-0.5">
               <span>
                 Total a despachar:{" "}
-                <strong className="text-white font-semibold">
+                <strong className="text-foreground font-semibold">
                   {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(valorTotalNovos)}
                 </strong>
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-muted-foreground font-medium">
                 {pedidosPendentes.length} {pedidosPendentes.length === 1 ? "pedido" : "pedidos"}
               </span>
             </div>
@@ -192,35 +170,35 @@ export function PainelRadarPedidosOnline({
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-800 bg-slate-900/90 p-2.5 shadow-2xs hover:border-slate-700 transition-all"
+                    className="flex items-center justify-between gap-2.5 rounded-xl border border-border/70 bg-secondary/35 hover:bg-secondary/60 p-2.5 sm:p-3 transition-colors shadow-2xs"
                   >
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-xs text-white truncate">
+                        <span className="font-semibold text-xs text-foreground truncate">
                           {cliente}
                         </span>
-                        <span className="rounded-md bg-slate-800 px-1.5 py-0.2 text-[9px] text-slate-300 font-medium shrink-0">
+                        <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground font-medium shrink-0 border border-border/50">
                           {p.status === "novo" ? "Novo" : "Em separação"}
                         </span>
                         {p.isSimulacao && (
-                          <span className="rounded-md bg-amber-500/20 border border-amber-400/30 px-1.5 py-0.2 text-[9px] text-amber-300 font-medium shrink-0">
-                            🧪 Sim
+                          <span className="rounded-md bg-amber-500/15 border border-amber-500/25 px-1.5 py-0.5 text-[9px] text-amber-700 dark:text-amber-400 font-semibold shrink-0">
+                            🧪 Treino
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 truncate">
+                      <p className="text-[11px] text-muted-foreground truncate">
                         {itemSnippet}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="numeric text-xs font-bold text-white">
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span className="numeric text-xs font-bold text-foreground">
                         {ocultarSaldos ? "R$ ••••" : mascaraSaldo(p.total)}
                       </span>
                       <Button
                         asChild
                         size="sm"
-                        className="h-7 rounded-full bg-white text-slate-950 hover:bg-slate-100 text-[11px] font-bold px-3 cursor-pointer shadow-sm transition-all"
+                        className="h-7 rounded-full text-[11px] font-semibold px-3 cursor-pointer shadow-2xs"
                       >
                         <Link to="/loja/pedidos">
                           Separar ➔
@@ -233,7 +211,7 @@ export function PainelRadarPedidosOnline({
             </div>
           </div>
         ) : (
-          /* Conteúdo: 2) Quando NÃO há pedidos pendentes — EXATAMENTE IDÊNTICO À IMAGEM 1 */
+          /* Conteúdo: 2) Quando NÃO há pedidos pendentes */
           <div className="mt-3.5 space-y-2">
             {/* Box do Link da Vitrine com Botão Copiar */}
             <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
@@ -268,15 +246,10 @@ export function PainelRadarPedidosOnline({
         )}
       </div>
 
-      {/* Link de Fechamento Integrado e Fluido — Idêntico à Imagem 1 */}
+      {/* Link de Fechamento Integrado e Fluido */}
       <Link
         to="/loja/pedidos"
-        className={cn(
-          "mt-3 pt-2.5 border-t flex items-center justify-center gap-1 text-xs font-medium transition-colors",
-          temPendentes
-            ? "border-slate-800 text-slate-300 hover:text-white"
-            : "border-border/50 text-muted-foreground hover:text-foreground",
-        )}
+        className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <span>
           {temPendentes
