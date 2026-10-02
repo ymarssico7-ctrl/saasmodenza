@@ -437,68 +437,95 @@ function Estoque() {
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
         <TabsContent value="pecas" className="mt-4">
 
-      <section className="panel p-4 sm:p-6 border border-border/70 shadow-soft">
-        {/* ── Cockpit Strip: 3 métricas em grid (proporção correta) ── */}
-        <div className="grid grid-cols-3 divide-x divide-border/50 rounded-2xl border border-border/50 bg-surface-muted/40 mb-5 overflow-hidden">
-          {/* Célula 1 — Acervo */}
-          <div className="flex flex-col gap-0.5 px-4 py-3.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Acervo</span>
-            <div className="flex items-baseline gap-1.5">
-              <span className="numeric text-xl font-bold tracking-tight text-foreground">{totalUnits}</span>
-              <span className="text-xs text-muted-foreground">un.</span>
+      <section className="panel overflow-hidden border border-border/70 shadow-soft p-0">
+        {/* ── Cockpit Strip Nível Apple: Flush ao topo, dados ricos e micro-saúde ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/50 bg-surface-muted/30 border-b border-border/50">
+          {/* Célula 1 — Acervo Físico */}
+          <div className="flex flex-col justify-between px-5 py-4 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Acervo Físico</span>
+              <span className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Boxes className="size-3.5" />
+              </span>
             </div>
-            <span className="text-[11px] text-muted-foreground/70">{items.length} {items.length === 1 ? "referência" : "referências"}</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="numeric text-2xl font-bold tracking-tight text-foreground">{totalUnits}</span>
+              <span className="text-xs font-medium text-muted-foreground">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/75 mt-0.5">
+              {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+            </p>
           </div>
 
           {/* Célula 2 — Capital Investido */}
-          <div className="flex flex-col gap-0.5 px-4 py-3.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Investido</span>
-            <span className="numeric text-xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
-            <span className="text-[11px] text-muted-foreground/70">custo médio {brl(avgCost)}/un.</span>
+          <div className="flex flex-col justify-between px-5 py-4 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Capital Investido</span>
+              <span className="size-6 rounded-lg bg-secondary text-foreground/70 flex items-center justify-center shrink-0">
+                <Wallet className="size-3.5" />
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/75 mt-0.5">
+              custo médio de <strong className="font-semibold text-foreground/90">{brl(avgCost)}</strong> / un.
+            </p>
           </div>
 
-          {/* Célula 3 — Potencial de Venda + Saúde */}
-          <div className="flex flex-col gap-0.5 px-4 py-3.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Potencial de venda</span>
-            <div className="flex items-baseline gap-1.5">
-              <span className="numeric text-xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
+          {/* Célula 3 — Potencial de Venda & Saúde do Estoque */}
+          <div className="flex flex-col justify-between px-5 py-4 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Potencial de Venda</span>
               {potential > 0 && stockValue > 0 && (
-                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  +{markupPct.toFixed(0)}%
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  +{markupPct.toFixed(0)}% retorno
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground/70">{activeRatio}% disponível</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="h-1.5 flex-1 bg-border/80 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, Math.max(0, activeRatio))}%` }}
+                  />
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/80 shrink-0">{activeRatio}% disp.</span>
+              </div>
               {outOfStockCount > 0 ? (
                 <button
                   type="button"
                   onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
+                  title="Filtrar modelos esgotados"
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-all cursor-pointer",
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-all cursor-pointer shrink-0 shadow-2xs",
                     statusFilter === "out_of_stock"
-                      ? "bg-rose-500 text-white"
-                      : "text-rose-500 bg-rose-500/10 hover:bg-rose-500/15",
+                      ? "bg-rose-600 text-white"
+                      : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25 border border-rose-500/25",
                   )}
                 >
-                  <span className={cn("size-1 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
-                  {outOfStockCount} esgot.{statusFilter === "out_of_stock" ? " ✕" : ""}
+                  <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
+                  <span>{outOfStockCount} {outOfStockCount === 1 ? "esgotada" : "esgotadas"}{statusFilter === "out_of_stock" ? " ✕" : ""}</span>
                 </button>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                  <span className="size-1 rounded-full bg-emerald-500" />
-                  100%
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  100% ativo
                 </span>
               )}
             </div>
           </div>
         </div>
 
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+        {/* ── Barra de Comando e Filtros ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-border/50 bg-card">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-semibold text-foreground">Peças cadastradas</h2>
+              <h2 className="text-sm font-semibold text-foreground">Peças cadastradas</h2>
               <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground border border-border/60">
                 {filteredItems.length} {filteredItems.length === 1 ? "peça" : "peças"}
                 {items.length !== filteredItems.length ? ` (de ${items.length})` : ""}
@@ -573,7 +600,7 @@ function Estoque() {
         </div>
 
         {items.length === 0 ? (
-          <div className="mt-6 space-y-4">
+          <div className="p-5 sm:p-6 space-y-4">
             <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5 sm:p-6 shadow-soft">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-border/60">
                 <div className="flex items-center gap-2.5">
@@ -655,7 +682,7 @@ function Estoque() {
             </div>
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="py-12 text-center space-y-3">
+          <div className="py-14 px-4 text-center space-y-3">
             <p className="text-sm font-medium text-foreground">Nenhuma peça encontrada com os filtros selecionados.</p>
             <p className="text-xs text-muted-foreground">Tente buscar por outro termo ou limpe os filtros para ver todo o catálogo.</p>
             <Button
@@ -672,7 +699,7 @@ function Estoque() {
             </Button>
           </div>
         ) : (
-          <ul className="mt-4 space-y-1.5">
+          <ul className="divide-y divide-border/40">
             {filteredItems.map((i) => {
               const s = (i.sizes ?? {}) as Sizes;
               const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
@@ -681,67 +708,95 @@ function Estoque() {
               return (
                 <li
                   key={i.id}
-                  className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 hover:bg-secondary/30 hover:border-border transition-all duration-150"
+                  className="flex flex-col sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,1.8fr)_auto] items-start sm:items-center justify-between gap-3 sm:gap-4 px-5 py-3.5 hover:bg-secondary/35 transition-colors duration-150"
                 >
-                  {/* Avatar quadrado 40×40 */}
-                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-muted border border-border/50 shrink-0 flex items-center justify-center">
-                    {i.photo_url ? (
-                      <img src={i.photo_url} alt={i.name} className="size-full object-cover" loading="lazy" />
-                    ) : (
-                      <Shirt className="size-4 text-muted-foreground/30" />
-                    )}
+                  {/* Zona 1: Miniatura + Identificação */}
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={cn(
+                        "w-11 h-11 rounded-xl overflow-hidden bg-surface-muted border border-border/50 shrink-0 flex items-center justify-center transition-all",
+                        units <= 0 && "opacity-75 grayscale-[25%]",
+                      )}
+                    >
+                      {i.photo_url ? (
+                        <img src={i.photo_url} alt={i.name} className="size-full object-cover" loading="lazy" />
+                      ) : (
+                        <Shirt className="size-4 text-muted-foreground/35" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{i.name}</p>
+                      <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <span>{getCategoryLabel(storeCategories, i.category)}</span>
+                        {i.color && (
+                          <>
+                            <span className="text-muted-foreground/40">·</span>
+                            <span>{i.color}</span>
+                          </>
+                        )}
+                        {i.supplier && (
+                          <>
+                            <span className="text-muted-foreground/40">·</span>
+                            <span className="text-muted-foreground/70 truncate">{i.supplier}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Bloco central: 2 linhas */}
-                  <div className="min-w-0">
-                    {/* Linha 1: nome + categoria + cor */}
-                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <p className="text-sm font-semibold text-foreground truncate">{i.name}</p>
-                      <span className="text-[11px] text-muted-foreground/60">·</span>
-                      <span className="text-[11px] text-muted-foreground">{getCategoryLabel(storeCategories, i.category)}</span>
-                      {i.color && <><span className="text-[11px] text-muted-foreground/40">·</span><span className="text-[11px] text-muted-foreground/70">{i.color}</span></>}
-                    </div>
-                    {/* Linha 2: grade de tamanhos ou esgotado */}
+                  {/* Zona 2: Grade & Situação Física (Balanceada — sem abismo central!) */}
+                  <div className="min-w-0 flex items-center">
                     {units <= 0 ? (
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] font-medium text-rose-500/80 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-px rounded-md">Esgotado</span>
-                        <span className="text-[11px] text-muted-foreground/50">0 un. em estoque</span>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500 text-white px-2.5 py-0.5 text-xs font-bold shadow-2xs">
+                          <span className="size-1.5 rounded-full bg-white" />
+                          Esgotado
+                        </span>
+                        <span className="text-xs text-muted-foreground font-medium">0 un. em estoque</span>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {availableSizes.map(([size, qty]) => (
-                          <span key={size} className="inline-flex items-center gap-0.5 rounded-md bg-surface-muted/80 px-1.5 py-px text-[10px] font-semibold text-foreground/75">
-                            {size}<span className="text-muted-foreground/40 font-normal">·</span>{qty}
+                          <span
+                            key={size}
+                            className="inline-flex items-center gap-1 rounded-md bg-secondary/80 border border-border/60 px-2 py-0.5 text-[11px] font-semibold text-foreground/80"
+                          >
+                            <span>{size}</span>
+                            <span className="text-muted-foreground/40 font-normal">·</span>
+                            <span className="font-bold text-foreground">{qty}</span>
                           </span>
                         ))}
-                        <span className="text-[11px] text-muted-foreground/60 ml-0.5">· {units} un.</span>
+                        <span className="text-xs font-medium text-muted-foreground ml-1">
+                          · {units} {units === 1 ? "peça" : "peças"}
+                        </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Bloco direito: preço + margem + ações */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right">
-                      <p className="numeric text-sm font-semibold text-foreground">{brl(Number(i.sale_price))}</p>
-                      <p className="text-[11px] text-muted-foreground/70 mt-px">
+                  {/* Zona 3: Valores, Rentabilidade e Ações */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-border/40">
+                    <div className="text-left sm:text-right">
+                      <p className="numeric text-sm sm:text-base font-bold text-foreground">{brl(Number(i.sale_price))}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
                         custo {brl(Number(i.cost_price))}
                         {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 && (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                             {" "}· {(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%
                           </span>
                         )}
                       </p>
                     </div>
-                    <div className="flex items-center gap-0.5 border border-border/50 bg-surface-muted/40 rounded-lg p-0.5 shrink-0">
+
+                    <div className="flex items-center gap-1 border border-border/60 bg-surface-muted/50 rounded-xl p-0.5 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => startEditing(i)}
-                        className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
+                        className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
                         title="Editar peça e grade"
                         aria-label={`Editar ${i.name}`}
                       >
-                        <Pencil className="size-3" />
+                        <Pencil className="size-3.5" />
                       </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(i.id)}
@@ -750,10 +805,10 @@ function Estoque() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                             title="Excluir peça"
                           >
-                            <Trash2 className="size-3" />
+                            <Trash2 className="size-3.5" />
                           </Button>
                         }
                       />
