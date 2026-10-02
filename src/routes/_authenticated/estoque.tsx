@@ -416,100 +416,8 @@ function Estoque() {
         }
       />
 
-      {/* ── Painel Executivo Fluido 3-em-1 (Padrão Quiet Luxury — Apple HIG & Polaris) ── */}
-      <div className="panel p-4 sm:p-5 rounded-2xl shadow-soft">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {/* Pilar 1: Acervo Físico */}
-          <div className="flex flex-col justify-between gap-1.5">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Boxes className="size-3.5 text-muted-foreground/70" />
-              <span className="text-xs font-medium">Acervo em Estoque</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="numeric text-2xl font-bold tracking-tight text-foreground">
-                {totalUnits}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {totalUnits === 1 ? "peça ativa" : "peças ativas"}
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Distribuídas em <strong className="font-semibold text-foreground/80">{items.length}</strong> {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
-            </p>
-          </div>
-
-          {/* Pilar 2: Patrimônio & Potencial */}
-          <div className="flex flex-col justify-between gap-1.5 md:border-l md:border-border/60 md:pl-6">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <TrendingUp className="size-3.5 text-muted-foreground/70" />
-              <span className="text-xs font-medium">Patrimônio & Potencial</span>
-            </div>
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="numeric text-2xl font-bold tracking-tight text-foreground">
-                {brl(stockValue)}
-              </span>
-              <span className="text-xs text-muted-foreground/50 select-none px-0.5">➔</span>
-              <span className="numeric text-lg sm:text-xl font-semibold text-foreground/85">
-                {brl(potential)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px]">
-              <span className="text-muted-foreground">Custo médio {brl(avgCost)}</span>
-              {potential > 0 && stockValue > 0 && (
-                <>
-                  <span className="text-muted-foreground/40">·</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    +{markupPct.toFixed(0)}% markup
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Pilar 3: Saúde da Grade & Reposição */}
-          <div className="flex flex-col justify-between gap-1.5 md:border-l md:border-border/60 md:pl-6">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Package className="size-3.5 text-muted-foreground/70" />
-              <span className="text-xs font-medium">Saúde da Grade</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="numeric text-2xl font-bold tracking-tight text-foreground">
-                {activeRatio}%
-              </span>
-              <span className="text-xs text-muted-foreground">disponibilidade ativa</span>
-            </div>
-            <div className="pt-0.5">
-              {outOfStockCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
-                  title="Clique para filtrar modelos esgotados"
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-all cursor-pointer",
-                    statusFilter === "out_of_stock"
-                      ? "bg-rose-500 text-white shadow-2xs"
-                      : "bg-secondary hover:bg-rose-500/10 text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 border border-border/50",
-                  )}
-                >
-                  <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
-                  <span>
-                    {outOfStockCount} {outOfStockCount === 1 ? "modelo esgotado" : "modelos esgotados"}
-                    {statusFilter === "out_of_stock" ? " (filtro ativo)" : " · Ver"}
-                  </span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Grade 100% abastecida
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── Sub-Abas: Peças em Estoque / Categorias do Catálogo ────────────── */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <TabsList className="h-10 rounded-xl bg-surface-muted/60 border border-border/60 p-1">
             <TabsTrigger value="pecas" className="rounded-lg px-4 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-xs">
@@ -527,21 +435,81 @@ function Estoque() {
         </div>
 
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
-        <TabsContent value="pecas" className="space-y-6 mt-6">
+        <TabsContent value="pecas" className="mt-4">
 
-      <section className="panel p-5 sm:p-7 border border-border/70 shadow-soft">
+      <section className="panel p-4 sm:p-6 border border-border/70 shadow-soft">
+        {/* ── Faixa Inteligente de Resumo Executivo (Superfície Integrada — Padrão Polaris & Stripe) ── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:px-4 rounded-xl bg-surface-muted/60 border border-border/60 text-xs mb-4">
+          {/* Grupo 1: Acervo Físico + Finanças */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 min-w-0">
+            {/* Acervo */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Boxes className="size-3.5 text-muted-foreground/70" />
+              <span className="text-muted-foreground">Acervo:</span>
+              <span className="numeric font-bold text-foreground">{totalUnits}</span>
+              <span className="text-muted-foreground">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
+              <span className="text-muted-foreground/40 text-[10px]">({items.length} {items.length === 1 ? "ref." : "refs."})</span>
+            </div>
+
+            <span className="text-border hidden sm:inline select-none">|</span>
+
+            {/* Finanças & Potencial */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <TrendingUp className="size-3.5 text-muted-foreground/70" />
+              <span className="text-muted-foreground">Patrimônio:</span>
+              <span className="numeric font-bold text-foreground">{brl(stockValue)}</span>
+              <span className="text-muted-foreground/40 text-[11px] select-none">➔</span>
+              <span className="text-muted-foreground">Venda:</span>
+              <span className="numeric font-semibold text-foreground/85">{brl(potential)}</span>
+              {potential > 0 && stockValue > 0 && (
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full text-[10px]">
+                  +{markupPct.toFixed(0)}%
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Grupo 2: Saúde da Grade / Ação de Reposição */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="numeric text-xs font-semibold text-foreground/80">
+              {activeRatio}% <span className="font-normal text-muted-foreground">disponível</span>
+            </span>
+            {outOfStockCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
+                title="Clique para filtrar modelos esgotados"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer",
+                  statusFilter === "out_of_stock"
+                    ? "bg-rose-500 text-white shadow-2xs font-semibold"
+                    : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20",
+                )}
+              >
+                <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
+                <span>
+                  {outOfStockCount} {outOfStockCount === 1 ? "esgotado" : "esgotados"}
+                  {statusFilter === "out_of_stock" ? " (limpar filtro)" : " · Ver"}
+                </span>
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                100% abastecido
+              </span>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-foreground">Peças cadastradas</h2>
+              <h2 className="text-sm sm:text-base font-semibold text-foreground">Peças cadastradas</h2>
               <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground border border-border/60">
                 {filteredItems.length} {filteredItems.length === 1 ? "peça" : "peças"}
                 {items.length !== filteredItems.length ? ` (de ${items.length})` : ""}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Consulte seu inventário, ajuste quantidades e acompanhe a rentabilidade.
-            </p>
           </div>
 
           {/* Barra de Filtros e Busca Rápida */}
@@ -594,26 +562,6 @@ function Estoque() {
                 </SelectContent>
               </Select>
 
-              {/* Botão Nova Peça Rápido na Barra */}
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  setName("");
-                  setColor("");
-                  setCost("");
-                  setPrice("");
-                  setPhotoUrl("");
-                  setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
-                  setSingleSizeQty("");
-                  setGradeMode("grade");
-                  setNewPieceOpen(true);
-                }}
-                className="h-9 gap-1.5 rounded-xl bg-primary text-primary-foreground px-3.5 text-xs font-semibold shadow-xs hover:bg-primary/90 transition-all cursor-pointer shrink-0"
-              >
-                <Plus className="size-3.5" />
-                <span>Nova Peça</span>
-              </Button>
 
               {/* Gerenciar Categorias da Loja */}
               <Button
