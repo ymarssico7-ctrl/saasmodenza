@@ -438,102 +438,127 @@ function Estoque() {
         <TabsContent value="pecas" className="mt-4">
 
       <section className="panel overflow-hidden border border-border/70 shadow-soft p-0">
-        {/* ── Cockpit Strip Nível Apple & Shopify: 100% Simétrico, Quiet Luxury ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40 bg-surface-muted/20 border-b border-border/40">
-          {/* Célula 1 — Acervo em Estoque */}
-          <div className="flex flex-col justify-between px-6 py-4 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
-              Acervo em Estoque
-            </span>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="numeric text-2xl font-bold tracking-tight text-foreground">{totalUnits}</span>
-              <span className="text-xs font-medium text-muted-foreground">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
+        {/* ── Faixa de Síntese Executiva Líquida (Padrão Apple Pro & Shopify Polaris) ── */}
+        <div className="px-5 sm:px-6 py-3.5 bg-surface-muted/20 border-b border-border/40 flex flex-wrap items-center justify-between gap-y-2 gap-x-6 text-xs">
+          {/* Métricas Financeiras e Físicas em Fluxo Natural */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {/* Acervo */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Acervo:</span>
+              <span className="numeric text-base font-bold text-foreground">{totalUnits}</span>
+              <span className="text-muted-foreground text-xs">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
+              <span className="text-[11px] text-muted-foreground/60">({items.length} {items.length === 1 ? "modelo" : "modelos"})</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/80 mt-1">
-              em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
-            </p>
-          </div>
 
-          {/* Célula 2 — Capital Investido */}
-          <div className="flex flex-col justify-between px-6 py-4 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
-              Capital Investido
-            </span>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
+            <span className="text-border/60 hidden sm:inline select-none">·</span>
+
+            {/* Capital Investido */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Investido:</span>
+              <span className="numeric text-base font-bold text-foreground">{brl(stockValue)}</span>
+              <span className="text-[11px] text-muted-foreground/70">(médio {brl(avgCost)}/un.)</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/80 mt-1">
-              custo médio {brl(avgCost)}/un.
-            </p>
-          </div>
 
-          {/* Célula 3 — Potencial & Retorno */}
-          <div className="flex flex-col justify-between px-6 py-4 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
-                Potencial de Venda
-              </span>
+            <span className="text-border/60 hidden sm:inline select-none">·</span>
+
+            {/* Potencial de Venda */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Potencial:</span>
+              <span className="numeric text-base font-bold text-foreground">{brl(potential)}</span>
               {potential > 0 && stockValue > 0 && (
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  +{markupPct.toFixed(0)}% retorno
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                  +{markupPct.toFixed(0)}%
                 </span>
               )}
             </div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 mt-1">
-              <span className="text-[11px] text-muted-foreground/80">
-                {activeRatio}% disponível
-              </span>
-              {outOfStockCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
-                  title="Filtrar modelos esgotados"
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-all cursor-pointer shadow-2xs",
-                    statusFilter === "out_of_stock"
-                      ? "bg-rose-600 text-white"
-                      : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25 border border-rose-500/25",
-                  )}
-                >
-                  <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
-                  <span>{outOfStockCount} {outOfStockCount === 1 ? "esgotada" : "esgotadas"}{statusFilter === "out_of_stock" ? " ✕" : ""}</span>
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  100% abastecido
-                </span>
-              )}
-            </div>
+          </div>
+
+          {/* Indicador de Disponibilidade / Saúde Operacional */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs text-muted-foreground">
+              <strong className="text-foreground font-semibold">{activeRatio}%</strong> do acervo disponível
+            </span>
           </div>
         </div>
 
-        {/* ── Barra de Comando e Filtros ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-border/40 bg-card">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">Peças cadastradas</h2>
-              <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground border border-border/60">
-                {filteredItems.length} {filteredItems.length === 1 ? "peça" : "peças"}
-                {items.length !== filteredItems.length ? ` (de ${items.length})` : ""}
+        {/* ── Barra de Comando: Filtros Inteligentes & Busca Rápida ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-border/40 bg-card">
+          {/* Segmented Filter Pills (Shopify Polaris style) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {/* Todas */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                statusFilter === "all"
+                  ? "bg-secondary text-foreground shadow-2xs font-bold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+              )}
+            >
+              <span>Todas as peças</span>
+              <span className={cn(
+                "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                statusFilter === "all" ? "bg-card text-foreground" : "bg-surface-muted text-muted-foreground"
+              )}>
+                {items.length}
               </span>
-            </div>
+            </button>
+
+            {/* Disponíveis */}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("in_stock")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                statusFilter === "in_stock"
+                  ? "bg-secondary text-foreground shadow-2xs font-bold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+              )}
+            >
+              <span>Disponíveis</span>
+              <span className={cn(
+                "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                statusFilter === "in_stock" ? "bg-card text-foreground" : "bg-surface-muted text-muted-foreground"
+              )}>
+                {items.length - outOfStockCount}
+              </span>
+            </button>
+
+            {/* Esgotadas (Alerta Orgânico — Aqui é onde ele pertence!) */}
+            {outOfStockCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs",
+                  statusFilter === "out_of_stock"
+                    ? "bg-rose-500 text-white"
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20",
+                )}
+              >
+                <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
+                <span>Esgotadas</span>
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
+                  statusFilter === "out_of_stock" ? "bg-white/20 text-white" : "bg-rose-500/20 text-rose-700 dark:text-rose-300"
+                )}>
+                  {outOfStockCount}
+                </span>
+              </button>
+            )}
           </div>
 
-          {/* Barra de Filtros e Busca Rápida */}
+          {/* Busca & Filtro de Categoria */}
           {items.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Campo de Busca */}
-              <div className="relative min-w-[200px] flex-1 sm:flex-initial">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-[180px] sm:min-w-[220px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60 pointer-events-none" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar peça, cor ou fornecedor…"
-                  className="h-9 pl-8 pr-7 text-xs rounded-xl bg-card border-border hover:border-foreground/25 transition-colors"
+                  className="h-9 pl-8 pr-7 text-xs rounded-xl bg-surface-muted/40 border-border hover:border-foreground/25 transition-colors"
                 />
                 {searchQuery && (
                   <button
@@ -548,7 +573,7 @@ function Estoque() {
 
               {/* Filtro por Categoria */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-9 w-auto gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-medium text-foreground/80 hover:border-foreground/25">
+                <SelectTrigger className="h-9 w-auto gap-1.5 rounded-xl border-border bg-surface-muted/40 px-3 text-xs font-medium text-foreground/80 hover:border-foreground/25">
                   <SelectValue placeholder="Categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -558,18 +583,6 @@ function Estoque() {
                       {c.name}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-
-              {/* Filtro por Estoque */}
-              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-                <SelectTrigger className="h-9 w-auto gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-medium text-foreground/80 hover:border-foreground/25">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todo o estoque</SelectItem>
-                  <SelectItem value="in_stock">Disponíveis</SelectItem>
-                  <SelectItem value="out_of_stock">Esgotadas</SelectItem>
                 </SelectContent>
               </Select>
             </div>
