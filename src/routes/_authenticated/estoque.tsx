@@ -438,71 +438,61 @@ function Estoque() {
         <TabsContent value="pecas" className="mt-4">
 
       <section className="panel overflow-hidden border border-border/70 shadow-soft p-0">
-        {/* ── Cockpit Strip Nível Apple: Flush ao topo, dados ricos e micro-saúde ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/50 bg-surface-muted/30 border-b border-border/50">
-          {/* Célula 1 — Acervo Físico */}
-          <div className="flex flex-col justify-between px-5 py-4 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Acervo Físico</span>
-              <span className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Boxes className="size-3.5" />
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
+        {/* ── Cockpit Strip Nível Apple & Shopify: 100% Simétrico, Quiet Luxury ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40 bg-surface-muted/20 border-b border-border/40">
+          {/* Célula 1 — Acervo em Estoque */}
+          <div className="flex flex-col justify-between px-6 py-4 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
+              Acervo em Estoque
+            </span>
+            <div className="mt-1 flex items-baseline gap-1.5">
               <span className="numeric text-2xl font-bold tracking-tight text-foreground">{totalUnits}</span>
               <span className="text-xs font-medium text-muted-foreground">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/75 mt-0.5">
-              {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+            <p className="text-[11px] text-muted-foreground/80 mt-1">
+              em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
             </p>
           </div>
 
           {/* Célula 2 — Capital Investido */}
-          <div className="flex flex-col justify-between px-5 py-4 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Capital Investido</span>
-              <span className="size-6 rounded-lg bg-secondary text-foreground/70 flex items-center justify-center shrink-0">
-                <Wallet className="size-3.5" />
-              </span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
+          <div className="flex flex-col justify-between px-6 py-4 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
+              Capital Investido
+            </span>
+            <div className="mt-1 flex items-baseline gap-1.5">
               <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/75 mt-0.5">
-              custo médio de <strong className="font-semibold text-foreground/90">{brl(avgCost)}</strong> / un.
+            <p className="text-[11px] text-muted-foreground/80 mt-1">
+              custo médio {brl(avgCost)}/un.
             </p>
           </div>
 
-          {/* Célula 3 — Potencial de Venda & Saúde do Estoque */}
-          <div className="flex flex-col justify-between px-5 py-4 min-w-0">
+          {/* Célula 3 — Potencial & Retorno */}
+          <div className="flex flex-col justify-between px-6 py-4 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Potencial de Venda</span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
+                Potencial de Venda
+              </span>
               {potential > 0 && stockValue > 0 && (
-                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                   +{markupPct.toFixed(0)}% retorno
                 </span>
               )}
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-1 flex items-baseline gap-1.5">
               <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
             </div>
-            <div className="mt-1 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="h-1.5 flex-1 bg-border/80 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, Math.max(0, activeRatio))}%` }}
-                  />
-                </div>
-                <span className="text-[11px] font-semibold text-foreground/80 shrink-0">{activeRatio}% disp.</span>
-              </div>
+            <div className="flex items-center justify-between gap-2 mt-1">
+              <span className="text-[11px] text-muted-foreground/80">
+                {activeRatio}% disponível
+              </span>
               {outOfStockCount > 0 ? (
                 <button
                   type="button"
                   onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
                   title="Filtrar modelos esgotados"
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-all cursor-pointer shrink-0 shadow-2xs",
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-all cursor-pointer shadow-2xs",
                     statusFilter === "out_of_stock"
                       ? "bg-rose-600 text-white"
                       : "bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25 border border-rose-500/25",
@@ -512,9 +502,9 @@ function Estoque() {
                   <span>{outOfStockCount} {outOfStockCount === 1 ? "esgotada" : "esgotadas"}{statusFilter === "out_of_stock" ? " ✕" : ""}</span>
                 </button>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
-                  100% ativo
+                  100% abastecido
                 </span>
               )}
             </div>
@@ -522,7 +512,7 @@ function Estoque() {
         </div>
 
         {/* ── Barra de Comando e Filtros ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-border/50 bg-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-border/40 bg-card">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-foreground">Peças cadastradas</h2>
@@ -582,19 +572,6 @@ function Estoque() {
                   <SelectItem value="out_of_stock">Esgotadas</SelectItem>
                 </SelectContent>
               </Select>
-
-
-              {/* Gerenciar Categorias da Loja */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCategoryManagerOpen(true)}
-                className="h-9 gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-semibold text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer shrink-0"
-              >
-                <Layers className="size-3.5 text-primary" />
-                <span>Categorias</span>
-              </Button>
             </div>
           )}
         </div>
