@@ -468,21 +468,24 @@ function Estoque() {
 
             {/* Card 3: Potencial */}
             <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Potencial de Venda
-                </span>
-                {potential > 0 && stockValue > 0 && (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    +{markupPct.toFixed(0)}% retorno
-                  </span>
-                )}
-              </div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Potencial de Venda
+              </span>
               <div className="mt-1 flex items-baseline gap-1.5">
                 <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">
-                retorno estimado sobre o custo
+                {potential > 0 && stockValue > 0 ? (
+                  <>
+                    lucro projetado de{" "}
+                    <strong className="font-semibold text-foreground">{brl(Math.max(0, potential - stockValue))}</strong>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold ml-1">
+                      (+{markupPct.toFixed(0)}%)
+                    </span>
+                  </>
+                ) : (
+                  "retorno estimado sobre o custo"
+                )}
               </p>
             </div>
           </div>
