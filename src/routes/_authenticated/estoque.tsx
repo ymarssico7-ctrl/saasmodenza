@@ -435,51 +435,60 @@ function Estoque() {
         </div>
 
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
-        <TabsContent value="pecas" className="mt-4">
+        <TabsContent value="pecas" className="mt-4 space-y-4">
 
-      <section className="panel overflow-hidden border border-border/70 shadow-soft p-0">
-        {/* ── Faixa de Síntese Executiva Líquida (Padrão Apple Pro & Shopify Polaris) ── */}
-        <div className="px-5 sm:px-6 py-3.5 bg-surface-muted/20 border-b border-border/40 flex flex-wrap items-center justify-between gap-y-2 gap-x-6 text-xs">
-          {/* Métricas Financeiras e Físicas em Fluxo Natural */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {/* Acervo */}
-            <div className="flex items-baseline gap-2">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Acervo:</span>
-              <span className="numeric text-base font-bold text-foreground">{totalUnits}</span>
-              <span className="text-muted-foreground text-xs">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
-              <span className="text-[11px] text-muted-foreground/60">({items.length} {items.length === 1 ? "modelo" : "modelos"})</span>
+          {/* ── 1. Cards de Síntese Executiva (Proporção Áurea, cards independentes, zero dead space) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* Card 1: Acervo */}
+            <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs flex flex-col justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Acervo em Estoque
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="numeric text-2xl font-bold tracking-tight text-foreground">{totalUnits}</span>
+                <span className="text-xs font-medium text-muted-foreground">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+              </p>
             </div>
 
-            <span className="text-border/60 hidden sm:inline select-none">·</span>
-
-            {/* Capital Investido */}
-            <div className="flex items-baseline gap-2">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Investido:</span>
-              <span className="numeric text-base font-bold text-foreground">{brl(stockValue)}</span>
-              <span className="text-[11px] text-muted-foreground/70">(médio {brl(avgCost)}/un.)</span>
+            {/* Card 2: Investido */}
+            <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs flex flex-col justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Capital Investido
+              </span>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                custo médio de {brl(avgCost)}/un.
+              </p>
             </div>
 
-            <span className="text-border/60 hidden sm:inline select-none">·</span>
-
-            {/* Potencial de Venda */}
-            <div className="flex items-baseline gap-2">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Potencial:</span>
-              <span className="numeric text-base font-bold text-foreground">{brl(potential)}</span>
-              {potential > 0 && stockValue > 0 && (
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
-                  +{markupPct.toFixed(0)}%
+            {/* Card 3: Potencial */}
+            <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Potencial de Venda
                 </span>
-              )}
+                {potential > 0 && stockValue > 0 && (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    +{markupPct.toFixed(0)}% retorno
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="numeric text-2xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                retorno estimado sobre o custo
+              </p>
             </div>
           </div>
 
-          {/* Indicador de Disponibilidade / Saúde Operacional */}
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="text-xs text-muted-foreground">
-              <strong className="text-foreground font-semibold">{activeRatio}%</strong> do acervo disponível
-            </span>
-          </div>
-        </div>
+          {/* ── 2. Painel do Catálogo & Grade (Superfície Contínua com Cabeçalho Explícito) ── */}
+          <section className="panel overflow-hidden border border-border/70 shadow-soft p-0 bg-card">
 
         {/* ── Barra de Comando: Filtros Inteligentes & Busca Rápida ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-border/40 bg-card">
@@ -689,83 +698,91 @@ function Estoque() {
             </Button>
           </div>
         ) : (
-          <ul className="divide-y divide-border/40">
-            {filteredItems.map((i) => {
-              const s = (i.sizes ?? {}) as Sizes;
-              const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
-              const availableSizes = Object.entries(s).filter(([_, qty]) => Number(qty || 0) > 0);
+          <>
+            {/* ── Cabeçalho da Tabela — Alinhamento Matemático & Clareza Mental ── */}
+            <div className="hidden sm:grid sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.8fr)_minmax(0,1.2fr)_80px] items-center gap-4 px-5 py-2.5 bg-surface-muted/30 border-b border-border/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 select-none">
+              <span>Peça &amp; Identificação</span>
+              <span>Estoque &amp; Grade</span>
+              <span className="text-right">Preço &amp; Rentabilidade</span>
+              <span className="text-right">Ações</span>
+            </div>
 
-              return (
-                <li
-                  key={i.id}
-                  className="flex flex-col sm:grid sm:grid-cols-[minmax(0,2fr)_minmax(0,1.8fr)_auto] items-start sm:items-center justify-between gap-3 sm:gap-4 px-5 py-3.5 hover:bg-secondary/35 transition-colors duration-150"
-                >
-                  {/* Zona 1: Miniatura + Identificação */}
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className={cn(
-                        "w-11 h-11 rounded-xl overflow-hidden bg-surface-muted border border-border/50 shrink-0 flex items-center justify-center transition-all",
-                        units <= 0 && "opacity-75 grayscale-[25%]",
-                      )}
-                    >
-                      {i.photo_url ? (
-                        <img src={i.photo_url} alt={i.name} className="size-full object-cover" loading="lazy" />
-                      ) : (
-                        <Shirt className="size-4 text-muted-foreground/35" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{i.name}</p>
-                      <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <span>{getCategoryLabel(storeCategories, i.category)}</span>
-                        {i.color && (
-                          <>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span>{i.color}</span>
-                          </>
+            <ul className="divide-y divide-border/40">
+              {filteredItems.map((i) => {
+                const s = (i.sizes ?? {}) as Sizes;
+                const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
+                const availableSizes = Object.entries(s).filter(([_, qty]) => Number(qty || 0) > 0);
+
+                return (
+                  <li
+                    key={i.id}
+                    className="flex flex-col sm:grid sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.8fr)_minmax(0,1.2fr)_80px] items-start sm:items-center justify-between gap-3 sm:gap-4 px-5 py-3.5 hover:bg-secondary/35 transition-colors duration-150"
+                  >
+                    {/* Coluna 1: Miniatura + Identificação */}
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div
+                        className={cn(
+                          "w-11 h-11 rounded-xl overflow-hidden bg-surface-muted border border-border/50 shrink-0 flex items-center justify-center transition-all",
+                          units <= 0 && "opacity-75 grayscale-[25%]",
                         )}
-                        {i.supplier && (
-                          <>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span className="text-muted-foreground/70 truncate">{i.supplier}</span>
-                          </>
+                      >
+                        {i.photo_url ? (
+                          <img src={i.photo_url} alt={i.name} className="size-full object-cover" loading="lazy" />
+                        ) : (
+                          <Shirt className="size-4 text-muted-foreground/35" />
                         )}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Zona 2: Grade & Situação Física (Balanceada — sem abismo central!) */}
-                  <div className="min-w-0 flex items-center">
-                    {units <= 0 ? (
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500 text-white px-2.5 py-0.5 text-xs font-bold shadow-2xs">
-                          <span className="size-1.5 rounded-full bg-white" />
-                          Esgotado
-                        </span>
-                        <span className="text-xs text-muted-foreground font-medium">0 un. em estoque</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{i.name}</p>
+                        <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                          <span>{getCategoryLabel(storeCategories, i.category)}</span>
+                          {i.color && (
+                            <>
+                              <span className="text-muted-foreground/40">·</span>
+                              <span>{i.color}</span>
+                            </>
+                          )}
+                          {i.supplier && (
+                            <>
+                              <span className="text-muted-foreground/40">·</span>
+                              <span className="text-muted-foreground/70 truncate">{i.supplier}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {availableSizes.map(([size, qty]) => (
-                          <span
-                            key={size}
-                            className="inline-flex items-center gap-1 rounded-md bg-secondary/80 border border-border/60 px-2 py-0.5 text-[11px] font-semibold text-foreground/80"
-                          >
-                            <span>{size}</span>
-                            <span className="text-muted-foreground/40 font-normal">·</span>
-                            <span className="font-bold text-foreground">{qty}</span>
+                    </div>
+
+                    {/* Coluna 2: Grade & Situação Física (Alinhada perfeitamente sob o header) */}
+                    <div className="min-w-0 flex items-center">
+                      {units <= 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500 text-white px-2.5 py-0.5 text-xs font-bold shadow-2xs">
+                            <span className="size-1.5 rounded-full bg-white" />
+                            Esgotado
                           </span>
-                        ))}
-                        <span className="text-xs font-medium text-muted-foreground ml-1">
-                          · {units} {units === 1 ? "peça" : "peças"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                          <span className="text-xs text-muted-foreground font-medium">0 un. disponíveis</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {availableSizes.map(([size, qty]) => (
+                            <span
+                              key={size}
+                              className="inline-flex items-center gap-1 rounded-md bg-secondary/80 border border-border/60 px-2 py-0.5 text-[11px] font-semibold text-foreground/80"
+                            >
+                              <span>{size}</span>
+                              <span className="text-muted-foreground/40 font-normal">·</span>
+                              <span className="font-bold text-foreground">{qty}</span>
+                            </span>
+                          ))}
+                          <span className="text-xs font-medium text-muted-foreground ml-1">
+                            · {units} {units === 1 ? "peça" : "peças"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Zona 3: Valores, Rentabilidade e Ações */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-border/40">
-                    <div className="text-left sm:text-right">
+                    {/* Coluna 3: Preço de Venda & Margem (Alinhado à direita sob o header) */}
+                    <div className="text-left sm:text-right w-full sm:w-auto">
                       <p className="numeric text-sm sm:text-base font-bold text-foreground">{brl(Number(i.sale_price))}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         custo {brl(Number(i.cost_price))}
@@ -777,12 +794,13 @@ function Estoque() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1 border border-border/60 bg-surface-muted/50 rounded-xl p-0.5 shrink-0">
+                    {/* Coluna 4: Ações (Limpo, sem caixa cinza pesada) */}
+                    <div className="flex items-center justify-end gap-1 shrink-0 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-border/40">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => startEditing(i)}
-                        className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
+                        className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
                         title="Editar peça e grade"
                         aria-label={`Editar ${i.name}`}
                       >
@@ -803,11 +821,11 @@ function Estoque() {
                         }
                       />
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </section>
 
