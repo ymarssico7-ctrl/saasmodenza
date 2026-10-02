@@ -438,68 +438,62 @@ function Estoque() {
         <TabsContent value="pecas" className="mt-4">
 
       <section className="panel p-4 sm:p-6 border border-border/70 shadow-soft">
-        {/* ── Faixa Inteligente de Resumo Executivo (Superfície Integrada — Padrão Polaris & Stripe) ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:px-4 rounded-xl bg-surface-muted/60 border border-border/60 text-xs mb-4">
-          {/* Grupo 1: Acervo Físico + Finanças */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 min-w-0">
-            {/* Acervo */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Boxes className="size-3.5 text-muted-foreground/70" />
-              <span className="text-muted-foreground">Acervo:</span>
-              <span className="numeric font-bold text-foreground">{totalUnits}</span>
-              <span className="text-muted-foreground">{totalUnits === 1 ? "peça ativa" : "peças ativas"}</span>
-              <span className="text-muted-foreground/40 text-[10px]">({items.length} {items.length === 1 ? "ref." : "refs."})</span>
+        {/* ── Cockpit Strip: 3 métricas em grid (proporção correta) ── */}
+        <div className="grid grid-cols-3 divide-x divide-border/50 rounded-2xl border border-border/50 bg-surface-muted/40 mb-5 overflow-hidden">
+          {/* Célula 1 — Acervo */}
+          <div className="flex flex-col gap-0.5 px-4 py-3.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Acervo</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="numeric text-xl font-bold tracking-tight text-foreground">{totalUnits}</span>
+              <span className="text-xs text-muted-foreground">un.</span>
             </div>
+            <span className="text-[11px] text-muted-foreground/70">{items.length} {items.length === 1 ? "referência" : "referências"}</span>
+          </div>
 
-            <span className="text-border hidden sm:inline select-none">|</span>
+          {/* Célula 2 — Capital Investido */}
+          <div className="flex flex-col gap-0.5 px-4 py-3.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Investido</span>
+            <span className="numeric text-xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
+            <span className="text-[11px] text-muted-foreground/70">custo médio {brl(avgCost)}/un.</span>
+          </div>
 
-            {/* Finanças & Potencial */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <TrendingUp className="size-3.5 text-muted-foreground/70" />
-              <span className="text-muted-foreground">Patrimônio:</span>
-              <span className="numeric font-bold text-foreground">{brl(stockValue)}</span>
-              <span className="text-muted-foreground/40 text-[11px] select-none">➔</span>
-              <span className="text-muted-foreground">Venda:</span>
-              <span className="numeric font-semibold text-foreground/85">{brl(potential)}</span>
+          {/* Célula 3 — Potencial de Venda + Saúde */}
+          <div className="flex flex-col gap-0.5 px-4 py-3.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/60">Potencial de venda</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="numeric text-xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
               {potential > 0 && stockValue > 0 && (
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full text-[10px]">
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                   +{markupPct.toFixed(0)}%
                 </span>
               )}
             </div>
-          </div>
-
-          {/* Grupo 2: Saúde da Grade / Ação de Reposição */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="numeric text-xs font-semibold text-foreground/80">
-              {activeRatio}% <span className="font-normal text-muted-foreground">disponível</span>
-            </span>
-            {outOfStockCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
-                title="Clique para filtrar modelos esgotados"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer",
-                  statusFilter === "out_of_stock"
-                    ? "bg-rose-500 text-white shadow-2xs font-semibold"
-                    : "bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20",
-                )}
-              >
-                <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
-                <span>
-                  {outOfStockCount} {outOfStockCount === 1 ? "esgotado" : "esgotados"}
-                  {statusFilter === "out_of_stock" ? " (limpar filtro)" : " · Ver"}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground/70">{activeRatio}% disponível</span>
+              {outOfStockCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-all cursor-pointer",
+                    statusFilter === "out_of_stock"
+                      ? "bg-rose-500 text-white"
+                      : "text-rose-500 bg-rose-500/10 hover:bg-rose-500/15",
+                  )}
+                >
+                  <span className={cn("size-1 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
+                  {outOfStockCount} esgot.{statusFilter === "out_of_stock" ? " ✕" : ""}
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="size-1 rounded-full bg-emerald-500" />
+                  100%
                 </span>
-              </button>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                100% abastecido
-              </span>
-            )}
+              )}
+            </div>
           </div>
         </div>
+
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
           <div>
@@ -678,7 +672,7 @@ function Estoque() {
             </Button>
           </div>
         ) : (
-          <ul className="mt-5 space-y-3">
+          <ul className="mt-4 space-y-1.5">
             {filteredItems.map((i) => {
               const s = (i.sizes ?? {}) as Sizes;
               const units = Object.values(s).reduce((a, b) => a + Number(b || 0), 0);
@@ -687,104 +681,67 @@ function Estoque() {
               return (
                 <li
                   key={i.id}
-                  className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border/50 bg-card px-4 py-3 hover:bg-secondary/30 hover:border-border transition-all duration-150"
                 >
-                  {/* Lado Esquerdo: Miniatura da Peça + Dados */}
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-                    {/* Thumbnail / Foto no padrão 3:4 de Moda */}
-                    <div className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden bg-surface-muted border border-border/60 shrink-0 flex items-center justify-center">
-                      {i.photo_url ? (
-                        <img
-                          src={i.photo_url}
-                          alt={i.name}
-                          className="size-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-1 text-muted-foreground/40">
-                          <Shirt className="size-6" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Dados da Peça */}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm sm:text-base font-bold text-foreground">
-                        {i.name}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground/80">
-                          {getCategoryLabel(storeCategories, i.category)}
-                        </span>
-                        {i.color && (
-                          <span className="text-[11px] text-muted-foreground">· {i.color}</span>
-                        )}
-                        {i.supplier && (
-                          <span className="text-[11px] text-muted-foreground/70">· {i.supplier}</span>
-                        )}
-                      </div>
-
-                      {/* Grade Limpa (Apenas tamanhos positivos ou Esgotado) */}
-                      {units <= 0 ? (
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                            <span className="size-1.5 rounded-full bg-rose-500" />
-                            Esgotado
-                          </span>
-                          <span className="text-[11px] text-muted-foreground/70">
-                            0 peças em estoque
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                          {availableSizes.map(([size, qty]) => (
-                            <span
-                              key={size}
-                              className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-surface-muted/60 px-2 py-0.5 text-[11px] font-semibold text-foreground/85"
-                            >
-                              <span>{size}</span>
-                              <span className="text-muted-foreground/40 font-normal">·</span>
-                              <span className="font-bold text-foreground">{qty}</span>
-                            </span>
-                          ))}
-                          <span className="text-[11px] text-muted-foreground font-medium ml-1">
-                            · {units} {units === 1 ? "peça disponível" : "peças disponíveis"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                  {/* Avatar quadrado 40×40 */}
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-muted border border-border/50 shrink-0 flex items-center justify-center">
+                    {i.photo_url ? (
+                      <img src={i.photo_url} alt={i.name} className="size-full object-cover" loading="lazy" />
+                    ) : (
+                      <Shirt className="size-4 text-muted-foreground/30" />
+                    )}
                   </div>
 
-                  {/* Lado Direito: Preço, Rentabilidade e Ações */}
-                  <div className="flex items-center justify-between sm:justify-end gap-5 w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/40">
-                    <div className="text-left sm:text-right">
-                      <p className="numeric text-lg sm:text-xl font-bold tracking-tight text-foreground">
-                        {brl(Number(i.sale_price))}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        Custo: {brl(Number(i.cost_price))}
-                        {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 ? (
-                          <>
-                            {" "}· Margem:{" "}
-                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                              {brl(Number(i.sale_price) - Number(i.cost_price))} ({(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%)
-                            </span>
-                          </>
-                        ) : null}
+                  {/* Bloco central: 2 linhas */}
+                  <div className="min-w-0">
+                    {/* Linha 1: nome + categoria + cor */}
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <p className="text-sm font-semibold text-foreground truncate">{i.name}</p>
+                      <span className="text-[11px] text-muted-foreground/60">·</span>
+                      <span className="text-[11px] text-muted-foreground">{getCategoryLabel(storeCategories, i.category)}</span>
+                      {i.color && <><span className="text-[11px] text-muted-foreground/40">·</span><span className="text-[11px] text-muted-foreground/70">{i.color}</span></>}
+                    </div>
+                    {/* Linha 2: grade de tamanhos ou esgotado */}
+                    {units <= 0 ? (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] font-medium text-rose-500/80 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-px rounded-md">Esgotado</span>
+                        <span className="text-[11px] text-muted-foreground/50">0 un. em estoque</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                        {availableSizes.map(([size, qty]) => (
+                          <span key={size} className="inline-flex items-center gap-0.5 rounded-md bg-surface-muted/80 px-1.5 py-px text-[10px] font-semibold text-foreground/75">
+                            {size}<span className="text-muted-foreground/40 font-normal">·</span>{qty}
+                          </span>
+                        ))}
+                        <span className="text-[11px] text-muted-foreground/60 ml-0.5">· {units} un.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bloco direito: preço + margem + ações */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <p className="numeric text-sm font-semibold text-foreground">{brl(Number(i.sale_price))}</p>
+                      <p className="text-[11px] text-muted-foreground/70 mt-px">
+                        custo {brl(Number(i.cost_price))}
+                        {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 && (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                            {" "}· {(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%
+                          </span>
+                        )}
                       </p>
                     </div>
-
-                    {/* Botões de Ação Agrupados */}
-                    <div className="flex items-center gap-1 border border-border/60 bg-surface-muted/50 rounded-xl p-0.5 shrink-0">
+                    <div className="flex items-center gap-0.5 border border-border/50 bg-surface-muted/40 rounded-lg p-0.5 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => startEditing(i)}
-                        className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
+                        className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
                         title="Editar peça e grade"
                         aria-label={`Editar ${i.name}`}
                       >
-                        <Pencil className="size-3.5" />
+                        <Pencil className="size-3" />
                       </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(i.id)}
@@ -793,10 +750,10 @@ function Estoque() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            className="size-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                             title="Excluir peça"
                           >
-                            <Trash2 className="size-3.5" />
+                            <Trash2 className="size-3" />
                           </Button>
                         }
                       />
