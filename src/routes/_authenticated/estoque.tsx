@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Check, Layers, Minus, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
+import { Boxes, Calculator, Check, Layers, Minus, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -27,6 +27,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -975,26 +982,66 @@ function Estoque() {
         {/* ══ ABA: Categorias do Catálogo ════════════════════════════════════ */}
         <TabsContent value="categorias" className="mt-6">
           <section className="panel p-6 sm:p-7 space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            {/* Header com resumo + menu ··· */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-foreground">Categorias do Catálogo</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  As categorias aqui são universais — usadas no estoque, na vitrine online e nos filtros de toda a plataforma.
+                  As categorias são universais — usadas no estoque, na vitrine e nos filtros de toda a plataforma.
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleRestoreDefaults}
-                disabled={isSavingCats}
-                className="h-9 gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-semibold text-foreground/70 hover:text-foreground hover:border-foreground/30 transition-all cursor-pointer shrink-0"
-              >
-                <RotateCcw className="size-3.5" />
-                Restaurar padrões de moda
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-muted shrink-0 cursor-pointer"
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem
+                    onClick={handleRestoreDefaults}
+                    disabled={isSavingCats}
+                    className="gap-2 text-xs cursor-pointer"
+                  >
+                    <RotateCcw className="size-3.5 text-muted-foreground" />
+                    Restaurar padrões de moda
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+            {/* Linha de resumo de categorias */}
+            {storeCategories.length > 0 && (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-flex size-1.5 rounded-full bg-border" />
+                  {storeCategories.length} {storeCategories.length === 1 ? "categoria" : "categorias"}
+                </span>
+                {(() => {
+                  const comPecas = storeCategories.filter(c => (categoryCounts.get(c.slug) ?? categoryCounts.get(c.id) ?? 0) > 0).length;
+                  const vazias = storeCategories.length - comPecas;
+                  return (
+                    <>
+                      {comPecas > 0 && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-flex size-1.5 rounded-full bg-primary" />
+                          {comPecas} {comPecas === 1 ? "com peças" : "com peças"}
+                        </span>
+                      )}
+                      {vazias > 0 && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-flex size-1.5 rounded-full bg-muted-foreground/30" />
+                          {vazias} {vazias === 1 ? "vazia" : "vazias"}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Adicionar nova categoria */}
             <div className="flex items-center gap-2">
@@ -1002,14 +1049,14 @@ function Estoque() {
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
-                placeholder="Nova categoria... Ex: Moda Fitness"
-                className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors text-sm"
+                placeholder="Ex: Fitness, Festas, Plus Size, Casual…"
+                className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors text-sm"
               />
               <Button
                 type="button"
                 onClick={handleAddCategory}
                 disabled={!newCatName.trim() || isSavingCats}
-                className="h-10 rounded-xl px-4 text-xs font-semibold gap-1.5 shrink-0 cursor-pointer"
+                className="h-11 rounded-full px-5 text-xs font-semibold gap-1.5 shrink-0 cursor-pointer"
               >
                 <Plus className="size-3.5" />
                 Adicionar
@@ -1028,12 +1075,19 @@ function Estoque() {
                 {storeCategories.map((cat) => {
                   const count = categoryCounts.get(cat.slug) ?? categoryCounts.get(cat.id) ?? 0;
                   const isEditing = editingCatId === cat.id;
+                  const hasItems = count > 0;
                   return (
                     <div
                       key={cat.id}
-                      className="rounded-2xl border border-border/70 bg-card p-4 shadow-2xs hover:border-border hover:shadow-soft transition-all duration-200 flex flex-col gap-3"
+                      className={cn(
+                        "rounded-2xl border bg-card p-4 shadow-2xs transition-all duration-200 flex flex-col gap-3",
+                        hasItems
+                          ? "border-l-2 border-l-primary border-border/70 hover:border-border hover:shadow-soft"
+                          : "border-border/50 bg-surface-muted/40 hover:border-border/70"
+                      )}
                     >
                       {isEditing ? (
+                        /* ── modo edição inline ── */
                         <div className="flex items-center gap-2">
                           <Input
                             value={editingCatName}
@@ -1065,60 +1119,93 @@ function Estoque() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">{cat.name}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {count > 0 ? `${count} peça${count > 1 ? "s" : ""}` : "Sem peças"}
-                            </p>
+                        /* ── modo visualização ── */
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate leading-snug">{cat.name}</p>
+                            {/* Badge de contagem semântico */}
+                            <div className="mt-1.5">
+                              {hasItems ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                                  {count} {count === 1 ? "peça" : "peças"}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-border/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground/60">
+                                  Nenhuma peça
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 border border-border/60 bg-surface-muted/50 rounded-xl p-0.5 shrink-0">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
-                              title="Renomear"
-                              onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
-                            >
-                              <Pencil className="size-3" />
-                            </Button>
-                            <ConfirmDelete
-                              onConfirm={() => handleDeleteCategory(cat.id)}
-                              description={count > 0
-                                ? `"${cat.name}" tem ${count} peça${count > 1 ? "s" : ""} e não pode ser excluída.`
-                                : `A categoria "${cat.name}" será removida permanentemente.`
-                              }
-                              trigger={
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                  title="Excluir"
-                                  disabled={count > 0}
-                                >
-                                  <Trash2 className="size-3" />
-                                </Button>
-                              }
-                            />
-                          </div>
+                          {/* Menu ··· com ações */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer shrink-0 -mr-1 -mt-0.5"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                className="gap-2 text-xs cursor-pointer"
+                                onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
+                              >
+                                <Pencil className="size-3 text-muted-foreground" />
+                                Renomear
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <ConfirmDelete
+                                onConfirm={() => handleDeleteCategory(cat.id)}
+                                description={count > 0
+                                  ? `"${cat.name}" tem ${count} peça${count > 1 ? "s" : ""} e não pode ser excluída.`
+                                  : `A categoria "${cat.name}" será removida permanentemente.`
+                                }
+                                trigger={
+                                  <DropdownMenuItem
+                                    className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                    disabled={count > 0}
+                                    onSelect={(e) => e.preventDefault()}
+                                  >
+                                    <Trash2 className="size-3" />
+                                    {count > 0 ? "Não pode excluir" : "Excluir"}
+                                  </DropdownMenuItem>
+                                }
+                              />
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       )}
 
-                      {/* Filtrar no estoque */}
+                      {/* Link discreto para filtrar no estoque */}
                       {!isEditing && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCategoryFilter(cat.slug);
-                            handleTabChange("pecas");
-                          }}
-                          className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-surface-muted/40 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
-                        >
-                          <Search className="size-3" />
-                          {count > 0 ? `Ver ${count} peça${count > 1 ? "s" : ""} no estoque` : "Ver no estoque"}
-                        </button>
+                        hasItems ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCategoryFilter(cat.slug);
+                              handleTabChange("pecas");
+                            }}
+                            className="self-start flex items-center gap-1 text-[11px] font-medium text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <Search className="size-3" />
+                            Ver {count} {count === 1 ? "peça" : "peças"} no estoque →
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCategoryFilter(cat.slug);
+                              handleTabChange("pecas");
+                            }}
+                            className="self-start flex items-center gap-1 text-[11px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+                          >
+                            <Plus className="size-3" />
+                            Adicionar primeira peça →
+                          </button>
+                        )
                       )}
                     </div>
                   );
