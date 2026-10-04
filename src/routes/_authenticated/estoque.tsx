@@ -397,64 +397,67 @@ function Estoque() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Estoque & Catálogo"
-        title="Gestão de Estoque e Peças"
-        description="Controle de numeração, grade, capital investido e rentabilidade por peça."
+        title={activeTab === "categorias" ? "Coleções & Categorias" : "Gestão de Estoque e Peças"}
+        description={
+          activeTab === "categorias"
+            ? "Organize as categorias das suas peças para facilitar filtros, estoque e vitrine."
+            : "Controle de numeração, grade, capital investido e rentabilidade por peça."
+        }
         action={
           <div className="flex items-center gap-2.5">
-            {vitrineAtiva && (
+            {activeTab === "categorias" ? (
               <Button
                 asChild
                 variant="outline"
                 className="h-10 rounded-xl border-border bg-card px-3.5 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
               >
-                <Link to="/loja/produtos">
-                  <Store className="mr-2 size-3.5 text-primary" />
-                  Catálogo Vitrine
+                <Link to="/estoque" search={{ tab: "pecas" }}>
+                  <Shirt className="mr-2 size-3.5 text-primary" />
+                  Ver Estoque
                 </Link>
               </Button>
+            ) : (
+              <>
+                {vitrineAtiva && (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-10 rounded-xl border-border bg-card px-3.5 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
+                  >
+                    <Link to="/loja/produtos">
+                      <Store className="mr-2 size-3.5 text-primary" />
+                      Catálogo Vitrine
+                    </Link>
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setName("");
+                    setColor("");
+                    setCost("");
+                    setPrice("");
+                    setPhotoUrl("");
+                    setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+                    setSingleSizeQty("");
+                    setGradeMode("grade");
+                    setNewPieceOpen(true);
+                  }}
+                  className="h-10 rounded-xl bg-primary text-primary-foreground font-semibold px-4 text-xs shadow-soft hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Plus className="size-4" />
+                  <span>Nova Peça</span>
+                </Button>
+              </>
             )}
-            <Button
-              type="button"
-              onClick={() => {
-                setName("");
-                setColor("");
-                setCost("");
-                setPrice("");
-                setPhotoUrl("");
-                setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
-                setSingleSizeQty("");
-                setGradeMode("grade");
-                setNewPieceOpen(true);
-              }}
-              className="h-10 rounded-xl bg-primary text-primary-foreground font-semibold px-4 text-xs shadow-soft hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Plus className="size-4" />
-              <span>Nova Peça</span>
-            </Button>
           </div>
         }
       />
 
-      {/* ── Sub-Abas: Peças em Estoque / Categorias do Catálogo ────────────── */}
+      {/* ── Tabs Programáticas (Sem abas redundantes concorrendo com a Sidebar) ────────────── */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <TabsList className="h-10 rounded-xl bg-surface-muted/60 border border-border/60 p-1">
-            <TabsTrigger value="pecas" className="rounded-lg px-4 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-xs">
-              <Shirt className="mr-1.5 size-3.5" />
-              Peças em Estoque
-            </TabsTrigger>
-            <TabsTrigger value="categorias" className="rounded-lg px-4 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-xs">
-              <Layers className="mr-1.5 size-3.5" />
-              Categorias do Catálogo
-              <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                {storeCategories.length}
-              </span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
-        <TabsContent value="pecas" className="mt-4 space-y-4">
+        <TabsContent value="pecas" className="mt-0 space-y-4">
 
           {/* ── 1. Barra Executiva Unificada (Apple Bento Strip — Superfície Contínua de Alto Padrão) ── */}
           <div className="rounded-2xl border border-border/70 bg-card shadow-2xs overflow-hidden">
@@ -483,13 +486,13 @@ function Estoque() {
                 </p>
               </div>
 
-              {/* Métrica 2: Capital Investido */}
+              {/* Métrica 2: Capital Investido (Sóbrio / Contábil) */}
               <div className="p-5 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Capital Investido
                   </span>
-                  <div className="size-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <Wallet className="size-3.5" />
                   </div>
                 </div>
@@ -503,13 +506,13 @@ function Estoque() {
                 </p>
               </div>
 
-              {/* Métrica 3: Potencial de Venda & Margem */}
+              {/* Métrica 3: Potencial de Venda & Margem (Retorno Positivo Esmeralda) */}
               <div className="p-5 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Potencial de Venda
                   </span>
-                  <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <div className="size-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                     <TrendingUp className="size-3.5" />
                   </div>
                 </div>
@@ -612,12 +615,12 @@ function Estoque() {
           {/* Busca & Filtro de Categoria */}
           {items.length > 0 && (
             <div className="flex items-center gap-2">
-              <div className="relative min-w-[180px] sm:min-w-[220px]">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60 pointer-events-none" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar peça, cor ou fornecedor…"
+                  placeholder="Buscar por peça, cor ou marca…"
                   className="h-9 pl-8 pr-7 text-xs rounded-xl bg-surface-muted/40 border-border hover:border-foreground/25 transition-colors"
                 />
                 {searchQuery && (
@@ -751,7 +754,7 @@ function Estoque() {
         ) : (
           <>
             {/* ── Cabeçalho da Tabela — Alinhamento Matemático & Clareza Mental ── */}
-            <div className="hidden sm:grid sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.8fr)_minmax(0,1.2fr)_80px] items-center gap-4 px-5 py-2.5 bg-surface-muted/30 border-b border-border/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 select-none">
+            <div className="hidden sm:grid sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.8fr)_minmax(0,1.2fr)_80px] items-center gap-4 px-5 py-2.5 bg-surface-muted/30 border-b border-border/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none">
               <span>Peça &amp; Identificação</span>
               <span>Estoque &amp; Grade</span>
               <span className="text-right">Preço &amp; Rentabilidade</span>
@@ -778,7 +781,7 @@ function Estoque() {
                         )}
                       >
                         {i.photo_url ? (
-                          <img src={i.photo_url} alt={i.name} className="size-full object-cover" loading="lazy" />
+                          <img src={i.photo_url} alt={i.name} width={44} height={44} className="size-full object-cover" loading="lazy" />
                         ) : (
                           <Shirt className="size-4 text-muted-foreground/35" />
                         )}
@@ -807,7 +810,7 @@ function Estoque() {
                     <div className="min-w-0 flex items-center">
                       {units <= 0 ? (
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 px-2.5 py-0.5 text-[11px] font-semibold">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 px-2.5 py-0.5 text-[11px] font-semibold h-6">
                             <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
                             Esgotado
                           </span>
@@ -818,7 +821,7 @@ function Estoque() {
                           {availableSizes.map(([size, qty]) => (
                             <span
                               key={size}
-                              className="inline-flex items-center gap-1 rounded-md bg-secondary/80 border border-border/60 px-2 py-0.5 text-[11px] font-semibold text-foreground/80"
+                              className="inline-flex items-center gap-1 rounded-lg bg-secondary/80 border border-border/60 px-2 text-[11px] font-semibold text-foreground/80 h-6"
                             >
                               <span>{size}</span>
                               <span className="text-muted-foreground/40 font-normal">·</span>
@@ -839,7 +842,7 @@ function Estoque() {
                         custo {brl(Number(i.cost_price))}
                         {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 && (
                           <span className="text-emerald-700/80 dark:text-emerald-400 font-medium">
-                            {" "}· {(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%
+                            {" "}· {(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}% margem
                           </span>
                         )}
                       </p>
