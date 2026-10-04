@@ -439,25 +439,16 @@ function Estoque() {
 
           {/* ── 1. Cards de Síntese Executiva (Proporção Áurea, cards independentes, zero dead space) ── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Card 1: Volume & Catálogo (Dual-Stat Split) */}
+            {/* Card 1: Peças no Acervo — v15 single-stat uniforme */}
             <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-2xs flex flex-col justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Volume &amp; Catálogo
+                Peças no Acervo
               </span>
-              <div className="mt-1.5 flex items-start gap-0 divide-x divide-border/50">
-                <div className="flex flex-col pr-4">
-                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{totalUnits}</span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">{totalUnits === 1 ? "peça no acervo" : "peças no acervo"}</span>
-                </div>
-                <div className="flex flex-col pl-4">
-                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{items.length}</span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">{items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}</span>
-                </div>
+              <div className="mt-1.5">
+                <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{totalUnits}</span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-1.5">
-                {items.length - outOfStockCount} com estoque{outOfStockCount > 0 && (
-                  <> · <span className="text-rose-600 dark:text-rose-400">{outOfStockCount} esgotado{outOfStockCount !== 1 ? "s" : ""}</span></>
-                )}
+                em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
               </p>
             </div>
 
