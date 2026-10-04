@@ -76,6 +76,26 @@ export const Route = createFileRoute("/_authenticated/estoque")({
 
 type Sizes = Record<string, number>;
 
+const getCategoryAvatar = (name: string) => {
+  const initial = name.trim().charAt(0).toUpperCase() || "C";
+  const palettes = [
+    { bg: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/50" },
+    { bg: "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200/50" },
+    { bg: "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200/50" },
+    { bg: "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200/50" },
+    { bg: "bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border-sky-200/50" },
+    { bg: "bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200/50" },
+    { bg: "bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300 border-teal-200/50" },
+    { bg: "bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border-pink-200/50" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorIndex = Math.abs(hash) % palettes.length;
+  return { initial, className: palettes[colorIndex]?.bg ?? palettes[0]?.bg };
+};
+
 function Estoque() {
   const queryClient = useQueryClient();
   const { store, storeId } = useStore();
@@ -115,6 +135,20 @@ function Estoque() {
     }
     return counts;
   }, [items]);
+
+  const categoriesWithItems = useMemo(() => {
+    return storeCategories.filter((cat) => {
+      const count = categoryCounts.get(cat.slug) ?? categoryCounts.get(cat.id) ?? 0;
+      return count > 0;
+    });
+  }, [storeCategories, categoryCounts]);
+
+  const categoriesEmpty = useMemo(() => {
+    return storeCategories.filter((cat) => {
+      const count = categoryCounts.get(cat.slug) ?? categoryCounts.get(cat.id) ?? 0;
+      return count === 0;
+    });
+  }, [storeCategories, categoryCounts]);
 
   const handleAddCategory = () => {
     const trimmed = newCatName.trim();
@@ -979,240 +1013,362 @@ function Estoque() {
 
         </TabsContent>
 
-        {/* ══ ABA: Categorias do Catálogo ════════════════════════════════════ */}
+        {/* ══ ABA: Categorias do Catálogo (Resource List - Padrão Linear / Shopify / Notion) ══ */}
         <TabsContent value="categorias" className="mt-6">
-          <section className="panel p-6 sm:p-7 space-y-6">
-            {/* Header com resumo + menu ··· */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="rounded-2xl border border-border/70 bg-card shadow-soft overflow-hidden">
+            {/* Header da Resource List */}
+            <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/60">
               <div>
-                <h2 className="text-base font-semibold text-foreground">Categorias do Catálogo</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  As categorias são universais — usadas no estoque, na vitrine e nos filtros de toda a plataforma.
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-base font-semibold text-foreground tracking-tight">Categorias do Catálogo</h2>
+                  <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                    {storeCategories.length}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Categorias universais sincronizadas entre o estoque físico e a vitrine online.
                 </p>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-muted shrink-0 cursor-pointer"
-                  >
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem
-                    onClick={handleRestoreDefaults}
-                    disabled={isSavingCats}
-                    className="gap-2 text-xs cursor-pointer"
-                  >
-                    <RotateCcw className="size-3.5 text-muted-foreground" />
-                    Restaurar padrões de moda
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5 rounded-xl border-border bg-card px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all cursor-pointer shrink-0"
+                    >
+                      <RotateCcw className="size-3 text-muted-foreground" />
+                      <span>Restaurar padrões</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem
+                      onClick={handleRestoreDefaults}
+                      disabled={isSavingCats}
+                      className="gap-2 text-xs cursor-pointer"
+                    >
+                      <RotateCcw className="size-3.5 text-muted-foreground" />
+                      Restaurar categorias de moda padrão
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-            {/* Linha de resumo de categorias */}
-            {storeCategories.length > 0 && (
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-flex size-1.5 rounded-full bg-border" />
-                  {storeCategories.length} {storeCategories.length === 1 ? "categoria" : "categorias"}
-                </span>
-                {(() => {
-                  const comPecas = storeCategories.filter(c => (categoryCounts.get(c.slug) ?? categoryCounts.get(c.id) ?? 0) > 0).length;
-                  const vazias = storeCategories.length - comPecas;
-                  return (
-                    <>
-                      {comPecas > 0 && (
+
+            {/* Lista de Categorias */}
+            {storeCategories.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <Layers className="mx-auto size-9 text-muted-foreground/30" />
+                <p className="text-sm font-semibold text-foreground">Nenhuma categoria cadastrada</p>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  Adicione sua primeira categoria abaixo ou restaure a grade padrão para o segmento de moda.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRestoreDefaults}
+                  disabled={isSavingCats}
+                  className="rounded-xl text-xs gap-1.5 cursor-pointer mt-2"
+                >
+                  <RotateCcw className="size-3.5" />
+                  Restaurar padrões de moda
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {/* ── Grupo 1: Com peças vinculadas no estoque ── */}
+                {categoriesWithItems.length > 0 && (
+                  <div>
+                    <div className="bg-surface-muted/40 px-4 sm:px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between border-b border-border/40">
+                      <span className="flex items-center gap-1.5">
+                        <span className="size-1.5 rounded-full bg-primary" />
+                        Com peças no estoque ({categoriesWithItems.length})
+                      </span>
+                      <span className="text-[10px] lowercase font-normal hidden sm:inline text-muted-foreground/70">
+                        clique para filtrar peças
+                      </span>
+                    </div>
+                    <div className="divide-y divide-border/40">
+                      {categoriesWithItems.map((cat) => {
+                        const count = categoryCounts.get(cat.slug) ?? categoryCounts.get(cat.id) ?? 0;
+                        const isEditing = editingCatId === cat.id;
+                        const avatar = getCategoryAvatar(cat.name);
+
+                        if (isEditing) {
+                          return (
+                            <div key={cat.id} className="flex items-center gap-3 px-4 sm:px-5 py-2.5 bg-primary/5 border-l-2 border-l-primary">
+                              <div className={cn("size-8 rounded-lg flex items-center justify-center font-bold text-xs border shrink-0", avatar.className)}>
+                                {avatar.initial}
+                              </div>
+                              <Input
+                                value={editingCatName}
+                                onChange={(e) => setEditingCatName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); handleRenameCategory(cat.id); }
+                                  if (e.key === "Escape") { setEditingCatId(null); }
+                                }}
+                                autoFocus
+                                className="h-8 flex-1 rounded-lg text-sm bg-card border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-8 rounded-lg px-2.5 text-xs font-semibold gap-1 shrink-0 cursor-pointer"
+                                onClick={() => handleRenameCategory(cat.id)}
+                                disabled={isSavingCats}
+                              >
+                                <Check className="size-3.5" />
+                                <span className="hidden sm:inline">Salvar</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 rounded-lg px-2 text-xs shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                                onClick={() => setEditingCatId(null)}
+                              >
+                                <X className="size-3.5" />
+                              </Button>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={cat.id}
+                            className="group flex items-center justify-between gap-3 px-4 sm:px-5 py-3 transition-colors hover:bg-surface-muted/60 cursor-pointer"
+                            onClick={() => {
+                              setCategoryFilter(cat.slug);
+                              handleTabChange("pecas");
+                            }}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={cn("size-8 rounded-lg flex items-center justify-center font-bold text-xs border shrink-0 transition-transform group-hover:scale-105", avatar.className)}>
+                                {avatar.initial}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium text-foreground truncate block group-hover:text-primary transition-colors">
+                                  {cat.name}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                                  {count} {count === 1 ? "peça" : "peças"}
+                                </span>
+                                <span className="hidden md:inline-flex text-xs text-muted-foreground/60 group-hover:text-primary transition-colors font-medium">
+                                  Ver no estoque →
+                                </span>
+                              </div>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-surface-muted transition-all cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                                  >
+                                    <MoreHorizontal className="size-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem
+                                    className="gap-2 text-xs cursor-pointer"
+                                    onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
+                                  >
+                                    <Pencil className="size-3 text-muted-foreground" />
+                                    Renomear
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="gap-2 text-xs cursor-pointer"
+                                    onClick={() => {
+                                      setCategoryFilter(cat.slug);
+                                      handleTabChange("pecas");
+                                    }}
+                                  >
+                                    <Search className="size-3 text-muted-foreground" />
+                                    Filtrar no estoque
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <ConfirmDelete
+                                    onConfirm={() => handleDeleteCategory(cat.id)}
+                                    description={`"${cat.name}" tem ${count} peça${count > 1 ? "s" : ""} e não pode ser excluída.`}
+                                    trigger={
+                                      <DropdownMenuItem
+                                        className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                        disabled={true}
+                                        onSelect={(e) => e.preventDefault()}
+                                      >
+                                        <Trash2 className="size-3" />
+                                        Não pode excluir
+                                      </DropdownMenuItem>
+                                    }
+                                  />
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Grupo 2: Disponíveis no catálogo (sem peças) ── */}
+                {categoriesEmpty.length > 0 && (
+                  <div>
+                    {categoriesWithItems.length > 0 && (
+                      <div className="bg-surface-muted/40 px-4 sm:px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between border-b border-border/40">
                         <span className="flex items-center gap-1.5">
-                          <span className="inline-flex size-1.5 rounded-full bg-primary" />
-                          {comPecas} {comPecas === 1 ? "com peças" : "com peças"}
+                          <span className="size-1.5 rounded-full bg-border" />
+                          Prontas para uso no catálogo ({categoriesEmpty.length})
                         </span>
-                      )}
-                      {vazias > 0 && (
-                        <span className="flex items-center gap-1.5">
-                          <span className="inline-flex size-1.5 rounded-full bg-muted-foreground/30" />
-                          {vazias} {vazias === 1 ? "vazia" : "vazias"}
-                        </span>
-                      )}
-                    </>
-                  );
-                })()}
+                      </div>
+                    )}
+                    <div className="divide-y divide-border/40">
+                      {categoriesEmpty.map((cat) => {
+                        const isEditing = editingCatId === cat.id;
+                        const avatar = getCategoryAvatar(cat.name);
+
+                        if (isEditing) {
+                          return (
+                            <div key={cat.id} className="flex items-center gap-3 px-4 sm:px-5 py-2.5 bg-primary/5 border-l-2 border-l-primary">
+                              <div className={cn("size-8 rounded-lg flex items-center justify-center font-bold text-xs border shrink-0", avatar.className)}>
+                                {avatar.initial}
+                              </div>
+                              <Input
+                                value={editingCatName}
+                                onChange={(e) => setEditingCatName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); handleRenameCategory(cat.id); }
+                                  if (e.key === "Escape") { setEditingCatId(null); }
+                                }}
+                                autoFocus
+                                className="h-8 flex-1 rounded-lg text-sm bg-card border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-8 rounded-lg px-2.5 text-xs font-semibold gap-1 shrink-0 cursor-pointer"
+                                onClick={() => handleRenameCategory(cat.id)}
+                                disabled={isSavingCats}
+                              >
+                                <Check className="size-3.5" />
+                                <span className="hidden sm:inline">Salvar</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 rounded-lg px-2 text-xs shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                                onClick={() => setEditingCatId(null)}
+                              >
+                                <X className="size-3.5" />
+                              </Button>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={cat.id}
+                            className="group flex items-center justify-between gap-3 px-4 sm:px-5 py-3 transition-colors hover:bg-surface-muted/50"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={cn("size-8 rounded-lg flex items-center justify-center font-bold text-xs border shrink-0 opacity-75 group-hover:opacity-100 transition-opacity", avatar.className)}>
+                                {avatar.initial}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium text-foreground/80 truncate block group-hover:text-foreground transition-colors">
+                                  {cat.name}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-xs text-muted-foreground/40 font-medium px-2">
+                                —
+                              </span>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-surface-muted transition-all cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                                  >
+                                    <MoreHorizontal className="size-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem
+                                    className="gap-2 text-xs cursor-pointer"
+                                    onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
+                                  >
+                                    <Pencil className="size-3 text-muted-foreground" />
+                                    Renomear
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <ConfirmDelete
+                                    onConfirm={() => handleDeleteCategory(cat.id)}
+                                    description={`A categoria "${cat.name}" será removida permanentemente.`}
+                                    trigger={
+                                      <DropdownMenuItem
+                                        className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                        onSelect={(e) => e.preventDefault()}
+                                      >
+                                        <Trash2 className="size-3" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    }
+                                  />
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Adicionar nova categoria */}
-            <div className="flex items-center gap-2">
-              <Input
+            {/* Linha Integrada de Adição no Rodapé (Padrão Notion / Linear / Todoist) */}
+            <div className="border-t border-border/60 bg-surface-muted/20 px-4 sm:px-5 py-2.5 flex items-center gap-3 transition-colors focus-within:bg-card focus-within:border-primary/30">
+              <div className="size-8 rounded-lg border border-dashed border-border/80 flex items-center justify-center text-muted-foreground/60 shrink-0">
+                <Plus className="size-3.5" />
+              </div>
+              <input
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
-                placeholder="Ex: Fitness, Festas, Plus Size, Casual…"
-                className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCategory();
+                  }
+                }}
+                placeholder="Adicionar nova categoria... (Ex: Fitness, Festas, Calçados)"
+                className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/50 focus:outline-none text-foreground"
               />
               <Button
                 type="button"
+                size="sm"
                 onClick={handleAddCategory}
                 disabled={!newCatName.trim() || isSavingCats}
-                className="h-11 rounded-full px-5 text-xs font-semibold gap-1.5 shrink-0 cursor-pointer"
+                className="h-8 rounded-lg px-3 text-xs font-semibold gap-1.5 shrink-0 cursor-pointer"
               >
                 <Plus className="size-3.5" />
-                Adicionar
+                <span>Adicionar</span>
               </Button>
             </div>
-
-            {/* Grid de categorias */}
-            {storeCategories.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/60 bg-surface-muted/30 p-8 text-center space-y-2">
-                <Layers className="mx-auto size-8 text-muted-foreground/30" />
-                <p className="text-sm font-medium text-muted-foreground">Nenhuma categoria ainda.</p>
-                <p className="text-xs text-muted-foreground/70">Adicione acima ou restaure as categorias padrão de moda.</p>
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {storeCategories.map((cat) => {
-                  const count = categoryCounts.get(cat.slug) ?? categoryCounts.get(cat.id) ?? 0;
-                  const isEditing = editingCatId === cat.id;
-                  const hasItems = count > 0;
-                  return (
-                    <div
-                      key={cat.id}
-                      className={cn(
-                        "rounded-2xl border bg-card p-4 shadow-2xs transition-all duration-200 flex flex-col gap-3",
-                        hasItems
-                          ? "border-l-2 border-l-primary border-border/70 hover:border-border hover:shadow-soft"
-                          : "border-border/50 bg-surface-muted/40 hover:border-border/70"
-                      )}
-                    >
-                      {isEditing ? (
-                        /* ── modo edição inline ── */
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={editingCatName}
-                            onChange={(e) => setEditingCatName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") { e.preventDefault(); handleRenameCategory(cat.id); }
-                              if (e.key === "Escape") { setEditingCatId(null); }
-                            }}
-                            autoFocus
-                            className="h-8 rounded-lg text-sm bg-card border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/20"
-                          />
-                          <Button
-                            type="button"
-                            size="icon"
-                            className="size-8 rounded-lg shrink-0 cursor-pointer"
-                            onClick={() => handleRenameCategory(cat.id)}
-                            disabled={isSavingCats}
-                          >
-                            <Check className="size-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="size-8 rounded-lg shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
-                            onClick={() => setEditingCatId(null)}
-                          >
-                            <X className="size-3.5" />
-                          </Button>
-                        </div>
-                      ) : (
-                        /* ── modo visualização ── */
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-foreground truncate leading-snug">{cat.name}</p>
-                            {/* Badge de contagem semântico */}
-                            <div className="mt-1.5">
-                              {hasItems ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                                  {count} {count === 1 ? "peça" : "peças"}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-border/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground/60">
-                                  Nenhuma peça
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {/* Menu ··· com ações */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer shrink-0 -mr-1 -mt-0.5"
-                              >
-                                <MoreHorizontal className="size-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuItem
-                                className="gap-2 text-xs cursor-pointer"
-                                onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name); }}
-                              >
-                                <Pencil className="size-3 text-muted-foreground" />
-                                Renomear
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <ConfirmDelete
-                                onConfirm={() => handleDeleteCategory(cat.id)}
-                                description={count > 0
-                                  ? `"${cat.name}" tem ${count} peça${count > 1 ? "s" : ""} e não pode ser excluída.`
-                                  : `A categoria "${cat.name}" será removida permanentemente.`
-                                }
-                                trigger={
-                                  <DropdownMenuItem
-                                    className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                                    disabled={count > 0}
-                                    onSelect={(e) => e.preventDefault()}
-                                  >
-                                    <Trash2 className="size-3" />
-                                    {count > 0 ? "Não pode excluir" : "Excluir"}
-                                  </DropdownMenuItem>
-                                }
-                              />
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      )}
-
-                      {/* Link discreto para filtrar no estoque */}
-                      {!isEditing && (
-                        hasItems ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCategoryFilter(cat.slug);
-                              handleTabChange("pecas");
-                            }}
-                            className="self-start flex items-center gap-1 text-[11px] font-medium text-primary/70 hover:text-primary transition-colors cursor-pointer"
-                          >
-                            <Search className="size-3" />
-                            Ver {count} {count === 1 ? "peça" : "peças"} no estoque →
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCategoryFilter(cat.slug);
-                              handleTabChange("pecas");
-                            }}
-                            className="self-start flex items-center gap-1 text-[11px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
-                          >
-                            <Plus className="size-3" />
-                            Adicionar primeira peça →
-                          </button>
-                        )
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          </div>
         </TabsContent>
 
       </Tabs>
