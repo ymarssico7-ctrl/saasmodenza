@@ -231,6 +231,25 @@ function Estoque() {
   const markupPct = stockValue > 0 ? ((potential - stockValue) / stockValue) * 100 : 0;
   const activeRatio = items.length > 0 ? Math.round(((items.length - outOfStockCount) / items.length) * 100) : 100;
 
+  const stockDistribution = useMemo(() => {
+    const itemUnits = items.map((i) => {
+      const s = (i.sizes ?? {}) as Sizes;
+      return Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
+    });
+    const activeModels = itemUnits.filter((u) => u > 0).length;
+    const isAllSingleUnit = totalUnits > 0 && activeModels > 0 && itemUnits.filter((u) => u > 0).every((u) => u === 1);
+
+    if (totalUnits === 0) return "nenhuma peça disponível em estoque";
+    if (totalUnits === 1) return "peça única cadastrada";
+    if (isAllSingleUnit) {
+      return `1 unidade por modelo (${items.length} ${items.length === 1 ? "modelo" : "modelos"})`;
+    }
+    if (outOfStockCount > 0) {
+      return `${activeModels} ${activeModels === 1 ? "modelo com estoque" : "modelos com estoque"} · ${outOfStockCount} esgotado`;
+    }
+    return `distribuídas em ${items.length} ${items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}`;
+  }, [items, totalUnits, outOfStockCount]);
+
   const create = useMutation({
     mutationFn: async () => {
       if (!name.trim()) throw new Error("Informe o nome da peça");
@@ -460,7 +479,7 @@ function Estoque() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  distribuídas em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+                  {stockDistribution}
                 </p>
               </div>
 
