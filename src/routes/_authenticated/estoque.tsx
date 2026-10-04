@@ -231,24 +231,80 @@ function Estoque() {
   const markupPct = stockValue > 0 ? ((potential - stockValue) / stockValue) * 100 : 0;
   const activeRatio = items.length > 0 ? Math.round(((items.length - outOfStockCount) / items.length) * 100) : 100;
 
-  const stockDistribution = useMemo(() => {
+  const inventoryCopy = useMemo(() => {
     const itemUnits = items.map((i) => {
       const s = (i.sizes ?? {}) as Sizes;
       return Object.values(s).reduce((a, b) => a + (Math.round(toNumber(b)) || 0), 0);
     });
     const activeModels = itemUnits.filter((u) => u > 0).length;
-    const isAllSingleUnit = totalUnits > 0 && activeModels > 0 && itemUnits.filter((u) => u > 0).every((u) => u === 1);
+    const isSingleUnitsOnly = totalUnits > 0 && activeModels > 0 && itemUnits.filter((u) => u > 0).every((u) => u === 1);
 
-    if (totalUnits === 0) return "nenhuma peça disponível em estoque";
-    if (totalUnits === 1) return "peça única cadastrada";
-    if (isAllSingleUnit) {
-      return `1 unidade por modelo (${items.length} ${items.length === 1 ? "modelo" : "modelos"})`;
+    // ── 1. Métrica Física (Total de Unidades)
+    let unitsSubtitle = "distribuídas no catálogo";
+    if (items.length === 0) {
+      unitsSubtitle = "cadastre sua primeira peça";
+    } else if (totalUnits === 0) {
+      unitsSubtitle = `todos os ${items.length} ${items.length === 1 ? "modelo está esgotado" : "modelos estão esgotados"}`;
+    } else if (items.length === 1) {
+      unitsSubtitle = totalUnits === 1 ? "peça única cadastrada" : "todas no mesmo modelo";
+    } else if (isSingleUnitsOnly) {
+      if (outOfStockCount > 0) {
+        unitsSubtitle = `${activeModels} ${activeModels === 1 ? "peça exclusiva" : "peças exclusivas"} · ${outOfStockCount} esgotado`;
+      } else {
+        unitsSubtitle = `1 un. por modelo (${items.length} peças exclusivas)`;
+      }
+    } else if (outOfStockCount > 0) {
+      if (activeModels === 1) {
+        unitsSubtitle = `concentradas em 1 modelo · ${outOfStockCount} esgotado`;
+      } else {
+        unitsSubtitle = `${activeModels} modelos com estoque · ${outOfStockCount} ${outOfStockCount === 1 ? "esgotado" : "esgotados"}`;
+      }
+    } else {
+      unitsSubtitle = `distribuídas em ${items.length} modelos ativos`;
     }
-    if (outOfStockCount > 0) {
-      return `${activeModels} ${activeModels === 1 ? "modelo com estoque" : "modelos com estoque"} · ${outOfStockCount} esgotado`;
+
+    // ── 2. Métrica de Custo (Capital Investido)
+    let costSubtitle = `custo médio de ${brl(avgCost)}/un.`;
+    if (totalUnits === 0 && stockValue === 0) {
+      costSubtitle = "sem capital alocado no momento";
+    } else if (totalUnits > 0 && stockValue === 0) {
+      costSubtitle = "custo de compra não preenchido";
+    } else if (totalUnits === 1) {
+      costSubtitle = "custo desta unidade";
     }
-    return `distribuídas em ${items.length} ${items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}`;
-  }, [items, totalUnits, outOfStockCount]);
+
+    // ── 3. Métrica de Retorno (Potencial de Venda)
+    let potentialSubtitleNode: React.ReactNode = "previsão de faturamento futuro";
+    if (potential > 0 && stockValue > 0) {
+      const profit = potential - stockValue;
+      if (profit > 0) {
+        potentialSubtitleNode = (
+          <>
+            lucro projetado de <strong className="font-semibold text-foreground">{brl(profit)}</strong>
+            <span className="text-emerald-700/80 dark:text-emerald-400 font-medium ml-1">
+              (+{markupPct.toFixed(0)}%)
+            </span>
+          </>
+        );
+      } else if (profit === 0) {
+        potentialSubtitleNode = "preço de venda igual ao custo (0%)";
+      } else {
+        potentialSubtitleNode = (
+          <span className="text-rose-600 dark:text-rose-400 font-medium">
+            atenção: venda abaixo do custo ({markupPct.toFixed(0)}%)
+          </span>
+        );
+      }
+    } else if (potential > 0 && stockValue === 0) {
+      potentialSubtitleNode = "previsão bruta (custos não informados)";
+    }
+
+    return {
+      unitsSubtitle,
+      costSubtitle,
+      potentialSubtitleNode,
+    };
+  }, [items, totalUnits, stockValue, potential, avgCost, markupPct, outOfStockCount]);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -482,7 +538,7 @@ function Estoque() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  {stockDistribution}
+                  {inventoryCopy.unitsSubtitle}
                 </p>
               </div>
 
@@ -502,7 +558,7 @@ function Estoque() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  custo médio de {brl(avgCost)}/un.
+                  {inventoryCopy.costSubtitle}
                 </p>
               </div>
 
@@ -522,17 +578,7 @@ function Estoque() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  {potential > 0 && stockValue > 0 ? (
-                    <>
-                      lucro projetado de{" "}
-                      <strong className="font-semibold text-foreground">{brl(Math.max(0, potential - stockValue))}</strong>
-                      <span className="text-emerald-700/80 dark:text-emerald-400 font-medium ml-1">
-                        (+{markupPct.toFixed(0)}%)
-                      </span>
-                    </>
-                  ) : (
-                    "retorno estimado sobre o custo"
-                  )}
+                  {inventoryCopy.potentialSubtitleNode}
                 </p>
               </div>
 
