@@ -437,55 +437,83 @@ function Estoque() {
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
         <TabsContent value="pecas" className="mt-4 space-y-4">
 
-          {/* ── 1. Cards de Síntese Executiva (Proporção Áurea, cards independentes, zero dead space) ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Card 1: Peças em Estoque — v16 optical sizing */}
-            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-2xs flex flex-col justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Peças em Estoque
-              </span>
-              <div className="mt-1">
-                <span className="numeric text-4xl sm:text-5xl font-bold tracking-tight text-foreground leading-none">{totalUnits}</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
-              </p>
-            </div>
+          {/* ── 1. Barra Executiva Unificada (Apple Bento Strip — Superfície Contínua de Alto Padrão) ── */}
+          <div className="rounded-2xl border border-border/70 bg-card shadow-2xs overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/60">
 
-            {/* Card 2: Investido */}
-            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-2xs flex flex-col justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Capital Investido
-              </span>
-              <div className="mt-1.5">
-                <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{brl(stockValue)}</span>
+              {/* Métrica 1: Volume Físico */}
+              <div className="p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Total de Unidades
+                  </span>
+                  <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Package className="size-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2.5 flex items-baseline gap-1.5">
+                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    {totalUnits}
+                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {totalUnits === 1 ? "peça" : "peças"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  distribuídas em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                custo médio de {brl(avgCost)}/un.
-              </p>
-            </div>
 
-            {/* Card 3: Potencial */}
-            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-2xs flex flex-col justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Potencial de Venda
-              </span>
-              <div className="mt-1.5">
-                <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{brl(potential)}</span>
+              {/* Métrica 2: Capital Investido */}
+              <div className="p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Capital Investido
+                  </span>
+                  <div className="size-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Wallet className="size-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2.5">
+                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    {brl(stockValue)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  custo médio de {brl(avgCost)}/un.
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
-                {potential > 0 && stockValue > 0 ? (
-                  <>
-                    lucro projetado de{" "}
-                    <strong className="font-semibold text-foreground">{brl(Math.max(0, potential - stockValue))}</strong>
-                    <span className="text-emerald-700/80 dark:text-emerald-400 font-medium ml-1">
-                      (+{markupPct.toFixed(0)}%)
-                    </span>
-                  </>
-                ) : (
-                  "retorno estimado sobre o custo"
-                )}
-              </p>
+
+              {/* Métrica 3: Potencial de Venda & Margem */}
+              <div className="p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Potencial de Venda
+                  </span>
+                  <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <TrendingUp className="size-3.5" />
+                  </div>
+                </div>
+                <div className="mt-2.5">
+                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                    {brl(potential)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  {potential > 0 && stockValue > 0 ? (
+                    <>
+                      lucro projetado de{" "}
+                      <strong className="font-semibold text-foreground">{brl(Math.max(0, potential - stockValue))}</strong>
+                      <span className="text-emerald-700/80 dark:text-emerald-400 font-medium ml-1">
+                        (+{markupPct.toFixed(0)}%)
+                      </span>
+                    </>
+                  ) : (
+                    "retorno estimado sobre o custo"
+                  )}
+                </p>
+              </div>
+
             </div>
           </div>
 
