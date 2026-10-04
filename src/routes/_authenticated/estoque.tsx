@@ -537,23 +537,25 @@ function Estoque() {
               </span>
             </button>
 
-            {/* Esgotadas (Alerta Orgânico — Aqui é onde ele pertence!) */}
+            {/* Esgotadas (Harmônico — Dot Semântico & Tratamento Simétrico) */}
             {outOfStockCount > 0 && (
               <button
                 type="button"
                 onClick={() => setStatusFilter((prev) => (prev === "out_of_stock" ? "all" : "out_of_stock"))}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs",
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
                   statusFilter === "out_of_stock"
-                    ? "bg-rose-500 text-white"
-                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20",
+                    ? "bg-secondary text-foreground shadow-2xs font-bold border border-rose-500/25"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                 )}
               >
-                <span className={cn("size-1.5 rounded-full", statusFilter === "out_of_stock" ? "bg-white" : "bg-rose-500")} />
+                <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
                 <span>Esgotadas</span>
                 <span className={cn(
-                  "text-[10px] px-1.5 py-0.2 rounded-full font-bold",
-                  statusFilter === "out_of_stock" ? "bg-white/20 text-white" : "bg-rose-500/20 text-rose-700 dark:text-rose-300"
+                  "text-[10px] px-1.5 py-0.2 rounded-full font-bold transition-colors",
+                  statusFilter === "out_of_stock"
+                    ? "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                    : "bg-surface-muted text-muted-foreground"
                 )}>
                   {outOfStockCount}
                 </span>
@@ -759,8 +761,8 @@ function Estoque() {
                     <div className="min-w-0 flex items-center">
                       {units <= 0 ? (
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500 text-white px-2.5 py-0.5 text-xs font-bold shadow-2xs">
-                            <span className="size-1.5 rounded-full bg-white" />
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 px-2.5 py-0.5 text-[11px] font-semibold">
+                            <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
                             Esgotado
                           </span>
                           <span className="text-xs text-muted-foreground font-medium">0 un. disponíveis</span>
@@ -790,7 +792,7 @@ function Estoque() {
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         custo {brl(Number(i.cost_price))}
                         {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 && (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <span className="text-emerald-700/80 dark:text-emerald-400 font-medium">
                             {" "}· {(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}%
                           </span>
                         )}
