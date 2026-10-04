@@ -378,7 +378,7 @@ function Estoque() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Estoque & Catálogo"
-        title="Gestão de Acervo e Peças"
+        title="Gestão de Estoque e Peças"
         description="Controle de numeração, grade, capital investido e rentabilidade por peça."
         action={
           <div className="flex items-center gap-2.5">
@@ -439,16 +439,16 @@ function Estoque() {
 
           {/* ── 1. Cards de Síntese Executiva (Proporção Áurea, cards independentes, zero dead space) ── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            {/* Card 1: Peças no Acervo — v15 single-stat uniforme */}
+            {/* Card 1: Peças em Estoque — v16 optical sizing */}
             <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-2xs flex flex-col justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Peças no Acervo
+                Peças em Estoque
               </span>
-              <div className="mt-1.5">
-                <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{totalUnits}</span>
+              <div className="mt-1">
+                <span className="numeric text-4xl sm:text-5xl font-bold tracking-tight text-foreground leading-none">{totalUnits}</span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-1.5">
-                em {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
+                {items.length} {items.length === 1 ? "modelo cadastrado" : "modelos cadastrados"}
               </p>
             </div>
 
