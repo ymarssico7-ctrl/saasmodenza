@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { inventoryQuery, pricingsQuery } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
 import { SIZE_GRID, computePricing } from "@/lib/finance";
@@ -72,7 +73,7 @@ function Estoque() {
   const queryClient = useQueryClient();
   const { store, storeId } = useStore();
   const vitrineAtiva = isVitrineAtiva(storeId, store?.metadata);
-  const { data: items = [] } = useQuery(inventoryQuery());
+  const { data: items = [], isLoading } = useQuery(inventoryQuery());
   const { data: pricings = [] } = useQuery(pricingsQuery());
 
   // ── Categorias Dinâmicas da Loja (Nível Shopify) ──────────────────────────
@@ -530,16 +531,26 @@ function Estoque() {
                   </div>
                 </div>
                 <div className="mt-2.5 flex items-baseline gap-1.5">
-                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                    {totalUnits}
-                  </span>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {totalUnits === 1 ? "peça" : "peças"}
-                  </span>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-20 rounded-lg" />
+                  ) : (
+                    <>
+                      <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                        {totalUnits}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {totalUnits === 1 ? "peça" : "peças"}
+                      </span>
+                    </>
+                  )}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  {inventoryCopy.unitsSubtitle}
-                </p>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-32 rounded mt-2" />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    {inventoryCopy.unitsSubtitle}
+                  </p>
+                )}
               </div>
 
               {/* Métrica 2: Capital Investido (Sóbrio / Contábil) */}
@@ -553,13 +564,21 @@ function Estoque() {
                   </div>
                 </div>
                 <div className="mt-2.5">
-                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                    {brl(stockValue)}
-                  </span>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-28 rounded-lg" />
+                  ) : (
+                    <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                      {brl(stockValue)}
+                    </span>
+                  )}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  {inventoryCopy.costSubtitle}
-                </p>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-36 rounded mt-2" />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    {inventoryCopy.costSubtitle}
+                  </p>
+                )}
               </div>
 
               {/* Métrica 3: Potencial de Venda & Margem (Retorno Positivo Esmeralda) */}
@@ -573,13 +592,21 @@ function Estoque() {
                   </div>
                 </div>
                 <div className="mt-2.5">
-                  <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                    {brl(potential)}
-                  </span>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-28 rounded-lg" />
+                  ) : (
+                    <span className="numeric text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                      {brl(potential)}
+                    </span>
+                  )}
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  {inventoryCopy.potentialSubtitleNode}
-                </p>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-40 rounded mt-2" />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    {inventoryCopy.potentialSubtitleNode}
+                  </p>
+                )}
               </div>
 
             </div>
@@ -698,7 +725,21 @@ function Estoque() {
           )}
         </div>
 
-        {items.length === 0 ? (
+        {isLoading ? (
+          /* ── Skeleton Shimmer: 3 linhas enquanto os dados carregam ── */
+          <ul className="divide-y divide-border/40 px-5">
+            {[0, 1, 2].map((n) => (
+              <li key={n} className="flex items-center gap-3.5 py-4">
+                <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-44 rounded" />
+                  <Skeleton className="h-3 w-64 rounded" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded ml-auto shrink-0" />
+              </li>
+            ))}
+          </ul>
+        ) : items.length === 0 ? (
           <div className="p-5 sm:p-6 space-y-4">
             <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5 sm:p-6 shadow-soft">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-border/60">
