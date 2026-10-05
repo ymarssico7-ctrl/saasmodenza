@@ -15,7 +15,6 @@ import {
   Flame,
   HelpCircle,
   Info,
-  Layers,
   Minus,
   PackagePlus,
   Palette,
@@ -2703,12 +2702,12 @@ function Precificacao() {
         <section className="panel p-6 sm:p-7 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
+              <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
                 {mode === "rapida" ? "2" : "3"}
               </span>
               <div>
                 <h2 className="text-sm font-bold text-foreground">
-                  {mode === "rapida" ? "Estratégia, Resultado & Fechamento" : "Resumo Executivo do Lote & Fechamento"}
+                  {mode === "rapida" ? "Estratégia, resultado e fechamento" : "Resumo executivo do lote e fechamento"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mode === "rapida"
@@ -2723,52 +2722,44 @@ function Precificacao() {
           {/* Estratégia para o Modo Rápido */}
           {mode === "rapida" && (
             <div className="space-y-4 rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Estratégia de precificação
-                </Label>
-              </div>
 
-              {/* Pílulas de Seleção de Estratégia */}
+              {/* Pílulas de Seleção de Estratégia — sem ícones, texto puro */}
               <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card p-1.5 max-w-md sm:max-w-lg shadow-xs">
                 <button
                   type="button"
                   onClick={() => setStrategy("margin")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
+                    "flex items-center justify-center rounded-xl py-2 px-3 text-xs font-bold transition-all",
                     strategy === "margin"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                   )}
                 >
-                  <Target className="size-3.5 shrink-0" />
-                  <span className="truncate">Margem Real %</span>
+                  <span className="truncate">Margem real</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setStrategy("markup")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
+                    "flex items-center justify-center rounded-xl py-2 px-3 text-xs font-bold transition-all",
                     strategy === "markup"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                   )}
                 >
-                  <TrendingUp className="size-3.5 shrink-0" />
-                  <span className="truncate">Markup %</span>
+                  <span className="truncate">Markup</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setStrategy("direct_price")}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-bold transition-all",
+                    "flex items-center justify-center rounded-xl py-2 px-3 text-xs font-bold transition-all",
                     strategy === "direct_price"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                   )}
                 >
-                  <Coins className="size-3.5 shrink-0" />
-                  <span className="truncate">Preço Fixo R$</span>
+                  <span className="truncate">Preço fixo</span>
                 </button>
               </div>
 
@@ -2785,10 +2776,9 @@ function Precificacao() {
                         max={maxMarginSafe}
                         onChange={(val) => setDesiredMargin(Math.min(val, maxMarginSafe))}
                         display={pct(effectiveMargin)}
-                        hint={`Garante a margem livre no bolso após custos (${tax}% imposto + ${cardRate}% cartão).`}
+                        hint={`Margem líquida real após ${tax}% imposto + ${cardRate}% cartão.`}
                       />
                       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                        <span className="text-[10px] font-semibold text-muted-foreground mr-1">Metas comuns:</span>
                         {[35, 45, 50, 60].map((m) => (
                           <button
                             key={m}
@@ -2819,7 +2809,6 @@ function Precificacao() {
                       hint="Multiplicador direto sobre o custo total da peça (com taxas e impostos inclusos)."
                     />
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground mr-1">Metas comuns:</span>
                       {[
                         { label: "80% (1.8x)", val: 80 },
                         { label: "100% (2.0x)", val: 100 },
@@ -2875,7 +2864,7 @@ function Precificacao() {
               {/* Lado Esquerdo do Recibo: Preço Hero & Composição */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+                  <span className="text-[11px] font-medium text-foreground/60 tracking-wide">
                     Preço de venda sugerido
                   </span>
                   {summaryPrices.hasMultiple ? (
@@ -2899,7 +2888,7 @@ function Precificacao() {
                         {brl(summaryPrices.avgSuggested)}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        Lucro líquido no bolso de <strong className="text-foreground">{brl(summaryPrices.avgProfit)}</strong> por unidade
+                        Lucro l\u00edquido · <strong className="text-foreground">{brl(summaryPrices.avgProfit)}</strong> / pe\u00e7a
                       </p>
                     </div>
                   )}
@@ -2943,20 +2932,20 @@ function Precificacao() {
               {/* Lado Direito do Recibo: 3 Métricas e Cobertura */}
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-border/70 bg-surface-muted/40 p-2.5 text-center">
-                    <p className="text-[10px] font-medium text-muted-foreground">Margem real</p>
+                  <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground/80">Margem real</p>
                     <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.marginHealth.color)}>
                       {pct(summaryPrices.avgMargin)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-border/70 bg-surface-muted/40 p-2.5 text-center">
-                    <p className="text-[10px] font-medium text-muted-foreground">Lucro médio</p>
-                    <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.avgProfit < 0 ? "text-destructive" : "text-foreground")}>
+                  <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground/80">Lucro médio</p>
+                    <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.avgProfit < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
                       {brl(summaryPrices.avgProfit)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-border/70 bg-surface-muted/40 p-2.5 text-center">
-                    <p className="text-[10px] font-medium text-muted-foreground">Markup</p>
+                  <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-2.5 text-center">
+                    <p className="text-[10px] font-medium text-muted-foreground/80">Markup</p>
                     <p className="numeric mt-0.5 text-sm font-bold text-foreground">
                       {pct(summaryPrices.avgMarkup)}
                     </p>
@@ -2984,36 +2973,38 @@ function Precificacao() {
               </div>
             )}
 
-            {/* Ações Finais — CTA Primário em Destaque */}
-            <div className="grid sm:grid-cols-3 gap-3 pt-2 border-t border-border/50">
+            {/* Ações Finais — hierarquia primary › secondary › tertiary */}
+            <div className="grid sm:grid-cols-3 gap-3 pt-4 border-t border-border/50">
               {mode === "rapida" ? (
                 <>
+                  {/* PRIMARY */}
                   <Button
                     type="button"
                     onClick={openEntryForCurrent}
-                    className="h-11 rounded-xl bg-foreground text-background font-semibold hover:bg-foreground/90 shadow-soft cursor-pointer flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                    className="h-11 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                   >
-                    <PackagePlus className="size-4" />
                     <span>Dar entrada no estoque</span>
                   </Button>
+                  {/* SECONDARY */}
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => save.mutate()}
                     disabled={save.isPending}
-                    className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-card hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                    className="h-11 rounded-full text-xs font-semibold border-border bg-card hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                   >
                     <Save className="size-3.5 text-muted-foreground" />
                     <span>Salvar no histórico</span>
                   </Button>
+                  {/* TERTIARY */}
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={promoteToGrade}
-                    className="h-11 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                    className="h-11 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                   >
-                    <Layers className="size-3.5" />
                     <span>Expandir para grade</span>
+                    <ArrowRight className="size-3.5" />
                   </Button>
                 </>
               ) : (
@@ -3022,7 +3013,7 @@ function Precificacao() {
                     type="button"
                     variant="outline"
                     onClick={() => setMode("rapida")}
-                    className="h-11 rounded-xl text-xs font-semibold"
+                    className="h-11 rounded-full text-xs font-semibold"
                   >
                     ← Modo rápido
                   </Button>
@@ -3031,14 +3022,14 @@ function Precificacao() {
                     variant="outline"
                     onClick={() => save.mutate()}
                     disabled={save.isPending}
-                    className="h-11 rounded-xl text-xs font-semibold"
+                    className="h-11 rounded-full text-xs font-semibold"
                   >
                     <Save className="mr-1.5 size-3.5 text-muted-foreground" /> Salvar no histórico
                   </Button>
                   <Button
                     type="button"
                     onClick={openEntryForCurrent}
-                    className="h-11 rounded-xl gradient-primary font-bold shadow-glow transition-all active:scale-[0.98]"
+                    className="h-11 rounded-full bg-primary text-primary-foreground font-bold shadow-glow transition-all active:scale-[0.98] hover:bg-primary/90"
                   >
                     <PackagePlus className="mr-2 size-4" /> Dar entrada no estoque
                   </Button>
@@ -3054,18 +3045,20 @@ function Precificacao() {
           <div>
             <h2 className="text-base font-semibold">Peças precificadas</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Consulte seu histórico de cálculos e dê entrada no Estoque a qualquer momento.
+              Histórico dos seus cálculos de precificação.
             </p>
           </div>
-          <Badge variant="outline" className="rounded-full">
-            {saved.length} {saved.length === 1 ? "peça" : "peças"}
-          </Badge>
+          {saved.length > 0 && (
+            <Badge variant="outline" className="rounded-full">
+              {saved.length} {saved.length === 1 ? "peça" : "peças"}
+            </Badge>
+          )}
         </div>
 
         {saved.length === 0 ? (
           <EmptyState
             className="mt-6 border-0 bg-transparent py-8"
-            icon={<Calculator className="size-6" />}
+            icon={<Tag className="size-6" />}
             title="Nenhuma peça salva"
             description="Calcule e salve suas precificações para consultar depois na hora de etiquetar e dar entrada no estoque."
           />
