@@ -1215,7 +1215,7 @@ function Estoque() {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[640px] overflow-y-auto">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur-xs border-b border-border/70 select-none">
                     <tr className="text-[11.5px] font-semibold text-muted-foreground uppercase tracking-wider">
