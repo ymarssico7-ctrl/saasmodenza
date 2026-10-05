@@ -11,6 +11,7 @@ import {
   HandCoins,
   LogOut,
   Pencil,
+  Percent,
   Plus,
   ShieldCheck,
   Sparkles,
@@ -33,6 +34,11 @@ import {
   setFiadoAtivo,
   type FiadoConfig,
 } from "@/lib/fiado-settings";
+import {
+  getPricingSettings,
+  savePricingSettings,
+  type PricingSettings,
+} from "@/lib/pricing-settings";
 import {
   Select,
   SelectContent,
@@ -623,6 +629,7 @@ function Configuracoes() {
       {/* ════ ABA 3: Caixa & Pagamentos ═════════════════════════════════════ */}
       {activeTab === "caixa" && (
         <div className="space-y-6">
+          <PricingSettingsCard storeId={storeId} />
           <FiadoSettingsCard storeId={storeId} />
           <CustomOptionsSettingsSection storeId={storeId} />
         </div>
@@ -1233,3 +1240,221 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+// ── Card de Predefinições de Taxas & Precificação ─────────────────────────────
+function PricingSettingsCard({ storeId }: { storeId: string }) {
+  const [settings, setSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
+  const [defaultTax, setDefaultTax] = useState(String(settings.defaultTax).replace(".", ","));
+  const [defaultCardRate, setDefaultCardRate] = useState(String(settings.defaultCardRate).replace(".", ","));
+  const [defaultMargin, setDefaultMargin] = useState(String(settings.defaultMargin).replace(".", ","));
+  const [pixRate, setPixRate] = useState(String(settings.cardRates.pix).replace(".", ","));
+  const [debitoRate, setDebitoRate] = useState(String(settings.cardRates.debito).replace(".", ","));
+  const [credito1xRate, setCredito1xRate] = useState(String(settings.cardRates.credito1x).replace(".", ","));
+  const [parceladoRate, setParceladoRate] = useState(String(settings.cardRates.parcelado).replace(".", ","));
+  const [isSaving, setIsSaving] = useState(false);
+
+  const parseNumber = (val: string, fallback: number) => {
+    const n = parseFloat(val.replace(",", "."));
+    return isNaN(n) ? fallback : n;
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updated: PricingSettings = {
+        defaultTax: parseNumber(defaultTax, 6.0),
+        defaultCardRate: parseNumber(defaultCardRate, 3.5),
+        defaultMargin: parseNumber(defaultMargin, 50),
+        cardRates: {
+          pix: parseNumber(pixRate, 0),
+          debito: parseNumber(debitoRate, 1.5),
+          credito1x: parseNumber(credito1xRate, 3.2),
+          parcelado: parseNumber(parceladoRate, 5.5),
+        },
+        taxPresets: {
+          mei: 0,
+          simplesF1: 4.0,
+          simplesF2: 7.0,
+          simplesF3: 10.0,
+        },
+      };
+      setSettings(updated);
+      await savePricingSettings(storeId, updated);
+      toast.success("Predefinições de taxas salvas!", {
+        description: "Esses valores serão carregados automaticamente na tela de Precificação.",
+      });
+    } catch {
+      toast.error("Erro ao salvar predefinições");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <section id="taxas-precificacao" className="panel p-6 sm:p-7 space-y-6 border border-border/70 shadow-soft">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+        <div className="flex items-start gap-3.5">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Percent className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+              Taxas de Pagamento &amp; Impostos Padrão (Precificação)
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Defina as taxas reais da sua maquininha e sua alíquota de imposto. Ao precificar qualquer peça, esses valores carregarão automaticamente.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 pt-1">
+        {/* Bloco 1: Regime Tributário / DAS */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <Label className="text-xs font-bold text-foreground">Alíquota de Imposto Padrão da Loja (%)</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Porcentagem descontada de cada venda pelo Simples Nacional ou MEI
+              </p>
+            </div>
+            <div className="flex items-center rounded-xl border border-border/80 bg-card px-3 py-1.5 shadow-2xs w-28 shrink-0">
+              <input
+                inputMode="decimal"
+                value={defaultTax}
+                onChange={(e) => setDefaultTax(e.target.value)}
+                placeholder="6,0"
+                className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
+              />
+              <span className="text-xs font-bold text-muted-foreground ml-1">%</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[10px] font-semibold text-muted-foreground mr-1">Regimes rápidos:</span>
+            {[
+              { label: "MEI (0%)", val: "0" },
+              { label: "Simples Faixa 1 (4%)", val: "4" },
+              { label: "Simples Faixa 2 (7%)", val: "7" },
+              { label: "Simples Faixa 3 (10%)", val: "10" },
+            ].map((reg) => (
+              <button
+                key={reg.label}
+                type="button"
+                onClick={() => setDefaultTax(reg.val)}
+                className={cn(
+                  "rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer",
+                  defaultTax.replace(".", ",") === reg.val.replace(".", ",")
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                    : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                )}
+              >
+                {reg.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bloco 2: Taxas da Maquininha de Cartão */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 space-y-4">
+          <div>
+            <Label className="text-xs font-bold text-foreground">Taxas da sua Maquininha de Cartão (%)</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Configure as taxas exatas contratadas com a sua adquirente (Stone, PagBank, Rede, Cielo, etc.)
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card p-3">
+              <Label className="text-[11px] font-semibold text-muted-foreground">Pix</Label>
+              <div className="flex items-center">
+                <input
+                  inputMode="decimal"
+                  value={pixRate}
+                  onChange={(e) => setPixRate(e.target.value)}
+                  placeholder="0"
+                  className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-xs font-bold text-muted-foreground ml-1">%</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card p-3">
+              <Label className="text-[11px] font-semibold text-muted-foreground">Débito</Label>
+              <div className="flex items-center">
+                <input
+                  inputMode="decimal"
+                  value={debitoRate}
+                  onChange={(e) => setDebitoRate(e.target.value)}
+                  placeholder="1,5"
+                  className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-xs font-bold text-muted-foreground ml-1">%</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card p-3">
+              <Label className="text-[11px] font-semibold text-muted-foreground">Crédito à vista (1×)</Label>
+              <div className="flex items-center">
+                <input
+                  inputMode="decimal"
+                  value={credito1xRate}
+                  onChange={(e) => setCredito1xRate(e.target.value)}
+                  placeholder="3,2"
+                  className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-xs font-bold text-muted-foreground ml-1">%</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card p-3">
+              <Label className="text-[11px] font-semibold text-muted-foreground">Parcelado médio</Label>
+              <div className="flex items-center">
+                <input
+                  inputMode="decimal"
+                  value={parceladoRate}
+                  onChange={(e) => setParceladoRate(e.target.value)}
+                  placeholder="5,5"
+                  className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-xs font-bold text-muted-foreground ml-1">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bloco 3: Margem Líquida Alvo da Loja */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <Label className="text-xs font-bold text-foreground">Margem Líquida Alvo Padrão (%)</Label>
+            <p className="text-[11px] text-muted-foreground">
+              Meta de rentabilidade líquida inicial sugerida ao calcular qualquer peça
+            </p>
+          </div>
+          <div className="flex items-center rounded-xl border border-border/80 bg-card px-3 py-1.5 shadow-2xs w-28 shrink-0">
+            <input
+              inputMode="decimal"
+              value={defaultMargin}
+              onChange={(e) => setDefaultMargin(e.target.value)}
+              placeholder="50"
+              className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
+            />
+            <span className="text-xs font-bold text-muted-foreground ml-1">%</span>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="h-10 rounded-xl px-6 text-xs font-semibold cursor-pointer shadow-glow"
+          >
+            {isSaving ? "Salvando..." : "Salvar predefinições de taxas"}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+

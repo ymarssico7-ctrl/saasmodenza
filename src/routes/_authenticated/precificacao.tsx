@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Save,
   Search,
+  Settings,
   ShieldAlert,
   ShieldCheck,
   Sliders,
@@ -35,6 +36,11 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import {
+  getPricingSettings,
+  PRICING_SETTINGS_EVENT,
+  type PricingSettings,
+} from "@/lib/pricing-settings";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -243,6 +249,21 @@ function Precificacao() {
   const { categories: storeCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
+  // ── Predefinições da Loja (Configuradas em /configuracoes) ───────────
+  const [pricingSettings, setPricingSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
+
+  useEffect(() => {
+    const handler = () => {
+      const updated = getPricingSettings(storeId);
+      setPricingSettings(updated);
+      setTax(updated.defaultTax);
+      setCardRate(updated.defaultCardRate);
+      setDesiredMargin(updated.defaultMargin);
+    };
+    window.addEventListener(PRICING_SETTINGS_EVENT, handler);
+    return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
+  }, [storeId]);
+
   // ── Modo Principal (2 Modos Estratégicos) ─────────────────────────
   const [mode, setMode] = useState<PricingMode>("rapida");
 
@@ -311,11 +332,11 @@ function Precificacao() {
   const [other, setOther] = useState("2,00");
 
   // ── Parâmetros de Rentabilidade & Deduções ──────────────────────────
-  const [desiredMargin, setDesiredMargin] = useState(50); // 50% de margem líquida
+  const [desiredMargin, setDesiredMargin] = useState(() => pricingSettings.defaultMargin); // Margem líquida padrão da loja
   const [markup, setMarkup] = useState(80); // 80% markup sobre custo
   const [directSalePrice, setDirectSalePrice] = useState("119,90");
-  const [tax, setTax] = useState(6); // 6% imposto
-  const [cardRate, setCardRate] = useState(3.5); // 3.5% taxa de maquininha
+  const [tax, setTax] = useState(() => pricingSettings.defaultTax); // Imposto padrão da loja
+  const [cardRate, setCardRate] = useState(() => pricingSettings.defaultCardRate); // Taxa de maquininha padrão da loja
 
   // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
@@ -1850,33 +1871,48 @@ function Precificacao() {
           })()}
 
           {/* Taxas Fiscais e de Cartão com Controles Híbridos Studio */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <HybridTaxControl
-              label="Imposto DAS / Simples (%)"
-              hint="Alíquota aplicada sobre o faturamento de cada venda"
-              value={tax}
-              max={25}
-              onChange={setTax}
-              presets={[
-                { label: "MEI", value: 0 },
-                { label: "Simples F1", value: 4 },
-                { label: "Simples F2", value: 7 },
-                { label: "Simples F3", value: 10 },
-              ]}
-            />
-            <HybridTaxControl
-              label="Taxa média de cartão (%)"
-              hint="Taxa média ponderada descontada pelas maquininhas"
-              value={cardRate}
-              max={15}
-              onChange={setCardRate}
-              presets={[
-                { label: "Pix", value: 0 },
-                { label: "Débito", value: 1.5 },
-                { label: "Crédito 1×", value: 3.2 },
-                { label: "Parcelado", value: 5.5 },
-              ]}
-            />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-xs font-semibold text-muted-foreground">Taxas e deduções da venda</span>
+              <Link
+                to="/configuracoes"
+                search={{ tab: "caixa" }}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                title="Predefinir taxas da maquininha e imposto padrão em Configurações"
+              >
+                <Settings className="size-3" />
+                <span>Configurar taxas padrão</span>
+              </Link>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <HybridTaxControl
+                label="Imposto DAS / Simples (%)"
+                hint="Alíquota aplicada sobre o faturamento de cada venda"
+                value={tax}
+                max={25}
+                onChange={setTax}
+                presets={[
+                  { label: "MEI", value: pricingSettings.taxPresets.mei },
+                  { label: "Simples F1", value: pricingSettings.taxPresets.simplesF1 },
+                  { label: "Simples F2", value: pricingSettings.taxPresets.simplesF2 },
+                  { label: "Simples F3", value: pricingSettings.taxPresets.simplesF3 },
+                ]}
+              />
+              <HybridTaxControl
+                label="Taxa média de cartão (%)"
+                hint="Taxa média ponderada descontada pelas maquininhas"
+                value={cardRate}
+                max={15}
+                onChange={setCardRate}
+                presets={[
+                  { label: "Pix", value: pricingSettings.cardRates.pix },
+                  { label: "Débito", value: pricingSettings.cardRates.debito },
+                  { label: "Crédito 1×", value: pricingSettings.cardRates.credito1x },
+                  { label: "Parcelado", value: pricingSettings.cardRates.parcelado },
+                ]}
+              />
+            </div>
           </div>
         </section>
 
