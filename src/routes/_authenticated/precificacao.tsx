@@ -1731,26 +1731,6 @@ function Precificacao() {
                         className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                       />
                     </div>
-                    {/* Atalhos Rápidos de Embalagem */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      {[
-                        { label: "Sacola + Tag · R$ 3,50", val: "3,50" },
-                        { label: "Caixa Sedex · R$ 5,00", val: "5,00" },
-                        { label: "Tag simples · R$ 0,80", val: "0,80" },
-                      ].map((pr) => (
-                        <button
-                          key={pr.label}
-                          type="button"
-                          onClick={() => {
-                            setPackaging(pr.val);
-                            toast.success(`Embalagem definida como ${pr.label}`);
-                          }}
-                          className="rounded-md px-2 py-0.5 text-[10px] font-semibold bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/80 cursor-pointer transition-all active:scale-95"
-                        >
-                          {pr.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Campo Outros Custos com Botão Explícito */}
@@ -1857,11 +1837,11 @@ function Precificacao() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 rounded-xl bg-surface-muted/50 border border-border/60 p-3 text-[11px] text-muted-foreground leading-relaxed">
-                    <Info className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="flex items-center gap-2 rounded-xl bg-surface-muted/50 border border-border/60 p-3 text-[11px] text-muted-foreground">
+                    <Info className="size-3.5 text-muted-foreground shrink-0" />
                     <span>
-                      Custo base no atacado ({brl(toNumber(wholesale))}) + adicionais ({brl(totalSharedCost)}) ={" "}
-                      <strong className="text-foreground font-semibold">{brl(toNumber(wholesale) + totalSharedCost)}</strong> por peça antes dos impostos e taxas.
+                      Atacado ({brl(toNumber(wholesale))}) + adicionais ({brl(totalSharedCost)}) ={" "}
+                      <strong className="text-foreground font-semibold">{brl(toNumber(wholesale) + totalSharedCost)}</strong> / peça
                     </span>
                   </div>
                 </div>
@@ -1891,10 +1871,10 @@ function Precificacao() {
               max={15}
               onChange={setCardRate}
               presets={[
-                { label: "Pix (0%)", value: 0 },
-                { label: "Débito (1.5%)", value: 1.5 },
-                { label: "Crédito 1x (3.2%)", value: 3.2 },
-                { label: "Parcelado (5.5%)", value: 5.5 },
+                { label: "Pix", value: 0 },
+                { label: "Débito", value: 1.5 },
+                { label: "Crédito 1×", value: 3.2 },
+                { label: "Parcelado", value: 5.5 },
               ]}
             />
           </div>
@@ -3322,14 +3302,14 @@ function HybridTaxControl({
 
   return (
     <div className="space-y-2 rounded-2xl border border-border/80 bg-secondary/20 p-4 shadow-2xs">
-      <div className="flex items-center justify-between gap-2">
-        <div className="space-y-0.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-0.5 min-w-0 flex-1">
           <Label className="text-xs font-semibold text-foreground">{label}</Label>
-          {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+          {hint && <p className="text-[10px] text-muted-foreground truncate sm:whitespace-normal">{hint}</p>}
         </div>
 
         {/* Pílula de Controle Triplo Apple: [ − ] valor% [ + ] */}
-        <div className="flex items-center overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
+        <div className="flex shrink-0 items-center overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
           {/* Botão Decremento — step 1 */}
           <button
             type="button"
@@ -3346,7 +3326,7 @@ function HybridTaxControl({
           </button>
 
           {/* Campo Central — aceita vírgula e ponto, trava no min/max só no blur */}
-          <div className="flex items-center px-2.5 py-1">
+          <div className="flex items-center justify-center px-1.5 py-1">
             <input
               inputMode="decimal"
               value={displayVal}
@@ -3374,9 +3354,9 @@ function HybridTaxControl({
                   setRawValue("0");
                 }
               }}
-              className="min-w-[44px] w-auto px-1 text-center text-xs font-bold text-primary outline-none bg-transparent"
+              className="w-10 text-center text-xs font-semibold text-foreground outline-none bg-transparent"
             />
-            <span className="text-xs font-bold text-muted-foreground">%</span>
+            <span className="text-xs font-semibold text-muted-foreground select-none">%</span>
           </div>
 
           {/* Botão Incremento — step 1 */}
@@ -3399,7 +3379,6 @@ function HybridTaxControl({
       {/* Chips Rápidos de Mercado (Presets) */}
       {presets && presets.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-[10px] font-semibold text-muted-foreground mr-1">Atalhos:</span>
           {presets.map((p) => (
             <button
               key={p.label}
