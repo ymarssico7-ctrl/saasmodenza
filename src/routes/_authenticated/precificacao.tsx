@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1238,32 +1238,30 @@ function Precificacao() {
 
       {/* ── Segmented Control Principal (Padrão Apple Studio / Shopify Polaris) ───────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-2xl border border-border/80 bg-surface-muted/60 p-1 shadow-2xs">
+        <div className="inline-flex rounded-xl border border-border/60 bg-secondary/70 p-1 shadow-2xs">
           <button
             type="button"
             onClick={() => setMode("rapida")}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer",
+              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer",
               mode === "rapida"
-                ? "bg-card text-foreground shadow-2xs font-bold"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground font-medium",
             )}
           >
-            <Zap className="size-3.5 text-primary" />
-            <span>Precificação Rápida</span>
+            Precificação rápida
           </button>
           <button
             type="button"
             onClick={() => setMode("grade")}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer",
+              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer",
               mode === "grade"
-                ? "bg-card text-foreground shadow-2xs font-bold"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground font-medium",
             )}
           >
-            <Layers className="size-3.5 text-primary" />
-            <span>Grade & Estoque</span>
+            Grade & estoque
           </button>
         </div>
       </div>
@@ -1349,11 +1347,8 @@ function Precificacao() {
 
               {/* 2. Quantidade de Peças */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Quantidade</span>
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    {actualLotUnits === 1 ? "1 un." : `${actualLotUnits} un.`}
-                  </span>
+                <Label className="text-xs font-semibold text-foreground">
+                  Quantidade
                 </Label>
                 <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                   <button
@@ -1398,10 +1393,7 @@ function Precificacao() {
               {/* 3. Cor da Peça (opcional) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>Cor</span>
-                    <span className="text-[10px] font-normal text-muted-foreground">(opcional)</span>
-                  </span>
+                  <span>Cor</span>
                   {rapidaColor && (
                     <span className="flex items-center gap-1 text-[10px] font-bold text-primary">
                       <span className={cn("size-2 rounded-full", getColorDot(rapidaColor))} />
@@ -1453,8 +1445,8 @@ function Precificacao() {
                       <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-60 overflow-y-auto rounded-2xl border border-border/80 bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-1">
                         {matchingRapidaColorPresets.length > 0 && (
                           <>
-                            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                              🎨 Cores da Moda ({matchingRapidaColorPresets.length})
+                            <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                              Cores sugeridas ({matchingRapidaColorPresets.length})
                             </div>
                             <div className="grid grid-cols-2 gap-1">
                               {matchingRapidaColorPresets.map((cp) => (
@@ -1493,10 +1485,7 @@ function Precificacao() {
               {/* 4. Tamanho da Peça (opcional) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>Tamanho</span>
-                    <span className="text-[10px] font-normal text-muted-foreground">(opcional)</span>
-                  </span>
+                  <span>Tamanho</span>
                   {rapidaSize && (
                     <span className="text-[10px] font-bold text-primary">
                       Tam: {rapidaSize}
@@ -1512,24 +1501,24 @@ function Precificacao() {
                       <SelectItem value="nenhum" className="text-xs font-medium text-muted-foreground">
                         — Sem tamanho definido —
                       </SelectItem>
-                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-t border-border/40 mt-1">
-                        Tamanhos Padrão
+                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
+                        Tamanhos padrão
                       </div>
                       {["PP", "P", "M", "G", "GG", "Único"].map((sz) => (
                         <SelectItem key={sz} value={sz} className="text-xs font-semibold">
                           Tamanho {sz}
                         </SelectItem>
                       ))}
-                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-t border-border/40 mt-1">
-                        Numeração & Calças
+                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
+                        Numeração & calças
                       </div>
                       {["34", "36", "38", "40", "42", "44", "46", "48", "50"].map((sz) => (
                         <SelectItem key={sz} value={sz} className="text-xs font-semibold">
                           Tamanho {sz}
                         </SelectItem>
                       ))}
-                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-t border-border/40 mt-1">
-                        Plus Size
+                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
+                        Plus size
                       </div>
                       {["G1", "G2", "G3"].map((sz) => (
                         <SelectItem key={sz} value={sz} className="text-xs font-semibold">
@@ -1572,7 +1561,7 @@ function Precificacao() {
                 <div className="space-y-4 rounded-2xl border border-border/80 bg-secondary/20 p-4 sm:p-5 shadow-2xs">
                   <div className="space-y-0.5 border-b border-border/50 pb-3">
                     <span className="text-xs font-bold text-foreground">
-                      Custos Adicionais &amp; Rateio por Peça
+                      Custos adicionais & rateio por peça
                     </span>
                     <p className="text-[11px] text-muted-foreground">
                       Valores de frete, embalagens e despesas fixas somados a cada unidade do lote
@@ -1659,7 +1648,7 @@ function Precificacao() {
                               <button
                                 type="button"
                                 onClick={() => setRateioPieces(String(actualLotUnits))}
-                                className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                                className="text-[10px] text-primary hover:text-primary/80 font-semibold cursor-pointer transition-colors"
                               >
                                 Usar {actualLotUnits} un. da grade
                               </button>
@@ -1704,7 +1693,7 @@ function Precificacao() {
                         title="Dividir o frete total pago pelo número de peças"
                       >
                         <Calculator className="size-3 text-primary" />
-                        <span>Dividir frete da nota</span>
+                        <span>Ratear</span>
                       </button>
                     </div>
                     <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
@@ -1722,7 +1711,7 @@ function Precificacao() {
                   {/* Campo Embalagem & Tag com Botão Explícito + Atalhos */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-foreground">Embalagem &amp; Tag</Label>
+                      <Label className="text-xs font-semibold text-foreground">Embalagem & Tag</Label>
                       <button
                         type="button"
                         onClick={() => openRateioAssistant("packaging")}
@@ -1730,7 +1719,7 @@ function Precificacao() {
                         title="Dividir custo de embalagens pelo número de peças"
                       >
                         <Calculator className="size-3 text-primary" />
-                        <span>Dividir custo de tags</span>
+                        <span>Ratear</span>
                       </button>
                     </div>
                     <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
@@ -1747,9 +1736,9 @@ function Precificacao() {
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                       <span className="text-[10px] font-semibold text-muted-foreground">Atalhos:</span>
                       {[
-                        { label: "Sacola + Tag (R$ 3,50)", val: "3,50" },
-                        { label: "Caixa Sedex (R$ 5,00)", val: "5,00" },
-                        { label: "Tag Simples (R$ 0,80)", val: "0,80" },
+                        { label: "Sacola + Tag · R$ 3,50", val: "3,50" },
+                        { label: "Caixa Sedex · R$ 5,00", val: "5,00" },
+                        { label: "Tag simples · R$ 0,80", val: "0,80" },
                       ].map((pr) => (
                         <button
                           key={pr.label}
@@ -1777,7 +1766,7 @@ function Precificacao() {
                         title="Dividir despesas extras pelo número de peças"
                       >
                         <Calculator className="size-3 text-primary" />
-                        <span>Dividir outros custos</span>
+                        <span>Ratear</span>
                       </button>
                     </div>
                     <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
@@ -1797,9 +1786,8 @@ function Precificacao() {
                 <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <Zap className="size-3.5 text-primary" />
-                        <span>Custo Adicional Fixo</span>
+                      <span className="text-[11px] font-semibold text-muted-foreground">
+                        Custo adicional por peça
                       </span>
                       <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground border border-border/60">
                         Por Peça
@@ -1830,7 +1818,7 @@ function Precificacao() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5 text-muted-foreground">
                           <span className="size-2 rounded-full bg-emerald-500" />
-                          Embalagem &amp; Tag
+                          Embalagem & Tag
                         </span>
                         <span className="numeric font-bold text-foreground">
                           {brl(packagingVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(packagingPct)}%)</span>
@@ -1874,8 +1862,12 @@ function Precificacao() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-surface-muted/50 border border-border/60 p-3 text-[11px] text-muted-foreground leading-relaxed">
-                    💡 Custo base no atacado ({brl(toNumber(wholesale))}) + adicionais ({brl(totalSharedCost)}) = <strong className="text-foreground font-bold">{brl(toNumber(wholesale) + totalSharedCost)}</strong> por peça antes dos impostos e taxas.
+                  <div className="flex items-start gap-2 rounded-xl bg-surface-muted/50 border border-border/60 p-3 text-[11px] text-muted-foreground leading-relaxed">
+                    <Info className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                    <span>
+                      Custo base no atacado ({brl(toNumber(wholesale))}) + adicionais ({brl(totalSharedCost)}) ={" "}
+                      <strong className="text-foreground font-semibold">{brl(toNumber(wholesale) + totalSharedCost)}</strong> por peça antes dos impostos e taxas.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1945,7 +1937,7 @@ function Precificacao() {
                   className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
                 >
                   <Wand2 className="size-3.5 mr-1.5" />
-                  {showMatrixGenerator ? "Fechar Gerador" : "⚡ Gerador de Grade Rápida"}
+                  {showMatrixGenerator ? "Fechar gerador" : "Gerador de grade"}
                 </Button>
               </div>
             </div>
@@ -1966,8 +1958,8 @@ function Precificacao() {
                 {/* Tamanhos */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                      1. Tamanhos:
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      Tamanhos:
                     </span>
                     <div className="flex gap-1">
                       {PRESET_OPTIONS.map((pr) => (
@@ -2008,8 +2000,8 @@ function Precificacao() {
 
                 {/* Cores */}
                 <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                    2. Cores:
+                  <span className="text-[11px] font-semibold text-muted-foreground block">
+                    Cores:
                   </span>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {COLOR_PRESETS.map((cp) => (
@@ -2065,7 +2057,7 @@ function Precificacao() {
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
                       <div className="flex items-center gap-2.5">
                         <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                        <span className="text-sm font-bold text-foreground uppercase tracking-wide">{group.color}</span>
+                        <span className="text-sm font-semibold text-foreground">{group.color}</span>
                         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                           {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"} · {group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)} {(group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)) === 1 ? "peça" : "peças"}
                         </span>
@@ -2092,7 +2084,7 @@ function Precificacao() {
                     <div className="space-y-2.5">
                       {/* Linha de título + atalhos rápidos de categoria */}
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <span className="text-[10px] font-semibold text-muted-foreground">
                           Tamanhos desta cor:
                         </span>
                         <div className="flex flex-wrap items-center gap-1">
@@ -2462,14 +2454,14 @@ function Precificacao() {
                     {group.items.length > 0 && (
                       <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
                         {/* Cabeçalho da Tabela */}
-                        <div className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60">
+                        <div className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
                           <span>Tam.</span>
-                          <span>Qtd</span>
-                          <span>Custo Atacado</span>
-                          <span>Custo Real</span>
-                          <span>Preço Venda</span>
-                          <span>Margem Real</span>
-                          <span className="text-right">Lucro Líquido</span>
+                          <span>Qtd.</span>
+                          <span>Custo atacado</span>
+                          <span>Custo real</span>
+                          <span>Preço de venda</span>
+                          <span>Margem real</span>
+                          <span className="text-right">Lucro líquido</span>
                         </div>
 
                         {/* Linhas de Cada Tamanho */}
@@ -2573,7 +2565,7 @@ function Precificacao() {
                       <Sparkles className="size-3.5" />
                     </span>
                     <div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Adicionar Cores à Grade</h3>
+                      <h3 className="text-xs font-semibold text-foreground">Adicionar cores à grade</h3>
                     </div>
                   </div>
                   <span className="text-[11px] text-muted-foreground hidden sm:inline">
@@ -2629,8 +2621,8 @@ function Precificacao() {
                       <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-72 overflow-y-auto rounded-2xl border border-border/80 bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-1">
                         {matchingColorPresets.length > 0 && (
                           <>
-                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                              🎨 Cores Sugeridas da Moda ({matchingColorPresets.length})
+                            <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                              Cores sugeridas ({matchingColorPresets.length})
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                               {matchingColorPresets.map((cp) => (
@@ -2681,8 +2673,8 @@ function Precificacao() {
 
                 {/* Sugestões Rápidas em Pílulas Táteis */}
                 <div className="space-y-1.5 pt-2 border-t border-border/50">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                    ✨ Sugestões Rápidas:
+                  <span className="text-[10px] font-semibold text-muted-foreground block">
+                    Sugestões rápidas:
                   </span>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {COLOR_PRESETS.filter(
@@ -2726,22 +2718,14 @@ function Precificacao() {
               </div>
             </div>
 
-            {summaryPrices.avgSuggested > 0 && (
-              <div className="text-right">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Margem Real</span>
-                <span className={cn("numeric text-base font-bold", summaryPrices.marginHealth.color)}>
-                  {pct(summaryPrices.avgMargin)}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Estratégia para o Modo Rápido */}
           {mode === "rapida" && (
             <div className="space-y-4 rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Estratégia de Precificação da Peça:
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Estratégia de precificação
                 </Label>
               </div>
 
@@ -2796,12 +2780,12 @@ function Precificacao() {
                   return (
                     <div className="space-y-2">
                       <SliderRow
-                        label="Margem de Lucro Líquida Alvo (% sobre o preço de venda)"
+                        label="Margem líquida desejada"
                         value={effectiveMargin}
                         max={maxMarginSafe}
                         onChange={(val) => setDesiredMargin(Math.min(val, maxMarginSafe))}
                         display={pct(effectiveMargin)}
-                        hint={`Calcula o preço garantindo a margem líquida no bolso após custos (${tax}% imposto + ${cardRate}% cartão).`}
+                        hint={`Garante a margem livre no bolso após custos (${tax}% imposto + ${cardRate}% cartão).`}
                       />
                       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                         <span className="text-[10px] font-semibold text-muted-foreground mr-1">Metas comuns:</span>
@@ -2827,12 +2811,12 @@ function Precificacao() {
                 {strategy === "markup" && (
                   <div className="space-y-2">
                     <SliderRow
-                      label="Markup Desejado (% sobre o custo total)"
+                      label="Markup desejado"
                       value={markup}
                       max={300}
                       onChange={setMarkup}
                       display={pct(markup)}
-                      hint="Multiplicador direto sobre o custo total da peça (com taxas de cartão e impostos inclusos no divisor)."
+                      hint="Multiplicador direto sobre o custo total da peça (com taxas e impostos inclusos)."
                     />
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                       <span className="text-[10px] font-semibold text-muted-foreground mr-1">Metas comuns:</span>
@@ -2863,19 +2847,22 @@ function Precificacao() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold text-foreground">
-                        Preço de Venda Desejado (R$)
+                        Preço de venda desejado
                       </Label>
                       <span className="text-xs font-bold text-primary numeric">
                         Margem resultante: {pct(summaryPrices.avgMargin)}
                       </span>
                     </div>
-                    <Input
-                      inputMode="decimal"
-                      value={directSalePrice}
-                      onChange={(e) => setDirectSalePrice(e.target.value)}
-                      placeholder="119,90"
-                      className="h-11 rounded-xl font-bold text-sm bg-card border-primary/30 text-primary shadow-xs"
-                    />
+                    <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                      <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                      <input
+                        inputMode="decimal"
+                        value={directSalePrice}
+                        onChange={(e) => setDirectSalePrice(e.target.value)}
+                        placeholder="119,90"
+                        className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -2888,8 +2875,8 @@ function Precificacao() {
               {/* Lado Esquerdo do Recibo: Preço Hero & Composição */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                    Preço de Venda Sugerido
+                  <span className="text-[10px] font-semibold tracking-wide text-muted-foreground">
+                    Preço de venda sugerido
                   </span>
                   {summaryPrices.hasMultiple ? (
                     <div>
@@ -2930,22 +2917,22 @@ function Precificacao() {
                   const profitPct = totalSum > 0 ? (Math.max(profit, 0) / totalSum) * 100 : 0;
                   return (
                     <div className="space-y-1.5 pt-1 border-t border-border/50">
-                      <div className="flex h-2.5 w-full overflow-hidden rounded-full gap-0.5 bg-secondary">
-                        <div className="bg-foreground/30 rounded-l-full" style={{ width: `${costPct}%` }} title={`Custo: ${Math.round(costPct)}%`} />
-                        <div className="bg-warning/70" style={{ width: `${taxPct}%` }} title={`Impostos: ${Math.round(taxPct)}%`} />
+                      <div className="flex h-2.5 w-full overflow-hidden rounded-full gap-0.5 bg-secondary/80">
+                        <div className="bg-muted-foreground/30 rounded-l-full transition-all" style={{ width: `${costPct}%` }} title={`Custo: ${Math.round(costPct)}%`} />
+                        <div className="bg-amber-400/60 transition-all" style={{ width: `${taxPct}%` }} title={`Impostos & taxas: ${Math.round(taxPct)}%`} />
                         {isPrejuizo ? (
-                          <div className="bg-destructive rounded-r-full" style={{ width: `6%` }} title="Prejuízo" />
+                          <div className="bg-rose-500/80 rounded-r-full transition-all" style={{ width: `6%` }} title="Prejuízo" />
                         ) : (
-                          <div className="bg-success rounded-r-full" style={{ width: `${profitPct}%` }} title={`Lucro: ${Math.round(profitPct)}%`} />
+                          <div className="bg-emerald-500/80 rounded-r-full transition-all" style={{ width: `${profitPct}%` }} title={`Lucro: ${Math.round(profitPct)}%`} />
                         )}
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><span className="size-1.5 rounded-full bg-foreground/30" />Custo {Math.round(costPct)}%</span>
-                        <span className="flex items-center gap-1"><span className="size-1.5 rounded-full bg-warning/70" />Taxas {Math.round(taxPct)}%</span>
+                        <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-muted-foreground/40" />Custo {Math.round(costPct)}%</span>
+                        <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-amber-400/70" />Taxas {Math.round(taxPct)}%</span>
                         {isPrejuizo ? (
-                          <span className="flex items-center gap-1 font-semibold text-destructive"><span className="size-1.5 rounded-full bg-destructive" />Prejuízo {brl(profit)}</span>
+                          <span className="flex items-center gap-1.5 font-semibold text-destructive"><span className="size-1.5 rounded-full bg-rose-500" />Prejuízo {brl(profit)}</span>
                         ) : (
-                          <span className="flex items-center gap-1 font-semibold text-success"><span className="size-1.5 rounded-full bg-success" />Lucro {Math.round(profitPct)}%</span>
+                          <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400"><span className="size-1.5 rounded-full bg-emerald-500" />Lucro {Math.round(profitPct)}%</span>
                         )}
                       </div>
                     </div>
@@ -2957,19 +2944,19 @@ function Precificacao() {
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-border/70 bg-surface-muted/40 p-2.5 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Margem Real</p>
+                    <p className="text-[10px] font-medium text-muted-foreground">Margem real</p>
                     <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.marginHealth.color)}>
                       {pct(summaryPrices.avgMargin)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-surface-muted/40 p-2.5 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Lucro Médio</p>
+                    <p className="text-[10px] font-medium text-muted-foreground">Lucro médio</p>
                     <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.avgProfit < 0 ? "text-destructive" : "text-foreground")}>
                       {brl(summaryPrices.avgProfit)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-surface-muted/40 p-2.5 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Markup</p>
+                    <p className="text-[10px] font-medium text-muted-foreground">Markup</p>
                     <p className="numeric mt-0.5 text-sm font-bold text-foreground">
                       {pct(summaryPrices.avgMarkup)}
                     </p>
@@ -3007,7 +2994,7 @@ function Precificacao() {
                     className="h-11 rounded-xl bg-foreground text-background font-semibold hover:bg-foreground/90 shadow-soft cursor-pointer flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                   >
                     <PackagePlus className="size-4" />
-                    <span>Dar Entrada no Estoque</span>
+                    <span>Dar entrada no estoque</span>
                   </Button>
                   <Button
                     type="button"
@@ -3017,7 +3004,7 @@ function Precificacao() {
                     className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-card hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                   >
                     <Save className="size-3.5 text-muted-foreground" />
-                    <span>Salvar no Histórico</span>
+                    <span>Salvar no histórico</span>
                   </Button>
                   <Button
                     type="button"
@@ -3026,7 +3013,7 @@ function Precificacao() {
                     className="h-11 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                   >
                     <Layers className="size-3.5" />
-                    <span>Expandir para Grade</span>
+                    <span>Expandir para grade</span>
                   </Button>
                 </>
               ) : (
@@ -3037,7 +3024,7 @@ function Precificacao() {
                     onClick={() => setMode("rapida")}
                     className="h-11 rounded-xl text-xs font-semibold"
                   >
-                    ← Modo Rápido
+                    ← Modo rápido
                   </Button>
                   <Button
                     type="button"
@@ -3046,14 +3033,14 @@ function Precificacao() {
                     disabled={save.isPending}
                     className="h-11 rounded-xl text-xs font-semibold"
                   >
-                    <Save className="mr-1.5 size-3.5" /> Salvar no Histórico
+                    <Save className="mr-1.5 size-3.5 text-muted-foreground" /> Salvar no histórico
                   </Button>
                   <Button
                     type="button"
                     onClick={openEntryForCurrent}
                     className="h-11 rounded-xl gradient-primary font-bold shadow-glow transition-all active:scale-[0.98]"
                   >
-                    <PackagePlus className="mr-2 size-4" /> Dar Entrada no Estoque
+                    <PackagePlus className="mr-2 size-4" /> Dar entrada no estoque
                   </Button>
                 </>
               )}
@@ -3063,7 +3050,7 @@ function Precificacao() {
       </div>
 {/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
       <section className="panel p-6 sm:p-7">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-border/50 pb-4">
           <div>
             <h2 className="text-base font-semibold">Peças precificadas</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -3077,7 +3064,7 @@ function Precificacao() {
 
         {saved.length === 0 ? (
           <EmptyState
-            className="mt-6"
+            className="mt-6 border-0 bg-transparent py-8"
             icon={<Calculator className="size-6" />}
             title="Nenhuma peça salva"
             description="Calcule e salve suas precificações para consultar depois na hora de etiquetar e dar entrada no estoque."
@@ -3089,7 +3076,7 @@ function Precificacao() {
                 <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="pb-3 font-semibold">Peça</th>
                   <th className="pb-3 font-semibold">Custo real</th>
-                  <th className="pb-3 font-semibold">Margem Real</th>
+                  <th className="pb-3 font-semibold">Margem real</th>
                   <th className="pb-3 font-semibold">Preço sugerido</th>
                   <th className="pb-3 text-right">Ações</th>
                 </tr>
@@ -3154,10 +3141,10 @@ function Precificacao() {
       <Sheet open={entrySheetOpen} onOpenChange={setEntrySheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6 space-y-6">
           <SheetHeader>
-            <div className="flex items-center gap-2 text-primary font-semibold text-xs uppercase tracking-wider">
-              <Boxes className="size-4" /> Ficha de Entrada no Estoque
+            <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+              <Boxes className="size-4" /> Ficha de entrada no estoque
             </div>
-            <SheetTitle className="text-xl font-bold">{entryName || "Nova Peça"}</SheetTitle>
+            <SheetTitle className="text-xl font-bold">{entryName || "Nova peça"}</SheetTitle>
             <SheetDescription className="text-xs">
               Adicione fotos, categoria, fornecedor e as quantidades reais recebidas para liberar a
               peça para venda.
@@ -3326,20 +3313,20 @@ function HybridTaxControl({
   presets?: { label: string; value: number }[];
 }) {
   // Estado interno de string: permite digitação livre com vírgula (ex: "3,19")
-  // sem travar o campo em estados intermediários como "3," ou "3."
-  const [rawValue, setRawValue] = useState<string>(String(value));
+  const [rawValue, setRawValue] = useState<string>(String(value).replace(".", ","));
 
   // Sincroniza rawValue quando o valor externo muda (ex: slider ou preset)
+  useEffect(() => {
+    setRawValue(String(value).replace(".", ","));
+  }, [value]);
+
   const displayVal = rawValue;
-  const syncExternal = (newVal: number) => {
-    setRawValue(String(newVal));
-  };
 
   return (
     <div className="space-y-2 rounded-2xl border border-border/80 bg-secondary/20 p-4 shadow-2xs">
       <div className="flex items-center justify-between gap-2">
         <div className="space-y-0.5">
-          <Label className="text-xs font-bold text-foreground">{label}</Label>
+          <Label className="text-xs font-semibold text-foreground">{label}</Label>
           {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
         </div>
 
@@ -3375,16 +3362,15 @@ function HybridTaxControl({
                 } else if (e.target.value === "" || e.target.value === "0") {
                   onChange(0);
                 }
-                // se for "3," ou "3." (incompleto) não faz nada — aguarda mais dígitos
               }}
-              onBlur={(e) => {
-                // No blur: sanitiza e formata o valor final
-                const raw = e.target.value.replace(",", ".");
+              onBlur={() => {
+                // No blur: sanitiza e formata o valor final com vírgula
+                const raw = rawValue.replace(",", ".");
                 const n = parseFloat(raw);
                 if (!isNaN(n)) {
                   const clamped = Math.min(max, Math.max(0, n));
                   onChange(clamped);
-                  setRawValue(String(clamped));
+                  setRawValue(String(clamped).replace(".", ","));
                 } else {
                   onChange(0);
                   setRawValue("0");
@@ -3422,7 +3408,6 @@ function HybridTaxControl({
               type="button"
               onClick={() => {
                 onChange(p.value);
-                syncExternal(p.value);
               }}
               className={cn(
                 "rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer",
