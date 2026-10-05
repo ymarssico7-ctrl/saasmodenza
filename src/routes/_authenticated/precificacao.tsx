@@ -1274,12 +1274,12 @@ function Precificacao() {
         <section className="panel p-6 sm:p-7 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
+              <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground shrink-0">
                 1
               </span>
               <div>
                 <h2 className="text-sm font-bold text-foreground">
-                  {mode === "rapida" ? "Identificação & Custo da Peça" : "Identificação & Custos Operacionais Compartilhados"}
+                  {mode === "rapida" ? "Identificação e custo da peça" : "Identificação e custos operacionais compartilhados"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mode === "rapida"
@@ -1330,7 +1330,7 @@ function Precificacao() {
               {/* 1. Custo Fornecedor (Atacado) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">
-                  Custo Fornecedor
+                  Custo fornecedor
                 </Label>
                 <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                   <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -1560,7 +1560,7 @@ function Precificacao() {
                 <div className="space-y-4 rounded-2xl border border-border/80 bg-secondary/20 p-4 sm:p-5 shadow-2xs">
                   <div className="space-y-0.5 border-b border-border/50 pb-3">
                     <span className="text-xs font-bold text-foreground">
-                      Custos adicionais & rateio por peça
+                      Custos adicionais e rateio por peça
                     </span>
                     <p className="text-[11px] text-muted-foreground">
                       Valores de frete, embalagens e despesas fixas somados a cada unidade do lote
@@ -1733,7 +1733,6 @@ function Precificacao() {
                     </div>
                     {/* Atalhos Rápidos de Embalagem */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground">Atalhos:</span>
                       {[
                         { label: "Sacola + Tag · R$ 3,50", val: "3,50" },
                         { label: "Caixa Sedex · R$ 5,00", val: "5,00" },
@@ -1788,9 +1787,6 @@ function Precificacao() {
                       <span className="text-[11px] font-semibold text-muted-foreground">
                         Custo adicional por peça
                       </span>
-                      <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground border border-border/60">
-                        Por Peça
-                      </span>
                     </div>
 
                     <div className="space-y-0.5">
@@ -1807,7 +1803,7 @@ function Precificacao() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5 text-muted-foreground">
                           <span className="size-2 rounded-full bg-primary" />
-                          Frete Rateado
+                          Frete rateado
                         </span>
                         <span className="numeric font-bold text-foreground">
                           {brl(freightVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(freightPct)}%)</span>
@@ -1817,7 +1813,7 @@ function Precificacao() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5 text-muted-foreground">
                           <span className="size-2 rounded-full bg-emerald-500" />
-                          Embalagem & Tag
+                          Embalagem e tag
                         </span>
                         <span className="numeric font-bold text-foreground">
                           {brl(packagingVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(packagingPct)}%)</span>
@@ -1827,7 +1823,7 @@ function Precificacao() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-1.5 text-muted-foreground">
                           <span className="size-2 rounded-full bg-amber-500" />
-                          Outros Custos
+                          Outros custos
                         </span>
                         <span className="numeric font-bold text-foreground">
                           {brl(otherVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(otherPct)}%)</span>
@@ -1882,10 +1878,10 @@ function Precificacao() {
               max={25}
               onChange={setTax}
               presets={[
-                { label: "MEI (0%)", value: 0 },
-                { label: "Simples F1 (4%)", value: 4 },
-                { label: "Simples F2 (7%)", value: 7 },
-                { label: "Simples F3 (10%)", value: 10 },
+                { label: "MEI", value: 0 },
+                { label: "Simples F1", value: 4 },
+                { label: "Simples F2", value: 7 },
+                { label: "Simples F3", value: 10 },
               ]}
             />
             <HybridTaxControl
@@ -2711,7 +2707,7 @@ function Precificacao() {
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mode === "rapida"
-                    ? "Defina a meta de lucro desejada e confira o fechamento da peça"
+                    ? "Meta de lucro e confirmação do preço final"
                     : "Visão consolidada do lote — faturamento potencial, investimento total e ponto de equilíbrio"}
                 </p>
               </div>
@@ -2838,7 +2834,7 @@ function Precificacao() {
                       <Label className="text-xs font-semibold text-foreground">
                         Preço de venda desejado
                       </Label>
-                      <span className="text-xs font-bold text-primary numeric">
+                      <span className="text-xs font-semibold text-muted-foreground numeric">
                         Margem resultante: {pct(summaryPrices.avgMargin)}
                       </span>
                     </div>
@@ -2888,7 +2884,7 @@ function Precificacao() {
                         {brl(summaryPrices.avgSuggested)}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        Lucro l\u00edquido · <strong className="text-foreground">{brl(summaryPrices.avgProfit)}</strong> / pe\u00e7a
+                        Lucro líquido · <strong className="text-foreground">{brl(summaryPrices.avgProfit)}</strong> / peça
                       </p>
                     </div>
                   )}
@@ -2993,7 +2989,6 @@ function Precificacao() {
                     disabled={save.isPending}
                     className="h-11 rounded-full text-xs font-semibold border-border bg-card hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                   >
-                    <Save className="size-3.5 text-muted-foreground" />
                     <span>Salvar no histórico</span>
                   </Button>
                   {/* TERTIARY */}
@@ -3061,6 +3056,16 @@ function Precificacao() {
             icon={<Tag className="size-6" />}
             title="Nenhuma peça salva"
             description="Calcule e salve suas precificações para consultar depois na hora de etiquetar e dar entrada no estoque."
+            action={
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-1 h-9 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              >
+                Calcular minha primeira peça ↑
+              </Button>
+            }
           />
         ) : (
           <div className="mt-5 overflow-x-auto">
@@ -3437,7 +3442,7 @@ function SliderRow({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-semibold text-foreground">{label}</Label>
-        {display && <span className="numeric text-sm font-bold text-primary">{display}</span>}
+        {display && <span className="numeric text-sm font-semibold text-foreground">{display}</span>}
       </div>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       <Slider
