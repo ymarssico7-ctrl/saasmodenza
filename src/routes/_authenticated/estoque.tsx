@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Check, ExternalLink, FolderPlus, Layers, Minus, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, SlidersHorizontal, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
+import { Boxes, Calculator, Check, ExternalLink, FolderPlus, Image as ImageIcon, Layers, Minus, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, SlidersHorizontal, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -1251,21 +1251,21 @@ function Estoque() {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[640px] overflow-y-auto">
                 <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-border/60 bg-surface-muted/30 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider select-none">
-                      <th className="w-10 px-4 py-3 text-center">
+                  <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur-xs border-b border-border/70 select-none">
+                    <tr className="text-[11.5px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="w-12 px-4 py-3 text-center">
                         <Checkbox
                           checked={selectedCatIds.length > 0 && selectedCatIds.length === filteredCategories.length}
                           onCheckedChange={handleToggleSelectAll}
                           aria-label="Selecionar todas"
                         />
                       </th>
-                      <th className="px-4 py-3">Título</th>
-                      <th className="px-4 py-3 w-32 sm:w-40">Produtos</th>
-                      <th className="px-4 py-3 w-48 hidden md:table-cell">Canais de vendas</th>
-                      <th className="px-4 py-3 w-16 text-right">
+                      <th className="px-4 py-3 w-[44%] text-left">Título</th>
+                      <th className="px-4 py-3 w-[22%] text-left">Produtos</th>
+                      <th className="px-4 py-3 w-[24%] text-left hidden sm:table-cell">Canais de vendas</th>
+                      <th className="px-4 py-3 w-[10%] text-right">
                         <span className="sr-only">Ações</span>
                       </th>
                     </tr>
@@ -1282,12 +1282,21 @@ function Estoque() {
                         <tr
                           key={cat.id}
                           className={cn(
-                            "group transition-colors hover:bg-secondary/40",
+                            "group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer",
                             isSelected && "bg-primary/5 hover:bg-primary/10"
                           )}
+                          onClick={() => {
+                            if (!isEditing) {
+                              setCategoryFilter(cat.slug);
+                              handleTabChange("pecas");
+                            }
+                          }}
                         >
                           {/* Checkbox */}
-                          <td className="px-4 py-3 text-center align-middle">
+                          <td
+                            className="w-12 px-4 py-3.5 text-center align-middle"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => handleToggleSelectCat(cat.id)}
@@ -1296,9 +1305,12 @@ function Estoque() {
                           </td>
 
                           {/* Título & Miniatura */}
-                          <td className="px-4 py-3 align-middle">
+                          <td className="px-4 py-3.5 align-middle w-[44%]">
                             {isEditing ? (
-                              <div className="flex items-center gap-2 max-w-sm">
+                              <div
+                                className="flex items-center gap-2 max-w-sm"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <Input
                                   value={editingCatName}
                                   onChange={(e) => setEditingCatName(e.target.value)}
@@ -1330,8 +1342,8 @@ function Estoque() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-3">
-                                {/* Thumbnail de Coleção Shopify */}
-                                <div className="size-9 rounded-lg border border-border/70 bg-surface-muted flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                                {/* Thumbnail de Coleção Shopify Polaris */}
+                                <div className="size-9 rounded-lg border border-border/80 bg-surface-muted/60 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
                                   {thumbUrl ? (
                                     <img
                                       src={thumbUrl}
@@ -1340,63 +1352,61 @@ function Estoque() {
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <Shirt className="size-4 text-muted-foreground/60" />
+                                    <ImageIcon className="size-4 text-muted-foreground/45" />
                                   )}
                                 </div>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setCategoryFilter(cat.slug);
-                                    handleTabChange("pecas");
-                                  }}
-                                  className="text-left font-semibold text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5"
-                                >
-                                  <span>{cat.name}</span>
-                                  {hasItems && (
-                                    <ExternalLink className="size-3 opacity-0 group-hover:opacity-60 transition-opacity text-primary" />
-                                  )}
-                                </button>
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-[13.5px] text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 truncate">
+                                    <span>{cat.name}</span>
+                                    {hasItems && (
+                                      <ExternalLink className="size-3 opacity-0 group-hover:opacity-60 transition-opacity text-primary shrink-0" />
+                                    )}
+                                  </span>
+                                </div>
                               </div>
                             )}
                           </td>
 
                           {/* Produtos / Quantidade */}
-                          <td className="px-4 py-3 align-middle text-sm">
+                          <td className="px-4 py-3.5 align-middle text-sm w-[22%]">
                             {hasItems ? (
                               <span className="font-semibold text-foreground tabular-nums">
-                                {count}
+                                {count} {count === 1 ? "peça" : "peças"}
                               </span>
                             ) : (
-                              <span className="font-normal text-muted-foreground/50 tabular-nums">
-                                0
+                              <span className="font-normal text-muted-foreground/60 tabular-nums">
+                                0 peças
                               </span>
                             )}
                           </td>
 
                           {/* Canais de Venda */}
-                          <td className="px-4 py-3 align-middle hidden md:table-cell">
+                          <td className="px-4 py-3.5 align-middle hidden sm:table-cell w-[24%]">
                             {vitrineAtiva ? (
                               hasItems ? (
-                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/40">
                                   <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                   Loja Online
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                                  <span className="size-1.5 rounded-full bg-muted-foreground/30" />
-                                  Não publicado
+                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 font-normal">
+                                  <span className="size-1.5 rounded-full bg-border" />
+                                  Pronta para vitrine
                                 </span>
                               )
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 font-normal">
                                 Catálogo Interno
                               </span>
                             )}
                           </td>
 
                           {/* Menu Ações */}
-                          <td className="px-4 py-3 align-middle text-right">
+                          <td
+                            className="px-4 py-3.5 align-middle text-right w-[10%]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
