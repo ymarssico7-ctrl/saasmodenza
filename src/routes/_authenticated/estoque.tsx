@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Boxes, Calculator, Check, ExternalLink, FolderPlus, Image as ImageIcon, Layers, Minus, MoreHorizontal, Package, Pencil, Plus, RotateCcw, Search, Settings2, Shirt, SlidersHorizontal, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
+import { Boxes, Calculator, Check, ExternalLink, FolderPlus, Image as ImageIcon, Layers, Minus, MoreHorizontal, Package, Pencil, Plus, Search, Settings2, Shirt, SlidersHorizontal, Sparkles, Store, Tag, Trash2, TrendingUp, Wallet, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
@@ -246,10 +246,6 @@ function Estoque() {
     toast.success("Categoria removida.");
   };
 
-  const handleRestoreDefaults = () => {
-    void saveCategories(DEFAULT_STORE_CATEGORIES);
-    toast.success("Categorias de moda restauradas!");
-  };
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -567,16 +563,6 @@ function Estoque() {
           <div className="flex items-center gap-2.5">
             {activeTab === "categorias" ? (
               <>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-10 rounded-xl border-border bg-card px-3.5 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
-                >
-                  <Link to="/estoque" search={{ tab: "pecas" }}>
-                    <Shirt className="mr-2 size-3.5 text-primary" />
-                    Ver Estoque
-                  </Link>
-                </Button>
                 <Button
                   type="button"
                   onClick={() => {
@@ -1198,30 +1184,6 @@ function Estoque() {
                       </button>
                     )}
                   </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        title="Opções de catálogo"
-                        className="size-8.5 rounded-xl text-muted-foreground/70 hover:text-foreground hover:bg-surface-muted cursor-pointer shrink-0"
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem
-                        onClick={handleRestoreDefaults}
-                        disabled={isSavingCats}
-                        className="gap-2 text-xs cursor-pointer"
-                      >
-                        <RotateCcw className="size-3.5 text-muted-foreground" />
-                        Restaurar padrões de moda
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             )}
@@ -1236,7 +1198,9 @@ function Estoque() {
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                   {catSearch
                     ? "Tente buscar por outro termo ou limpe a busca acima."
-                    : "Crie uma nova categoria com o botão no topo ou restaure o catálogo padrão."}
+                    : catFilterTab === "vazias"
+                      ? "Estas categorias ainda não têm peças. Vá para a aba Peças e vincule uma categoria ao cadastrar."
+                      : "Crie uma nova categoria com o botão no topo da página."}
                 </p>
                 {catSearch && (
                   <Button
@@ -1264,7 +1228,7 @@ function Estoque() {
                       </th>
                       <th className="px-4 py-3 w-[44%] text-left">Título</th>
                       <th className="px-4 py-3 w-[22%] text-left">Produtos</th>
-                      <th className="px-4 py-3 w-[24%] text-left hidden sm:table-cell">Canais de vendas</th>
+                      <th className="px-4 py-3 w-[24%] text-left hidden sm:table-cell">Status</th>
                       <th className="px-4 py-3 w-[10%] text-right">
                         <span className="sr-only">Ações</span>
                       </th>
@@ -1282,7 +1246,7 @@ function Estoque() {
                         <tr
                           key={cat.id}
                           className={cn(
-                            "group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer",
+                            "group transition-colors hover:bg-surface-muted/60 cursor-pointer",
                             isSelected && "bg-primary/5 hover:bg-primary/10"
                           )}
                           onClick={() => {
@@ -1352,7 +1316,9 @@ function Estoque() {
                                       loading="lazy"
                                     />
                                   ) : (
-                                    <ImageIcon className="size-4 text-muted-foreground/45" />
+                                    <span className="text-[10px] font-semibold text-muted-foreground/60 select-none leading-none">
+                                      {cat.name.slice(0, 2).toUpperCase()}
+                                    </span>
                                   )}
                                 </div>
 
@@ -1375,29 +1341,27 @@ function Estoque() {
                                 {count} {count === 1 ? "peça" : "peças"}
                               </span>
                             ) : (
-                              <span className="font-normal text-muted-foreground/60 tabular-nums">
-                                0 peças
-                              </span>
+                              <span className="font-normal text-muted-foreground/40 tabular-nums select-none">—</span>
                             )}
                           </td>
 
-                          {/* Canais de Venda */}
+                          {/* Status */}
                           <td className="px-4 py-3.5 align-middle hidden sm:table-cell w-[24%]">
                             {vitrineAtiva ? (
                               hasItems ? (
                                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/40">
-                                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                  Loja Online
+                                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                                  Na vitrine
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 font-normal">
+                                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 font-normal">
                                   <span className="size-1.5 rounded-full bg-border" />
-                                  Pronta para vitrine
+                                  Sem produtos
                                 </span>
                               )
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 font-normal">
-                                Catálogo Interno
+                              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 font-normal">
+                                Catálogo interno
                               </span>
                             )}
                           </td>
@@ -1441,25 +1405,24 @@ function Estoque() {
                                     Ver peças no estoque ({count})
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuSeparator />
-                                <ConfirmDelete
-                                  onConfirm={() => handleDeleteCategory(cat.id)}
-                                  description={
-                                    count > 0
-                                      ? `"${cat.name}" possui ${count} peça${count > 1 ? "s" : ""} no estoque e não pode ser excluída.`
-                                      : `A categoria "${cat.name}" será removida permanentemente do catálogo.`
-                                  }
-                                  trigger={
-                                    <DropdownMenuItem
-                                      className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                                      disabled={count > 0}
-                                      onSelect={(e) => e.preventDefault()}
-                                    >
-                                      <Trash2 className="size-3" />
-                                      {count > 0 ? "Não pode excluir" : "Excluir coleção"}
-                                    </DropdownMenuItem>
-                                  }
-                                />
+                                {!hasItems && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <ConfirmDelete
+                                      onConfirm={() => handleDeleteCategory(cat.id)}
+                                      description={`A categoria "${cat.name}" será removida permanentemente do catálogo.`}
+                                      trigger={
+                                        <DropdownMenuItem
+                                          className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                          onSelect={(e) => e.preventDefault()}
+                                        >
+                                          <Trash2 className="size-3" />
+                                          Excluir coleção
+                                        </DropdownMenuItem>
+                                      }
+                                    />
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
@@ -1472,12 +1435,10 @@ function Estoque() {
             )}
 
             {/* ── Rodapé da Tabela Polaris ── */}
-            <div className="px-4 sm:px-6 py-3.5 border-t border-border/60 bg-surface-muted/20 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+            <div className="px-4 sm:px-6 py-3 border-t border-border/60 bg-surface-muted/20 flex items-center text-xs text-muted-foreground/70">
               <span>
-                Mostrando {filteredCategories.length} de {storeCategories.length} {storeCategories.length === 1 ? "coleção" : "coleções"}
-              </span>
-              <span className="text-[11px] text-muted-foreground/60">
-                Categorias ativas sincronizam automaticamente com a vitrine online e estoque
+                {storeCategories.length} {storeCategories.length === 1 ? "coleção" : "coleções"}
+                {filteredCategories.length < storeCategories.length && ` · ${filteredCategories.length} exibidas`}
               </span>
             </div>
           </div>
