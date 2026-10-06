@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowRight,
+  ArrowUpRight,
   Banknote,
   Building2,
   Calculator,
@@ -2071,9 +2072,10 @@ function PricingGuidelinesCard({ storeId }: { storeId: string }) {
               <Link
                 to="/configuracoes"
                 search={{ tab: "geral" }}
-                className="text-[10px] font-semibold text-primary hover:underline inline-block mt-1"
+                className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 hover:border-border transition-all mt-1 cursor-pointer"
               >
-                Alterar na aba Geral →
+                <span>Ajustar na aba Geral</span>
+                <ArrowUpRight className="size-2.5 opacity-60" />
               </Link>
             </div>
 
@@ -2083,9 +2085,10 @@ function PricingGuidelinesCard({ storeId }: { storeId: string }) {
               <Link
                 to="/configuracoes"
                 search={{ tab: "caixa" }}
-                className="text-[10px] font-semibold text-primary hover:underline inline-block mt-1"
+                className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 hover:border-border transition-all mt-1 cursor-pointer"
               >
-                Alterar na aba Caixa →
+                <span>Ajustar na aba Caixa</span>
+                <ArrowUpRight className="size-2.5 opacity-60" />
               </Link>
             </div>
 

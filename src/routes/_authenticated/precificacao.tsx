@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowRight,
+  ArrowUpRight,
   Boxes,
   Calculator,
   Check,
@@ -27,6 +28,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sliders,
+  SlidersHorizontal,
   Sparkles,
   Tag,
   Target,
@@ -1871,16 +1873,29 @@ function Precificacao() {
           })()}
 
           {/* Taxas Fiscais e de Cartão com Controles Híbridos Studio */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-0.5">
-              <span className="text-xs font-semibold text-muted-foreground">Taxas e deduções da venda</span>
-              <Link
-                to="/configuracoes"
-                search={{ tab: "precificacao" }}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors"
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3 px-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-foreground/90 uppercase tracking-wider">
+                  Taxas e deduções da venda
+                </span>
+                <span className="hidden sm:inline-flex items-center rounded-full bg-surface-muted border border-border/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  Alíquotas padrão
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="h-8 rounded-full border-border/80 bg-card px-3 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 hover:border-border shadow-2xs gap-1.5 transition-all cursor-pointer"
               >
-                Configurar diretrizes de precificação →
-              </Link>
+                <Link to="/configuracoes" search={{ tab: "precificacao" }}>
+                  <SlidersHorizontal className="size-3.5 text-primary" />
+                  <span>Diretrizes da loja</span>
+                  <ArrowUpRight className="size-3 opacity-60" />
+                </Link>
+              </Button>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
