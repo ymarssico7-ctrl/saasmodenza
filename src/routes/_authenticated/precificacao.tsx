@@ -1873,27 +1873,22 @@ function Precificacao() {
           })()}
 
           {/* Taxas Fiscais e de Cartão com Controles Híbridos Studio */}
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between gap-3 px-0.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-foreground/90 uppercase tracking-wider">
-                  Taxas e deduções da venda
-                </span>
-                <span className="hidden sm:inline-flex items-center rounded-full bg-surface-muted border border-border/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  Alíquotas padrão
-                </span>
-              </div>
+              <span className="text-xs font-bold text-foreground/80 uppercase tracking-wider">
+                Taxas e deduções da venda
+              </span>
 
               <Button
                 variant="outline"
                 size="sm"
                 asChild
-                className="h-8 rounded-full border-border/80 bg-card px-3 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 hover:border-border shadow-2xs gap-1.5 transition-all cursor-pointer"
+                className="h-6.5 rounded-full border-border/60 bg-surface-muted/30 hover:bg-surface-muted px-2.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all shadow-none gap-1.5 cursor-pointer"
               >
-                <Link to="/configuracoes" search={{ tab: "precificacao" }}>
-                  <SlidersHorizontal className="size-3.5 text-primary" />
-                  <span>Diretrizes da loja</span>
-                  <ArrowUpRight className="size-3 opacity-60" />
+                <Link to="/configuracoes" search={{ tab: "caixa" }}>
+                  <CreditCard className="size-3 text-primary/80" />
+                  <span>Taxas da maquininha</span>
+                  <ArrowUpRight className="size-2.5 opacity-50" />
                 </Link>
               </Button>
             </div>
