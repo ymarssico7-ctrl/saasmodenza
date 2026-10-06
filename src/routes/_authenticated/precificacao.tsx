@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import {
   getPricingSettings,
+  savePricingSettings,
   PRICING_SETTINGS_EVENT,
   type PricingSettings,
 } from "@/lib/pricing-settings";
@@ -263,6 +264,53 @@ function Precificacao() {
     window.addEventListener(PRICING_SETTINGS_EVENT, handler);
     return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
   }, [storeId]);
+
+  // ── Drawer de Taxas Rápidas (abre direto na tela de precificação) ─────
+  const [taxDrawerOpen, setTaxDrawerOpen] = useState(false);
+  const [drawerTax, setDrawerTax] = useState(() => String(pricingSettings.defaultTax).replace(".", ","));
+  const [drawerCardRate, setDrawerCardRate] = useState(() => String(pricingSettings.defaultCardRate).replace(".", ","));
+  const [drawerMargin, setDrawerMargin] = useState(() => String(pricingSettings.defaultMargin).replace(".", ","));
+  const [drawerPix, setDrawerPix] = useState(() => String(pricingSettings.cardRates.pix).replace(".", ","));
+  const [drawerDebito, setDrawerDebito] = useState(() => String(pricingSettings.cardRates.debito).replace(".", ","));
+  const [drawerCredito, setDrawerCredito] = useState(() => String(pricingSettings.cardRates.credito1x).replace(".", ","));
+  const [drawerParcelado, setDrawerParcelado] = useState(() => String(pricingSettings.cardRates.parcelado).replace(".", ","));
+  const [drawerSaving, setDrawerSaving] = useState(false);
+
+  const parseDrawerNum = (val: string, fallback: number) => {
+    const n = parseFloat(val.replace(",", "."));
+    return isNaN(n) ? fallback : n;
+  };
+
+  const handleTaxDrawerSave = async () => {
+    setDrawerSaving(true);
+    try {
+      const newSettings: PricingSettings = {
+        ...pricingSettings,
+        defaultTax: parseDrawerNum(drawerTax, pricingSettings.defaultTax),
+        defaultCardRate: parseDrawerNum(drawerCardRate, pricingSettings.defaultCardRate),
+        defaultMargin: parseDrawerNum(drawerMargin, pricingSettings.defaultMargin),
+        cardRates: {
+          pix: parseDrawerNum(drawerPix, pricingSettings.cardRates.pix),
+          debito: parseDrawerNum(drawerDebito, pricingSettings.cardRates.debito),
+          credito1x: parseDrawerNum(drawerCredito, pricingSettings.cardRates.credito1x),
+          parcelado: parseDrawerNum(drawerParcelado, pricingSettings.cardRates.parcelado),
+        },
+      };
+      await savePricingSettings(storeId, newSettings);
+      // Aplica imediatamente nos campos ativos
+      setTax(newSettings.defaultTax);
+      setCardRate(newSettings.defaultCardRate);
+      setDesiredMargin(newSettings.defaultMargin);
+      setTaxDrawerOpen(false);
+      toast.success("Taxas salvas e aplicadas", {
+        description: "Os campos de imposto e cartão foram atualizados.",
+      });
+    } catch {
+      toast.error("Erro ao salvar taxas");
+    } finally {
+      setDrawerSaving(false);
+    }
+  };
 
   // ── Modo Principal (2 Modos Estratégicos) ─────────────────────────
   const [mode, setMode] = useState<PricingMode>("rapida");
@@ -1874,30 +1922,25 @@ function Precificacao() {
           <div className="space-y-2">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-xs font-semibold text-muted-foreground">Taxas e deduções da venda</span>
-              <Link
-                to="/configuracoes"
-                search={{ tab: "caixa" }}
+              <button
+                type="button"
+                onClick={() => setTaxDrawerOpen(true)}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                title="Predefinir taxas da maquininha e imposto padrão em Configurações"
+                title="Editar as taxas padrão da sua loja sem sair desta tela"
               >
                 <Settings className="size-3" />
-                <span>Configurar taxas padrão</span>
-              </Link>
+                <span>Ajustar taxas da loja</span>
+              </button>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <HybridTaxControl
                 label="Imposto DAS / Simples (%)"
-                hint="Alíquota aplicada sobre o faturamento de cada venda"
+                hint={`Alíquota da loja: ${pricingSettings.defaultTax}% — altere em "Ajustar taxas da loja"`}
                 value={tax}
                 max={25}
                 onChange={setTax}
-                presets={[
-                  { label: "MEI", value: pricingSettings.taxPresets.mei },
-                  { label: "Simples F1", value: pricingSettings.taxPresets.simplesF1 },
-                  { label: "Simples F2", value: pricingSettings.taxPresets.simplesF2 },
-                  { label: "Simples F3", value: pricingSettings.taxPresets.simplesF3 },
-                ]}
+                presets={[]}
               />
               <HybridTaxControl
                 label="Taxa média de cartão (%)"
@@ -3150,6 +3193,119 @@ function Precificacao() {
           </div>
         )}
       </section>
+
+      {/* ── Drawer: Ajuste Rápido de Taxas da Loja ───────────────── */}
+      <Sheet open={taxDrawerOpen} onOpenChange={setTaxDrawerOpen}>
+        <SheetContent className="w-full sm:max-w-sm overflow-y-auto p-6 space-y-6">
+          <SheetHeader>
+            <div className="flex items-center gap-2 text-primary font-semibold text-xs">
+              <Settings className="size-4" /> Taxas padrão da loja
+            </div>
+            <SheetTitle className="text-xl font-bold">Ajustar taxas</SheetTitle>
+            <SheetDescription className="text-xs">
+              Configure as taxas da sua loja. Ao salvar, os campos abaixo são atualizados imediatamente.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-5">
+            {/* Imposto */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-bold text-foreground">Alíquota de imposto da loja</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Regime DAS / Simples Nacional aplicado em cada venda</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {[
+                  { label: "MEI (0%)", val: "0" },
+                  { label: "Simples F1 (4%)", val: "4" },
+                  { label: "Simples F2 (7%)", val: "7" },
+                  { label: "Simples F3 (10%)", val: "10" },
+                ].map((reg) => (
+                  <button
+                    key={reg.label}
+                    type="button"
+                    onClick={() => setDrawerTax(reg.val)}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer",
+                      drawerTax === reg.val
+                        ? "bg-primary text-primary-foreground border-transparent shadow-xs"
+                        : "bg-card text-muted-foreground border-border hover:text-foreground"
+                    )}
+                  >
+                    {reg.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 gap-1">
+                <input
+                  inputMode="decimal"
+                  value={drawerTax}
+                  onChange={(e) => setDrawerTax(e.target.value)}
+                  className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                  placeholder="6,0"
+                />
+                <span className="text-xs font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
+
+            {/* Taxas de cartão */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-bold text-foreground">Taxas da maquininha</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Valores reais contratados com a adquirente (Stone, PagBank, Rede, Cielo…)</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Pix", value: drawerPix, set: setDrawerPix, placeholder: "0" },
+                  { label: "Débito", value: drawerDebito, set: setDrawerDebito, placeholder: "1,5" },
+                  { label: "Crédito 1×", value: drawerCredito, set: setDrawerCredito, placeholder: "3,2" },
+                  { label: "Parcelado", value: drawerParcelado, set: setDrawerParcelado, placeholder: "5,5" },
+                ].map((field) => (
+                  <div key={field.label} className="rounded-xl border border-border bg-card p-3 space-y-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground">{field.label}</p>
+                    <div className="flex items-center gap-1">
+                      <input
+                        inputMode="decimal"
+                        value={field.value}
+                        onChange={(e) => field.set(e.target.value)}
+                        placeholder={field.placeholder}
+                        className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                      />
+                      <span className="text-xs font-bold text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Margem alvo */}
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-bold text-foreground">Margem líquida alvo padrão</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Meta de rentabilidade sugerida ao calcular qualquer peça</p>
+              </div>
+              <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 gap-1">
+                <input
+                  inputMode="decimal"
+                  value={drawerMargin}
+                  onChange={(e) => setDrawerMargin(e.target.value)}
+                  className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
+                  placeholder="50"
+                />
+                <span className="text-xs font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            className="w-full h-11 rounded-xl font-bold shadow-glow text-sm"
+            onClick={handleTaxDrawerSave}
+            disabled={drawerSaving}
+          >
+            {drawerSaving ? "Salvando..." : "Salvar e aplicar"}
+          </Button>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Modal Sheet: Ficha de Entrada Operacional no Estoque ──── */}
       <Sheet open={entrySheetOpen} onOpenChange={setEntrySheetOpen}>
