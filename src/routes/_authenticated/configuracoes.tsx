@@ -981,33 +981,36 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
         <button
           type="button"
           onClick={() => setTab("entry")}
-          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={cn(
+            "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer",
             tab === "entry"
-              ? "bg-card text-emerald-600 shadow-xs dark:text-emerald-400"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+              ? "bg-card text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
         >
           Receitas (Entrada)
         </button>
         <button
           type="button"
           onClick={() => setTab("exit")}
-          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={cn(
+            "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer",
             tab === "exit"
-              ? "bg-card text-rose-600 shadow-xs dark:text-rose-400"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+              ? "bg-card text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
         >
           Despesas (Saída)
         </button>
         <button
           type="button"
           onClick={() => setTab("pay")}
-          className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={cn(
+            "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer",
             tab === "pay"
-              ? "bg-card text-primary shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+              ? "bg-card text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
         >
           Formas de Pagamento
         </button>
@@ -1252,6 +1255,17 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
   const [parceladoRate, setParceladoRate] = useState(String(settings.cardRates.parcelado).replace(".", ","));
   const [isSaving, setIsSaving] = useState(false);
 
+  const isDirty = useMemo(() => {
+    return (
+      defaultTax !== String(settings.defaultTax).replace(".", ",") ||
+      defaultMargin !== String(settings.defaultMargin).replace(".", ",") ||
+      pixRate !== String(settings.cardRates.pix).replace(".", ",") ||
+      debitoRate !== String(settings.cardRates.debito).replace(".", ",") ||
+      credito1xRate !== String(settings.cardRates.credito1x).replace(".", ",") ||
+      parceladoRate !== String(settings.cardRates.parcelado).replace(".", ",")
+    );
+  }, [defaultTax, defaultMargin, pixRate, debitoRate, credito1xRate, parceladoRate, settings]);
+
   const parseNumber = (val: string, fallback: number) => {
     const n = parseFloat(val.replace(",", "."));
     return isNaN(n) ? fallback : n;
@@ -1273,8 +1287,8 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
       };
       setSettings(updated);
       await savePricingSettings(storeId, updated);
-      toast.success("Predefinições salvas", {
-        description: "Esses valores serão carregados automaticamente na tela de Precificação.",
+      toast.success("Predefinições salvas com sucesso!", {
+        description: "Os novos valores já estão ativos na tela de Precificação.",
       });
     } catch {
       toast.error("Erro ao salvar predefinições");
@@ -1291,22 +1305,42 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
           <Percent className="size-5" />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-foreground">Taxas de precificação</h2>
+          <h2 className="text-base font-semibold text-foreground">Taxas padrão de vendas & Maquininha</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure as taxas reais da sua maquininha e sua alíquota de imposto. Esses valores carregam
-            automaticamente ao precificar qualquer peça.
+            Configure a alíquota fiscal da loja e as taxas cobradas pelas maquininhas. Esses percentuais preenchem automaticamente o cálculo de preço de qualquer peça.
           </p>
         </div>
       </div>
 
-      <div className="space-y-5">
-        {/* Imposto */}
-        <div className="space-y-2.5">
-          <div>
-            <p className="text-xs font-semibold text-foreground">Alíquota de imposto da loja</p>
-            <p className="text-[11px] text-muted-foreground">Regime DAS / Simples Nacional descontado em cada venda</p>
+      <div className="space-y-4">
+        {/* Bloco 1: Imposto */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Alíquota fiscal da loja (DAS)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Percentual tributário aplicado sobre o faturamento de cada venda.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs text-muted-foreground font-medium">Alíquota:</span>
+              <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <input
+                  inputMode="decimal"
+                  value={defaultTax}
+                  onChange={(e) => setDefaultTax(e.target.value)}
+                  placeholder="6,0"
+                  className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-xs font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+
+          <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+            <span className="text-[11px] text-muted-foreground font-medium mr-1">Regimes comuns:</span>
             {[
               { label: "MEI (0%)", val: "0" },
               { label: "Simples F1 (4%)", val: "4" },
@@ -1328,36 +1362,29 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
               </button>
             ))}
           </div>
-          <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-36 focus-within:ring-2 focus-within:ring-ring/30 transition-all">
-            <input
-              inputMode="decimal"
-              value={defaultTax}
-              onChange={(e) => setDefaultTax(e.target.value)}
-              placeholder="6,0"
-              className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
-            />
-            <span className="text-xs font-bold text-muted-foreground">%</span>
-          </div>
         </div>
 
-        {/* Taxas da maquininha */}
-        <div className="space-y-2.5">
+        {/* Bloco 2: Taxas da Maquininha */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-3">
           <div>
-            <p className="text-xs font-semibold text-foreground">Taxas da maquininha de cartão</p>
-            <p className="text-[11px] text-muted-foreground">
-              Valores exatos contratados com a adquirente (Stone, PagBank, Rede, Cielo…)
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Taxas da maquininha de cartão
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Valores reais negociados com a adquirente (Stone, PagBank, Rede, Cielo, Ton, etc).
             </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 pt-1">
             {[
-              { label: "Pix", value: pixRate, set: setPixRate, placeholder: "0" },
-              { label: "Débito", value: debitoRate, set: setDebitoRate, placeholder: "1,5" },
-              { label: "Crédito à vista (1×)", value: credito1xRate, set: setCredito1xRate, placeholder: "3,2" },
-              { label: "Parcelado médio", value: parceladoRate, set: setParceladoRate, placeholder: "5,5" },
+              { label: "Pix Maquininha", value: pixRate, set: setPixRate, placeholder: "0,00" },
+              { label: "Débito", value: debitoRate, set: setDebitoRate, placeholder: "1,50" },
+              { label: "Crédito à vista (1×)", value: credito1xRate, set: setCredito1xRate, placeholder: "3,20" },
+              { label: "Crédito Parcelado", value: parceladoRate, set: setParceladoRate, placeholder: "5,50" },
             ].map((field) => (
               <div
                 key={field.label}
-                className="space-y-1.5 rounded-xl border border-border bg-card p-3 focus-within:ring-2 focus-within:ring-ring/30 transition-all"
+                className="space-y-1.5 rounded-xl border border-border/80 bg-card p-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all"
               >
                 <p className="text-[11px] font-semibold text-muted-foreground">{field.label}</p>
                 <div className="flex items-center gap-1">
@@ -1375,30 +1402,51 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
           </div>
         </div>
 
-        {/* Margem alvo */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-border/40">
-          <div>
-            <p className="text-xs font-semibold text-foreground">Margem líquida alvo padrão</p>
-            <p className="text-[11px] text-muted-foreground">Meta de rentabilidade sugerida ao calcular qualquer peça</p>
-          </div>
-          <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-28 shrink-0 focus-within:ring-2 focus-within:ring-ring/30 transition-all">
-            <input
-              inputMode="decimal"
-              value={defaultMargin}
-              onChange={(e) => setDefaultMargin(e.target.value)}
-              placeholder="50"
-              className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
-            />
-            <span className="text-xs font-bold text-muted-foreground">%</span>
+        {/* Bloco 3: Margem Líquida Alvo */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Margem de lucro alvo sugerida
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Meta padrão de lucro líquido sugerida ao cadastrar e precificar qualquer peça.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs text-muted-foreground font-medium">Margem meta:</span>
+              <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <input
+                  inputMode="decimal"
+                  value={defaultMargin}
+                  onChange={(e) => setDefaultMargin(e.target.value)}
+                  placeholder="50"
+                  className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-xs font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end">
+        {/* Barra de Ação */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+          <p className="text-xs text-muted-foreground">
+            {isDirty ? (
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                ● Há alterações pendentes de salvamento
+              </span>
+            ) : (
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                ✓ Predefinições sincronizadas com a precificação
+              </span>
+            )}
+          </p>
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={isSaving}
-            className="h-10 rounded-xl px-6 text-xs font-semibold cursor-pointer shadow-glow"
+            disabled={isSaving || !isDirty}
+            className="h-10 rounded-xl px-6 text-xs font-bold cursor-pointer shadow-glow"
           >
             {isSaving ? "Salvando..." : "Salvar predefinições"}
           </Button>
