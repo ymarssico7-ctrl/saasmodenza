@@ -1876,10 +1876,10 @@ function Precificacao() {
               <span className="text-xs font-semibold text-muted-foreground">Taxas e deduções da venda</span>
               <Link
                 to="/configuracoes"
-                search={{ tab: "caixa" }}
+                search={{ tab: "precificacao" }}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors"
               >
-                Configurar taxas da loja →
+                Configurar diretrizes de precificação →
               </Link>
             </div>
 

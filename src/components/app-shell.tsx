@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Boxes,
+  Calculator,
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
@@ -881,6 +882,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   { tab: "geral", label: "Geral", icon: Store },
                   { tab: "canais", label: "Canais de Venda", icon: Globe },
                   { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
+                  { tab: "precificacao", label: "Precificação & Margens", icon: Calculator },
                   { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
                   { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
                 ].map((item) => {
@@ -889,7 +891,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.tab}
                       to="/configuracoes"
-                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "equipe" | "plano" }}
+                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "precificacao" | "equipe" | "plano" }}
                       title={item.label}
                       className={cn(
                         "relative flex size-9 items-center justify-center rounded-lg transition-colors cursor-pointer",
@@ -948,6 +950,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   { tab: "geral", label: "Geral", icon: Store },
                   { tab: "canais", label: "Canais de Venda", icon: Globe },
                   { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
+                  { tab: "precificacao", label: "Precificação & Margens", icon: Calculator },
                   { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
                   { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
                 ].map((item) => {
@@ -956,7 +959,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.tab}
                       to="/configuracoes"
-                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "equipe" | "plano" }}
+                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "precificacao" | "equipe" | "plano" }}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-normal transition-colors duration-150 cursor-pointer",
                         active

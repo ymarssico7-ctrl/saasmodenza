@@ -4,7 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowRight,
+  Banknote,
   Building2,
+  Calculator,
   Check,
   CreditCard,
   Globe,
@@ -13,12 +15,14 @@ import {
   Pencil,
   Percent,
   Plus,
+  Receipt,
   ShieldCheck,
   Sparkles,
   Store,
   Trash2,
   Users,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmDelete } from "@/components/confirm-delete";
@@ -37,6 +41,7 @@ import {
 import {
   getPricingSettings,
   savePricingSettings,
+  PRICING_SETTINGS_EVENT,
   type PricingSettings,
 } from "@/lib/pricing-settings";
 import {
@@ -56,7 +61,13 @@ import {
   currentUserId,
 } from "@/lib/db";
 import { brl, toNumber } from "@/lib/format";
-import { ENTRY_CATEGORIES, EXIT_CATEGORIES, PAYMENT_METHODS } from "@/lib/finance";
+import {
+  ENTRY_CATEGORIES,
+  EXIT_CATEGORIES,
+  PAYMENT_METHODS,
+  computePricingByMargin,
+  getMarginHealth,
+} from "@/lib/finance";
 import {
   getCustomOptions,
   addCustomEntry,
@@ -77,7 +88,7 @@ import {
 } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-type ConfiguracoesTab = "geral" | "canais" | "caixa" | "equipe" | "plano";
+type ConfiguracoesTab = "geral" | "canais" | "caixa" | "precificacao" | "equipe" | "plano";
 
 type ConfiguracoesSearch = {
   tab?: ConfiguracoesTab;
@@ -85,7 +96,7 @@ type ConfiguracoesSearch = {
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   validateSearch: (search: Record<string, unknown>): ConfiguracoesSearch => {
-    const validTabs: ConfiguracoesTab[] = ["geral", "canais", "caixa", "equipe", "plano"];
+    const validTabs: ConfiguracoesTab[] = ["geral", "canais", "caixa", "precificacao", "equipe", "plano"];
     const tab =
       typeof search["tab"] === "string" && validTabs.includes(search["tab"] as ConfiguracoesTab)
         ? (search["tab"] as ConfiguracoesTab)
@@ -313,15 +324,19 @@ function Configuracoes() {
   const tabMetadata = {
     geral: {
       title: "Geral",
-      description: "Informações oficiais da empresa, contato e logotipo da sua boutique.",
+      description: "Informações oficiais da empresa, regime fiscal e dados da sua boutique.",
     },
     canais: {
       title: "Canais de Venda",
       description: "Defina como você atende suas clientes (Balcão Físico vs Vitrine Digital).",
     },
     caixa: {
-      title: "Caixa & Pagamentos",
-      description: "Classificações de receitas, despesas e formas de pagamento aceitas no balcão (PDV).",
+      title: "Caixa & Meios de Pagamento",
+      description: "Meios de pagamento aceitos, taxas de operadoras e categorias do fluxo de caixa.",
+    },
+    precificacao: {
+      title: "Precificação & Margens",
+      description: "Diretrizes padrão de formação de preço, margem líquida alvo e markup sugerido.",
     },
     equipe: {
       title: "Usuários & Equipe",
@@ -342,6 +357,7 @@ function Configuracoes() {
             { tab: "geral", label: "Geral" },
             { tab: "canais", label: "Canais" },
             { tab: "caixa", label: "Caixa" },
+            { tab: "precificacao", label: "Precificação" },
             { tab: "equipe", label: `Equipe${members.length > 0 ? ` (${members.length})` : ""}` },
             { tab: "plano", label: "Plano" },
           ].map((item) => (
@@ -451,6 +467,9 @@ function Configuracoes() {
               </div>
             </div>
           </section>
+
+          {/* Card: Regime Tributário & Fiscal (DAS / Simples Nacional) */}
+          <TaxSettingsCard storeId={storeId} />
 
           {/* Barra de ação de salvar */}
           <div className="flex justify-end pt-2">
@@ -623,15 +642,24 @@ function Configuracoes() {
               </button>
             </div>
           </section>
+
+          <TaxSettingsCard storeId={storeId} />
         </div>
       )}
 
-      {/* ════ ABA 3: Caixa & Pagamentos ═════════════════════════════════════ */}
+      {/* ════ ABA 3: Caixa & Meios de Pagamento ════════════════════════════ */}
       {activeTab === "caixa" && (
         <div className="space-y-6">
-          <PricingSettingsCard storeId={storeId} />
+          <PaymentMethodsSettingsCard storeId={storeId} />
           <FiadoSettingsCard storeId={storeId} />
-          <CustomOptionsSettingsSection storeId={storeId} />
+          <CashFlowCategoriesSection storeId={storeId} />
+        </div>
+      )}
+
+      {/* ════ ABA 4: Precificação & Margens ═══════════════════════════════════ */}
+      {activeTab === "precificacao" && (
+        <div className="space-y-6">
+          <PricingGuidelinesCard storeId={storeId} />
         </div>
       )}
 
@@ -878,9 +906,8 @@ function Configuracoes() {
   );
 }
 
-// ── Seção Dedicada de Categorias & Formas de Pagamento (Padrão Shopify / PDV) ─
-function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
-  const [tab, setTab] = useState<"entry" | "exit" | "pay">("entry");
+function CashFlowCategoriesSection({ storeId }: { storeId: string }) {
+  const [tab, setTab] = useState<"entry" | "exit">("entry");
   const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
   const [editingValue, setEditingValue] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
@@ -902,17 +929,10 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
 
   const baseEntry = ENTRY_CATEGORIES as readonly { value: string; label: string }[];
   const baseExit = EXIT_CATEGORIES as readonly { value: string; label: string }[];
-  const basePay = PAYMENT_METHODS as readonly { value: string; label: string }[];
 
-  const activeKind =
-    tab === "entry" ? "entryCategories" : tab === "exit" ? "exitCategories" : "paymentMethods";
-  const activeCustoms =
-    tab === "entry"
-      ? customOpts.entryCategories
-      : tab === "exit"
-      ? customOpts.exitCategories
-      : customOpts.paymentMethods;
-  const activeBases = tab === "entry" ? baseEntry : tab === "exit" ? baseExit : basePay;
+  const activeKind = tab === "entry" ? "entryCategories" : "exitCategories";
+  const activeCustoms = tab === "entry" ? customOpts.entryCategories : customOpts.exitCategories;
+  const activeBases = tab === "entry" ? baseEntry : baseExit;
 
   const handleSaveEdit = (kind: keyof CustomOptionsStore, value: string) => {
     const trimmed = editLabel.trim();
@@ -923,7 +943,7 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
       activeCustoms.some((c) => c.value !== value && c.label.toLowerCase() === lower);
 
     if (jaExiste) {
-      toast.error("Já existe uma opção com este nome.", {
+      toast.error("Já existe uma categoria com este nome.", {
         description: `"${trimmed}" já está cadastrada na lista.`,
       });
       return;
@@ -932,12 +952,12 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
     updateCustomOption(storeId, kind, value, trimmed);
     setEditingValue(null);
     setEditLabel("");
-    toast.success("Opção atualizada");
+    toast.success("Categoria atualizada");
   };
 
   const handleDelete = (kind: keyof CustomOptionsStore, value: string) => {
     removeCustomOption(storeId, kind, value);
-    toast.success("Opção removida");
+    toast.success("Categoria removida");
   };
 
   const handleAdd = (kind: keyof CustomOptionsStore) => {
@@ -949,7 +969,7 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
       activeCustoms.some((c) => c.label.toLowerCase() === lower);
 
     if (jaExiste) {
-      toast.error("Esta opção já existe.", {
+      toast.error("Esta categoria já existe.", {
         description: `"${trimmed}" já está cadastrada na lista.`,
       });
       return;
@@ -957,27 +977,26 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
 
     if (kind === "entryCategories") addCustomEntry(storeId, trimmed);
     if (kind === "exitCategories") addCustomExit(storeId, trimmed);
-    if (kind === "paymentMethods") addCustomPaymentMethod(storeId, trimmed);
     setNewLabel("");
-    toast.success("Nova opção adicionada com sucesso!");
+    toast.success("Nova categoria adicionada com sucesso!");
   };
 
   return (
-    <section id="categorias-pagamentos" className="panel p-6 sm:p-7 space-y-6">
+    <section id="categorias-caixa" className="panel p-6 sm:p-7 space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border/60">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="size-4.5 text-primary" />
-            Classificações do Caixa & Formas de Pagamento
+            <Wallet className="size-4.5 text-primary" />
+            Categorias do Fluxo de Caixa
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Gerencie as opções exibidas nos formulários de lançamento e fechamento de caixa no balcão (PDV).
+            Classificações de receitas e despesas exibidas nos lançamentos e fechamento de caixa do balcão (PDV).
           </p>
         </div>
       </div>
 
-      {/* ── Sub-Abas Segmentadas ────────────────────────────────────────── */}
-      <div className="flex rounded-xl bg-surface-muted/70 border border-border/60 p-1 gap-1 max-w-lg">
+      {/* ── Sub-Abas Segmentadas ── */}
+      <div className="flex rounded-xl bg-surface-muted/70 border border-border/60 p-1 gap-1 max-w-sm">
         <button
           type="button"
           onClick={() => setTab("entry")}
@@ -1002,21 +1021,9 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
         >
           Despesas (Saída)
         </button>
-        <button
-          type="button"
-          onClick={() => setTab("pay")}
-          className={cn(
-            "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer",
-            tab === "pay"
-              ? "bg-card text-foreground shadow-2xs font-semibold"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          Formas de Pagamento
-        </button>
       </div>
 
-      {/* ── Adição Rápida de Opção ────────────────────────────────────────── */}
+      {/* ── Adição Rápida de Opção ── */}
       <div className="flex gap-2 max-w-lg">
         <Input
           value={newLabel}
@@ -1024,9 +1031,7 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
           placeholder={
             tab === "entry"
               ? "Nova classificação de receita... Ex: Venda Instagram"
-              : tab === "exit"
-              ? "Nova classificação de despesa... Ex: Energia / Luz"
-              : "Nova forma de pagamento... Ex: Pix Maquininha"
+              : "Nova classificação de despesa... Ex: Energia / Luz"
           }
           className="h-10 rounded-xl text-xs bg-card border-border"
           onKeyDown={(e) => {
@@ -1043,7 +1048,7 @@ function CustomOptionsSettingsSection({ storeId }: { storeId: string }) {
         </Button>
       </div>
 
-      {/* ── Lista de Opções da Aba Ativa ──────────────────────────────────── */}
+      {/* ── Lista de Opções da Aba Ativa ── */}
       <div className="grid gap-2 sm:grid-cols-2 max-w-3xl pt-1">
         {/* Opções Padrão */}
         {activeBases.map((item) => (
@@ -1244,27 +1249,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// ── Card de Predefinições de Taxas & Precificação ─────────────────────────────
-function PricingSettingsCard({ storeId }: { storeId: string }) {
+// ── Card 1: Alíquota Fiscal da Loja / DAS (Aba Geral) ────────────────────────
+function TaxSettingsCard({ storeId }: { storeId: string }) {
   const [settings, setSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
   const [defaultTax, setDefaultTax] = useState(String(settings.defaultTax).replace(".", ","));
-  const [defaultMargin, setDefaultMargin] = useState(String(settings.defaultMargin).replace(".", ","));
-  const [pixRate, setPixRate] = useState(String(settings.cardRates.pix).replace(".", ","));
-  const [debitoRate, setDebitoRate] = useState(String(settings.cardRates.debito).replace(".", ","));
-  const [credito1xRate, setCredito1xRate] = useState(String(settings.cardRates.credito1x).replace(".", ","));
-  const [parceladoRate, setParceladoRate] = useState(String(settings.cardRates.parcelado).replace(".", ","));
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    const handler = () => {
+      const fresh = getPricingSettings(storeId);
+      setSettings(fresh);
+      setDefaultTax(String(fresh.defaultTax).replace(".", ","));
+    };
+    window.addEventListener(PRICING_SETTINGS_EVENT, handler);
+    return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
+  }, [storeId]);
+
   const isDirty = useMemo(() => {
-    return (
-      defaultTax !== String(settings.defaultTax).replace(".", ",") ||
-      defaultMargin !== String(settings.defaultMargin).replace(".", ",") ||
-      pixRate !== String(settings.cardRates.pix).replace(".", ",") ||
-      debitoRate !== String(settings.cardRates.debito).replace(".", ",") ||
-      credito1xRate !== String(settings.cardRates.credito1x).replace(".", ",") ||
-      parceladoRate !== String(settings.cardRates.parcelado).replace(".", ",")
-    );
-  }, [defaultTax, defaultMargin, pixRate, debitoRate, credito1xRate, parceladoRate, settings]);
+    return defaultTax !== String(settings.defaultTax).replace(".", ",");
+  }, [defaultTax, settings.defaultTax]);
 
   const parseNumber = (val: string, fallback: number) => {
     const n = parseFloat(val.replace(",", "."));
@@ -1274,145 +1277,748 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const pix = parseNumber(pixRate, 0);
-      const debito = parseNumber(debitoRate, 1.5);
-      const credito1x = parseNumber(credito1xRate, 3.2);
-      const parcelado = parseNumber(parceladoRate, 5.5);
+      const parsed = parseNumber(defaultTax, 6.0);
       const updated: PricingSettings = {
-        defaultTax: parseNumber(defaultTax, 6.0),
-        defaultCardRate: (pix + debito + credito1x + parcelado) / 4,
-        defaultMargin: parseNumber(defaultMargin, 50),
-        cardRates: { pix, debito, credito1x, parcelado },
-        taxPresets: { mei: 0, simplesF1: 4.0, simplesF2: 7.0, simplesF3: 10.0 },
+        ...settings,
+        defaultTax: parsed,
       };
       setSettings(updated);
       await savePricingSettings(storeId, updated);
-      toast.success("Predefinições salvas com sucesso!", {
-        description: "Os novos valores já estão ativos na tela de Precificação.",
+      toast.success("Alíquota fiscal salva com sucesso!", {
+        description: `DAS padrão definido em ${parsed.toFixed(1)}% para toda a precificação da boutique.`,
       });
     } catch {
-      toast.error("Erro ao salvar predefinições");
+      toast.error("Erro ao salvar alíquota fiscal");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <section id="taxas-precificacao" className="panel p-6 sm:p-7 space-y-6">
-      {/* Cabeçalho */}
+    <section id="aliquota-fiscal" className="panel p-6 sm:p-7 space-y-6">
       <div className="flex items-start gap-3.5 border-b border-border/60 pb-5">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Percent className="size-5" />
+          <Receipt className="size-5" />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-foreground">Taxas padrão de vendas & Maquininha</h2>
+          <h2 className="text-base font-semibold text-foreground">Alíquota Fiscal da Loja (DAS / Tributação)</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure a alíquota fiscal da loja e as taxas cobradas pelas maquininhas. Esses percentuais preenchem automaticamente o cálculo de preço de qualquer peça.
+            Percentual tributário aplicado sobre o faturamento de cada venda. Essa alíquota preenche automaticamente as deduções de impostos ao precificar qualquer peça no estoque.
           </p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Bloco 1: Imposto */}
-        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Alíquota fiscal da loja (DAS)
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Percentual tributário aplicado sobre o faturamento de cada venda.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-xs text-muted-foreground font-medium">Alíquota:</span>
-              <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                <input
-                  inputMode="decimal"
-                  value={defaultTax}
-                  onChange={(e) => setDefaultTax(e.target.value)}
-                  placeholder="6,0"
-                  className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
-                />
-                <span className="text-xs font-bold text-muted-foreground">%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 pt-1 flex-wrap">
-            <span className="text-[11px] text-muted-foreground font-medium mr-1">Regimes comuns:</span>
-            {[
-              { label: "MEI (0%)", val: "0" },
-              { label: "Simples F1 (4%)", val: "4" },
-              { label: "Simples F2 (7%)", val: "7" },
-              { label: "Simples F3 (10%)", val: "10" },
-            ].map((reg) => (
-              <button
-                key={reg.label}
-                type="button"
-                onClick={() => setDefaultTax(reg.val)}
-                className={cn(
-                  "rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer",
-                  defaultTax.replace(".", ",") === reg.val.replace(".", ",")
-                    ? "bg-primary text-primary-foreground border-transparent shadow-xs"
-                    : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                )}
-              >
-                {reg.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Bloco 2: Taxas da Maquininha */}
-        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-3">
+      <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Taxas da maquininha de cartão
+              Alíquota padrão de imposto (DAS)
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Valores reais negociados com a adquirente (Stone, PagBank, Rede, Cielo, Ton, etc).
+              Aplicada nas deduções fiscais em todas as vendas físicas e digitais da boutique.
             </p>
           </div>
-
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 pt-1">
-            {[
-              { label: "Pix Maquininha", value: pixRate, set: setPixRate, placeholder: "0,00" },
-              { label: "Débito", value: debitoRate, set: setDebitoRate, placeholder: "1,50" },
-              { label: "Crédito à vista (1×)", value: credito1xRate, set: setCredito1xRate, placeholder: "3,20" },
-              { label: "Crédito Parcelado", value: parceladoRate, set: setParceladoRate, placeholder: "5,50" },
-            ].map((field) => (
-              <div
-                key={field.label}
-                className="space-y-1.5 rounded-xl border border-border/80 bg-card p-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all"
-              >
-                <p className="text-[11px] font-semibold text-muted-foreground">{field.label}</p>
-                <div className="flex items-center gap-1">
-                  <input
-                    inputMode="decimal"
-                    value={field.value}
-                    onChange={(e) => field.set(e.target.value)}
-                    placeholder={field.placeholder}
-                    className="w-full text-sm font-bold text-foreground outline-none bg-transparent"
-                  />
-                  <span className="text-xs font-bold text-muted-foreground">%</span>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs text-muted-foreground font-medium">Alíquota:</span>
+            <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <input
+                inputMode="decimal"
+                value={defaultTax}
+                onChange={(e) => setDefaultTax(e.target.value)}
+                placeholder="6,0"
+                className="w-full text-right text-sm font-bold text-foreground outline-none bg-transparent"
+              />
+              <span className="text-xs font-bold text-muted-foreground">%</span>
+            </div>
           </div>
         </div>
 
-        {/* Bloco 3: Margem Líquida Alvo */}
-        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5">
+        <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+          <span className="text-[11px] text-muted-foreground font-medium mr-1">Regimes comuns:</span>
+          {[
+            { label: "MEI (0%)", val: "0" },
+            { label: "Simples F1 (4%)", val: "4" },
+            { label: "Simples F2 (7%)", val: "7" },
+            { label: "Simples F3 (10%)", val: "10" },
+          ].map((reg) => (
+            <button
+              key={reg.label}
+              type="button"
+              onClick={() => setDefaultTax(reg.val)}
+              className={cn(
+                "rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer",
+                defaultTax.replace(".", ",") === reg.val.replace(".", ",")
+                  ? "bg-primary text-primary-foreground border-transparent shadow-xs"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+              )}
+            >
+              {reg.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+        <p className="text-xs text-muted-foreground">
+          {isDirty ? (
+            <span className="text-amber-600 dark:text-amber-400 font-medium">
+              ● Há alterações na alíquota pendentes de salvamento
+            </span>
+          ) : (
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              ✓ Alíquota sincronizada com o cálculo de precificação
+            </span>
+          )}
+        </p>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isSaving || !isDirty}
+          className="h-10 rounded-xl px-6 text-xs font-bold cursor-pointer shadow-glow"
+        >
+          {isSaving ? "Salvando..." : "Salvar alíquota fiscal"}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+// ── Card 2: Central Unificada de Meios de Pagamento & Taxas (Aba Caixa) ────────
+function PaymentMethodsSettingsCard({ storeId }: { storeId: string }) {
+  const [settings, setSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
+  const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
+
+  // Taxas padrão da maquininha
+  const [pixRate, setPixRate] = useState(String(settings.cardRates.pix).replace(".", ","));
+  const [debitoRate, setDebitoRate] = useState(String(settings.cardRates.debito).replace(".", ","));
+  const [credito1xRate, setCredito1xRate] = useState(String(settings.cardRates.credito1x).replace(".", ","));
+  const [parceladoRate, setParceladoRate] = useState(String(settings.cardRates.parcelado).replace(".", ","));
+
+  // Taxas de meios personalizados: record de { [value]: rateString }
+  const [customRates, setCustomRates] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const opt of customOpts.paymentMethods) {
+      map[opt.value] = opt.rate !== undefined ? String(opt.rate).replace(".", ",") : "0,00";
+    }
+    return map;
+  });
+
+  // Estado para cadastro de novo meio de pagamento
+  const [newLabel, setNewLabel] = useState("");
+  const [newRate, setNewRate] = useState("");
+
+  // Estado para edição inline do rótulo de um meio personalizado
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sincronização de eventos
+  useEffect(() => {
+    const handleOptsChange = () => {
+      const fresh = getCustomOptions(storeId);
+      setCustomOpts(fresh);
+      setCustomRates((prev) => {
+        const next = { ...prev };
+        for (const opt of fresh.paymentMethods) {
+          if (next[opt.value] === undefined) {
+            next[opt.value] = opt.rate !== undefined ? String(opt.rate).replace(".", ",") : "0,00";
+          }
+        }
+        return next;
+      });
+    };
+    window.addEventListener("custom-options-changed", handleOptsChange);
+    return () => window.removeEventListener("custom-options-changed", handleOptsChange);
+  }, [storeId]);
+
+  const parseNumber = (val: string, fallback: number) => {
+    const n = parseFloat(val.replace(",", "."));
+    return isNaN(n) ? fallback : n;
+  };
+
+  // Cálculo da taxa média da maquininha (usada na precificação)
+  const averageCardRate = useMemo(() => {
+    const deb = parseNumber(debitoRate, 1.5);
+    const cr1 = parseNumber(credito1xRate, 3.2);
+    const parc = parseNumber(parceladoRate, 5.5);
+    return (deb + cr1 + parc) / 3;
+  }, [debitoRate, credito1xRate, parceladoRate]);
+
+  // Checagem de dirty state
+  const isDirty = useMemo(() => {
+    const baseDirty =
+      pixRate !== String(settings.cardRates.pix).replace(".", ",") ||
+      debitoRate !== String(settings.cardRates.debito).replace(".", ",") ||
+      credito1xRate !== String(settings.cardRates.credito1x).replace(".", ",") ||
+      parceladoRate !== String(settings.cardRates.parcelado).replace(".", ",");
+
+    if (baseDirty) return true;
+
+    for (const opt of customOpts.paymentMethods) {
+      const orig = opt.rate !== undefined ? String(opt.rate).replace(".", ",") : "0,00";
+      const curr = customRates[opt.value] ?? "0,00";
+      if (orig !== curr) return true;
+    }
+
+    return false;
+  }, [pixRate, debitoRate, credito1xRate, parceladoRate, settings, customOpts.paymentMethods, customRates]);
+
+  const handleAddCustomMethod = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newLabel.trim();
+    if (!trimmed) {
+      toast.error("Informe o nome do meio de pagamento");
+      return;
+    }
+
+    const lower = trimmed.toLowerCase();
+    const jaExisteBase = PAYMENT_METHODS.some((p) => p.label.toLowerCase() === lower);
+    const jaExisteCustom = customOpts.paymentMethods.some((c) => c.label.toLowerCase() === lower);
+
+    if (jaExisteBase || jaExisteCustom) {
+      toast.error("Este meio de pagamento já está cadastrado.");
+      return;
+    }
+
+    const parsedRate = parseNumber(newRate, 0);
+    const added = addCustomPaymentMethod(storeId, trimmed, parsedRate);
+    setCustomRates((prev) => ({ ...prev, [added.value]: String(parsedRate).replace(".", ",") }));
+    setNewLabel("");
+    setNewRate("");
+    toast.success("Meio de pagamento adicionado com sucesso!", {
+      description: `"${trimmed}" com taxa de ${parsedRate.toFixed(2)}% ativado no Caixa.`,
+    });
+  };
+
+  const handleSaveEditLabel = (value: string) => {
+    const trimmed = editLabel.trim();
+    if (!trimmed) {
+      toast.error("O nome não pode ficar vazio.");
+      return;
+    }
+    const currentRate = parseNumber(customRates[value] ?? "0", 0);
+    updateCustomOption(storeId, "paymentMethods", value, trimmed, currentRate);
+    setEditingValue(null);
+    setEditLabel("");
+    toast.success("Nome do meio de pagamento atualizado");
+  };
+
+  const handleDeleteCustomMethod = (value: string, label: string) => {
+    removeCustomOption(storeId, "paymentMethods", value);
+    setCustomRates((prev) => {
+      const copy = { ...prev };
+      delete copy[value];
+      return copy;
+    });
+    toast.success(`Meio de pagamento "${label}" removido`);
+  };
+
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    try {
+      const pix = parseNumber(pixRate, 0);
+      const debito = parseNumber(debitoRate, 1.5);
+      const credito1x = parseNumber(credito1xRate, 3.2);
+      const parcelado = parseNumber(parceladoRate, 5.5);
+
+      const updatedPricing: PricingSettings = {
+        ...settings,
+        defaultCardRate: (debito + credito1x + parcelado) / 3,
+        cardRates: { pix, debito, credito1x, parcelado },
+      };
+
+      setSettings(updatedPricing);
+      await savePricingSettings(storeId, updatedPricing);
+
+      // Salva taxas dos meios personalizados
+      for (const opt of customOpts.paymentMethods) {
+        const rateVal = parseNumber(customRates[opt.value] ?? "0", 0);
+        updateCustomOption(storeId, "paymentMethods", opt.value, opt.label, rateVal);
+      }
+
+      toast.success("Taxas salvas com sucesso!", {
+        description: "Todos os meios de pagamento e taxas da maquininha foram atualizados no Caixa e na Precificação.",
+      });
+    } catch {
+      toast.error("Erro ao salvar taxas de pagamento");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <section id="meios-pagamento" className="panel p-6 sm:p-7 space-y-6">
+      {/* Cabeçalho */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-5">
+        <div className="flex items-start gap-3.5">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <CreditCard className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Meios de Pagamento &amp; Taxas da Maquininha</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Cadastre todos os meios de pagamento aceitos no caixa e configure a taxa de intermediação cobrada pela sua maquininha ou banco.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto rounded-xl bg-surface-muted/60 border border-border/60 px-3.5 py-1.5">
+          <span className="text-[11px] text-muted-foreground font-medium">Média das taxas:</span>
+          <span className="text-xs font-bold text-foreground">{averageCardRate.toFixed(2)}%</span>
+        </div>
+      </div>
+
+      {/* Formulário de Adição Rápida de Novo Meio */}
+      <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Cadastrar novo meio de pagamento
+          </h3>
+          <span className="text-[11px] text-muted-foreground">Aparecerá automaticamente no Caixa</span>
+        </div>
+
+        <form onSubmit={handleAddCustomMethod} className="flex flex-col sm:flex-row gap-2.5">
+          <div className="flex-1">
+            <Input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Ex: Link de Pagamento, PicPay, Voucher..."
+              className="h-10 rounded-xl text-xs bg-card border-border"
+            />
+          </div>
+          <div className="w-full sm:w-36 flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 focus-within:ring-2 focus-within:ring-primary/20">
+            <span className="text-xs font-medium text-muted-foreground">Taxa:</span>
+            <input
+              inputMode="decimal"
+              value={newRate}
+              onChange={(e) => setNewRate(e.target.value)}
+              placeholder="0,00"
+              className="w-full text-right text-xs font-bold text-foreground outline-none bg-transparent"
+            />
+            <span className="text-xs font-bold text-muted-foreground">%</span>
+          </div>
+          <Button
+            type="submit"
+            size="sm"
+            className="h-10 rounded-xl px-4 text-xs font-semibold cursor-pointer shrink-0"
+          >
+            <Plus className="size-3.5 mr-1" />
+            Adicionar meio
+          </Button>
+        </form>
+      </div>
+
+      {/* Tabela Unificada de Meios de Pagamento */}
+      <div className="space-y-2">
+        <div className="hidden sm:grid sm:grid-cols-[1fr_130px_160px_90px] px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40">
+          <span>Meio de Pagamento</span>
+          <span>Modalidade</span>
+          <span className="text-right">Taxa Cobrada (%)</span>
+          <span className="text-right">Ação</span>
+        </div>
+
+        <div className="divide-y divide-border/60 rounded-2xl border border-border/70 bg-card overflow-hidden">
+          {/* 1. Dinheiro */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 hover:bg-surface-muted/30 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs">
+                R$
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-foreground">Dinheiro em Espécie</span>
+                <p className="text-[10px] text-muted-foreground sm:hidden">Espécie • Isento</p>
+              </div>
+            </div>
+            <div className="hidden sm:block">
+              <Badge variant="outline" className="text-[10px] font-medium border-border/70 text-muted-foreground">
+                Espécie
+              </Badge>
+            </div>
+            <div className="flex sm:justify-end items-center gap-2">
+              <span className="text-xs font-bold text-muted-foreground">0,00%</span>
+              <span className="text-[10px] text-emerald-600 font-medium">(Isento)</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-muted-foreground">Sistema</span>
+            </div>
+          </div>
+
+          {/* 2. Pix */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 hover:bg-surface-muted/30 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 font-bold text-xs">
+                ❖
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-foreground">Pix</span>
+                <p className="text-[10px] text-muted-foreground sm:hidden">Instantâneo</p>
+              </div>
+            </div>
+            <div className="hidden sm:block">
+              <Badge variant="outline" className="text-[10px] font-medium border-border/70 text-muted-foreground">
+                Instantâneo
+              </Badge>
+            </div>
+            <div className="flex sm:justify-end items-center">
+              <div className="flex items-center h-8.5 rounded-lg border border-border bg-surface-muted/30 px-2.5 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20">
+                <input
+                  inputMode="decimal"
+                  value={pixRate}
+                  onChange={(e) => setPixRate(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full text-right text-xs font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-[11px] font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-muted-foreground">Sistema</span>
+            </div>
+          </div>
+
+          {/* 3. Cartão de Débito */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 hover:bg-surface-muted/30 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 font-bold text-xs">
+                💳
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-foreground">Cartão Débito</span>
+                <p className="text-[10px] text-muted-foreground sm:hidden">Maquininha</p>
+              </div>
+            </div>
+            <div className="hidden sm:block">
+              <Badge variant="outline" className="text-[10px] font-medium border-border/70 text-muted-foreground">
+                Maquininha
+              </Badge>
+            </div>
+            <div className="flex sm:justify-end items-center">
+              <div className="flex items-center h-8.5 rounded-lg border border-border bg-surface-muted/30 px-2.5 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20">
+                <input
+                  inputMode="decimal"
+                  value={debitoRate}
+                  onChange={(e) => setDebitoRate(e.target.value)}
+                  placeholder="1,50"
+                  className="w-full text-right text-xs font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-[11px] font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-muted-foreground">Sistema</span>
+            </div>
+          </div>
+
+          {/* 4. Cartão Crédito à Vista (1x) */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 hover:bg-surface-muted/30 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 font-bold text-xs">
+                💳
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-foreground">Cartão Crédito à vista (1×)</span>
+                <p className="text-[10px] text-muted-foreground sm:hidden">Maquininha</p>
+              </div>
+            </div>
+            <div className="hidden sm:block">
+              <Badge variant="outline" className="text-[10px] font-medium border-border/70 text-muted-foreground">
+                Maquininha
+              </Badge>
+            </div>
+            <div className="flex sm:justify-end items-center">
+              <div className="flex items-center h-8.5 rounded-lg border border-border bg-surface-muted/30 px-2.5 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20">
+                <input
+                  inputMode="decimal"
+                  value={credito1xRate}
+                  onChange={(e) => setCredito1xRate(e.target.value)}
+                  placeholder="3,20"
+                  className="w-full text-right text-xs font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-[11px] font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-muted-foreground">Sistema</span>
+            </div>
+          </div>
+
+          {/* 5. Cartão Crédito Parcelado */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 hover:bg-surface-muted/30 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 font-bold text-xs">
+                💳
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-foreground">Cartão Crédito Parcelado</span>
+                <p className="text-[10px] text-muted-foreground sm:hidden">Maquininha</p>
+              </div>
+            </div>
+            <div className="hidden sm:block">
+              <Badge variant="outline" className="text-[10px] font-medium border-border/70 text-muted-foreground">
+                Maquininha
+              </Badge>
+            </div>
+            <div className="flex sm:justify-end items-center">
+              <div className="flex items-center h-8.5 rounded-lg border border-border bg-surface-muted/30 px-2.5 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20">
+                <input
+                  inputMode="decimal"
+                  value={parceladoRate}
+                  onChange={(e) => setParceladoRate(e.target.value)}
+                  placeholder="5,50"
+                  className="w-full text-right text-xs font-bold text-foreground outline-none bg-transparent"
+                />
+                <span className="text-[11px] font-bold text-muted-foreground">%</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-muted-foreground">Sistema</span>
+            </div>
+          </div>
+
+          {/* 6. Fiado */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 hover:bg-surface-muted/30 transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 font-bold text-xs">
+                🤝
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-foreground">Fiado (Caderninho)</span>
+                <p className="text-[10px] text-muted-foreground sm:hidden">Crédito da Loja</p>
+              </div>
+            </div>
+            <div className="hidden sm:block">
+              <Badge variant="outline" className="text-[10px] font-medium border-amber-500/30 text-amber-600 dark:text-amber-400">
+                Crédito Loja
+              </Badge>
+            </div>
+            <div className="flex sm:justify-end items-center gap-2">
+              <span className="text-xs font-bold text-muted-foreground">0,00%</span>
+              <span className="text-[10px] text-muted-foreground font-medium">(Sem taxa)</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-muted-foreground">Sistema</span>
+            </div>
+          </div>
+
+          {/* Meios Personalizados Criados pelo Usuário */}
+          {customOpts.paymentMethods.map((custom) => {
+            const isEditing = editingValue === custom.value;
+            const currentRateStr = customRates[custom.value] ?? (custom.rate !== undefined ? String(custom.rate).replace(".", ",") : "0,00");
+
+            return (
+              <div
+                key={custom.value}
+                className="grid grid-cols-1 sm:grid-cols-[1fr_130px_160px_90px] items-center gap-2 p-3 sm:px-4 sm:py-3 bg-primary/2 hover:bg-primary/5 transition-colors border-l-2 border-l-primary"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs">
+                    ✦
+                  </div>
+                  {isEditing ? (
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <Input
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        className="h-8 text-xs rounded-lg bg-card"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveEditLabel(custom.value);
+                          if (e.key === "Escape") setEditingValue(null);
+                        }}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 rounded-lg text-emerald-600"
+                        onClick={() => handleSaveEditLabel(custom.value)}
+                      >
+                        <Check className="size-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-foreground truncate block">{custom.label}</span>
+                      <p className="text-[10px] text-primary sm:hidden">Personalizado</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="hidden sm:block">
+                  <Badge variant="secondary" className="text-[10px] font-semibold bg-primary/10 text-primary">
+                    Personalizado
+                  </Badge>
+                </div>
+
+                <div className="flex sm:justify-end items-center">
+                  <div className="flex items-center h-8.5 rounded-lg border border-border bg-card px-2.5 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20">
+                    <input
+                      inputMode="decimal"
+                      value={currentRateStr}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCustomRates((prev) => ({ ...prev, [custom.value]: val }));
+                      }}
+                      placeholder="0,00"
+                      className="w-full text-right text-xs font-bold text-foreground outline-none bg-transparent"
+                    />
+                    <span className="text-[11px] font-bold text-muted-foreground">%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end items-center gap-1">
+                  {!isEditing && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                      onClick={() => {
+                        setEditingValue(custom.value);
+                        setEditLabel(custom.label);
+                      }}
+                      title="Editar nome"
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7 rounded-lg text-muted-foreground hover:text-destructive cursor-pointer"
+                    onClick={() => handleDeleteCustomMethod(custom.value, custom.label)}
+                    title="Excluir meio"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Barra de Ação e Sincronização */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+        <p className="text-xs text-muted-foreground">
+          {isDirty ? (
+            <span className="text-amber-600 dark:text-amber-400 font-medium">
+              ● Há alterações de taxas pendentes de salvamento
+            </span>
+          ) : (
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              ✓ Meios de pagamento sincronizados com o Caixa e Precificação
+            </span>
+          )}
+        </p>
+        <Button
+          size="sm"
+          onClick={handleSaveAll}
+          disabled={isSaving || !isDirty}
+          className="h-10 rounded-xl px-6 text-xs font-bold cursor-pointer shadow-glow"
+        >
+          {isSaving ? "Salvando..." : "Salvar taxas de pagamento"}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+// ── Card 3: Diretrizes de Precificação & Margens (Aba Dedicada) ───────────────
+function PricingGuidelinesCard({ storeId }: { storeId: string }) {
+  const [settings, setSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
+  const [defaultMargin, setDefaultMargin] = useState(String(settings.defaultMargin).replace(".", ","));
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const handler = () => {
+      const fresh = getPricingSettings(storeId);
+      setSettings(fresh);
+      setDefaultMargin(String(fresh.defaultMargin).replace(".", ","));
+    };
+    window.addEventListener(PRICING_SETTINGS_EVENT, handler);
+    return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
+  }, [storeId]);
+
+  const parseNumber = (val: string, fallback: number) => {
+    const n = parseFloat(val.replace(",", "."));
+    return isNaN(n) ? fallback : n;
+  };
+
+  const parsedMargin = parseNumber(defaultMargin, 50);
+  const marginHealth = getMarginHealth(parsedMargin);
+
+  const isDirty = useMemo(() => {
+    return defaultMargin !== String(settings.defaultMargin).replace(".", ",");
+  }, [defaultMargin, settings.defaultMargin]);
+
+  // Simulação viva em tempo real com peça de R$ 50,00
+  const sim = useMemo(() => {
+    return computePricingByMargin({
+      wholesale_cost: 50,
+      freight_cost: 0,
+      packaging_cost: 0,
+      other_costs: 0,
+      desired_margin_pct: parsedMargin,
+      tax_pct: settings.defaultTax,
+      card_rate_pct: settings.defaultCardRate,
+    });
+  }, [parsedMargin, settings.defaultTax, settings.defaultCardRate]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updated: PricingSettings = {
+        ...settings,
+        defaultMargin: parsedMargin,
+      };
+      setSettings(updated);
+      await savePricingSettings(storeId, updated);
+      toast.success("Diretrizes de precificação salvas!", {
+        description: `Margem alvo padrão definida em ${parsedMargin.toFixed(0)}% com sucesso.`,
+      });
+    } catch {
+      toast.error("Erro ao salvar diretrizes de precificação");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <section id="diretrizes-precificacao" className="panel p-6 sm:p-7 space-y-6">
+      {/* Cabeçalho */}
+      <div className="flex items-start gap-3.5 border-b border-border/60 pb-5">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Calculator className="size-5" />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Diretrizes de Precificação &amp; Margem Alvo</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Defina a meta de lucro líquido da boutique e visualize como os custos, impostos e taxas compõem o preço de venda das peças.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {/* Bloco 1: Margem Líquida Alvo (Gross Margin) */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/40 p-4 sm:p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Margem de lucro alvo sugerida
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Meta padrão de lucro líquido sugerida ao cadastrar e precificar qualquer peça.
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Margem Líquida Alvo (Gross Margin)
+                </h3>
+                <Badge
+                  variant="outline"
+                  className={cn("text-[10px] font-bold border-transparent px-2 py-0.5", marginHealth.color)}
+                >
+                  {marginHealth.emoji} {marginHealth.label}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                Meta percentual de lucro que deve sobrar limpo no caixa sobre cada venda, após descontar o custo do produto, DAS e maquininha.
               </p>
             </div>
+
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <span className="text-xs text-muted-foreground font-medium">Margem meta:</span>
               <div className="flex items-center h-10 rounded-xl border border-border bg-card px-3 gap-1 w-28 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
@@ -1427,30 +2033,130 @@ function PricingSettingsCard({ storeId }: { storeId: string }) {
               </div>
             </div>
           </div>
+
+          <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+            <span className="text-[11px] text-muted-foreground font-medium mr-1">Metas sugeridas:</span>
+            {[
+              { label: "35% (Mínima)", val: "35" },
+              { label: "45% (Equilibrada)", val: "45" },
+              { label: "50% (Recomendada)", val: "50" },
+              { label: "60% (Boutique Premium)", val: "60" },
+            ].map((meta) => (
+              <button
+                key={meta.label}
+                type="button"
+                onClick={() => setDefaultMargin(meta.val)}
+                className={cn(
+                  "rounded-lg px-2.5 py-1 text-[11px] font-semibold border transition-all cursor-pointer",
+                  defaultMargin.replace(".", ",") === meta.val.replace(".", ",")
+                    ? "bg-primary text-primary-foreground border-transparent shadow-xs"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                )}
+              >
+                {meta.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Barra de Ação */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
-          <p className="text-xs text-muted-foreground">
-            {isDirty ? (
-              <span className="text-amber-600 dark:text-amber-400 font-medium">
-                ● Há alterações pendentes de salvamento
+        {/* Bloco 2: Painel Integrado de Deduções da Loja */}
+        <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Deduções automáticas aplicadas na precificação
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border/60 bg-surface-muted/30 p-3.5 space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground">1. Imposto da Loja (DAS)</span>
+              <p className="text-lg font-bold text-foreground">{settings.defaultTax.toFixed(1)}%</p>
+              <Link
+                to="/configuracoes"
+                search={{ tab: "geral" }}
+                className="text-[10px] font-semibold text-primary hover:underline inline-block mt-1"
+              >
+                Alterar na aba Geral →
+              </Link>
+            </div>
+
+            <div className="rounded-xl border border-border/60 bg-surface-muted/30 p-3.5 space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground">2. Taxa Média Maquininha</span>
+              <p className="text-lg font-bold text-foreground">{settings.defaultCardRate.toFixed(2)}%</p>
+              <Link
+                to="/configuracoes"
+                search={{ tab: "caixa" }}
+                className="text-[10px] font-semibold text-primary hover:underline inline-block mt-1"
+              >
+                Alterar na aba Caixa →
+              </Link>
+            </div>
+
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-1">
+              <span className="text-[11px] font-semibold text-primary">3. Margem Líquida Alvo</span>
+              <p className="text-lg font-bold text-primary">{parsedMargin.toFixed(0)}%</p>
+              <span className="text-[10px] font-medium text-muted-foreground inline-block mt-1">
+                Configurada nesta tela
               </span>
-            ) : (
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                ✓ Predefinições sincronizadas com a precificação
-              </span>
-            )}
-          </p>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving || !isDirty}
-            className="h-10 rounded-xl px-6 text-xs font-bold cursor-pointer shadow-glow"
-          >
-            {isSaving ? "Salvando..." : "Salvar predefinições"}
-          </Button>
+            </div>
+          </div>
         </div>
+
+        {/* Bloco 3: Simulador em Tempo Real (Exemplo de Peça) */}
+        <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Simulação de composição de preço (Peça com Custo de R$ 50,00)
+            </h3>
+            <span className="text-[11px] text-muted-foreground">Fórmula oficial de margem líquida</span>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-4 pt-1">
+            <div className="rounded-xl border border-border/60 bg-card p-3">
+              <span className="text-[10px] font-medium text-muted-foreground">Custo da Peça</span>
+              <p className="text-sm font-bold text-foreground mt-0.5">{brl(50)}</p>
+              <span className="text-[10px] text-muted-foreground">Fornecedor</span>
+            </div>
+
+            <div className="rounded-xl border border-border/60 bg-card p-3">
+              <span className="text-[10px] font-medium text-muted-foreground">Deduções (DAS + Taxas)</span>
+              <p className="text-sm font-bold text-amber-600 dark:text-amber-400 mt-0.5">{brl(sim.deductions)}</p>
+              <span className="text-[10px] text-muted-foreground">{(settings.defaultTax + settings.defaultCardRate).toFixed(1)}% da venda</span>
+            </div>
+
+            <div className="rounded-xl border border-border/60 bg-card p-3">
+              <span className="text-[10px] font-medium text-muted-foreground">Lucro Líquido no Caixa</span>
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{brl(sim.profit)}</p>
+              <span className="text-[10px] text-muted-foreground">{parsedMargin.toFixed(0)}% real na mão</span>
+            </div>
+
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
+              <span className="text-[10px] font-semibold text-primary">Preço Sugerido de Venda</span>
+              <p className="text-base font-extrabold text-foreground mt-0.5">{brl(sim.suggestedPrice)}</p>
+              <span className="text-[10px] text-muted-foreground">Markup: {sim.markupOnCost.toFixed(0)}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de Ação */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+        <p className="text-xs text-muted-foreground">
+          {isDirty ? (
+            <span className="text-amber-600 dark:text-amber-400 font-medium">
+              ● Há alterações na margem alvo pendentes de salvamento
+            </span>
+          ) : (
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              ✓ Diretrizes de margem sincronizadas com a tela de Precificação
+            </span>
+          )}
+        </p>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isSaving || !isDirty}
+          className="h-10 rounded-xl px-6 text-xs font-bold cursor-pointer shadow-glow"
+        >
+          {isSaving ? "Salvando..." : "Salvar diretrizes de precificação"}
+        </Button>
       </div>
     </section>
   );

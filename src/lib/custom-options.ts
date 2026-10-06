@@ -7,7 +7,12 @@
  * em outras abas abertas do navegador (storage event nativo).
  */
 
-export type CustomOption = { value: string; label: string; custom: true };
+export type CustomOption = {
+  value: string;
+  label: string;
+  custom: true;
+  rate?: number;
+};
 
 type CustomOptionsStore = {
   entryCategories: CustomOption[];
@@ -80,10 +85,10 @@ export function addCustomExit(storeId: string, label: string): CustomOption {
   return option;
 }
 
-export function addCustomPaymentMethod(storeId: string, label: string): CustomOption {
+export function addCustomPaymentMethod(storeId: string, label: string, rate: number = 0): CustomOption {
   const opts = getCustomOptions(storeId);
   const value = `custom_pay_${Date.now()}`;
-  const option: CustomOption = { value, label: label.trim(), custom: true };
+  const option: CustomOption = { value, label: label.trim(), custom: true, rate };
   opts.paymentMethods = [...opts.paymentMethods, option];
   saveCustomOptions(storeId, opts);
   return option;
@@ -104,9 +109,15 @@ export function updateCustomOption(
   kind: keyof CustomOptionsStore,
   value: string,
   newLabel: string,
+  newRate?: number,
 ) {
   const opts = getCustomOptions(storeId);
-  opts[kind] = opts[kind].map((o) => (o.value === value ? { ...o, label: newLabel.trim() } : o));
+  opts[kind] = opts[kind].map((o) => {
+    if (o.value !== value) return o;
+    const updated = { ...o, label: newLabel.trim() };
+    if (newRate !== undefined) updated.rate = newRate;
+    return updated;
+  });
   saveCustomOptions(storeId, opts);
 }
 export type { CustomOptionsStore };
