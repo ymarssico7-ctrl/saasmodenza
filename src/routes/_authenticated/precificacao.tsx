@@ -2923,11 +2923,6 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        {/* Dica Discreta Inline */}
-                        <p className="text-[11px] leading-relaxed text-muted-foreground pt-0.5">
-                          💡 De cada <strong className="text-foreground font-semibold">{brl(summaryPrices.avgSuggested)}</strong> vendidos,{" "}
-                          <strong className="text-success font-semibold">{brl(summaryPrices.avgProfit)}</strong> sobram líquidos no caixa da boutique.
-                        </p>
                       </div>
                     );
                   })()}
@@ -3034,10 +3029,6 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      <p className="text-[11px] leading-relaxed text-muted-foreground pt-0.5">
-                        💡 Multiplicador sobre o custo total ({brl(summaryPrices.avgCost)}). Margem líquida resultante no caixa:{" "}
-                        <strong className="text-foreground font-semibold">{pct(summaryPrices.avgMargin)}</strong>.
-                      </p>
                     </div>
                   )}
 
@@ -3079,7 +3070,8 @@ function Precificacao() {
                   {/* Topo do Recibo: Preço Sugerido e Badge */}
                   <div className="flex items-start justify-between gap-3 border-b border-border/50 pb-4">
                     <div>
-                      <span className="text-xs font-semibold text-muted-foreground">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-success">
+                        <span className="size-1.5 rounded-full bg-success animate-pulse" />
                         Resultado ao vivo
                       </span>
                       <div className="mt-1 flex items-baseline gap-2">
@@ -3101,9 +3093,11 @@ function Precificacao() {
                       >
                         {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
                       </Badge>
-                      <span className="text-[11px] font-semibold text-muted-foreground">
-                        Markup: <strong className="text-foreground">{pct(summaryPrices.avgMarkup)}</strong>
-                      </span>
+                      {strategy === "markup" && (
+                        <span className="text-[11px] font-semibold text-muted-foreground">
+                          Markup: <strong className="text-foreground">{pct(summaryPrices.avgMarkup)}</strong>
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -3121,83 +3115,140 @@ function Precificacao() {
                     const profitPct = total > 0 ? (profit / total) * 100 : 0;
 
                     return (
-                      <div className="space-y-3">
-                        {/* Barra Visual Proporcional */}
-                        <div className="space-y-1.5">
-                          <div className="flex h-3 w-full overflow-hidden rounded-full bg-secondary/80 gap-0.5">
-                            <div
-                              className="bg-slate-400 dark:bg-slate-500 rounded-l-full transition-all"
-                              style={{ width: `${Math.max(costPct, 2)}%` }}
-                              title={`Custo: ${brl(cost)} (${Math.round(costPct)}%)`}
-                            />
-                            <div
-                              className="bg-amber-400 transition-all"
-                              style={{ width: `${Math.max(taxPct, 2)}%` }}
-                              title={`DAS: ${brl(taxes)} (${Math.round(taxPct)}%)`}
-                            />
-                            <div
-                              className="bg-sky-400 transition-all"
-                              style={{ width: `${Math.max(cardPct, 2)}%` }}
-                              title={`Maquininha: ${brl(cardFees)} (${Math.round(cardPct)}%)`}
-                            />
-                            <div
-                              className={cn(
-                                "rounded-r-full transition-all",
-                                profit < 0 ? "bg-rose-500" : "bg-emerald-500",
-                              )}
-                              style={{ width: `${Math.max(Math.abs(profitPct), 2)}%` }}
-                              title={`Lucro: ${brl(profit)} (${Math.round(profitPct)}%)`}
-                            />
+                        <div className="space-y-3">
+                          {/* Barra Visual Proporcional */}
+                          <div className="space-y-2">
+                            <div className="flex h-3 w-full overflow-hidden rounded-full bg-secondary/80 gap-0.5">
+                              <div
+                                className="bg-slate-400 dark:bg-slate-500 rounded-l-full transition-all duration-300"
+                                style={{ width: `${Math.max(costPct, 2)}%` }}
+                                title={`Custo: ${brl(cost)} (${Math.round(costPct)}%)`}
+                              />
+                              <div
+                                className="bg-amber-400 transition-all duration-300"
+                                style={{ width: `${Math.max(taxPct, 2)}%` }}
+                                title={`DAS: ${brl(taxes)} (${Math.round(taxPct)}%)`}
+                              />
+                              <div
+                                className="bg-sky-400 transition-all duration-300"
+                                style={{ width: `${Math.max(cardPct, 2)}%` }}
+                                title={`Maquininha: ${brl(cardFees)} (${Math.round(cardPct)}%)`}
+                              />
+                              <div
+                                className={cn(
+                                  "rounded-r-full transition-all duration-300",
+                                  profit < 0 ? "bg-rose-500" : "bg-emerald-500",
+                                )}
+                                style={{ width: `${Math.max(Math.abs(profitPct), 2)}%` }}
+                                title={`Lucro: ${brl(profit)} (${Math.round(profitPct)}%)`}
+                              />
+                            </div>
+
+                            {/* Legenda inline autoexplicativa da barra */}
+                            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[10px] text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                                Custo {Math.round(costPct)}%
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="size-2 rounded-full bg-amber-400 shrink-0" />
+                                DAS {Math.round(taxPct)}%
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="size-2 rounded-full bg-sky-400 shrink-0" />
+                                Cartão {Math.round(cardPct)}%
+                              </span>
+                              <span className={cn("flex items-center gap-1 font-semibold", profit < 0 ? "text-destructive" : "text-success")}>
+                                <span className={cn("size-2 rounded-full shrink-0", profit < 0 ? "bg-rose-500" : "bg-emerald-500")} />
+                                Lucro {Math.round(profitPct)}%
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Tabela de Decomposição Limpa */}
-                          <div className="divide-y divide-border/40 text-xs pt-1">
-                            <div className="flex items-center justify-between py-1.5 text-muted-foreground">
-                              <span className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500" />
-                                Custo total da peça (produto + frete)
-                              </span>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(cost)}{" "}
-                                <span className="text-[11px] font-normal text-muted-foreground">({Math.round(costPct)}%)</span>
-                              </span>
+                          {/* Tabela de Decomposição — Grid 3-col escaneável */}
+                          <div className="text-xs pt-0.5">
+                            {/* Header */}
+                            <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 pb-1 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wide">
+                              <span>Componente</span>
+                              <span className="text-right">Valor</span>
+                              <span className="w-8 text-right">%</span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1.5 text-muted-foreground">
-                              <span className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-amber-400" />
-                                Imposto fiscal (DAS {tax.toFixed(1)}%)
-                              </span>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(taxes)}{" "}
-                                <span className="text-[11px] font-normal text-muted-foreground">({Math.round(taxPct)}%)</span>
-                              </span>
-                            </div>
+                            <div className="divide-y divide-border/40">
+                              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-1.5 text-muted-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="size-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                                  Custo
+                                </span>
+                                <span className="numeric font-semibold text-foreground text-right">{brl(cost)}</span>
+                                <span className="w-8 numeric text-right text-muted-foreground">{Math.round(costPct)}%</span>
+                              </div>
 
-                            <div className="flex items-center justify-between py-1.5 text-muted-foreground">
-                              <span className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-sky-400" />
-                                Taxa de maquininha ({cardRate.toFixed(1)}%)
-                              </span>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(cardFees)}{" "}
-                                <span className="text-[11px] font-normal text-muted-foreground">({Math.round(cardPct)}%)</span>
-                              </span>
-                            </div>
+                              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-1.5 text-muted-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="size-1.5 rounded-full bg-amber-400 shrink-0" />
+                                  DAS {tax.toFixed(1)}%
+                                </span>
+                                <span className="numeric font-semibold text-foreground text-right">{brl(taxes)}</span>
+                                <span className="w-8 numeric text-right text-muted-foreground">{Math.round(taxPct)}%</span>
+                              </div>
 
-                            <div className="flex items-center justify-between py-2 text-foreground font-bold bg-emerald-500/5 -mx-2 px-2 rounded-lg mt-1">
-                              <span className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                <span className="size-2 rounded-full bg-emerald-500" />
-                                Lucro líquido no caixa
-                              </span>
-                              <span className="numeric text-sm text-emerald-700 dark:text-emerald-400 font-extrabold">
-                                {brl(profit)}{" "}
-                                <span className="text-xs font-semibold">({Math.round(profitPct)}%)</span>
-                              </span>
+                              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-1.5 text-muted-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="size-1.5 rounded-full bg-sky-400 shrink-0" />
+                                  Cartão {cardRate.toFixed(1)}%
+                                </span>
+                                <span className="numeric font-semibold text-foreground text-right">{brl(cardFees)}</span>
+                                <span className="w-8 numeric text-right text-muted-foreground">{Math.round(cardPct)}%</span>
+                              </div>
+
+                              <div className={cn(
+                                "grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-2 mt-0.5 rounded-lg -mx-1.5 px-1.5 font-bold",
+                                profit < 0 ? "bg-rose-500/8 text-rose-700 dark:text-rose-400" : "bg-emerald-500/8 text-emerald-700 dark:text-emerald-400",
+                              )}>
+                                <span className="flex items-center gap-1.5">
+                                  <span className={cn("size-1.5 rounded-full shrink-0", profit < 0 ? "bg-rose-500" : "bg-emerald-500")} />
+                                  Lucro líquido
+                                </span>
+                                <span className="numeric text-sm font-extrabold text-right">{brl(profit)}</span>
+                                <span className="w-8 numeric font-semibold text-right">{Math.round(profitPct)}%</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* M2 — CTAs integrados ao painel de resultado */}
+                          <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-1">
+                            <Button
+                              type="button"
+                              onClick={openEntryForCurrent}
+                              className="h-11 w-full rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                            >
+                              <PackagePlus className="size-4" />
+                              <span>Dar entrada no estoque</span>
+                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => save.mutate()}
+                                disabled={save.isPending}
+                                className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/80 bg-card hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                              >
+                                <Save className="size-3.5" />
+                                <span>Salvar no histórico</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={promoteToGrade}
+                                className="h-9 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 transition-all px-3"
+                              >
+                                <span>Expandir grade</span>
+                                <ArrowRight className="size-3.5" />
+                              </Button>
                             </div>
                           </div>
                         </div>
-                      </div>
                     );
                   })()}
                 </div>
@@ -3222,39 +3273,6 @@ function Precificacao() {
                 </div>
               )}
 
-              {/* Ações Finais — hierarquia primary › secondary › tertiary */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/60">
-                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-                  <Button
-                    type="button"
-                    onClick={openEntryForCurrent}
-                    className="h-11 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98]"
-                  >
-                    <PackagePlus className="size-4" />
-                    <span>Dar entrada no estoque</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => save.mutate()}
-                    disabled={save.isPending}
-                    className="h-11 rounded-full text-xs font-semibold border-border/80 bg-card hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 px-5 transition-all"
-                  >
-                    <Save className="size-3.5" />
-                    <span>Salvar no histórico</span>
-                  </Button>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={promoteToGrade}
-                  className="h-10 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <span>Expandir para grade</span>
-                  <ArrowRight className="size-3.5" />
-                </Button>
-              </div>
             </div>
           ) : (
             /* ═══════════════════════════════════════════════════════════════
