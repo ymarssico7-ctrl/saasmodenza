@@ -333,12 +333,23 @@ function Precificacao() {
   const [packaging, setPackaging] = useState("3,50");
   const [other, setOther] = useState("2,00");
 
-  // ── Parâmetros de Rentabilidade & Deduções ──────────────────────────
   const [desiredMargin, setDesiredMargin] = useState(() => pricingSettings.defaultMargin); // Margem líquida padrão da loja
   const [markup, setMarkup] = useState(80); // 80% markup sobre custo
   const [directSalePrice, setDirectSalePrice] = useState("119,90");
   const [tax, setTax] = useState(() => pricingSettings.defaultTax); // Imposto padrão da loja
   const [cardRate, setCardRate] = useState(() => pricingSettings.defaultCardRate); // Taxa de maquininha padrão da loja
+
+  // Estados locais para digitação livre nos steppers
+  const [marginInputVal, setMarginInputVal] = useState(() => String(pricingSettings.defaultMargin));
+  const [markupInputVal, setMarkupInputVal] = useState("80");
+
+  useEffect(() => {
+    setMarginInputVal(String(Math.round(desiredMargin)));
+  }, [desiredMargin]);
+
+  useEffect(() => {
+    setMarkupInputVal(String(Math.round(markup)));
+  }, [markup]);
 
   // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
@@ -2798,38 +2809,92 @@ function Precificacao() {
                     const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
                     const effectiveMargin = Math.min(desiredMargin, maxMarginSafe);
                     return (
-                      <div className="space-y-3.5 pt-1">
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between">
+                      <div className="space-y-4 pt-1">
+                        {/* Linha Principal: Título + Stepper Triplo Apple + Badge de Saúde */}
+                        <div className="flex flex-wrap items-center justify-between gap-2.5">
+                          <div>
                             <span className="text-xs font-bold text-foreground">Margem líquida desejada</span>
-                            <div className="flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-2.5 py-1 shadow-2xs">
-                              <span className="text-sm font-extrabold text-foreground numeric">{effectiveMargin}%</span>
-                              <Badge
-                                variant="outline"
-                                className={cn("text-[10px] font-bold border-transparent px-1.5 py-0", summaryPrices.marginHealth.color)}
-                              >
-                                {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
-                              </Badge>
-                            </div>
+                            <p className="text-[11px] text-muted-foreground">Meta de lucro livre sobre o preço final</p>
                           </div>
 
-                          <Slider
-                            value={[effectiveMargin]}
-                            max={maxMarginSafe}
-                            step={1}
-                            min={5}
-                            onValueChange={([val]) => setDesiredMargin(Math.min(val ?? 50, maxMarginSafe))}
-                            className="py-1 cursor-grab active:cursor-grabbing"
-                          />
-                          <div className="flex justify-between text-[10px] text-muted-foreground -mt-1">
-                            <span>5% mín.</span>
-                            <span>{maxMarginSafe}% máx.</span>
+                          <div className="flex items-center gap-2">
+                            {/* Pílula de Controle Triplo Apple: [ − ] valor% [ + ] */}
+                            <div className="flex shrink-0 items-center overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
+                              {/* Botão Decrementar (-1%) */}
+                              <button
+                                type="button"
+                                disabled={effectiveMargin <= 5}
+                                onClick={() => {
+                                  const next = Math.max(5, Math.round(effectiveMargin) - 1);
+                                  setDesiredMargin(next);
+                                  setMarginInputVal(String(next));
+                                }}
+                                className="flex h-8.5 w-8.5 shrink-0 items-center justify-center border-r border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                aria-label="Diminuir margem em 1%"
+                              >
+                                <Minus className="size-3.5" />
+                              </button>
+
+                              {/* Input Numérico Central */}
+                              <div className="flex items-center justify-center px-2 py-1">
+                                <input
+                                  inputMode="numeric"
+                                  value={marginInputVal}
+                                  onChange={(e) => {
+                                    setMarginInputVal(e.target.value);
+                                    const n = parseInt(e.target.value, 10);
+                                    if (!isNaN(n)) {
+                                      setDesiredMargin(Math.min(maxMarginSafe, Math.max(5, n)));
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    const n = parseInt(marginInputVal, 10);
+                                    if (!isNaN(n)) {
+                                      const clamped = Math.min(maxMarginSafe, Math.max(5, n));
+                                      setDesiredMargin(clamped);
+                                      setMarginInputVal(String(clamped));
+                                    } else {
+                                      setDesiredMargin(50);
+                                      setMarginInputVal("50");
+                                    }
+                                  }}
+                                  className="w-8 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
+                                />
+                                <span className="text-xs font-bold text-muted-foreground select-none">%</span>
+                              </div>
+
+                              {/* Botão Incrementar (+1%) */}
+                              <button
+                                type="button"
+                                disabled={effectiveMargin >= maxMarginSafe}
+                                onClick={() => {
+                                  const next = Math.min(maxMarginSafe, Math.round(effectiveMargin) + 1);
+                                  setDesiredMargin(next);
+                                  setMarginInputVal(String(next));
+                                }}
+                                className="flex h-8.5 w-8.5 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                aria-label="Aumentar margem em 1%"
+                              >
+                                <Plus className="size-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Badge de Saúde com Status */}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[11px] font-bold border-transparent px-2.5 py-1.5 rounded-xl shadow-2xs whitespace-nowrap",
+                                summaryPrices.marginHealth.color,
+                              )}
+                            >
+                              {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
+                            </Badge>
                           </div>
                         </div>
 
-                        {/* Chips de Metas Rápidas */}
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-semibold text-muted-foreground block">Metas rápidas:</span>
+                        {/* Chips de Metas Rápidas Estratégicas */}
+                        <div className="space-y-1.5 pt-0.5">
+                          <span className="text-[10px] font-semibold text-muted-foreground block">Metas estratégicas:</span>
                           <div className="flex items-center gap-1.5">
                             {[
                               { label: "35% Mín.", val: 35 },
@@ -2840,7 +2905,11 @@ function Precificacao() {
                               <button
                                 key={m.val}
                                 type="button"
-                                onClick={() => setDesiredMargin(Math.min(m.val, maxMarginSafe))}
+                                onClick={() => {
+                                  const target = Math.min(m.val, maxMarginSafe);
+                                  setDesiredMargin(target);
+                                  setMarginInputVal(String(target));
+                                }}
                                 className={cn(
                                   "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all duration-150 cursor-pointer text-center",
                                   Math.round(effectiveMargin) === m.val
@@ -2855,71 +2924,120 @@ function Precificacao() {
                         </div>
 
                         {/* Dica Discreta Inline */}
-                        <p className="text-[11px] leading-relaxed text-muted-foreground">
-                          De cada <strong className="text-foreground font-semibold">{brl(summaryPrices.avgSuggested)}</strong> vendidos,{" "}
-                          <strong className="text-success font-semibold">{brl(summaryPrices.avgProfit)}</strong> ficam líquidos no caixa.
+                        <p className="text-[11px] leading-relaxed text-muted-foreground pt-0.5">
+                          💡 De cada <strong className="text-foreground font-semibold">{brl(summaryPrices.avgSuggested)}</strong> vendidos,{" "}
+                          <strong className="text-success font-semibold">{brl(summaryPrices.avgProfit)}</strong> sobram líquidos no caixa da boutique.
                         </p>
                       </div>
                     );
                   })()}
 
                   {strategy === "markup" && (
-                    <div className="space-y-3.5 pt-1">
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-xs font-bold text-foreground">Markup desejado</span>
-                            <p className="text-[11px] text-muted-foreground">
-                              Multiplicador direto sobre o custo total ({brl(summaryPrices.avgCost)})
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 py-1 shadow-2xs">
-                            <span className="text-sm font-extrabold text-foreground numeric">{markup}%</span>
-                            <span className="text-[10px] font-medium text-muted-foreground">
-                              ({(1 + markup / 100).toFixed(1)}x)
-                            </span>
-                          </div>
+                    <div className="space-y-4 pt-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2.5">
+                        <div>
+                          <span className="text-xs font-bold text-foreground">Markup desejado</span>
+                          <p className="text-[11px] text-muted-foreground">Multiplicador direto sobre o custo ({brl(summaryPrices.avgCost)})</p>
                         </div>
 
-                        <Slider
-                          value={[markup]}
-                          max={300}
-                          step={5}
-                          min={10}
-                          onValueChange={([val]) => setMarkup(val ?? 100)}
-                          className="py-1 cursor-grab active:cursor-grabbing"
-                        />
+                        <div className="flex items-center gap-2">
+                          {/* Stepper Triplo Apple: [ − ] valor% [ + ] */}
+                          <div className="flex shrink-0 items-center overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
+                            <button
+                              type="button"
+                              disabled={markup <= 10}
+                              onClick={() => {
+                                const next = Math.max(10, Math.round(markup) - 5);
+                                setMarkup(next);
+                                setMarkupInputVal(String(next));
+                              }}
+                              className="flex h-8.5 w-8.5 shrink-0 items-center justify-center border-r border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                              aria-label="Diminuir markup"
+                            >
+                              <Minus className="size-3.5" />
+                            </button>
+
+                            <div className="flex items-center justify-center px-2 py-1">
+                              <input
+                                inputMode="numeric"
+                                value={markupInputVal}
+                                onChange={(e) => {
+                                  setMarkupInputVal(e.target.value);
+                                  const n = parseInt(e.target.value, 10);
+                                  if (!isNaN(n)) setMarkup(Math.min(300, Math.max(10, n)));
+                                }}
+                                onBlur={() => {
+                                  const n = parseInt(markupInputVal, 10);
+                                  if (!isNaN(n)) {
+                                    const clamped = Math.min(300, Math.max(10, n));
+                                    setMarkup(clamped);
+                                    setMarkupInputVal(String(clamped));
+                                  } else {
+                                    setMarkup(100);
+                                    setMarkupInputVal("100");
+                                  }
+                                }}
+                                className="w-10 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
+                              />
+                              <span className="text-xs font-bold text-muted-foreground select-none">%</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={markup >= 300}
+                              onClick={() => {
+                                const next = Math.min(300, Math.round(markup) + 5);
+                                setMarkup(next);
+                                setMarkupInputVal(String(next));
+                              }}
+                              className="flex h-8.5 w-8.5 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                              aria-label="Aumentar markup"
+                            >
+                              <Plus className="size-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Multiplicador Badge */}
+                          <span className="rounded-xl border border-border/80 bg-card px-2.5 py-1.5 text-xs font-extrabold text-foreground numeric shadow-2xs">
+                            {(1 + markup / 100).toFixed(1)}x
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                        <span className="text-[10px] font-semibold text-muted-foreground mr-1">Multiplicadores comuns:</span>
-                        {[
-                          { label: "80% (1.8x)", val: 80 },
-                          { label: "100% (2.0x)", val: 100 },
-                          { label: "150% (2.5x)", val: 150 },
-                          { label: "200% (3.0x)", val: 200 },
-                        ].map((m) => (
-                          <button
-                            key={m.val}
-                            type="button"
-                            onClick={() => setMarkup(m.val)}
-                            className={cn(
-                              "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
-                              Math.round(markup) === m.val
-                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                            )}
-                          >
-                            {m.label}
-                          </button>
-                        ))}
+                      {/* Chips Rápidos de Multiplicadores */}
+                      <div className="space-y-1.5 pt-0.5">
+                        <span className="text-[10px] font-semibold text-muted-foreground block">Multiplicadores comuns:</span>
+                        <div className="flex items-center gap-1.5">
+                          {[
+                            { label: "80% (1.8x)", val: 80 },
+                            { label: "100% (2.0x)", val: 100 },
+                            { label: "150% (2.5x)", val: 150 },
+                            { label: "200% (3.0x)", val: 200 },
+                          ].map((m) => (
+                            <button
+                              key={m.val}
+                              type="button"
+                              onClick={() => {
+                                setMarkup(m.val);
+                                setMarkupInputVal(String(m.val));
+                              }}
+                              className={cn(
+                                "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all duration-150 cursor-pointer text-center",
+                                Math.round(markup) === m.val
+                                  ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                  : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                              )}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
-                      <div className="rounded-xl border border-border/60 bg-card/70 p-3 text-xs leading-relaxed text-muted-foreground">
-                        💡 <span className="font-semibold text-foreground">Regra de Markup:</span> O preço é calculado multiplicando o
-                        custo da peça e deduzindo impostos e maquininha. Margem líquida resultante:{" "}
-                        <strong className="text-foreground">{pct(summaryPrices.avgMargin)}</strong>.
-                      </div>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground pt-0.5">
+                        💡 Multiplicador sobre o custo total ({brl(summaryPrices.avgCost)}). Margem líquida resultante no caixa:{" "}
+                        <strong className="text-foreground font-semibold">{pct(summaryPrices.avgMargin)}</strong>.
+                      </p>
                     </div>
                   )}
 
