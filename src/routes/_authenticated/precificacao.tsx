@@ -2747,44 +2747,47 @@ function Precificacao() {
                 {/* ── LADO ESQUERDO: CONTROLE & ESTRATÉGIA ── */}
                 <div className="space-y-5 rounded-2xl border border-border/80 bg-surface-muted/30 p-5 sm:p-6">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Método de Formação do Preço
+                    <label className="text-xs font-semibold text-muted-foreground">
+                      Método de formação do preço
                     </label>
                     <div className="grid grid-cols-3 gap-1 rounded-xl border border-border/80 bg-card p-1 shadow-2xs">
                       <button
                         type="button"
                         onClick={() => setStrategy("margin")}
                         className={cn(
-                          "flex items-center justify-center rounded-lg py-2 px-3 text-xs font-semibold transition-all cursor-pointer",
+                          "flex items-center justify-center gap-1.5 rounded-lg py-2 px-2 text-xs font-semibold transition-all duration-150 cursor-pointer",
                           strategy === "margin"
                             ? "bg-primary text-primary-foreground shadow-xs font-bold"
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                         )}
                       >
+                        <Target className="size-3 shrink-0" />
                         <span className="truncate">Margem real</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setStrategy("markup")}
                         className={cn(
-                          "flex items-center justify-center rounded-lg py-2 px-3 text-xs font-semibold transition-all cursor-pointer",
+                          "flex items-center justify-center gap-1.5 rounded-lg py-2 px-2 text-xs font-semibold transition-all duration-150 cursor-pointer",
                           strategy === "markup"
                             ? "bg-primary text-primary-foreground shadow-xs font-bold"
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                         )}
                       >
+                        <TrendingUp className="size-3 shrink-0" />
                         <span className="truncate">Markup</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setStrategy("direct_price")}
                         className={cn(
-                          "flex items-center justify-center rounded-lg py-2 px-3 text-xs font-semibold transition-all cursor-pointer",
+                          "flex items-center justify-center gap-1.5 rounded-lg py-2 px-2 text-xs font-semibold transition-all duration-150 cursor-pointer",
                           strategy === "direct_price"
                             ? "bg-primary text-primary-foreground shadow-xs font-bold"
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                         )}
                       >
+                        <Tag className="size-3 shrink-0" />
                         <span className="truncate">Preço fixo</span>
                       </button>
                     </div>
@@ -2798,19 +2801,14 @@ function Precificacao() {
                       <div className="space-y-3.5 pt-1">
                         <div className="space-y-2.5">
                           <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-xs font-bold text-foreground">Margem líquida desejada</span>
-                              <p className="text-[11px] text-muted-foreground">
-                                Descontando {tax.toFixed(1)}% DAS + {cardRate.toFixed(1)}% maquininha
-                              </p>
-                            </div>
+                            <span className="text-xs font-bold text-foreground">Margem líquida desejada</span>
                             <div className="flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-2.5 py-1 shadow-2xs">
                               <span className="text-sm font-extrabold text-foreground numeric">{effectiveMargin}%</span>
                               <Badge
                                 variant="outline"
                                 className={cn("text-[10px] font-bold border-transparent px-1.5 py-0", summaryPrices.marginHealth.color)}
                               >
-                                {summaryPrices.marginHealth.emoji}
+                                {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
                               </Badge>
                             </div>
                           </div>
@@ -2823,40 +2821,44 @@ function Precificacao() {
                             onValueChange={([val]) => setDesiredMargin(Math.min(val ?? 50, maxMarginSafe))}
                             className="py-1 cursor-grab active:cursor-grabbing"
                           />
+                          <div className="flex justify-between text-[10px] text-muted-foreground -mt-1">
+                            <span>5% mín.</span>
+                            <span>{maxMarginSafe}% máx.</span>
+                          </div>
                         </div>
 
                         {/* Chips de Metas Rápidas */}
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          <span className="text-[10px] font-semibold text-muted-foreground mr-1">Metas padrão:</span>
-                          {[
-                            { label: "35% (Mínima)", val: 35 },
-                            { label: "45% (Equilibrada)", val: 45 },
-                            { label: "50% (Recomendada)", val: 50 },
-                            { label: "60% (Premium)", val: 60 },
-                          ].map((m) => (
-                            <button
-                              key={m.val}
-                              type="button"
-                              onClick={() => setDesiredMargin(Math.min(m.val, maxMarginSafe))}
-                              className={cn(
-                                "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
-                                Math.round(effectiveMargin) === m.val
-                                  ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                  : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-semibold text-muted-foreground block">Metas rápidas:</span>
+                          <div className="flex items-center gap-1.5">
+                            {[
+                              { label: "35% Mín.", val: 35 },
+                              { label: "45% Ok", val: 45 },
+                              { label: "50% ✦", val: 50 },
+                              { label: "60% Top", val: 60 },
+                            ].map((m) => (
+                              <button
+                                key={m.val}
+                                type="button"
+                                onClick={() => setDesiredMargin(Math.min(m.val, maxMarginSafe))}
+                                className={cn(
+                                  "flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all duration-150 cursor-pointer text-center",
+                                  Math.round(effectiveMargin) === m.val
+                                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                    : "bg-card border border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                )}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
-                        {/* Dica Didática */}
-                        <div className="rounded-xl border border-border/60 bg-card/70 p-3 text-xs leading-relaxed text-muted-foreground">
-                          💡 <span className="font-semibold text-foreground">Como funciona:</span> De cada{" "}
-                          <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> vendidos,{" "}
-                          <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{brl(summaryPrices.avgProfit)}</strong> sobram
-                          líquidos no caixa da boutique após cobrir produto, DAS e maquininha.
-                        </div>
+                        {/* Dica Discreta Inline */}
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          De cada <strong className="text-foreground font-semibold">{brl(summaryPrices.avgSuggested)}</strong> vendidos,{" "}
+                          <strong className="text-success font-semibold">{brl(summaryPrices.avgProfit)}</strong> ficam líquidos no caixa.
+                        </p>
                       </div>
                     );
                   })()}
@@ -2959,8 +2961,8 @@ function Precificacao() {
                   {/* Topo do Recibo: Preço Sugerido e Badge */}
                   <div className="flex items-start justify-between gap-3 border-b border-border/50 pb-4">
                     <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Preço de Venda Sugerido
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Resultado ao vivo
                       </span>
                       <div className="mt-1 flex items-baseline gap-2">
                         <span className="numeric text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
