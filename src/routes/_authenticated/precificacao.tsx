@@ -2757,57 +2757,50 @@ function Precificacao() {
               {/* CARD MESTRE UNIFICADO */}
               <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-xs space-y-6">
 
-                {/* ── ZONA 1: COMANDO MESTRE (MÉTODO DE FORMAÇÃO EM FULL-WIDTH) ── */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Método de formação do preço
-                    </label>
-                    <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                      Escolha o modelo matemático para calcular o valor da peça
-                    </span>
-                  </div>
-
-                  {/* Segmented Control no padrão Apple (trilho suave + pílula elevada sem azul sólido) */}
-                  <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/60 bg-secondary/50 p-1.5 shadow-2xs">
+                {/* ── ZONA 1: COMANDO MESTRE (MÉTODO DE FORMAÇÃO COMPACTO E CENTRALIZADO) ── */}
+                <div className="flex flex-col items-center justify-center space-y-2">
+                  <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                    Método de formação do preço
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/60 bg-secondary/50 p-1 shadow-2xs max-w-md w-full">
                     <button
                       type="button"
                       onClick={() => setStrategy("margin")}
                       className={cn(
-                        "flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
+                        "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
                         strategy === "margin"
                           ? "bg-background text-foreground shadow-xs font-bold"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/40",
                       )}
                     >
                       <Target className="size-3.5 shrink-0" />
-                      <span className="truncate">Margem real</span>
+                      <span>Margem real</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setStrategy("markup")}
                       className={cn(
-                        "flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
+                        "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
                         strategy === "markup"
                           ? "bg-background text-foreground shadow-xs font-bold"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/40",
                       )}
                     >
                       <TrendingUp className="size-3.5 shrink-0" />
-                      <span className="truncate">Markup</span>
+                      <span>Markup</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setStrategy("direct_price")}
                       className={cn(
-                        "flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
+                        "flex items-center justify-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold transition-all duration-200 cursor-pointer",
                         strategy === "direct_price"
                           ? "bg-background text-foreground shadow-xs font-bold"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/40",
                       )}
                     >
                       <Tag className="size-3.5 shrink-0" />
-                      <span className="truncate">Preço fixo</span>
+                      <span>Preço fixo</span>
                     </button>
                   </div>
                 </div>
@@ -2817,15 +2810,15 @@ function Precificacao() {
                 {/* ── ZONA 2: SPLIT EQUAL-HEIGHT (CONTROLES × RECIBO EXECUTIVO) ── */}
                 <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr] items-stretch">
                   
-                  {/* COLUNA ESQUERDA: DEFINIÇÃO DE METAS E AJUSTE FINO (ESCALA HUMANA) */}
-                  <div className="flex flex-col justify-between space-y-5 rounded-2xl border border-border/60 bg-surface-muted/20 p-5 sm:p-6">
+                  {/* COLUNA ESQUERDA: DEFINIÇÃO DE METAS E AJUSTE FINO (ESCALA HUMANA & ERGONOMIA) */}
+                  <div className="flex flex-col justify-between space-y-5 rounded-2xl border border-border/50 bg-secondary/20 p-5 sm:p-6">
                     {strategy === "margin" && (() => {
                       const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
                       const effectiveMargin = Math.min(desiredMargin, maxMarginSafe);
                       return (
-                        <div className="flex flex-col justify-between h-full space-y-4">
-                          {/* Topo: Título Limpo */}
-                          <div className="space-y-1">
+                        <div className="flex flex-col justify-between h-full space-y-5">
+                          {/* Topo: Título e Explicação */}
+                          <div className="space-y-1 text-center sm:text-left">
                             <h4 className="text-sm font-bold text-foreground tracking-tight">
                               Margem líquida desejada
                             </h4>
@@ -2834,68 +2827,73 @@ function Precificacao() {
                             </p>
                           </div>
 
-                          {/* Cápsula de Precisão Compacta (Escala Humana) */}
-                          <div className="flex items-center justify-between rounded-xl border border-border/80 bg-card px-3 py-2 shadow-2xs">
-                            <button
-                              type="button"
-                              disabled={effectiveMargin <= 5}
-                              onClick={() => {
-                                const next = Math.max(5, Math.round(effectiveMargin) - 1);
-                                setDesiredMargin(next);
-                                setMarginInputVal(String(next));
-                              }}
-                              className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                              aria-label="Diminuir margem em 1%"
-                            >
-                              <Minus className="size-3.5" />
-                            </button>
+                          {/* Cápsula Tátil Compacta Centralizada (Ergonomia Apple / Lei de Fitts) */}
+                          <div className="flex flex-col items-center justify-center py-1">
+                            <div className="inline-flex items-center justify-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-2 shadow-2xs hover:border-border transition-all">
+                              <button
+                                type="button"
+                                disabled={effectiveMargin <= 5}
+                                onClick={() => {
+                                  const next = Math.max(5, Math.round(effectiveMargin) - 1);
+                                  setDesiredMargin(next);
+                                  setMarginInputVal(String(next));
+                                }}
+                                className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                aria-label="Diminuir margem em 1%"
+                              >
+                                <Minus className="size-4" />
+                              </button>
 
-                            <div className="flex items-baseline justify-center gap-0.5">
-                              <input
-                                inputMode="numeric"
-                                value={marginInputVal}
-                                onChange={(e) => {
-                                  setMarginInputVal(e.target.value);
-                                  const n = parseInt(e.target.value, 10);
-                                  if (!isNaN(n)) {
-                                    setDesiredMargin(Math.min(maxMarginSafe, Math.max(5, n)));
-                                  }
+                              <div className="flex items-baseline justify-center px-1">
+                                <input
+                                  inputMode="numeric"
+                                  value={marginInputVal}
+                                  onChange={(e) => {
+                                    setMarginInputVal(e.target.value);
+                                    const n = parseInt(e.target.value, 10);
+                                    if (!isNaN(n)) {
+                                      setDesiredMargin(Math.min(maxMarginSafe, Math.max(5, n)));
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    const n = parseInt(marginInputVal, 10);
+                                    if (!isNaN(n)) {
+                                      const clamped = Math.min(maxMarginSafe, Math.max(5, n));
+                                      setDesiredMargin(clamped);
+                                      setMarginInputVal(String(clamped));
+                                    } else {
+                                      setDesiredMargin(50);
+                                      setMarginInputVal("50");
+                                    }
+                                  }}
+                                  className="w-14 text-center text-2xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
+                                />
+                                <span className="text-base font-bold text-muted-foreground select-none">%</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={effectiveMargin >= maxMarginSafe}
+                                onClick={() => {
+                                  const next = Math.min(maxMarginSafe, Math.round(effectiveMargin) + 1);
+                                  setDesiredMargin(next);
+                                  setMarginInputVal(String(next));
                                 }}
-                                onBlur={() => {
-                                  const n = parseInt(marginInputVal, 10);
-                                  if (!isNaN(n)) {
-                                    const clamped = Math.min(maxMarginSafe, Math.max(5, n));
-                                    setDesiredMargin(clamped);
-                                    setMarginInputVal(String(clamped));
-                                  } else {
-                                    setDesiredMargin(50);
-                                    setMarginInputVal("50");
-                                  }
-                                }}
-                                className="w-16 text-center text-2xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
-                              />
-                              <span className="text-sm font-bold text-muted-foreground select-none">%</span>
+                                className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                aria-label="Aumentar margem em 1%"
+                              >
+                                <Plus className="size-4" />
+                              </button>
                             </div>
-
-                            <button
-                              type="button"
-                              disabled={effectiveMargin >= maxMarginSafe}
-                              onClick={() => {
-                                const next = Math.min(maxMarginSafe, Math.round(effectiveMargin) + 1);
-                                setDesiredMargin(next);
-                                setMarginInputVal(String(next));
-                              }}
-                              className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                              aria-label="Aumentar margem em 1%"
-                            >
-                              <Plus className="size-3.5" />
-                            </button>
                           </div>
 
-                          {/* Trilho Contínuo de Metas (Escala Harmônica) */}
+                          {/* Trilho de Metas Sugeridas (Harmônico e Compacto) */}
                           <div className="space-y-1.5">
-                            <span className="text-xs font-semibold text-muted-foreground">Metas sugeridas:</span>
-                            <div className="grid grid-cols-4 gap-1 rounded-xl border border-border/60 bg-secondary/40 p-1 shadow-2xs">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                              <span className="font-medium">Metas sugeridas</span>
+                              <span className="text-[11px] text-muted-foreground/80">Atalhos rápidos</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1.5 p-1 rounded-xl border border-border/50 bg-secondary/30">
                               {[
                                 { label: "35%", val: 35 },
                                 { label: "45%", val: 45 },
@@ -2926,8 +2924,8 @@ function Precificacao() {
                             </div>
                           </div>
 
-                          {/* Feedback Discreto e Elegante */}
-                          <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+                          {/* Feedback de Margem Discreto */}
+                          <div className="flex items-center gap-2 rounded-xl bg-secondary/30 px-3 py-2 text-xs text-muted-foreground border border-border/40">
                             <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
                             <span>
                               Retorno líquido de <strong className="text-foreground font-semibold">{brl(summaryPrices.avgProfit)}</strong> por peça ({Math.round(effectiveMargin)}%).
@@ -2938,8 +2936,8 @@ function Precificacao() {
                     })()}
 
                     {strategy === "markup" && (
-                      <div className="flex flex-col justify-between h-full space-y-4">
-                        <div className="space-y-1">
+                      <div className="flex flex-col justify-between h-full space-y-5">
+                        <div className="space-y-1 text-center sm:text-left">
                           <h4 className="text-sm font-bold text-foreground tracking-tight">
                             Markup sobre custo
                           </h4>
@@ -2948,69 +2946,74 @@ function Precificacao() {
                           </p>
                         </div>
 
-                        {/* Cápsula de Precisão de Markup */}
-                        <div className="flex items-center justify-between rounded-xl border border-border/80 bg-card px-3 py-2 shadow-2xs">
-                          <button
-                            type="button"
-                            disabled={markup <= 10}
-                            onClick={() => {
-                              const next = Math.max(10, Math.round(markup) - 5);
-                              setMarkup(next);
-                              setMarkupInputVal(String(next));
-                            }}
-                            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                            aria-label="Diminuir markup"
-                          >
-                            <Minus className="size-3.5" />
-                          </button>
+                        {/* Cápsula Tátil Compacta Centralizada de Markup */}
+                        <div className="flex flex-col items-center justify-center py-1">
+                          <div className="inline-flex items-center justify-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-2 shadow-2xs hover:border-border transition-all">
+                            <button
+                              type="button"
+                              disabled={markup <= 10}
+                              onClick={() => {
+                                const next = Math.max(10, Math.round(markup) - 5);
+                                setMarkup(next);
+                                setMarkupInputVal(String(next));
+                              }}
+                              className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                              aria-label="Diminuir markup"
+                            >
+                              <Minus className="size-4" />
+                            </button>
 
-                          <div className="flex items-baseline justify-center gap-1.5">
-                            <input
-                              inputMode="numeric"
-                              value={markupInputVal}
-                              onChange={(e) => {
-                                setMarkupInputVal(e.target.value);
-                                const n = parseInt(e.target.value, 10);
-                                if (!isNaN(n)) setMarkup(Math.min(300, Math.max(10, n)));
+                            <div className="flex items-baseline justify-center gap-1.5 px-1">
+                              <input
+                                inputMode="numeric"
+                                value={markupInputVal}
+                                onChange={(e) => {
+                                  setMarkupInputVal(e.target.value);
+                                  const n = parseInt(e.target.value, 10);
+                                  if (!isNaN(n)) setMarkup(Math.min(300, Math.max(10, n)));
+                                }}
+                                onBlur={() => {
+                                  const n = parseInt(markupInputVal, 10);
+                                  if (!isNaN(n)) {
+                                    const clamped = Math.min(300, Math.max(10, n));
+                                    setMarkup(clamped);
+                                    setMarkupInputVal(String(clamped));
+                                  } else {
+                                    setMarkup(100);
+                                    setMarkupInputVal("100");
+                                  }
+                                }}
+                                className="w-14 text-center text-2xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
+                              />
+                              <span className="text-base font-bold text-muted-foreground select-none">%</span>
+                              <span className="text-xs font-bold text-primary numeric bg-primary/10 px-1.5 py-0.5 rounded-md ml-0.5">
+                                {(1 + markup / 100).toFixed(1)}x
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={markup >= 300}
+                              onClick={() => {
+                                const next = Math.min(300, Math.round(markup) + 5);
+                                setMarkup(next);
+                                setMarkupInputVal(String(next));
                               }}
-                              onBlur={() => {
-                                const n = parseInt(markupInputVal, 10);
-                                if (!isNaN(n)) {
-                                  const clamped = Math.min(300, Math.max(10, n));
-                                  setMarkup(clamped);
-                                  setMarkupInputVal(String(clamped));
-                                } else {
-                                  setMarkup(100);
-                                  setMarkupInputVal("100");
-                                }
-                              }}
-                              className="w-16 text-center text-2xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
-                            />
-                            <span className="text-sm font-bold text-muted-foreground select-none">%</span>
-                            <span className="text-xs font-bold text-primary numeric bg-primary/10 px-1.5 py-0.5 rounded-md">
-                              {(1 + markup / 100).toFixed(1)}x
-                            </span>
+                              className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                              aria-label="Aumentar markup"
+                            >
+                              <Plus className="size-4" />
+                            </button>
                           </div>
-
-                          <button
-                            type="button"
-                            disabled={markup >= 300}
-                            onClick={() => {
-                              const next = Math.min(300, Math.round(markup) + 5);
-                              setMarkup(next);
-                              setMarkupInputVal(String(next));
-                            }}
-                            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                            aria-label="Aumentar markup"
-                          >
-                            <Plus className="size-3.5" />
-                          </button>
                         </div>
 
-                        {/* Trilho Contínuo de Markup */}
+                        {/* Trilho de Multiplicadores Comuns */}
                         <div className="space-y-1.5">
-                          <span className="text-xs font-semibold text-muted-foreground">Multiplicadores comuns:</span>
-                          <div className="grid grid-cols-4 gap-1 rounded-xl border border-border/60 bg-secondary/40 p-1 shadow-2xs">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                            <span className="font-medium">Multiplicadores comuns</span>
+                            <span className="text-[11px] text-muted-foreground/80">Sobre o custo</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-1.5 p-1 rounded-xl border border-border/50 bg-secondary/30">
                             {[
                               { label: "1.8x", val: 80 },
                               { label: "2.0x", val: 100 },
@@ -3040,7 +3043,7 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 rounded-xl bg-secondary/30 px-3 py-2 text-xs text-muted-foreground border border-border/40">
                           <span className="size-2 rounded-full bg-sky-500 shrink-0" />
                           <span>
                             Multiplica o custo por {(1 + markup / 100).toFixed(1)}x antes das taxas fiscais e de cartão.
@@ -3050,8 +3053,8 @@ function Precificacao() {
                     )}
 
                     {strategy === "direct_price" && (
-                      <div className="flex flex-col justify-between h-full space-y-4">
-                        <div className="space-y-1">
+                      <div className="flex flex-col justify-between h-full space-y-5">
+                        <div className="space-y-1 text-center sm:text-left">
                           <h4 className="text-sm font-bold text-foreground tracking-tight">
                             Preço de venda final fixo
                           </h4>
@@ -3060,25 +3063,30 @@ function Precificacao() {
                           </p>
                         </div>
 
-                        {/* Cápsula de Preço Direto */}
-                        <div className="flex items-center justify-between rounded-xl border border-border/80 bg-card px-4 py-2 shadow-2xs focus-within:border-primary transition-all">
-                          <span className="text-lg font-bold text-muted-foreground select-none">R$</span>
-                          <input
-                            inputMode="decimal"
-                            value={directSalePrice}
-                            onChange={(e) => setDirectSalePrice(e.target.value)}
-                            placeholder="149,90"
-                            className="w-full text-center text-2xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
-                          />
-                          <span className="text-xs font-bold text-primary numeric bg-primary/10 px-2 py-1 rounded-md">
-                            {pct(summaryPrices.avgMargin)}
-                          </span>
+                        {/* Cápsula de Preço Direto Centralizada */}
+                        <div className="flex flex-col items-center justify-center py-1">
+                          <div className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/80 bg-card px-4 py-2 shadow-2xs hover:border-border transition-all focus-within:border-primary">
+                            <span className="text-base font-bold text-muted-foreground select-none">R$</span>
+                            <input
+                              inputMode="decimal"
+                              value={directSalePrice}
+                              onChange={(e) => setDirectSalePrice(e.target.value)}
+                              placeholder="149,90"
+                              className="w-24 text-center text-2xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
+                            />
+                            <span className="text-xs font-bold text-primary numeric bg-primary/10 px-2 py-0.5 rounded-md">
+                              {pct(summaryPrices.avgMargin)}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Trilho de Preços Psicológicos */}
                         <div className="space-y-1.5">
-                          <span className="text-xs font-semibold text-muted-foreground">Preços sugeridos de etiqueta:</span>
-                          <div className="grid grid-cols-4 gap-1 rounded-xl border border-border/60 bg-secondary/40 p-1 shadow-2xs">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                            <span className="font-medium">Preços de etiqueta</span>
+                            <span className="text-[11px] text-muted-foreground/80">Psicológicos</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-1.5 p-1 rounded-xl border border-border/50 bg-secondary/30">
                             {["99,90", "119,90", "149,90", "199,90"].map((pVal) => {
                               const isActive = directSalePrice === pVal;
                               return (
@@ -3100,7 +3108,7 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 rounded-xl bg-secondary/30 px-3 py-2 text-xs text-muted-foreground border border-border/40">
                           <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
                           <span>
                             Cálculo reverso: margem líquida resultante de {pct(summaryPrices.avgMargin)} no caixa.
@@ -3111,7 +3119,7 @@ function Precificacao() {
                   </div>
 
                   {/* COLUNA DIREITA: O RECIBO EXECUTIVO DA PEÇA (RESULTADO VIVO) */}
-                  <div className="flex flex-col justify-between space-y-5 rounded-2xl border border-border/80 bg-surface-muted/20 p-5 sm:p-6 shadow-2xs">
+                  <div className="flex flex-col justify-between space-y-5 rounded-2xl border border-border/70 bg-card p-5 sm:p-6 shadow-xs">
                     {/* Topo do Recibo: Preço Sugerido e Badge */}
                     <div className="flex items-start justify-between gap-3 border-b border-border/50 pb-4">
                       <div>
