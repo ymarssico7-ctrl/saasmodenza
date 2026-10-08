@@ -2804,10 +2804,10 @@ function Precificacao() {
                 const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
                 const effectiveMargin = Math.min(desiredMargin, maxMarginSafe);
                 return (
-                  <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5 shadow-2xs space-y-3">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5 shadow-2xs">
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                       {/* Lado Esquerdo: Meta de Margem + Cápsula Ergonômica */}
-                      <div className="flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center gap-3.5 shrink-0">
                         <div>
                           <span className="text-xs font-bold text-foreground block">
                             Meta de margem líquida
@@ -2877,10 +2877,13 @@ function Precificacao() {
                         </div>
                       </div>
 
+                      {/* Divisor Sutil */}
+                      <div className="hidden sm:block h-7 w-px bg-border/80 shrink-0" />
+
                       {/* Lado Direito: Atalhos Rápidos na Mesma Linha */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider mr-1 hidden sm:inline">
-                          Atalhos:
+                        <span className="text-xs font-medium text-muted-foreground hidden md:inline mr-1">
+                          Sugestões:
                         </span>
                         {[
                           { label: "35%", tag: "Varejo", val: 35 },
@@ -2901,12 +2904,12 @@ function Precificacao() {
                               className={cn(
                                 "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer border",
                                 isActive
-                                  ? "border-primary bg-primary text-primary-foreground font-bold shadow-xs"
-                                  : "border-border/70 bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground",
+                                  ? "border-primary/80 bg-primary/10 text-primary font-bold shadow-2xs"
+                                  : "border-border/70 bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground",
                               )}
                             >
                               <span className="numeric font-bold">{m.label}</span>
-                              <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                              <span className={cn("text-[10px]", isActive ? "text-primary/80 font-medium" : "text-muted-foreground")}>
                                 {m.tag}
                               </span>
                             </button>
@@ -2919,10 +2922,10 @@ function Precificacao() {
               })()}
 
               {strategy === "markup" && (
-                <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5 shadow-2xs space-y-3">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    {/* Lado Esquerdo: Markup + Cápsula de Precisão */}
-                    <div className="flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
+                <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5 shadow-2xs">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                    {/* Multiplicador de Markup */}
+                    <div className="flex items-center gap-3.5 shrink-0">
                       <div>
                         <span className="text-xs font-bold text-foreground block">
                           Multiplicador de Markup
@@ -2990,10 +2993,13 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* Lado Direito: Atalhos de Multiplicadores */}
+                    {/* Divisor Sutil */}
+                    <div className="hidden sm:block h-7 w-px bg-border/80 shrink-0" />
+
+                    {/* Atalhos Rápidos */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider mr-1 hidden sm:inline">
-                        Atalhos:
+                      <span className="text-xs font-medium text-muted-foreground hidden md:inline mr-1">
+                        Multiplicadores:
                       </span>
                       {[
                         { label: "1.8x", tag: "Atacado", val: 80 },
@@ -3013,12 +3019,12 @@ function Precificacao() {
                             className={cn(
                               "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer border",
                               isActive
-                                ? "border-primary bg-primary text-primary-foreground font-bold shadow-xs"
-                                : "border-border/70 bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground",
+                                ? "border-primary/80 bg-primary/10 text-primary font-bold shadow-2xs"
+                                : "border-border/70 bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground",
                             )}
                           >
                             <span className="numeric font-bold">{m.label}</span>
-                            <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                            <span className={cn("text-[10px]", isActive ? "text-primary/80 font-medium" : "text-muted-foreground")}>
                               {m.tag}
                             </span>
                           </button>
@@ -3030,10 +3036,10 @@ function Precificacao() {
               )}
 
               {strategy === "direct_price" && (
-                <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5 shadow-2xs space-y-3">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 sm:p-5 shadow-2xs">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                     {/* Lado Esquerdo: Valor de Etiqueta */}
-                    <div className="flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-3.5 shrink-0">
                       <div>
                         <span className="text-xs font-bold text-foreground block">
                           Preço de venda fixo
@@ -3058,9 +3064,12 @@ function Precificacao() {
                       </div>
                     </div>
 
+                    {/* Divisor Sutil */}
+                    <div className="hidden sm:block h-7 w-px bg-border/80 shrink-0" />
+
                     {/* Lado Direito: Atalhos Psicológicos */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider mr-1 hidden sm:inline">
+                      <span className="text-xs font-medium text-muted-foreground hidden md:inline mr-1">
                         Sugeridos:
                       </span>
                       {[
@@ -3078,12 +3087,12 @@ function Precificacao() {
                             className={cn(
                               "inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer border",
                               isActive
-                                ? "border-primary bg-primary text-primary-foreground font-bold shadow-xs"
-                                : "border-border/70 bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground",
+                                ? "border-primary/80 bg-primary/10 text-primary font-bold shadow-2xs"
+                                : "border-border/70 bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground",
                             )}
                           >
                             <span className="numeric font-bold">{pVal.label}</span>
-                            <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                            <span className={cn("text-[10px]", isActive ? "text-primary/80 font-medium" : "text-muted-foreground")}>
                               {pVal.tag}
                             </span>
                           </button>
@@ -3094,24 +3103,24 @@ function Precificacao() {
                 </div>
               )}
 
-              {/* ── FAIXA 2: OS DOIS CARDS GÊMEOS DE RESULTADO COMERCIAL ── */}
+              {/* ── FAIXA 2: OS DOIS CARDS GÊMEOS DE RESULTADO COMERCIAL (PARIDADE DE SUPERFÍCIE) ── */}
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Card 1: Preço Final de Venda (Comercial / Vitrine) */}
-                <div className="rounded-2xl border border-border/80 bg-surface-muted/20 p-5 shadow-2xs space-y-2">
+                <div className="rounded-2xl border border-border/80 bg-surface-muted/30 p-5 shadow-2xs space-y-2 transition-all">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <Tag className="size-3.5 text-primary" />
-                      Preço sugerido na etiqueta
+                      Preço sugerido na vitrine
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn("text-xs font-bold border-transparent px-2.5 py-0.5", summaryPrices.marginHealth.color)}
+                      className={cn("text-xs font-bold px-2.5 py-0.5 border shadow-2xs", summaryPrices.marginHealth.color)}
                     >
                       {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
                     </Badge>
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="numeric text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+                  <div className="flex items-baseline gap-2 pt-1">
+                    <span className="numeric text-3xl sm:text-4xl font-black tracking-tight text-foreground leading-none">
                       {brl(summaryPrices.avgSuggested)}
                     </span>
                     <span className="text-xs font-medium text-muted-foreground">/ peça</span>
@@ -3122,18 +3131,18 @@ function Precificacao() {
                 </div>
 
                 {/* Card 2: Lucro Líquido Real no Bolso (Financeiro / Caixa) */}
-                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 shadow-2xs space-y-2">
+                <div className="rounded-2xl border border-border/80 bg-surface-muted/30 p-5 shadow-2xs space-y-2 transition-all">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                      <Sparkles className="size-3.5" />
+                    <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                       Sobra líquida no caixa
                     </span>
-                    <span className="numeric text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                    <span className="numeric text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full shadow-2xs">
                       {pct(summaryPrices.avgMargin)} de margem
                     </span>
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="numeric text-3xl sm:text-4xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                  <div className="flex items-baseline gap-2 pt-1">
+                    <span className="numeric text-3xl sm:text-4xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">
                       {brl(summaryPrices.avgProfit)}
                     </span>
                     <span className="text-xs font-medium text-emerald-700/70 dark:text-emerald-400/70">/ peça</span>
@@ -3158,7 +3167,7 @@ function Precificacao() {
                 const profitPct = total > 0 ? (profit / total) * 100 : 0;
 
                 return (
-                  <div className="rounded-2xl border border-border/80 bg-background p-5 shadow-2xs space-y-4">
+                  <div className="rounded-2xl border border-border/80 bg-surface-muted/20 p-5 shadow-2xs space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-foreground">
                         Decomposição do preço de venda ({brl(total)})
@@ -3195,62 +3204,63 @@ function Precificacao() {
                       />
                     </div>
 
-                    {/* Grid de 4 Colunas Sintéticas Escaneáveis */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                      <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    {/* Painel Aberto de Métricas (Sem Boxiness / Sem Caixas Empilhadas) */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-2 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
+                      {/* 1. Custo */}
+                      <div className="space-y-1 sm:pr-4">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
-                          <span>Custo da Peça</span>
+                          <span className="font-medium">Custo da Peça</span>
                         </div>
-                        <div className="numeric text-sm font-bold text-foreground mt-1">
+                        <div className="numeric text-lg sm:text-xl font-bold text-foreground">
                           {brl(cost)}
                         </div>
-                        <div className="numeric text-[10px] text-muted-foreground mt-0.5">
-                          {Math.round(costPct)}% do total
+                        <div className="numeric text-[11px] text-muted-foreground">
+                          {Math.round(costPct)}% do total cobrado
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      {/* 2. Imposto DAS */}
+                      <div className="space-y-1 pt-3 sm:pt-0 sm:px-4">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span className="size-2 rounded-full bg-amber-400 shrink-0" />
-                          <span>Imposto DAS ({tax.toFixed(1)}%)</span>
+                          <span className="font-medium">Imposto DAS ({tax.toFixed(1)}%)</span>
                         </div>
-                        <div className="numeric text-sm font-bold text-foreground mt-1">
+                        <div className="numeric text-lg sm:text-xl font-bold text-foreground">
                           {brl(taxes)}
                         </div>
-                        <div className="numeric text-[10px] text-muted-foreground mt-0.5">
-                          {Math.round(taxPct)}% do total
+                        <div className="numeric text-[11px] text-muted-foreground">
+                          {Math.round(taxPct)}% do total cobrado
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      {/* 3. Taxa Maquininha */}
+                      <div className="space-y-1 pt-3 sm:pt-0 sm:px-4">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span className="size-2 rounded-full bg-sky-400 shrink-0" />
-                          <span>Cartão ({cardRate.toFixed(1)}%)</span>
+                          <span className="font-medium">Cartão ({cardRate.toFixed(1)}%)</span>
                         </div>
-                        <div className="numeric text-sm font-bold text-foreground mt-1">
+                        <div className="numeric text-lg sm:text-xl font-bold text-foreground">
                           {brl(cardFees)}
                         </div>
-                        <div className="numeric text-[10px] text-muted-foreground mt-0.5">
-                          {Math.round(cardPct)}% do total
+                        <div className="numeric text-[11px] text-muted-foreground">
+                          {Math.round(cardPct)}% do total cobrado
                         </div>
                       </div>
 
-                      <div className={cn(
-                        "rounded-xl border p-3",
-                        profit < 0
-                          ? "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-                      )}>
-                        <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                      {/* 4. Lucro Líquido */}
+                      <div className="space-y-1 pt-3 sm:pt-0 sm:pl-4">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold">
                           <span className={cn("size-2 rounded-full shrink-0", profit < 0 ? "bg-rose-500" : "bg-emerald-500")} />
-                          <span>Lucro Líquido</span>
+                          <span className={profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}>
+                            Lucro Líquido
+                          </span>
                         </div>
-                        <div className="numeric text-sm font-extrabold mt-1">
+                        <div className={cn("numeric text-lg sm:text-xl font-extrabold", profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>
                           {brl(profit)}
                         </div>
-                        <div className="numeric text-[10px] font-medium opacity-80 mt-0.5">
-                          {Math.round(profitPct)}% no bolso
+                        <div className={cn("numeric text-[11px] font-semibold", profit < 0 ? "text-rose-600/80 dark:text-rose-400/80" : "text-emerald-700/80 dark:text-emerald-400/80")}>
+                          {Math.round(profitPct)}% limpo no caixa
                         </div>
                       </div>
                     </div>
