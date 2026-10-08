@@ -2833,14 +2833,26 @@ function Precificacao() {
                             </p>
                           </div>
 
-                          {/* Campo Executivo Compacto (Escala Humana de 110px) */}
-                          <div className="space-y-2">
-                            <label className="text-xs font-semibold text-foreground/80">
-                              Percentual de margem
-                            </label>
-                            <div className="flex items-center gap-3">
-                              {/* Input Numérico com Largura Intrínseca */}
-                              <div className="relative inline-flex items-center w-28 rounded-xl border border-border/80 bg-background px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-2xs">
+                          {/* Controle Unificado: [ − valor % + ] em um único organismo */}
+                          <div>
+                            <div className="inline-flex items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all overflow-hidden">
+                              {/* Botão Menos */}
+                              <button
+                                type="button"
+                                disabled={effectiveMargin <= 5}
+                                onClick={() => {
+                                  const next = Math.max(5, Math.round(effectiveMargin) - 1);
+                                  setDesiredMargin(next);
+                                  setMarginInputVal(String(next));
+                                }}
+                                className="flex size-10 items-center justify-center border-r border-border/50 text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
+                                aria-label="Diminuir margem em 1%"
+                              >
+                                <Minus className="size-4" />
+                              </button>
+
+                              {/* Input Central */}
+                              <div className="flex items-baseline gap-0.5 px-4 py-2">
                                 <input
                                   inputMode="numeric"
                                   value={marginInputVal}
@@ -2862,44 +2874,26 @@ function Precificacao() {
                                       setMarginInputVal("50");
                                     }
                                   }}
-                                  className="w-full text-center text-xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
+                                  className="w-10 text-center text-xl font-extrabold text-foreground outline-none bg-transparent numeric tracking-tight"
                                   placeholder="50"
                                 />
-                                <span className="text-base font-bold text-muted-foreground select-none ml-1">%</span>
+                                <span className="text-sm font-bold text-muted-foreground select-none">%</span>
                               </div>
 
-                              {/* Stepper Acoplado de Precisão */}
-                              <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
-                                <button
-                                  type="button"
-                                  disabled={effectiveMargin <= 5}
-                                  onClick={() => {
-                                    const next = Math.max(5, Math.round(effectiveMargin) - 1);
-                                    setDesiredMargin(next);
-                                    setMarginInputVal(String(next));
-                                  }}
-                                  className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
-                                  aria-label="Diminuir margem em 1%"
-                                  title="-1%"
-                                >
-                                  <Minus className="size-4" />
-                                </button>
-                                <div className="h-4 w-px bg-border/60 mx-1" />
-                                <button
-                                  type="button"
-                                  disabled={effectiveMargin >= maxMarginSafe}
-                                  onClick={() => {
-                                    const next = Math.min(maxMarginSafe, Math.round(effectiveMargin) + 1);
-                                    setDesiredMargin(next);
-                                    setMarginInputVal(String(next));
-                                  }}
-                                  className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
-                                  aria-label="Aumentar margem em 1%"
-                                  title="+1%"
-                                >
-                                  <Plus className="size-4" />
-                                </button>
-                              </div>
+                              {/* Botão Mais */}
+                              <button
+                                type="button"
+                                disabled={effectiveMargin >= maxMarginSafe}
+                                onClick={() => {
+                                  const next = Math.min(maxMarginSafe, Math.round(effectiveMargin) + 1);
+                                  setDesiredMargin(next);
+                                  setMarginInputVal(String(next));
+                                }}
+                                className="flex size-10 items-center justify-center border-l border-border/50 text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
+                                aria-label="Aumentar margem em 1%"
+                              >
+                                <Plus className="size-4" />
+                              </button>
                             </div>
                           </div>
 
@@ -2911,12 +2905,12 @@ function Precificacao() {
                               </span>
                               <span className="text-[11px] text-muted-foreground/70">Clique para aplicar</span>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="grid grid-cols-4 gap-1.5">
                               {[
                                 { label: "35%", tag: "Varejo", val: 35 },
-                                { label: "45%", tag: "Equilibrada", val: 45 },
-                                { label: "50%", tag: "Recomendada", val: 50 },
-                                { label: "60%", tag: "Alta margem", val: 60 },
+                                { label: "45%", tag: "Equilib.", val: 45 },
+                                { label: "50%", tag: "Recom.", val: 50 },
+                                { label: "60%", tag: "Alta", val: 60 },
                               ].map((m) => {
                                 const isActive = Math.round(effectiveMargin) === m.val;
                                 return (
@@ -2929,14 +2923,14 @@ function Precificacao() {
                                       setMarginInputVal(String(target));
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-150 cursor-pointer border",
+                                      "flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl text-xs transition-all duration-150 cursor-pointer border",
                                       isActive
-                                        ? "border-primary bg-primary text-primary-foreground font-bold shadow-xs"
-                                        : "border-border/70 bg-secondary/30 hover:bg-secondary/60 text-muted-foreground hover:text-foreground",
+                                        ? "border-primary bg-primary/8 text-primary font-bold"
+                                        : "border-border/60 bg-secondary/20 hover:bg-secondary/50 text-muted-foreground hover:text-foreground",
                                     )}
                                   >
-                                    <span className="font-bold numeric">{m.label}</span>
-                                    <span className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground/70")}>
+                                    <span className="font-bold numeric text-sm leading-none">{m.label}</span>
+                                    <span className={cn("text-[10px] leading-none", isActive ? "text-primary/70" : "text-muted-foreground/60")}>
                                       {m.tag}
                                     </span>
                                   </button>
