@@ -2731,83 +2731,80 @@ function Precificacao() {
             PASSO 3: RESUMO EXECUTIVO DO LOTE & FECHAMENTO (OU RESULTADO MODO RÁPIDO)
         ══════════════════════════════════════════════════════════════════ */}
         <section className="panel p-5 sm:p-6 space-y-4">
-          {/* ── CABEÇALHO INTEGRADO (ZERO REDUNDÂNCIA + SELETOR DE MÉTODO DIRETO) ── */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/50 pb-3.5">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary shrink-0">
-                {mode === "rapida" ? "2" : "3"}
-              </span>
-              <div>
-                <h2 className="text-base font-bold text-foreground tracking-tight">
-                  {mode === "rapida" ? "Formação do Preço de Venda" : "Resumo executivo do lote e fechamento"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {mode === "rapida"
-                    ? "Defina sua margem e visualize instantaneamente o preço comercial da peça"
-                    : "Visão consolidada do lote — faturamento potencial, investimento total e ponto de equilíbrio"}
-                </p>
-              </div>
+          {/* ── CABEÇALHO INTEGRADO ── */}
+          <div className="flex items-center gap-2.5 border-b border-border/50 pb-3">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary shrink-0">
+              {mode === "rapida" ? "2" : "3"}
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-foreground tracking-tight">
+                {mode === "rapida" ? "Formação do Preço de Venda" : "Resumo executivo do lote e fechamento"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {mode === "rapida"
+                  ? "Defina sua margem e visualize instantaneamente o preço comercial da peça"
+                  : "Visão consolidada do lote — faturamento potencial, investimento total e ponto de equilíbrio"}
+              </p>
             </div>
+          </div>
 
-            {mode === "rapida" && (
-              <div className="inline-flex items-center gap-1 rounded-xl border border-border/70 bg-secondary/40 p-1 shadow-2xs self-start sm:self-auto">
+          {/* ═══════════════════════════════════════════════════════════════
+              MODO RÁPIDO: SIMULADOR EXECUTIVO DE PREÇO
+          ═══════════════════════════════════════════════════════════════ */}
+          {mode === "rapida" ? (
+            <div className="space-y-4">
+              {/* ── SELETOR DE ESTRATÉGIA PROEMINENTE & NOTÁVEL ── */}
+              <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-secondary/40 border border-border/70 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setStrategy("margin")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg py-1 px-2.5 text-xs font-semibold transition-all duration-150 cursor-pointer",
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer",
                     strategy === "margin"
-                      ? "bg-background text-foreground shadow-xs font-bold"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40",
                   )}
                 >
-                  <Target className="size-3.5 shrink-0" />
+                  <Target className={cn("size-3.5 shrink-0", strategy === "margin" ? "text-primary" : "text-muted-foreground")} />
                   <span>Margem real</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setStrategy("markup")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg py-1 px-2.5 text-xs font-semibold transition-all duration-150 cursor-pointer",
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer",
                     strategy === "markup"
-                      ? "bg-background text-foreground shadow-xs font-bold"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40",
                   )}
                 >
-                  <TrendingUp className="size-3.5 shrink-0" />
+                  <TrendingUp className={cn("size-3.5 shrink-0", strategy === "markup" ? "text-primary" : "text-muted-foreground")} />
                   <span>Markup</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setStrategy("direct_price")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg py-1 px-2.5 text-xs font-semibold transition-all duration-150 cursor-pointer",
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer",
                     strategy === "direct_price"
-                      ? "bg-background text-foreground shadow-xs font-bold"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-background text-foreground shadow-xs font-bold border border-border/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40",
                   )}
                 >
-                  <Tag className="size-3.5 shrink-0" />
+                  <Tag className={cn("size-3.5 shrink-0", strategy === "direct_price" ? "text-primary" : "text-muted-foreground")} />
                   <span>Preço fixo</span>
                 </button>
               </div>
-            )}
-          </div>
 
-          {/* ═══════════════════════════════════════════════════════════════
-              MODO RÁPIDO: SIMULADOR EXECUTIVO DE PREÇO (SEM CARD-INCEPTION)
-          ═══════════════════════════════════════════════════════════════ */}
-          {mode === "rapida" ? (
-            <div className="space-y-4">
-              {/* ── FAIXA 1: CONTROLE DE ENTRADA MINIMALISTA & FLUIDO ── */}
+              {/* ── FAIXA 1: CONTROLE DE ENTRADA UNIFICADO & HARMONIOSO (SEM VÁCUO) ── */}
               {strategy === "margin" && (() => {
                 const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
                 const effectiveMargin = Math.min(desiredMargin, maxMarginSafe);
                 return (
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-2">
-                    {/* Lado Esquerdo: Rótulo Limpo + Cápsula Ergonômica de Precisão */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs font-medium text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl bg-secondary/25 border border-border/60">
+                    {/* Stepper com Rótulo */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span className="text-xs font-semibold text-foreground whitespace-nowrap">
                         Meta de margem líquida:
                       </span>
 
@@ -2870,7 +2867,10 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* Lado Direito: Atalhos em Linha Única */}
+                    {/* Divisor vertical sutil */}
+                    <div className="hidden sm:block h-6 w-px bg-border/70 shrink-0" />
+
+                    {/* Atalhos Rápidos */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {[
                         { label: "35%", tag: "Varejo", val: 35 },
@@ -2889,14 +2889,14 @@ function Precificacao() {
                               setMarginInputVal(String(target));
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1 h-8 px-3 rounded-lg text-xs transition-all duration-150 cursor-pointer border",
+                              "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs transition-all duration-150 cursor-pointer border",
                               isActive
-                                ? "border-primary/80 bg-primary/10 text-primary font-semibold shadow-2xs"
-                                : "border-border/60 bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground",
+                                ? "border-primary/80 bg-primary/10 text-primary font-bold shadow-2xs"
+                                : "border-border/60 bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground",
                             )}
                           >
-                            <span className="numeric font-semibold">{m.label}</span>
-                            <span className={cn("text-[11px]", isActive ? "text-primary/80" : "text-muted-foreground/70")}>
+                            <span className="numeric font-bold">{m.label}</span>
+                            <span className={cn("text-[11px]", isActive ? "text-primary/90 font-medium" : "text-muted-foreground/75")}>
                               {m.tag}
                             </span>
                           </button>
@@ -2908,10 +2908,10 @@ function Precificacao() {
               })()}
 
               {strategy === "markup" && (
-                <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-2">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl bg-secondary/25 border border-border/60">
                   {/* Lado Esquerdo: Rótulo + Cápsula de Markup */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-xs font-semibold text-foreground whitespace-nowrap">
                       Multiplicador de Markup:
                     </span>
 
@@ -2973,6 +2973,9 @@ function Precificacao() {
                     </div>
                   </div>
 
+                  {/* Divisor vertical */}
+                  <div className="hidden sm:block h-6 w-px bg-border/70 shrink-0" />
+
                   {/* Lado Direito: Atalhos Rápidos */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {[
@@ -2991,14 +2994,14 @@ function Precificacao() {
                             setMarkupInputVal(String(m.val));
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1 h-8 px-3 rounded-lg text-xs transition-all duration-150 cursor-pointer border",
+                            "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs transition-all duration-150 cursor-pointer border",
                             isActive
-                              ? "border-primary/80 bg-primary/10 text-primary font-semibold shadow-2xs"
-                              : "border-border/60 bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground",
+                              ? "border-primary/80 bg-primary/10 text-primary font-bold shadow-2xs"
+                              : "border-border/60 bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground",
                           )}
                         >
-                          <span className="numeric font-semibold">{m.label}</span>
-                          <span className={cn("text-[11px]", isActive ? "text-primary/80" : "text-muted-foreground/70")}>
+                          <span className="numeric font-bold">{m.label}</span>
+                          <span className={cn("text-[11px]", isActive ? "text-primary/90 font-medium" : "text-muted-foreground/75")}>
                             {m.tag}
                           </span>
                         </button>
@@ -3009,10 +3012,10 @@ function Precificacao() {
               )}
 
               {strategy === "direct_price" && (
-                <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-2">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl bg-secondary/25 border border-border/60">
                   {/* Lado Esquerdo: Preço Fixo */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-xs font-semibold text-foreground whitespace-nowrap">
                       Preço fixo de venda:
                     </span>
 
@@ -3031,6 +3034,9 @@ function Precificacao() {
                     </div>
                   </div>
 
+                  {/* Divisor vertical */}
+                  <div className="hidden sm:block h-6 w-px bg-border/70 shrink-0" />
+
                   {/* Lado Direito: Sugestões de Preço */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {[
@@ -3046,14 +3052,14 @@ function Precificacao() {
                           type="button"
                           onClick={() => setDirectSalePrice(pVal.val)}
                           className={cn(
-                            "inline-flex items-center gap-1 h-8 px-3 rounded-lg text-xs transition-all duration-150 cursor-pointer border",
+                            "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs transition-all duration-150 cursor-pointer border",
                             isActive
-                              ? "border-primary/80 bg-primary/10 text-primary font-semibold shadow-2xs"
-                              : "border-border/60 bg-background/60 hover:bg-background text-muted-foreground hover:text-foreground",
+                              ? "border-primary/80 bg-primary/10 text-primary font-bold shadow-2xs"
+                              : "border-border/60 bg-background/80 hover:bg-background text-muted-foreground hover:text-foreground",
                           )}
                         >
-                          <span className="numeric font-semibold">{pVal.label}</span>
-                          <span className={cn("text-[11px]", isActive ? "text-primary/80" : "text-muted-foreground/70")}>
+                          <span className="numeric font-bold">{pVal.label}</span>
+                          <span className={cn("text-[11px]", isActive ? "text-primary/90 font-medium" : "text-muted-foreground/75")}>
                             {pVal.tag}
                           </span>
                         </button>
@@ -3077,13 +3083,13 @@ function Precificacao() {
                 const profitPct = total > 0 ? (profit / total) * 100 : 0;
 
                 return (
-                  <div className="rounded-2xl border border-border/70 bg-surface-muted/25 p-4 sm:p-5 shadow-2xs space-y-4">
-                    {/* 1. Header do Demonstrativo: Preço Sugerido e Sobra no Caixa (Twin Hero) */}
-                    <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 shadow-soft space-y-4">
+                    {/* 1. Header do Demonstrativo: Preço Sugerido e Sobra no Caixa (Sem card-in-card) */}
+                    <div className="grid sm:grid-cols-2 gap-4 pb-4 border-b border-border/60">
                       {/* Lado A: Preço sugerido na vitrine */}
-                      <div className="rounded-xl border border-border/60 bg-background/90 p-3.5 sm:p-4 shadow-2xs space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between sm:justify-start gap-2">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                             <Tag className="size-3.5 text-primary" />
                             Preço sugerido na vitrine
                           </span>
@@ -3095,10 +3101,10 @@ function Precificacao() {
                           </Badge>
                         </div>
                         <div className="flex items-baseline gap-1.5 pt-0.5">
-                          <span className="numeric text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground leading-none">
+                          <span className="numeric text-2xl sm:text-3xl font-black tracking-tight text-foreground leading-none">
                             {brl(summaryPrices.avgSuggested)}
                           </span>
-                          <span className="text-xs font-normal text-muted-foreground">/ peça</span>
+                          <span className="text-xs font-medium text-muted-foreground">/ peça</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground/80">
                           Valor final recomendado para venda na vitrine e loja.
@@ -3106,9 +3112,9 @@ function Precificacao() {
                       </div>
 
                       {/* Lado B: Sobra líquida no caixa */}
-                      <div className="rounded-xl border border-border/60 bg-background/90 p-3.5 sm:p-4 shadow-2xs space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <div className="space-y-1 sm:border-l sm:border-border/60 sm:pl-5">
+                        <div className="flex items-center justify-between sm:justify-start gap-2">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                             <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                             Sobra líquida no caixa
                           </span>
@@ -3117,10 +3123,10 @@ function Precificacao() {
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1.5 pt-0.5">
-                          <span className="numeric text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">
+                          <span className="numeric text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">
                             {brl(summaryPrices.avgProfit)}
                           </span>
-                          <span className="text-xs font-normal text-emerald-700/70 dark:text-emerald-400/70">/ peça</span>
+                          <span className="text-xs font-medium text-emerald-700/70 dark:text-emerald-400/70">/ peça</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground/80">
                           Lucro limpo no bolso após abatimento de custos e taxas.
