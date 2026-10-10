@@ -1363,9 +1363,8 @@ function Precificacao() {
               
               {/* 1. Custo Fornecedor (Atacado) */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Custo fornecedor</span>
-                  <span className="text-[10px] font-medium text-muted-foreground">atacado</span>
+                <Label className="text-xs font-semibold text-foreground">
+                  Custo de atacado
                 </Label>
                 <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                   <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -1381,9 +1380,8 @@ function Precificacao() {
 
               {/* 2. Quantidade de Peças */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Quantidade</span>
-                  <span className="text-[10px] font-medium text-muted-foreground">no lote</span>
+                <Label className="text-xs font-semibold text-foreground">
+                  Quantidade no lote
                 </Label>
                 <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                   <button
@@ -1428,14 +1426,12 @@ function Precificacao() {
               {/* 3. Cor da Peça (opcional) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Cor</span>
-                  {rapidaColor ? (
+                  <span>Cor da peça</span>
+                  {rapidaColor && (
                     <span className="flex items-center gap-1 text-[10px] font-bold text-primary">
                       <span className={cn("size-2 rounded-full", getColorDot(rapidaColor))} />
                       {rapidaColor}
                     </span>
-                  ) : (
-                    <span className="text-[10px] font-normal text-muted-foreground">opcional</span>
                   )}
                 </Label>
                 <div className="relative">
@@ -1522,13 +1518,11 @@ function Precificacao() {
               {/* 4. Tamanho da Peça (opcional) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Tamanho</span>
-                  {rapidaSize ? (
+                  <span>Tamanho da peça</span>
+                  {rapidaSize && (
                     <span className="text-[10px] font-bold text-primary">
                       Tam: {rapidaSize}
                     </span>
-                  ) : (
-                    <span className="text-[10px] font-normal text-muted-foreground">opcional</span>
                   )}
                 </Label>
                 <div className="relative">
@@ -1583,7 +1577,7 @@ function Precificacao() {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              BENTO STUDIO: CUSTOS COMPARTILHADOS (ESQUERDA) + BENTO DASHBOARD (DIREITA)
+              HUB INTEGRADO: CUSTOS ADICIONAIS & CUSTO REAL DA PEÇA (APPLE STUDIO / LINEAR)
           ══════════════════════════════════════════════════════════════════ */}
           {(() => {
             const freightVal = toNumber(freight);
@@ -1598,299 +1592,276 @@ function Precificacao() {
             const totalUnitCost = baseCost + totalSharedCost;
 
             return (
-              <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-                {/* Coluna da Esquerda: Inputs dos 3 Custos com Rateio Elegante */}
-                <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs">
-                  <div className="space-y-0.5 border-b border-border/50 pb-2.5">
-                    <span className="text-xs font-bold text-foreground">
+              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
+                {/* Cabeçalho do Hub de Custos */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">
                       Custos adicionais rateados por peça
-                    </span>
+                    </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      Despesas fixas e operacionais rateadas para compor o custo real da peça
+                      Despesas fixas e operacionais somadas ao custo unitário de compra
                     </p>
                   </div>
 
-                  {/* Assistente de Rateio Rápido Expandido (quando ativo) */}
-                  {rateioTarget && (
-                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 sm:p-4 space-y-3 animate-in fade-in-50 duration-200 shadow-soft">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="size-6 rounded-lg bg-primary/15 flex items-center justify-center">
-                            <Calculator className="size-3.5 text-primary" />
-                          </div>
-                          <span className="text-xs font-bold text-primary">
-                            Assistente de Rateio:{" "}
-                            {rateioTarget === "freight" ? "Dividir Frete da Nota" : rateioTarget === "packaging" ? "Dividir Embalagens & Tags" : "Dividir Outros Custos"}
-                          </span>
-                        </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">Total adicional:</span>
+                    <span className="numeric text-xs font-bold text-foreground bg-secondary/70 px-2 py-0.5 rounded-lg border border-border/60">
+                      +{brl(totalSharedCost)} / un.
+                    </span>
+                  </div>
+                </div>
 
-                        {/* Abas Rápidas para trocar a despesa */}
-                        <div className="flex items-center gap-1 rounded-lg bg-card border border-border/70 p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => openRateioAssistant("freight")}
-                            className={cn(
-                              "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
-                              rateioTarget === "freight" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            Frete
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openRateioAssistant("packaging")}
-                            className={cn(
-                              "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
-                              rateioTarget === "packaging" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            Embalagem
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openRateioAssistant("other")}
-                            className={cn(
-                              "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
-                              rateioTarget === "other" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            Outros
-                          </button>
+                {/* Assistente de Rateio Rápido Expandido (quando ativo) */}
+                {rateioTarget && (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 sm:p-4 space-y-3 animate-in fade-in-50 duration-200 shadow-soft">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="size-6 rounded-lg bg-primary/15 flex items-center justify-center">
+                          <Calculator className="size-3.5 text-primary" />
                         </div>
+                        <span className="text-xs font-bold text-primary">
+                          Assistente de Rateio:{" "}
+                          {rateioTarget === "freight" ? "Dividir Frete da Nota" : rateioTarget === "packaging" ? "Dividir Embalagens & Tags" : "Dividir Outros Custos"}
+                        </span>
+                      </div>
 
+                      {/* Abas Rápidas para trocar a despesa */}
+                      <div className="flex items-center gap-1 rounded-lg bg-card border border-border/70 p-0.5">
                         <button
                           type="button"
-                          onClick={() => setRateioTarget(null)}
-                          className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs cursor-pointer"
+                          onClick={() => openRateioAssistant("freight")}
+                          className={cn(
+                            "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                            rateioTarget === "freight" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
+                          )}
                         >
-                          <X className="size-4" />
+                          Frete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openRateioAssistant("packaging")}
+                          className={cn(
+                            "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                            rateioTarget === "packaging" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          Embalagem
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openRateioAssistant("other")}
+                          className={cn(
+                            "px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer",
+                            rateioTarget === "other" ? "bg-primary text-primary-foreground font-bold shadow-xs" : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          Outros
                         </button>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-semibold text-muted-foreground">Valor Total Pago na Nota (R$)</Label>
-                          <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
-                            <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={rateioTotal}
-                              onChange={(e) => setRateioTotal(e.target.value)}
-                              placeholder="120,00"
-                              className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
-                              autoFocus
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[11px] font-semibold text-muted-foreground">Total de Peças</Label>
-                            {actualLotUnits > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => setRateioPieces(String(actualLotUnits))}
-                                className="text-[10px] text-primary hover:text-primary/80 font-semibold cursor-pointer transition-colors"
-                              >
-                                Usar {actualLotUnits} un. da grade
-                              </button>
-                            )}
-                          </div>
-                          <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
-                            <input
-                              inputMode="numeric"
-                              value={rateioPieces}
-                              onChange={(e) => setRateioPieces(e.target.value)}
-                              placeholder="20"
-                              className="h-9 w-full bg-transparent px-3 text-xs font-bold text-foreground outline-none"
-                            />
-                            <span className="pr-3 text-[11px] font-semibold text-muted-foreground select-none">un.</span>
-                          </div>
-                        </div>
-
-                        <Button
-                          type="button"
-                          onClick={applyRateio}
-                          disabled={!toNumber(rateioTotal) || !Number(rateioPieces)}
-                          className="h-9 rounded-xl gradient-primary text-xs font-bold shadow-glow shrink-0 cursor-pointer active:scale-95 transition-all"
-                        >
-                          {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
-                            <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
-                          ) : (
-                            <>Calcular e Aplicar</>
-                          )}
-                        </Button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRateioTarget(null)}
+                        className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs cursor-pointer"
+                      >
+                        <X className="size-4" />
+                      </button>
                     </div>
-                  )}
 
-                  {/* Campo Frete com Botão de Rateio Integrado */}
-                  <div className="space-y-1.5">
+                    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-semibold text-muted-foreground">Valor Total Pago na Nota (R$)</Label>
+                        <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                          <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                          <input
+                            inputMode="decimal"
+                            value={rateioTotal}
+                            onChange={(e) => setRateioTotal(e.target.value)}
+                            placeholder="120,00"
+                            className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[11px] font-semibold text-muted-foreground">Total de Peças</Label>
+                          {actualLotUnits > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setRateioPieces(String(actualLotUnits))}
+                              className="text-[10px] text-primary hover:text-primary/80 font-semibold cursor-pointer transition-colors"
+                            >
+                              Usar {actualLotUnits} un. da grade
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                          <input
+                            inputMode="numeric"
+                            value={rateioPieces}
+                            onChange={(e) => setRateioPieces(e.target.value)}
+                            placeholder="20"
+                            className="h-9 w-full bg-transparent px-3 text-xs font-bold text-foreground outline-none"
+                          />
+                          <span className="pr-3 text-[11px] font-semibold text-muted-foreground select-none">un.</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={applyRateio}
+                        disabled={!toNumber(rateioTotal) || !Number(rateioPieces)}
+                        className="h-9 rounded-xl gradient-primary text-xs font-bold shadow-glow shrink-0 cursor-pointer active:scale-95 transition-all"
+                      >
+                        {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
+                          <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
+                        ) : (
+                          <>Calcular e Aplicar</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid Horizontal dos 3 Custos em 3 Colunas Perfeitas (Fim do Vácuo) */}
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {/* 1. Frete */}
+                  <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/15 p-3 sm:p-3.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold text-foreground">Frete por peça</Label>
                       <button
                         type="button"
                         onClick={() => openRateioAssistant("freight")}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer py-0.5"
-                        title="Dividir o frete total pago pelo número de peças"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                        title="Dividir frete total pelo número de peças"
                       >
                         <Calculator className="size-3" />
-                        <span>Ratear valor</span>
+                        <span>Ratear</span>
                       </button>
                     </div>
-                    <div className="relative flex items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                      <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                    <div className="relative flex items-center rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                       <input
                         inputMode="decimal"
                         value={freight}
                         onChange={(e) => setFreight(e.target.value)}
                         placeholder="0,00"
-                        className="h-10 w-full bg-transparent px-2 text-sm font-semibold text-foreground outline-none"
+                        className="h-9 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                       />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Rateio por unidade</span>
+                      {freightPct > 0 && <span className="font-semibold text-primary">{Math.round(freightPct)}% dos adicionais</span>}
                     </div>
                   </div>
 
-                  {/* Campo Embalagem & Tag com Botão de Rateio Integrado */}
-                  <div className="space-y-1.5">
+                  {/* 2. Embalagem & Tag */}
+                  <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/15 p-3 sm:p-3.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold text-foreground">Embalagem & Tag</Label>
                       <button
                         type="button"
                         onClick={() => openRateioAssistant("packaging")}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer py-0.5"
-                        title="Dividir custo de embalagens pelo número de peças"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                        title="Dividir custo de embalagens"
                       >
                         <Calculator className="size-3" />
-                        <span>Ratear valor</span>
+                        <span>Ratear</span>
                       </button>
                     </div>
-                    <div className="relative flex items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                      <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                    <div className="relative flex items-center rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                       <input
                         inputMode="decimal"
                         value={packaging}
                         onChange={(e) => setPackaging(e.target.value)}
                         placeholder="0,00"
-                        className="h-10 w-full bg-transparent px-2 text-sm font-semibold text-foreground outline-none"
+                        className="h-9 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                       />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Sacolas, tags e mimos</span>
+                      {packagingPct > 0 && <span className="font-semibold text-emerald-600 dark:text-emerald-400">{Math.round(packagingPct)}% dos adicionais</span>}
                     </div>
                   </div>
 
-                  {/* Campo Outros Custos com Botão de Rateio Integrado */}
-                  <div className="space-y-1.5">
+                  {/* 3. Outros Custos */}
+                  <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/15 p-3 sm:p-3.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-foreground">Outros custos por peça</Label>
+                      <Label className="text-xs font-semibold text-foreground">Outros custos</Label>
                       <button
                         type="button"
                         onClick={() => openRateioAssistant("other")}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer py-0.5"
-                        title="Dividir despesas extras pelo número de peças"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                        title="Dividir despesas operacionais extras"
                       >
                         <Calculator className="size-3" />
-                        <span>Ratear valor</span>
+                        <span>Ratear</span>
                       </button>
                     </div>
-                    <div className="relative flex items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                      <span className="pl-3.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                    <div className="relative flex items-center rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                       <input
                         inputMode="decimal"
                         value={other}
                         onChange={(e) => setOther(e.target.value)}
                         placeholder="0,00"
-                        className="h-10 w-full bg-transparent px-2 text-sm font-semibold text-foreground outline-none"
+                        className="h-9 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                       />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Custos fixos ou extras</span>
+                      {otherPct > 0 && <span className="font-semibold text-amber-600 dark:text-amber-400">{Math.round(otherPct)}% dos adicionais</span>}
                     </div>
                   </div>
                 </div>
 
-                {/* Coluna da Direita: Painel Executivo do Custo Real da Peça (Apple Level) */}
-                <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
-                  <div className="space-y-3">
-                    <div className="space-y-1 border-b border-border/50 pb-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                          Custo Real da Peça
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                          Base de precificação
-                        </span>
-                      </div>
-
-                      <div className="numeric text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight pt-0.5">
-                        {brl(totalUnitCost)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1.5">/ peça</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {brl(baseCost)} atacado + {brl(totalSharedCost)} adicionais
-                      </p>
+                {/* Hero Integrado: Custo Real da Peça (Equação Clara sem Duplicações) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-surface-muted/60 border border-border/60 p-3.5 sm:px-4">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Custo Real da Peça
+                      </span>
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        Base da precificação
+                      </span>
                     </div>
-
-                    {/* Decomposição Visual com Porcentagens e Cores */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="size-2 rounded-full bg-primary" />
-                          Frete rateado
-                        </span>
-                        <span className="numeric font-bold text-foreground">
-                          {brl(freightVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(freightPct)}%)</span>
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="size-2 rounded-full bg-emerald-500" />
-                          Embalagem e tag
-                        </span>
-                        <span className="numeric font-bold text-foreground">
-                          {brl(packagingVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(packagingPct)}%)</span>
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="size-2 rounded-full bg-amber-500" />
-                          Outros custos
-                        </span>
-                        <span className="numeric font-bold text-foreground">
-                          {brl(otherVal)} <span className="text-[10px] font-medium text-muted-foreground">({Math.round(otherPct)}%)</span>
-                        </span>
-                      </div>
-
-                      {/* Multi-segment Progress Bar */}
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5 mt-2.5">
-                        {freightPct > 0 && (
-                          <div
-                            style={{ width: `${freightPct}%` }}
-                            className="h-full bg-primary transition-all duration-300"
-                            title={`Frete: ${Math.round(freightPct)}%`}
-                          />
-                        )}
-                        {packagingPct > 0 && (
-                          <div
-                            style={{ width: `${packagingPct}%` }}
-                            className="h-full bg-emerald-500 transition-all duration-300"
-                            title={`Embalagem: ${Math.round(packagingPct)}%`}
-                          />
-                        )}
-                        {otherPct > 0 && (
-                          <div
-                            style={{ width: `${otherPct}%` }}
-                            className="h-full bg-amber-500 transition-all duration-300"
-                            title={`Outros: ${Math.round(otherPct)}%`}
-                          />
-                        )}
-                      </div>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">{brl(baseCost)}</strong> atacado +{" "}
+                      <strong className="text-foreground">{brl(totalSharedCost)}</strong> adicionais rateados
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2 rounded-xl bg-surface-muted/60 border border-border/50 px-3 py-2 text-[11px] text-muted-foreground">
-                    <Info className="size-3.5 text-muted-foreground shrink-0" />
-                    <span>
-                      {totalSharedCost > 0
-                        ? `Adicionais compõem ${Math.round(totalUnitCost > 0 ? (totalSharedCost / totalUnitCost) * 100 : 0)}% do custo desta peça`
-                        : "Nenhum custo adicional adicionado a esta peça"}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    {/* Mini Barra Multi-segmento */}
+                    {totalSharedCost > 0 && (
+                      <div className="hidden md:flex flex-col items-end gap-1 min-w-[140px]">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
+                          {freightPct > 0 && (
+                            <div style={{ width: `${freightPct}%` }} className="h-full bg-primary" title={`Frete: ${Math.round(freightPct)}%`} />
+                          )}
+                          {packagingPct > 0 && (
+                            <div style={{ width: `${packagingPct}%` }} className="h-full bg-emerald-500" title={`Embalagem: ${Math.round(packagingPct)}%`} />
+                          )}
+                          {otherPct > 0 && (
+                            <div style={{ width: `${otherPct}%` }} className="h-full bg-amber-500" title={`Outros: ${Math.round(otherPct)}%`} />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          Adicionais: {Math.round(totalUnitCost > 0 ? (totalSharedCost / totalUnitCost) * 100 : 0)}% do custo
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Valor Hero */}
+                    <div className="numeric text-2xl font-extrabold text-foreground shrink-0">
+                      {brl(totalUnitCost)}
+                      <span className="text-xs font-normal text-muted-foreground ml-1">/ un.</span>
+                    </div>
                   </div>
                 </div>
               </div>
