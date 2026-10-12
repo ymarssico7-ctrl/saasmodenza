@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Info,
   Minus,
+  Package,
   PackagePlus,
   Palette,
   Percent,
@@ -34,6 +35,7 @@ import {
   Target,
   Trash2,
   TrendingUp,
+  Truck,
   Wand2,
   X,
   Zap,
@@ -1425,15 +1427,15 @@ function Precificacao() {
 
               {/* 3. Cor da Peça (opcional) */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <span>Cor</span>
                   {rapidaColor ? (
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-primary">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary">
                       <span className={cn("size-2 rounded-full", getColorDot(rapidaColor))} />
                       {rapidaColor}
                     </span>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground font-medium">opcional</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">(opcional)</span>
                   )}
                 </Label>
                 <div className="relative">
@@ -1519,14 +1521,14 @@ function Precificacao() {
 
               {/* 4. Tamanho da Peça (opcional) */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <span>Tamanho</span>
                   {rapidaSize ? (
                     <span className="text-[10px] font-bold text-primary">
-                      Tam: {rapidaSize}
+                      · {rapidaSize}
                     </span>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground font-medium">opcional</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">(opcional)</span>
                   )}
                 </Label>
                 <div className="relative">
@@ -1691,12 +1693,23 @@ function Precificacao() {
 
                   <div className="space-y-2.5">
                     {/* Frete */}
-                    <div className="rounded-xl border border-border/60 bg-secondary/15 p-3 transition-colors hover:border-border/90">
+                    <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 transition-all hover:border-border hover:bg-secondary/25">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="text-xs font-semibold text-foreground cursor-pointer">
-                          Frete por peça
-                        </Label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/15 shadow-2xs">
+                            <Truck className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
+                              Frete por peça
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground block -mt-0.5 truncate">
+                              Transporte até o estoque
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"
                             onClick={() => {
@@ -1707,16 +1720,16 @@ function Precificacao() {
                               }
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
                               rateioTarget === "freight"
-                                ? "bg-primary text-primary-foreground shadow-2xs"
-                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                             )}
                           >
-                            <Calculator className="size-3" />
+                            <Calculator className="size-3.5" />
                             <span>Ratear</span>
                           </button>
-                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
@@ -1732,12 +1745,23 @@ function Precificacao() {
                     </div>
 
                     {/* Embalagem & Tag */}
-                    <div className="rounded-xl border border-border/60 bg-secondary/15 p-3 transition-colors hover:border-border/90">
+                    <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 transition-all hover:border-border hover:bg-secondary/25">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="text-xs font-semibold text-foreground cursor-pointer">
-                          Embalagem & Tag
-                        </Label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/15 shadow-2xs">
+                            <Package className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
+                              Embalagem & Tag
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground block -mt-0.5 truncate">
+                              Sacola, etiqueta e seda
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"
                             onClick={() => {
@@ -1748,16 +1772,16 @@ function Precificacao() {
                               }
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
                               rateioTarget === "packaging"
-                                ? "bg-primary text-primary-foreground shadow-2xs"
-                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                             )}
                           >
-                            <Calculator className="size-3" />
+                            <Calculator className="size-3.5" />
                             <span>Ratear</span>
                           </button>
-                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
@@ -1773,12 +1797,23 @@ function Precificacao() {
                     </div>
 
                     {/* Outros custos */}
-                    <div className="rounded-xl border border-border/60 bg-secondary/15 p-3 transition-colors hover:border-border/90">
+                    <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 transition-all hover:border-border hover:bg-secondary/25">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="text-xs font-semibold text-foreground cursor-pointer">
-                          Outros custos
-                        </Label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/15 shadow-2xs">
+                            <Coins className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
+                              Outros custos
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground block -mt-0.5 truncate">
+                              Ajustes, costura ou extras
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"
                             onClick={() => {
@@ -1789,16 +1824,16 @@ function Precificacao() {
                               }
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
                               rateioTarget === "other"
-                                ? "bg-primary text-primary-foreground shadow-2xs"
-                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                             )}
                           >
-                            <Calculator className="size-3" />
+                            <Calculator className="size-3.5" />
                             <span>Ratear</span>
                           </button>
-                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
@@ -1841,7 +1876,7 @@ function Precificacao() {
                     <div className="space-y-1.5 pt-2 border-t border-border/50">
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="size-2 rounded-full bg-primary shrink-0" />
+                          <span className="size-2 rounded-full bg-blue-500 shrink-0" />
                           <span className="text-muted-foreground">Frete rateado</span>
                         </div>
                         <span className="numeric font-semibold text-foreground">
@@ -1876,7 +1911,7 @@ function Precificacao() {
                     {/* Barra segmentada colorida */}
                     <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
                       {freightPct > 0 && (
-                        <div style={{ width: `${freightPct}%` }} className="h-full bg-primary transition-all duration-300" />
+                        <div style={{ width: `${freightPct}%` }} className="h-full bg-blue-500 transition-all duration-300" />
                       )}
                       {packagingPct > 0 && (
                         <div style={{ width: `${packagingPct}%` }} className="h-full bg-emerald-500 transition-all duration-300" />
@@ -1910,7 +1945,7 @@ function Precificacao() {
           })()}
 
           {/* Taxas Fiscais e de Cartão com Controles Híbridos Studio */}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-3 px-0.5">
               <span className="text-xs font-bold text-foreground">
                 Taxas e deduções da venda
@@ -1920,12 +1955,12 @@ function Precificacao() {
                 variant="outline"
                 size="sm"
                 asChild
-                className="h-6.5 rounded-full border-border/60 bg-surface-muted/30 hover:bg-surface-muted px-2.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all shadow-none gap-1.5 cursor-pointer"
+                className="h-7 rounded-full border-border/70 bg-card hover:bg-secondary px-3 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-all shadow-2xs gap-1.5 cursor-pointer"
               >
                 <Link to="/configuracoes" search={{ tab: "caixa" }}>
-                  <CreditCard className="size-3 text-primary/80" />
+                  <CreditCard className="size-3 text-primary" />
                   <span>Taxas da maquininha</span>
-                  <ArrowUpRight className="size-2.5 opacity-50" />
+                  <ArrowUpRight className="size-3 opacity-60" />
                 </Link>
               </Button>
             </div>
@@ -1933,28 +1968,28 @@ function Precificacao() {
             <div className="grid gap-4 sm:grid-cols-2">
               <HybridTaxControl
                 label="Imposto DAS / Simples (%)"
-                hint={`Alíquota configurada: ${pricingSettings.defaultTax}%`}
+                hint="Alíquota aplicada sobre faturamento bruto"
                 value={tax}
                 max={25}
                 onChange={setTax}
                 presets={[
-                  { label: "MEI", value: pricingSettings.taxPresets?.mei ?? 0 },
-                  { label: "Simples F1", value: pricingSettings.taxPresets?.simplesF1 ?? 4 },
-                  { label: "Simples F2", value: pricingSettings.taxPresets?.simplesF2 ?? 7 },
-                  { label: "Simples F3", value: pricingSettings.taxPresets?.simplesF3 ?? 10 },
+                  { label: "MEI (0%)", value: pricingSettings.taxPresets?.mei ?? 0 },
+                  { label: "Simples F1 (4%)", value: pricingSettings.taxPresets?.simplesF1 ?? 4 },
+                  { label: "Simples F2 (7%)", value: pricingSettings.taxPresets?.simplesF2 ?? 7 },
+                  { label: "Simples F3 (10%)", value: pricingSettings.taxPresets?.simplesF3 ?? 10 },
                 ]}
               />
               <HybridTaxControl
                 label="Taxa média de cartão (%)"
-                hint="Taxa média ponderada descontada pelas maquininhas"
+                hint="Média ponderada descontada pelas maquininhas"
                 value={cardRate}
                 max={15}
                 onChange={setCardRate}
                 presets={[
-                  { label: "Pix", value: pricingSettings.cardRates.pix },
-                  { label: "Débito", value: pricingSettings.cardRates.debito },
-                  { label: "Crédito 1×", value: pricingSettings.cardRates.credito1x },
-                  { label: "Parcelado", value: pricingSettings.cardRates.parcelado },
+                  { label: `Pix (${(pricingSettings.cardRates?.pix ?? 0.9).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.pix ?? 0.9 },
+                  { label: `Débito (${(pricingSettings.cardRates?.debito ?? 1.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.debito ?? 1.5 },
+                  { label: `Crédito 1× (${(pricingSettings.cardRates?.credito1x ?? 3.2).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.credito1x ?? 3.2 },
+                  { label: `Parcelado (${(pricingSettings.cardRates?.parcelado ?? 4.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.parcelado ?? 4.5 },
                 ]}
               />
             </div>
@@ -3756,15 +3791,15 @@ function HybridTaxControl({
   const displayVal = rawValue;
 
   return (
-    <div className="space-y-2 rounded-xl border border-border/80 bg-card p-3.5 shadow-2xs">
+    <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5 min-w-0 flex-1">
-          <Label className="text-xs font-semibold text-foreground">{label}</Label>
-          {hint && <p className="text-[10px] text-muted-foreground truncate sm:whitespace-normal">{hint}</p>}
+          <Label className="text-xs font-bold text-foreground">{label}</Label>
+          {hint && <p className="text-[11px] text-muted-foreground truncate sm:whitespace-normal">{hint}</p>}
         </div>
 
         {/* Pílula de Controle Triplo: [ − ] valor% [ + ] */}
-        <div className="flex shrink-0 items-center overflow-hidden rounded-lg border border-border/80 bg-background shadow-2xs">
+        <div className="flex shrink-0 items-center overflow-hidden rounded-xl border border-border/80 bg-secondary/20 shadow-2xs">
           {/* Botão Decremento */}
           <button
             type="button"
@@ -3774,14 +3809,14 @@ function HybridTaxControl({
               onChange(next);
               setRawValue(String(next));
             }}
-            className="flex h-7.5 w-7 shrink-0 items-center justify-center border-r border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+            className="flex h-9 w-8 shrink-0 items-center justify-center border-r border-border/60 text-muted-foreground transition-all hover:bg-card hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
             aria-label="Diminuir"
           >
-            <Minus className="size-3" />
+            <Minus className="size-3.5" />
           </button>
 
           {/* Campo Central */}
-          <div className="flex items-center justify-center px-1.5 py-0.5">
+          <div className="flex items-center justify-center px-2 py-0.5">
             <input
               inputMode="decimal"
               value={displayVal}
@@ -3807,9 +3842,9 @@ function HybridTaxControl({
                   setRawValue("0");
                 }
               }}
-              className="w-9 text-center text-xs font-bold text-foreground outline-none bg-transparent"
+              className="w-11 text-center text-xs font-bold text-foreground outline-none bg-transparent"
             />
-            <span className="text-xs font-semibold text-muted-foreground select-none">%</span>
+            <span className="text-xs font-bold text-muted-foreground select-none">%</span>
           </div>
 
           {/* Botão Incremento */}
@@ -3821,34 +3856,40 @@ function HybridTaxControl({
               onChange(next);
               setRawValue(String(next));
             }}
-            className="flex h-7.5 w-7 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+            className="flex h-9 w-8 shrink-0 items-center justify-center border-l border-border/60 text-muted-foreground transition-all hover:bg-card hover:text-foreground active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
             aria-label="Aumentar"
           >
-            <Plus className="size-3" />
+            <Plus className="size-3.5" />
           </button>
         </div>
       </div>
 
       {/* Chips Rápidos de Mercado (Presets) */}
       {presets && presets.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1 pt-0.5 border-t border-border/40">
-          {presets.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => {
-                onChange(p.value);
-              }}
-              className={cn(
-                "rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all cursor-pointer",
-                Math.abs(value - p.value) < 0.05
-                  ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                  : "bg-surface-muted/60 border border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary/70",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-1 select-none">
+            Atalhos:
+          </span>
+          {presets.map((p) => {
+            const isSelected = Math.abs(value - p.value) < 0.05;
+            return (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => {
+                  onChange(p.value);
+                }}
+                className={cn(
+                  "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer border",
+                  isSelected
+                    ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
+                    : "bg-secondary/40 border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary hover:border-border",
+                )}
+              >
+                {p.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
