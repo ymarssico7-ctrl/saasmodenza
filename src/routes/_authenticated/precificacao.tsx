@@ -342,15 +342,27 @@ function Precificacao() {
   const [cardRate, setCardRate] = useState(() => pricingSettings.defaultCardRate); // Taxa de maquininha padrão da loja
 
   // Estados locais para digitação livre nos steppers
-  const [marginInputVal, setMarginInputVal] = useState(() => String(pricingSettings.defaultMargin));
+  const [marginInputVal, setMarginInputVal] = useState(() =>
+    Number.isInteger(pricingSettings.defaultMargin)
+      ? String(pricingSettings.defaultMargin)
+      : String(pricingSettings.defaultMargin).replace(".", ","),
+  );
   const [markupInputVal, setMarkupInputVal] = useState("80");
 
   useEffect(() => {
-    setMarginInputVal(String(Math.round(desiredMargin)));
+    const numInState = typeof desiredMargin === "number" ? desiredMargin : 0;
+    const formatted = Number.isInteger(numInState)
+      ? String(numInState)
+      : String(Number(numInState.toFixed(1))).replace(".", ",");
+    setMarginInputVal(formatted);
   }, [desiredMargin]);
 
   useEffect(() => {
-    setMarkupInputVal(String(Math.round(markup)));
+    const numInState = typeof markup === "number" ? markup : 0;
+    const formatted = Number.isInteger(numInState)
+      ? String(numInState)
+      : String(Number(numInState.toFixed(1))).replace(".", ",");
+    setMarkupInputVal(formatted);
   }, [markup]);
 
   // ── Rateio Operacional: Colapsável ───────────────────────────
@@ -2873,9 +2885,9 @@ function Precificacao() {
                           type="button"
                           disabled={effectiveMargin <= 5}
                           onClick={() => {
-                            const next = Math.max(5, Math.round(effectiveMargin) - 1);
+                            const next = Math.max(5, Number((effectiveMargin - 1).toFixed(1)));
                             setDesiredMargin(next);
-                            setMarginInputVal(String(next));
+                            setMarginInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                           }}
                           className="flex size-8 items-center justify-center border-r border-border/50 text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
                           aria-label="Diminuir margem em 1%"
@@ -2883,29 +2895,32 @@ function Precificacao() {
                           <Minus className="size-3" />
                         </button>
 
-                        <div className="flex items-baseline justify-center gap-0.5 px-2.5 py-1 min-w-[58px]">
+                        <div className="flex items-baseline justify-center gap-0.5 px-2.5 py-1 min-w-[68px]">
                           <input
-                            inputMode="numeric"
+                            inputMode="decimal"
                             value={marginInputVal}
                             onChange={(e) => {
-                              setMarginInputVal(e.target.value);
-                              const n = parseInt(e.target.value, 10);
+                              const raw = e.target.value;
+                              setMarginInputVal(raw);
+                              const clean = raw.replace(",", ".");
+                              const n = parseFloat(clean);
                               if (!isNaN(n)) {
                                 setDesiredMargin(Math.min(maxMarginSafe, Math.max(5, n)));
                               }
                             }}
                             onBlur={() => {
-                              const n = parseInt(marginInputVal, 10);
+                              const clean = marginInputVal.replace(",", ".");
+                              const n = parseFloat(clean);
                               if (!isNaN(n)) {
-                                const clamped = Math.min(maxMarginSafe, Math.max(5, n));
+                                const clamped = Math.min(maxMarginSafe, Math.max(5, Number(n.toFixed(1))));
                                 setDesiredMargin(clamped);
-                                setMarginInputVal(String(clamped));
+                                setMarginInputVal(Number.isInteger(clamped) ? String(clamped) : String(clamped).replace(".", ","));
                               } else {
                                 setDesiredMargin(50);
                                 setMarginInputVal("50");
                               }
                             }}
-                            className="w-8 text-center text-lg font-black text-foreground outline-none bg-transparent numeric tracking-tight"
+                            className="w-13 text-center text-lg font-black text-foreground outline-none bg-transparent numeric tracking-tight"
                             placeholder="50"
                           />
                           <span className="text-[11px] font-bold text-muted-foreground select-none">%</span>
@@ -2915,9 +2930,9 @@ function Precificacao() {
                           type="button"
                           disabled={effectiveMargin >= maxMarginSafe}
                           onClick={() => {
-                            const next = Math.min(maxMarginSafe, Math.round(effectiveMargin) + 1);
+                            const next = Math.min(maxMarginSafe, Number((effectiveMargin + 1).toFixed(1)));
                             setDesiredMargin(next);
-                            setMarginInputVal(String(next));
+                            setMarginInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                           }}
                           className="flex size-8 items-center justify-center border-l border-border/50 text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
                           aria-label="Aumentar margem em 1%"
@@ -2938,7 +2953,7 @@ function Precificacao() {
                         { label: "50%", tag: "Recomendada", val: 50 },
                         { label: "60%", tag: "Alta margem", val: 60 },
                       ].map((m) => {
-                        const isActive = Math.round(effectiveMargin) === m.val;
+                        const isActive = Math.abs(effectiveMargin - m.val) < 0.05;
                         return (
                           <button
                             key={m.val}
@@ -2980,50 +2995,53 @@ function Precificacao() {
                         type="button"
                         disabled={markup <= 10}
                         onClick={() => {
-                          const next = Math.max(10, Math.round(markup) - 5);
+                          const next = Math.max(10, Number((markup - 5).toFixed(1)));
                           setMarkup(next);
-                          setMarkupInputVal(String(next));
+                          setMarkupInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                         }}
                         className="flex size-8 items-center justify-center border-r border-border/50 text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
                         aria-label="Diminuir markup em 5%"
                       >
                         <Minus className="size-3" />
                       </button>
-                      <div className="flex items-baseline justify-center gap-1 px-2.5 py-1 min-w-[80px]">
+                      <div className="flex items-baseline justify-center gap-1 px-2.5 py-1 min-w-[88px]">
                         <input
-                          inputMode="numeric"
+                          inputMode="decimal"
                           value={markupInputVal}
                           onChange={(e) => {
-                            setMarkupInputVal(e.target.value);
-                            const n = parseInt(e.target.value, 10);
+                            const raw = e.target.value;
+                            setMarkupInputVal(raw);
+                            const clean = raw.replace(",", ".");
+                            const n = parseFloat(clean);
                             if (!isNaN(n)) setMarkup(Math.min(300, Math.max(10, n)));
                           }}
                           onBlur={() => {
-                            const n = parseInt(markupInputVal, 10);
+                            const clean = markupInputVal.replace(",", ".");
+                            const n = parseFloat(clean);
                             if (!isNaN(n)) {
-                              const clamped = Math.min(300, Math.max(10, n));
+                              const clamped = Math.min(300, Math.max(10, Number(n.toFixed(1))));
                               setMarkup(clamped);
-                              setMarkupInputVal(String(clamped));
+                              setMarkupInputVal(Number.isInteger(clamped) ? String(clamped) : String(clamped).replace(".", ","));
                             } else {
                               setMarkup(100);
                               setMarkupInputVal("100");
                             }
                           }}
-                          className="w-9 text-center text-lg font-black text-foreground outline-none bg-transparent numeric tracking-tight"
+                          className="w-13 text-center text-lg font-black text-foreground outline-none bg-transparent numeric tracking-tight"
                           placeholder="100"
                         />
                         <span className="text-[11px] font-bold text-muted-foreground select-none">%</span>
                         <span className="text-[11px] font-bold text-primary numeric bg-primary/10 px-1 py-0.5 rounded select-none ml-1">
-                          {(1 + markup / 100).toFixed(1)}x
+                          {(1 + markup / 100).toFixed(2)}x
                         </span>
                       </div>
                       <button
                         type="button"
                         disabled={markup >= 300}
                         onClick={() => {
-                          const next = Math.min(300, Math.round(markup) + 5);
+                          const next = Math.min(300, Number((markup + 5).toFixed(1)));
                           setMarkup(next);
-                          setMarkupInputVal(String(next));
+                          setMarkupInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                         }}
                         className="flex size-8 items-center justify-center border-l border-border/50 text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all disabled:opacity-30 cursor-pointer"
                         aria-label="Aumentar markup em 5%"
