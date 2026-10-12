@@ -1361,11 +1361,10 @@ function Precificacao() {
           {mode === "rapida" && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
-              {/* 1. Custo no Atacado / Fornecedor */}
+              {/* 1. Custo no Atacado */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Custo fornecedor</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">atacado</span>
+                <Label className="text-xs font-semibold text-foreground">
+                  Custo de atacado
                 </Label>
                 <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                   <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -1381,9 +1380,8 @@ function Precificacao() {
 
               {/* 2. Quantidade de Peças */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Quantidade</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">no lote</span>
+                <Label className="text-xs font-semibold text-foreground">
+                  Quantidade no lote
                 </Label>
                 <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                   <button
@@ -1680,29 +1678,24 @@ function Precificacao() {
 
             return (
               <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-                {/* ── COLUNA DA ESQUERDA: CUSTOS ADICIONAIS RATEADOS (7 colunas) ── */}
+                {/* ── COLUNA DA ESQUERDA: CUSTOS ADICIONAIS POR PEÇA (7 colunas lg) ── */}
                 <div className="lg:col-span-7 rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-4 flex flex-col justify-between">
-                  <div className="space-y-1">
+                  <div>
                     <p className="text-sm font-bold text-foreground">
-                      Custos adicionais rateados por peça
+                      Custos adicionais por peça
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Despesas fixas e operacionais rateadas para compor o custo real da peça
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Despesas operacionais rateadas para compor o custo real da peça
                     </p>
                   </div>
 
-                  <div className="space-y-3.5 divide-y divide-border/40">
+                  <div className="space-y-2.5">
                     {/* Frete */}
-                    <div className="pt-2 first:pt-0">
+                    <div className="rounded-xl border border-border/60 bg-secondary/15 p-3 transition-colors hover:border-border/90">
                       <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <Label className="text-xs font-medium text-foreground">Frete por peça</Label>
-                          {freightPct > 0 && (
-                            <p className="text-[10px] text-primary font-semibold">
-                              {Math.round(freightPct)}% dos adicionais
-                            </p>
-                          )}
-                        </div>
+                        <Label className="text-xs font-semibold text-foreground cursor-pointer">
+                          Frete por peça
+                        </Label>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -1714,23 +1707,23 @@ function Precificacao() {
                               }
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
                               rateioTarget === "freight"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-primary/10 text-primary hover:bg-primary/20",
+                                ? "bg-primary text-primary-foreground shadow-2xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
                             )}
                           >
-                            <Calculator className="size-2.5" />
-                            Ratear valor
+                            <Calculator className="size-3" />
+                            <span>Ratear</span>
                           </button>
-                          <div className="relative flex items-center shrink-0 rounded-xl border border-border/80 bg-secondary/30 shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
                               value={freight}
                               onChange={(e) => setFreight(e.target.value)}
                               placeholder="0,00"
-                              className="h-9 w-24 bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                              className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                             />
                           </div>
                         </div>
@@ -1739,16 +1732,11 @@ function Precificacao() {
                     </div>
 
                     {/* Embalagem & Tag */}
-                    <div className="pt-3">
+                    <div className="rounded-xl border border-border/60 bg-secondary/15 p-3 transition-colors hover:border-border/90">
                       <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <Label className="text-xs font-medium text-foreground">Embalagem & Tag</Label>
-                          {packagingPct > 0 && (
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                              {Math.round(packagingPct)}% dos adicionais
-                            </p>
-                          )}
-                        </div>
+                        <Label className="text-xs font-semibold text-foreground cursor-pointer">
+                          Embalagem & Tag
+                        </Label>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -1760,23 +1748,23 @@ function Precificacao() {
                               }
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
                               rateioTarget === "packaging"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-primary/10 text-primary hover:bg-primary/20",
+                                ? "bg-primary text-primary-foreground shadow-2xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
                             )}
                           >
-                            <Calculator className="size-2.5" />
-                            Ratear valor
+                            <Calculator className="size-3" />
+                            <span>Ratear</span>
                           </button>
-                          <div className="relative flex items-center shrink-0 rounded-xl border border-border/80 bg-secondary/30 shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
                               value={packaging}
                               onChange={(e) => setPackaging(e.target.value)}
                               placeholder="0,00"
-                              className="h-9 w-24 bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                              className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                             />
                           </div>
                         </div>
@@ -1785,16 +1773,11 @@ function Precificacao() {
                     </div>
 
                     {/* Outros custos */}
-                    <div className="pt-3">
+                    <div className="rounded-xl border border-border/60 bg-secondary/15 p-3 transition-colors hover:border-border/90">
                       <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <Label className="text-xs font-medium text-foreground">Outros custos por peça</Label>
-                          {otherPct > 0 && (
-                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
-                              {Math.round(otherPct)}% dos adicionais
-                            </p>
-                          )}
-                        </div>
+                        <Label className="text-xs font-semibold text-foreground cursor-pointer">
+                          Outros custos
+                        </Label>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
@@ -1806,23 +1789,23 @@ function Precificacao() {
                               }
                             }}
                             className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer",
                               rateioTarget === "other"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-primary/10 text-primary hover:bg-primary/20",
+                                ? "bg-primary text-primary-foreground shadow-2xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/80",
                             )}
                           >
-                            <Calculator className="size-2.5" />
-                            Ratear valor
+                            <Calculator className="size-3" />
+                            <span>Ratear</span>
                           </button>
-                          <div className="relative flex items-center shrink-0 rounded-xl border border-border/80 bg-secondary/30 shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                          <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
                               value={other}
                               onChange={(e) => setOther(e.target.value)}
                               placeholder="0,00"
-                              className="h-9 w-24 bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                              className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
                             />
                           </div>
                         </div>
@@ -1832,7 +1815,7 @@ function Precificacao() {
                   </div>
                 </div>
 
-                {/* ── COLUNA DA DIREITA: RECIBO DO CUSTO REAL DA PEÇA (5 colunas) ── */}
+                {/* ── COLUNA DA DIREITA: RECIBO DO CUSTO REAL DA PEÇA (5 colunas lg) ── */}
                 <div className="lg:col-span-5 rounded-2xl border border-border/80 bg-card p-5 shadow-2xs flex flex-col justify-between space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
@@ -1893,26 +1876,32 @@ function Precificacao() {
                     {/* Barra segmentada colorida */}
                     <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
                       {freightPct > 0 && (
-                        <div style={{ width: `${freightPct}%` }} className="h-full bg-primary" />
+                        <div style={{ width: `${freightPct}%` }} className="h-full bg-primary transition-all duration-300" />
                       )}
                       {packagingPct > 0 && (
-                        <div style={{ width: `${packagingPct}%` }} className="h-full bg-emerald-500" />
+                        <div style={{ width: `${packagingPct}%` }} className="h-full bg-emerald-500 transition-all duration-300" />
                       )}
                       {otherPct > 0 && (
-                        <div style={{ width: `${otherPct}%` }} className="h-full bg-amber-500" />
+                        <div style={{ width: `${otherPct}%` }} className="h-full bg-amber-500 transition-all duration-300" />
                       )}
                     </div>
                   </div>
 
                   {/* Caixa de Equação Explicativa */}
-                  <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/30 p-2.5 text-xs text-muted-foreground">
-                    <Info className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground shadow-2xs">
+                    <Info className="size-4 shrink-0 text-primary/80" />
                     <span>
-                      Adicionais compõem{" "}
-                      <strong className="text-foreground">
-                        {Math.round(totalUnitCost > 0 ? (totalSharedCost / totalUnitCost) * 100 : 0)}%
-                      </strong>{" "}
-                      do custo desta peça
+                      {totalSharedCost > 0 ? (
+                        <>
+                          Adicionais compõem{" "}
+                          <strong className="text-foreground">
+                            {Math.round(totalUnitCost > 0 ? (totalSharedCost / totalUnitCost) * 100 : 0)}%
+                          </strong>{" "}
+                          do custo desta peça
+                        </>
+                      ) : (
+                        <>Sem custos adicionais · Custo real igual ao atacado</>
+                      )}
                     </span>
                   </div>
                 </div>
