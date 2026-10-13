@@ -16,6 +16,7 @@ import {
   Flame,
   HelpCircle,
   Info,
+  LayoutGrid,
   Minus,
   Package,
   PackagePlus,
@@ -372,6 +373,16 @@ function Precificacao() {
   const [lotUnits] = useState(20);
   const [showSimulator, setShowSimulator] = useState(false);
   const [showGradeColorBreakdown, setShowGradeColorBreakdown] = useState(false);
+
+  // ── Grid-First Matrix State ─────────────────────────────────────────
+  const [matrixSizes, setMatrixSizes] = useState<string[]>(["P", "M", "G", "GG"]);
+  const [matrixDefaultQtys, setMatrixDefaultQtys] = useState<Record<string, number>>({ PP: 1, P: 2, M: 4, G: 4, GG: 2, G1: 2, G2: 2, G3: 1 });
+  const [matrixGlobalMode, setMatrixGlobalMode] = useState<PricingStrategy>("margin");
+  const [matrixGlobalMarginStr, setMatrixGlobalMarginStr] = useState("50");
+  const [matrixGlobalMarkupStr, setMatrixGlobalMarkupStr] = useState("100");
+  const [matrixGlobalDirectPrice, setMatrixGlobalDirectPrice] = useState("");
+  const [showAdvancedMatrix, setShowAdvancedMatrix] = useState(false);
+  const [matrixSetupOpen, setMatrixSetupOpen] = useState(true);
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
@@ -1128,6 +1139,201 @@ function Precificacao() {
     }
     setGenColors((prev) => [...prev, clean]);
     setCustomGenColor("");
+  };
+
+  // ── Grid-First Matrix Helpers ───────────────────────────────────────
+
+  /** Builds / rebuilds the full Cores × Tamanhos matrix from current setup state */
+  const applyGlobalGrade = () => {
+    if (activeColors.length === 0) {
+      toast.error("Adicione ao menos uma cor à coleção");
+      return;
+    }
+    if (matrixSizes.length === 0) {
+      toast.error("Selecione ao menos um tamanho para a grade");
+      return;
+    }
+
+    const canonical = sortCanonicalSizes(matrixSizes);
+    const newRows: VariantRow[] = [];
+    activeColors.forEach((col) => {
+      canonical.forEach((sz) => {
+        const existing = variants.find(
+          (v) => v.color.toLowerCase() === col.toLowerCase() && v.size === sz
+        );
+        newRows.push({
+          id: `v-${sz.toLowerCase()}-${col.toLowerCase().replace(/\s+/g, "-")}`,
+          size: sz,
+          color: col,
+          wholesaleCost: existing?.wholesaleCost ?? "",
+          customSalePrice: "",
+          qty: existing?.qty ?? (matrixDefaultQtys[sz] ?? 1),
+        });
+      });
+    });
+
+    setVariants(newRows);
+
+    // Apply global pricing strategy to all active colors
+    const margin = toNumber(matrixGlobalMarginStr) || 50;
+    const markupVal = toNumber(matrixGlobalMarkupStr) || 100;
+    setColorStrategies((prev) => {
+      const updated = { ...prev };
+      activeColors.forEach((col) => {
+        updated[col.toLowerCase()] = {
+          ...DEFAULT_COLOR_STRATEGY,
+          mode: matrixGlobalMode,
+          margin,
+          markup: markupVal,
+          directPrice: matrixGlobalDirectPrice,
+        };
+      });
+      return updated;
+    });
+
+    const total = activeColors.length * matrixSizes.length;
+    toast.success(`Matriz gerada: ${activeColors.length} cores × ${matrixSizes.length} tamanhos = ${total} SKUs`);
+    setMatrixSetupOpen(false);
+  };
+
+  /** Toggle a size in matrixSizes and sync variants accordingly */
+  const toggleMatrixSize = (sz: string) => {
+    if (matrixSizes.includes(sz)) {
+      setMatrixSizes((prev) => prev.filter((s) => s !== sz));
+      setVariants((cur) => cur.filter((v) => v.size !== sz));
+    } else {
+      setMatrixSizes((prev) => sortCanonicalSizes([...prev, sz]));
+      const qty = matrixDefaultQtys[sz] ?? 1;
+      const newRows: VariantRow[] = activeColors
+        .filter((col) => !variants.some((v) => v.color.toLowerCase() === col.toLowerCase() && v.size === sz))
+        .map((col) => ({
+          id: `v-${sz.toLowerCase()}-${col.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
+          size: sz,
+          color: col,
+          wholesaleCost: "",
+          customSalePrice: "",
+          qty,
+        }));
+      if (newRows.length > 0) {
+        setVariants((cur) => {
+          const merged = [...cur, ...newRows];
+          return merged.sort((a, b) => {
+            const ai = CANONICAL_SIZE_ORDER.indexOf(a.size);
+            const bi = CANONICAL_SIZE_ORDER.indexOf(b.size);
+            if (ai !== bi) return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+            return activeColors.indexOf(a.color) - activeColors.indexOf(b.color);
+          });
+        });
+      }
+    }
+  };
+
+  /** Update quantity for a specific Color × Size cell in the matrix */
+  const updateMatrixCellQty = (color: string, size: string, qty: number) => {
+    const safeQty = Math.max(0, Math.round(qty) || 0);
+    setVariants((prev) => {
+      const exists = prev.some(
+        (v) => v.color.toLowerCase() === color.toLowerCase() && v.size === size
+      );
+      if (exists) {
+        if (safeQty === 0) {
+          return prev.filter(
+            (v) => !(v.color.toLowerCase() === color.toLowerCase() && v.size === size)
+          );
+        }
+        return prev.map((v) =>
+          v.color.toLowerCase() === color.toLowerCase() && v.size === size
+            ? { ...v, qty: safeQty }
+            : v
+        );
+      } else if (safeQty > 0) {
+        return [
+          ...prev,
+          {
+            id: `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
+            size,
+            color,
+            wholesaleCost: "",
+            customSalePrice: "",
+            qty: safeQty,
+          },
+        ];
+      }
+      return prev;
+    });
+  };
+
+  /** Apply global pricing strategy to ALL active colors at once */
+  const applyGlobalStrategy = () => {
+    if (activeColors.length === 0) {
+      toast.error("Adicione ao menos uma cor antes de aplicar a estratégia");
+      return;
+    }
+    const margin = toNumber(matrixGlobalMarginStr) || 50;
+    const markupVal = toNumber(matrixGlobalMarkupStr) || 100;
+    setColorStrategies((prev) => {
+      const updated = { ...prev };
+      activeColors.forEach((col) => {
+        updated[col.toLowerCase()] = {
+          ...DEFAULT_COLOR_STRATEGY,
+          mode: matrixGlobalMode,
+          margin,
+          markup: markupVal,
+          directPrice: matrixGlobalDirectPrice,
+        };
+      });
+      return updated;
+    });
+    setVariants((cur) => cur.map((v) => ({ ...v, customSalePrice: "" })));
+    const label =
+      matrixGlobalMode === "margin"
+        ? `Margem ${margin}%`
+        : matrixGlobalMode === "markup"
+          ? `Markup ${markupVal}%`
+          : `Preço R$ ${matrixGlobalDirectPrice}`;
+    toast.success(`${label} aplicado a todas as ${activeColors.length} cores`);
+  };
+
+  /** Add a color to activeColors and generate its rows in the matrix */
+  const addColorToMatrix = (colName: string) => {
+    const clean = colName.trim();
+    if (!clean) return;
+    if (activeColors.some((c) => c.toLowerCase() === clean.toLowerCase())) {
+      toast.error(`Cor "${clean}" já está na grade`);
+      return;
+    }
+    const newActiveColors = [...activeColors, clean];
+    setActiveColors(newActiveColors);
+    if (matrixSizes.length > 0) {
+      const newRows: VariantRow[] = sortCanonicalSizes(matrixSizes).map((sz) => ({
+        id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
+        size: sz,
+        color: clean,
+        wholesaleCost: "",
+        customSalePrice: "",
+        qty: matrixDefaultQtys[sz] ?? 1,
+      }));
+      setVariants((cur) => [...cur, ...newRows]);
+    }
+    // Apply current global strategy to new color
+    const margin = toNumber(matrixGlobalMarginStr) || 50;
+    const markupVal = toNumber(matrixGlobalMarkupStr) || 100;
+    setColorStrategies((prev) => ({
+      ...prev,
+      [clean.toLowerCase()]: {
+        ...DEFAULT_COLOR_STRATEGY,
+        mode: matrixGlobalMode,
+        margin,
+        markup: markupVal,
+        directPrice: matrixGlobalDirectPrice,
+      },
+    }));
+  };
+
+  /** Remove a color from activeColors and its variants */
+  const removeColorFromMatrix = (colName: string) => {
+    setActiveColors((prev) => prev.filter((c) => c.toLowerCase() !== colName.toLowerCase()));
+    setVariants((prev) => prev.filter((v) => v.color.toLowerCase() !== colName.toLowerCase()));
   };
 
   // Promoção fluida de Rápida para Grade
@@ -2011,19 +2217,21 @@ function Precificacao() {
 
 
         {/* ══════════════════════════════════════════════════════════════════
-            PASSO 2: CORES & TAMANHOS DA COLEÇÃO (A CONSOLE MESTRE DE PRECIFICAÇÃO)
+            PASSO 2: MATRIZ DE COLEÇÃO — GRID-FIRST
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
-          <section className="panel p-6 sm:p-7 space-y-6">
+          <section className="panel p-5 sm:p-6 space-y-5">
+
+            {/* ── CABEÇALHO DO PASSO 2 ── */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
               <div className="flex items-center gap-3">
                 <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
                   2
                 </span>
                 <div>
-                  <h2 className="text-sm font-bold text-foreground">Cores & Tamanhos da Coleção</h2>
+                  <h2 className="text-sm font-bold text-foreground">Matriz da Coleção</h2>
                   <p className="text-xs text-muted-foreground">
-                    Cadastre suas cores e tamanhos, informe custos e defina preços por peça ou para a grade inteira
+                    Configure cores, tamanhos e precificação da coleção inteira de uma vez
                   </p>
                 </div>
               </div>
@@ -2034,769 +2242,687 @@ function Precificacao() {
                 </Badge>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => setShowMatrixGenerator((prev) => !prev)}
-                  className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => setMatrixSetupOpen((v) => !v)}
+                  className="h-8 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
-                  <Wand2 className="size-3.5 mr-1.5" />
-                  {showMatrixGenerator ? "Fechar gerador" : "Gerador de grade"}
+                  {matrixSetupOpen ? "Fechar setup" : "Abrir setup"}
                 </Button>
               </div>
             </div>
 
-            {/* Gerador de Matriz Expansível */}
-            {showMatrixGenerator && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                    <Sparkles className="size-3.5" />
-                    <span>Selecione tamanhos e cores para gerar a grade:</span>
-                  </div>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
-                  </Badge>
-                </div>
+            {/* ══ ZONA 1: SETUP RÁPIDO DA COLEÇÃO (colapsável) ══ */}
+            {matrixSetupOpen && (
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
 
-                {/* Tamanhos */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      Tamanhos:
-                    </span>
-                    <div className="flex gap-1">
-                      {PRESET_OPTIONS.map((pr) => (
-                        <button
-                          key={pr.id}
-                          type="button"
-                          onClick={() => applyPreset(pr.id, pr.sizes)}
-                          className={cn(
-                            "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
-                            activePreset === pr.id
-                              ? "bg-primary text-primary-foreground border-transparent"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
+                {/* SUB-ZONA A: Cores */}
+                <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-5 flex items-center justify-center rounded-full bg-foreground/8 text-[10px] font-bold text-foreground/60">A</span>
+                    <span className="text-xs font-bold text-foreground">Cores da coleção</span>
+                    {activeColors.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">{activeColors.length} selecionada{activeColors.length > 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+
+                  {/* Chips de cores ativas */}
+                  {activeColors.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {activeColors.map((col) => (
+                        <span
+                          key={col}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground shadow-2xs"
                         >
-                          {pr.label.split(" ")[0]}
-                        </button>
+                          <span className={cn("size-2.5 rounded-full shadow-2xs shrink-0", getColorDot(col))} />
+                          {col}
+                          <button
+                            type="button"
+                            onClick={() => removeColorFromMatrix(col)}
+                            className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                            aria-label={`Remover ${col}`}
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </span>
                       ))}
                     </div>
+                  )}
+
+                  {/* Spotlight de busca de cores */}
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                      <input
+                        ref={colorInputRef}
+                        type="text"
+                        value={colorSearchQuery}
+                        onChange={(e) => setColorSearchQuery(e.target.value)}
+                        onFocus={() => setShowColorPopover(true)}
+                        onBlur={() => setTimeout(() => setShowColorPopover(false), 150)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const q = colorSearchQuery.trim();
+                            if (q) { addColorToMatrix(q); setColorSearchQuery(""); setShowColorPopover(false); }
+                          }
+                          if (e.key === "Escape") { setShowColorPopover(false); }
+                        }}
+                        placeholder="Buscar ou digitar cor..."
+                        className="h-9 w-full rounded-xl border border-border bg-card pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                      />
+                    </div>
+                    {showColorPopover && (
+                      <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-popover shadow-lift overflow-hidden">
+                        <div className="max-h-44 overflow-y-auto p-1.5 space-y-0.5">
+                          {COLOR_PRESETS.filter(
+                            (cp) =>
+                              !activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase()) &&
+                              cp.name.toLowerCase().includes(colorSearchQuery.toLowerCase()),
+                          ).slice(0, 8).map((cp) => (
+                            <button
+                              key={cp.name}
+                              type="button"
+                              onMouseDown={(e) => { e.preventDefault(); addColorToMatrix(cp.name); setColorSearchQuery(""); }}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-xs font-medium hover:bg-secondary transition-colors cursor-pointer"
+                            >
+                              <span className={cn("size-3 rounded-full shrink-0", getColorDot(cp.name))} style={{ backgroundColor: cp.color }} />
+                              {cp.name}
+                            </button>
+                          ))}
+                          {colorSearchQuery.trim() && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => { e.preventDefault(); addColorToMatrix(colorSearchQuery.trim()); setColorSearchQuery(""); }}
+                              className="flex w-full items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-1.5 text-left text-xs font-bold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                            >
+                              <Plus className="size-3.5 shrink-0" />
+                              Adicionar "{colorSearchQuery.trim()}"
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Sugestões rápidas */}
                   <div className="flex flex-wrap gap-1.5">
-                    {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
+                    {COLOR_PRESETS.filter((cp) => !activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase())).slice(0, 8).map((cp) => (
+                      <button
+                        key={cp.name}
+                        type="button"
+                        onClick={() => addColorToMatrix(cp.name)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all shadow-2xs cursor-pointer"
+                      >
+                        <span className={cn("size-2 rounded-full shrink-0", getColorDot(cp.name))} />
+                        +{cp.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* SUB-ZONA B: Tamanhos + Qtd por tamanho */}
+                <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-5 flex items-center justify-center rounded-full bg-foreground/8 text-[10px] font-bold text-foreground/60">B</span>
+                    <span className="text-xs font-bold text-foreground">Grade de tamanhos</span>
+                    {matrixSizes.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground">{matrixSizes.join(" · ")}</span>
+                    )}
+                  </div>
+
+                  {/* Presets de grade */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: "P–GG", sizes: ["P", "M", "G", "GG"] },
+                      { label: "PP–GG", sizes: ["PP", "P", "M", "G", "GG"] },
+                      { label: "36–44", sizes: ["36", "38", "40", "42", "44"] },
+                      { label: "Plus Size", sizes: ["GG", "G1", "G2", "G3"] },
+                      { label: "Jeans", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          const newSizes = sortCanonicalSizes(preset.sizes);
+                          setMatrixSizes(newSizes);
+                        }}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-[11px] font-bold transition-all cursor-pointer",
+                          JSON.stringify(sortCanonicalSizes(matrixSizes)) === JSON.stringify(preset.sizes)
+                            ? "gradient-primary border-transparent text-primary-foreground shadow-xs"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40",
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setMatrixSizes([])}
+                      className="rounded-full border border-border bg-card px-3 py-1 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+
+                  {/* Toggle individual de tamanhos */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_FASHION_SIZES.map((sz) => (
                       <button
                         key={sz}
                         type="button"
-                        onClick={() => toggleGenSize(sz)}
+                        onClick={() => toggleMatrixSize(sz)}
                         className={cn(
-                          "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
-                          genSizes.includes(sz)
-                            ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
-                            : "bg-card text-muted-foreground border-border hover:text-foreground",
+                          "rounded-lg border px-2.5 py-1 text-xs font-bold transition-all cursor-pointer",
+                          matrixSizes.includes(sz)
+                            ? "gradient-primary border-transparent text-primary-foreground shadow-xs"
+                            : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40",
                         )}
                       >
                         {sz}
                       </button>
                     ))}
                   </div>
+
+                  {/* Qtd por tamanho — row compacta */}
+                  {matrixSizes.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        Quantidade padrão por tamanho:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {sortCanonicalSizes(matrixSizes).map((sz) => (
+                          <div key={sz} className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-1.5 shadow-2xs">
+                            <span className="text-[11px] font-bold text-foreground w-6 text-center">{sz}</span>
+                            <div className="flex items-center rounded-lg border border-border/60 bg-secondary/40 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => setMatrixDefaultQtys((prev) => ({ ...prev, [sz]: Math.max(1, (prev[sz] ?? 1) - 1) }))}
+                                className="px-1.5 h-6 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-xs font-bold cursor-pointer"
+                              >−</button>
+                              <input
+                                type="number"
+                                min={1}
+                                value={matrixDefaultQtys[sz] ?? 1}
+                                onChange={(e) => {
+                                  const v = Math.max(1, parseInt(e.target.value) || 1);
+                                  setMatrixDefaultQtys((prev) => ({ ...prev, [sz]: v }));
+                                }}
+                                className="w-7 h-6 text-center text-[11px] font-bold bg-transparent focus:outline-none text-foreground"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setMatrixDefaultQtys((prev) => ({ ...prev, [sz]: (prev[sz] ?? 1) + 1 }))}
+                                className="px-1.5 h-6 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-xs font-bold cursor-pointer"
+                              >+</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Total padrão: <strong>{sortCanonicalSizes(matrixSizes).reduce((acc, sz) => acc + (matrixDefaultQtys[sz] ?? 1), 0)} peças</strong> por cor
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Cores */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground block">
-                    Cores:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {COLOR_PRESETS.map((cp) => (
+                {/* SUB-ZONA C: Estratégia de preço global */}
+                <div className="rounded-2xl border border-border/70 bg-secondary/30 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="size-5 flex items-center justify-center rounded-full bg-foreground/8 text-[10px] font-bold text-foreground/60">C</span>
+                    <span className="text-xs font-bold text-foreground">Precificação global</span>
+                    <span className="text-[10px] text-muted-foreground">Aplicada a todas as cores</span>
+                  </div>
+
+                  {/* Seletor de modo */}
+                  <div className="flex gap-1 rounded-xl border border-border bg-card p-0.5 w-fit">
+                    {(["margin", "markup", "direct_price"] as const).map((m) => (
                       <button
-                        key={cp.name}
+                        key={m}
                         type="button"
-                        onClick={() => toggleGenColor(cp.name)}
+                        onClick={() => setMatrixGlobalMode(m)}
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                          genColors.includes(cp.name)
-                            ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
-                            : "bg-card text-muted-foreground border-border hover:text-foreground",
+                          "rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer",
+                          matrixGlobalMode === m
+                            ? "gradient-primary text-primary-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
-                        <span>{cp.name}</span>
+                        {m === "margin" ? "Margem %" : m === "markup" ? "Markup %" : "Preço Fixo"}
                       </button>
                     ))}
                   </div>
+
+                  {/* Input + presets */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {matrixGlobalMode === "margin" && (
+                      <>
+                        <div className="flex items-center rounded-xl border border-border bg-card shadow-2xs overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMarginStr((v) => String(Math.max(1, toNumber(v) - 5)))}
+                            className="px-2.5 h-9 text-muted-foreground hover:text-foreground hover:bg-secondary text-xs font-bold transition-colors cursor-pointer"
+                          >−5</button>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={matrixGlobalMarginStr}
+                            onChange={(e) => setMatrixGlobalMarginStr(e.target.value)}
+                            className="w-16 h-9 text-center text-sm font-bold bg-transparent focus:outline-none text-foreground"
+                          />
+                          <span className="pr-2 text-xs text-muted-foreground">%</span>
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMarginStr((v) => String(Math.min(85, toNumber(v) + 5)))}
+                            className="px-2.5 h-9 text-muted-foreground hover:text-foreground hover:bg-secondary text-xs font-bold transition-colors cursor-pointer"
+                          >+5</button>
+                        </div>
+                        {[30, 40, 50, 60, 70].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setMatrixGlobalMarginStr(String(p))}
+                            className={cn(
+                              "rounded-full border px-3 py-1 text-[11px] font-bold transition-all cursor-pointer",
+                              toNumber(matrixGlobalMarginStr) === p
+                                ? "gradient-primary border-transparent text-primary-foreground"
+                                : "border-border bg-card text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {p}%
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {matrixGlobalMode === "markup" && (
+                      <>
+                        <div className="flex items-center rounded-xl border border-border bg-card shadow-2xs overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMarkupStr((v) => String(Math.max(10, toNumber(v) - 10)))}
+                            className="px-2.5 h-9 text-muted-foreground hover:text-foreground hover:bg-secondary text-xs font-bold transition-colors cursor-pointer"
+                          >−10</button>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={matrixGlobalMarkupStr}
+                            onChange={(e) => setMatrixGlobalMarkupStr(e.target.value)}
+                            className="w-16 h-9 text-center text-sm font-bold bg-transparent focus:outline-none text-foreground"
+                          />
+                          <span className="pr-2 text-xs text-muted-foreground">%</span>
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMarkupStr((v) => String(toNumber(v) + 10))}
+                            className="px-2.5 h-9 text-muted-foreground hover:text-foreground hover:bg-secondary text-xs font-bold transition-colors cursor-pointer"
+                          >+10</button>
+                        </div>
+                        {[80, 100, 120, 150, 200].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setMatrixGlobalMarkupStr(String(p))}
+                            className={cn(
+                              "rounded-full border px-3 py-1 text-[11px] font-bold transition-all cursor-pointer",
+                              toNumber(matrixGlobalMarkupStr) === p
+                                ? "gradient-primary border-transparent text-primary-foreground"
+                                : "border-border bg-card text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {p}%
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {matrixGlobalMode === "direct_price" && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-muted-foreground">R$</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={matrixGlobalDirectPrice}
+                          onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
+                          placeholder="0,00"
+                          className="w-24 h-9 rounded-xl border border-border bg-card px-3 text-sm font-bold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all text-center"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
+                {/* CTA: Gerar Matriz */}
                 <Button
                   type="button"
-                  onClick={generateMatrix}
-                  className="h-9 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
+                  onClick={applyGlobalGrade}
+                  disabled={activeColors.length === 0 || matrixSizes.length === 0}
+                  className="gradient-primary w-full h-11 rounded-2xl font-bold shadow-glow text-sm"
                 >
-                  <Wand2 className="size-3.5 mr-2" /> Gerar Grade ({genSizes.length * genColors.length} peças)
+                  <Wand2 className="size-4 mr-2" />
+                  {variants.length > 0
+                    ? `Atualizar Matriz (${activeColors.length} cores × ${matrixSizes.length} tam.)`
+                    : `Gerar Matriz da Coleção (${activeColors.length} cores × ${matrixSizes.length} tam.)`}
                 </Button>
               </div>
             )}
 
-            {/* ── LISTA DE CORES COM A CONSOLE MESTRE DE CADA COR ── */}
-            <div className="space-y-5">
-              {colorGroups.map((group) => {
-                const activeSizeSet = new Set(group.items.map((i) => i.size));
-                // Exibe TODA a grade do vestuário brasileiro + quaisquer tamanhos customizados já presentes
-                const allKnownSizes = Array.from(new Set([...ALL_FASHION_SIZES, ...group.items.map((i) => i.size)]));
-                const availableSizes = sortCanonicalSizes(allKnownSizes);
+            {/* ══ ZONA 2: MATRIX 2D COMPACTA ══ */}
+            {variants.length > 0 && (() => {
+              // Compute all sizes present in variants, in canonical order
+              const allSizes = sortCanonicalSizes([...new Set(variants.map((v) => v.size))]);
 
-                // Handlers de atalho rápido por categoria
-                const applyQuickPreset = (sizes: string[]) => {
-                  sizes.forEach((sz) => {
-                    if (!activeSizeSet.has(sz)) toggleColorSize(group.color, sz);
-                  });
-                };
-
-                return (
-                  <div
-                    key={group.color}
-                    className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/40"
-                  >
-                    {/* Cabeçalho da Cor */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                        <span className="text-sm font-semibold text-foreground">{group.color}</span>
-                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"} · {group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)} {(group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)) === 1 ? "peça" : "peças"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {group.avgPrice > 0 && (
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            Média da cor: <strong className="text-foreground">{brl(group.avgPrice)}</strong> (Margem <strong className={group.health.color}>{pct(group.avgMargin)}</strong>)
-                          </span>
-                        )}
-                        <button
+              return (
+                <div className="space-y-2 animate-in fade-in-50 duration-200">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Distribuição de peças por cor e tamanho</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAdvancedMatrix((v) => !v)}
+                        className="text-[11px] text-muted-foreground hover:text-foreground underline transition-colors cursor-pointer"
+                      >
+                        {showAdvancedMatrix ? "Ocultar ajustes por cor" : "Ajustes por cor ▾"}
+                      </button>
+                      {!matrixSetupOpen && (
+                        <Button
                           type="button"
-                          onClick={() => removeColor(group.color)}
-                          className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                          title={`Remover cor ${group.color}`}
+                          variant="outline"
+                          size="sm"
+                          onClick={applyGlobalStrategy}
+                          className="h-7 rounded-full text-[11px] border-primary/30 text-primary hover:bg-primary/5"
                         >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
+                          Reaplicar preços
+                        </Button>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Seletor de Tamanhos — Grade Completa */}
-                    <div className="space-y-2.5">
-                      {/* Linha de título + atalhos rápidos de categoria */}
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold text-muted-foreground">
-                          Tamanhos desta cor:
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {SIZE_QUICK_PRESETS.map((preset) => (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => applyQuickPreset(preset.sizes)}
-                              className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                              title={`Selecionar grade ${preset.label}`}
-                            >
-                              + {preset.label}
-                            </button>
+                  {/* Tabela 2D com scroll horizontal */}
+                  <div className="overflow-x-auto rounded-2xl border border-border">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border bg-secondary/50">
+                          <th className="px-3 py-2.5 text-left text-[11px] font-bold text-muted-foreground w-32 min-w-32">
+                            Cor
+                          </th>
+                          {allSizes.map((sz) => (
+                            <th key={sz} className="px-2 py-2.5 text-center text-[11px] font-bold text-muted-foreground min-w-14">
+                              {sz}
+                            </th>
                           ))}
-                          {activeSizeSet.size > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                Array.from(activeSizeSet).forEach((sz) => toggleColorSize(group.color, sz));
-                              }}
-                              className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer"
-                              title="Limpar todos os tamanhos desta cor"
-                            >
-                              Limpar
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                          <th className="px-3 py-2.5 text-center text-[11px] font-bold text-muted-foreground min-w-16 border-l border-border/60">
+                            Peças
+                          </th>
+                          <th className="px-3 py-2.5 text-center text-[11px] font-bold text-muted-foreground min-w-20">
+                            Preço unit.
+                          </th>
+                          <th className="px-3 py-2.5 text-center text-[11px] font-bold text-muted-foreground min-w-16">
+                            Margem
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {colorGroups.map((group) => {
+                          const colorKey = group.color.toLowerCase();
+                          const cs = colorStrategies[colorKey] ?? DEFAULT_COLOR_STRATEGY;
+                          const totalQtyForColor = allSizes.reduce((acc, sz) => {
+                            const v = variants.find((x) => x.color.toLowerCase() === colorKey && x.size === sz);
+                            return acc + (v?.qty ?? 0);
+                          }, 0);
+                          const avgPrice = group.avgPrice;
+                          const avgNetMargin = group.avgMargin;
+                          const mHealth = (() => {
+                            if (avgNetMargin >= 40) return { color: "text-success", label: `${pct(avgNetMargin)} ✓` };
+                            if (avgNetMargin >= 25) return { color: "text-warning", label: `${pct(avgNetMargin)} ⚠` };
+                            return { color: "text-destructive", label: `${pct(avgNetMargin)} ✗` };
+                          })();
 
-                      {/* Botões de Tamanho — todos visíveis */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {availableSizes.map((sz) => {
-                          const isActive = activeSizeSet.has(sz);
                           return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => toggleColorSize(group.color, sz)}
-                              className={cn(
-                                "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
-                                isActive
-                                  ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                                  : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              <span>{sz}</span>
-                              {isActive && <Check className="size-3 stroke-[3]" />}
-                            </button>
+                            <tr key={group.color} className="border-b border-border/50 hover:bg-secondary/30 transition-colors group">
+                              {/* Cor */}
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(group.color))} />
+                                  <span className="text-xs font-semibold text-foreground truncate max-w-20">{group.color}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeColorFromMatrix(group.color)}
+                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all cursor-pointer ml-auto"
+                                    aria-label={`Remover ${group.color}`}
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                </div>
+                              </td>
+
+                              {/* Células de quantidade por tamanho */}
+                              {allSizes.map((sz) => {
+                                const varRow = variants.find((x) => x.color.toLowerCase() === colorKey && x.size === sz);
+                                const qty = varRow?.qty ?? 0;
+                                return (
+                                  <td key={sz} className="px-1 py-1.5 text-center">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      value={qty || ""}
+                                      placeholder="—"
+                                      onChange={(e) => updateMatrixCellQty(group.color, sz, parseInt(e.target.value) || 0)}
+                                      className={cn(
+                                        "w-11 h-8 rounded-lg border text-center text-xs font-bold transition-all focus:outline-none focus:ring-1 focus:ring-primary/30",
+                                        qty > 0
+                                          ? "border-primary/30 bg-primary/5 text-foreground focus:border-primary"
+                                          : "border-border/60 bg-transparent text-muted-foreground placeholder:text-muted-foreground/40 focus:border-border focus:bg-secondary/30",
+                                      )}
+                                    />
+                                  </td>
+                                );
+                              })}
+
+                              {/* Total peças */}
+                              <td className="px-3 py-2 text-center border-l border-border/60">
+                                <span className="num-display text-xs font-bold text-foreground">{totalQtyForColor}</span>
+                              </td>
+
+                              {/* Preço unitário */}
+                              <td className="px-3 py-2 text-center">
+                                {avgPrice > 0 ? (
+                                  <span className="num-display text-xs font-semibold text-foreground">{brl(avgPrice)}</span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">—</span>
+                                )}
+                              </td>
+
+                              {/* Margem */}
+                              <td className="px-3 py-2 text-center">
+                                {avgPrice > 0 ? (
+                                  <span className={cn("text-[11px] font-bold", mHealth.color)}>{mHealth.label}</span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">—</span>
+                                )}
+                              </td>
+                            </tr>
                           );
                         })}
-                      </div>
-                    </div>
 
+                        {/* Linha de totais */}
+                        <tr className="border-t border-border bg-secondary/40 font-bold">
+                          <td className="px-3 py-2 text-[11px] font-bold text-muted-foreground">TOTAL</td>
+                          {allSizes.map((sz) => {
+                            const totalForSize = variants
+                              .filter((v) => v.size === sz)
+                              .reduce((acc, v) => acc + (v.qty ?? 0), 0);
+                            return (
+                              <td key={sz} className="px-2 py-2 text-center">
+                                <span className={cn("text-[11px] font-bold", totalForSize > 0 ? "text-foreground" : "text-muted-foreground/40")}>
+                                  {totalForSize || "—"}
+                                </span>
+                              </td>
+                            );
+                          })}
+                          <td className="px-3 py-2 text-center border-l border-border/60">
+                            <span className="num-display text-[11px] font-bold text-foreground">{actualLotUnits}</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="num-display text-[11px] font-bold text-foreground">{summaryPrices.avgSuggested > 0 ? brl(summaryPrices.avgSuggested) : "—"}</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <span className={cn("text-[11px] font-bold", summaryPrices.marginHealth.color)}>{summaryPrices.avgMargin > 0 ? pct(summaryPrices.avgMargin) : "—"}</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
 
+                  {/* ══ ZONA 3: AJUSTES POR COR (Advanced — retrátil) ══ */}
+                  {showAdvancedMatrix && (
+                    <div className="space-y-2 pt-1 animate-in fade-in-50 duration-200">
+                      <p className="text-[11px] font-semibold text-muted-foreground px-1">
+                        Ajuste fino por cor — estratégia e custo individual:
+                      </p>
+                      {colorGroups.map((group) => {
+                        const colorKey = group.color.toLowerCase();
+                        const cs = colorStrategies[colorKey] ?? DEFAULT_COLOR_STRATEGY;
+                        const pricingLabel =
+                          cs.mode === "margin"
+                            ? `Margem ${toNumber(String(cs.margin))}%`
+                            : cs.mode === "markup"
+                              ? `Markup ${toNumber(String(cs.markup))}%`
+                              : `R$ ${cs.directPrice}`;
+                        const colorVariants = variants.filter((v) => v.color.toLowerCase() === colorKey);
 
-                    {/* ══ BARRA DE ESTRATÉGIA PRO COM SMART PRECISION STEPPER (APPLE HIG) ══ */}
-                    {group.items.length > 0 && (() => {
-                      const cs = getColorStrategy(group.color);
-                      return (
-                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
-                          {/* LADO ESQUERDO: SELETOR DE MODO + CONTROLES ESPECÍFICOS DO MODO */}
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* Abas de Modo (Margem / Markup / Preço) */}
-                            <div className="inline-flex rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColorStrategy(group.color, { mode: "margin" });
-                                  updateColorMargin(group.color, cs.margin);
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                                  cs.mode === "margin"
-                                    ? "bg-primary text-primary-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <Target className="size-3 shrink-0" />
-                                <span>Margem</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColorStrategy(group.color, { mode: "markup" });
-                                  updateColorMarkup(group.color, cs.markup);
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                                  cs.mode === "markup"
-                                    ? "bg-primary text-primary-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <TrendingUp className="size-3 shrink-0" />
-                                <span>Markup</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColorStrategy(group.color, { mode: "direct_price" });
-                                  if (cs.directPrice) updateColorDirectPrice(group.color, cs.directPrice);
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                                  cs.mode === "direct_price"
-                                    ? "bg-primary text-primary-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <Coins className="size-3 shrink-0" />
-                                <span>Preço Fixo</span>
-                              </button>
-                            </div>
-
-                            {/* Divisor vertical sutil */}
-                            <div className="h-5 w-px bg-border/80 hidden sm:block" />
-
-                            {/* CONTROLES DO MODO MARGEM */}
-                            {cs.mode === "margin" && (
-                              <div className="flex items-center gap-1.5">
-                                {/* Stepper Tátil [- | 50% | +] */}
-                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const cur = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
-                                      const next = Math.max(1, Math.round(cur) - 1);
-                                      updateColorMargin(group.color, next);
-                                    }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                    title="Diminuir 1% na margem da cor"
-                                  >
-                                    <Minus className="size-3" />
-                                  </button>
-                                  <div className="flex items-center px-1.5">
-                                    <input
-                                      inputMode="decimal"
-                                      value={cs.margin}
-                                      onChange={(e) => {
-                                        const raw = e.target.value;
-                                        if (/^[\d,.]*$/.test(raw)) {
-                                          updateColorMargin(group.color, raw);
-                                        }
-                                      }}
-                                      onBlur={() => {
-                                        const raw = String(cs.margin ?? "").trim();
-                                        const n = toNumber(raw);
-                                        if (raw === "" || isNaN(n) || n <= 0) {
-                                          updateColorMargin(group.color, 50);
-                                        } else {
-                                          const clamped = Math.min(85, Math.max(1, n));
-                                          updateColorMargin(group.color, String(clamped).replace(".", ","));
-                                        }
-                                      }}
-                                      className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                    />
-                                    <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const cur = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
-                                      const next = Math.min(85, Math.round(cur) + 1);
-                                      updateColorMargin(group.color, next);
-                                    }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                    title="Aumentar 1% na margem da cor"
-                                  >
-                                    <Plus className="size-3" />
-                                  </button>
-                                </div>
-
-                                {/* Presets Rápidos */}
-                                <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                                  {[30, 40, 50, 60, 70].map((m) => (
-                                    <button
-                                      key={m}
-                                      type="button"
-                                      onClick={() => updateColorMargin(group.color, m)}
-                                      className={cn(
-                                        "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                                        toNumber(cs.margin) === m
-                                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                      )}
-                                    >
-                                      {m}%
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* CONTROLES DO MODO MARKUP */}
-                            {cs.mode === "markup" && (() => {
-                              const sampleCost = group.avgCost || 50;
-                              const mkNum = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-                              const samplePrice = sampleCost * (1 + mkNum / 100);
-                              const deductions = samplePrice * ((tax + cardRate) / 100);
-                              const sampleProfit = samplePrice - sampleCost - deductions;
-                              const realNetMargin = samplePrice > 0 ? (sampleProfit / samplePrice) * 100 : 0;
-                              const health = getMarginHealth(realNetMargin);
-
-                              return (
-                                <div className="flex items-center gap-1.5">
-                                  {/* Stepper Tátil [- | 100% | +] */}
-                                  <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-                                        const next = Math.max(1, Math.round(cur) - 5);
-                                        updateColorMarkup(group.color, next);
-                                      }}
-                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                      title="Diminuir 5% no markup da cor"
-                                    >
-                                      <Minus className="size-3" />
-                                    </button>
-                                    <div className="flex items-center px-1.5">
-                                      <input
-                                        inputMode="decimal"
-                                        value={cs.markup}
-                                        onChange={(e) => {
-                                          const raw = e.target.value;
-                                          if (/^[\d,.]*$/.test(raw)) {
-                                            updateColorMarkup(group.color, raw);
-                                          }
-                                        }}
-                                        onBlur={() => {
-                                          const raw = String(cs.markup ?? "").trim();
-                                          const n = toNumber(raw);
-                                          if (raw === "" || isNaN(n) || n <= 0) {
-                                            updateColorMarkup(group.color, 100);
-                                          } else {
-                                            const clamped = Math.min(300, Math.max(1, n));
-                                            updateColorMarkup(group.color, String(clamped).replace(".", ","));
-                                          }
-                                        }}
-                                        className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                      />
-                                      <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-                                        const next = Math.min(300, Math.round(cur) + 5);
-                                        updateColorMarkup(group.color, next);
-                                      }}
-                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                      title="Aumentar 5% no markup da cor"
-                                    >
-                                      <Plus className="size-3" />
-                                    </button>
-                                  </div>
-
-                                  {/* Presets Rápidos Markup */}
-                                  <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                                    {[60, 80, 100, 120, 150].map((mk) => (
-                                      <button
-                                        key={mk}
-                                        type="button"
-                                        onClick={() => updateColorMarkup(group.color, mk)}
-                                        className={cn(
-                                          "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                                          toNumber(cs.markup) === mk
-                                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                        )}
-                                      >
-                                        {mk}%
-                                      </button>
-                                    ))}
-                                  </div>
-
-                                  {/* Transparência Financeira: Margem Real resultante */}
-                                  <span
-                                    className={cn("text-[11px] font-bold px-2 py-0.5 rounded-md bg-card border border-border/70 shadow-2xs whitespace-nowrap", health.color)}
-                                    title="Margem líquida real que sobra no bolso após custos, impostos e taxas de cartão"
-                                  >
-                                    Margem: {pct(realNetMargin)}
-                                  </span>
-                                </div>
-                              );
-                            })()}
-
-                            {/* CONTROLES DO MODO PREÇO FIXO */}
-                            {cs.mode === "direct_price" && (
-                              <div className="flex items-center gap-1.5">
-                                {/* Stepper de Moeda [-R$1 | R$ 139,90 | +R$1] */}
-                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const current = toNumber(cs.directPrice) || group.avgPrice || 100;
-                                      const next = Math.max(1, current - 1);
-                                      updateColorDirectPrice(group.color, next.toFixed(2).replace(".", ","));
-                                    }}
-                                    className="px-2 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-[10px] font-bold cursor-pointer"
-                                    title="Diminuir R$ 1,00 no preço da cor"
-                                  >
-                                    -R$1
-                                  </button>
-                                  <div className="flex items-center px-1.5">
-                                    <span className="text-[11px] text-muted-foreground mr-0.5 font-semibold">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={cs.directPrice}
-                                      onChange={(e) => updateColorDirectPrice(group.color, e.target.value)}
-                                      placeholder={group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90"}
-                                      className="w-14 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                    />
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const current = toNumber(cs.directPrice) || group.avgPrice || 100;
-                                      const next = current + 1;
-                                      updateColorDirectPrice(group.color, next.toFixed(2).replace(".", ","));
-                                    }}
-                                    className="px-2 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-[10px] font-bold cursor-pointer"
-                                    title="Aumentar R$ 1,00 no preço da cor"
-                                  >
-                                    +R$1
-                                  </button>
-                                </div>
-
-                                {/* Terminações Psicológicas de Moda (,90 / ,00 / ,50) */}
-                                <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                                  {[",90", ",00", ",50"].map((ending) => (
-                                    <button
-                                      key={ending}
-                                      type="button"
-                                      onClick={() => {
-                                        const current = cs.directPrice || group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90";
-                                        const integerPart = Math.floor(toNumber(current));
-                                        const newPrice = `${integerPart}${ending}`;
-                                        updateColorDirectPrice(group.color, newPrice);
-                                      }}
-                                      className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
-                                      title={`Terminar em ${ending}`}
-                                    >
-                                      {ending}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* LADO DIREITO: BOTÃO DE AÇÃO */}
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => applyStrategyToColor(group.color)}
-                            className="h-7.5 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer ml-auto"
+                        return (
+                          <div
+                            key={group.color}
+                            className="rounded-2xl border border-border/70 bg-card p-3 space-y-3"
                           >
-                            <Zap className="size-3 mr-1" />
-                            Aplicar à Cor
-                          </Button>
-                        </div>
-                      );
-                    })()}
-
-                    {/* ── TABELA VIVA INTEGRADA: CUSTO + PREÇO + MARGEM NA MESMA LINHA ── */}
-                    {group.items.length > 0 && (
-                      <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
-                        {/* Cabeçalho da Tabela */}
-                        <div className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
-                          <span>Tam.</span>
-                          <span>Qtd.</span>
-                          <span>Custo atacado</span>
-                          <span>Custo real</span>
-                          <span>Preço de venda</span>
-                          <span>Margem real</span>
-                          <span className="text-right">Lucro líquido</span>
-                        </div>
-
-                        {/* Linhas de Cada Tamanho */}
-                        <div className="divide-y divide-border/50 bg-card">
-                          {group.items.map((v) => (
-                            <div
-                              key={v.id}
-                              className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
-                            >
-                              {/* Tamanho */}
-                              <div className="flex items-center gap-1">
-                                <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
-                                  {v.size}
-                                </span>
-                                {(v.isCustomCost || v.isCustomPrice) && (
-                                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor personalizado para este tamanho">
-                                    ✦
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Quantidade no Lote */}
-                              <div>
-                                <input
-                                  inputMode="numeric"
-                                  value={v.qty ?? 1}
-                                  onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
-                                  className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                  title="Quantidade desta variante no lote"
-                                />
-                              </div>
-
-                              {/* Custo Fornecedor (Input Direto) */}
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[11px] text-muted-foreground">R$</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={v.wholesaleCost}
-                                    onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                    placeholder={baseWholesaleGrade || "49,90"}
-                                    className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Custo Real Total Calculado (Atacado + Rateio) */}
-                              <div className="numeric text-muted-foreground font-medium text-xs">
-                                {brl(v.realCost)}
-                              </div>
-
-                              {/* Preço de Venda (Input Direto com Preço Sugerido Reativo) */}
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[11px] text-muted-foreground">R$</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                    onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                    placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
-                                    className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Margem Real (Clean e Elegante) */}
-                              <div>
-                                <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
-                                  {pct(v.marginOnPrice)}
-                                </span>
-                              </div>
-
-                              {/* Lucro Líquido Real */}
-                              <div className="text-right">
-                                <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
-                                  <span>{v.marginHealth.emoji}</span>
-                                  <span>+{brl(v.profit)}</span>
-                                </span>
+                            {/* Header da cor */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={cn("size-3 rounded-full shrink-0 shadow-2xs", getColorDot(group.color))} />
+                              <span className="text-xs font-bold text-foreground">{group.color}</span>
+                              <span className="text-[10px] text-muted-foreground bg-secondary/50 rounded-full px-2 py-0.5">{pricingLabel}</span>
+                              <div className="ml-auto flex gap-1">
+                                {(["margin", "markup", "direct_price"] as const).map((m) => (
+                                  <button
+                                    key={m}
+                                    type="button"
+                                    onClick={() => setColorStrategies((prev) => ({
+                                      ...prev,
+                                      [colorKey]: { ...(prev[colorKey] ?? DEFAULT_COLOR_STRATEGY), mode: m },
+                                    }))}
+                                    className={cn(
+                                      "rounded-md px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer",
+                                      cs.mode === m
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                                    )}
+                                  >
+                                    {m === "margin" ? "Marg." : m === "markup" ? "Mark." : "Fixo"}
+                                  </button>
+                                ))}
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
-                    {group.items.length === 0 && (
-                      <div className="rounded-xl border border-dashed border-border/80 bg-secondary/20 p-5 text-center space-y-1">
-                        <p className="text-xs font-semibold text-foreground">Nenhum tamanho selecionado para {group.color}</p>
-                        <p className="text-[11px] text-muted-foreground">Clique nos botões de tamanho acima (PP, P, M, G...) para incluir na grade.</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* ── CARD BENTO DE ADIÇÃO DE CORES: SPOTLIGHT AUTOCOMPLETE + PALETA TÁTIL (APPLE HIG) ── */}
-              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-6.5 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-2xs">
-                      <Sparkles className="size-3.5" />
-                    </span>
-                    <div>
-                      <h3 className="text-xs font-semibold text-foreground">Adicionar cores à grade</h3>
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                    Busque na biblioteca de moda ou digite uma cor personalizada
-                  </span>
-                </div>
-
-                {/* Campo Spotlight com Popover */}
-                <div className="relative">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <input
-                      ref={colorInputRef}
-                      value={colorSearchQuery}
-                      onChange={(e) => {
-                        setColorSearchQuery(e.target.value);
-                        setShowColorPopover(true);
-                      }}
-                      onFocus={() => setShowColorPopover(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (matchingColorPresets.length > 0 && matchingColorPresets[0]) {
-                            handleSelectColorFromSpotlight(matchingColorPresets[0].name);
-                          } else if (colorSearchQuery.trim()) {
-                            handleCreateCustomColorFromSpotlight();
-                          }
-                        } else if (e.key === "Escape") {
-                          setShowColorPopover(false);
-                        }
-                      }}
-                      placeholder="Buscar ou cadastrar cor (ex: Terracota, Nude, Jeans, Fúcsia, Verde Oliva...)"
-                      className="h-10.5 w-full rounded-xl border border-border/80 bg-secondary/30 pl-10 pr-26 text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/20 transition-all shadow-2xs"
-                    />
-                    {colorSearchQuery.trim() && (
-                      <button
-                        type="button"
-                        onClick={handleCreateCustomColorFromSpotlight}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7.5 rounded-lg gradient-primary px-3 text-[11px] font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer"
-                      >
-                        + Adicionar
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Menu Dropdown Spotlight Autocomplete de Cores */}
-                  {showColorPopover && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setShowColorPopover(false)}
-                      />
-                      <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-72 overflow-y-auto rounded-2xl border border-border/80 bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-1">
-                        {matchingColorPresets.length > 0 && (
-                          <>
-                            <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">
-                              Cores sugeridas ({matchingColorPresets.length})
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                              {matchingColorPresets.map((cp) => (
-                                <button
-                                  key={cp.name}
-                                  type="button"
-                                  onClick={() => handleSelectColorFromSpotlight(cp.name)}
-                                  className="flex items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all hover:bg-primary-soft/60 hover:text-primary active:scale-98 cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className={cn("size-3.5 rounded-full shadow-xs shrink-0", getColorDot(cp.name))} />
-                                    <span className="truncate font-semibold text-foreground">{cp.name}</span>
-                                  </div>
-                                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md shrink-0">
-                                    + Incluir
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="my-1.5 h-px bg-border/60" />
-                          </>
-                        )}
-
-                        {/* Atalho Inteligente para Cadastrar Cor Personalizada */}
-                        {colorSearchQuery.trim() ? (
-                          <button
-                            type="button"
-                            onClick={handleCreateCustomColorFromSpotlight}
-                            className="flex w-full items-center justify-between gap-2 rounded-xl bg-primary/10 border border-primary/30 px-3.5 py-2.5 text-left text-xs font-bold text-primary transition-all hover:bg-primary/20 active:scale-98 cursor-pointer"
-                          >
+                            {/* Input de valor */}
                             <div className="flex items-center gap-2">
-                              <Plus className="size-4 shrink-0" />
-                              <span>Cadastrar e adicionar <strong className="underline decoration-primary">"{colorSearchQuery.trim()}"</strong> à grade</span>
+                              {cs.mode === "margin" && (
+                                <>
+                                  <span className="text-[11px] text-muted-foreground">Margem:</span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={cs.margin}
+                                    onChange={(e) => setColorStrategies((prev) => ({
+                                      ...prev,
+                                      [colorKey]: { ...(prev[colorKey] ?? DEFAULT_COLOR_STRATEGY), margin: e.target.value },
+                                    }))}
+                                    className="w-16 h-7 rounded-lg border border-border bg-secondary/40 text-center text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                                  />
+                                  <span className="text-[11px] text-muted-foreground">%</span>
+                                </>
+                              )}
+                              {cs.mode === "markup" && (
+                                <>
+                                  <span className="text-[11px] text-muted-foreground">Markup:</span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={cs.markup}
+                                    onChange={(e) => setColorStrategies((prev) => ({
+                                      ...prev,
+                                      [colorKey]: { ...(prev[colorKey] ?? DEFAULT_COLOR_STRATEGY), markup: e.target.value },
+                                    }))}
+                                    className="w-16 h-7 rounded-lg border border-border bg-secondary/40 text-center text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                                  />
+                                  <span className="text-[11px] text-muted-foreground">%</span>
+                                </>
+                              )}
+                              {cs.mode === "direct_price" && (
+                                <>
+                                  <span className="text-[11px] text-muted-foreground">Preço:</span>
+                                  <span className="text-[11px] text-muted-foreground">R$</span>
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={cs.directPrice}
+                                    onChange={(e) => setColorStrategies((prev) => ({
+                                      ...prev,
+                                      [colorKey]: { ...(prev[colorKey] ?? DEFAULT_COLOR_STRATEGY), directPrice: e.target.value },
+                                    }))}
+                                    placeholder="0,00"
+                                    className="w-20 h-7 rounded-lg border border-border bg-secondary/40 text-center text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary"
+                                  />
+                                </>
+                              )}
                             </div>
-                            <span className="rounded-md bg-primary text-white text-[10px] px-2 py-0.5 shadow-2xs">
-                              Enter ↵
-                            </span>
-                          </button>
-                        ) : matchingColorPresets.length === 0 ? (
-                          <div className="px-3 py-3 text-center text-xs text-muted-foreground">
-                            Digite o nome de uma cor para cadastrar
+
+                            {/* Custo por variante */}
+                            {colorVariants.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {colorVariants.map((v) => (
+                                  <div key={v.id} className="flex items-center gap-1 rounded-xl border border-border/60 bg-secondary/40 px-2 py-1">
+                                    <span className="text-[11px] font-bold text-foreground w-6 text-center">{v.size}</span>
+                                    <span className="text-[10px] text-muted-foreground">R$</span>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={v.wholesaleCost}
+                                      onChange={(e) => setVariants((prev) =>
+                                        prev.map((x) => x.id === v.id ? { ...x, wholesaleCost: e.target.value } : x)
+                                      )}
+                                      placeholder={toNumber(baseWholesaleGrade) > 0 ? toNumber(baseWholesaleGrade).toFixed(2).replace(".", ",") : "custo"}
+                                      className="w-16 h-5 bg-transparent text-[11px] font-medium text-foreground focus:outline-none placeholder:text-muted-foreground/50"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        ) : null}
-                      </div>
-                    </>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
+              );
+            })()}
 
-                {/* Sugestões Rápidas em Pílulas Táteis */}
-                <div className="space-y-1.5 pt-2 border-t border-border/50">
-                  <span className="text-[10px] font-semibold text-muted-foreground block">
-                    Sugestões rápidas:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {COLOR_PRESETS.filter(
-                      (cp) => !activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase()),
-                    ).slice(0, 10).map((cp) => (
-                      <button
-                        key={cp.name}
-                        type="button"
-                        onClick={() => addQuickColor(cp.name)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/30 px-3 py-1 text-xs font-semibold text-foreground hover:border-primary hover:bg-primary/5 hover:text-primary transition-all shadow-2xs active:scale-95 cursor-pointer"
-                      >
-                        <span className={cn("size-2.5 rounded-full shadow-2xs", getColorDot(cp.name))} />
-                        <span>+ {cp.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            {/* Estado zero: sem variantes */}
+            {variants.length === 0 && !matrixSetupOpen && (
+              <div className="rounded-2xl border border-dashed border-border bg-secondary/20 py-10 text-center space-y-2">
+                <LayoutGrid className="size-8 mx-auto text-muted-foreground/40" />
+                <p className="text-sm font-semibold text-muted-foreground">Nenhuma variante na grade</p>
+                <p className="text-xs text-muted-foreground/60">Abra o setup acima, selecione cores e tamanhos e clique em Gerar Matriz</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMatrixSetupOpen(true)}
+                  className="rounded-full mt-2 h-8 text-xs"
+                >
+                  Abrir setup
+                </Button>
               </div>
-            </div>
+            )}
+
           </section>
         )}
 
