@@ -248,6 +248,110 @@ function sortCanonicalSizes(sizes: string[]): string[] {
   });
 }
 
+function VariantColorPicker({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (newColor: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filteredPresets = COLOR_PRESETS.filter((cp) =>
+    cp.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div className="relative inline-block w-full">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((prev) => !prev);
+          if (!open) {
+            setTimeout(() => inputRef.current?.focus(), 50);
+          }
+        }}
+        className="w-full flex items-center gap-1.5 rounded-lg border border-border/80 bg-card hover:bg-secondary/40 px-2 py-1 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs text-left"
+        title="Clique para alterar a cor desta variação"
+      >
+        <span className={cn("size-2.5 rounded-full shrink-0 shadow-xs", getColorDot(color))} />
+        <span className="truncate flex-1">{color}</span>
+        <ChevronDown className="size-3 text-muted-foreground shrink-0 opacity-70" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full z-40 mt-1 w-56 rounded-xl border border-border/80 bg-card p-2.5 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-2">
+            <div className="flex items-center gap-1">
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && query.trim()) {
+                    e.preventDefault();
+                    onChange(query.trim());
+                    setOpen(false);
+                    setQuery("");
+                  } else if (e.key === "Escape") {
+                    setOpen(false);
+                  }
+                }}
+                placeholder="Buscar ou digitar cor..."
+                className="h-7 w-full rounded-md border border-border bg-secondary/30 px-2 text-xs font-medium text-foreground outline-none focus:border-primary focus:bg-card"
+              />
+              {query.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(query.trim());
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="h-7 px-2 rounded-md gradient-primary text-[10px] font-bold text-white shrink-0 cursor-pointer"
+                >
+                  OK
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-40 overflow-y-auto space-y-0.5">
+              {filteredPresets.map((cp) => (
+                <button
+                  key={cp.name}
+                  type="button"
+                  onClick={() => {
+                    onChange(cp.name);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between rounded-md px-2 py-1 text-xs text-left transition-colors cursor-pointer",
+                    color.toLowerCase() === cp.name.toLowerCase()
+                      ? "bg-primary/10 text-primary font-bold"
+                      : "hover:bg-secondary/60 text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={cn("size-2 rounded-full shrink-0", getColorDot(cp.name))} />
+                    <span className="truncate">{cp.name}</span>
+                  </div>
+                  {color.toLowerCase() === cp.name.toLowerCase() && (
+                    <Check className="size-3 text-primary shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Precificacao() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -725,9 +829,10 @@ function Precificacao() {
     const isAlreadyActive = variants.some((v) => v.size === size);
     if (isAlreadyActive) {
       setVariants((prev) => prev.filter((v) => v.size !== size));
-      toast.success(`Tamanho ${size} removido de todas as cores do modelo`);
+      toast.success(`Tamanho ${size} removido`);
     } else {
-      const colorsToUse = activeColors.length > 0 ? activeColors : ["Padrão"];
+      const distinctColors = Array.from(new Set(variants.map((v) => v.color)));
+      const colorsToUse = distinctColors.length > 0 ? distinctColors : (activeColors.length > 0 ? activeColors : ["Off-White"]);
       const qty = matrixDefaultQtys[size] ?? 2;
       const newRows: VariantRow[] = colorsToUse.map((color) => ({
         id: `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
@@ -748,12 +853,13 @@ function Precificacao() {
           return a.color.localeCompare(b.color);
         });
       });
-      toast.success(`Tamanho ${size} adicionado a todas as cores do modelo!`);
+      toast.success(`Tamanho ${size} adicionado!`);
     }
   };
 
   const applyModelQuickPreset = (presetSizes: string[]) => {
-    const colorsToUse = activeColors.length > 0 ? activeColors : ["Padrão"];
+    const distinctColors = Array.from(new Set(variants.map((v) => v.color)));
+    const colorsToUse = distinctColors.length > 0 ? distinctColors : (activeColors.length > 0 ? activeColors : ["Off-White"]);
     const newRows: VariantRow[] = [];
     colorsToUse.forEach((color) => {
       presetSizes.forEach((size) => {
@@ -771,7 +877,7 @@ function Precificacao() {
       });
     });
     setVariants(newRows);
-    toast.success(`Grade de tamanhos aplicada a todas as cores do modelo!`);
+    toast.success(`Grade de tamanhos aplicada ao modelo!`);
   };
 
   const clearModelSizes = () => {
@@ -779,86 +885,66 @@ function Precificacao() {
     toast.success("Tamanhos removidos do modelo");
   };
 
-  const toggleColorSize = (color: string, size: string) => {
-    const existing = variants.find(
-      (v) => v.color.toLowerCase() === color.toLowerCase() && v.size.toUpperCase() === size.toUpperCase(),
-    );
+  const updateVariantColor = (id: string, newColor: string) => {
+    const clean = newColor.trim() || "Padrão";
+    setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, color: clean } : v)));
+    setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === clean.toLowerCase()) ? prev : [...prev, clean]));
+  };
 
-    if (existing) {
-      setVariants((prev) => prev.filter((v) => v.id !== existing.id));
-      toast.success(`Tamanho ${size} removido da cor ${color}`);
-    } else {
-      const newId = `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`;
-      const newVariant: VariantRow = {
+  const duplicateVariant = (v: VariantRow) => {
+    const newId = `v-${v.size.toLowerCase()}-${Date.now().toString(36)}`;
+    const newRow: VariantRow = {
+      id: newId,
+      size: v.size,
+      color: v.color,
+      wholesaleCost: v.wholesaleCost,
+      customSalePrice: v.customSalePrice,
+      qty: v.qty ?? 1,
+    };
+    setVariants((prev) => {
+      const next = [...prev, newRow];
+      return next.sort((a, b) => {
+        const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+        const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.color.localeCompare(b.color);
+      });
+    });
+    toast.success(`Nova linha para o tamanho ${v.size} adicionada!`);
+  };
+
+  const deleteVariantRow = (id: string) => {
+    setVariants((prev) => prev.filter((v) => v.id !== id));
+  };
+
+  const addNewVariantRow = () => {
+    const defaultColor = variants[0]?.color || "Off-White";
+    const defaultSize = "M";
+    const newId = `v-${defaultSize.toLowerCase()}-${Date.now().toString(36)}`;
+    setVariants((prev) => [
+      ...prev,
+      {
         id: newId,
-        size: size.toUpperCase(),
-        color: color,
+        size: defaultSize,
+        color: defaultColor,
         wholesaleCost: "",
         customSalePrice: "",
         qty: 2,
-      };
-
-      setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === color.toLowerCase()) ? prev : [...prev, color]));
-
-      setVariants((prev) => {
-        const nextList = [...prev, newVariant];
-        return nextList.sort((a, b) => {
-          if (a.color.toLowerCase() === b.color.toLowerCase()) {
-            const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
-            const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
-            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-            if (idxA !== -1) return -1;
-            if (idxB !== -1) return 1;
-            return a.size.localeCompare(b.size);
-          }
-          return a.color.localeCompare(b.color);
-        });
-      });
-      toast.success(`Tamanho ${size} adicionado à cor ${color}!`);
-    }
-  };
-
-  const removeColor = (color: string) => {
-    setActiveColors((prev) => prev.filter((c) => c.toLowerCase() !== color.toLowerCase()));
-    setVariants((prev) => prev.filter((v) => v.color.toLowerCase() !== color.toLowerCase()));
-    toast.success(`Cor "${color}" removida do modelo`);
-  };
-
-  const addQuickColor = (colorName: string) => {
-    const clean = colorName.trim();
-    if (!clean) return;
-    const exists = activeColors.some((c) => c.toLowerCase() === clean.toLowerCase());
-    if (exists) {
-      toast.error(`A cor "${clean}" já está na grade`);
-      return;
-    }
-
-    setActiveColors((prev) => [...prev, clean]);
-    // Adiciona as variantes com a grade de tamanhos já ativa no modelo
-    const currentSizes = Array.from(new Set(variants.map((v) => v.size)));
-    const sizesToUse = currentSizes.length > 0 ? currentSizes : ["P", "M", "G", "GG"];
-    const newRows: VariantRow[] = sizesToUse.map((sz) => ({
-      id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
-      size: sz,
-      color: clean,
-      wholesaleCost: "",
-      customSalePrice: "",
-      qty: matrixDefaultQtys[sz] ?? 2,
-    }));
-    setVariants((prev) => [...prev, ...newRows]);
-    toast.success(`Cor "${clean}" adicionada com grade completa!`);
+      },
+    ]);
+    toast.success("Nova variação adicionada à planilha!");
   };
 
   const applyStrategyToModel = () => {
-    if (activeColors.length === 0) {
-      toast.error("Adicione ao menos uma cor ao modelo");
-      return;
-    }
     const margin = toNumber(matrixGlobalMarginStr) || 50;
     const markupVal = toNumber(matrixGlobalMarkupStr) || 100;
+    const distinctColors = Array.from(new Set(variants.map((v) => v.color)));
+    const colorsToSet = distinctColors.length > 0 ? distinctColors : ["Off-White"];
     setColorStrategies((prev) => {
       const updated = { ...prev };
-      activeColors.forEach((col) => {
+      colorsToSet.forEach((col) => {
         updated[col.toLowerCase()] = {
           ...DEFAULT_COLOR_STRATEGY,
           mode: matrixGlobalMode,
@@ -876,15 +962,11 @@ function Precificacao() {
         : matrixGlobalMode === "markup"
           ? `Markup ${matrixGlobalMarkupStr}%`
           : `Preço R$ ${matrixGlobalDirectPrice}`;
-    toast.success(`${label} aplicado(a) a todo o modelo!`);
+    toast.success(`${label} aplicado(a) ao modelo!`);
   };
 
   const displayedVariants = useMemo(() => {
-    const list =
-      tableColorFilter === "all"
-        ? variantResults
-        : variantResults.filter((v) => v.color.toLowerCase() === tableColorFilter.toLowerCase());
-    return [...list].sort((a, b) => {
+    return [...variantResults].sort((a, b) => {
       const colCompare = a.color.localeCompare(b.color);
       if (colCompare !== 0) return colCompare;
       const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
@@ -894,13 +976,24 @@ function Precificacao() {
       if (idxB !== -1) return 1;
       return a.size.localeCompare(b.size);
     });
-  }, [variantResults, tableColorFilter]);
+  }, [variantResults]);
 
-  const addCustomColor = () => {
-    const clean = newCustomColor.trim();
+  const addQuickColor = (colorName: string) => {
+    const clean = colorName.trim();
     if (!clean) return;
-    addQuickColor(clean);
-    setNewCustomColor("");
+    setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === clean.toLowerCase()) ? prev : [...prev, clean]));
+    const currentSizes = Array.from(new Set(variants.map((v) => v.size)));
+    const sizesToUse = currentSizes.length > 0 ? currentSizes : ["P", "M", "G", "GG"];
+    const newRows: VariantRow[] = sizesToUse.map((sz) => ({
+      id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
+      size: sz,
+      color: clean,
+      wholesaleCost: "",
+      customSalePrice: "",
+      qty: matrixDefaultQtys[sz] ?? 2,
+    }));
+    setVariants((prev) => [...prev, ...newRows]);
+    toast.success(`Cor "${clean}" adicionada com grade completa!`);
   };
 
   // ── Handlers do Color Spotlight Autocomplete (Apple Level) ────────
@@ -2368,10 +2461,10 @@ function Precificacao() {
               </div>
             </div>
 
-            {/* ── CARD PRINCIPAL DA PEÇA / MODELO ── */}
+            {/* ── CARD PRINCIPAL DA PEÇA / MODELO (PADRÃO IMAGEM 2) ── */}
             <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-5 transition-all duration-200">
-              {/* Cabeçalho do Modelo */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+              {/* Cabeçalho do Card (No lugar da cor, o Nome/Modelo da Peça) */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3.5">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 shadow-2xs text-base">
                     👗
@@ -2387,7 +2480,7 @@ function Precificacao() {
                     )}
                   </div>
                   <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground shrink-0">
-                    {activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
+                    {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
                   </span>
                 </div>
 
@@ -2397,140 +2490,24 @@ function Precificacao() {
                       Média do modelo: <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> (Margem <strong className={summaryPrices.marginHealth.color}>{pct(summaryPrices.avgMargin)}</strong>)
                     </span>
                   )}
-                </div>
-              </div>
-
-              {/* ── 1. CORES DESTE MODELO ── */}
-              <div className="space-y-2.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground">
-                    Cores deste modelo:
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {activeColors.length} {activeColors.length === 1 ? "cor selecionada" : "cores selecionadas"}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {activeColors.map((col) => (
-                    <span
-                      key={col}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/40 px-3 py-1 text-xs font-semibold text-foreground shadow-2xs"
-                    >
-                      <span className={cn("size-2.5 rounded-full shadow-xs shrink-0", getColorDot(col))} />
-                      <span>{col}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeColor(col)}
-                        className="ml-0.5 size-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                        title={`Remover cor ${col}`}
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  ))}
-
-                  {/* Botão de abrir Spotlight para adicionar cor */}
-                  <div className="relative inline-block">
+                  {variants.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowColorPopover((prev) => !prev);
-                        setTimeout(() => colorInputRef.current?.focus(), 50);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-primary/40 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                      onClick={clearModelSizes}
+                      className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                      title="Limpar grade do modelo"
                     >
-                      <Plus className="size-3.5" />
-                      <span>Adicionar cor</span>
+                      <Trash2 className="size-4" />
                     </button>
-
-                    {/* Popover Spotlight de Cores */}
-                    {showColorPopover && (
-                      <>
-                        <div className="fixed inset-0 z-30" onClick={() => setShowColorPopover(false)} />
-                        <div className="absolute left-0 top-full z-40 mt-1.5 w-72 sm:w-80 rounded-2xl border border-border/80 bg-card p-3 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-2">
-                          <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-                            <input
-                              ref={colorInputRef}
-                              value={colorSearchQuery}
-                              onChange={(e) => setColorSearchQuery(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  if (matchingColorPresets.length > 0 && matchingColorPresets[0]) {
-                                    handleSelectColorFromSpotlight(matchingColorPresets[0].name);
-                                  } else if (colorSearchQuery.trim()) {
-                                    handleCreateCustomColorFromSpotlight();
-                                  }
-                                } else if (e.key === "Escape") {
-                                  setShowColorPopover(false);
-                                }
-                              }}
-                              placeholder="Buscar ou digitar cor..."
-                              className="h-8.5 w-full rounded-lg border border-border/80 bg-secondary/30 pl-8 pr-18 text-xs font-medium text-foreground outline-none focus:border-primary focus:bg-card"
-                            />
-                            {colorSearchQuery.trim() && (
-                              <button
-                                type="button"
-                                onClick={handleCreateCustomColorFromSpotlight}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6.5 rounded-md gradient-primary px-2 text-[10px] font-bold text-white shadow-xs cursor-pointer"
-                              >
-                                + Criar
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="max-h-48 overflow-y-auto space-y-0.5">
-                            {matchingColorPresets.map((cp) => (
-                              <button
-                                key={cp.name}
-                                type="button"
-                                onClick={() => handleSelectColorFromSpotlight(cp.name)}
-                                className="w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-left hover:bg-secondary/60 cursor-pointer"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className={cn("size-2.5 rounded-full shrink-0", getColorDot(cp.name))} />
-                                  <span className="font-medium text-foreground">{cp.name}</span>
-                                </div>
-                                <span className="text-[10px] text-primary font-bold">+ Incluir</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Sugestões rápidas de cores da moda */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] font-semibold text-muted-foreground mr-1">
-                    Sugestões rápidas:
-                  </span>
-                  {["Areia", "Nude", "Bege", "Branco", "Grafite", "Terracota", "Caramelo", "Azul Marinho"].map((col) => {
-                    const isAlreadyAdded = activeColors.some((c) => c.toLowerCase() === col.toLowerCase());
-                    if (isAlreadyAdded) return null;
-                    return (
-                      <button
-                        key={col}
-                        type="button"
-                        onClick={() => addQuickColor(col)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-secondary/30 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                      >
-                        <span className={cn("size-2 rounded-full", getColorDot(col))} />
-                        <span>+{col}</span>
-                      </button>
-                    );
-                  })}
+                  )}
                 </div>
               </div>
 
-              {/* ── 2. GRADE DE TAMANHOS DESTE MODELO ── */}
+              {/* ── 1. GRADE DE TAMANHOS DESTE MODELO ── */}
               <div className="space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground">
-                    Grade de tamanhos deste modelo:
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Tamanhos deste modelo:
                   </span>
                   <div className="flex flex-wrap items-center gap-1">
                     {SIZE_QUICK_PRESETS.map((preset) => (
@@ -2539,7 +2516,7 @@ function Precificacao() {
                         type="button"
                         onClick={() => applyModelQuickPreset(preset.sizes)}
                         className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                        title={`Aplicar grade ${preset.label} a todas as cores`}
+                        title={`Aplicar grade ${preset.label}`}
                       >
                         + {preset.label}
                       </button>
@@ -2557,7 +2534,7 @@ function Precificacao() {
                   </div>
                 </div>
 
-                {/* Botões de Tamanho da Coleção */}
+                {/* Botões de Tamanho do Modelo */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   {availableModelSizes.map((sz) => {
                     const isActive = activeModelSizes.has(sz);
@@ -2581,7 +2558,7 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* ── 3. ESTRATÉGIA DE PREÇO DO MODELO (BARRA PRO) ── */}
+              {/* ── 2. ESTRATÉGIA DE PREÇO DO MODELO (BARRA PRO TÁTIL) ── */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
                 {/* Lado Esquerdo: Abas de modo e steppers */}
                 <div className="flex flex-wrap items-center gap-2">
@@ -2801,171 +2778,159 @@ function Precificacao() {
                 </Button>
               </div>
 
-              {/* ── 4. PLANILHA DE DETALHES DO LOTE (COM COLUNA COR) ── */}
+              {/* ── 3. PLANILHA DE DETALHES COM OPÇÃO DE COR (PADRÃO IMAGEM 2) ── */}
               {variants.length > 0 ? (
-                <div className="space-y-3">
-                  {/* Abas de Filtro de Visualização por Cor */}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      Planilha de variações do modelo:
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setTableColorFilter("all")}
-                        className={cn(
-                          "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
-                          tableColorFilter === "all"
-                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                            : "bg-secondary/40 text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        Todas as cores ({actualLotUnits} un.)
-                      </button>
-                      {activeColors.map((col) => {
-                        const count = variants
-                          .filter((v) => v.color.toLowerCase() === col.toLowerCase())
-                          .reduce((acc, v) => acc + (v.qty || 1), 0);
-                        return (
-                          <button
-                            key={col}
-                            type="button"
-                            onClick={() => setTableColorFilter(col)}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
-                              tableColorFilter.toLowerCase() === col.toLowerCase()
-                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                : "bg-secondary/40 text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            <span className={cn("size-2 rounded-full", getColorDot(col))} />
-                            <span>{col}</span>
-                            <span className="opacity-70 text-[10px]">({count})</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tabela Viva Estilo Planilha */}
-                  <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
-                    {/* Cabeçalho da Tabela com Coluna Cor */}
-                    <div className="grid grid-cols-[110px_45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
-                      <span>Cor</span>
-                      <span>Tam.</span>
-                      <span>Qtd.</span>
-                      <span>Custo atacado</span>
-                      <span>Custo real</span>
-                      <span>Preço de venda</span>
-                      <span>Margem real</span>
-                      <span className="text-right">Lucro líquido</span>
-                    </div>
-
-                    {/* Linhas de Cada Variante com a Coluna Cor */}
-                    <div className="divide-y divide-border/50 bg-card">
-                      {displayedVariants.map((v) => (
-                        <div
-                          key={v.id}
-                          className="grid grid-cols-[110px_45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
-                        >
-                          {/* Coluna Cor */}
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className={cn("size-2.5 rounded-full shadow-xs shrink-0", getColorDot(v.color))} />
-                            <span className="truncate font-semibold text-foreground text-xs">{v.color}</span>
-                          </div>
-
-                          {/* Tamanho */}
-                          <div className="flex items-center gap-1">
-                            <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
-                              {v.size}
-                            </span>
-                            {(v.isCustomCost || v.isCustomPrice) && (
-                              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor personalizado para este tamanho">
-                                ✦
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Quantidade no Lote */}
-                          <div>
-                            <input
-                              inputMode="numeric"
-                              value={v.qty ?? 1}
-                              onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
-                              className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
-                              title="Quantidade desta variante no lote"
-                            />
-                          </div>
-
-                          {/* Custo Fornecedor (Input Direto) */}
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[11px] text-muted-foreground">R$</span>
-                              <input
-                                inputMode="decimal"
-                                value={v.wholesaleCost}
-                                onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                placeholder={baseWholesaleGrade || "49,90"}
-                                className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Custo Real Total Calculado (Atacado + Rateio) */}
-                          <div className="numeric text-muted-foreground font-medium text-xs">
-                            {brl(v.realCost)}
-                          </div>
-
-                          {/* Preço de Venda (Input Direto com Preço Sugerido Reativo) */}
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[11px] text-muted-foreground">R$</span>
-                              <input
-                                inputMode="decimal"
-                                value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
-                                className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Margem Real */}
-                          <div>
-                            <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
-                              {pct(v.marginOnPrice)}
-                            </span>
-                          </div>
-
-                          {/* Lucro Líquido Real */}
-                          <div className="text-right">
-                            <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
-                              <span>{v.marginHealth.emoji}</span>
-                              <span>+{brl(v.profit)}</span>
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Rodapé / Totais da Planilha */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-3 bg-secondary/40 border-t border-border/60 text-xs font-semibold">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Totais do lote:</span>
-                        <Badge variant="secondary" className="font-bold">
-                          {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
-                        </Badge>
-                        <span className="text-muted-foreground hidden sm:inline">
-                          ({activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"})
-                        </span>
+                <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[760px]">
+                      {/* Cabeçalho da Tabela */}
+                      <div className="grid grid-cols-[140px_60px_60px_1fr_1fr_1.1fr_1fr_1.1fr_36px] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
+                        <span>Cor</span>
+                        <span>Tam.</span>
+                        <span>Qtd.</span>
+                        <span>Custo atacado</span>
+                        <span>Custo real</span>
+                        <span>Preço de venda</span>
+                        <span>Margem real</span>
+                        <span className="text-right">Lucro líquido</span>
+                        <span className="text-center"></span>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-muted-foreground">
-                          Faturamento estimado: <strong className="text-foreground font-bold">{brl(summaryPrices.totalRevenue)}</strong>
-                        </span>
-                        <span className="text-muted-foreground">
-                          Lucro líquido total: <strong className="text-success font-bold">+{brl(summaryPrices.totalProfit)}</strong>
-                        </span>
+
+                      {/* Linhas de Cada Variante com a Opção de Cor */}
+                      <div className="divide-y divide-border/50 bg-card">
+                        {displayedVariants.map((v) => (
+                          <div
+                            key={v.id}
+                            className="grid grid-cols-[140px_60px_60px_1fr_1fr_1.1fr_1fr_1.1fr_36px] items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-secondary/20 transition-colors"
+                          >
+                            {/* Coluna Cor: Seletor Interativo com Bolinha e Popover */}
+                            <div>
+                              <VariantColorPicker
+                                color={v.color}
+                                onChange={(newCol) => updateVariantColor(v.id, newCol)}
+                              />
+                            </div>
+
+                            {/* Tamanho com botão [+] de duplicar linha para outra cor */}
+                            <div className="flex items-center gap-1">
+                              <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
+                                {v.size}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => duplicateVariant(v)}
+                                className="size-5 rounded-md flex items-center justify-center text-primary bg-primary/10 hover:bg-primary/20 active:scale-95 transition-all cursor-pointer"
+                                title={`Adicionar outra cor para o tamanho ${v.size}`}
+                              >
+                                <Plus className="size-3" />
+                              </button>
+                            </div>
+
+                            {/* Quantidade no Lote */}
+                            <div>
+                              <input
+                                inputMode="numeric"
+                                value={v.qty ?? 1}
+                                onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
+                                className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                title="Quantidade desta variante no lote"
+                              />
+                            </div>
+
+                            {/* Custo Fornecedor (Input Direto) */}
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] text-muted-foreground">R$</span>
+                                <input
+                                  inputMode="decimal"
+                                  value={v.wholesaleCost}
+                                  onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                  placeholder={baseWholesaleGrade || "49,90"}
+                                  className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Custo Real Total Calculado (Atacado + Rateio) */}
+                            <div className="numeric text-muted-foreground font-medium text-xs">
+                              {brl(v.realCost)}
+                            </div>
+
+                            {/* Preço de Venda (Input Direto com Preço Sugerido Reativo) */}
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] text-muted-foreground">R$</span>
+                                <input
+                                  inputMode="decimal"
+                                  value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
+                                  onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                  placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
+                                  className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Margem Real */}
+                            <div>
+                              <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
+                                {pct(v.marginOnPrice)}
+                              </span>
+                            </div>
+
+                            {/* Lucro Líquido Real */}
+                            <div className="text-right">
+                              <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
+                                <span>{v.marginHealth.emoji}</span>
+                                <span>+{brl(v.profit)}</span>
+                              </span>
+                            </div>
+
+                            {/* Ação: Excluir linha */}
+                            <div className="text-center">
+                              <button
+                                type="button"
+                                onClick={() => deleteVariantRow(v.id)}
+                                className="size-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                title="Remover esta variação"
+                              >
+                                <X className="size-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Botão de Adicionar Nova Variação */}
+                      <div className="p-2.5 bg-card border-t border-border/50 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={addNewVariantRow}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-primary/5"
+                        >
+                          <Plus className="size-3.5" />
+                          <span>Adicionar variação</span>
+                        </button>
+                      </div>
+
+                      {/* Rodapé / Totais da Planilha */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-3 bg-secondary/40 border-t border-border/60 text-xs font-semibold">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Totais do lote:</span>
+                          <Badge variant="secondary" className="font-bold">
+                            {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
+                          </Badge>
+                          <span className="text-muted-foreground hidden sm:inline">
+                            ({Array.from(new Set(variants.map((v) => v.color))).length} {Array.from(new Set(variants.map((v) => v.color))).length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"})
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-muted-foreground">
+                            Faturamento estimado: <strong className="text-foreground font-bold">{brl(summaryPrices.totalRevenue)}</strong>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Lucro líquido total: <strong className="text-success font-bold">+{brl(summaryPrices.totalProfit)}</strong>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
