@@ -371,6 +371,7 @@ function Precificacao() {
   // ── Simuladores & Lote ─────────────────────────────────────────
   const [lotUnits] = useState(20);
   const [showSimulator, setShowSimulator] = useState(false);
+  const [showGradeColorBreakdown, setShowGradeColorBreakdown] = useState(false);
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
@@ -3376,143 +3377,348 @@ function Precificacao() {
             /* ═══════════════════════════════════════════════════════════════
                MODO GRADE: RESUMO EXECUTIVO CONSOLIDADO DO LOTE
             ═══════════════════════════════════════════════════════════════ */
-            <div className="rounded-2xl border border-border/80 bg-card p-6 space-y-5 shadow-2xs">
-              <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] items-center">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-medium text-foreground/60 tracking-wide">
-                      Preço de venda sugerido
-                    </span>
-                    {summaryPrices.hasMultiple ? (
-                      <div>
-                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <span className="numeric text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                            {brl(summaryPrices.minSuggested)}
-                          </span>
-                          <span className="text-muted-foreground font-light text-xl">–</span>
-                          <span className="numeric text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                            {brl(summaryPrices.maxSuggested)}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Faixa de preço para as {actualLotUnits} peças da coleção
+            (() => {
+              const hasItems = summaryPrices.avgSuggested > 0 && actualLotUnits > 0;
+              const lotRevenue = summaryPrices.totalRevenue;
+              const lotCost = summaryPrices.totalInvestment;
+              const lotProfit = summaryPrices.totalProfit;
+              const lotTaxes = Math.max(lotRevenue * (tax / 100), 0);
+              const lotCardFees = Math.max(lotRevenue * (cardRate / 100), 0);
+
+              const lotCostPct = lotRevenue > 0 ? (lotCost / lotRevenue) * 100 : 0;
+              const lotTaxPct = lotRevenue > 0 ? (lotTaxes / lotRevenue) * 100 : 0;
+              const lotCardPct = lotRevenue > 0 ? (lotCardFees / lotRevenue) * 100 : 0;
+              const lotProfitPct = lotRevenue > 0 ? (lotProfit / lotRevenue) * 100 : 0;
+
+              const unitPrice = summaryPrices.avgSuggested;
+              const unitCost = summaryPrices.avgCost;
+              const unitProfit = summaryPrices.avgProfit;
+              const unitTaxes = Math.max(unitPrice * (tax / 100), 0);
+              const unitCardFees = Math.max(unitPrice * (cardRate / 100), 0);
+              const isPrejuizo = lotProfit < 0;
+
+              return (
+                <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 shadow-soft space-y-4">
+                  {!hasItems ? (
+                    /* ESTADO ZERO ELEGANTE (QUANDO NÃO HÁ ITENS/CUSTOS PREENCHIDOS NA GRADE) */
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center rounded-xl border border-dashed border-border/80 bg-secondary/15 space-y-3">
+                      <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
+                        <Boxes className="size-6" />
+                      </div>
+                      <div className="max-w-md space-y-1">
+                        <h3 className="text-sm font-bold text-foreground">
+                          Resumo executivo do lote
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Adicione o custo de atacado e selecione os tamanhos na grade acima para gerar a decomposição financeira completa e o faturamento previsto do lote.
                         </p>
                       </div>
-                    ) : (
-                      <div>
-                        <p className="numeric text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                          {brl(summaryPrices.avgSuggested)}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          Lucro líquido · <strong className="text-foreground">{brl(summaryPrices.avgProfit)}</strong> / peça
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {summaryPrices.avgSuggested > 0 && (() => {
-                    const cost = summaryPrices.avgCost;
-                    const profit = summaryPrices.avgProfit;
-                    const isPrejuizo = profit < 0;
-                    const taxes = Math.max(summaryPrices.avgSuggested * ((tax + cardRate) / 100), 0);
-                    const totalSum = cost + taxes + Math.max(profit, 0);
-                    const costPct = totalSum > 0 ? (cost / totalSum) * 100 : 0;
-                    const taxPct = totalSum > 0 ? (taxes / totalSum) * 100 : 0;
-                    const profitPct = totalSum > 0 ? (Math.max(profit, 0) / totalSum) * 100 : 0;
-                    return (
-                      <div className="space-y-1.5 pt-1 border-t border-border/50">
-                        <div className="flex h-2.5 w-full overflow-hidden rounded-full gap-0.5 bg-secondary/80">
-                          <div className="bg-muted-foreground/30 rounded-l-full transition-all" style={{ width: `${costPct}%` }} title={`Custo: ${Math.round(costPct)}%`} />
-                          <div className="bg-amber-400/60 transition-all" style={{ width: `${taxPct}%` }} title={`Impostos & taxas: ${Math.round(taxPct)}%`} />
-                          {isPrejuizo ? (
-                            <div className="bg-rose-500/80 rounded-r-full transition-all" style={{ width: `6%` }} title="Prejuízo" />
-                          ) : (
-                            <div className="bg-emerald-500/80 rounded-r-full transition-all" style={{ width: `${profitPct}%` }} title={`Lucro: ${Math.round(profitPct)}%`} />
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-muted-foreground/40" />Custo {Math.round(costPct)}%</span>
-                          <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-amber-400/70" />Taxas {Math.round(taxPct)}%</span>
-                          {isPrejuizo ? (
-                            <span className="flex items-center gap-1.5 font-semibold text-destructive"><span className="size-1.5 rounded-full bg-rose-500" />Prejuízo {brl(profit)}</span>
-                          ) : (
-                            <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400"><span className="size-1.5 rounded-full bg-emerald-500" />Lucro {Math.round(profitPct)}%</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-2.5 text-center">
-                      <p className="text-[10px] font-medium text-muted-foreground/80">Margem real</p>
-                      <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.marginHealth.color)}>
-                        {pct(summaryPrices.avgMargin)}
-                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMode("rapida")}
+                        className="rounded-full text-xs font-semibold cursor-pointer"
+                      >
+                        Ou use a precificação rápida
+                      </Button>
                     </div>
-                    <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-2.5 text-center">
-                      <p className="text-[10px] font-medium text-muted-foreground/80">Lucro médio</p>
-                      <p className={cn("numeric mt-0.5 text-sm font-bold", summaryPrices.avgProfit < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
-                        {brl(summaryPrices.avgProfit)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-border/60 bg-surface-muted/40 p-2.5 text-center">
-                      <p className="text-[10px] font-medium text-muted-foreground/80">Markup</p>
-                      <p className="numeric mt-0.5 text-sm font-bold text-foreground">
-                        {pct(summaryPrices.avgMarkup)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ponto de Equilíbrio Grade */}
-              <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
-                  Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
-                    <>
-                      As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
-                    </>
                   ) : (
-                    "Lote quitado com margem saudável."
-                  )
-                ) : (
-                  <span className="text-destructive font-semibold">
-                    Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
-                  </span>
-                )}
-              </div>
+                    <>
+                      {/* 1. HEADER DO DEMONSTRATIVO DO LOTE (DUPLO DESTAQUE SEM CARD-IN-CARD) */}
+                      <div className="grid sm:grid-cols-2 gap-4 pb-4 border-b border-border/60">
+                        {/* Lado A: Faturamento Total Previsto do Lote */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between sm:justify-start gap-2">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                              <Tag className="size-3.5 text-primary" />
+                              Faturamento total previsto
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={cn("text-[11px] font-semibold px-2 py-0.5 border shadow-2xs", summaryPrices.marginHealth.color)}
+                            >
+                              {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
+                            </Badge>
+                          </div>
+                          <div className="flex items-baseline gap-2 pt-0.5 flex-wrap">
+                            <span className="numeric text-2xl sm:text-3xl font-black tracking-tight text-foreground leading-none">
+                              {brl(lotRevenue)}
+                            </span>
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              ({actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} no lote)
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground/80">
+                            {summaryPrices.hasMultiple ? (
+                              <>
+                                Média de <strong className="text-foreground">{brl(unitPrice)}</strong> / peça (faixa {brl(summaryPrices.minSuggested)} – {brl(summaryPrices.maxSuggested)}). Receita bruta total estimada.
+                              </>
+                            ) : (
+                              <>
+                                Média de <strong className="text-foreground">{brl(unitPrice)}</strong> / peça na vitrine. Receita bruta total ao vender o lote.
+                              </>
+                            )}
+                          </p>
+                        </div>
 
-              {/* Ações do Modo Grade */}
-              <div className="grid sm:grid-cols-3 gap-3 pt-4 border-t border-border/50">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setMode("rapida")}
-                  className="h-11 rounded-full text-xs font-semibold"
-                >
-                  ← Modo rápido
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => save.mutate()}
-                  disabled={save.isPending}
-                  className="h-11 rounded-full text-xs font-semibold"
-                >
-                  <Save className="mr-1.5 size-3.5 text-muted-foreground" /> Salvar no histórico
-                </Button>
-                <Button
-                  type="button"
-                  onClick={openEntryForCurrent}
-                  className="h-11 rounded-full bg-primary text-primary-foreground font-bold shadow-glow transition-all active:scale-[0.98] hover:bg-primary/90"
-                >
-                  <PackagePlus className="mr-2 size-4" /> Dar entrada no estoque
-                </Button>
-              </div>
-            </div>
+                        {/* Lado B: Sobra Líquida no Caixa do Lote */}
+                        <div className="space-y-1 sm:border-l sm:border-border/60 sm:pl-5">
+                          <div className="flex items-center justify-between sm:justify-start gap-2">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                              <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                              Sobra líquida no caixa
+                            </span>
+                            <span className={cn(
+                              "numeric text-[11px] font-semibold px-2 py-0.5 rounded-full border shadow-2xs",
+                              isPrejuizo
+                                ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20"
+                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+                            )}>
+                              {pct(summaryPrices.avgMargin)} de margem consolidada
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-2 pt-0.5 flex-wrap">
+                            <span className={cn(
+                              "numeric text-2xl sm:text-3xl font-black tracking-tight leading-none",
+                              isPrejuizo ? "text-destructive" : "text-emerald-600 dark:text-emerald-400",
+                            )}>
+                              {lotProfit >= 0 ? "+" : ""}{brl(lotProfit)}
+                            </span>
+                            <span className={cn(
+                              "text-xs font-medium",
+                              isPrejuizo ? "text-rose-700/70 dark:text-rose-400/70" : "text-emerald-700/70 dark:text-emerald-400/70",
+                            )}>
+                              no caixa do lote
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground/80">
+                            Média de <strong className={isPrejuizo ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}>
+                              {unitProfit >= 0 ? "+" : ""}{brl(unitProfit)}
+                            </strong> limpos / peça após abater custos, DAS e maquininha.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 2. BARRA VISUAL PROPORCIONAL CONTÍNUA DO LOTE */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-foreground">
+                            Decomposição do faturamento ({brl(lotRevenue)})
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            Para onde vai a receita das {actualLotUnits} peças
+                          </span>
+                        </div>
+                        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-secondary/80 gap-0.5">
+                          <div
+                            className="bg-slate-400 dark:bg-slate-500 rounded-l-full transition-all duration-300"
+                            style={{ width: `${Math.max(lotCostPct, 2)}%` }}
+                            title={`Custo total das peças: ${brl(lotCost)} (${Math.round(lotCostPct)}%)`}
+                          />
+                          <div
+                            className="bg-amber-400 transition-all duration-300"
+                            style={{ width: `${Math.max(lotTaxPct, 2)}%` }}
+                            title={`Imposto DAS total: ${brl(lotTaxes)} (${Math.round(lotTaxPct)}%)`}
+                          />
+                          <div
+                            className="bg-sky-400 transition-all duration-300"
+                            style={{ width: `${Math.max(lotCardPct, 2)}%` }}
+                            title={`Taxas de maquininha total: ${brl(lotCardFees)} (${Math.round(lotCardPct)}%)`}
+                          />
+                          <div
+                            className={cn(
+                              "rounded-r-full transition-all duration-300",
+                              isPrejuizo ? "bg-rose-500" : "bg-emerald-500",
+                            )}
+                            style={{ width: `${Math.max(Math.abs(lotProfitPct), 2)}%` }}
+                            title={`Lucro líquido do lote: ${brl(lotProfit)} (${Math.round(lotProfitPct)}%)`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* 3. A TABELA DRE DO LOTE EM 4 COLUNAS (RECIBO HARMONIOSO CONSOLIDADO) */}
+                      <div className="rounded-xl border border-border/60 bg-background/90 overflow-hidden shadow-2xs">
+                        {/* Cabeçalho do Recibo */}
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center text-[11px] font-medium text-muted-foreground py-2 px-3.5 bg-secondary/25 border-b border-border/50">
+                          <span>Componente da formação</span>
+                          <span className="text-right pr-4 sm:pr-6">Média / peça</span>
+                          <span className="text-right pr-6 sm:pr-8">Total do lote</span>
+                          <span className="text-right w-14 sm:w-16">% do total</span>
+                        </div>
+
+                        {/* Linha 1: Custo das Peças */}
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center py-2.5 px-3.5 text-xs border-b border-border/40 hover:bg-secondary/15 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                            <span className="font-medium text-foreground">Custo das Peças</span>
+                            <span className="text-[11px] text-muted-foreground hidden sm:inline">· Atacado + rateio</span>
+                          </div>
+                          <span className="numeric text-muted-foreground text-right pr-4 sm:pr-6">{brl(unitCost)}</span>
+                          <span className="numeric font-semibold text-foreground text-right pr-6 sm:pr-8">{brl(lotCost)}</span>
+                          <span className="numeric text-muted-foreground text-right w-14 sm:w-16">{Math.round(lotCostPct)}%</span>
+                        </div>
+
+                        {/* Linha 2: Imposto DAS */}
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center py-2.5 px-3.5 text-xs border-b border-border/40 hover:bg-secondary/15 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <span className="size-2 rounded-full bg-amber-400 shrink-0" />
+                            <span className="font-medium text-foreground">Imposto DAS ({tax.toFixed(1)}%)</span>
+                            <span className="text-[11px] text-muted-foreground hidden sm:inline">· Simples Nacional</span>
+                          </div>
+                          <span className="numeric text-muted-foreground text-right pr-4 sm:pr-6">{brl(unitTaxes)}</span>
+                          <span className="numeric font-semibold text-foreground text-right pr-6 sm:pr-8">{brl(lotTaxes)}</span>
+                          <span className="numeric text-muted-foreground text-right w-14 sm:w-16">{Math.round(lotTaxPct)}%</span>
+                        </div>
+
+                        {/* Linha 3: Taxa de Cartão */}
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center py-2.5 px-3.5 text-xs border-b border-border/40 hover:bg-secondary/15 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <span className="size-2 rounded-full bg-sky-400 shrink-0" />
+                            <span className="font-medium text-foreground">Taxa de Cartão ({cardRate.toFixed(1)}%)</span>
+                            <span className="text-[11px] text-muted-foreground hidden sm:inline">· Maquininha/gateway</span>
+                          </div>
+                          <span className="numeric text-muted-foreground text-right pr-4 sm:pr-6">{brl(unitCardFees)}</span>
+                          <span className="numeric font-semibold text-foreground text-right pr-6 sm:pr-8">{brl(lotCardFees)}</span>
+                          <span className="numeric text-muted-foreground text-right w-14 sm:w-16">{Math.round(lotCardPct)}%</span>
+                        </div>
+
+                        {/* Linha 4: Lucro Líquido Real Consolidado */}
+                        <div className={cn(
+                          "grid grid-cols-[1fr_auto_auto_auto] items-center py-2.5 px-3.5 text-xs font-semibold",
+                          isPrejuizo
+                            ? "bg-rose-500/10 text-rose-800 dark:text-rose-300"
+                            : "bg-emerald-500/8 text-emerald-900 dark:text-emerald-300",
+                        )}>
+                          <div className="flex items-center gap-2">
+                            <span className={cn("size-2 rounded-full shrink-0", isPrejuizo ? "bg-rose-500" : "bg-emerald-500")} />
+                            <span className="font-bold">Lucro Líquido do Lote</span>
+                            <span className="text-[11px] opacity-75 hidden sm:inline">· Sobra limpa no caixa</span>
+                          </div>
+                          <span className={cn("numeric font-semibold text-right pr-4 sm:pr-6", isPrejuizo ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400")}>
+                            {unitProfit >= 0 ? "+" : ""}{brl(unitProfit)}
+                          </span>
+                          <span className={cn("numeric font-black text-sm text-right pr-6 sm:pr-8", isPrejuizo ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400")}>
+                            {lotProfit >= 0 ? "+" : ""}{brl(lotProfit)}
+                          </span>
+                          <span className={cn("numeric font-semibold text-right w-14 sm:w-16", isPrejuizo ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400")}>
+                            {Math.round(lotProfitPct)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 4. O DESAFIO DA GRADE RESOLVIDO: CONTRIBUIÇÃO FINANCEIRA POR COR (DRILLDOWN DISCRETO) */}
+                      {colorGroups.length > 1 ? (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowGradeColorBreakdown((prev) => !prev)}
+                            className="w-full flex items-center justify-between p-3 rounded-xl border border-border/70 bg-secondary/30 hover:bg-secondary/50 transition-colors text-xs font-semibold text-foreground cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Palette className="size-3.5 text-primary" />
+                              <span>Ver contribuição financeira por cor ({colorGroups.length} cores na grade)</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                              <span>{showGradeColorBreakdown ? "Ocultar detalhes" : "Expandir visão por cor"}</span>
+                              <ChevronDown className={cn("size-3.5 transition-transform duration-200", showGradeColorBreakdown && "rotate-180")} />
+                            </div>
+                          </button>
+
+                          {showGradeColorBreakdown && (
+                            <div className="rounded-xl border border-border/60 bg-background/80 overflow-hidden divide-y divide-border/40 text-xs shadow-2xs">
+                              <div className="grid grid-cols-[1.5fr_auto_auto_auto_auto] items-center gap-2 py-2 px-3 bg-secondary/30 text-[10px] font-semibold text-muted-foreground">
+                                <span>Cor</span>
+                                <span className="text-right">Qtd.</span>
+                                <span className="text-right">Preço médio</span>
+                                <span className="text-right">Faturamento</span>
+                                <span className="text-right">Lucro líquido</span>
+                              </div>
+                              {colorGroups.map((cg) => (
+                                <div key={cg.color} className="grid grid-cols-[1.5fr_auto_auto_auto_auto] items-center gap-2 py-2.5 px-3 hover:bg-secondary/15 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(cg.color))} />
+                                    <span className="font-semibold text-foreground">{cg.color}</span>
+                                    <span className="text-[10px] text-muted-foreground">({cg.items.length} tam.)</span>
+                                  </div>
+                                  <span className="numeric text-muted-foreground text-right">{cg.totalUnits} un.</span>
+                                  <span className="numeric font-medium text-foreground text-right">{brl(cg.avgPrice)}</span>
+                                  <span className="numeric font-semibold text-foreground text-right">{brl(cg.totalRevenue)}</span>
+                                  <div className="text-right">
+                                    <span className={cn("numeric font-bold", cg.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                                      {brl(cg.totalProfit)}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground ml-1">({pct(cg.avgMargin)})</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/25 border border-border/50 text-[11px] text-muted-foreground">
+                          <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>Grade uniforme com 1 cor cadastrada ({colorGroups[0]?.color || "Padrão"}). Todas as variantes compartilham a mesma formação de preço.</span>
+                        </div>
+                      )}
+
+                      {/* 5. PONTO DE EQUILÍBRIO DO LOTE (BREAK-EVEN) */}
+                      <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
+                        Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
+                          Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
+                            <>
+                              As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
+                            </>
+                          ) : (
+                            "Lote quitado com margem saudável."
+                          )
+                        ) : (
+                          <span className="text-destructive font-semibold">
+                            Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="border-t border-border/50" />
+
+                  {/* 6. AÇÕES FINAIS UNIFICADAS DO MODO GRADE */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        onClick={openEntryForCurrent}
+                        disabled={!hasItems}
+                        className="h-10 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-5 transition-all active:scale-[0.98] text-xs disabled:opacity-50"
+                      >
+                        <PackagePlus className="size-4" />
+                        <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => save.mutate()}
+                        disabled={save.isPending || !hasItems}
+                        className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all disabled:opacity-50"
+                      >
+                        <Save className="size-3.5" />
+                        <span>Salvar no histórico</span>
+                      </Button>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setMode("rapida")}
+                      className="h-9 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 transition-all px-3.5"
+                    >
+                      <span>← Modo rápido</span>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()
           )}
         </section>
       </div>
