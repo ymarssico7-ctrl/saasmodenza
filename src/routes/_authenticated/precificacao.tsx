@@ -352,6 +352,111 @@ function VariantColorPicker({
   );
 }
 
+function ReplicateGradeColorPicker({
+  onSelectColor,
+}: {
+  onSelectColor: (newColor: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filteredPresets = COLOR_PRESETS.filter((cp) =>
+    cp.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((prev) => !prev);
+          if (!open) {
+            setTimeout(() => inputRef.current?.focus(), 50);
+          }
+        }}
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-foreground/85 hover:text-foreground bg-secondary/60 hover:bg-secondary px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-2xs border border-border/70 active:scale-95"
+        title="Replicar todos os tamanhos da grade para uma nova cor"
+      >
+        <Sparkles className="size-3.5 text-primary" />
+        <span>Replicar grade em outra cor</span>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 bottom-full z-40 mb-1.5 w-60 rounded-xl border border-border/80 bg-card p-2.5 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-2">
+            <div className="flex items-center justify-between pb-1 border-b border-border/50">
+              <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                <Palette className="size-3 text-primary" />
+                Escolha a cor para replicar
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary text-xs"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && query.trim()) {
+                    e.preventDefault();
+                    onSelectColor(query.trim());
+                    setOpen(false);
+                    setQuery("");
+                  } else if (e.key === "Escape") {
+                    setOpen(false);
+                  }
+                }}
+                placeholder="Buscar ou digitar cor..."
+                className="h-7 w-full rounded-md border border-border bg-secondary/30 px-2 text-xs font-medium text-foreground outline-none focus:border-primary focus:bg-card"
+              />
+              {query.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectColor(query.trim());
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="h-7 px-2 rounded-md gradient-primary text-[10px] font-bold text-white shrink-0 cursor-pointer"
+                >
+                  OK
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-44 overflow-y-auto space-y-0.5">
+              {filteredPresets.map((cp) => (
+                <button
+                  key={cp.name}
+                  type="button"
+                  onClick={() => {
+                    onSelectColor(cp.name);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-1 text-xs text-left transition-colors hover:bg-secondary/60 text-foreground cursor-pointer"
+                >
+                  <span className={cn("size-2 rounded-full shrink-0", getColorDot(cp.name))} />
+                  <span className="truncate">{cp.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Precificacao() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -935,6 +1040,62 @@ function Precificacao() {
       },
     ]);
     toast.success("Nova variação adicionada à planilha!");
+  };
+
+  const replicateGradeInColor = (newColor: string) => {
+    const cleanColor = newColor.trim();
+    if (!cleanColor) return;
+
+    // Obtém todos os tamanhos únicos atualmente na grade (ou os presets padrão)
+    const existingSizes = Array.from(new Set(variants.map((v) => v.size)));
+    const sizesToReplicate = existingSizes.length > 0 ? sortCanonicalSizes(existingSizes) : ["P", "M", "G", "GG"];
+
+    const newRows: VariantRow[] = [];
+    sizesToReplicate.forEach((sz) => {
+      const alreadyExists = variants.some(
+        (v) => v.size === sz && v.color.toLowerCase() === cleanColor.toLowerCase(),
+      );
+      if (!alreadyExists) {
+        const matchingOriginal = variants.find((v) => v.size === sz);
+        const qty = matchingOriginal?.qty ?? matrixDefaultQtys[sz] ?? 2;
+        newRows.push({
+          id: `v-${sz.toLowerCase()}-${cleanColor.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          size: sz,
+          color: cleanColor,
+          wholesaleCost: matchingOriginal?.wholesaleCost ?? "",
+          customSalePrice: matchingOriginal?.customSalePrice ?? "",
+          qty,
+        });
+      }
+    });
+
+    if (newRows.length === 0) {
+      toast.info(`A grade já possui todas as variações para a cor "${cleanColor}".`);
+      return;
+    }
+
+    setVariants((prev) => {
+      const combined = [...prev, ...newRows];
+      return combined.sort((a, b) => {
+        const colCompare = a.color.localeCompare(b.color);
+        if (colCompare !== 0) return colCompare;
+        const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+        const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.size.localeCompare(b.size);
+      });
+    });
+
+    setActiveColors((prev) => {
+      if (prev.some((c) => c.toLowerCase() === cleanColor.toLowerCase())) return prev;
+      return [...prev, cleanColor];
+    });
+
+    toast.success(`Grade replicada na cor ${cleanColor}! ✨`, {
+      description: `${newRows.length} novas variações adicionadas à tabela.`,
+    });
   };
 
   const applyStrategyToModel = () => {
@@ -1615,6 +1776,7 @@ function Precificacao() {
     setEntryName(name.trim() || "Nova Peça");
     setEntryCostPrice(summaryPrices.avgCost);
     setEntrySalePrice(summaryPrices.avgSuggested);
+    if (category) setEntryCategory(category);
 
     if (mode === "rapida") {
       // Modo Rápido: usar cor/tamanho/quantidade informados pelo lojista
@@ -1665,7 +1827,31 @@ function Precificacao() {
 
   const confirmEntryMutation = useMutation({
     mutationFn: async () => {
-      return insertInventoryItem({
+      if (mode === "grade" && colorGroups.length > 1) {
+        const createdIds: string[] = [];
+        for (const cg of colorGroups) {
+          const colorSizes: Record<string, number> = {};
+          cg.items.forEach((item) => {
+            const q = item.qty && item.qty > 0 ? item.qty : 1;
+            colorSizes[item.size] = (colorSizes[item.size] ?? 0) + q;
+          });
+          const id = await insertInventoryItem({
+            storeId,
+            name: entryName.trim() || "Peça sem nome",
+            category: entryCategory,
+            color: cg.color,
+            supplier: entrySupplier.trim() || null,
+            cost_price: cg.avgCost > 0 ? cg.avgCost : entryCostPrice,
+            sale_price: cg.avgPrice > 0 ? cg.avgPrice : entrySalePrice,
+            photo_url: entryPhotoUrl.trim() || null,
+            sizes: colorSizes,
+          });
+          if (id) createdIds.push(id);
+        }
+        return { count: colorGroups.length, firstId: createdIds[0] ?? null };
+      }
+
+      const singleId = await insertInventoryItem({
         storeId,
         name: entryName.trim() || "Peça sem nome",
         category: entryCategory,
@@ -1676,23 +1862,30 @@ function Precificacao() {
         photo_url: entryPhotoUrl.trim() || null,
         sizes: entrySizes,
       });
+      return { count: 1, firstId: singleId };
     },
-    onSuccess: (newId) => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       setEntrySheetOpen(false);
 
       // Auto-publicar na vitrine se a flag estiver ativa (sincronizado com estoque.tsx)
-      if (newId && getAutoPublish()) {
-        patchShowcaseConfig(newId, { ativo: true });
+      if (res?.firstId && getAutoPublish()) {
+        patchShowcaseConfig(res.firstId, { ativo: true });
         toast.info("Peça publicada automaticamente na vitrine", {
           description: "Você pode ajustar a visibilidade em Loja → Produtos.",
           duration: 4000,
         });
       }
 
-      toast.success("Peça cadastrada no Estoque com sucesso! 📦", {
-        description: `${entryTotalUnits} unidades registradas na grade.`,
-      });
+      if (res && res.count > 1) {
+        toast.success(`Grade de ${res.count} cores cadastrada no Estoque! 📦`, {
+          description: `${entryTotalUnits} unidades registradas individualmente por cor.`,
+        });
+      } else {
+        toast.success("Peça cadastrada no Estoque com sucesso! 📦", {
+          description: `${entryTotalUnits} unidades registradas na grade.`,
+        });
+      }
     },
     onError: (err: Error) => {
       toast.error("Erro ao dar entrada no estoque", { description: err.message });
@@ -1762,8 +1955,8 @@ function Precificacao() {
             </div>
           </div>
 
-          {/* Grid de Identificação da Peça (Nome + Categoria/Referência) */}
-          <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
+          {/* Grid de Identificação da Peça */}
+          <div className={cn("grid gap-3", mode === "grade" ? "sm:grid-cols-[1fr_200px_170px]" : "sm:grid-cols-[1fr_220px]")}>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">
                 Nome da peça ou modelo
@@ -1793,6 +1986,26 @@ function Precificacao() {
                 </SelectContent>
               </Select>
             </div>
+
+            {mode === "grade" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Custo atacado base</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(padrão)</span>
+                </Label>
+                <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
+                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                  <input
+                    inputMode="decimal"
+                    value={baseWholesaleGrade}
+                    onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                    placeholder="49,90"
+                    className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                    title="Custo unitário base no fornecedor (usado para compor o custo real e alimentar variações da grade)"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Variantes do Modo Rápido: Custo de Atacado, Quantidade, Cor e Tamanho (4 colunas) */}
@@ -2900,8 +3113,8 @@ function Precificacao() {
                         ))}
                       </div>
 
-                      {/* Botão de Adicionar Nova Variação */}
-                      <div className="p-2.5 bg-card border-t border-border/50 flex items-center justify-between">
+                      {/* Botões de Adicionar Nova Variação & Replicar Grade */}
+                      <div className="p-2.5 bg-card border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={addNewVariantRow}
@@ -2910,6 +3123,8 @@ function Precificacao() {
                           <Plus className="size-3.5" />
                           <span>Adicionar variação</span>
                         </button>
+
+                        <ReplicateGradeColorPicker onSelectColor={replicateGradeInColor} />
                       </div>
 
                       {/* Rodapé / Totais da Planilha */}
@@ -3858,15 +4073,6 @@ function Precificacao() {
                         <span>Salvar no histórico</span>
                       </Button>
                     </div>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setMode("rapida")}
-                      className="h-9 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 transition-all px-3.5"
-                    >
-                      <span>← Modo rápido</span>
-                    </Button>
                   </div>
                 </div>
               );
@@ -4026,17 +4232,32 @@ function Precificacao() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Cor(es)</Label>
-              <Input
-                value={entryColor}
-                onChange={(e) => setEntryColor(e.target.value)}
-                placeholder="Ex: Off-White, Preto"
-                className="h-10 rounded-xl text-xs"
-              />
-            </div>
+            {mode === "grade" && colorGroups.length > 1 ? (
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground">Cores da Grade ({colorGroups.length})</Label>
+                <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl border border-border bg-secondary/30">
+                  {colorGroups.map((cg) => (
+                    <span key={cg.color} className="inline-flex items-center gap-1.5 rounded-lg bg-card border border-border/80 px-2 py-1 text-xs font-bold text-foreground shadow-2xs">
+                      <span className={cn("size-2 rounded-full", getColorDot(cg.color))} />
+                      <span>{cg.color}</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold">({cg.totalUnits} un.)</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Cor da Peça</Label>
+                <Input
+                  value={entryColor}
+                  onChange={(e) => setEntryColor(e.target.value)}
+                  placeholder="Ex: Off-White"
+                  className="h-10 rounded-xl text-xs"
+                />
+              </div>
+            )}
 
-            <div className="space-y-1.5">
+            <div className={cn("space-y-1.5", mode === "grade" && colorGroups.length > 1 ? "sm:col-span-2" : "")}>
               <Label className="text-xs font-semibold text-muted-foreground">Fornecedor</Label>
               <SupplierCombobox
                 value={entrySupplier}
@@ -4047,58 +4268,94 @@ function Precificacao() {
           </div>
 
           {/* Grade de Quantidades Recebidas */}
-          <div className="space-y-3 border-t border-border pt-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Quantidades por Tamanho:
-              </Label>
-              <span className="text-xs font-bold text-primary">{entryTotalUnits} un. no total</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              {Object.keys(entrySizes).map((sz) => (
-                <div
-                  key={sz}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card p-2"
-                >
-                  <span className="font-bold text-xs pl-1">{sz}</span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 rounded-lg"
-                      onClick={() =>
-                        setEntrySizes((prev) => ({
-                          ...prev,
-                          [sz]: Math.max((prev[sz] ?? 0) - 1, 0),
-                        }))
-                      }
-                    >
-                      <Minus className="size-3" />
-                    </Button>
-                    <span className="numeric w-6 text-center text-xs font-bold">
-                      {entrySizes[sz] ?? 0}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 rounded-lg"
-                      onClick={() =>
-                        setEntrySizes((prev) => ({
-                          ...prev,
-                          [sz]: (prev[sz] ?? 0) + 1,
-                        }))
-                      }
-                    >
-                      <Plus className="size-3" />
-                    </Button>
+          {mode === "grade" && colorGroups.length > 1 ? (
+            <div className="space-y-3 rounded-2xl border border-primary/25 bg-primary/5 p-3.5 sm:p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                  <Boxes className="size-4" /> Entrada Multi-Cor Segmentada ({colorGroups.length} itens)
+                </span>
+                <span className="text-xs font-bold text-primary">{entryTotalUnits} un. no total</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Cada cor será criada no estoque como um item individual com sua própria grade de tamanhos, garantindo controle independente no catálogo e na vitrine:
+              </p>
+              <div className="space-y-2">
+                {colorGroups.map((cg) => (
+                  <div key={cg.color} className="rounded-xl border border-border/80 bg-card p-3 text-xs shadow-2xs space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-foreground">
+                        <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(cg.color))} />
+                        <span>{cg.color}</span>
+                      </div>
+                      <span className="font-semibold text-muted-foreground text-[11px]">
+                        {cg.totalUnits} {cg.totalUnits === 1 ? "unidade" : "unidades"}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {cg.items.map((it) => (
+                        <span key={it.id} className="rounded-md bg-secondary/80 px-2 py-0.5 text-[11px] font-semibold text-foreground border border-border/50">
+                          {it.size}: <strong className="text-primary">{it.qty || 1} un.</strong>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Quantidades por Tamanho:
+                </Label>
+                <span className="text-xs font-bold text-primary">{entryTotalUnits} un. no total</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {Object.keys(entrySizes).map((sz) => (
+                  <div
+                    key={sz}
+                    className="flex items-center justify-between rounded-xl border border-border bg-card p-2"
+                  >
+                    <span className="font-bold text-xs pl-1">{sz}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-lg"
+                        onClick={() =>
+                          setEntrySizes((prev) => ({
+                            ...prev,
+                            [sz]: Math.max((prev[sz] ?? 0) - 1, 0),
+                          }))
+                        }
+                      >
+                        <Minus className="size-3" />
+                      </Button>
+                      <span className="numeric w-6 text-center text-xs font-bold">
+                        {entrySizes[sz] ?? 0}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 rounded-lg"
+                        onClick={() =>
+                          setEntrySizes((prev) => ({
+                            ...prev,
+                            [sz]: (prev[sz] ?? 0) + 1,
+                          }))
+                        }
+                      >
+                        <Plus className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Card Resumo Financeiro do Lote */}
           <div className="rounded-2xl border border-border bg-secondary/40 p-4 space-y-2 text-xs">
@@ -4129,11 +4386,14 @@ function Precificacao() {
           {/* Botão de Confirmação */}
           <Button
             type="button"
-            className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow"
+            className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow cursor-pointer"
             disabled={confirmEntryMutation.isPending || entryTotalUnits <= 0}
             onClick={() => confirmEntryMutation.mutate()}
           >
-            <PackagePlus className="mr-2 size-4" /> Confirmar Entrada no Estoque
+            <PackagePlus className="mr-2 size-4" />
+            {mode === "grade" && colorGroups.length > 1
+              ? `Confirmar Entrada (${colorGroups.length} cores · ${entryTotalUnits} un.)`
+              : "Confirmar Entrada no Estoque"}
           </Button>
         </SheetContent>
       </Sheet>
