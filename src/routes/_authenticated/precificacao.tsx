@@ -306,6 +306,7 @@ function Precificacao() {
   const [customGenColor, setCustomGenColor] = useState("");
   const [showMatrixGenerator, setShowMatrixGenerator] = useState(false);
   const [newCustomColor, setNewCustomColor] = useState("");
+  const [tableColorFilter, setTableColorFilter] = useState<string>("all");
 
   // Busca Spotlight de Cores (Apple Level - Modo Grade)
   const [colorSearchQuery, setColorSearchQuery] = useState("");
@@ -710,7 +711,74 @@ function Precificacao() {
     return groups;
   }, [activeColors, variantResults]);
 
-  // ── Ações de Manipulação da Grade por Cor & Tamanho ──────────────
+  // ── Ações de Manipulação da Grade por Peça / Modelo (v68) ────────
+  const activeModelSizes = useMemo(() => {
+    return new Set(variants.map((v) => v.size));
+  }, [variants]);
+
+  const availableModelSizes = useMemo(() => {
+    const allKnown = Array.from(new Set([...ALL_FASHION_SIZES, ...variants.map((v) => v.size)]));
+    return sortCanonicalSizes(allKnown);
+  }, [variants]);
+
+  const toggleModelSize = (size: string) => {
+    const isAlreadyActive = variants.some((v) => v.size === size);
+    if (isAlreadyActive) {
+      setVariants((prev) => prev.filter((v) => v.size !== size));
+      toast.success(`Tamanho ${size} removido de todas as cores do modelo`);
+    } else {
+      const colorsToUse = activeColors.length > 0 ? activeColors : ["Padrão"];
+      const qty = matrixDefaultQtys[size] ?? 2;
+      const newRows: VariantRow[] = colorsToUse.map((color) => ({
+        id: `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
+        size,
+        color,
+        wholesaleCost: "",
+        customSalePrice: "",
+        qty,
+      }));
+      setVariants((prev) => {
+        const next = [...prev, ...newRows];
+        return next.sort((a, b) => {
+          const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+          const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return a.color.localeCompare(b.color);
+        });
+      });
+      toast.success(`Tamanho ${size} adicionado a todas as cores do modelo!`);
+    }
+  };
+
+  const applyModelQuickPreset = (presetSizes: string[]) => {
+    const colorsToUse = activeColors.length > 0 ? activeColors : ["Padrão"];
+    const newRows: VariantRow[] = [];
+    colorsToUse.forEach((color) => {
+      presetSizes.forEach((size) => {
+        const existing = variants.find(
+          (v) => v.color.toLowerCase() === color.toLowerCase() && v.size === size,
+        );
+        newRows.push({
+          id: existing?.id ?? `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
+          size,
+          color,
+          wholesaleCost: existing?.wholesaleCost ?? "",
+          customSalePrice: existing?.customSalePrice ?? "",
+          qty: existing?.qty ?? (matrixDefaultQtys[size] ?? 2),
+        });
+      });
+    });
+    setVariants(newRows);
+    toast.success(`Grade de tamanhos aplicada a todas as cores do modelo!`);
+  };
+
+  const clearModelSizes = () => {
+    setVariants([]);
+    toast.success("Tamanhos removidos do modelo");
+  };
+
   const toggleColorSize = (color: string, size: string) => {
     const existing = variants.find(
       (v) => v.color.toLowerCase() === color.toLowerCase() && v.size.toUpperCase() === size.toUpperCase(),
@@ -730,10 +798,8 @@ function Precificacao() {
         qty: 2,
       };
 
-      // Garante que a cor esteja em activeColors
       setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === color.toLowerCase()) ? prev : [...prev, color]));
 
-      // Adiciona e ordena na ordem canônica da moda
       setVariants((prev) => {
         const nextList = [...prev, newVariant];
         return nextList.sort((a, b) => {
@@ -755,7 +821,7 @@ function Precificacao() {
   const removeColor = (color: string) => {
     setActiveColors((prev) => prev.filter((c) => c.toLowerCase() !== color.toLowerCase()));
     setVariants((prev) => prev.filter((v) => v.color.toLowerCase() !== color.toLowerCase()));
-    toast.success(`Cor "${color}" removida da grade`);
+    toast.success(`Cor "${color}" removida do modelo`);
   };
 
   const addQuickColor = (colorName: string) => {
@@ -767,10 +833,68 @@ function Precificacao() {
       return;
     }
 
-    // Adiciona a cor limpa para que o lojista escolha livremente os tamanhos que desejar
     setActiveColors((prev) => [...prev, clean]);
-    toast.success(`Cor "${clean}" adicionada à grade! Selecione os tamanhos acima.`);
+    // Adiciona as variantes com a grade de tamanhos já ativa no modelo
+    const currentSizes = Array.from(new Set(variants.map((v) => v.size)));
+    const sizesToUse = currentSizes.length > 0 ? currentSizes : ["P", "M", "G", "GG"];
+    const newRows: VariantRow[] = sizesToUse.map((sz) => ({
+      id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
+      size: sz,
+      color: clean,
+      wholesaleCost: "",
+      customSalePrice: "",
+      qty: matrixDefaultQtys[sz] ?? 2,
+    }));
+    setVariants((prev) => [...prev, ...newRows]);
+    toast.success(`Cor "${clean}" adicionada com grade completa!`);
   };
+
+  const applyStrategyToModel = () => {
+    if (activeColors.length === 0) {
+      toast.error("Adicione ao menos uma cor ao modelo");
+      return;
+    }
+    const margin = toNumber(matrixGlobalMarginStr) || 50;
+    const markupVal = toNumber(matrixGlobalMarkupStr) || 100;
+    setColorStrategies((prev) => {
+      const updated = { ...prev };
+      activeColors.forEach((col) => {
+        updated[col.toLowerCase()] = {
+          ...DEFAULT_COLOR_STRATEGY,
+          mode: matrixGlobalMode,
+          margin,
+          markup: markupVal,
+          directPrice: matrixGlobalDirectPrice,
+        };
+      });
+      return updated;
+    });
+    setVariants((cur) => cur.map((v) => ({ ...v, customSalePrice: "" })));
+    const label =
+      matrixGlobalMode === "margin"
+        ? `Margem ${matrixGlobalMarginStr}%`
+        : matrixGlobalMode === "markup"
+          ? `Markup ${matrixGlobalMarkupStr}%`
+          : `Preço R$ ${matrixGlobalDirectPrice}`;
+    toast.success(`${label} aplicado(a) a todo o modelo!`);
+  };
+
+  const displayedVariants = useMemo(() => {
+    const list =
+      tableColorFilter === "all"
+        ? variantResults
+        : variantResults.filter((v) => v.color.toLowerCase() === tableColorFilter.toLowerCase());
+    return [...list].sort((a, b) => {
+      const colCompare = a.color.localeCompare(b.color);
+      if (colCompare !== 0) return colCompare;
+      const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+      const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.size.localeCompare(b.size);
+    });
+  }, [variantResults, tableColorFilter]);
 
   const addCustomColor = () => {
     const clean = newCustomColor.trim();
@@ -2219,6 +2343,9 @@ function Precificacao() {
         {/* ══════════════════════════════════════════════════════════════════
             PASSO 2: CORES & TAMANHOS DA COLEÇÃO (A CONSOLE MESTRE DE PRECIFICAÇÃO)
         ══════════════════════════════════════════════════════════════════ */}
+        {/* ══════════════════════════════════════════════════════════════════
+            PASSO 2: CORES & TAMANHOS DO MODELO (CONSOLE MESTRE DA PEÇA - v68)
+        ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <section className="panel p-6 sm:p-7 space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
@@ -2229,7 +2356,7 @@ function Precificacao() {
                 <div>
                   <h2 className="text-sm font-bold text-foreground">Cores &amp; Tamanhos da Coleção</h2>
                   <p className="text-xs text-muted-foreground">
-                    Cadastre suas cores e tamanhos, informe custos e defina preços por peça ou para a grade inteira
+                    Configure as variações, grade de produção e precificação do modelo
                   </p>
                 </div>
               </div>
@@ -2238,773 +2365,626 @@ function Precificacao() {
                 <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
                   {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} no lote
                 </Badge>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowMatrixGenerator((prev) => !prev)}
-                  className="h-8 rounded-full text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
-                >
-                  <Wand2 className="size-3.5 mr-1.5" />
-                  {showMatrixGenerator ? "Fechar gerador" : "Gerador de grade"}
-                </Button>
               </div>
             </div>
 
-            {/* Gerador de Matriz Expansível */}
-            {showMatrixGenerator && (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-4 animate-in fade-in-50 duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                    <Sparkles className="size-3.5" />
-                    <span>Selecione tamanhos e cores para gerar a grade:</span>
+            {/* ── CARD PRINCIPAL DA PEÇA / MODELO ── */}
+            <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-5 transition-all duration-200">
+              {/* Cabeçalho do Modelo */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 shadow-2xs text-base">
+                    👗
+                  </span>
+                  <div className="min-w-0">
+                    <span className="text-base font-bold text-foreground truncate block sm:inline">
+                      {name.trim() || "Vestido Midi Linho com Fenda"}
+                    </span>
+                    {category && (
+                      <span className="text-xs text-muted-foreground font-medium sm:ml-2">
+                        · {getCategoryLabel(storeCategories, category)}
+                      </span>
+                    )}
                   </div>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {genSizes.length} tam. × {genColors.length} cores = {genSizes.length * genColors.length} peças
-                  </Badge>
+                  <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground shrink-0">
+                    {activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
+                  </span>
                 </div>
 
-                {/* Tamanhos */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      Tamanhos:
+                <div className="flex items-center gap-3">
+                  {summaryPrices.avgSuggested > 0 && (
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      Média do modelo: <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> (Margem <strong className={summaryPrices.marginHealth.color}>{pct(summaryPrices.avgMargin)}</strong>)
                     </span>
-                    <div className="flex gap-1">
-                      {PRESET_OPTIONS.map((pr) => (
-                        <button
-                          key={pr.id}
-                          type="button"
-                          onClick={() => applyPreset(pr.id, pr.sizes)}
-                          className={cn(
-                            "rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all",
-                            activePreset === pr.id
-                              ? "bg-primary text-primary-foreground border-transparent"
-                              : "bg-card text-muted-foreground border-border hover:text-foreground",
-                          )}
-                        >
-                          {pr.label.split(" ")[0]}
-                        </button>
-                      ))}
-                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── 1. CORES DESTE MODELO ── */}
+              <div className="space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    Cores deste modelo:
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {activeColors.length} {activeColors.length === 1 ? "cor selecionada" : "cores selecionadas"}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeColors.map((col) => (
+                    <span
+                      key={col}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/40 px-3 py-1 text-xs font-semibold text-foreground shadow-2xs"
+                    >
+                      <span className={cn("size-2.5 rounded-full shadow-xs shrink-0", getColorDot(col))} />
+                      <span>{col}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeColor(col)}
+                        className="ml-0.5 size-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                        title={`Remover cor ${col}`}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  ))}
+
+                  {/* Botão de abrir Spotlight para adicionar cor */}
+                  <div className="relative inline-block">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowColorPopover((prev) => !prev);
+                        setTimeout(() => colorInputRef.current?.focus(), 50);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-primary/40 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>Adicionar cor</span>
+                    </button>
+
+                    {/* Popover Spotlight de Cores */}
+                    {showColorPopover && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setShowColorPopover(false)} />
+                        <div className="absolute left-0 top-full z-40 mt-1.5 w-72 sm:w-80 rounded-2xl border border-border/80 bg-card p-3 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-2">
+                          <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <input
+                              ref={colorInputRef}
+                              value={colorSearchQuery}
+                              onChange={(e) => setColorSearchQuery(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (matchingColorPresets.length > 0 && matchingColorPresets[0]) {
+                                    handleSelectColorFromSpotlight(matchingColorPresets[0].name);
+                                  } else if (colorSearchQuery.trim()) {
+                                    handleCreateCustomColorFromSpotlight();
+                                  }
+                                } else if (e.key === "Escape") {
+                                  setShowColorPopover(false);
+                                }
+                              }}
+                              placeholder="Buscar ou digitar cor..."
+                              className="h-8.5 w-full rounded-lg border border-border/80 bg-secondary/30 pl-8 pr-18 text-xs font-medium text-foreground outline-none focus:border-primary focus:bg-card"
+                            />
+                            {colorSearchQuery.trim() && (
+                              <button
+                                type="button"
+                                onClick={handleCreateCustomColorFromSpotlight}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6.5 rounded-md gradient-primary px-2 text-[10px] font-bold text-white shadow-xs cursor-pointer"
+                              >
+                                + Criar
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="max-h-48 overflow-y-auto space-y-0.5">
+                            {matchingColorPresets.map((cp) => (
+                              <button
+                                key={cp.name}
+                                type="button"
+                                onClick={() => handleSelectColorFromSpotlight(cp.name)}
+                                className="w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-left hover:bg-secondary/60 cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("size-2.5 rounded-full shrink-0", getColorDot(cp.name))} />
+                                  <span className="font-medium text-foreground">{cp.name}</span>
+                                </div>
+                                <span className="text-[10px] text-primary font-bold">+ Incluir</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "36", "38", "40", "42", "44", "46", "Único"].map((sz) => (
+                </div>
+
+                {/* Sugestões rápidas de cores da moda */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground mr-1">
+                    Sugestões rápidas:
+                  </span>
+                  {["Areia", "Nude", "Bege", "Branco", "Grafite", "Terracota", "Caramelo", "Azul Marinho"].map((col) => {
+                    const isAlreadyAdded = activeColors.some((c) => c.toLowerCase() === col.toLowerCase());
+                    if (isAlreadyAdded) return null;
+                    return (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => addQuickColor(col)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-secondary/30 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
+                      >
+                        <span className={cn("size-2 rounded-full", getColorDot(col))} />
+                        <span>+{col}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── 2. GRADE DE TAMANHOS DESTE MODELO ── */}
+              <div className="space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-muted-foreground">
+                    Grade de tamanhos deste modelo:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {SIZE_QUICK_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => applyModelQuickPreset(preset.sizes)}
+                        className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
+                        title={`Aplicar grade ${preset.label} a todas as cores`}
+                      >
+                        + {preset.label}
+                      </button>
+                    ))}
+                    {activeModelSizes.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearModelSizes}
+                        className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer"
+                        title="Limpar todos os tamanhos"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botões de Tamanho da Coleção */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {availableModelSizes.map((sz) => {
+                    const isActive = activeModelSizes.has(sz);
+                    return (
                       <button
                         key={sz}
                         type="button"
-                        onClick={() => toggleGenSize(sz)}
+                        onClick={() => toggleModelSize(sz)}
                         className={cn(
-                          "rounded-lg border px-3 py-1 text-xs font-bold transition-all",
-                          genSizes.includes(sz)
-                            ? "gradient-primary text-primary-foreground border-transparent shadow-xs"
-                            : "bg-card text-muted-foreground border-border hover:text-foreground",
+                          "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
+                          isActive
+                            ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
+                            : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
                         )}
                       >
-                        {sz}
+                        <span>{sz}</span>
+                        {isActive && <Check className="size-3 stroke-[3]" />}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-
-                {/* Cores */}
-                <div className="space-y-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground block">
-                    Cores:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {COLOR_PRESETS.map((cp) => (
-                      <button
-                        key={cp.name}
-                        type="button"
-                        onClick={() => toggleGenColor(cp.name)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                          genColors.includes(cp.name)
-                            ? "bg-primary text-primary-foreground border-transparent font-semibold shadow-xs"
-                            : "bg-card text-muted-foreground border-border hover:text-foreground",
-                        )}
-                      >
-                        <span className={cn("size-2.5 rounded-full shadow-xs", getColorDot(cp.name))} />
-                        <span>{cp.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  onClick={generateMatrix}
-                  className="h-9 w-full rounded-xl gradient-primary text-xs font-bold shadow-glow"
-                >
-                  <Wand2 className="size-3.5 mr-2" /> Gerar Grade ({genSizes.length * genColors.length} peças)
-                </Button>
               </div>
-            )}
 
-            {/* ── LISTA DE CORES COM A CONSOLE MESTRE DE CADA COR ── */}
-            <div className="space-y-5">
-              {colorGroups.map((group) => {
-                const activeSizeSet = new Set(group.items.map((i) => i.size));
-                // Exibe TODA a grade do vestuário brasileiro + quaisquer tamanhos customizados já presentes
-                const allKnownSizes = Array.from(new Set([...ALL_FASHION_SIZES, ...group.items.map((i) => i.size)]));
-                const availableSizes = sortCanonicalSizes(allKnownSizes);
+              {/* ── 3. ESTRATÉGIA DE PREÇO DO MODELO (BARRA PRO) ── */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
+                {/* Lado Esquerdo: Abas de modo e steppers */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setMatrixGlobalMode("margin")}
+                      className={cn(
+                        "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
+                        matrixGlobalMode === "margin"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                      )}
+                    >
+                      <Target className="size-3 shrink-0" />
+                      <span>Margem</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMatrixGlobalMode("markup")}
+                      className={cn(
+                        "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
+                        matrixGlobalMode === "markup"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                      )}
+                    >
+                      <TrendingUp className="size-3 shrink-0" />
+                      <span>Markup</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMatrixGlobalMode("direct_price")}
+                      className={cn(
+                        "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
+                        matrixGlobalMode === "direct_price"
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                      )}
+                    >
+                      <Coins className="size-3 shrink-0" />
+                      <span>Preço Fixo</span>
+                    </button>
+                  </div>
 
-                // Handlers de atalho rápido por categoria
-                const applyQuickPreset = (sizes: string[]) => {
-                  sizes.forEach((sz) => {
-                    if (!activeSizeSet.has(sz)) toggleColorSize(group.color, sz);
-                  });
-                };
+                  <div className="h-5 w-px bg-border/80 hidden sm:block" />
 
-                return (
-                  <div
-                    key={group.color}
-                    className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4 transition-all duration-200 hover:border-primary/40"
-                  >
-                    {/* Cabeçalho da Cor */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className={cn("size-4 rounded-full shadow-xs shrink-0", getColorDot(group.color))} />
-                        <span className="text-sm font-semibold text-foreground">{group.color}</span>
-                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                          {group.items.length} {group.items.length === 1 ? "tamanho" : "tamanhos"} · {group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)} {(group.totalUnits || group.items.reduce((a, b) => a + (b.qty || 1), 0)) === 1 ? "peça" : "peças"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {group.avgPrice > 0 && (
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            Média da cor: <strong className="text-foreground">{brl(group.avgPrice)}</strong> (Margem <strong className={group.health.color}>{pct(group.avgMargin)}</strong>)
-                          </span>
-                        )}
+                  {/* Controles Margem */}
+                  {matrixGlobalMode === "margin" && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                         <button
                           type="button"
-                          onClick={() => removeColor(group.color)}
-                          className="size-8 flex items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                          title={`Remover cor ${group.color}`}
+                          onClick={() => {
+                            const cur = toNumber(matrixGlobalMarginStr) || 50;
+                            const next = Math.max(1, Math.round(cur) - 1);
+                            setMatrixGlobalMarginStr(String(next));
+                          }}
+                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                          title="Diminuir 1% na margem do modelo"
                         >
-                          <Trash2 className="size-4" />
+                          <Minus className="size-3" />
+                        </button>
+                        <div className="flex items-center px-1.5">
+                          <input
+                            inputMode="decimal"
+                            value={matrixGlobalMarginStr}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              if (/^[\d,.]*$/.test(raw)) setMatrixGlobalMarginStr(raw);
+                            }}
+                            className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                          />
+                          <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = toNumber(matrixGlobalMarginStr) || 50;
+                            const next = Math.min(85, Math.round(cur) + 1);
+                            setMatrixGlobalMarginStr(String(next));
+                          }}
+                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                          title="Aumentar 1% na margem do modelo"
+                        >
+                          <Plus className="size-3" />
                         </button>
                       </div>
-                    </div>
 
-                    {/* Seletor de Tamanhos — Grade Completa */}
-                    <div className="space-y-2.5">
-                      {/* Linha de título + atalhos rápidos de categoria */}
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold text-muted-foreground">
-                          Tamanhos desta cor:
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {SIZE_QUICK_PRESETS.map((preset) => (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => applyQuickPreset(preset.sizes)}
-                              className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                              title={`Selecionar grade ${preset.label}`}
-                            >
-                              + {preset.label}
-                            </button>
-                          ))}
-                          {activeSizeSet.size > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                Array.from(activeSizeSet).forEach((sz) => toggleColorSize(group.color, sz));
-                              }}
-                              className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer"
-                              title="Limpar todos os tamanhos desta cor"
-                            >
-                              Limpar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Botões de Tamanho — todos visíveis */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {availableSizes.map((sz) => {
-                          const isActive = activeSizeSet.has(sz);
-                          return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => toggleColorSize(group.color, sz)}
-                              className={cn(
-                                "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
-                                isActive
-                                  ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                                  : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              <span>{sz}</span>
-                              {isActive && <Check className="size-3 stroke-[3]" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-
-
-                    {/* ══ BARRA DE ESTRATÉGIA PRO COM SMART PRECISION STEPPER (APPLE HIG) ══ */}
-                    {group.items.length > 0 && (() => {
-                      const cs = getColorStrategy(group.color);
-                      return (
-                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
-                          {/* LADO ESQUERDO: SELETOR DE MODO + CONTROLES ESPECÍFICOS DO MODO */}
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* Abas de Modo (Margem / Markup / Preço) */}
-                            <div className="inline-flex rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColorStrategy(group.color, { mode: "margin" });
-                                  updateColorMargin(group.color, cs.margin);
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                                  cs.mode === "margin"
-                                    ? "bg-primary text-primary-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <Target className="size-3 shrink-0" />
-                                <span>Margem</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColorStrategy(group.color, { mode: "markup" });
-                                  updateColorMarkup(group.color, cs.markup);
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                                  cs.mode === "markup"
-                                    ? "bg-primary text-primary-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <TrendingUp className="size-3 shrink-0" />
-                                <span>Markup</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setColorStrategy(group.color, { mode: "direct_price" });
-                                  if (cs.directPrice) updateColorDirectPrice(group.color, cs.directPrice);
-                                }}
-                                className={cn(
-                                  "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                                  cs.mode === "direct_price"
-                                    ? "bg-primary text-primary-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                <Coins className="size-3 shrink-0" />
-                                <span>Preço Fixo</span>
-                              </button>
-                            </div>
-
-                            {/* Divisor vertical sutil */}
-                            <div className="h-5 w-px bg-border/80 hidden sm:block" />
-
-                            {/* CONTROLES DO MODO MARGEM */}
-                            {cs.mode === "margin" && (
-                              <div className="flex items-center gap-1.5">
-                                {/* Stepper Tátil [- | 50% | +] */}
-                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const cur = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
-                                      const next = Math.max(1, Math.round(cur) - 1);
-                                      updateColorMargin(group.color, next);
-                                    }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                    title="Diminuir 1% na margem da cor"
-                                  >
-                                    <Minus className="size-3" />
-                                  </button>
-                                  <div className="flex items-center px-1.5">
-                                    <input
-                                      inputMode="decimal"
-                                      value={cs.margin}
-                                      onChange={(e) => {
-                                        const raw = e.target.value;
-                                        if (/^[\d,.]*$/.test(raw)) {
-                                          updateColorMargin(group.color, raw);
-                                        }
-                                      }}
-                                      onBlur={() => {
-                                        const raw = String(cs.margin ?? "").trim();
-                                        const n = toNumber(raw);
-                                        if (raw === "" || isNaN(n) || n <= 0) {
-                                          updateColorMargin(group.color, 50);
-                                        } else {
-                                          const clamped = Math.min(85, Math.max(1, n));
-                                          updateColorMargin(group.color, String(clamped).replace(".", ","));
-                                        }
-                                      }}
-                                      className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                    />
-                                    <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const cur = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
-                                      const next = Math.min(85, Math.round(cur) + 1);
-                                      updateColorMargin(group.color, next);
-                                    }}
-                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                    title="Aumentar 1% na margem da cor"
-                                  >
-                                    <Plus className="size-3" />
-                                  </button>
-                                </div>
-
-                                {/* Presets Rápidos */}
-                                <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                                  {[30, 40, 50, 60, 70].map((m) => (
-                                    <button
-                                      key={m}
-                                      type="button"
-                                      onClick={() => updateColorMargin(group.color, m)}
-                                      className={cn(
-                                        "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                                        toNumber(cs.margin) === m
-                                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                      )}
-                                    >
-                                      {m}%
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* CONTROLES DO MODO MARKUP */}
-                            {cs.mode === "markup" && (() => {
-                              const sampleCost = group.avgCost || 50;
-                              const mkNum = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-                              const samplePrice = sampleCost * (1 + mkNum / 100);
-                              const deductions = samplePrice * ((tax + cardRate) / 100);
-                              const sampleProfit = samplePrice - sampleCost - deductions;
-                              const realNetMargin = samplePrice > 0 ? (sampleProfit / samplePrice) * 100 : 0;
-                              const health = getMarginHealth(realNetMargin);
-
-                              return (
-                                <div className="flex items-center gap-1.5">
-                                  {/* Stepper Tátil [- | 100% | +] */}
-                                  <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-                                        const next = Math.max(1, Math.round(cur) - 5);
-                                        updateColorMarkup(group.color, next);
-                                      }}
-                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                      title="Diminuir 5% no markup da cor"
-                                    >
-                                      <Minus className="size-3" />
-                                    </button>
-                                    <div className="flex items-center px-1.5">
-                                      <input
-                                        inputMode="decimal"
-                                        value={cs.markup}
-                                        onChange={(e) => {
-                                          const raw = e.target.value;
-                                          if (/^[\d,.]*$/.test(raw)) {
-                                            updateColorMarkup(group.color, raw);
-                                          }
-                                        }}
-                                        onBlur={() => {
-                                          const raw = String(cs.markup ?? "").trim();
-                                          const n = toNumber(raw);
-                                          if (raw === "" || isNaN(n) || n <= 0) {
-                                            updateColorMarkup(group.color, 100);
-                                          } else {
-                                            const clamped = Math.min(300, Math.max(1, n));
-                                            updateColorMarkup(group.color, String(clamped).replace(".", ","));
-                                          }
-                                        }}
-                                        className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                      />
-                                      <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-                                        const next = Math.min(300, Math.round(cur) + 5);
-                                        updateColorMarkup(group.color, next);
-                                      }}
-                                      className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                                      title="Aumentar 5% no markup da cor"
-                                    >
-                                      <Plus className="size-3" />
-                                    </button>
-                                  </div>
-
-                                  {/* Presets Rápidos Markup */}
-                                  <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                                    {[60, 80, 100, 120, 150].map((mk) => (
-                                      <button
-                                        key={mk}
-                                        type="button"
-                                        onClick={() => updateColorMarkup(group.color, mk)}
-                                        className={cn(
-                                          "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                                          toNumber(cs.markup) === mk
-                                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                        )}
-                                      >
-                                        {mk}%
-                                      </button>
-                                    ))}
-                                  </div>
-
-                                  {/* Transparência Financeira: Margem Real resultante */}
-                                  <span
-                                    className={cn("text-[11px] font-bold px-2 py-0.5 rounded-md bg-card border border-border/70 shadow-2xs whitespace-nowrap", health.color)}
-                                    title="Margem líquida real que sobra no bolso após custos, impostos e taxas de cartão"
-                                  >
-                                    Margem: {pct(realNetMargin)}
-                                  </span>
-                                </div>
-                              );
-                            })()}
-
-                            {/* CONTROLES DO MODO PREÇO FIXO */}
-                            {cs.mode === "direct_price" && (
-                              <div className="flex items-center gap-1.5">
-                                {/* Stepper de Moeda [-R$1 | R$ 139,90 | +R$1] */}
-                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const current = toNumber(cs.directPrice) || group.avgPrice || 100;
-                                      const next = Math.max(1, current - 1);
-                                      updateColorDirectPrice(group.color, next.toFixed(2).replace(".", ","));
-                                    }}
-                                    className="px-2 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-[10px] font-bold cursor-pointer"
-                                    title="Diminuir R$ 1,00 no preço da cor"
-                                  >
-                                    -R$1
-                                  </button>
-                                  <div className="flex items-center px-1.5">
-                                    <span className="text-[11px] text-muted-foreground mr-0.5 font-semibold">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={cs.directPrice}
-                                      onChange={(e) => updateColorDirectPrice(group.color, e.target.value)}
-                                      placeholder={group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90"}
-                                      className="w-14 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                                    />
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const current = toNumber(cs.directPrice) || group.avgPrice || 100;
-                                      const next = current + 1;
-                                      updateColorDirectPrice(group.color, next.toFixed(2).replace(".", ","));
-                                    }}
-                                    className="px-2 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-[10px] font-bold cursor-pointer"
-                                    title="Aumentar R$ 1,00 no preço da cor"
-                                  >
-                                    +R$1
-                                  </button>
-                                </div>
-
-                                {/* Terminações Psicológicas de Moda (,90 / ,00 / ,50) */}
-                                <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                                  {[",90", ",00", ",50"].map((ending) => (
-                                    <button
-                                      key={ending}
-                                      type="button"
-                                      onClick={() => {
-                                        const current = cs.directPrice || group.items[0]?.customSalePrice || group.items[0]?.suggestedPrice?.toFixed(2)?.replace(".", ",") || "139,90";
-                                        const integerPart = Math.floor(toNumber(current));
-                                        const newPrice = `${integerPart}${ending}`;
-                                        updateColorDirectPrice(group.color, newPrice);
-                                      }}
-                                      className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
-                                      title={`Terminar em ${ending}`}
-                                    >
-                                      {ending}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* LADO DIREITO: BOTÃO DE AÇÃO */}
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => applyStrategyToColor(group.color)}
-                            className="h-7.5 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer ml-auto"
-                          >
-                            <Zap className="size-3 mr-1" />
-                            Aplicar à Cor
-                          </Button>
-                        </div>
-                      );
-                    })()}
-
-                    {/* ── TABELA VIVA INTEGRADA: CUSTO + PREÇO + MARGEM NA MESMA LINHA ── */}
-                    {group.items.length > 0 && (
-                      <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
-                        {/* Cabeçalho da Tabela */}
-                        <div className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
-                          <span>Tam.</span>
-                          <span>Qtd.</span>
-                          <span>Custo atacado</span>
-                          <span>Custo real</span>
-                          <span>Preço de venda</span>
-                          <span>Margem real</span>
-                          <span className="text-right">Lucro líquido</span>
-                        </div>
-
-                        {/* Linhas de Cada Tamanho */}
-                        <div className="divide-y divide-border/50 bg-card">
-                          {group.items.map((v) => (
-                            <div
-                              key={v.id}
-                              className="grid grid-cols-[45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
-                            >
-                              {/* Tamanho */}
-                              <div className="flex items-center gap-1">
-                                <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
-                                  {v.size}
-                                </span>
-                                {(v.isCustomCost || v.isCustomPrice) && (
-                                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor personalizado para este tamanho">
-                                    ✦
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Quantidade no Lote */}
-                              <div>
-                                <input
-                                  inputMode="numeric"
-                                  value={v.qty ?? 1}
-                                  onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
-                                  className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                  title="Quantidade desta variante no lote"
-                                />
-                              </div>
-
-                              {/* Custo Fornecedor (Input Direto) */}
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[11px] text-muted-foreground">R$</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={v.wholesaleCost}
-                                    onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                    placeholder={baseWholesaleGrade || "49,90"}
-                                    className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Custo Real Total Calculado (Atacado + Rateio) */}
-                              <div className="numeric text-muted-foreground font-medium text-xs">
-                                {brl(v.realCost)}
-                              </div>
-
-                              {/* Preço de Venda (Input Direto com Preço Sugerido Reativo) */}
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[11px] text-muted-foreground">R$</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                    onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                    placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
-                                    className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Margem Real (Clean e Elegante) */}
-                              <div>
-                                <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
-                                  {pct(v.marginOnPrice)}
-                                </span>
-                              </div>
-
-                              {/* Lucro Líquido Real */}
-                              <div className="text-right">
-                                <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
-                                  <span>{v.marginHealth.emoji}</span>
-                                  <span>+{brl(v.profit)}</span>
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {group.items.length === 0 && (
-                      <div className="rounded-xl border border-dashed border-border/80 bg-secondary/20 p-5 text-center space-y-1">
-                        <p className="text-xs font-semibold text-foreground">Nenhum tamanho selecionado para {group.color}</p>
-                        <p className="text-[11px] text-muted-foreground">Clique nos botões de tamanho acima (PP, P, M, G...) para incluir na grade.</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* ── CARD BENTO DE ADIÇÃO DE CORES: SPOTLIGHT AUTOCOMPLETE + PALETA TÁTIL (APPLE HIG) ── */}
-              <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-6.5 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-2xs">
-                      <Sparkles className="size-3.5" />
-                    </span>
-                    <div>
-                      <h3 className="text-xs font-semibold text-foreground">Adicionar cores à grade</h3>
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                    Busque na biblioteca de moda ou digite uma cor personalizada
-                  </span>
-                </div>
-
-                {/* Campo Spotlight com Popover */}
-                <div className="relative">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <input
-                      ref={colorInputRef}
-                      value={colorSearchQuery}
-                      onChange={(e) => {
-                        setColorSearchQuery(e.target.value);
-                        setShowColorPopover(true);
-                      }}
-                      onFocus={() => setShowColorPopover(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (matchingColorPresets.length > 0 && matchingColorPresets[0]) {
-                            handleSelectColorFromSpotlight(matchingColorPresets[0].name);
-                          } else if (colorSearchQuery.trim()) {
-                            handleCreateCustomColorFromSpotlight();
-                          }
-                        } else if (e.key === "Escape") {
-                          setShowColorPopover(false);
-                        }
-                      }}
-                      placeholder="Buscar ou cadastrar cor (ex: Terracota, Nude, Jeans, Fúcsia, Verde Oliva...)"
-                      className="h-10.5 w-full rounded-xl border border-border/80 bg-secondary/30 pl-10 pr-26 text-xs font-medium text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/20 transition-all shadow-2xs"
-                    />
-                    {colorSearchQuery.trim() && (
-                      <button
-                        type="button"
-                        onClick={handleCreateCustomColorFromSpotlight}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7.5 rounded-lg gradient-primary px-3 text-[11px] font-bold text-white shadow-xs active:scale-95 transition-all cursor-pointer"
-                      >
-                        + Adicionar
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Menu Dropdown Spotlight Autocomplete de Cores */}
-                  {showColorPopover && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setShowColorPopover(false)}
-                      />
-                      <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-72 overflow-y-auto rounded-2xl border border-border/80 bg-card p-2 shadow-xl animate-in fade-in-50 zoom-in-95 space-y-1">
-                        {matchingColorPresets.length > 0 && (
-                          <>
-                            <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground">
-                              Cores sugeridas ({matchingColorPresets.length})
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                              {matchingColorPresets.map((cp) => (
-                                <button
-                                  key={cp.name}
-                                  type="button"
-                                  onClick={() => handleSelectColorFromSpotlight(cp.name)}
-                                  className="flex items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium transition-all hover:bg-primary-soft/60 hover:text-primary active:scale-98 cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <span className={cn("size-3.5 rounded-full shadow-xs shrink-0", getColorDot(cp.name))} />
-                                    <span className="truncate font-semibold text-foreground">{cp.name}</span>
-                                  </div>
-                                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md shrink-0">
-                                    + Incluir
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="my-1.5 h-px bg-border/60" />
-                          </>
-                        )}
-
-                        {/* Atalho Inteligente para Cadastrar Cor Personalizada */}
-                        {colorSearchQuery.trim() ? (
+                      <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
+                        {[30, 40, 50, 60, 70].map((m) => (
                           <button
+                            key={m}
                             type="button"
-                            onClick={handleCreateCustomColorFromSpotlight}
-                            className="flex w-full items-center justify-between gap-2 rounded-xl bg-primary/10 border border-primary/30 px-3.5 py-2.5 text-left text-xs font-bold text-primary transition-all hover:bg-primary/20 active:scale-98 cursor-pointer"
+                            onClick={() => setMatrixGlobalMarginStr(String(m))}
+                            className={cn(
+                              "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
+                              toNumber(matrixGlobalMarginStr) === m
+                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                            )}
                           >
-                            <div className="flex items-center gap-2">
-                              <Plus className="size-4 shrink-0" />
-                              <span>Cadastrar e adicionar <strong className="underline decoration-primary">"{colorSearchQuery.trim()}"</strong> à grade</span>
-                            </div>
-                            <span className="rounded-md bg-primary text-white text-[10px] px-2 py-0.5 shadow-2xs">
-                              Enter ↵
-                            </span>
+                            {m}%
                           </button>
-                        ) : matchingColorPresets.length === 0 ? (
-                          <div className="px-3 py-3 text-center text-xs text-muted-foreground">
-                            Digite o nome de uma cor para cadastrar
-                          </div>
-                        ) : null}
+                        ))}
                       </div>
-                    </>
+                    </div>
+                  )}
+
+                  {/* Controles Markup */}
+                  {matrixGlobalMode === "markup" && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = toNumber(matrixGlobalMarkupStr) || 100;
+                            const next = Math.max(1, Math.round(cur) - 5);
+                            setMatrixGlobalMarkupStr(String(next));
+                          }}
+                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                          title="Diminuir 5% no markup do modelo"
+                        >
+                          <Minus className="size-3" />
+                        </button>
+                        <div className="flex items-center px-1.5">
+                          <input
+                            inputMode="decimal"
+                            value={matrixGlobalMarkupStr}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              if (/^[\d,.]*$/.test(raw)) setMatrixGlobalMarkupStr(raw);
+                            }}
+                            className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                          />
+                          <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = toNumber(matrixGlobalMarkupStr) || 100;
+                            const next = Math.min(300, Math.round(cur) + 5);
+                            setMatrixGlobalMarkupStr(String(next));
+                          }}
+                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
+                          title="Aumentar 5% no markup do modelo"
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                      </div>
+
+                      <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
+                        {[60, 80, 100, 120, 150].map((mk) => (
+                          <button
+                            key={mk}
+                            type="button"
+                            onClick={() => setMatrixGlobalMarkupStr(String(mk))}
+                            className={cn(
+                              "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
+                              toNumber(matrixGlobalMarkupStr) === mk
+                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                            )}
+                          >
+                            {mk}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Controles Preço Fixo */}
+                  {matrixGlobalMode === "direct_price" && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
+                        <div className="flex items-center px-1.5">
+                          <span className="text-[11px] text-muted-foreground mr-0.5 font-semibold">R$</span>
+                          <input
+                            inputMode="decimal"
+                            value={matrixGlobalDirectPrice}
+                            onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
+                            placeholder="139,90"
+                            className="w-16 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
+                        {[",90", ",00", ",50"].map((ending) => (
+                          <button
+                            key={ending}
+                            type="button"
+                            onClick={() => {
+                              const current = matrixGlobalDirectPrice || "139,90";
+                              const integerPart = Math.floor(toNumber(current));
+                              setMatrixGlobalDirectPrice(`${integerPart}${ending}`);
+                            }}
+                            className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
+                          >
+                            {ending}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                {/* Sugestões Rápidas em Pílulas Táteis */}
-                <div className="space-y-1.5 pt-2 border-t border-border/50">
-                  <span className="text-[10px] font-semibold text-muted-foreground block">
-                    Sugestões rápidas:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {COLOR_PRESETS.filter(
-                      (cp) => !activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase()),
-                    ).slice(0, 10).map((cp) => (
+                {/* Lado Direito: Botão Aplicar à Grade do Modelo */}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={applyStrategyToModel}
+                  className="h-7.5 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer ml-auto"
+                >
+                  <Zap className="size-3 mr-1" />
+                  Aplicar ao Modelo
+                </Button>
+              </div>
+
+              {/* ── 4. PLANILHA DE DETALHES DO LOTE (COM COLUNA COR) ── */}
+              {variants.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Abas de Filtro de Visualização por Cor */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      Planilha de variações do modelo:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1">
                       <button
-                        key={cp.name}
                         type="button"
-                        onClick={() => addQuickColor(cp.name)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-secondary/30 px-3 py-1 text-xs font-semibold text-foreground hover:border-primary hover:bg-primary/5 hover:text-primary transition-all shadow-2xs active:scale-95 cursor-pointer"
+                        onClick={() => setTableColorFilter("all")}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
+                          tableColorFilter === "all"
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "bg-secondary/40 text-muted-foreground hover:text-foreground",
+                        )}
                       >
-                        <span className={cn("size-2.5 rounded-full shadow-2xs", getColorDot(cp.name))} />
-                        <span>+ {cp.name}</span>
+                        Todas as cores ({actualLotUnits} un.)
                       </button>
-                    ))}
+                      {activeColors.map((col) => {
+                        const count = variants
+                          .filter((v) => v.color.toLowerCase() === col.toLowerCase())
+                          .reduce((acc, v) => acc + (v.qty || 1), 0);
+                        return (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => setTableColorFilter(col)}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
+                              tableColorFilter.toLowerCase() === col.toLowerCase()
+                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                : "bg-secondary/40 text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            <span className={cn("size-2 rounded-full", getColorDot(col))} />
+                            <span>{col}</span>
+                            <span className="opacity-70 text-[10px]">({count})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Tabela Viva Estilo Planilha */}
+                  <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
+                    {/* Cabeçalho da Tabela com Coluna Cor */}
+                    <div className="grid grid-cols-[110px_45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
+                      <span>Cor</span>
+                      <span>Tam.</span>
+                      <span>Qtd.</span>
+                      <span>Custo atacado</span>
+                      <span>Custo real</span>
+                      <span>Preço de venda</span>
+                      <span>Margem real</span>
+                      <span className="text-right">Lucro líquido</span>
+                    </div>
+
+                    {/* Linhas de Cada Variante com a Coluna Cor */}
+                    <div className="divide-y divide-border/50 bg-card">
+                      {displayedVariants.map((v) => (
+                        <div
+                          key={v.id}
+                          className="grid grid-cols-[110px_45px_65px_1fr_1fr_1.1fr_1fr_1.1fr] items-center gap-2.5 px-3.5 py-3 text-xs hover:bg-secondary/20 transition-colors"
+                        >
+                          {/* Coluna Cor */}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className={cn("size-2.5 rounded-full shadow-xs shrink-0", getColorDot(v.color))} />
+                            <span className="truncate font-semibold text-foreground text-xs">{v.color}</span>
+                          </div>
+
+                          {/* Tamanho */}
+                          <div className="flex items-center gap-1">
+                            <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
+                              {v.size}
+                            </span>
+                            {(v.isCustomCost || v.isCustomPrice) && (
+                              <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 py-0.2 rounded" title="Valor personalizado para este tamanho">
+                                ✦
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quantidade no Lote */}
+                          <div>
+                            <input
+                              inputMode="numeric"
+                              value={v.qty ?? 1}
+                              onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
+                              className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
+                              title="Quantidade desta variante no lote"
+                            />
+                          </div>
+
+                          {/* Custo Fornecedor (Input Direto) */}
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] text-muted-foreground">R$</span>
+                              <input
+                                inputMode="decimal"
+                                value={v.wholesaleCost}
+                                onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                placeholder={baseWholesaleGrade || "49,90"}
+                                className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Custo Real Total Calculado (Atacado + Rateio) */}
+                          <div className="numeric text-muted-foreground font-medium text-xs">
+                            {brl(v.realCost)}
+                          </div>
+
+                          {/* Preço de Venda (Input Direto com Preço Sugerido Reativo) */}
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] text-muted-foreground">R$</span>
+                              <input
+                                inputMode="decimal"
+                                value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
+                                onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
+                                className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Margem Real */}
+                          <div>
+                            <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
+                              {pct(v.marginOnPrice)}
+                            </span>
+                          </div>
+
+                          {/* Lucro Líquido Real */}
+                          <div className="text-right">
+                            <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
+                              <span>{v.marginHealth.emoji}</span>
+                              <span>+{brl(v.profit)}</span>
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Rodapé / Totais da Planilha */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-3 bg-secondary/40 border-t border-border/60 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Totais do lote:</span>
+                        <Badge variant="secondary" className="font-bold">
+                          {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
+                        </Badge>
+                        <span className="text-muted-foreground hidden sm:inline">
+                          ({activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-muted-foreground">
+                          Faturamento estimado: <strong className="text-foreground font-bold">{brl(summaryPrices.totalRevenue)}</strong>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Lucro líquido total: <strong className="text-success font-bold">+{brl(summaryPrices.totalProfit)}</strong>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/80 bg-secondary/20 p-8 text-center space-y-2">
+                  <Package className="size-8 text-muted-foreground mx-auto opacity-50" />
+                  <p className="text-xs font-semibold text-foreground">
+                    Nenhum tamanho ativo neste modelo
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Clique em um preset como <strong className="text-primary font-bold">+ P-GG</strong> acima para preencher automaticamente as variações.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
         )}
+
 
 
         {/* ══════════════════════════════════════════════════════════════════
