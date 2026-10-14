@@ -3311,252 +3311,246 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* ── 2. ESTRATÉGIA DE PREÇO DO MODELO (BARRA PRO TÁTIL) ── */}
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
-                {/* Lado Esquerdo: Custo Atacado Unificado, Abas de modo e steppers */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Custo de Atacado Unificado da Grade */}
-                  <div className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2.5 py-1 shadow-2xs focus-within:border-primary/50 transition-colors">
-                    <span className="text-[11px] font-semibold text-muted-foreground select-none">Custo atacado:</span>
-                    <span className="text-[11px] font-bold text-muted-foreground select-none">R$</span>
-                    <input
-                      inputMode="decimal"
-                      value={baseWholesaleGrade}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setBaseWholesaleGrade(val);
-                        setGradeModels((prev) =>
-                          prev.map((m) => (m.id === activeModelId ? { ...m, baseWholesale: val } : m))
-                        );
-                        setVariants((prev) =>
-                          prev.map((v) => ({
-                            ...v,
-                            wholesaleCost: val,
-                            customSalePrice: "",
-                          }))
-                        );
-                      }}
-                      placeholder="0,00"
-                      className="w-16 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/60"
-                      title="Custo unitário base no fornecedor (aplicado como padrão a todas as peças deste modelo)"
-                    />
-                  </div>
-
-                  <div className="h-5 w-px bg-border/80 hidden sm:block" />
-
-                  <div className="inline-flex rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setMatrixGlobalMode("margin")}
-                      className={cn(
-                        "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                        matrixGlobalMode === "margin"
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                      )}
-                    >
-                      <Target className="size-3 shrink-0" />
-                      <span>Margem</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMatrixGlobalMode("markup")}
-                      className={cn(
-                        "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                        matrixGlobalMode === "markup"
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                      )}
-                    >
-                      <TrendingUp className="size-3 shrink-0" />
-                      <span>Markup</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMatrixGlobalMode("direct_price")}
-                      className={cn(
-                        "flex items-center justify-center gap-1 rounded-md py-1 px-2.5 text-[11px] font-bold transition-all cursor-pointer",
-                        matrixGlobalMode === "direct_price"
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                      )}
-                    >
-                      <Coins className="size-3 shrink-0" />
-                      <span>Preço Fixo</span>
-                    </button>
-                  </div>
-
-                  <div className="h-5 w-px bg-border/80 hidden sm:block" />
-
-                  {/* Controles Margem */}
-                  {matrixGlobalMode === "margin" && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const cur = toNumber(matrixGlobalMarginStr) || 50;
-                            const next = Math.max(1, Math.round(cur) - 1);
-                            setMatrixGlobalMarginStr(String(next));
-                          }}
-                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                          title="Diminuir 1% na margem do modelo"
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                        <div className="flex items-center px-1.5">
-                          <input
-                            inputMode="decimal"
-                            value={matrixGlobalMarginStr}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              if (/^[\d,.]*$/.test(raw)) setMatrixGlobalMarginStr(raw);
-                            }}
-                            className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                          />
-                          <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const cur = toNumber(matrixGlobalMarginStr) || 50;
-                            const next = Math.min(85, Math.round(cur) + 1);
-                            setMatrixGlobalMarginStr(String(next));
-                          }}
-                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                          title="Aumentar 1% na margem do modelo"
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </div>
-
-                      <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                        {[30, 40, 50, 60, 70].map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => setMatrixGlobalMarginStr(String(m))}
-                            className={cn(
-                              "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                              toNumber(matrixGlobalMarginStr) === m
-                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                            )}
-                          >
-                            {m}%
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Controles Markup */}
-                  {matrixGlobalMode === "markup" && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const cur = toNumber(matrixGlobalMarkupStr) || 100;
-                            const next = Math.max(1, Math.round(cur) - 5);
-                            setMatrixGlobalMarkupStr(String(next));
-                          }}
-                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                          title="Diminuir 5% no markup do modelo"
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                        <div className="flex items-center px-1.5">
-                          <input
-                            inputMode="decimal"
-                            value={matrixGlobalMarkupStr}
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              if (/^[\d,.]*$/.test(raw)) setMatrixGlobalMarkupStr(raw);
-                            }}
-                            className="w-9 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                          />
-                          <span className="text-[11px] font-semibold text-muted-foreground">%</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const cur = toNumber(matrixGlobalMarkupStr) || 100;
-                            const next = Math.min(300, Math.round(cur) + 5);
-                            setMatrixGlobalMarkupStr(String(next));
-                          }}
-                          className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all text-xs font-bold cursor-pointer"
-                          title="Aumentar 5% no markup do modelo"
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </div>
-
-                      <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                        {[60, 80, 100, 120, 150].map((mk) => (
-                          <button
-                            key={mk}
-                            type="button"
-                            onClick={() => setMatrixGlobalMarkupStr(String(mk))}
-                            className={cn(
-                              "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
-                              toNumber(matrixGlobalMarkupStr) === mk
-                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                            )}
-                          >
-                            {mk}%
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Controles Preço Fixo */}
-                  {matrixGlobalMode === "direct_price" && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
-                        <div className="flex items-center px-1.5">
-                          <span className="text-[11px] text-muted-foreground mr-0.5 font-semibold">R$</span>
-                          <input
-                            inputMode="decimal"
-                            value={matrixGlobalDirectPrice}
-                            onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
-                            placeholder="139,90"
-                            className="w-16 text-center text-xs font-bold outline-none bg-transparent text-primary"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs">
-                        {[",90", ",00", ",50"].map((ending) => (
-                          <button
-                            key={ending}
-                            type="button"
-                            onClick={() => {
-                              const current = matrixGlobalDirectPrice || "139,90";
-                              const integerPart = Math.floor(toNumber(current));
-                              setMatrixGlobalDirectPrice(`${integerPart}${ending}`);
-                            }}
-                            className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
-                          >
-                            {ending}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {/* ── 2. ESTRATÉGIA DE PREÇO DO MODELO (BARRA PRO — 1 LINHA COMPACTA) ── */}
+              <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 shadow-2xs">
+                {/* Custo Único da Grade — Pill Compacto */}
+                <div
+                  className="flex items-center gap-1 rounded-lg border border-border/80 bg-card px-2 py-1 shadow-2xs focus-within:border-primary/50 transition-colors shrink-0"
+                  title="Custo unitário de atacado — aplicado como padrão a todas as peças desta grade"
+                >
+                  <span className="text-[9px] font-black uppercase tracking-wide text-muted-foreground/70 select-none leading-none">
+                    Grade
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/50 select-none">·</span>
+                  <span className="text-[10px] font-bold text-muted-foreground select-none">R$</span>
+                  <input
+                    inputMode="decimal"
+                    value={baseWholesaleGrade}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setBaseWholesaleGrade(val);
+                      setGradeModels((prev) =>
+                        prev.map((m) => (m.id === activeModelId ? { ...m, baseWholesale: val } : m))
+                      );
+                      setVariants((prev) =>
+                        prev.map((v) => ({
+                          ...v,
+                          wholesaleCost: val,
+                          customSalePrice: "",
+                        }))
+                      );
+                    }}
+                    placeholder="0,00"
+                    className="w-14 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/50"
+                  />
                 </div>
 
-                {/* Lado Direito: Botão Aplicar à Grade do Modelo */}
+                <div className="h-4 w-px bg-border/70 shrink-0" />
+
+                {/* Abas de Modo */}
+                <div className="inline-flex rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setMatrixGlobalMode("margin")}
+                    className={cn(
+                      "flex items-center justify-center gap-1 rounded-md py-1 px-2 text-[11px] font-bold transition-all cursor-pointer",
+                      matrixGlobalMode === "margin"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    )}
+                  >
+                    <Target className="size-3 shrink-0" />
+                    <span>Margem</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMatrixGlobalMode("markup")}
+                    className={cn(
+                      "flex items-center justify-center gap-1 rounded-md py-1 px-2 text-[11px] font-bold transition-all cursor-pointer",
+                      matrixGlobalMode === "markup"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    )}
+                  >
+                    <TrendingUp className="size-3 shrink-0" />
+                    <span>Markup</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMatrixGlobalMode("direct_price")}
+                    className={cn(
+                      "flex items-center justify-center gap-1 rounded-md py-1 px-2 text-[11px] font-bold transition-all cursor-pointer",
+                      matrixGlobalMode === "direct_price"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                    )}
+                  >
+                    <Coins className="size-3 shrink-0" />
+                    <span className="hidden sm:inline">Preço Fixo</span>
+                    <span className="sm:hidden">Fixo</span>
+                  </button>
+                </div>
+
+                <div className="h-4 w-px bg-border/70 shrink-0" />
+
+                {/* Controles de valor — Margem */}
+                {matrixGlobalMode === "margin" && (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = toNumber(matrixGlobalMarginStr) || 50;
+                          setMatrixGlobalMarginStr(String(Math.max(1, Math.round(cur) - 1)));
+                        }}
+                        className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                        title="−1%"
+                      >
+                        <Minus className="size-3" />
+                      </button>
+                      <div className="flex items-center px-1">
+                        <input
+                          inputMode="decimal"
+                          value={matrixGlobalMarginStr}
+                          onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarginStr(e.target.value); }}
+                          className="w-8 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                        />
+                        <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = toNumber(matrixGlobalMarginStr) || 50;
+                          setMatrixGlobalMarginStr(String(Math.min(85, Math.round(cur) + 1)));
+                        }}
+                        className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                        title="+1%"
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+
+                    <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs shrink-0">
+                      {[30, 40, 50, 60, 70].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setMatrixGlobalMarginStr(String(m))}
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
+                            toNumber(matrixGlobalMarginStr) === m
+                              ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                          )}
+                        >
+                          {m}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Controles de valor — Markup */}
+                {matrixGlobalMode === "markup" && (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = toNumber(matrixGlobalMarkupStr) || 100;
+                          setMatrixGlobalMarkupStr(String(Math.max(1, Math.round(cur) - 5)));
+                        }}
+                        className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                        title="−5%"
+                      >
+                        <Minus className="size-3" />
+                      </button>
+                      <div className="flex items-center px-1">
+                        <input
+                          inputMode="decimal"
+                          value={matrixGlobalMarkupStr}
+                          onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarkupStr(e.target.value); }}
+                          className="w-8 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                        />
+                        <span className="text-[11px] font-semibold text-muted-foreground">%</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = toNumber(matrixGlobalMarkupStr) || 100;
+                          setMatrixGlobalMarkupStr(String(Math.min(300, Math.round(cur) + 5)));
+                        }}
+                        className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                        title="+5%"
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+
+                    <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs shrink-0">
+                      {[60, 80, 100, 120, 150].map((mk) => (
+                        <button
+                          key={mk}
+                          type="button"
+                          onClick={() => setMatrixGlobalMarkupStr(String(mk))}
+                          className={cn(
+                            "rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition-all cursor-pointer",
+                            toNumber(matrixGlobalMarkupStr) === mk
+                              ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                          )}
+                        >
+                          {mk}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Controles de valor — Preço Fixo */}
+                {matrixGlobalMode === "direct_price" && (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="inline-flex items-center rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs shrink-0">
+                      <div className="flex items-center px-1.5">
+                        <span className="text-[11px] text-muted-foreground mr-0.5 font-semibold">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={matrixGlobalDirectPrice}
+                          onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
+                          placeholder="139,90"
+                          className="w-16 text-center text-xs font-bold outline-none bg-transparent text-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="inline-flex rounded-lg border border-border/70 bg-card p-0.5 shadow-2xs shrink-0">
+                      {[",90", ",00", ",50"].map((ending) => (
+                        <button
+                          key={ending}
+                          type="button"
+                          onClick={() => {
+                            const current = matrixGlobalDirectPrice || "139,90";
+                            const integerPart = Math.floor(toNumber(current));
+                            setMatrixGlobalDirectPrice(`${integerPart}${ending}`);
+                          }}
+                          className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer"
+                        >
+                          {ending}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Botão Aplicar ao Modelo — sempre alinhado à direita, nunca quebra */}
                 <Button
                   type="button"
                   size="sm"
                   onClick={applyStrategyToModel}
-                  className="h-7.5 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer ml-auto"
+                  className="h-7 rounded-lg px-3 text-[11px] font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer ml-auto"
                 >
-                  <Zap className="size-3 mr-1" />
-                  Aplicar ao Modelo
+                  <Zap className="size-3 mr-1 shrink-0" />
+                  <span className="whitespace-nowrap">Aplicar ao Modelo</span>
                 </Button>
               </div>
 
