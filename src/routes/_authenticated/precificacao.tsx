@@ -127,6 +127,32 @@ export type VariantRow = {
   qty?: number; // quantidade física da variante no lote
 };
 
+export type GradeModel = {
+  id: string;
+  name: string;
+  category: string;
+  baseWholesale: string;
+  strategyMode: PricingStrategy;
+  marginStr: string;
+  markupStr: string;
+  directPrice: string;
+  variants: VariantRow[];
+  activeColors: string[];
+};
+
+export const createEmptyGradeModel = (index = 1): GradeModel => ({
+  id: `mod-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+  name: "",
+  category: "",
+  baseWholesale: "",
+  strategyMode: "margin",
+  marginStr: "50",
+  markupStr: "100",
+  directPrice: "",
+  variants: [],
+  activeColors: [],
+});
+
 const PRESET_OPTIONS = [
   { id: "letras", label: "Padrão (PP–GG)", sizes: ["PP", "P", "M", "G", "GG"] },
   { id: "numeros", label: "Numérica (36–46)", sizes: ["36", "38", "40", "42", "44", "46"] },
@@ -723,6 +749,10 @@ function Precificacao() {
   // Seletor de geração rápida da grade
   const [activeColors, setActiveColors] = useState<string[]>([]);
   const [genSizes, setGenSizes] = useState<string[]>([]);
+
+  // ── Multi-Modelo / Modo Produção (v73) ────────────────────────────
+  const [gradeModels, setGradeModels] = useState<GradeModel[]>([createEmptyGradeModel(1)]);
+
   const [genColors, setGenColors] = useState<string[]>([]);
   const [activePreset, setActivePreset] = useState<string>("letras");
   const [customGenColor, setCustomGenColor] = useState("");
@@ -1278,6 +1308,28 @@ function Precificacao() {
     toast.success("Novo modelo iniciado!", {
       description: "Campos limpos para precificar a próxima peça.",
     });
+  };
+
+  // ── Helpers de gerenciamento de múltiplos modelos (v73) ──────────
+  const addNewGradeModel = () => {
+    setGradeModels((prev) => [...prev, createEmptyGradeModel(prev.length + 1)]);
+    toast.success("Novo modelo adicionado!", { description: "Configure o nome, grade e preços abaixo." });
+  };
+
+  const removeGradeModel = (id: string) => {
+    setGradeModels((prev) => {
+      if (prev.length <= 1) return [createEmptyGradeModel(1)];
+      return prev.filter((m) => m.id !== id);
+    });
+    toast.success("Modelo removido do lote");
+  };
+
+  const updateGradeModelField = <K extends keyof GradeModel>(
+    id: string,
+    field: K,
+    value: GradeModel[K],
+  ) => {
+    setGradeModels((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
   };
 
   const replicateGradeInColor = (newColor: string) => {
@@ -2182,19 +2234,20 @@ function Precificacao() {
               </span>
               <div>
                 <h2 className="text-sm font-bold text-foreground">
-                  {mode === "rapida" ? "Identificação e custo da peça" : "Identificação e custos operacionais compartilhados"}
+                  {mode === "rapida" ? "Identificação e custo da peça" : "Custos operacionais compartilhados da compra"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mode === "rapida"
                     ? "Informe o nome, categoria, valor de atacado e variantes da peça"
-                    : "Custos de frete, embalagem e taxas que se aplicam a todas as variantes da coleção"}
+                    : "Frete, embalagem e taxas rateados entre todos os modelos. Nome e custo de cada peça ficam no Passo 2."}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Grid de Identificação da Peça */}
-          <div className={cn("grid gap-3", mode === "grade" ? "sm:grid-cols-[1fr_200px_170px]" : "sm:grid-cols-[1fr_220px]")}>
+          {/* Grid de Identificação da Peça — apenas no modo rápido */}
+          {mode === "rapida" && (
+          <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">
                 Nome da peça ou modelo
@@ -2224,27 +2277,8 @@ function Precificacao() {
                 </SelectContent>
               </Select>
             </div>
-
-            {mode === "grade" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Custo atacado base</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">(padrão)</span>
-                </Label>
-                <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                  <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
-                  <input
-                    inputMode="decimal"
-                    value={baseWholesaleGrade}
-                    onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                    placeholder="49,90"
-                    className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
-                    title="Custo unitário base no fornecedor (usado para compor o custo real e alimentar variações da grade)"
-                  />
-                </div>
-              </div>
-            )}
           </div>
+          )}
 
           {/* Variantes do Modo Rápido: Custo de Atacado, Quantidade, Cor e Tamanho (4 colunas) */}
           {mode === "rapida" && (
@@ -2914,31 +2948,50 @@ function Precificacao() {
 
             {/* ── CARD PRINCIPAL DA PEÇA / MODELO (PADRÃO IMAGEM 2) ── */}
             <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-5 transition-all duration-200">
-              {/* Cabeçalho do Card (No lugar da cor, o Nome/Modelo da Peça) */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 shadow-2xs text-base">
+              {/* Cabeçalho do Card — Nome, Categoria e Custo Atacado editáveis inline (v73) */}
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/50 pb-3.5">
+                <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                  <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 shadow-2xs text-base mt-0.5">
                     👗
                   </span>
-                  <div className="min-w-0">
-                    {name.trim() ? (
-                      <span className="text-base font-bold text-foreground truncate block sm:inline">
-                        {name.trim()}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    {/* Nome inline editável */}
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Nome da peça ou modelo..."
+                      className="w-full bg-transparent text-base font-bold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium placeholder:italic outline-none border-b border-transparent hover:border-border/60 focus:border-primary/50 transition-colors py-0.5"
+                    />
+                    {/* Categoria + Custo Atacado em linha */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger className="h-7 rounded-lg border-border/60 bg-secondary/40 text-xs font-medium text-muted-foreground w-auto min-w-[140px] hover:bg-secondary/70 transition-colors">
+                          <SelectValue placeholder="Selecionar categoria..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {storeCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.slug}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex h-7 items-center rounded-lg border border-border/60 bg-secondary/40 px-2 text-xs font-medium text-muted-foreground hover:bg-secondary/70 transition-colors focus-within:border-primary/50">
+                        <span className="text-[10px] font-bold mr-1 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={baseWholesaleGrade}
+                          onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                          placeholder="Custo atacado"
+                          className="w-24 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/60"
+                          title="Custo unitário base no fornecedor"
+                        />
+                      </div>
+                      <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground shrink-0">
+                        {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
                       </span>
-                    ) : (
-                      <span className="text-sm font-medium text-muted-foreground italic truncate block sm:inline">
-                        Identifique a peça no Passo 1...
-                      </span>
-                    )}
-                    {category && (
-                      <span className="text-xs text-muted-foreground font-medium sm:ml-2">
-                        · {getCategoryLabel(storeCategories, category)}
-                      </span>
-                    )}
+                    </div>
                   </div>
-                  <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground shrink-0">
-                    {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
-                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -3439,8 +3492,20 @@ function Precificacao() {
                 </div>
               )}
             </div>
-          </section>
-        )}
+
+            {/* ── Botão Adicionar Outro Modelo / Grade (v73) ── */}
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={addNewGradeModel}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 border-dashed border-primary/40 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 transition-all duration-200 cursor-pointer group"
+                >
+                  <Plus className="size-4 group-hover:scale-110 transition-transform" />
+                  <span>Adicionar outro modelo / grade nesta compra</span>
+                </button>
+              </div>
+            </section>
+          )}
 
 
 
@@ -4313,6 +4378,13 @@ function Precificacao() {
                         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/25 border border-border/50 text-[11px] text-muted-foreground">
                           <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
                           <span>Grade uniforme com 1 cor cadastrada ({colorGroups[0]?.color || "Padrão"}). Todas as variantes compartilham a mesma formação de preço.</span>
+                        </div>
+                      )}
+
+                      {gradeModels.length > 1 && (
+                        <div className="flex items-center gap-2 rounded-xl bg-primary/8 border border-primary/20 px-3.5 py-2.5 text-xs font-semibold text-primary">
+                          <Boxes className="size-3.5 shrink-0" />
+                          <span>Lote com {gradeModels.length} modelos configurados. O resumo consolida todos.</span>
                         </div>
                       )}
 
