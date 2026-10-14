@@ -1198,7 +1198,7 @@ function Precificacao() {
         id: `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
         size,
         color,
-        wholesaleCost: "",
+        wholesaleCost: baseWholesaleGrade || "",
         customSalePrice: "",
         qty,
       }));
@@ -1230,7 +1230,7 @@ function Precificacao() {
           id: existing?.id ?? `v-${size.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
           size,
           color,
-          wholesaleCost: existing?.wholesaleCost ?? "",
+          wholesaleCost: existing?.wholesaleCost || baseWholesaleGrade || "",
           customSalePrice: existing?.customSalePrice ?? "",
           qty: existing?.qty ?? (matrixDefaultQtys[size] ?? 2),
         });
@@ -1473,7 +1473,7 @@ function Precificacao() {
           id: `v-${sz.toLowerCase()}-${cleanColor.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
           size: sz,
           color: cleanColor,
-          wholesaleCost: matchingOriginal?.wholesaleCost ?? "",
+          wholesaleCost: matchingOriginal?.wholesaleCost || baseWholesaleGrade || "",
           customSalePrice: matchingOriginal?.customSalePrice ?? "",
           qty,
         });
@@ -1512,6 +1512,7 @@ function Precificacao() {
   const applyStrategyToModel = () => {
     const margin = toNumber(matrixGlobalMarginStr) || 50;
     const markupVal = toNumber(matrixGlobalMarkupStr) || 100;
+    const trimmedCost = baseWholesaleGrade.trim();
     const distinctColors = Array.from(new Set(variants.map((v) => v.color)));
     const colorsToSet = distinctColors.length > 0 ? distinctColors : ["Off-White"];
     setColorStrategies((prev) => {
@@ -1527,14 +1528,20 @@ function Precificacao() {
       });
       return updated;
     });
-    setVariants((cur) => cur.map((v) => ({ ...v, customSalePrice: "" })));
+    setVariants((cur) =>
+      cur.map((v) => ({
+        ...v,
+        wholesaleCost: trimmedCost ? trimmedCost : v.wholesaleCost,
+        customSalePrice: "",
+      }))
+    );
     const label =
       matrixGlobalMode === "margin"
         ? `Margem ${matrixGlobalMarginStr}%`
         : matrixGlobalMode === "markup"
           ? `Markup ${matrixGlobalMarkupStr}%`
           : `Preço R$ ${matrixGlobalDirectPrice}`;
-    toast.success(`${label} aplicado(a) ao modelo!`);
+    toast.success(`${label} e custo atacado aplicados ao modelo!`);
   };
 
   const displayedVariants = useMemo(() => {
@@ -1560,7 +1567,7 @@ function Precificacao() {
       id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
       size: sz,
       color: clean,
-      wholesaleCost: "",
+      wholesaleCost: baseWholesaleGrade || "",
       customSalePrice: "",
       qty: matrixDefaultQtys[sz] ?? 2,
     }));
@@ -3211,23 +3218,6 @@ function Precificacao() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex h-7 items-center rounded-lg border border-border/60 bg-secondary/40 px-2 text-xs font-medium text-muted-foreground hover:bg-secondary/70 transition-colors focus-within:border-primary/50">
-                        <span className="text-[10px] font-bold mr-1 select-none">R$</span>
-                        <input
-                          inputMode="decimal"
-                          value={baseWholesaleGrade}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setBaseWholesaleGrade(val);
-                            setGradeModels((prev) =>
-                              prev.map((m) => (m.id === activeModelId ? { ...m, baseWholesale: val } : m))
-                            );
-                          }}
-                          placeholder="Custo atacado"
-                          className="w-24 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/60"
-                          title="Custo unitário base no fornecedor"
-                        />
-                      </div>
                       <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground shrink-0">
                         {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
                       </span>
@@ -3263,16 +3253,6 @@ function Precificacao() {
                     <RotateCcw className="size-3" />
                     <span>Limpar modelo</span>
                   </button>
-                  {variants.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={clearModelSizes}
-                      className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                      title="Limpar grade do modelo"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -3333,8 +3313,37 @@ function Precificacao() {
 
               {/* ── 2. ESTRATÉGIA DE PREÇO DO MODELO (BARRA PRO TÁTIL) ── */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-secondary/30 px-3 py-2 text-xs shadow-2xs">
-                {/* Lado Esquerdo: Abas de modo e steppers */}
+                {/* Lado Esquerdo: Custo Atacado Unificado, Abas de modo e steppers */}
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Custo de Atacado Unificado da Grade */}
+                  <div className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2.5 py-1 shadow-2xs focus-within:border-primary/50 transition-colors">
+                    <span className="text-[11px] font-semibold text-muted-foreground select-none">Custo atacado:</span>
+                    <span className="text-[11px] font-bold text-muted-foreground select-none">R$</span>
+                    <input
+                      inputMode="decimal"
+                      value={baseWholesaleGrade}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBaseWholesaleGrade(val);
+                        setGradeModels((prev) =>
+                          prev.map((m) => (m.id === activeModelId ? { ...m, baseWholesale: val } : m))
+                        );
+                        setVariants((prev) =>
+                          prev.map((v) => ({
+                            ...v,
+                            wholesaleCost: val,
+                            customSalePrice: "",
+                          }))
+                        );
+                      }}
+                      placeholder="0,00"
+                      className="w-16 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/60"
+                      title="Custo unitário base no fornecedor (aplicado como padrão a todas as peças deste modelo)"
+                    />
+                  </div>
+
+                  <div className="h-5 w-px bg-border/80 hidden sm:block" />
+
                   <div className="inline-flex rounded-lg border border-border/80 bg-card p-0.5 shadow-2xs">
                     <button
                       type="button"
@@ -3610,16 +3619,26 @@ function Precificacao() {
                               />
                             </div>
 
-                            {/* Custo Fornecedor (Input Direto) */}
+                            {/* Custo Fornecedor (Input Direto com Herança Unificada) */}
                             <div>
                               <div className="flex items-center gap-1">
-                                <span className="text-[11px] text-muted-foreground">R$</span>
+                                <span className="text-[11px] text-muted-foreground select-none">R$</span>
                                 <input
                                   inputMode="decimal"
                                   value={v.wholesaleCost}
                                   onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                  placeholder={baseWholesaleGrade || "49,90"}
-                                  className="h-7 w-20 rounded-md border border-border bg-secondary/40 px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs"
+                                  placeholder={baseWholesaleGrade || "0,00"}
+                                  className={cn(
+                                    "h-7 w-20 rounded-md border px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs transition-colors",
+                                    v.wholesaleCost !== "" && baseWholesaleGrade !== "" && v.wholesaleCost !== baseWholesaleGrade
+                                      ? "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+                                      : "border-border bg-secondary/40 text-foreground"
+                                  )}
+                                  title={
+                                    v.wholesaleCost !== "" && baseWholesaleGrade !== "" && v.wholesaleCost !== baseWholesaleGrade
+                                      ? "Custo personalizado para esta variação (diferente da base do modelo)"
+                                      : "Custo unificado do modelo"
+                                  }
                                 />
                               </div>
                             </div>
