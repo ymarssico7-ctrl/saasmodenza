@@ -750,8 +750,11 @@ function Precificacao() {
   const [activeColors, setActiveColors] = useState<string[]>([]);
   const [genSizes, setGenSizes] = useState<string[]>([]);
 
-  // ── Multi-Modelo / Modo Produção (v73) ────────────────────────────
-  const [gradeModels, setGradeModels] = useState<GradeModel[]>([createEmptyGradeModel(1)]);
+  // ── Multi-Modelo / Modo Produção (v74) ────────────────────────────
+  const [initialGradeModel] = useState<GradeModel>(() => createEmptyGradeModel(1));
+  const [gradeModels, setGradeModels] = useState<GradeModel[]>([initialGradeModel]);
+  const [activeModelId, setActiveModelId] = useState<string>(initialGradeModel.id);
+  const isSwitchingModelRef = useRef(false);
 
   const [genColors, setGenColors] = useState<string[]>([]);
   const [activePreset, setActivePreset] = useState<string>("letras");
@@ -1082,6 +1085,15 @@ function Precificacao() {
     return variantResults.reduce((acc, v) => acc + v.qty, 0);
   }, [mode, variantResults, rapidaQty]);
 
+  // Total consolidado de peças de TODOS os modelos do lote (v74)
+  const totalLoteUnits = useMemo(() => {
+    if (mode !== "grade") return actualLotUnits;
+    return gradeModels.reduce((acc, m) => {
+      const modelUnits = (m.id === activeModelId ? variants : m.variants).reduce((sum, v) => sum + (v.qty || 1), 0);
+      return acc + modelUnits;
+    }, 0);
+  }, [gradeModels, mode, actualLotUnits, activeModelId, variants]);
+
   // ── Ponto de Cobertura do Lote (Break-Even Dinâmico) ────────────────
   const lotBreakEven = useMemo(() => {
     return computeLotBreakEven(
@@ -1310,27 +1322,136 @@ function Precificacao() {
     });
   };
 
-  // ── Helpers de gerenciamento de múltiplos modelos (v73) ──────────
+  // ── Helpers de gerenciamento de múltiplos modelos (v74) ──────────
   const addNewGradeModel = () => {
-    setGradeModels((prev) => [...prev, createEmptyGradeModel(prev.length + 1)]);
-    toast.success("Novo modelo adicionado!", { description: "Configure o nome, grade e preços abaixo." });
+    // 1. Snapshot do modelo ativo atual
+    const currentSnapshot: GradeModel = {
+      id: activeModelId,
+      name,
+      category,
+      baseWholesale: baseWholesaleGrade,
+      strategyMode: strategy,
+      marginStr: desiredMargin.toString(),
+      markupStr: markup.toString(),
+      directPrice: "",
+      variants,
+      activeColors,
+    };
+
+    const nextIndex = gradeModels.length + 1;
+    const newModel = createEmptyGradeModel(nextIndex);
+
+    setGradeModels((prev) => {
+      const updated = prev.map((m) => (m.id === activeModelId ? currentSnapshot : m));
+      return [...updated, newModel];
+    });
+
+    isSwitchingModelRef.current = true;
+    setActiveModelId(newModel.id);
+    setName("");
+    setBaseWholesaleGrade("");
+    setVariants([]);
+    setActiveColors([]);
+    setTimeout(() => {
+      isSwitchingModelRef.current = false;
+    }, 50);
+
+    toast.success(`Modelo ${nextIndex} adicionado ao lote! ✨`, {
+      description: "Preencha o nome da peça e monte a grade abaixo.",
+    });
+  };
+
+  const switchActiveModel = (targetId: string) => {
+    if (targetId === activeModelId) return;
+    const target = gradeModels.find((m) => m.id === targetId);
+    if (!target) return;
+
+    isSwitchingModelRef.current = true;
+    // 1. Salvar dados do atual
+    setGradeModels((prev) =>
+      prev.map((m) =>
+        m.id === activeModelId
+          ? {
+              ...m,
+              name,
+              category,
+              baseWholesale: baseWholesaleGrade,
+              variants,
+              activeColors,
+            }
+          : m
+      )
+    );
+
+    // 2. Carregar dados do selecionado
+    setActiveModelId(targetId);
+    setName(target.name);
+    setCategory(target.category);
+    setBaseWholesaleGrade(target.baseWholesale);
+    setVariants(target.variants);
+    setActiveColors(target.activeColors);
+
+    setTimeout(() => {
+      isSwitchingModelRef.current = false;
+    }, 50);
   };
 
   const removeGradeModel = (id: string) => {
-    setGradeModels((prev) => {
-      if (prev.length <= 1) return [createEmptyGradeModel(1)];
-      return prev.filter((m) => m.id !== id);
-    });
+    if (gradeModels.length <= 1) {
+      const fresh = createEmptyGradeModel(1);
+      setGradeModels([fresh]);
+      isSwitchingModelRef.current = true;
+      setActiveModelId(fresh.id);
+      setName("");
+      setCategory("");
+      setBaseWholesaleGrade("");
+      setVariants([]);
+      setActiveColors([]);
+      setTimeout(() => {
+        isSwitchingModelRef.current = false;
+      }, 50);
+      toast.success("Modelo limpo");
+      return;
+    }
+
+    const remaining = gradeModels.filter((m) => m.id !== id);
+    setGradeModels(remaining);
+
+    if (activeModelId === id) {
+      const next = remaining[0]!;
+      isSwitchingModelRef.current = true;
+      setActiveModelId(next.id);
+      setName(next.name);
+      setCategory(next.category);
+      setBaseWholesaleGrade(next.baseWholesale);
+      setVariants(next.variants);
+      setActiveColors(next.activeColors);
+      setTimeout(() => {
+        isSwitchingModelRef.current = false;
+      }, 50);
+    }
+
     toast.success("Modelo removido do lote");
   };
 
-  const updateGradeModelField = <K extends keyof GradeModel>(
-    id: string,
-    field: K,
-    value: GradeModel[K],
-  ) => {
-    setGradeModels((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
-  };
+  // Sincronização reativa do modelo ativo para o array gradeModels
+  useEffect(() => {
+    if (mode !== "grade" || !activeModelId || isSwitchingModelRef.current) return;
+    setGradeModels((prev) =>
+      prev.map((m) =>
+        m.id === activeModelId
+          ? {
+              ...m,
+              name,
+              category,
+              baseWholesale: baseWholesaleGrade,
+              variants,
+              activeColors,
+            }
+          : m
+      )
+    );
+  }, [name, category, baseWholesaleGrade, variants, activeColors, mode, activeModelId]);
 
   const replicateGradeInColor = (newColor: string) => {
     const cleanColor = newColor.trim();
@@ -2016,19 +2137,43 @@ function Precificacao() {
   // ── Mutações de Histórico (Salvar / Deletar) ────────────────────────
   const save = useMutation({
     mutationFn: async () => {
+      if (mode === "grade") {
+        // Coleta todos os modelos que possuem nome ou variações
+        const modelsWithData = gradeModels.filter(
+          (m) => (m.id === activeModelId ? name.trim() : m.name.trim()) || m.variants.length > 0
+        );
+
+        const listToSave = modelsWithData.length > 0 ? modelsWithData : [gradeModels[0]!];
+
+        for (const m of listToSave) {
+          const pieceName = (m.id === activeModelId ? name.trim() : m.name.trim()) || "Modelo sem nome";
+          const wholesaleVal = m.id === activeModelId ? baseWholesaleGrade : m.baseWholesale;
+          const wholesaleNum = toNumber(wholesaleVal);
+
+          await insertPricing({
+            storeId,
+            name: pieceName,
+            wholesale_cost: wholesaleNum > 0 ? wholesaleNum : 1,
+            freight_cost: toNumber(freight),
+            packaging_cost: toNumber(packaging),
+            other_costs: toNumber(other),
+            margin_pct: strategy === "markup" ? markup : desiredMargin,
+            tax_pct: tax,
+          });
+        }
+        return listToSave.length;
+      }
+
+      // Modo rápido:
       const pieceName = name.trim();
       if (!pieceName) throw new Error("Dê um nome para a peça antes de salvar no histórico");
 
-      const wholesaleNum =
-        mode === "grade"
-          ? toNumber(baseWholesaleGrade)
-          : toNumber(wholesale);
-
+      const wholesaleNum = toNumber(wholesale);
       if (isNaN(wholesaleNum) || wholesaleNum <= 0) {
         throw new Error("Informe o custo no atacado da peça (maior que zero) antes de salvar");
       }
 
-      return insertPricing({
+      await insertPricing({
         storeId,
         name: pieceName,
         wholesale_cost: wholesaleNum,
@@ -2038,12 +2183,18 @@ function Precificacao() {
         margin_pct: strategy === "markup" ? markup : desiredMargin,
         tax_pct: tax,
       });
+      return 1;
     },
-    onSuccess: () => {
+    onSuccess: (savedCount) => {
       queryClient.invalidateQueries({ queryKey: ["pricings"] });
-      toast.success("Precificação salva no histórico!", {
-        description: "Você pode consultá-la ou dar entrada no estoque a qualquer momento.",
-      });
+      toast.success(
+        savedCount && savedCount > 1
+          ? `${savedCount} modelos salvos no histórico com sucesso!`
+          : "Precificação salva no histórico!",
+        {
+          description: "Você pode consultá-la ou dar entrada no estoque a qualquer momento.",
+        }
+      );
     },
     onError: (err: Error) => {
       toast.error("Erro ao salvar precificação", { description: err.message });
@@ -2941,14 +3092,87 @@ function Precificacao() {
 
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
-                  {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} no lote
+                  {totalLoteUnits} {totalLoteUnits === 1 ? "peça" : "peças"} no lote ({gradeModels.length} {gradeModels.length === 1 ? "modelo" : "modelos"})
                 </Badge>
+              </div>
+            </div>
+
+            {/* ── SELETOR DE MODELOS DO LOTE (ABAS DINÂMICAS v74) ── */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border/50 pb-3.5">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-muted-foreground mr-0.5 shrink-0">
+                  Modelos desta compra:
+                </span>
+                {gradeModels.map((m, idx) => {
+                  const isActive = m.id === activeModelId;
+                  const currentModelVariants = isActive ? variants : m.variants;
+                  const modelUnits = currentModelVariants.reduce((acc, v) => acc + (v.qty || 1), 0);
+                  const displayName = (isActive ? name.trim() : m.name.trim()) || `Modelo ${idx + 1}`;
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => switchActiveModel(m.id)}
+                      className={cn(
+                        "group inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer select-none",
+                        isActive
+                          ? "border-primary bg-primary text-primary-foreground shadow-glow"
+                          : "border-border/80 bg-card text-muted-foreground hover:bg-secondary/70 hover:text-foreground shadow-2xs"
+                      )}
+                    >
+                      <span className="text-sm">👗</span>
+                      <span className="truncate max-w-[130px] sm:max-w-[200px] font-bold">
+                        {idx + 1}. {displayName}
+                      </span>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                          isActive
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {modelUnits} un.
+                      </span>
+                      {gradeModels.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeGradeModel(m.id);
+                          }}
+                          className={cn(
+                            "size-4 rounded-full flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity ml-0.5 cursor-pointer",
+                            isActive
+                              ? "hover:bg-primary-foreground/20 text-primary-foreground"
+                              : "hover:bg-destructive/20 hover:text-destructive"
+                          )}
+                          title="Remover este modelo do lote"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={addNewGradeModel}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-primary/50 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 hover:border-primary/80 transition-all cursor-pointer shadow-2xs group"
+                  title="Adicionar mais um modelo ou peça a esta compra"
+                >
+                  <Plus className="size-3.5 group-hover:scale-110 transition-transform" />
+                  <span>Novo modelo</span>
+                </button>
+              </div>
+
+              <div className="text-xs text-muted-foreground font-medium shrink-0">
+                Lote com <strong className="text-foreground">{gradeModels.length}</strong> {gradeModels.length === 1 ? "modelo" : "modelos"} · <strong className="text-foreground">{totalLoteUnits}</strong> peças totais
               </div>
             </div>
 
             {/* ── CARD PRINCIPAL DA PEÇA / MODELO (PADRÃO IMAGEM 2) ── */}
             <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-5 transition-all duration-200">
-              {/* Cabeçalho do Card — Nome, Categoria e Custo Atacado editáveis inline (v73) */}
+              {/* Cabeçalho do Card — Nome, Categoria e Custo Atacado editáveis inline (v74) */}
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/50 pb-3.5">
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
                   <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 shadow-2xs text-base mt-0.5">
@@ -2958,13 +3182,24 @@ function Precificacao() {
                     {/* Nome inline editável */}
                     <input
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setName(val);
+                        setGradeModels((prev) =>
+                          prev.map((m) => (m.id === activeModelId ? { ...m, name: val } : m))
+                        );
+                      }}
                       placeholder="Nome da peça ou modelo..."
                       className="w-full bg-transparent text-base font-bold text-foreground placeholder:text-muted-foreground/60 placeholder:font-medium placeholder:italic outline-none border-b border-transparent hover:border-border/60 focus:border-primary/50 transition-colors py-0.5"
                     />
                     {/* Categoria + Custo Atacado em linha */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <Select value={category} onValueChange={setCategory}>
+                      <Select value={category} onValueChange={(val) => {
+                        setCategory(val);
+                        setGradeModels((prev) =>
+                          prev.map((m) => (m.id === activeModelId ? { ...m, category: val } : m))
+                        );
+                      }}>
                         <SelectTrigger className="h-7 rounded-lg border-border/60 bg-secondary/40 text-xs font-medium text-muted-foreground w-auto min-w-[140px] hover:bg-secondary/70 transition-colors">
                           <SelectValue placeholder="Selecionar categoria..." />
                         </SelectTrigger>
@@ -2981,7 +3216,13 @@ function Precificacao() {
                         <input
                           inputMode="decimal"
                           value={baseWholesaleGrade}
-                          onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBaseWholesaleGrade(val);
+                            setGradeModels((prev) =>
+                              prev.map((m) => (m.id === activeModelId ? { ...m, baseWholesale: val } : m))
+                            );
+                          }}
                           placeholder="Custo atacado"
                           className="w-24 bg-transparent text-xs font-bold text-foreground outline-none placeholder:text-muted-foreground/60"
                           title="Custo unitário base no fornecedor"
@@ -3002,12 +3243,25 @@ function Precificacao() {
                   )}
                   <button
                     type="button"
-                    onClick={resetPricingModel}
+                    onClick={() => {
+                      setName("");
+                      setBaseWholesaleGrade("");
+                      setVariants([]);
+                      setActiveColors([]);
+                      setGradeModels((prev) =>
+                        prev.map((m) =>
+                          m.id === activeModelId
+                            ? { ...m, name: "", baseWholesale: "", variants: [], activeColors: [] }
+                            : m
+                        )
+                      );
+                      toast.success("Campos deste modelo limpos");
+                    }}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/70 bg-secondary/30 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
-                    title="Limpar campos e iniciar novo modelo"
+                    title="Limpar campos deste modelo"
                   >
                     <RotateCcw className="size-3" />
-                    <span>Novo modelo</span>
+                    <span>Limpar modelo</span>
                   </button>
                   {variants.length > 0 && (
                     <button
@@ -3493,17 +3747,25 @@ function Precificacao() {
               )}
             </div>
 
-            {/* ── Botão Adicionar Outro Modelo / Grade (v73) ── */}
-              <div className="mt-4 flex justify-center">
-                <button
-                  type="button"
-                  onClick={addNewGradeModel}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 border-dashed border-primary/40 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10 hover:border-primary/60 transition-all duration-200 cursor-pointer group"
-                >
-                  <Plus className="size-4 group-hover:scale-110 transition-transform" />
-                  <span>Adicionar outro modelo / grade nesta compra</span>
-                </button>
+            {/* ── Barra de Conclusão do Modelo & Adição de Próximo Modelo (v74) ── */}
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-secondary/35 p-3.5 border border-border/60">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                  ✓
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  <strong className="text-foreground">{name.trim() || `Modelo ${gradeModels.findIndex((m) => m.id === activeModelId) + 1}`}</strong> sincronizado no lote ({activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"} · {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"})
+                </span>
               </div>
+              <button
+                type="button"
+                onClick={addNewGradeModel}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-primary/50 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 hover:border-primary/80 transition-all cursor-pointer group shadow-2xs"
+              >
+                <Plus className="size-3.5 group-hover:scale-110 transition-transform" />
+                <span>+ Adicionar outro modelo nesta compra</span>
+              </button>
+            </div>
             </section>
           )}
 
@@ -4384,7 +4646,7 @@ function Precificacao() {
                       {gradeModels.length > 1 && (
                         <div className="flex items-center gap-2 rounded-xl bg-primary/8 border border-primary/20 px-3.5 py-2.5 text-xs font-semibold text-primary">
                           <Boxes className="size-3.5 shrink-0" />
-                          <span>Lote com {gradeModels.length} modelos configurados. O resumo consolida todos.</span>
+                          <span>Lote com {gradeModels.length} modelos configurados ({totalLoteUnits} peças no total). O resumo consolida todos.</span>
                         </div>
                       )}
 
@@ -4415,7 +4677,7 @@ function Precificacao() {
                       <Button
                         type="button"
                         onClick={openEntryForCurrent}
-                        disabled={!hasItems}
+                        disabled={!hasItems && totalLoteUnits === 0}
                         className="h-10 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-5 transition-all active:scale-[0.98] text-xs disabled:opacity-50"
                       >
                         <PackagePlus className="size-4" />
@@ -4425,8 +4687,9 @@ function Precificacao() {
                         type="button"
                         variant="outline"
                         onClick={() => save.mutate()}
-                        disabled={save.isPending || !hasItems}
+                        disabled={save.isPending || (!hasItems && !name.trim() && gradeModels.every((m) => !m.name.trim()))}
                         className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all disabled:opacity-50"
+                        title={!hasItems && !name.trim() ? "Dê um nome para a peça antes de salvar" : "Salvar no histórico"}
                       >
                         <Save className="size-3.5" />
                         <span>Salvar no histórico</span>
@@ -4439,7 +4702,7 @@ function Precificacao() {
                         title="Limpar campos e precificar outro modelo"
                       >
                         <RotateCcw className="size-3.5" />
-                        <span>Novo modelo</span>
+                        <span>Resetar lote</span>
                       </Button>
                     </div>
                   </div>
