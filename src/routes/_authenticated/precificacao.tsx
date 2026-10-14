@@ -457,6 +457,225 @@ function ReplicateGradeColorPicker({
   );
 }
 
+function AddVariantPopover({
+  defaultColor = "Off-White",
+  baseWholesale = "",
+  onAdd,
+}: {
+  defaultColor?: string;
+  baseWholesale?: string;
+  onAdd: (size: string, color: string, qty: number, wholesaleCost: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [size, setSize] = useState("M");
+  const [color, setColor] = useState(defaultColor || "Off-White");
+  const [qty, setQty] = useState(2);
+  const [cost, setCost] = useState(baseWholesale || "");
+  const [colorQuery, setColorQuery] = useState("");
+  const [showColorSearch, setShowColorSearch] = useState(false);
+
+  const quickSizes = ["PP", "P", "M", "G", "GG", "36", "38", "40", "42", "44", "Único"];
+  const filteredColors = COLOR_PRESETS.filter((c) =>
+    c.name.toLowerCase().includes(colorQuery.toLowerCase()),
+  );
+
+  const handleConfirm = () => {
+    const finalSize = size.trim() || "M";
+    const finalColor = color.trim() || "Off-White";
+    onAdd(finalSize, finalColor, Math.max(1, qty), cost);
+    setOpen(false);
+    setShowColorSearch(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((prev) => !prev);
+          if (defaultColor) setColor(defaultColor);
+          if (baseWholesale) setCost(baseWholesale);
+        }}
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-primary/5 border border-primary/20 bg-primary/5"
+      >
+        <Plus className="size-3.5" />
+        <span>Adicionar variação</span>
+      </button>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => {
+              setOpen(false);
+              setShowColorSearch(false);
+            }}
+          />
+          <div className="absolute left-0 bottom-full mb-2 z-50 w-80 rounded-2xl border border-border bg-card p-4 shadow-lift space-y-3.5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Plus className="size-3.5 text-primary" />
+                Nova Variação (SKU)
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="size-5 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+
+            {/* 1. Escolha do Tamanho */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-muted-foreground">Tamanho</label>
+              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                {quickSizes.map((sz) => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => setSize(sz)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-md text-xs font-bold transition-all cursor-pointer border",
+                      size === sz
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-secondary/40 border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary",
+                    )}
+                  >
+                    {sz}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Escolha da Cor */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-muted-foreground">Cor da Peça</label>
+                <button
+                  type="button"
+                  onClick={() => setShowColorSearch((prev) => !prev)}
+                  className="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
+                >
+                  {showColorSearch ? "Fechar busca" : "Trocar / buscar cor"}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 p-1.5 rounded-lg border border-border bg-secondary/30">
+                <span className={cn("size-3 rounded-full shrink-0 shadow-2xs", getColorDot(color))} />
+                <span className="text-xs font-bold text-foreground flex-1 truncate">{color}</span>
+              </div>
+
+              {showColorSearch && (
+                <div className="rounded-xl border border-border/80 bg-background p-2 space-y-2 shadow-xs">
+                  <input
+                    value={colorQuery}
+                    onChange={(e) => setColorQuery(e.target.value)}
+                    placeholder="Buscar ou digitar cor..."
+                    className="h-7 w-full rounded-md border border-border bg-secondary/30 px-2 text-xs font-medium text-foreground outline-none focus:border-primary"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && colorQuery.trim()) {
+                        e.preventDefault();
+                        setColor(colorQuery.trim());
+                        setShowColorSearch(false);
+                        setColorQuery("");
+                      }
+                    }}
+                  />
+                  <div className="max-h-28 overflow-y-auto space-y-0.5">
+                    {colorQuery.trim() && !filteredColors.some((c) => c.name.toLowerCase() === colorQuery.toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setColor(colorQuery.trim());
+                          setShowColorSearch(false);
+                          setColorQuery("");
+                        }}
+                        className="w-full flex items-center gap-2 rounded-md px-2 py-1 text-xs text-left text-primary font-bold hover:bg-primary/10 cursor-pointer"
+                      >
+                        <Plus className="size-3" />
+                        <span>Usar cor &quot;{colorQuery.trim()}&quot;</span>
+                      </button>
+                    )}
+                    {filteredColors.slice(0, 8).map((cp) => (
+                      <button
+                        key={cp.name}
+                        type="button"
+                        onClick={() => {
+                          setColor(cp.name);
+                          setShowColorSearch(false);
+                          setColorQuery("");
+                        }}
+                        className="w-full flex items-center gap-2 rounded-md px-2 py-1 text-xs text-left hover:bg-secondary/60 text-foreground cursor-pointer"
+                      >
+                        <span className={cn("size-2 rounded-full shrink-0", getColorDot(cp.name))} />
+                        <span className="truncate">{cp.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Quantidade e Custo Atacado */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-muted-foreground">Quantidade</label>
+                <div className="flex items-center rounded-lg border border-border bg-secondary/30 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    className="size-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <Minus className="size-3" />
+                  </button>
+                  <input
+                    inputMode="numeric"
+                    value={qty}
+                    onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full text-center text-xs font-bold text-foreground bg-transparent outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setQty((q) => q + 1)}
+                    className="size-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <Plus className="size-3" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-muted-foreground">Custo Atacado</label>
+                <div className="flex items-center rounded-lg border border-border bg-secondary/30 px-2 h-8">
+                  <span className="text-[10px] text-muted-foreground mr-1 font-semibold">R$</span>
+                  <input
+                    inputMode="decimal"
+                    value={cost}
+                    onChange={(e) => setCost(e.target.value)}
+                    placeholder={baseWholesale || "0,00"}
+                    className="w-full text-right text-xs font-bold text-foreground bg-transparent outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Botão Adicionar */}
+            <Button
+              type="button"
+              onClick={handleConfirm}
+              className="w-full h-8.5 rounded-xl gradient-primary text-xs font-bold shadow-glow text-white cursor-pointer"
+            >
+              <Plus className="size-3.5 mr-1" />
+              Adicionar à Grade
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Precificacao() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -489,28 +708,22 @@ function Precificacao() {
   const [category, setCategory] = useState("");
 
   // ── Modo 1: Precificação Rápida ───────────────────────────────────
-  const [wholesale, setWholesale] = useState("49,90");
+  const [wholesale, setWholesale] = useState("");
   const [rapidaQty, setRapidaQty] = useState("1");     // quantidade de peças no lote rápido
   const [rapidaColor, setRapidaColor] = useState("");   // cor opcional (identificação)
   const [rapidaSize, setRapidaSize] = useState("");     // tamanho opcional (identificação)
 
   // ── Modo 2: Grade Detalhada de Variantes ──────────────────────────
-  const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("49,90");
+  const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("");
   const [gradePricingMode, setGradePricingMode] = useState<"unified" | "per_unit">("unified");
 
   // Lista Unificada de Variantes (SKUs)
-  const [variants, setVariants] = useState<VariantRow[]>([
-    { id: "v-p-off", size: "P", color: "Off-White", wholesaleCost: "", customSalePrice: "", qty: 2 },
-    { id: "v-m-off", size: "M", color: "Off-White", wholesaleCost: "", customSalePrice: "", qty: 4 },
-    { id: "v-m-preto", size: "M", color: "Preto", wholesaleCost: "", customSalePrice: "", qty: 4 },
-    { id: "v-g-preto", size: "G", color: "Preto", wholesaleCost: "", customSalePrice: "", qty: 4 },
-    { id: "v-gg-preto", size: "GG", color: "Preto", wholesaleCost: "", customSalePrice: "", qty: 2 },
-  ]);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
 
   // Seletor de geração rápida da grade
-  const [activeColors, setActiveColors] = useState<string[]>(["Off-White", "Preto"]);
-  const [genSizes, setGenSizes] = useState<string[]>(["P", "M", "G", "GG"]);
-  const [genColors, setGenColors] = useState<string[]>(["Off-White", "Preto"]);
+  const [activeColors, setActiveColors] = useState<string[]>([]);
+  const [genSizes, setGenSizes] = useState<string[]>([]);
+  const [genColors, setGenColors] = useState<string[]>([]);
   const [activePreset, setActivePreset] = useState<string>("letras");
   const [customGenColor, setCustomGenColor] = useState("");
   const [showMatrixGenerator, setShowMatrixGenerator] = useState(false);
@@ -1024,22 +1237,47 @@ function Precificacao() {
     setVariants((prev) => prev.filter((v) => v.id !== id));
   };
 
-  const addNewVariantRow = () => {
-    const defaultColor = variants[0]?.color || "Off-White";
-    const defaultSize = "M";
-    const newId = `v-${defaultSize.toLowerCase()}-${Date.now().toString(36)}`;
+  const handleAddNewVariant = (newSize: string, newColor: string, newQty: number, newCost: string) => {
+    const cleanColor = newColor.trim() || "Padrão";
+    const newId = `v-${newSize.toLowerCase()}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`;
     setVariants((prev) => [
       ...prev,
       {
         id: newId,
-        size: defaultSize,
-        color: defaultColor,
-        wholesaleCost: "",
+        size: newSize,
+        color: cleanColor,
+        wholesaleCost: newCost,
         customSalePrice: "",
-        qty: 2,
+        qty: newQty,
       },
     ]);
-    toast.success("Nova variação adicionada à planilha!");
+    setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === cleanColor.toLowerCase()) ? prev : [...prev, cleanColor]));
+    toast.success(`Variação ${newSize} ${cleanColor} (${newQty} un.) adicionada!`);
+  };
+
+  const addNewVariantRow = () => {
+    const defaultColor = variants[0]?.color || "Off-White";
+    handleAddNewVariant("M", defaultColor, 2, "");
+  };
+
+  const resetPricingModel = () => {
+    setName("");
+    setCategory("");
+    setWholesale("");
+    setBaseWholesaleGrade("");
+    setVariants([]);
+    setActiveColors([]);
+    setGenSizes([]);
+    setGenColors([]);
+    setCustomGenColor("");
+    setColorStrategies({});
+    setTableColorFilter("all");
+    setRapidaColor("");
+    setRapidaSize("");
+    setRapidaQty("1");
+    toast.success("Novo modelo iniciado!", {
+      description: "Campos limpos para precificar a próxima peça.",
+    });
   };
 
   const replicateGradeInColor = (newColor: string) => {
@@ -2683,9 +2921,15 @@ function Precificacao() {
                     👗
                   </span>
                   <div className="min-w-0">
-                    <span className="text-base font-bold text-foreground truncate block sm:inline">
-                      {name.trim() || "Vestido Midi Linho com Fenda"}
-                    </span>
+                    {name.trim() ? (
+                      <span className="text-base font-bold text-foreground truncate block sm:inline">
+                        {name.trim()}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-medium text-muted-foreground italic truncate block sm:inline">
+                        Identifique a peça no Passo 1...
+                      </span>
+                    )}
                     {category && (
                       <span className="text-xs text-muted-foreground font-medium sm:ml-2">
                         · {getCategoryLabel(storeCategories, category)}
@@ -2697,12 +2941,21 @@ function Precificacao() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {summaryPrices.avgSuggested > 0 && (
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                    <span className="text-xs text-muted-foreground hidden sm:inline mr-1">
                       Média do modelo: <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> (Margem <strong className={summaryPrices.marginHealth.color}>{pct(summaryPrices.avgMargin)}</strong>)
                     </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={resetPricingModel}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/70 bg-secondary/30 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+                    title="Limpar campos e iniciar novo modelo"
+                  >
+                    <RotateCcw className="size-3" />
+                    <span>Novo modelo</span>
+                  </button>
                   {variants.length > 0 && (
                     <button
                       type="button"
@@ -3115,14 +3368,11 @@ function Precificacao() {
 
                       {/* Botões de Adicionar Nova Variação & Replicar Grade */}
                       <div className="p-2.5 bg-card border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={addNewVariantRow}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-primary/5"
-                        >
-                          <Plus className="size-3.5" />
-                          <span>Adicionar variação</span>
-                        </button>
+                        <AddVariantPopover
+                          defaultColor={variants[0]?.color || "Off-White"}
+                          baseWholesale={baseWholesaleGrade}
+                          onAdd={handleAddNewVariant}
+                        />
 
                         <ReplicateGradeColorPicker onSelectColor={replicateGradeInColor} />
                       </div>
@@ -3151,14 +3401,41 @@ function Precificacao() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-border/80 bg-secondary/20 p-8 text-center space-y-2">
-                  <Package className="size-8 text-muted-foreground mx-auto opacity-50" />
-                  <p className="text-xs font-semibold text-foreground">
-                    Nenhum tamanho ativo neste modelo
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Clique em um preset como <strong className="text-primary font-bold">+ P-GG</strong> acima para preencher automaticamente as variações.
-                  </p>
+                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/15 p-8 text-center space-y-4">
+                  <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto shadow-xs">
+                    <Boxes className="size-6" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-1">
+                    <h3 className="text-sm font-bold text-foreground">
+                      Nenhuma variação adicionada ainda
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Monte a grade de peças deste modelo escolhendo um preset rápido ou adicionando variações avulsas abaixo.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => applyModelQuickPreset(SIZE_QUICK_PRESETS[0]!.sizes)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl gradient-primary text-xs font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>Começar com Grade P ao GG</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyModelQuickPreset(SIZE_QUICK_PRESETS[1]!.sizes)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border/80 bg-card text-xs font-bold text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+                    >
+                      <Plus className="size-3.5" />
+                      <span>Grade Numérica 36 ao 46</span>
+                    </button>
+                    <AddVariantPopover
+                      defaultColor="Off-White"
+                      baseWholesale={baseWholesaleGrade}
+                      onAdd={handleAddNewVariant}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -3708,6 +3985,16 @@ function Precificacao() {
                     <Save className="size-3.5" />
                     <span>Salvar no histórico</span>
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetPricingModel}
+                    className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
+                    title="Limpar campos e precificar outro modelo"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Novo modelo</span>
+                  </Button>
                 </div>
 
                 <Button
@@ -4071,6 +4358,16 @@ function Precificacao() {
                       >
                         <Save className="size-3.5" />
                         <span>Salvar no histórico</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetPricingModel}
+                        className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
+                        title="Limpar campos e precificar outro modelo"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        <span>Novo modelo</span>
                       </Button>
                     </div>
                   </div>
