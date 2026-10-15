@@ -3776,13 +3776,13 @@ function Precificacao() {
                     setBaseWholesaleGrade("");
                     setVariants([]);
                     setActiveColors([]);
-                    toast.success("Campos da grade limpos");
+                    toast.success("Grade limpa", { description: "Nome, custo base e todas as variações foram removidos." });
                   }}
                   className="h-11 px-3 rounded-xl border border-border/70 bg-secondary/30 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5 shrink-0"
-                  title="Limpar campos e variações desta grade"
+                  title="Limpar grade completa — remove nome, custo base e todas as variações"
                 >
                   <RotateCcw className="size-3.5" />
-                  <span className="hidden sm:inline">Limpar</span>
+                  <span className="hidden sm:inline">Limpar grade</span>
                 </button>
               </div>
 
@@ -4203,7 +4203,7 @@ function Precificacao() {
                                     )}
                                   >
                                     <Calculator className="size-3.5" />
-                                    <span>Ratear</span>
+                                    <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
                                   </button>
                                   <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -4255,7 +4255,7 @@ function Precificacao() {
                                     )}
                                   >
                                     <Calculator className="size-3.5" />
-                                    <span>Ratear</span>
+                                    <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
                                   </button>
                                   <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -4307,7 +4307,7 @@ function Precificacao() {
                                     )}
                                   >
                                     <Calculator className="size-3.5" />
-                                    <span>Ratear</span>
+                                    <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
                                   </button>
                                   <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -4397,7 +4397,7 @@ function Precificacao() {
                               <span className="text-xs font-normal text-muted-foreground ml-1">/ peça</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {brl(baseCost)} atacado + {brl(totalSharedCost)} adicionais
+                              {brl(baseCost)} atacado{variants.length === 0 && toNumber(baseWholesaleGrade) > 0 ? " (base da grade)" : ""} + {brl(totalSharedCost)} adicionais
                             </p>
                           </div>
 
@@ -4495,10 +4495,12 @@ function Precificacao() {
                               type="button"
                               size="sm"
                               onClick={applyStrategyToModel}
-                              className="h-8 rounded-xl px-3 text-xs font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer"
+                              disabled={actualLotUnits === 0}
+                              title={actualLotUnits === 0 ? "Adicione peças na grade (Passo 1) para aplicar a precificação" : `Aplicar estratégia a ${actualLotUnits} variações`}
+                              className="h-8 rounded-xl px-3 text-xs font-bold gradient-primary shadow-glow shrink-0 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                             >
                               <Zap className="size-3.5 mr-1 shrink-0" />
-                              <span>Aplicar à Grade</span>
+                              <span>Aplicar à Grade{actualLotUnits > 0 ? ` (${actualLotUnits} un.)` : ""}</span>
                             </Button>
                           </div>
 
@@ -4714,9 +4716,15 @@ function Precificacao() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-bold", summaryPrices.marginHealth.color, "bg-background border border-border/60 shadow-2xs")}>
-                            {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
-                          </span>
+                          {actualLotUnits === 0 ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-muted-foreground bg-background border border-border/60 shadow-2xs">
+                              ⚪ Aguardando grade
+                            </span>
+                          ) : (
+                            <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-bold", summaryPrices.marginHealth.color, "bg-background border border-border/60 shadow-2xs")}>
+                              {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -4726,23 +4734,37 @@ function Precificacao() {
                           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                             Faturamento Total Previsto
                           </span>
-                          <div className="numeric text-2xl font-extrabold text-foreground">
-                            {brl(summaryPrices.totalRevenue)}
-                          </div>
+                          {actualLotUnits === 0 ? (
+                            <div className="numeric text-lg font-semibold text-muted-foreground/50">—</div>
+                          ) : (
+                            <div className="numeric text-2xl font-extrabold text-foreground">
+                              {brl(summaryPrices.totalRevenue)}
+                            </div>
+                          )}
                           <p className="text-[11px] text-muted-foreground">
-                            Média de <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> / peça na vitrine ({actualLotUnits} un.)
+                            {actualLotUnits === 0
+                              ? "Adicione peças na grade para projetar"
+                              : <>Média de <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> / peça na vitrine ({actualLotUnits} un.)</>
+                            }
                           </p>
                         </div>
 
-                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-2xs space-y-1">
-                          <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+                        <div className={cn("rounded-xl border p-4 shadow-2xs space-y-1", actualLotUnits === 0 ? "border-border/70 bg-card" : "border-emerald-500/20 bg-emerald-500/5")}>
+                          <span className={cn("text-[11px] font-semibold uppercase tracking-wide", actualLotUnits === 0 ? "text-muted-foreground" : "text-emerald-700 dark:text-emerald-300")}>
                             Sobra Líquida no Caixa
                           </span>
-                          <div className="numeric text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                            +{brl(summaryPrices.totalProfit)}
-                          </div>
+                          {actualLotUnits === 0 ? (
+                            <div className="numeric text-lg font-semibold text-muted-foreground/50">—</div>
+                          ) : (
+                            <div className="numeric text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                              +{brl(summaryPrices.totalProfit)}
+                            </div>
+                          )}
                           <p className="text-[11px] text-muted-foreground">
-                            Margem média consolidada de <strong className="text-foreground">{pct(summaryPrices.avgMargin)}</strong> após custos, DAS e taxas
+                            {actualLotUnits === 0
+                              ? "Aguardando variações para calcular lucro"
+                              : <>Margem média consolidada de <strong className="text-foreground">{pct(summaryPrices.avgMargin)}</strong> após custos, DAS e taxas</>
+                            }
                           </p>
                         </div>
                       </div>
@@ -4798,18 +4820,26 @@ function Precificacao() {
 
                       {/* Ponto de Equilíbrio (Break-Even) */}
                       <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                        Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
-                          Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
-                            <>
-                              As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
-                            </>
-                          ) : (
-                            "Lote quitado com margem saudável."
-                          )
+                        {actualLotUnits === 0 ? (
+                          <>
+                            Adicione tamanhos e quantidades na <strong className="text-foreground">grade (Passo 1)</strong> para ver o faturamento total, ponto de equilíbrio e lucro líquido do lote projetados aqui.
+                          </>
                         ) : (
-                          <span className="text-destructive font-semibold">
-                            Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
-                          </span>
+                          <>
+                            Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
+                              Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
+                                <>
+                                  As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
+                                </>
+                              ) : (
+                                "Lote quitado com margem saudável."
+                              )
+                            ) : (
+                              <span className="text-destructive font-semibold">
+                                Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
 
