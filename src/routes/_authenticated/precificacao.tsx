@@ -4138,14 +4138,42 @@ function Precificacao() {
                 const packagingPct = totalSharedCost > 0 ? (packagingVal / totalSharedCost) * 100 : 0;
                 const otherPct = totalSharedCost > 0 ? (otherVal / totalSharedCost) * 100 : 0;
 
+                // Live preview calculation for the single piece under current strategy
+                let previewPrice = 0;
+                let previewProfit = 0;
+                let previewMargin = 0;
+
+                const taxFrac = tax / 100;
+                const cardFrac = cardRate / 100;
+                const totalDeductionsFrac = taxFrac + cardFrac;
+
+                if (matrixGlobalMode === "margin") {
+                  const m = toNumber(matrixGlobalMarginStr) || 50;
+                  const div = 1 - (totalDeductionsFrac + m / 100);
+                  previewPrice = div > 0.05 ? totalUnitCost / div : 0;
+                  previewMargin = m;
+                  previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
+                } else if (matrixGlobalMode === "markup") {
+                  const mk = toNumber(matrixGlobalMarkupStr) || 100;
+                  const base = totalUnitCost * (1 + mk / 100);
+                  const div = 1 - totalDeductionsFrac;
+                  previewPrice = div > 0.05 ? base / div : 0;
+                  previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
+                  previewMargin = previewPrice > 0 ? (previewProfit / previewPrice) * 100 : 0;
+                } else {
+                  previewPrice = toNumber(matrixGlobalDirectPrice);
+                  previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
+                  previewMargin = previewPrice > 0 ? (previewProfit / previewPrice) * 100 : 0;
+                }
+
                 const renderInlineRateio = (target: "freight" | "packaging" | "other", targetLabel: string) => {
                   if (rateioTarget !== target) return null;
                   return (
-                    <div className="mt-3 rounded-2xl border border-primary/25 bg-primary/5 p-3.5 sm:p-4 space-y-3 animate-in fade-in-50 duration-200 shadow-2xs">
+                    <div className="mt-2.5 rounded-xl border border-primary/25 bg-primary/5 p-3 space-y-2.5 animate-in fade-in-50 duration-200 shadow-2xs">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <div className="size-6 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                            <Calculator className="size-3.5 text-primary" />
+                          <div className="size-5 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+                            <Calculator className="size-3 text-primary" />
                           </div>
                           <span className="text-xs font-bold text-primary">
                             Assistente: Dividir {targetLabel}
@@ -4155,31 +4183,31 @@ function Precificacao() {
                         <button
                           type="button"
                           onClick={() => setRateioTarget(null)}
-                          className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs cursor-pointer"
+                          className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all text-xs cursor-pointer"
                         >
-                          <X className="size-4" />
+                          <X className="size-3.5" />
                         </button>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-semibold text-muted-foreground">Valor Total Pago na Nota (R$)</Label>
-                          <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
-                            <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                      <div className="grid gap-2.5 sm:grid-cols-[1fr_1fr_auto] items-end">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">Valor Total na Nota</Label>
+                          <div className="relative flex items-center rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                            <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                             <input
                               inputMode="decimal"
                               value={rateioTotal}
                               onChange={(e) => setRateioTotal(e.target.value)}
                               placeholder="120,00"
-                              className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
+                              className="h-8 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
                               autoFocus
                             />
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <Label className="text-[11px] font-semibold text-muted-foreground">Total de Peças</Label>
+                            <Label className="text-[10px] font-semibold text-muted-foreground">Total de Peças</Label>
                             {actualLotUnits > 0 && (
                               <button
                                 type="button"
@@ -4190,15 +4218,15 @@ function Precificacao() {
                               </button>
                             )}
                           </div>
-                          <div className="relative flex items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                          <div className="relative flex items-center rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary">
                             <input
                               inputMode="numeric"
                               value={rateioPieces}
                               onChange={(e) => setRateioPieces(e.target.value)}
                               placeholder={actualLotUnits > 0 ? String(actualLotUnits) : "20"}
-                              className="h-9 w-full bg-transparent px-3 text-xs font-bold text-foreground outline-none"
+                              className="h-8 w-full bg-transparent px-2.5 text-xs font-bold text-foreground outline-none"
                             />
-                            <span className="pr-3 text-[11px] font-semibold text-muted-foreground select-none">un.</span>
+                            <span className="pr-2.5 text-[10px] font-semibold text-muted-foreground select-none">un.</span>
                           </div>
                         </div>
 
@@ -4206,12 +4234,12 @@ function Precificacao() {
                           type="button"
                           onClick={applyRateio}
                           disabled={!toNumber(rateioTotal) || !Number(rateioPieces)}
-                          className="h-9 rounded-xl gradient-primary text-xs font-bold shadow-glow shrink-0 cursor-pointer active:scale-95 transition-all"
+                          className="h-8 rounded-lg gradient-primary text-xs font-bold shadow-glow shrink-0 cursor-pointer active:scale-95 transition-all"
                         >
                           {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
-                            <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
+                            <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / un.</>
                           ) : (
-                            <>Calcular e Aplicar</>
+                            <>Aplicar</>
                           )}
                         </Button>
                       </div>
@@ -4220,34 +4248,42 @@ function Precificacao() {
                 };
 
                 return (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
+                    {/* ── GRID PRINCIPAL: PAREAMENTO PERFEITO DE ALTURAS (6 colunas + 6 colunas) ── */}
                     <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-                      {/* ── COLUNA DA ESQUERDA: CUSTOS ADICIONAIS & TAXAS (7 colunas lg) ── */}
-                      <div className="lg:col-span-7 space-y-4">
-                        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-4">
-                          <div>
-                            <p className="text-sm font-bold text-foreground">
-                              Custos adicionais por peça
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Despesas operacionais rateadas para compor o custo real de cada peça da grade
-                            </p>
+                      {/* ── COLUNA DA ESQUERDA: CUSTOS ADICIONAIS & DEDUÇÕES DA VENDA (6 colunas lg) ── */}
+                      <div className="lg:col-span-6 flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
+                        <div>
+                          {/* Cabeçalho da Coluna Esquerda */}
+                          <div className="flex items-center justify-between gap-2 pb-2">
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Custos Adicionais &amp; Deduções
+                              </p>
+                              <p className="text-xs text-foreground font-semibold">
+                                Despesas operacionais e tributárias por peça
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-secondary/80 border border-border/60 px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground shrink-0">
+                              +{brl(totalSharedCost)} / peça
+                            </span>
                           </div>
 
-                          <div className="space-y-2.5">
+                          {/* 3 Linhas de Custos Adicionais */}
+                          <div className="space-y-2 pt-1">
                             {/* Frete */}
-                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 transition-all hover:border-border hover:bg-secondary/25">
-                              <div className="flex items-center justify-between gap-3">
+                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-2.5 transition-all hover:bg-secondary/25">
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/15 shadow-2xs">
-                                    <Truck className="size-4" />
+                                  <div className="size-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/15 shadow-2xs">
+                                    <Truck className="size-3.5" />
                                   </div>
                                   <div className="min-w-0">
                                     <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
                                       Frete por peça
                                     </Label>
                                     <span className="text-[10px] text-muted-foreground block -mt-0.5 truncate">
-                                      Transporte até o estoque
+                                      Transporte até a loja
                                     </span>
                                   </div>
                                 </div>
@@ -4263,23 +4299,23 @@ function Precificacao() {
                                       }
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
+                                      "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all cursor-pointer border",
                                       rateioTarget === "freight"
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                         : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                                     )}
                                   >
-                                    <Calculator className="size-3.5" />
+                                    <Calculator className="size-3" />
                                     <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
                                   </button>
-                                  <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                                  <div className="relative flex h-8 w-24 items-center shrink-0 rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                                    <span className="pl-2 text-xs font-bold text-muted-foreground select-none">R$</span>
                                     <input
                                       inputMode="decimal"
                                       value={freight}
                                       onChange={(e) => setFreight(e.target.value)}
                                       placeholder="0,00"
-                                      className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                                      className="h-8 w-full bg-transparent px-1.5 text-xs font-bold text-foreground outline-none"
                                     />
                                   </div>
                                 </div>
@@ -4288,15 +4324,15 @@ function Precificacao() {
                             </div>
 
                             {/* Embalagem & Tag */}
-                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 transition-all hover:border-border hover:bg-secondary/25">
-                              <div className="flex items-center justify-between gap-3">
+                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-2.5 transition-all hover:bg-secondary/25">
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/15 shadow-2xs">
-                                    <Package className="size-4" />
+                                  <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/15 shadow-2xs">
+                                    <Package className="size-3.5" />
                                   </div>
                                   <div className="min-w-0">
                                     <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
-                                      Embalagem & Tag
+                                      Embalagem &amp; Tag
                                     </Label>
                                     <span className="text-[10px] text-muted-foreground block -mt-0.5 truncate">
                                       Sacola, etiqueta e seda
@@ -4315,23 +4351,23 @@ function Precificacao() {
                                       }
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
+                                      "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all cursor-pointer border",
                                       rateioTarget === "packaging"
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                         : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                                     )}
                                   >
-                                    <Calculator className="size-3.5" />
+                                    <Calculator className="size-3" />
                                     <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
                                   </button>
-                                  <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                                  <div className="relative flex h-8 w-24 items-center shrink-0 rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                                    <span className="pl-2 text-xs font-bold text-muted-foreground select-none">R$</span>
                                     <input
                                       inputMode="decimal"
                                       value={packaging}
                                       onChange={(e) => setPackaging(e.target.value)}
                                       placeholder="0,00"
-                                      className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                                      className="h-8 w-full bg-transparent px-1.5 text-xs font-bold text-foreground outline-none"
                                     />
                                   </div>
                                 </div>
@@ -4340,11 +4376,11 @@ function Precificacao() {
                             </div>
 
                             {/* Outros custos */}
-                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-3 transition-all hover:border-border hover:bg-secondary/25">
-                              <div className="flex items-center justify-between gap-3">
+                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-2.5 transition-all hover:bg-secondary/25">
+                              <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/15 shadow-2xs">
-                                    <Coins className="size-4" />
+                                  <div className="size-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/15 shadow-2xs">
+                                    <Coins className="size-3.5" />
                                   </div>
                                   <div className="min-w-0">
                                     <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
@@ -4367,23 +4403,23 @@ function Precificacao() {
                                       }
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
+                                      "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all cursor-pointer border",
                                       rateioTarget === "other"
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                         : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                                     )}
                                   >
-                                    <Calculator className="size-3.5" />
+                                    <Calculator className="size-3" />
                                     <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
                                   </button>
-                                  <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                                  <div className="relative flex h-8 w-24 items-center shrink-0 rounded-lg border border-border/80 bg-card shadow-2xs focus-within:border-primary">
+                                    <span className="pl-2 text-xs font-bold text-muted-foreground select-none">R$</span>
                                     <input
                                       inputMode="decimal"
                                       value={other}
                                       onChange={(e) => setOther(e.target.value)}
                                       placeholder="0,00"
-                                      className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                                      className="h-8 w-full bg-transparent px-1.5 text-xs font-bold text-foreground outline-none"
                                     />
                                   </div>
                                 </div>
@@ -4393,169 +4429,204 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        {/* Card de Taxas */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-3">
-                          <div className="flex items-center justify-between gap-3 px-0.5">
-                            <span className="text-xs font-bold text-foreground">
-                              Taxas e deduções da venda
-                            </span>
-
+                        {/* Deduções da Venda (DAS e Cartão em Grid Compacto de 2 Colunas) */}
+                        <div className="pt-3 border-t border-border/50 space-y-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <CreditCard className="size-3.5 text-primary" />
+                              <span className="text-xs font-bold text-foreground">Deduções da venda</span>
+                              <span className="text-[10px] text-muted-foreground">({(tax + cardRate).toFixed(1).replace(".", ",")}% total)</span>
+                            </div>
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               asChild
-                              className="h-7 rounded-full border-border/70 bg-card hover:bg-secondary px-3 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-all shadow-2xs gap-1.5 cursor-pointer"
+                              className="h-6 px-2 text-[10px] font-semibold text-primary hover:text-primary/80 gap-1 cursor-pointer"
                             >
                               <Link to="/configuracoes" search={{ tab: "caixa" }}>
-                                <CreditCard className="size-3 text-primary" />
-                                <span>Taxas da maquininha</span>
+                                <span>Configurar</span>
                                 <ArrowUpRight className="size-3 opacity-60" />
                               </Link>
                             </Button>
                           </div>
 
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <HybridTaxControl
-                              label="Imposto DAS / Simples (%)"
-                              hint="Alíquota aplicada sobre faturamento bruto"
-                              value={tax}
-                              max={25}
-                              onChange={setTax}
-                              presets={[
-                                { label: "MEI (0%)", value: pricingSettings.taxPresets?.mei ?? 0 },
-                                { label: "Simples F1 (4%)", value: pricingSettings.taxPresets?.simplesF1 ?? 4 },
-                                { label: "Simples F2 (7%)", value: pricingSettings.taxPresets?.simplesF2 ?? 7 },
-                                { label: "Simples F3 (10%)", value: pricingSettings.taxPresets?.simplesF3 ?? 10 },
-                              ]}
-                            />
-                            <HybridTaxControl
-                              label="Taxa média de cartão (%)"
-                              hint="Média ponderada descontada pelas maquininhas"
-                              value={cardRate}
-                              max={15}
-                              onChange={setCardRate}
-                              presets={[
-                                { label: `Pix (${(pricingSettings.cardRates?.pix ?? 0.9).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.pix ?? 0.9 },
-                                { label: `Débito (${(pricingSettings.cardRates?.debito ?? 1.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.debito ?? 1.5 },
-                                { label: `Crédito 1× (${(pricingSettings.cardRates?.credito1x ?? 3.2).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.credito1x ?? 3.2 },
-                                { label: `Parcelado (${(pricingSettings.cardRates?.parcelado ?? 4.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.parcelado ?? 4.5 },
-                              ]}
-                            />
+                          <div className="grid gap-2.5 sm:grid-cols-2">
+                            {/* DAS / Simples */}
+                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-2.5 space-y-2">
+                              <div className="flex items-center justify-between gap-1">
+                                <Label className="text-[11px] font-bold text-foreground">
+                                  Imposto DAS
+                                </Label>
+                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-background px-1 py-0.5 shadow-2xs focus-within:border-primary">
+                                  <button
+                                    type="button"
+                                    disabled={tax <= 0}
+                                    onClick={() => setTax(Math.max(0, Math.round(tax) - 1))}
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                  >
+                                    <Minus className="size-3" />
+                                  </button>
+                                  <div className="flex items-center px-1">
+                                    <input
+                                      inputMode="decimal"
+                                      value={String(tax).replace(".", ",")}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(",", ".");
+                                        if (/^\d*(\.\d*)?$/.test(val)) {
+                                          setTax(Number(val) || 0);
+                                        }
+                                      }}
+                                      className="w-8 text-center text-xs font-bold text-primary outline-none bg-transparent"
+                                    />
+                                    <span className="text-[10px] font-bold text-muted-foreground">%</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={tax >= 25}
+                                    onClick={() => setTax(Math.min(25, Math.round(tax) + 1))}
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                  >
+                                    <Plus className="size-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-1">
+                                {[
+                                  { label: "MEI", v: pricingSettings.taxPresets?.mei ?? 0 },
+                                  { label: "F1 4%", v: pricingSettings.taxPresets?.simplesF1 ?? 4 },
+                                  { label: "F2 7%", v: pricingSettings.taxPresets?.simplesF2 ?? 7 },
+                                  { label: "F3 10%", v: pricingSettings.taxPresets?.simplesF3 ?? 10 },
+                                ].map((p) => (
+                                  <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => setTax(p.v)}
+                                    className={cn(
+                                      "flex-1 rounded-md py-1 text-[10px] font-semibold transition-all cursor-pointer border",
+                                      tax === p.v
+                                        ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
+                                        : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                    )}
+                                  >
+                                    {p.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Taxa de Cartão */}
+                            <div className="rounded-xl border border-border/70 bg-secondary/15 p-2.5 space-y-2">
+                              <div className="flex items-center justify-between gap-1">
+                                <Label className="text-[11px] font-bold text-foreground">
+                                  Maquininha
+                                </Label>
+                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-background px-1 py-0.5 shadow-2xs focus-within:border-primary">
+                                  <button
+                                    type="button"
+                                    disabled={cardRate <= 0}
+                                    onClick={() => setCardRate(Math.max(0, Number((cardRate - 0.5).toFixed(1))))}
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                  >
+                                    <Minus className="size-3" />
+                                  </button>
+                                  <div className="flex items-center px-1">
+                                    <input
+                                      inputMode="decimal"
+                                      value={String(cardRate).replace(".", ",")}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(",", ".");
+                                        if (/^\d*(\.\d*)?$/.test(val)) {
+                                          setCardRate(Number(val) || 0);
+                                        }
+                                      }}
+                                      className="w-9 text-center text-xs font-bold text-primary outline-none bg-transparent"
+                                    />
+                                    <span className="text-[10px] font-bold text-muted-foreground">%</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={cardRate >= 15}
+                                    onClick={() => setCardRate(Math.min(15, Number((cardRate + 0.5).toFixed(1))))}
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                  >
+                                    <Plus className="size-3" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-1">
+                                {[
+                                  { label: "Pix", v: pricingSettings.cardRates?.pix ?? 0.9 },
+                                  { label: "Débito", v: pricingSettings.cardRates?.debito ?? 1.5 },
+                                  { label: "1×", v: pricingSettings.cardRates?.credito1x ?? 3.2 },
+                                  { label: "Parc.", v: pricingSettings.cardRates?.parcelado ?? 4.5 },
+                                ].map((p) => (
+                                  <button
+                                    key={p.label}
+                                    type="button"
+                                    onClick={() => setCardRate(p.v)}
+                                    className={cn(
+                                      "flex-1 rounded-md py-1 text-[10px] font-semibold transition-all cursor-pointer border",
+                                      cardRate === p.v
+                                        ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
+                                        : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                    )}
+                                  >
+                                    {p.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* ── COLUNA DA DIREITA: RECIBO CUSTO REAL & ESTRATÉGIA DE PREÇO (5 colunas lg) ── */}
-                      <div className="lg:col-span-5 space-y-4">
-                        {/* 1. Recibo Custo Real da Peça */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-4">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {/* ── COLUNA DA DIREITA: CONSOLE COMERCIAL UNIFICADA (6 colunas lg) ── */}
+                      <div className="lg:col-span-6 flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
+                        {/* 1. Recibo Nobre do Custo Real da Peça */}
+                        <div>
+                          <div className="flex items-center justify-between gap-2 pb-1">
+                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                               Custo Real da Peça
                             </span>
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                              Base de precificação
+                            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                              Base da Precificação
                             </span>
                           </div>
 
-                          <div>
-                            <div className="numeric text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                          <div className="mt-1 flex items-baseline justify-between gap-2">
+                            <div className="numeric text-3xl font-extrabold text-foreground tracking-tight">
                               {brl(totalUnitCost)}
-                              <span className="text-xs font-normal text-muted-foreground ml-1">/ peça</span>
+                              <span className="text-xs font-normal text-muted-foreground ml-1">/ un.</span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {brl(baseCost)} atacado{variants.length === 0 && toNumber(baseWholesaleGrade) > 0 ? " (base da grade)" : ""} + {brl(totalSharedCost)} adicionais
-                            </p>
-                          </div>
-
-                          {/* Breakdown de Adicionais com Bullets Coloridos */}
-                          <div className="space-y-1.5 pt-2 border-t border-border/50">
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-primary shrink-0" />
-                                <span className="text-muted-foreground">Custo atacado</span>
-                              </div>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(baseCost)}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-blue-500 shrink-0" />
-                                <span className="text-muted-foreground">Frete rateado</span>
-                              </div>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(freightVal)}{" "}
-                                <span className="text-muted-foreground font-normal">({Math.round(freightPct)}%)</span>
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-                                <span className="text-muted-foreground">Embalagem e tag</span>
-                              </div>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(packagingVal)}{" "}
-                                <span className="text-muted-foreground font-normal">({Math.round(packagingPct)}%)</span>
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className="size-2 rounded-full bg-amber-500 shrink-0" />
-                                <span className="text-muted-foreground">Outros custos</span>
-                              </div>
-                              <span className="numeric font-semibold text-foreground">
-                                {brl(otherVal)}{" "}
-                                <span className="text-muted-foreground font-normal">({Math.round(otherPct)}%)</span>
-                              </span>
+                            <div className="text-right text-xs text-muted-foreground">
+                              <strong className="text-foreground">{brl(baseCost)}</strong> atacado
+                              {totalSharedCost > 0 && <> + <strong className="text-foreground">{brl(totalSharedCost)}</strong> rateio</>}
                             </div>
                           </div>
 
-                          {/* Barra segmentada colorida */}
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
-                            {freightPct > 0 && (
-                              <div style={{ width: `${freightPct}%` }} className="h-full bg-blue-500 transition-all duration-300" />
-                            )}
-                            {packagingPct > 0 && (
-                              <div style={{ width: `${packagingPct}%` }} className="h-full bg-emerald-500 transition-all duration-300" />
-                            )}
-                            {otherPct > 0 && (
-                              <div style={{ width: `${otherPct}%` }} className="h-full bg-amber-500 transition-all duration-300" />
-                            )}
+                          {/* Mini-Barra Segmentada de Proporção de Custos */}
+                          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
+                            <div style={{ width: `${totalUnitCost > 0 ? (baseCost / totalUnitCost) * 100 : 100}%` }} className="h-full bg-primary transition-all duration-300" title={`Atacado: ${brl(baseCost)}`} />
+                            {freightPct > 0 && <div style={{ width: `${(freightVal / totalUnitCost) * 100}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Frete: ${brl(freightVal)}`} />}
+                            {packagingPct > 0 && <div style={{ width: `${(packagingVal / totalUnitCost) * 100}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Embalagem: ${brl(packagingVal)}`} />}
+                            {otherPct > 0 && <div style={{ width: `${(otherVal / totalUnitCost) * 100}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`Outros: ${brl(otherVal)}`} />}
                           </div>
 
-                          {/* Caixa Explicativa */}
-                          <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground shadow-2xs">
-                            <Info className="size-4 shrink-0 text-primary/80" />
-                            <span>
-                              {totalSharedCost > 0 ? (
-                                <>
-                                  Adicionais compõem{" "}
-                                  <strong className="text-foreground">
-                                    {Math.round(totalUnitCost > 0 ? (totalSharedCost / totalUnitCost) * 100 : 0)}%
-                                  </strong>{" "}
-                                  do custo desta peça
-                                </>
-                              ) : (
-                                <>Sem custos adicionais · Custo real igual ao atacado</>
-                              )}
-                            </span>
+                          {/* Legenda dos componentes de custo */}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+                            <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-primary" />Atacado {brl(baseCost)}</span>
+                            {freightVal > 0 && <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-blue-500" />Frete {brl(freightVal)}</span>}
+                            {packagingVal > 0 && <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-emerald-500" />Embalagem {brl(packagingVal)}</span>}
+                            {otherVal > 0 && <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-amber-500" />Extras {brl(otherVal)}</span>}
                           </div>
                         </div>
 
-                        {/* 2. Barra de Estratégia de Preço da Grade */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-4">
+                        {/* 2. Formação de Preço da Grade com Botão Aplicar */}
+                        <div className="pt-3 border-t border-border/50 space-y-3">
                           <div className="flex items-center justify-between gap-2">
                             <div>
-                              <p className="text-sm font-bold text-foreground">
-                                Formação de Preço da Grade
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                Defina a margem e aplique a todas as variações
-                              </p>
+                              <p className="text-xs font-bold text-foreground">Formação de Preço da Grade</p>
+                              <p className="text-[10px] text-muted-foreground">Defina a meta e aplique a todas as variações</p>
                             </div>
 
                             <Button
@@ -4571,13 +4642,13 @@ function Precificacao() {
                             </Button>
                           </div>
 
-                          {/* Abas de Modo */}
+                          {/* Segmented Control Apple: Margem / Markup / Preço Fixo */}
                           <div className="grid grid-cols-3 gap-1 rounded-xl border border-border/80 bg-secondary/30 p-1 shadow-2xs">
                             <button
                               type="button"
                               onClick={() => setMatrixGlobalMode("margin")}
                               className={cn(
-                                "flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-2 text-xs font-bold transition-all cursor-pointer",
+                                "flex items-center justify-center gap-1.5 rounded-lg py-1 px-2 text-xs font-bold transition-all cursor-pointer",
                                 matrixGlobalMode === "margin"
                                   ? "bg-card text-foreground shadow-xs"
                                   : "text-muted-foreground hover:text-foreground",
@@ -4590,7 +4661,7 @@ function Precificacao() {
                               type="button"
                               onClick={() => setMatrixGlobalMode("markup")}
                               className={cn(
-                                "flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-2 text-xs font-bold transition-all cursor-pointer",
+                                "flex items-center justify-center gap-1.5 rounded-lg py-1 px-2 text-xs font-bold transition-all cursor-pointer",
                                 matrixGlobalMode === "markup"
                                   ? "bg-card text-foreground shadow-xs"
                                   : "text-muted-foreground hover:text-foreground",
@@ -4603,7 +4674,7 @@ function Precificacao() {
                               type="button"
                               onClick={() => setMatrixGlobalMode("direct_price")}
                               className={cn(
-                                "flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-2 text-xs font-bold transition-all cursor-pointer",
+                                "flex items-center justify-center gap-1.5 rounded-lg py-1 px-2 text-xs font-bold transition-all cursor-pointer",
                                 matrixGlobalMode === "direct_price"
                                   ? "bg-card text-foreground shadow-xs"
                                   : "text-muted-foreground hover:text-foreground",
@@ -4614,11 +4685,11 @@ function Precificacao() {
                             </button>
                           </div>
 
-                          {/* Controles de Valor */}
+                          {/* Controles de Valor por Modo */}
                           {matrixGlobalMode === "margin" && (
                             <div className="space-y-2">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold text-muted-foreground">Meta de margem:</span>
+                                <span className="text-xs font-semibold text-muted-foreground">Meta de margem líquida:</span>
                                 <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
                                   <button
                                     type="button"
@@ -4626,7 +4697,7 @@ function Precificacao() {
                                       const cur = toNumber(matrixGlobalMarginStr) || 50;
                                       setMatrixGlobalMarginStr(String(Math.max(1, Math.round(cur) - 1)));
                                     }}
-                                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
                                     title="−1%"
                                   >
                                     <Minus className="size-3.5" />
@@ -4635,8 +4706,8 @@ function Precificacao() {
                                     <input
                                       inputMode="decimal"
                                       value={matrixGlobalMarginStr}
-                                      onChange={(e) => { if (/^[d,.]*$/.test(e.target.value)) setMatrixGlobalMarginStr(e.target.value); }}
-                                      className="w-10 text-center text-sm font-bold outline-none bg-transparent text-primary"
+                                      onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarginStr(e.target.value); }}
+                                      className="w-10 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                     />
                                     <span className="text-xs font-bold text-muted-foreground">%</span>
                                   </div>
@@ -4646,7 +4717,7 @@ function Precificacao() {
                                       const cur = toNumber(matrixGlobalMarginStr) || 50;
                                       setMatrixGlobalMarginStr(String(Math.min(85, Math.round(cur) + 1)));
                                     }}
-                                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
                                     title="+1%"
                                   >
                                     <Plus className="size-3.5" />
@@ -4654,17 +4725,17 @@ function Precificacao() {
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between gap-1 pt-1">
+                              <div className="flex items-center justify-between gap-1">
                                 {[30, 40, 50, 60, 70].map((mv) => (
                                   <button
                                     key={mv}
                                     type="button"
                                     onClick={() => setMatrixGlobalMarginStr(String(mv))}
                                     className={cn(
-                                      "flex-1 rounded-lg py-1 text-xs font-semibold transition-all cursor-pointer border border-border/60",
+                                      "flex-1 rounded-lg py-1 text-xs font-semibold transition-all cursor-pointer border",
                                       toNumber(matrixGlobalMarginStr) === mv
                                         ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
-                                        : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                        : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
                                   >
                                     {mv}%
@@ -4677,7 +4748,7 @@ function Precificacao() {
                           {matrixGlobalMode === "markup" && (
                             <div className="space-y-2">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold text-muted-foreground">Markup:</span>
+                                <span className="text-xs font-semibold text-muted-foreground">Multiplicador Markup:</span>
                                 <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
                                   <button
                                     type="button"
@@ -4685,7 +4756,7 @@ function Precificacao() {
                                       const cur = toNumber(matrixGlobalMarkupStr) || 100;
                                       setMatrixGlobalMarkupStr(String(Math.max(1, Math.round(cur) - 5)));
                                     }}
-                                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
                                     title="−5%"
                                   >
                                     <Minus className="size-3.5" />
@@ -4694,8 +4765,8 @@ function Precificacao() {
                                     <input
                                       inputMode="decimal"
                                       value={matrixGlobalMarkupStr}
-                                      onChange={(e) => { if (/^[d,.]*$/.test(e.target.value)) setMatrixGlobalMarkupStr(e.target.value); }}
-                                      className="w-12 text-center text-sm font-bold outline-none bg-transparent text-primary"
+                                      onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarkupStr(e.target.value); }}
+                                      className="w-12 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                     />
                                     <span className="text-xs font-bold text-muted-foreground">%</span>
                                   </div>
@@ -4705,7 +4776,7 @@ function Precificacao() {
                                       const cur = toNumber(matrixGlobalMarkupStr) || 100;
                                       setMatrixGlobalMarkupStr(String(Math.min(300, Math.round(cur) + 5)));
                                     }}
-                                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
                                     title="+5%"
                                   >
                                     <Plus className="size-3.5" />
@@ -4713,17 +4784,17 @@ function Precificacao() {
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between gap-1 pt-1">
+                              <div className="flex items-center justify-between gap-1">
                                 {[60, 80, 100, 120, 150].map((mk) => (
                                   <button
                                     key={mk}
                                     type="button"
                                     onClick={() => setMatrixGlobalMarkupStr(String(mk))}
                                     className={cn(
-                                      "flex-1 rounded-lg py-1 text-xs font-semibold transition-all cursor-pointer border border-border/60",
+                                      "flex-1 rounded-lg py-1 text-xs font-semibold transition-all cursor-pointer border",
                                       toNumber(matrixGlobalMarkupStr) === mk
                                         ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
-                                        : "bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                        : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
                                   >
                                     {mk}%
@@ -4736,7 +4807,7 @@ function Precificacao() {
                           {matrixGlobalMode === "direct_price" && (
                             <div className="space-y-2">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold text-muted-foreground">Preço final:</span>
+                                <span className="text-xs font-semibold text-muted-foreground">Preço final fixo:</span>
                                 <div className="relative flex items-center rounded-xl border border-border/80 bg-background px-3 py-1 shadow-2xs">
                                   <span className="text-xs text-muted-foreground mr-1 font-semibold">R$</span>
                                   <input
@@ -4744,12 +4815,12 @@ function Precificacao() {
                                     value={matrixGlobalDirectPrice}
                                     onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
                                     placeholder="139,90"
-                                    className="w-20 text-center text-sm font-bold outline-none bg-transparent text-primary"
+                                    className="w-20 text-center text-xs font-bold outline-none bg-transparent text-primary"
                                   />
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between gap-1 pt-1">
+                              <div className="flex items-center justify-between gap-1">
                                 {[",90", ",00", ",50"].map((ending) => (
                                   <button
                                     key={ending}
@@ -4767,22 +4838,52 @@ function Precificacao() {
                               </div>
                             </div>
                           )}
+
+                          {/* Live Preview Callout: Feedback imediato da estratégia */}
+                          <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="size-3.5 text-primary shrink-0" />
+                              <span className="text-muted-foreground">Preço sugerido:</span>
+                              <strong className="text-foreground font-extrabold text-sm">
+                                {previewPrice > 0 ? brl(previewPrice) : "—"}
+                              </strong>
+                            </div>
+                            <div className="text-right">
+                              {previewPrice > 0 && (
+                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                  +{brl(previewProfit)} lucro ({Math.round(previewMargin)}%)
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* ── RESUMO EXECUTIVO DO LOTE & FECHAMENTO ── */}
-                    <div className="rounded-2xl border border-border/80 bg-secondary/15 p-5 sm:p-6 space-y-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
-                        <div>
-                          <h3 className="text-sm font-bold text-foreground">
-                            Resumo Executivo da Grade
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            Projeção financeira consolidada para a venda de todas as peças desta grade
-                          </p>
-                        </div>
+                    {/* ── FITA EXECUTIVA DO LOTE (EXECUTIVE RIBBON) ── */}
+                    <div className="rounded-2xl border border-border/80 bg-gradient-to-b from-secondary/30 via-secondary/15 to-transparent p-4 sm:p-5 space-y-3.5 shadow-2xs">
+                      {/* Top Bar: Title + Health Badge + Break-even pill */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border/50 pb-3">
                         <div className="flex items-center gap-2">
+                          <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                            <TrendingUp className="size-3.5" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-foreground">
+                              Projeção Financeira Consolidada da Grade
+                            </span>
+                            <span className="text-[11px] text-muted-foreground ml-1.5">
+                              ({actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"})
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {actualLotUnits > 0 && lotBreakEven.unitsToBreakEven > 0 && (
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-background border border-border/70 text-muted-foreground shadow-2xs">
+                              🎯 Quitado na <strong className="text-foreground">{lotBreakEven.unitsToBreakEven}ª peça</strong>
+                            </span>
+                          )}
                           {actualLotUnits === 0 ? (
                             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-muted-foreground bg-background border border-border/60 shadow-2xs">
                               ⚪ Aguardando grade
@@ -4795,155 +4896,150 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      {/* Cards de Faturamento e Lucro */}
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-border/70 bg-card p-4 shadow-2xs space-y-1">
-                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                            Faturamento Total Previsto
+                      {/* 4 Metric Columns in 1 Row */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                        {/* 1. Faturamento Total */}
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Faturamento Previsto
                           </span>
-                          {actualLotUnits === 0 ? (
-                            <div className="numeric text-lg font-semibold text-muted-foreground/50">—</div>
-                          ) : (
-                            <div className="numeric text-2xl font-extrabold text-foreground">
-                              {brl(summaryPrices.totalRevenue)}
-                            </div>
-                          )}
-                          <p className="text-[11px] text-muted-foreground">
-                            {actualLotUnits === 0
-                              ? "Adicione peças na grade para projetar"
-                              : <>Média de <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong> / peça na vitrine ({actualLotUnits} un.)</>
-                            }
+                          <div className="numeric text-xl sm:text-2xl font-extrabold text-foreground">
+                            {actualLotUnits === 0 ? "—" : brl(summaryPrices.totalRevenue)}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {actualLotUnits === 0 ? "Adicione peças na grade" : <>Média {brl(summaryPrices.avgSuggested)} / un.</>}
                           </p>
                         </div>
 
-                        <div className={cn("rounded-xl border p-4 shadow-2xs space-y-1", actualLotUnits === 0 ? "border-border/70 bg-card" : "border-emerald-500/20 bg-emerald-500/5")}>
-                          <span className={cn("text-[11px] font-semibold uppercase tracking-wide", actualLotUnits === 0 ? "text-muted-foreground" : "text-emerald-700 dark:text-emerald-300")}>
+                        {/* 2. Investimento / Custo Total */}
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Custo do Lote
+                          </span>
+                          <div className="numeric text-xl sm:text-2xl font-extrabold text-foreground">
+                            {actualLotUnits === 0 ? "—" : brl(summaryPrices.totalInvestment)}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {actualLotUnits === 0 ? "Aguardando peças" : `${actualLotUnits} un. em estoque`}
+                          </p>
+                        </div>
+
+                        {/* 3. Sobra Líquida Real */}
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                             Sobra Líquida no Caixa
                           </span>
-                          {actualLotUnits === 0 ? (
-                            <div className="numeric text-lg font-semibold text-muted-foreground/50">—</div>
-                          ) : (
-                            <div className="numeric text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                              +{brl(summaryPrices.totalProfit)}
-                            </div>
-                          )}
-                          <p className="text-[11px] text-muted-foreground">
-                            {actualLotUnits === 0
-                              ? "Aguardando variações para calcular lucro"
-                              : <>Margem média consolidada de <strong className="text-foreground">{pct(summaryPrices.avgMargin)}</strong> após custos, DAS e taxas</>
-                            }
+                          <div className={cn("numeric text-xl sm:text-2xl font-extrabold", actualLotUnits === 0 ? "text-muted-foreground/50" : "text-emerald-600 dark:text-emerald-400")}>
+                            {actualLotUnits === 0 ? "—" : `+${brl(summaryPrices.totalProfit)}`}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {actualLotUnits === 0 ? "Sem dados" : <>Margem real <strong className="text-foreground">{pct(summaryPrices.avgMargin)}</strong></>}
+                          </p>
+                        </div>
+
+                        {/* 4. Total de Deduções */}
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Deduções (DAS + Cartão)
+                          </span>
+                          <div className="numeric text-xl sm:text-2xl font-extrabold text-muted-foreground">
+                            {actualLotUnits === 0 ? "—" : brl(summaryPrices.totalRevenue * ((tax + cardRate) / 100))}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            DAS {tax}% + Cartão {cardRate}%
                           </p>
                         </div>
                       </div>
 
-                      {/* Decomposição do Faturamento */}
-                      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3 shadow-2xs">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-foreground">Decomposição da Receita</span>
-                          <span className="text-muted-foreground">Para onde vai o dinheiro das {actualLotUnits} peças</span>
-                        </div>
+                      {/* Integrated Decomposition Segmented Bar */}
+                      {summaryPrices.totalRevenue > 0 && (() => {
+                        const rev = summaryPrices.totalRevenue;
+                        const costPct = (summaryPrices.totalInvestment / rev) * 100;
+                        const taxPct = ((rev * (tax / 100)) / rev) * 100;
+                        const cardPct = ((rev * (cardRate / 100)) / rev) * 100;
+                        const profitPct = Math.max(0, 100 - costPct - taxPct - cardPct);
 
-                        {/* Barra segmentada de receita */}
-                        {summaryPrices.totalRevenue > 0 && (() => {
-                          const rev = summaryPrices.totalRevenue;
-                          const costPct = (summaryPrices.totalInvestment / rev) * 100;
-                          const taxPct = ((rev * (tax / 100)) / rev) * 100;
-                          const cardPct = ((rev * (cardRate / 100)) / rev) * 100;
-                          const profitPct = Math.max(0, 100 - costPct - taxPct - cardPct);
-
-                          return (
-                            <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary flex gap-0.5">
-                              <div style={{ width: `${costPct}%` }} className="h-full bg-slate-400 dark:bg-slate-500" title={`Custos: ${Math.round(costPct)}%`} />
-                              <div style={{ width: `${taxPct}%` }} className="h-full bg-amber-500" title={`DAS: ${Math.round(taxPct)}%`} />
-                              <div style={{ width: `${cardPct}%` }} className="h-full bg-blue-500" title={`Cartão: ${Math.round(cardPct)}%`} />
-                              <div style={{ width: `${profitPct}%` }} className="h-full bg-emerald-500" title={`Lucro: ${Math.round(profitPct)}%`} />
+                        return (
+                          <div className="space-y-2 pt-2 border-t border-border/40">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary flex gap-0.5">
+                              <div style={{ width: `${costPct}%` }} className="h-full bg-slate-400 dark:bg-slate-500 transition-all duration-300" title={`Custos: ${Math.round(costPct)}%`} />
+                              <div style={{ width: `${taxPct}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`DAS: ${Math.round(taxPct)}%`} />
+                              <div style={{ width: `${cardPct}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Cartão: ${Math.round(cardPct)}%`} />
+                              <div style={{ width: `${profitPct}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Lucro: ${Math.round(profitPct)}%`} />
                             </div>
-                          );
-                        })()}
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="size-2 rounded-full bg-slate-400 shrink-0" />
-                            <span className="text-muted-foreground truncate">Custo peças:</span>
-                            <strong className="text-foreground">{brl(summaryPrices.totalInvestment)}</strong>
+                            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-slate-400 shrink-0" />
+                                <span className="text-muted-foreground">Custo:</span>
+                                <span className="font-semibold text-foreground">{brl(summaryPrices.totalInvestment)} ({Math.round(costPct)}%)</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-amber-500 shrink-0" />
+                                <span className="text-muted-foreground">DAS:</span>
+                                <span className="font-semibold text-foreground">{brl(summaryPrices.totalRevenue * (tax / 100))} ({tax}%)</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-blue-500 shrink-0" />
+                                <span className="text-muted-foreground">Cartão:</span>
+                                <span className="font-semibold text-foreground">{brl(summaryPrices.totalRevenue * (cardRate / 100))} ({cardRate}%)</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                                <span className="text-muted-foreground">Lucro Líquido:</span>
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400">+{brl(summaryPrices.totalProfit)} ({Math.round(profitPct)}%)</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="size-2 rounded-full bg-amber-500 shrink-0" />
-                            <span className="text-muted-foreground truncate">DAS ({tax}%):</span>
-                            <strong className="text-foreground">{brl(summaryPrices.totalRevenue * (tax / 100))}</strong>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="size-2 rounded-full bg-blue-500 shrink-0" />
-                            <span className="text-muted-foreground truncate">Cartão ({cardRate}%):</span>
-                            <strong className="text-foreground">{brl(summaryPrices.totalRevenue * (cardRate / 100))}</strong>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="text-muted-foreground truncate">Lucro líq.:</span>
-                            <strong className="text-emerald-600 dark:text-emerald-400 font-bold">+{brl(summaryPrices.totalProfit)}</strong>
-                          </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
+                    </div>
 
-                      {/* Ponto de Equilíbrio (Break-Even) */}
-                      <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                        {actualLotUnits === 0 ? (
+                    {/* ── DOCK DE AÇÕES FINAIS (ACESSÍVEL COM ZERO ESFORÇO) ── */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-xs text-muted-foreground">
+                        {actualLotUnits > 0 ? (
                           <>
-                            Adicione tamanhos e quantidades na <strong className="text-foreground">grade (Passo 1)</strong> para ver o faturamento total, ponto de equilíbrio e lucro líquido do lote projetados aqui.
+                            Pronto para registrar <strong>{actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}</strong> no estoque com preço médio de <strong>{brl(summaryPrices.avgSuggested)}</strong>
                           </>
                         ) : (
-                          <>
-                            Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
-                              Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
-                                <>
-                                  As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
-                                </>
-                              ) : (
-                                "Lote quitado com margem saudável."
-                              )
-                            ) : (
-                              <span className="text-destructive font-semibold">
-                                Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
-                              </span>
-                            )}
-                          </>
+                          <>Preencha a grade no Passo 1 para liberar a entrada no estoque</>
                         )}
                       </div>
 
-                      {/* ── AÇÕES FINAIS UNIFICADAS ── */}
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border/50">
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                          <Button
-                            type="button"
-                            onClick={openEntryForCurrent}
-                            disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
-                            className="h-10 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-5 transition-all active:scale-[0.98] text-xs disabled:opacity-50"
-                          >
-                            <PackagePlus className="size-4" />
-                            <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => save.mutate()}
-                            disabled={save.isPending || (actualLotUnits === 0 && !name.trim())}
-                            className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all disabled:opacity-50"
-                            title={!name.trim() && actualLotUnits === 0 ? "Dê um nome para a peça antes de salvar" : "Salvar no histórico"}
-                          >
-                            <Save className="size-3.5" />
-                            <span>Salvar no histórico</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={resetPricingModel}
-                            className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
-                            title="Limpar campos e precificar outro modelo"
-                          >
-                            <RotateCcw className="size-3.5" />
-                            <span>Resetar grade</span>
-                          </Button>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={resetPricingModel}
+                          className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
+                          title="Limpar campos e precificar outro modelo"
+                        >
+                          <RotateCcw className="size-3.5" />
+                          <span>Resetar grade</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => save.mutate()}
+                          disabled={save.isPending || (actualLotUnits === 0 && !name.trim())}
+                          className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all disabled:opacity-50"
+                          title={!name.trim() && actualLotUnits === 0 ? "Dê um nome para a peça antes de salvar" : "Salvar no histórico"}
+                        >
+                          <Save className="size-3.5" />
+                          <span>Salvar no histórico</span>
+                        </Button>
+
+                        <Button
+                          type="button"
+                          onClick={openEntryForCurrent}
+                          disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
+                          className="h-10 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98] text-xs disabled:opacity-50"
+                        >
+                          <PackagePlus className="size-4" />
+                          <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                        </Button>
                       </div>
                     </div>
                   </div>
