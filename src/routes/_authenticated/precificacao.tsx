@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Boxes,
@@ -106,7 +107,7 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
   component: Precificacao,
 });
 
-type PricingMode = "rapida" | "grade";
+type PricingMode = "rapida" | "grade" | "historico";
 type PricingStrategy = "margin" | "markup" | "direct_price";
 
 type ColorStrategy = {
@@ -756,8 +757,9 @@ function Precificacao() {
     return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
   }, [storeId]);
 
-  // ── Modo Principal (2 Modos Estratégicos) ─────────────────────────
+  // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
   const [mode, setMode] = useState<PricingMode>("rapida");
+  const [gradeActiveStep, setGradeActiveStep] = useState<1 | 2>(1);
 
   // ── Estratégia de Precificação ────────────────────────────────────
   const [strategy, setStrategy] = useState<PricingStrategy>("margin");
@@ -2427,7 +2429,24 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground font-medium",
             )}
           >
-            Grade & estoque
+            Grade &amp; estoque
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("historico")}
+            className={cn(
+              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer flex items-center gap-1.5",
+              mode === "historico"
+                ? "bg-card text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground font-medium",
+            )}
+          >
+            <span>Peças precificadas</span>
+            {saved.length > 0 && (
+              <span className="rounded-full bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0.5">
+                {saved.length}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -3712,11 +3731,73 @@ function Precificacao() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            MODO GRADE (v78) — FLUXO NATURAL EM 2 ETAPAS INTELIGENTES
+            MODO GRADE — FLUXO LINEAR GUIADO EM 2 ETAPAS INTELIGENTES (APPLE LEVEL)
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <>
+            {/* ── STEPPER DE ETAPAS (PADRÃO APPLE STUDIO) ── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-secondary/35 border border-border/70 shadow-2xs">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGradeActiveStep(1);
+                    window.scrollTo({ top: 200, behavior: "smooth" });
+                  }}
+                  className={cn(
+                    "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                    gradeActiveStep === 1
+                      ? "bg-card text-foreground shadow-xs border border-border/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  )}
+                >
+                  <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-extrabold text-primary">
+                    1
+                  </span>
+                  <span>1. Peça &amp; Grade</span>
+                  {actualLotUnits > 0 && (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-foreground">
+                      {actualLotUnits} un.
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGradeActiveStep(2);
+                    window.scrollTo({ top: 200, behavior: "smooth" });
+                  }}
+                  className={cn(
+                    "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                    gradeActiveStep === 2
+                      ? "bg-card text-foreground shadow-xs border border-border/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                  )}
+                >
+                  <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-extrabold text-primary">
+                    2
+                  </span>
+                  <span>2. Custos &amp; Precificação</span>
+                  {summaryPrices.avgSuggested > 0 && (
+                    <span className="rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-extrabold">
+                      {brl(summaryPrices.avgSuggested)}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
+                {gradeActiveStep === 1 ? (
+                  <span>Etapa 1 de 2: Defina modelo e grade</span>
+                ) : (
+                  <span>Etapa 2 de 2: Custos e estratégia comercial</span>
+                )}
+              </div>
+            </div>
+
             {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
+            {gradeActiveStep === 1 && (
             <section className="panel p-6 sm:p-7 space-y-6">
               {/* Cabeçalho */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
@@ -3819,7 +3900,7 @@ function Precificacao() {
                           }))
                         );
                       }}
-                      placeholder="49,90"
+                      placeholder="0,00"
                       className="h-11 w-full bg-transparent px-2 text-sm font-extrabold text-foreground outline-none numeric"
                     />
                   </div>
@@ -4096,9 +4177,40 @@ function Precificacao() {
                   </div>
                 </div>
               )}
+
+              {/* Barra de Ação da Etapa 1: Avanço Natural */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/60">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Total na grade:</span>
+                  <strong className="text-foreground">{actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}</strong>
+                  {actualLotUnits > 0 && toNumber(baseWholesaleGrade) > 0 && (
+                    <span>· Custo do lote: <strong className="text-foreground">{brl(summaryPrices.totalInvestment)}</strong></span>
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (actualLotUnits === 0) {
+                      toast.info("Selecione os tamanhos da grade acima para continuar.", {
+                        description: "Escolha tamanhos na barra ou adicione uma variação.",
+                      });
+                      return;
+                    }
+                    setGradeActiveStep(2);
+                    window.scrollTo({ top: 200, behavior: "smooth" });
+                  }}
+                  className="h-11 rounded-xl gradient-primary text-xs sm:text-sm font-bold shadow-glow hover:opacity-95 transition-all cursor-pointer flex items-center justify-center gap-2 px-6 w-full sm:w-auto"
+                >
+                  <span>Continuar para Custos e Precificação</span>
+                  <ArrowRight className="size-4" />
+                </Button>
+              </div>
             </section>
+            )}
 
             {/* ── ETAPA 2: CUSTOS OPERACIONAIS, RECIBO & FORMAÇÃO DO PREÇO ── */}
+            {gradeActiveStep === 2 && (
             <section className="panel p-6 sm:p-7 space-y-6">
               {/* Cabeçalho */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
@@ -4146,24 +4258,27 @@ function Precificacao() {
                 const taxFrac = tax / 100;
                 const cardFrac = cardRate / 100;
                 const totalDeductionsFrac = taxFrac + cardFrac;
+                const hasValidWholesale = baseCost > 0 || matrixGlobalMode === "direct_price";
 
-                if (matrixGlobalMode === "margin") {
-                  const m = toNumber(matrixGlobalMarginStr) || 50;
-                  const div = 1 - (totalDeductionsFrac + m / 100);
-                  previewPrice = div > 0.05 ? totalUnitCost / div : 0;
-                  previewMargin = m;
-                  previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
-                } else if (matrixGlobalMode === "markup") {
-                  const mk = toNumber(matrixGlobalMarkupStr) || 100;
-                  const base = totalUnitCost * (1 + mk / 100);
-                  const div = 1 - totalDeductionsFrac;
-                  previewPrice = div > 0.05 ? base / div : 0;
-                  previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
-                  previewMargin = previewPrice > 0 ? (previewProfit / previewPrice) * 100 : 0;
-                } else {
-                  previewPrice = toNumber(matrixGlobalDirectPrice);
-                  previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
-                  previewMargin = previewPrice > 0 ? (previewProfit / previewPrice) * 100 : 0;
+                if (hasValidWholesale && totalUnitCost > 0) {
+                  if (matrixGlobalMode === "margin") {
+                    const m = toNumber(matrixGlobalMarginStr) || 50;
+                    const div = 1 - (totalDeductionsFrac + m / 100);
+                    previewPrice = div > 0.05 ? totalUnitCost / div : 0;
+                    previewMargin = m;
+                    previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
+                  } else if (matrixGlobalMode === "markup") {
+                    const mk = toNumber(matrixGlobalMarkupStr) || 100;
+                    const base = totalUnitCost * (1 + mk / 100);
+                    const div = 1 - totalDeductionsFrac;
+                    previewPrice = div > 0.05 ? base / div : 0;
+                    previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
+                    previewMargin = previewPrice > 0 ? (previewProfit / previewPrice) * 100 : 0;
+                  } else {
+                    previewPrice = toNumber(matrixGlobalDirectPrice);
+                    previewProfit = previewPrice > 0 ? previewPrice * (1 - totalDeductionsFrac) - totalUnitCost : 0;
+                    previewMargin = previewPrice > 0 ? (previewProfit / previewPrice) * 100 : 0;
+                  }
                 }
 
                 const renderInlineRateio = (target: "freight" | "packaging" | "other", targetLabel: string) => {
@@ -4676,6 +4791,20 @@ function Precificacao() {
                               <>
                                 Cobrando <strong className="text-foreground">{brl(previewPrice)}</strong>, sobram <strong className="text-emerald-600 dark:text-emerald-400">{brl(previewProfit)} livres no caixa</strong> após pagar o custo ({brl(totalUnitCost)}) e as deduções de {(tax + cardRate).toFixed(1).replace(".", ",")}% ({brl(previewPrice * ((tax + cardRate) / 100))}).
                               </>
+                            ) : baseCost <= 0 ? (
+                              <span className="flex flex-wrap items-center justify-between gap-2">
+                                <span>Defina o custo no atacado no Passo 1 para calcular a projeção de preço e lucro.</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setGradeActiveStep(1);
+                                    window.scrollTo({ top: 200, behavior: "smooth" });
+                                  }}
+                                  className="text-primary hover:underline font-bold text-xs shrink-0 cursor-pointer"
+                                >
+                                  Ir para Passo 1 →
+                                </button>
+                              </span>
                             ) : (
                               "Escolha sua meta comercial abaixo para projetar o preço e o lucro por peça."
                             )}
@@ -5103,6 +5232,18 @@ function Precificacao() {
                               <Button
                                 type="button"
                                 variant="outline"
+                                onClick={() => {
+                                  setGradeActiveStep(1);
+                                  window.scrollTo({ top: 200, behavior: "smooth" });
+                                }}
+                                className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
+                              >
+                                <ArrowLeft className="size-3.5" />
+                                <span>Voltar para Grade</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
                                 onClick={resetPricingModel}
                                 className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
                                 title="Limpar campos e precificar outro modelo"
@@ -5140,115 +5281,119 @@ function Precificacao() {
                 );
               })()}
             </section>
+            )}
           </>
         )}
-      </div>
-{/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
-      <section className="panel p-5 sm:p-6">
-        <div className="flex items-center justify-between border-b border-border/50 pb-3.5">
-          <div>
-            <h2 className="text-base font-semibold">Peças precificadas</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Histórico dos seus cálculos de precificação.
-            </p>
-          </div>
-          {saved.length > 0 && (
-            <Badge variant="outline" className="rounded-full">
-              {saved.length} {saved.length === 1 ? "peça" : "peças"}
-            </Badge>
-          )}
-        </div>
 
-        {saved.length === 0 ? (
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-dashed border-border/70 bg-secondary/20 p-3.5 text-center sm:text-left">
-            <div className="flex items-center gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background border border-border/60 text-muted-foreground shadow-2xs">
-                <Tag className="size-3.5" />
-              </div>
+        {/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
+        {mode === "historico" && (
+          <section className="panel p-5 sm:p-6">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3.5">
               <div>
-                <p className="text-xs font-semibold text-foreground">Nenhuma peça salva ainda</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Calcule e clique em &ldquo;Salvar no histórico&rdquo; para consultar depois na hora de dar entrada.
+                <h2 className="text-base font-semibold">Peças precificadas</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Histórico dos seus cálculos de precificação salvos no sistema.
                 </p>
               </div>
+              {saved.length > 0 && (
+                <Badge variant="outline" className="rounded-full">
+                  {saved.length} {saved.length === 1 ? "peça" : "peças"}
+                </Badge>
+              )}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 rounded-full text-xs font-medium border-border/80 bg-background hover:bg-secondary shrink-0 cursor-pointer"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            >
-              Calcular peça ↑
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                  <th className="pb-3 font-semibold">Peça</th>
-                  <th className="pb-3 font-semibold">Custo real</th>
-                  <th className="pb-3 font-semibold">Margem real</th>
-                  <th className="pb-3 font-semibold">Preço sugerido</th>
-                  <th className="pb-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {saved.map((p) => {
-                  const r = computePricing({
-                    wholesale_cost: Number(p.wholesale_cost),
-                    freight_cost: Number(p.freight_cost),
-                    packaging_cost: Number(p.packaging_cost),
-                    other_costs: Number(p.other_costs),
-                    margin_pct: Number(p.margin_pct),
-                    tax_pct: Number(p.tax_pct),
-                    card_rate_pct: cardRate,
-                  });
-                  return (
-                    <tr key={p.id} className="transition-colors hover:bg-surface-muted/60">
-                      <td className="py-3.5 font-medium">{p.name}</td>
-                      <td className="numeric py-3.5 text-muted-foreground">{brl(r.realCost)}</td>
-                      <td className="numeric py-3.5 font-semibold text-foreground">
-                        {pct(r.marginOnPrice)}
-                      </td>
-                      <td className="numeric py-3.5 font-semibold text-primary">
-                        {brl(r.suggestedPrice)}
-                      </td>
-                      <td className="py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Dar entrada no Estoque com fotos e quantidades"
-                            className="h-8 rounded-lg text-xs font-semibold text-primary hover:bg-primary-soft"
-                            onClick={() => openEntryForSaved(p, r.realCost, r.suggestedPrice)}
-                          >
-                            <PackagePlus className="mr-1.5 size-3.5" /> Dar Entrada
-                          </Button>
-                          <ConfirmDelete
-                            onConfirm={() => remove.mutate(p.id)}
-                            description={`"${p.name}" será removida das suas precificações.`}
-                            trigger={
+
+            {saved.length === 0 ? (
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-dashed border-border/70 bg-secondary/20 p-3.5 text-center sm:text-left">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background border border-border/60 text-muted-foreground shadow-2xs">
+                    <Tag className="size-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Nenhuma peça salva ainda</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Calcule e clique em &ldquo;Salvar no histórico&rdquo; para consultar depois na hora de dar entrada.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full text-xs font-medium border-border/80 bg-background hover:bg-secondary shrink-0 cursor-pointer"
+                  onClick={() => setMode("grade")}
+                >
+                  Calcular na grade →
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                      <th className="pb-3 font-semibold">Peça</th>
+                      <th className="pb-3 font-semibold">Custo real</th>
+                      <th className="pb-3 font-semibold">Margem real</th>
+                      <th className="pb-3 font-semibold">Preço sugerido</th>
+                      <th className="pb-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {saved.map((p) => {
+                      const r = computePricing({
+                        wholesale_cost: Number(p.wholesale_cost),
+                        freight_cost: Number(p.freight_cost),
+                        packaging_cost: Number(p.packaging_cost),
+                        other_costs: Number(p.other_costs),
+                        margin_pct: Number(p.margin_pct),
+                        tax_pct: Number(p.tax_pct),
+                        card_rate_pct: cardRate,
+                      });
+                      return (
+                        <tr key={p.id} className="transition-colors hover:bg-surface-muted/60">
+                          <td className="py-3.5 font-medium">{p.name}</td>
+                          <td className="numeric py-3.5 text-muted-foreground">{brl(r.realCost)}</td>
+                          <td className="numeric py-3.5 font-semibold text-foreground">
+                            {pct(r.marginOnPrice)}
+                          </td>
+                          <td className="numeric py-3.5 font-semibold text-primary">
+                            {brl(r.suggestedPrice)}
+                          </td>
+                          <td className="py-3.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+                                size="sm"
+                                title="Dar entrada no Estoque com fotos e quantidades"
+                                className="h-8 rounded-lg text-xs font-semibold text-primary hover:bg-primary-soft"
+                                onClick={() => openEntryForSaved(p, r.realCost, r.suggestedPrice)}
                               >
-                                <Trash2 className="size-4" />
+                                <PackagePlus className="mr-1.5 size-3.5" /> Dar Entrada
                               </Button>
-                            }
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                              <ConfirmDelete
+                                onConfirm={() => remove.mutate(p.id)}
+                                description={`"${p.name}" será removida das suas precificações.`}
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                }
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         )}
-      </section>
+      </div>
 
       {/* ── Modal Sheet: Ficha de Entrada Operacional no Estoque ──── */}
       <Sheet open={entrySheetOpen} onOpenChange={setEntrySheetOpen}>
