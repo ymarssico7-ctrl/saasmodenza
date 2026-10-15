@@ -175,6 +175,39 @@ const SIZE_QUICK_PRESETS = [
   { id: "jeans",    label: "Jeans",   sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
 ];
 
+export const SIZE_FAMILIES = [
+  {
+    id: "padrao" as const,
+    label: "Letras (PP–GG)",
+    shortLabel: "PP ao GG",
+    sizes: ["PP", "P", "M", "G", "GG"],
+  },
+  {
+    id: "numerica" as const,
+    label: "Numérica (34–50)",
+    shortLabel: "34 ao 50",
+    sizes: ["34", "36", "38", "40", "42", "44", "46", "48", "50"],
+  },
+  {
+    id: "plus" as const,
+    label: "Plus Size (G1–G3)",
+    shortLabel: "G1 ao G3",
+    sizes: ["GG", "G1", "G2", "G3"],
+  },
+  {
+    id: "unico" as const,
+    label: "Tamanho Único",
+    shortLabel: "Único",
+    sizes: ["Único"],
+  },
+  {
+    id: "todas" as const,
+    label: "Todas as Medidas",
+    shortLabel: "Todas",
+    sizes: ALL_FASHION_SIZES,
+  },
+];
+
 const COLOR_PRESETS = [
   // Neutros & Clássicos
   { name: "Off-White", color: "#F8F6F0" },
@@ -839,6 +872,7 @@ function Precificacao() {
   const [matrixGlobalDirectPrice, setMatrixGlobalDirectPrice] = useState("");
   const [showAdvancedMatrix, setShowAdvancedMatrix] = useState(false);
   const [matrixSetupOpen, setMatrixSetupOpen] = useState(true);
+  const [activeSizeFamily, setActiveSizeFamily] = useState<"padrao" | "numerica" | "plus" | "unico" | "todas">("padrao");
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
@@ -3704,13 +3738,31 @@ function Precificacao() {
                   <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
                     {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} na grade ({Array.from(new Set(variants.map((v) => v.color))).length} {Array.from(new Set(variants.map((v) => v.color))).length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"})
                   </Badge>
+
+                  {(name.trim() !== "" || baseWholesaleGrade.trim() !== "" || variants.length > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setName("");
+                        setBaseWholesaleGrade("");
+                        setVariants([]);
+                        setActiveColors([]);
+                        toast.success("Grade limpa", { description: "Nome, custo base e todas as variações foram removidos." });
+                      }}
+                      className="h-7 px-2.5 rounded-full border border-border/70 bg-secondary/40 text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+                      title="Limpar grade completa — remove nome, custo base e todas as variações"
+                    >
+                      <RotateCcw className="size-3" />
+                      <span>Limpar tudo</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Grid de Identificação da Peça */}
-              <div className="grid gap-3 sm:grid-cols-[1fr_200px_160px_auto] items-end">
+              {/* Grid de Identificação da Peça — 3 Colunas Nobres e Equilibradas */}
+              <div className="grid gap-3.5 md:grid-cols-12 items-end">
                 {/* 1. Nome da Peça */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-5">
                   <Label className="text-xs font-semibold text-foreground">
                     Nome da peça ou modelo
                   </Label>
@@ -3718,17 +3770,17 @@ function Precificacao() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ex: Vestido Midi Linho com Fenda"
-                    className="h-11 rounded-xl font-semibold text-sm bg-card shadow-2xs"
+                    className="h-11 rounded-xl font-semibold text-sm bg-card shadow-2xs border-border/80 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
 
                 {/* 2. Categoria */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-4">
                   <Label className="text-xs font-semibold text-foreground">
                     Categoria
                   </Label>
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="h-11 rounded-xl font-medium text-sm bg-card shadow-2xs border-border">
+                    <SelectTrigger className="h-11 rounded-xl font-medium text-sm bg-card shadow-2xs border-border/80">
                       <SelectValue placeholder="Selecione categoria..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -3741,13 +3793,18 @@ function Precificacao() {
                   </Select>
                 </div>
 
-                {/* 3. Custo Base de Atacado da Grade */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground" title="Custo unitário padrão pago no fornecedor para as peças desta grade">
-                    Custo atacado base
-                  </Label>
-                  <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20">
-                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                {/* 3. Custo Base de Atacado da Grade (Destaque Nobre) */}
+                <div className="space-y-1.5 md:col-span-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-foreground">
+                      Custo atacado base
+                    </Label>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                      Base da grade
+                    </span>
+                  </div>
+                  <div className="relative flex h-11 items-center rounded-xl border border-primary/30 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                    <span className="pl-3 text-xs font-bold text-primary select-none">R$</span>
                     <input
                       inputMode="decimal"
                       value={baseWholesaleGrade}
@@ -3763,62 +3820,72 @@ function Precificacao() {
                         );
                       }}
                       placeholder="49,90"
-                      className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                      className="h-11 w-full bg-transparent px-2 text-sm font-extrabold text-foreground outline-none numeric"
                     />
                   </div>
                 </div>
-
-                {/* 4. Botão Limpar Campos */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setName("");
-                    setBaseWholesaleGrade("");
-                    setVariants([]);
-                    setActiveColors([]);
-                    toast.success("Grade limpa", { description: "Nome, custo base e todas as variações foram removidos." });
-                  }}
-                  className="h-11 px-3 rounded-xl border border-border/70 bg-secondary/30 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5 shrink-0"
-                  title="Limpar grade completa — remove nome, custo base e todas as variações"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span className="hidden sm:inline">Limpar grade</span>
-                </button>
               </div>
 
-              {/* ── Tamanhos da Peça ── */}
-              <div className="space-y-2.5 pt-1 border-t border-border/50">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    Tamanhos da grade:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1">
-                    {SIZE_QUICK_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => applyModelQuickPreset(preset.sizes)}
-                        className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                        title={`Aplicar grade ${preset.label}`}
-                      >
-                        + {preset.label}
-                      </button>
-                    ))}
+              {/* ── Console Inteligente de Grade de Tamanhos (Padrão Apple Studio) ── */}
+              <div className="space-y-3 pt-3 border-t border-border/50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Segmented Control por Família de Medida */}
+                  <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-secondary/50 border border-border/70 shadow-2xs">
+                    {SIZE_FAMILIES.map((fam) => {
+                      const isActive = activeSizeFamily === fam.id;
+                      const familySelectedCount = fam.sizes.filter((s) => activeModelSizes.has(s)).length;
+                      return (
+                        <button
+                          key={fam.id}
+                          type="button"
+                          onClick={() => setActiveSizeFamily(fam.id)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                            isActive
+                              ? "bg-card text-foreground shadow-xs font-bold border border-border/60"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                          )}
+                        >
+                          <span>{fam.label}</span>
+                          {familySelectedCount > 0 && (
+                            <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                              {familySelectedCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Ações Rápidas da Família Ativa */}
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
+                        applyModelQuickPreset(currentFam.sizes);
+                      }}
+                      className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/5 hover:border-primary/40 transition-all cursor-pointer shadow-2xs"
+                      title="Selecionar todos os tamanhos desta categoria"
+                    >
+                      + Selecionar todos
+                    </button>
                     {activeModelSizes.size > 0 && (
                       <button
                         type="button"
                         onClick={clearModelSizes}
-                        className="rounded-lg border border-border/60 bg-secondary/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:border-destructive/40 hover:text-destructive hover:bg-destructive/5 transition-all cursor-pointer"
-                        title="Limpar todos os tamanhos"
+                        className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/5 hover:border-destructive/30 transition-all cursor-pointer shadow-2xs"
+                        title="Desmarcar todos os tamanhos"
                       >
-                        Limpar
+                        Limpar seleção
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {availableModelSizes.map((sz) => {
+                {/* Chips de Tamanho Táteis da Família Ativa */}
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
                     const isSzActive = activeModelSizes.has(sz);
                     return (
                       <button
@@ -3826,14 +3893,14 @@ function Precificacao() {
                         type="button"
                         onClick={() => toggleModelSize(sz)}
                         className={cn(
-                          "flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
+                          "flex items-center justify-center gap-1.5 min-w-[54px] h-10 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
                           isSzActive
-                            ? "gradient-primary text-primary-foreground shadow-xs ring-1 ring-primary/30"
-                            : "border border-border/80 bg-secondary/30 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-secondary/60",
+                            ? "gradient-primary text-primary-foreground shadow-glow ring-2 ring-primary/20 scale-[1.02]"
+                            : "border border-border/80 bg-card text-foreground hover:border-primary/40 hover:bg-secondary/40 shadow-2xs",
                         )}
                       >
                         <span>{sz}</span>
-                        {isSzActive && <Check className="size-3 stroke-[3]" />}
+                        {isSzActive && <Check className="size-3.5 stroke-[3]" />}
                       </button>
                     );
                   })}
@@ -4007,19 +4074,19 @@ function Precificacao() {
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => applyModelQuickPreset(SIZE_QUICK_PRESETS[0]!.sizes)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl gradient-primary text-xs font-bold text-white shadow-xs hover:opacity-95 transition-all cursor-pointer"
+                      onClick={() => applyModelQuickPreset(SIZE_FAMILIES[0]!.sizes)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl gradient-primary text-xs font-bold text-white shadow-glow hover:opacity-95 transition-all cursor-pointer active:scale-95"
                     >
                       <Plus className="size-3.5" />
                       <span>Começar com Grade P ao GG</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => applyModelQuickPreset(SIZE_QUICK_PRESETS[1]!.sizes)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border/80 bg-card text-xs font-bold text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs"
+                      onClick={() => applyModelQuickPreset(SIZE_FAMILIES[1]!.sizes)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border/80 bg-card text-xs font-bold text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs active:scale-95"
                     >
                       <Plus className="size-3.5" />
-                      <span>Grade Numérica 36 ao 46</span>
+                      <span>Grade Numérica 34 ao 50</span>
                     </button>
                     <AddVariantPopover
                       defaultColor="Off-White"
