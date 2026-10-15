@@ -4249,41 +4249,63 @@ function Precificacao() {
 
                 return (
                   <div className="space-y-6">
-                    {/* ── GRID PRINCIPAL: PAREAMENTO PERFEITO & RESPIRO GENEROSO (6 colunas + 6 colunas) ── */}
+                    {/* ── GRID PRINCIPAL: COMPOSIÇÃO DE CUSTOS & COMANDO COMERCIAL (6 colunas + 6 colunas) ── */}
                     <div className="grid gap-6 lg:grid-cols-12 items-stretch">
-                      {/* ── COLUNA DA ESQUERDA: CUSTOS DE AQUISIÇÃO & DEDUÇÕES (6 colunas lg) ── */}
+                      {/* ── COLUNA DA ESQUERDA: LISTA CONTÁBIL NOBRE & DEDUÇÕES ── */}
                       <div className="lg:col-span-6 flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xs space-y-6">
-                        <div className="space-y-4">
-                          {/* Cabeçalho da Coluna Esquerda */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 pb-1">
+                        <div className="space-y-5">
+                          {/* Cabeçalho da Lista Contábil */}
+                          <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/50">
                             <div>
                               <h3 className="text-sm font-bold text-foreground">
-                                Custos de Aquisição da Compra
+                                Composição do Custo da Peça
                               </h3>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                Frete, embalagens e despesas operacionais por peça
+                                Do atacado ao estoque pronto para venda
                               </p>
                             </div>
-                            <span className="rounded-full bg-secondary/80 border border-border/60 px-3 py-1 text-xs font-bold text-foreground shrink-0 shadow-2xs">
-                              +{brl(totalSharedCost)} / peça
+                            <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary shrink-0">
+                              {brl(totalUnitCost)} / peça
                             </span>
                           </div>
 
-                          {/* 3 Linhas de Custos com Respiro Confortável */}
-                          <div className="space-y-2.5">
-                            {/* Frete */}
-                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3.5 transition-all hover:bg-secondary/25 space-y-2">
+                          {/* Lista Contábil Nobre e Fluida */}
+                          <div className="divide-y divide-border/50 rounded-2xl border border-border/60 bg-secondary/10 overflow-hidden">
+                            {/* Linha 1: Custo no Atacado (Base) */}
+                            <div className="flex items-center justify-between p-3.5 sm:px-4 transition-colors hover:bg-secondary/20">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                  <Tag className="size-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-xs sm:text-sm font-bold text-foreground block truncate">
+                                    Custo no Atacado (fornecedor)
+                                  </span>
+                                  <span className="text-[11px] text-muted-foreground block -mt-0.5 truncate">
+                                    Definido na grade do Passo 1
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="numeric text-sm font-extrabold text-foreground">
+                                  {brl(baseCost)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Linha 2: Frete por Peça */}
+                            <div className="p-3.5 sm:px-4 transition-colors hover:bg-secondary/20 space-y-2">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
-                                  <div className="size-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/15 shadow-2xs">
+                                  <div className="size-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                                     <Truck className="size-4" />
                                   </div>
                                   <div className="min-w-0">
-                                    <Label className="text-xs sm:text-sm font-bold text-foreground cursor-pointer block truncate">
-                                      Frete por peça
-                                    </Label>
+                                    <span className="text-xs sm:text-sm font-bold text-foreground block truncate">
+                                      Frete de entrega
+                                    </span>
                                     <span className="text-[11px] text-muted-foreground block -mt-0.5 truncate">
-                                      Transporte até a loja ou estoque
+                                      Rateado por peça no lote
                                     </span>
                                   </div>
                                 </div>
@@ -4299,23 +4321,24 @@ function Precificacao() {
                                       }
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold transition-all cursor-pointer border",
+                                      "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
                                       rateioTarget === "freight"
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                        : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
+                                        : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
+                                    title="Dividir frete da nota pelo número de peças"
                                   >
-                                    <Calculator className="size-3.5" />
-                                    <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
+                                    <Calculator className="size-3" />
+                                    <span>Ratear{actualLotUnits > 0 ? ` ÷${actualLotUnits}` : ""}</span>
                                   </button>
-                                  <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                                  <div className="relative flex h-9 w-24 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                                     <input
                                       inputMode="decimal"
                                       value={freight}
                                       onChange={(e) => setFreight(e.target.value)}
                                       placeholder="0,00"
-                                      className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                                      className="h-9 w-full bg-transparent px-1.5 text-xs font-bold text-foreground outline-none text-right pr-2.5"
                                     />
                                   </div>
                                 </div>
@@ -4323,19 +4346,19 @@ function Precificacao() {
                               {renderInlineRateio("freight", "Frete da Nota")}
                             </div>
 
-                            {/* Embalagem & Tag */}
-                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3.5 transition-all hover:bg-secondary/25 space-y-2">
+                            {/* Linha 3: Embalagem & Tag */}
+                            <div className="p-3.5 sm:px-4 transition-colors hover:bg-secondary/20 space-y-2">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
-                                  <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/15 shadow-2xs">
+                                  <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                     <Package className="size-4" />
                                   </div>
                                   <div className="min-w-0">
-                                    <Label className="text-xs sm:text-sm font-bold text-foreground cursor-pointer block truncate">
+                                    <span className="text-xs sm:text-sm font-bold text-foreground block truncate">
                                       Embalagem &amp; Tag
-                                    </Label>
+                                    </span>
                                     <span className="text-[11px] text-muted-foreground block -mt-0.5 truncate">
-                                      Sacola, etiqueta e seda
+                                      Sacola, seda, etiqueta e lacre
                                     </span>
                                   </div>
                                 </div>
@@ -4351,43 +4374,44 @@ function Precificacao() {
                                       }
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold transition-all cursor-pointer border",
+                                      "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
                                       rateioTarget === "packaging"
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                        : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
+                                        : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
+                                    title="Dividir compra de embalagens pelo número de peças"
                                   >
-                                    <Calculator className="size-3.5" />
-                                    <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
+                                    <Calculator className="size-3" />
+                                    <span>Ratear{actualLotUnits > 0 ? ` ÷${actualLotUnits}` : ""}</span>
                                   </button>
-                                  <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                                  <div className="relative flex h-9 w-24 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                                     <input
                                       inputMode="decimal"
                                       value={packaging}
                                       onChange={(e) => setPackaging(e.target.value)}
                                       placeholder="0,00"
-                                      className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                                      className="h-9 w-full bg-transparent px-1.5 text-xs font-bold text-foreground outline-none text-right pr-2.5"
                                     />
                                   </div>
                                 </div>
                               </div>
-                              {renderInlineRateio("packaging", "Lote de Embalagens")}
+                              {renderInlineRateio("packaging", "Embalagens & Tags")}
                             </div>
 
-                            {/* Outros custos */}
-                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3.5 transition-all hover:bg-secondary/25 space-y-2">
+                            {/* Linha 4: Outros Custos Operacionais */}
+                            <div className="p-3.5 sm:px-4 transition-colors hover:bg-secondary/20 space-y-2">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
-                                  <div className="size-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/15 shadow-2xs">
+                                  <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                                     <Coins className="size-4" />
                                   </div>
                                   <div className="min-w-0">
-                                    <Label className="text-xs sm:text-sm font-bold text-foreground cursor-pointer block truncate">
-                                      Outros custos operacionais
-                                    </Label>
+                                    <span className="text-xs sm:text-sm font-bold text-foreground block truncate">
+                                      Extras operacionais
+                                    </span>
                                     <span className="text-[11px] text-muted-foreground block -mt-0.5 truncate">
-                                      Ajustes, costura ou extras
+                                      Costura, ajustes ou perdas
                                     </span>
                                   </div>
                                 </div>
@@ -4403,69 +4427,92 @@ function Precificacao() {
                                       }
                                     }}
                                     className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold transition-all cursor-pointer border",
+                                      "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border",
                                       rateioTarget === "other"
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                        : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
+                                        : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
+                                    title="Dividir gastos extras pelo número de peças"
                                   >
-                                    <Calculator className="size-3.5" />
-                                    <span>Ratear{actualLotUnits > 0 ? ` ÷ ${actualLotUnits}` : ""}</span>
+                                    <Calculator className="size-3" />
+                                    <span>Ratear{actualLotUnits > 0 ? ` ÷${actualLotUnits}` : ""}</span>
                                   </button>
-                                  <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                                  <div className="relative flex h-9 w-24 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                                     <input
                                       inputMode="decimal"
                                       value={other}
                                       onChange={(e) => setOther(e.target.value)}
                                       placeholder="0,00"
-                                      className="h-10 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                                      className="h-9 w-full bg-transparent px-1.5 text-xs font-bold text-foreground outline-none text-right pr-2.5"
                                     />
                                   </div>
                                 </div>
                               </div>
-                              {renderInlineRateio("other", "Outros Gastos")}
+                              {renderInlineRateio("other", "Gastos Extras")}
+                            </div>
+                          </div>
+
+                          {/* Mini-Barra Segmentada de Proporção de Custos */}
+                          <div className="space-y-1.5 px-0.5">
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
+                              <div style={{ width: `${totalUnitCost > 0 ? (baseCost / totalUnitCost) * 100 : 100}%` }} className="h-full bg-primary transition-all duration-300" title={`Atacado: ${brl(baseCost)}`} />
+                              {freightPct > 0 && <div style={{ width: `${(freightVal / totalUnitCost) * 100}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Frete: ${brl(freightVal)}`} />}
+                              {packagingPct > 0 && <div style={{ width: `${(packagingVal / totalUnitCost) * 100}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Embalagem: ${brl(packagingVal)}`} />}
+                              {otherPct > 0 && <div style={{ width: `${(otherVal / totalUnitCost) * 100}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`Extras: ${brl(otherVal)}`} />}
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-primary" /> Atacado {brl(baseCost)}
+                              </span>
+                              {totalSharedCost > 0 && (
+                                <span className="font-medium text-foreground">
+                                  +{brl(totalSharedCost)} custos adicionais rateados
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
 
-                        {/* Deduções da Venda: Limpo, Espaçoso, sem Micro-botões */}
+                        {/* Deduções da Venda: Linha Nobre e Discreta */}
                         <div className="pt-4 border-t border-border/60 space-y-3">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                                 <CreditCard className="size-3.5" />
                               </div>
-                              <div>
-                                <span className="text-xs sm:text-sm font-bold text-foreground">Deduções da venda</span>
-                                <span className="text-xs text-muted-foreground ml-1.5">
-                                  ({(tax + cardRate).toFixed(1).replace(".", ",")}% do faturamento)
-                                </span>
-                              </div>
+                              <span className="text-xs sm:text-sm font-bold text-foreground">
+                                Deduções sobre a Venda
+                              </span>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              className="h-7 px-2.5 text-xs font-semibold text-primary hover:text-primary/80 gap-1 cursor-pointer"
-                            >
-                              <Link to="/configuracoes" search={{ tab: "caixa" }}>
-                                <span>Ajustar taxas</span>
-                                <ArrowUpRight className="size-3.5 opacity-60" />
-                              </Link>
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full bg-secondary/80 border border-border/60 px-2.5 py-0.5 text-xs font-bold text-foreground">
+                                {(tax + cardRate).toFixed(1).replace(".", ",")}% total
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                                className="h-7 px-2 text-xs font-semibold text-primary hover:text-primary/80 gap-1 cursor-pointer"
+                              >
+                                <Link to="/configuracoes" search={{ tab: "caixa" }}>
+                                  <span>Padrões</span>
+                                  <ArrowUpRight className="size-3 opacity-60" />
+                                </Link>
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="grid gap-3 sm:grid-cols-2">
                             {/* DAS / Simples */}
-                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3.5 space-y-2.5">
-                              <div className="flex items-center justify-between gap-1.5">
+                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
                                 <div>
                                   <Label className="text-xs font-bold text-foreground block">
                                     Imposto DAS
                                   </Label>
                                   <span className="text-[10px] text-muted-foreground block -mt-0.5">
-                                    Simples Nacional ou MEI
+                                    Simples ou MEI
                                   </span>
                                 </div>
                                 <div className="inline-flex items-center rounded-xl border border-border/80 bg-background px-1.5 py-0.5 shadow-2xs focus-within:border-primary">
@@ -4473,11 +4520,11 @@ function Precificacao() {
                                     type="button"
                                     disabled={tax <= 0}
                                     onClick={() => setTax(Math.max(0, Math.round(tax) - 1))}
-                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
                                   >
-                                    <Minus className="size-3.5" />
+                                    <Minus className="size-3" />
                                   </button>
-                                  <div className="flex items-center px-1.5">
+                                  <div className="flex items-center px-1">
                                     <input
                                       inputMode="decimal"
                                       value={String(tax).replace(".", ",")}
@@ -4487,33 +4534,33 @@ function Precificacao() {
                                           setTax(Number(val) || 0);
                                         }
                                       }}
-                                      className="w-10 text-center text-xs font-bold text-primary outline-none bg-transparent"
+                                      className="w-8 text-center text-xs font-bold text-primary outline-none bg-transparent"
                                     />
-                                    <span className="text-[11px] font-bold text-muted-foreground">%</span>
+                                    <span className="text-[10px] font-bold text-muted-foreground">%</span>
                                   </div>
                                   <button
                                     type="button"
                                     disabled={tax >= 25}
                                     onClick={() => setTax(Math.min(25, Math.round(tax) + 1))}
-                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
                                   >
-                                    <Plus className="size-3.5" />
+                                    <Plus className="size-3" />
                                   </button>
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                              <div className="flex items-center justify-between gap-1 pt-0.5">
                                 {[
-                                  { label: "MEI (0%)", v: pricingSettings.taxPresets?.mei ?? 0 },
-                                  { label: "F1 (4%)", v: pricingSettings.taxPresets?.simplesF1 ?? 4 },
-                                  { label: "F2 (7%)", v: pricingSettings.taxPresets?.simplesF2 ?? 7 },
+                                  { label: "MEI 0%", v: pricingSettings.taxPresets?.mei ?? 0 },
+                                  { label: "F1 4%", v: pricingSettings.taxPresets?.simplesF1 ?? 4 },
+                                  { label: "F2 7%", v: pricingSettings.taxPresets?.simplesF2 ?? 7 },
                                 ].map((p) => (
                                   <button
                                     key={p.label}
                                     type="button"
                                     onClick={() => setTax(p.v)}
                                     className={cn(
-                                      "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer border",
+                                      "flex-1 rounded-lg py-1 text-[11px] font-semibold transition-all cursor-pointer border",
                                       tax === p.v
                                         ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
                                         : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
@@ -4526,11 +4573,11 @@ function Precificacao() {
                             </div>
 
                             {/* Taxa de Cartão */}
-                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3.5 space-y-2.5">
-                              <div className="flex items-center justify-between gap-1.5">
+                            <div className="rounded-2xl border border-border/70 bg-secondary/15 p-3 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
                                 <div>
                                   <Label className="text-xs font-bold text-foreground block">
-                                    Taxa Maquininha
+                                    Taxa Cartão / Pix
                                   </Label>
                                   <span className="text-[10px] text-muted-foreground block -mt-0.5">
                                     Média das vendas
@@ -4541,11 +4588,11 @@ function Precificacao() {
                                     type="button"
                                     disabled={cardRate <= 0}
                                     onClick={() => setCardRate(Math.max(0, Number((cardRate - 0.5).toFixed(1))))}
-                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
                                   >
-                                    <Minus className="size-3.5" />
+                                    <Minus className="size-3" />
                                   </button>
-                                  <div className="flex items-center px-1.5">
+                                  <div className="flex items-center px-1">
                                     <input
                                       inputMode="decimal"
                                       value={String(cardRate).replace(".", ",")}
@@ -4555,33 +4602,33 @@ function Precificacao() {
                                           setCardRate(Number(val) || 0);
                                         }
                                       }}
-                                      className="w-11 text-center text-xs font-bold text-primary outline-none bg-transparent"
+                                      className="w-9 text-center text-xs font-bold text-primary outline-none bg-transparent"
                                     />
-                                    <span className="text-[11px] font-bold text-muted-foreground">%</span>
+                                    <span className="text-[10px] font-bold text-muted-foreground">%</span>
                                   </div>
                                   <button
                                     type="button"
                                     disabled={cardRate >= 15}
                                     onClick={() => setCardRate(Math.min(15, Number((cardRate + 0.5).toFixed(1))))}
-                                    className="size-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
+                                    className="size-5 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer disabled:opacity-30"
                                   >
-                                    <Plus className="size-3.5" />
+                                    <Plus className="size-3" />
                                   </button>
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                              <div className="flex items-center justify-between gap-1 pt-0.5">
                                 {[
-                                  { label: "Pix (0,9%)", v: pricingSettings.cardRates?.pix ?? 0.9 },
-                                  { label: "Débito (1,5%)", v: pricingSettings.cardRates?.debito ?? 1.5 },
-                                  { label: "Crédito (3,2%)", v: pricingSettings.cardRates?.credito1x ?? 3.2 },
+                                  { label: "Pix 0,9%", v: pricingSettings.cardRates?.pix ?? 0.9 },
+                                  { label: "Déb 1,5%", v: pricingSettings.cardRates?.debito ?? 1.5 },
+                                  { label: "Créd 3,2%", v: pricingSettings.cardRates?.credito1x ?? 3.2 },
                                 ].map((p) => (
                                   <button
                                     key={p.label}
                                     type="button"
                                     onClick={() => setCardRate(p.v)}
                                     className={cn(
-                                      "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer border",
+                                      "flex-1 rounded-lg py-1 text-[11px] font-semibold transition-all cursor-pointer border",
                                       cardRate === p.v
                                         ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
                                         : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
@@ -4596,56 +4643,56 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      {/* ── COLUNA DA DIREITA: RECIBO CUSTO REAL & ESTRATÉGIA COMERCIAL (6 colunas lg) ── */}
+                      {/* ── COLUNA DA DIREITA: CENTRO DE COMANDO COMERCIAL & HERO PRICING ── */}
                       <div className="lg:col-span-6 flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xs space-y-6">
-                        {/* 1. Recibo Nobre do Custo Real da Peça */}
-                        <div className="space-y-3.5">
+                        {/* 1. HERO PREÇO SUGERIDO: DESTAQUE IMEDIATO NÍVEL APPLE */}
+                        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-5 space-y-3 relative overflow-hidden">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Custo Real da Peça
+                              Preço de Venda Sugerido
                             </span>
-                            <span className="rounded-full bg-secondary/80 border border-border/60 px-3 py-1 text-xs font-semibold text-foreground shadow-2xs">
-                              Base da Precificação
+                            <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-0.5 text-xs font-bold text-primary">
+                              Projeção em Tempo Real
                             </span>
                           </div>
 
                           <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <div className="numeric text-4xl font-extrabold text-foreground tracking-tight">
-                              {brl(totalUnitCost)}
-                              <span className="text-sm font-normal text-muted-foreground ml-1.5">/ peça</span>
+                            <div className="numeric text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight">
+                              {previewPrice > 0 ? brl(previewPrice) : "—"}
+                              <span className="text-sm font-normal text-muted-foreground ml-2">/ peça</span>
                             </div>
-                            <div className="text-right text-xs text-muted-foreground">
-                              <strong className="text-foreground">{brl(baseCost)}</strong> atacado
-                              {totalSharedCost > 0 && <> + <strong className="text-foreground">{brl(totalSharedCost)}</strong> rateio</>}
-                            </div>
+                            {previewPrice > 0 && (
+                              <div className="text-right">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                                  <Sparkles className="size-3.5" />
+                                  +{brl(previewProfit)} lucro ({Math.round(previewMargin)}%)
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Mini-Barra Segmentada de Proporção de Custos */}
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
-                            <div style={{ width: `${totalUnitCost > 0 ? (baseCost / totalUnitCost) * 100 : 100}%` }} className="h-full bg-primary transition-all duration-300" title={`Atacado: ${brl(baseCost)}`} />
-                            {freightPct > 0 && <div style={{ width: `${(freightVal / totalUnitCost) * 100}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Frete: ${brl(freightVal)}`} />}
-                            {packagingPct > 0 && <div style={{ width: `${(packagingVal / totalUnitCost) * 100}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Embalagem: ${brl(packagingVal)}`} />}
-                            {otherPct > 0 && <div style={{ width: `${(otherVal / totalUnitCost) * 100}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`Outros: ${brl(otherVal)}`} />}
-                          </div>
-
-                          {/* Legenda dos componentes de custo */}
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-0.5">
-                            <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-primary" />Atacado {brl(baseCost)}</span>
-                            {freightVal > 0 && <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-500" />Frete {brl(freightVal)}</span>}
-                            {packagingVal > 0 && <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" />Embalagem {brl(packagingVal)}</span>}
-                            {otherVal > 0 && <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-500" />Extras {brl(otherVal)}</span>}
-                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {previewPrice > 0 ? (
+                              <>
+                                Cobrando <strong className="text-foreground">{brl(previewPrice)}</strong>, sobram <strong className="text-emerald-600 dark:text-emerald-400">{brl(previewProfit)} livres no caixa</strong> após pagar o custo ({brl(totalUnitCost)}) e as deduções de {(tax + cardRate).toFixed(1).replace(".", ",")}% ({brl(previewPrice * ((tax + cardRate) / 100))}).
+                              </>
+                            ) : (
+                              "Escolha sua meta comercial abaixo para projetar o preço e o lucro por peça."
+                            )}
+                          </p>
                         </div>
 
-                        {/* 2. Formação de Preço da Grade com Botão Aplicar */}
-                        <div className="pt-5 border-t border-border/60 space-y-4">
-                          <div>
-                            <h3 className="text-sm font-bold text-foreground">
-                              Estratégia de Precificação da Grade
-                            </h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Defina sua meta e aplique o preço a todas as variações
-                            </p>
+                        {/* 2. ESTRATÉGIA COMERCIAL: SELETOR MODERNO */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <h3 className="text-sm font-bold text-foreground">
+                                Estratégia de Precificação
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Escolha como deseja formar o preço de venda da grade
+                              </p>
+                            </div>
                           </div>
 
                           {/* Segmented Control Apple: Margem / Markup / Preço Fixo */}
@@ -4691,11 +4738,13 @@ function Precificacao() {
                             </button>
                           </div>
 
-                          {/* Controles de Valor por Modo */}
+                          {/* Controles por Modo de Estratégia */}
                           {matrixGlobalMode === "margin" && (
-                            <div className="space-y-2.5">
+                            <div className="space-y-3">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-semibold text-muted-foreground">Meta de margem líquida:</span>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  Meta de margem líquida no bolso:
+                                </span>
                                 <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
                                   <button
                                     type="button"
@@ -4731,14 +4780,14 @@ function Precificacao() {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-5 gap-2 pt-0.5">
+                              <div className="grid grid-cols-5 gap-2">
                                 {[30, 40, 50, 60, 70].map((mv) => (
                                   <button
                                     key={mv}
                                     type="button"
                                     onClick={() => setMatrixGlobalMarginStr(String(mv))}
                                     className={cn(
-                                      "h-9 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                                      "h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border",
                                       toNumber(matrixGlobalMarginStr) === mv
                                         ? "bg-primary text-primary-foreground shadow-xs border-primary"
                                         : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
@@ -4752,9 +4801,11 @@ function Precificacao() {
                           )}
 
                           {matrixGlobalMode === "markup" && (
-                            <div className="space-y-2.5">
+                            <div className="space-y-3">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-semibold text-muted-foreground">Multiplicador Markup:</span>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  Multiplicador sobre o custo:
+                                </span>
                                 <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
                                   <button
                                     type="button"
@@ -4790,14 +4841,14 @@ function Precificacao() {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-5 gap-2 pt-0.5">
+                              <div className="grid grid-cols-5 gap-2">
                                 {[60, 80, 100, 120, 150].map((mk) => (
                                   <button
                                     key={mk}
                                     type="button"
                                     onClick={() => setMatrixGlobalMarkupStr(String(mk))}
                                     className={cn(
-                                      "h-9 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                                      "h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border",
                                       toNumber(matrixGlobalMarkupStr) === mk
                                         ? "bg-primary text-primary-foreground shadow-xs border-primary"
                                         : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
@@ -4811,9 +4862,11 @@ function Precificacao() {
                           )}
 
                           {matrixGlobalMode === "direct_price" && (
-                            <div className="space-y-2.5">
+                            <div className="space-y-3">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs font-semibold text-muted-foreground">Preço final fixo:</span>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  Preço de venda direto:
+                                </span>
                                 <div className="relative flex items-center rounded-xl border border-border/80 bg-background px-3 py-1.5 shadow-2xs">
                                   <span className="text-xs text-muted-foreground mr-1.5 font-semibold">R$</span>
                                   <input
@@ -4826,7 +4879,7 @@ function Precificacao() {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-3 gap-2 pt-0.5">
+                              <div className="grid grid-cols-3 gap-2">
                                 {[",90", ",00", ",50"].map((ending) => (
                                   <button
                                     key={ending}
@@ -4836,7 +4889,7 @@ function Precificacao() {
                                       const integerPart = Math.floor(toNumber(current));
                                       setMatrixGlobalDirectPrice(`${integerPart}${ending}`);
                                     }}
-                                    className="h-9 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground bg-secondary/40 border border-border/60 hover:bg-secondary transition-all cursor-pointer"
+                                    className="h-10 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground bg-secondary/40 border border-border/60 hover:bg-secondary transition-all cursor-pointer"
                                   >
                                     Final {ending}
                                   </button>
@@ -4844,34 +4897,19 @@ function Precificacao() {
                               </div>
                             </div>
                           )}
+                        </div>
 
-                          {/* Preço Sugerido & Botão de Ação Mestre com Respiro e Destaque Elegante */}
-                          <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4 space-y-3 shadow-2xs">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <Sparkles className="size-4 text-primary shrink-0" />
-                                <span className="text-xs text-muted-foreground font-medium">Preço de venda sugerido:</span>
-                                <strong className="text-foreground font-extrabold text-base">
-                                  {previewPrice > 0 ? brl(previewPrice) : "—"}
-                                </strong>
-                              </div>
-                              {previewPrice > 0 && (
-                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                                  +{brl(previewProfit)} lucro ({Math.round(previewMargin)}%)
-                                </span>
-                              )}
-                            </div>
-
-                            <Button
-                              type="button"
-                              onClick={applyStrategyToModel}
-                              disabled={actualLotUnits === 0}
-                              className="h-11 rounded-xl w-full text-xs sm:text-sm font-bold gradient-primary shadow-glow active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:shadow-none"
-                            >
-                              <Zap className="size-4 mr-1.5 shrink-0" />
-                              <span>Aplicar à Grade{actualLotUnits > 0 ? ` (${actualLotUnits} variações)` : ""}</span>
-                            </Button>
-                          </div>
+                        {/* 3. BOTÃO DE AÇÃO MESTRE */}
+                        <div className="pt-2">
+                          <Button
+                            type="button"
+                            onClick={applyStrategyToModel}
+                            disabled={actualLotUnits === 0}
+                            className="h-12 rounded-2xl w-full text-xs sm:text-sm font-bold gradient-primary shadow-glow active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:shadow-none"
+                          >
+                            <Zap className="size-4 mr-2 shrink-0" />
+                            <span>Aplicar a Toda a Grade{actualLotUnits > 0 ? ` (${actualLotUnits} variações)` : ""}</span>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -4928,7 +4966,7 @@ function Precificacao() {
                                   Projeção Financeira Consolidada do Lote
                                 </h3>
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  Resultado financeiro para a venda de todas as {actualLotUnits} peças em estoque
+                                  Resultado financeiro previsto para a venda das {actualLotUnits} peças em estoque
                                 </p>
                               </div>
                             </div>
@@ -4945,7 +4983,7 @@ function Precificacao() {
                             </div>
                           </div>
 
-                          {/* 4 Cards de Métricas com Respiro Amplo */}
+                          {/* 4 Cards de Métricas Estilo Air */}
                           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="rounded-2xl border border-border/70 bg-secondary/15 p-4 space-y-1">
                               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -4996,7 +5034,7 @@ function Precificacao() {
                             </div>
                           </div>
 
-                          {/* Barra de Decomposição Contínua */}
+                          {/* Barra de Decomposição Contínua Fina e Elegante */}
                           {summaryPrices.totalRevenue > 0 && (() => {
                             const rev = summaryPrices.totalRevenue;
                             const costPct = (summaryPrices.totalInvestment / rev) * 100;
@@ -5006,7 +5044,7 @@ function Precificacao() {
 
                             return (
                               <div className="space-y-2 pt-2 border-t border-border/40">
-                                <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary flex gap-0.5">
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary flex gap-0.5">
                                   <div style={{ width: `${costPct}%` }} className="h-full bg-slate-400 dark:bg-slate-500 transition-all duration-300" title={`Custos: ${Math.round(costPct)}%`} />
                                   <div style={{ width: `${taxPct}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`DAS: ${Math.round(taxPct)}%`} />
                                   <div style={{ width: `${cardPct}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Cartão: ${Math.round(cardPct)}%`} />
@@ -5039,7 +5077,7 @@ function Precificacao() {
                             );
                           })()}
 
-                          {/* Ponto de Equilíbrio detalhado se aplicável */}
+                          {/* Ponto de Equilíbrio */}
                           {lotBreakEven.unitsToBreakEven > 0 && (
                             <div className="rounded-2xl bg-secondary/30 border border-border/60 p-3.5 text-xs text-muted-foreground leading-relaxed">
                               🎯 Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}).{" "}
