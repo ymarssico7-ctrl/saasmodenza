@@ -777,6 +777,8 @@ function LivePricingSummaryPanel({
   totalVariants,
   hasData,
   mode,
+  gradeStep = 1,
+  onStepChange,
   onEntry,
   onSave,
   onReset,
@@ -798,6 +800,8 @@ function LivePricingSummaryPanel({
   totalVariants: number;
   hasData: boolean;
   mode: PricingMode;
+  gradeStep?: 1 | 2 | 3;
+  onStepChange?: (step: 1 | 2 | 3) => void;
   onEntry: () => void;
   onSave: () => void;
   onReset?: () => void;
@@ -806,16 +810,115 @@ function LivePricingSummaryPanel({
 }) {
   const marginHealth = getMarginHealth(effectiveMargin);
 
+  // ── ETAPA 1 NO MODO GRADE: Foco estrito em Lote e Custos de Aquisição (Padrão Consultoria Vértice) ──
+  if (mode === "grade" && gradeStep === 1) {
+    const totalUnitAcquisition = baseWholesaleCost + sharedCostsPerUnit;
+    const totalLotInvestment = totalUnits * totalUnitAcquisition;
+
+    return (
+      <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4">
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <Layers className="size-3.5" />
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+              Resumo do lote
+            </span>
+          </div>
+          <Layers className="size-4 text-muted-foreground/35" />
+        </div>
+
+        {/* Métrica Herói: Volume de Peças na Grade */}
+        <div className="pt-1">
+          <div className="flex items-baseline gap-2.5">
+            <span className="num-display text-5xl font-black text-foreground tracking-tight leading-none">
+              {totalUnits}
+            </span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {totalUnits === 1 ? "peça na grade" : "peças na grade"}
+            </span>
+          </div>
+        </div>
+
+        {/* Decomposição de Custos Unitários */}
+        <div className="space-y-2.5 rounded-2xl bg-secondary/30 p-3.5 border border-border/50 text-xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>Custo de compra</span>
+            <span className="num-display font-semibold text-foreground">
+              {baseWholesaleCost > 0 ? `${brl(baseWholesaleCost)} / peça` : "—"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span>Custos adicionais</span>
+            <span className="num-display font-semibold text-foreground">
+              {sharedCostsPerUnit > 0 ? `+${brl(sharedCostsPerUnit)} / peça` : "—"}
+            </span>
+          </div>
+          <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold">
+            <span className="text-foreground">Custo real por peça</span>
+            <span className="num-display text-foreground text-sm font-extrabold">
+              {totalUnitAcquisition > 0 ? brl(totalUnitAcquisition) : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* Investimento Estimado do Lote */}
+        <div className="rounded-2xl border border-border/60 bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground">Investimento estimado</p>
+          <p className="num-display text-3xl font-black text-foreground tracking-tight leading-none">
+            {totalLotInvestment > 0 ? brl(totalLotInvestment) : "R$ 0,00"}
+          </p>
+          <p className="text-[11px] text-muted-foreground">Compra + custos adicionais do lote</p>
+        </div>
+
+        {/* CTA Principal da Etapa 1 */}
+        <div className="space-y-2 pt-2">
+          <Button
+            type="button"
+            onClick={() => onStepChange?.(2)}
+            disabled={totalUnits === 0 || baseWholesaleCost <= 0}
+            className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            <span>Continuar para custos</span>
+            <ArrowRight className="size-4" />
+          </Button>
+
+          {onReset && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onReset}
+              className="w-full h-8 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              Limpar grade
+            </Button>
+          )}
+
+          {totalUnits > 0 && (
+            <p className="text-center text-[11px] text-muted-foreground pt-1">
+              {totalUnits} {totalUnits === 1 ? "peça" : "peças"}{totalVariants > 1 ? ` · ${totalVariants} variações` : ""}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── ETAPAS 2 E 3 (OU MODO RÁPIDO): Formação de Preço e Fechamento ──
   return (
     <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4">
-      {/* ── Cabeçalho do Resumo (Padrão Vértice / Shopify) ── */}
+      {/* ── Cabeçalho do Resumo ── */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <Layers className="size-3.5" />
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-            {mode === "grade" ? "Resumo do lote" : "Resumo da peça"}
+            {mode === "grade"
+              ? (gradeStep === 3 ? "Revisão do lote" : "Formação de preço")
+              : "Resumo da peça"}
           </span>
         </div>
         {hasData && suggestedPrice > 0 && (
@@ -832,21 +935,6 @@ function LivePricingSummaryPanel({
           </span>
         )}
       </div>
-
-      {/* ── Métrica: Peças na Grade ── */}
-      {mode === "grade" && (
-        <div className="flex items-center justify-between py-1 border-b border-border/40">
-          <span className="text-xs font-semibold text-muted-foreground">Volume no lote</span>
-          <span className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-semibold border",
-            totalUnits > 0
-              ? "bg-secondary text-foreground border-border/60"
-              : "bg-muted text-muted-foreground border-border/40"
-          )}>
-            {totalUnits} {totalUnits === 1 ? "peça na grade" : "peças na grade"}
-          </span>
-        </div>
-      )}
 
       {/* Identificação da Peça */}
       <div className="flex items-center gap-3">
@@ -919,7 +1007,7 @@ function LivePricingSummaryPanel({
         )}
       </div>
 
-      {/* ── Totais do Lote (quando totalUnits > 1) ── */}
+      {/* ── Totais do Lote (quando totalUnits > 1 e etapa >= 2) ── */}
       {hasData && totalUnits > 1 && (
         <div className="space-y-2 rounded-2xl bg-secondary/40 p-3 border border-border/60 text-xs">
           <div className="flex items-center justify-between text-muted-foreground">
@@ -935,42 +1023,67 @@ function LivePricingSummaryPanel({
         </div>
       )}
 
-      {/* ── Botões de Ação ── */}
+      {/* ── Botões de Ação por Contexto ── */}
       <div className="space-y-2 pt-1">
-        <Button
-          type="button"
-          onClick={mode === "grade" ? onEntry : onSave}
-          disabled={mode === "grade" ? entryDisabled : saveDisabled}
-          className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
-        >
-          {mode === "grade" ? <PackagePlus className="size-4" /> : <Save className="size-4" />}
-          <span>{mode === "grade" ? `Dar entrada no estoque (${totalUnits} un.)` : "Salvar no histórico"}</span>
-        </Button>
-
-        {mode === "grade" && (
-          <div className="flex items-center gap-2">
+        {mode === "grade" && gradeStep === 2 && (
+          <>
+            <Button
+              type="button"
+              onClick={() => onStepChange?.(3)}
+              disabled={suggestedPrice <= 0}
+              className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <span>Avançar para revisão</span>
+              <ArrowRight className="size-4" />
+            </Button>
             <Button
               type="button"
               variant="outline"
-              onClick={onSave}
-              disabled={saveDisabled}
-              className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer gap-1.5"
+              onClick={() => onStepChange?.(1)}
+              className="w-full h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer"
             >
-              <Save className="size-3.5" />
-              <span>Salvar histórico</span>
+              ← Voltar para grade
             </Button>
-            {onReset && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={onReset}
-                className="h-9 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-                title="Limpar campos"
-              >
-                <RotateCcw className="size-3.5" />
-              </Button>
+          </>
+        )}
+
+        {(mode === "rapida" || (mode === "grade" && gradeStep === 3)) && (
+          <>
+            <Button
+              type="button"
+              onClick={mode === "grade" ? onEntry : onSave}
+              disabled={mode === "grade" ? entryDisabled : saveDisabled}
+              className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {mode === "grade" ? <PackagePlus className="size-4" /> : <Save className="size-4" />}
+              <span>{mode === "grade" ? `Dar entrada no estoque (${totalUnits} un.)` : "Salvar no histórico"}</span>
+            </Button>
+
+            {mode === "grade" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onSave}
+                  disabled={saveDisabled}
+                  className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer gap-1.5"
+                >
+                  <Save className="size-3.5" />
+                  <span>Salvar histórico</span>
+                </Button>
+                {onStepChange && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onStepChange(2)}
+                    className="h-9 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Voltar
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
 
         {totalUnits > 0 && (
@@ -4262,7 +4375,7 @@ function Precificacao() {
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <>
-            {/* ── Segmented Control de 3 Etapas Conectadas (Padrão Apple HIG / Polaris) ── */}
+            {/* ── Stepper de 3 Etapas Conectadas (Padrão Apple HIG / Vértice) ── */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-secondary/50 border border-border/80 shadow-2xs">
               <div className="grid grid-cols-3 gap-1 w-full sm:w-auto flex-1 max-w-xl">
                 <button
@@ -4285,7 +4398,7 @@ function Precificacao() {
                   )}>
                     {actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "1"}
                   </span>
-                  <span className="truncate">1. Peça &amp; Grade</span>
+                  <span className="truncate">Peça e grade</span>
                 </button>
 
                 <button
@@ -4308,7 +4421,7 @@ function Precificacao() {
                   )}>
                     {summaryPrices.avgSuggested > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "2"}
                   </span>
-                  <span className="truncate">2. Custos &amp; Preço</span>
+                  <span className="truncate">Custos e preço</span>
                 </button>
 
                 <button
@@ -4329,54 +4442,35 @@ function Precificacao() {
                   )}>
                     3
                   </span>
-                  <span className="truncate">3. Revisão &amp; Lote</span>
+                  <span className="truncate">Revisão</span>
                 </button>
               </div>
+
+              {(name.trim() !== "" || baseWholesaleGrade.trim() !== "" || variants.length > 0) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName("");
+                    setBaseWholesaleGrade("");
+                    setVariants([]);
+                    setActiveColors([]);
+                    setEntryPhotoUrl("");
+                    toast.success("Grade limpa", { description: "Nome, custo base e todas as variações foram removidos." });
+                  }}
+                  className="h-8 px-3 rounded-xl border border-border/70 bg-card text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5 self-end sm:self-auto"
+                  title="Limpar grade completa"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>Limpar tudo</span>
+                </button>
+              )}
             </div>
 
             {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
             {gradeStep === 1 && (
-            <section className="panel p-6 sm:p-7 space-y-6">
-              {/* Cabeçalho */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
-                <div>
-                  <h2 className="text-base font-bold text-foreground">
-                    Identificação da peça e grade de produção
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Defina o modelo, tamanhos e cores da coleção. A quantidade de peças será usada automaticamente para ratear custos no Passo 2.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-semibold">
-                    {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} na grade ({Array.from(new Set(variants.map((v) => v.color))).length} {Array.from(new Set(variants.map((v) => v.color))).length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"})
-                  </Badge>
-
-                  {(name.trim() !== "" || baseWholesaleGrade.trim() !== "" || variants.length > 0) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setName("");
-                        setBaseWholesaleGrade("");
-                        setVariants([]);
-                        setActiveColors([]);
-                        setEntryPhotoUrl("");
-                        toast.success("Grade limpa", { description: "Nome, custo base e todas as variações foram removidos." });
-                      }}
-                      className="h-7 px-2.5 rounded-full border border-border/70 bg-secondary/40 text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
-                      title="Limpar grade completa — remove nome, custo base e todas as variações"
-                    >
-                      <RotateCcw className="size-3" />
-                      <span>Limpar tudo</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Grid de Identificação da Peça com Slot de Imagem Único 1:1 (Padrão Apple Studio) */}
-              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5">
-                {/* Slot de Miniatura da Peça Único e Interativo */}
+            <section className="panel p-5 sm:p-6 space-y-6">
+              {/* Identificação da Peça (Padrão Vértice / Apple Studio — Sem molduras repetidas) */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
                 <ImageUploader
                   compact
                   currentUrl={entryPhotoUrl || null}
@@ -4384,35 +4478,34 @@ function Precificacao() {
                   folder="inventory"
                   onUploaded={(url) => setEntryPhotoUrl(url)}
                   placeholder="Foto da peça"
-                  className="self-center sm:self-start"
+                  className="self-center sm:self-start shrink-0"
                 />
 
-                {/* Campos de Nome, Categoria e Custo de Compra */}
                 <div className="flex-1 w-full space-y-3.5">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">
-                      Nome da peça ou modelo
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Nome da peça
                     </Label>
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Ex: Vestido midi de linho"
-                      className="h-11 rounded-xl font-semibold text-sm bg-card shadow-2xs border-border/80 focus:ring-2 focus:ring-primary/20"
+                      className="h-11 rounded-xl font-bold text-base bg-card shadow-2xs border-border/80 focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-foreground">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                         Categoria
                       </Label>
                       <Select value={category} onValueChange={setCategory}>
-                        <SelectTrigger className="h-11 rounded-xl font-medium text-sm bg-card shadow-2xs border-border/80">
+                        <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-card shadow-2xs border-border/80">
                           <SelectValue placeholder="Selecione categoria..." />
                         </SelectTrigger>
                         <SelectContent>
                           {storeCategories.map((c) => (
-                            <SelectItem key={c.id} value={c.slug}>
+                            <SelectItem key={c.id} value={c.slug} className="text-xs">
                               {c.name}
                             </SelectItem>
                           ))}
@@ -4420,17 +4513,12 @@ function Precificacao() {
                       </Select>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-bold text-foreground">
-                          Custo de compra / peça
-                        </Label>
-                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                          Base da grade
-                        </span>
-                      </div>
-                      <div className="relative flex h-11 items-center rounded-xl border border-primary/30 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                        <span className="pl-3 text-xs font-bold text-primary select-none">R$</span>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Custo de compra / peça
+                      </Label>
+                      <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                        <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                         <input
                           inputMode="decimal"
                           value={baseWholesaleGrade}
@@ -4446,7 +4534,7 @@ function Precificacao() {
                             );
                           }}
                           placeholder="49,90"
-                          className="h-11 w-full bg-transparent px-2 text-sm font-bold text-foreground outline-none"
+                          className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
                         />
                       </div>
                     </div>
@@ -4454,89 +4542,77 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* ── Console Inteligente de Grade de Tamanhos (Padrão Apple Studio) ── */}
-              <div className="space-y-3 pt-3 border-t border-border/50">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  {/* Segmented Control por Família de Medida */}
-                  <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-secondary/50 border border-border/70 shadow-2xs">
-                    {SIZE_FAMILIES.map((fam) => {
-                      const isActive = activeSizeFamily === fam.id;
-                      const familySelectedCount = fam.sizes.filter((s) => activeModelSizes.has(s)).length;
+              {/* ── Grade de peças (Padrão Vértice / Apple HIG) ── */}
+              <div className="space-y-4 pt-4 border-t border-border/60">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">Grade de peças</h3>
+                    <p className="text-xs text-muted-foreground">Cores, tamanhos e quantidades do lote.</p>
+                  </div>
+                  {actualLotUnits > 0 && (
+                    <span className="rounded-full bg-secondary/80 px-3 py-1 text-xs font-semibold text-muted-foreground border border-border/60">
+                      {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tamanho" : "tamanhos"}
+                    </span>
+                  )}
+                </div>
+
+                {/* Linha enxuta de controle: Família (dropdown) + Tamanhos selecionáveis com checkmark */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Tamanhos</span>
+                    <Select value={activeSizeFamily} onValueChange={(val) => setActiveSizeFamily(val as any)}>
+                      <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-xl border-border/80 bg-card text-xs font-bold gap-1 px-3 shadow-2xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SIZE_FAMILIES.map((fam) => (
+                          <SelectItem key={fam.id} value={fam.id} className="text-xs font-semibold">
+                            {fam.shortLabel}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Pills táteis com checkmark ativo */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
+                      const isSzActive = activeModelSizes.has(sz);
                       return (
                         <button
-                          key={fam.id}
+                          key={sz}
                           type="button"
-                          onClick={() => setActiveSizeFamily(fam.id)}
+                          onClick={() => toggleModelSize(sz)}
                           className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                            isActive
-                              ? "bg-card text-foreground shadow-xs font-bold border border-border/60"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                            "flex items-center justify-center gap-1 min-w-[44px] h-9 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95",
+                            isSzActive
+                              ? "bg-primary/15 text-primary border border-primary/35 shadow-xs"
+                              : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border",
                           )}
                         >
-                          <span>{fam.label}</span>
-                          {familySelectedCount > 0 && (
-                            <span className="size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                              {familySelectedCount}
-                            </span>
-                          )}
+                          {isSzActive && <Check className="size-3 stroke-[3]" />}
+                          <span>{sz}</span>
                         </button>
                       );
                     })}
                   </div>
 
-                  {/* Ações Rápidas da Família Ativa */}
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
-                        applyModelQuickPreset(currentFam.sizes);
-                      }}
-                      className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/5 hover:border-primary/40 transition-all cursor-pointer shadow-2xs"
-                      title="Selecionar todos os tamanhos desta categoria"
-                    >
-                      + Selecionar todos
-                    </button>
-                    {activeModelSizes.size > 0 && (
-                      <button
-                        type="button"
-                        onClick={clearModelSizes}
-                        className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/5 hover:border-destructive/30 transition-all cursor-pointer shadow-2xs"
-                        title="Desmarcar todos os tamanhos"
-                      >
-                        Limpar seleção
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Chips de Tamanho Táteis da Família Ativa */}
-                <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                  {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
-                    const isSzActive = activeModelSizes.has(sz);
-                    return (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleModelSize(sz)}
-                        className={cn(
-                          "flex items-center justify-center gap-1.5 min-w-[54px] h-10 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 cursor-pointer",
-                          isSzActive
-                            ? "gradient-primary text-primary-foreground shadow-glow ring-2 ring-primary/20 scale-[1.02]"
-                            : "border border-border/80 bg-card text-foreground hover:border-primary/40 hover:bg-secondary/40 shadow-2xs",
-                        )}
-                      >
-                        <span>{sz}</span>
-                        {isSzActive && <Check className="size-3.5 stroke-[3]" />}
-                      </button>
-                    );
-                  })}
+                  {/* Selecionar todos */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
+                      applyModelQuickPreset(currentFam.sizes);
+                    }}
+                    className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs ml-auto"
+                  >
+                    + Selecionar todos
+                  </button>
                 </div>
               </div>
 
-              {/* ── Seletor de Modo de Visualização da Grade (Matriz 2D vs Tabela SKUs) ── */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              {/* ── Alternância de visualização: Matriz 2D vs Tabela SKUs ── */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary/50 border border-border/70 shadow-2xs">
                   <button
                     type="button"
@@ -4565,184 +4641,146 @@ function Precificacao() {
                     <span>Tabela Detalhada SKUs</span>
                   </button>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {actualLotUnits} un. em {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} × {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tamanho" : "tamanhos"}
-                  </span>
-                </div>
               </div>
 
               {/* ── Visualização: Matriz 2D vs Tabela Completa ── */}
               {gradeViewMode === "matrix" ? (
                 <div className="space-y-4">
-                  {/* Seletor rápido de cores com barra de adição */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl border border-border/70 bg-card shadow-2xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Palette className="size-4 text-primary shrink-0" />
-                      <span className="text-xs font-bold text-foreground">
-                        Cores da grade:
-                      </span>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {matrixColors.map((color) => {
-                          const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
-                          return (
-                            <span
-                              key={color}
-                              className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg border border-border/80 bg-secondary/50 text-xs font-semibold text-foreground"
-                            >
-                              <span
-                                className="size-2.5 rounded-full border border-black/10 shrink-0"
-                                style={{ backgroundColor: cp?.color ?? "#888888" }}
-                              />
-                              <span>{color}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMatrixColor(color)}
-                                className="size-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                title={`Remover cor ${color}`}
-                              >
-                                <X className="size-3" />
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Input rápido para adicionar nova cor */}
-                    <div className="flex items-center gap-1.5">
-                      <Input
-                        value={newMatrixColorInput}
-                        onChange={(e) => setNewMatrixColorInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleAddMatrixColor(newMatrixColorInput);
-                          }
-                        }}
-                        placeholder="Nova cor (ex: Terracota)..."
-                        className="h-8 w-44 rounded-xl text-xs bg-secondary/40 border-border/80"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAddMatrixColor(newMatrixColorInput)}
-                        disabled={!newMatrixColorInput.trim()}
-                        className="h-8 rounded-xl px-3 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
-                      >
-                        <Plus className="size-3 mr-1" />
-                        Adicionar
-                      </Button>
-                    </div>
-                  </div>
-
                   {/* Tabela Matriz 2D: Cores (linhas) × Tamanhos (colunas) */}
                   {matrixColors.length > 0 && activeMatrixSizes.length > 0 ? (
-                    <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground">
-                              <th className="py-3 px-4 text-left font-semibold text-muted-foreground min-w-[140px]">
-                                Cor / Tamanho
-                              </th>
-                              {activeMatrixSizes.map((sz) => (
-                                <th key={sz} className="py-3 px-3 text-center min-w-[70px] font-bold text-foreground">
-                                  {sz}
+                    <div className="space-y-3">
+                      <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-secondary/30 border-b border-border/60 text-muted-foreground">
+                                <th className="py-2.5 px-4 text-left font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[140px]">
+                                  COR
                                 </th>
-                              ))}
-                              <th className="py-3 px-4 text-right font-semibold text-muted-foreground min-w-[90px]">
-                                Total
-                              </th>
-                              <th className="py-3 px-2 text-center w-10"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/40">
-                            {matrixColors.map((color) => {
-                              const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
-                              const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
-                              return (
-                                <tr key={color} className="hover:bg-secondary/20 transition-colors">
-                                  <td className="py-2.5 px-4 font-semibold text-foreground">
-                                    <div className="flex items-center gap-2">
-                                      <span
-                                        className="size-3.5 rounded-full border border-black/10 shrink-0"
-                                        style={{ backgroundColor: cp?.color ?? "#888888" }}
-                                      />
-                                      <span>{color}</span>
-                                    </div>
-                                  </td>
-                                  {activeMatrixSizes.map((sz) => {
-                                    const qty = getMatrixQty(color, sz);
-                                    return (
-                                      <td key={sz} className="py-2.5 px-2 text-center">
-                                        <input
-                                          inputMode="numeric"
-                                          value={qty === 0 ? "" : qty}
-                                          onChange={(e) => {
-                                            const val = e.target.value.replace(/\D/g, "");
-                                            updateMatrixQty(color, sz, val === "" ? 0 : Number(val));
-                                          }}
-                                          placeholder="0"
-                                          className={cn(
-                                            "h-9 w-12 rounded-xl text-center text-xs font-bold outline-none border transition-all shadow-2xs",
-                                            qty > 0
-                                              ? "border-primary/50 bg-primary/5 text-primary font-extrabold focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                              : "border-border/70 bg-secondary/30 text-muted-foreground/60 hover:border-border hover:bg-card focus:border-primary focus:bg-card focus:text-foreground"
-                                          )}
-                                          title={`Quantidade de ${color} no tamanho ${sz}`}
-                                        />
-                                      </td>
-                                    );
-                                  })}
-                                  <td className="py-2.5 px-4 text-right font-extrabold text-foreground">
-                                    <Badge variant={rowTotal > 0 ? "secondary" : "outline"} className="font-bold text-xs">
-                                      {rowTotal} un.
-                                    </Badge>
-                                  </td>
-                                  <td className="py-2.5 px-2 text-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveMatrixColor(color)}
-                                      className="size-6 rounded-md flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                      title={`Remover linha ${color}`}
-                                    >
-                                      <Trash2 className="size-3.5" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                          <tfoot>
-                            <tr className="bg-secondary/40 border-t-2 border-border/80 font-bold text-foreground">
-                              <td className="py-3 px-4 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                                Total Lote
-                              </td>
-                              {activeMatrixSizes.map((sz) => {
-                                const colTotal = matrixColors.reduce((acc, color) => acc + getMatrixQty(color, sz), 0);
+                                {activeMatrixSizes.map((sz) => (
+                                  <th key={sz} className="py-2.5 px-3 text-center min-w-[65px] font-bold text-foreground text-xs uppercase">
+                                    {sz}
+                                  </th>
+                                ))}
+                                <th className="py-2.5 px-4 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[80px]">
+                                  TOTAL
+                                </th>
+                                <th className="py-2.5 px-2 text-center w-10"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/40">
+                              {matrixColors.map((color) => {
+                                const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
+                                const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
                                 return (
-                                  <td key={sz} className="py-3 px-2 text-center font-extrabold text-xs text-foreground">
-                                    <span className={cn(
-                                      "inline-block px-1.5 py-0.5 rounded-md",
-                                      colTotal > 0 ? "bg-card border border-border/60 text-foreground" : "text-muted-foreground/50"
-                                    )}>
-                                      {colTotal}
-                                    </span>
-                                  </td>
+                                  <tr key={color} className="hover:bg-secondary/20 transition-colors">
+                                    <td className="py-2.5 px-4 font-semibold text-foreground">
+                                      <div className="flex items-center gap-2.5">
+                                        <span
+                                          className="size-3.5 rounded-full border border-black/10 shrink-0"
+                                          style={{ backgroundColor: cp?.color ?? "#888888" }}
+                                        />
+                                        <span className="font-medium text-foreground text-xs">{color}</span>
+                                      </div>
+                                    </td>
+                                    {activeMatrixSizes.map((sz) => {
+                                      const qty = getMatrixQty(color, sz);
+                                      return (
+                                        <td key={sz} className="py-2.5 px-2 text-center">
+                                          <input
+                                            inputMode="numeric"
+                                            value={qty === 0 ? "" : qty}
+                                            onChange={(e) => {
+                                              const val = e.target.value.replace(/\D/g, "");
+                                              updateMatrixQty(color, sz, val === "" ? 0 : Number(val));
+                                            }}
+                                            placeholder="0"
+                                            className={cn(
+                                              "h-9 w-12 rounded-lg text-center text-xs font-bold outline-none border transition-all",
+                                              qty > 0
+                                                ? "border-primary/40 bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs"
+                                                : "border-border/60 bg-secondary/35 text-muted-foreground/60 hover:border-border hover:bg-card focus:border-primary focus:bg-card focus:text-foreground"
+                                            )}
+                                            title={`Quantidade de ${color} no tamanho ${sz}`}
+                                          />
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="py-2.5 px-4 text-right font-bold text-sm text-foreground">
+                                      {rowTotal}
+                                    </td>
+                                    <td className="py-2.5 px-2 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveMatrixColor(color)}
+                                        className="size-6 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                        title={`Remover linha ${color}`}
+                                      >
+                                        <Trash2 className="size-3.5" />
+                                      </button>
+                                    </td>
+                                  </tr>
                                 );
                               })}
-                              <td className="py-3 px-4 text-right">
-                                <Badge className="gradient-primary text-primary-foreground font-extrabold text-xs shadow-glow">
-                                  {actualLotUnits} un.
-                                </Badge>
-                              </td>
-                              <td></td>
-                            </tr>
-                          </tfoot>
-                        </table>
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-secondary/30 border-t border-border/60 text-xs">
+                                <td className="py-3 px-4 text-muted-foreground font-medium">
+                                  Total por tamanho
+                                </td>
+                                {activeMatrixSizes.map((sz) => {
+                                  const colTotal = matrixColors.reduce((acc, color) => acc + getMatrixQty(color, sz), 0);
+                                  return (
+                                    <td key={sz} className="py-3 px-2 text-center font-bold text-foreground">
+                                      {colTotal}
+                                    </td>
+                                  );
+                                })}
+                                <td className="py-3 px-4 text-right font-black text-sm text-foreground">
+                                  {actualLotUnits}
+                                </td>
+                                <td></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Barra de ação inferior (Padrão Vértice Imagem 2) */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 px-0.5">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={newMatrixColorInput}
+                            onChange={(e) => setNewMatrixColorInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddMatrixColor(newMatrixColorInput);
+                                setNewMatrixColorInput("");
+                              }
+                            }}
+                            placeholder="Nova cor (ex: Terracota)..."
+                            className="h-9 w-48 rounded-xl text-xs bg-card border-border/80 shadow-2xs"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              handleAddMatrixColor(newMatrixColorInput);
+                              setNewMatrixColorInput("");
+                            }}
+                            disabled={!newMatrixColorInput.trim()}
+                            className="h-9 rounded-xl px-3 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
+                          >
+                            <Plus className="size-3.5 mr-1" />
+                            Adicionar cor
+                          </Button>
+                        </div>
+
+                        <span className="text-xs font-bold text-foreground">
+                          {actualLotUnits} {actualLotUnits === 1 ? "peça no lote" : "peças no lote"}
+                        </span>
                       </div>
                     </div>
                   ) : (
@@ -6317,6 +6355,8 @@ function Precificacao() {
                   : toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0
               }
               mode={mode}
+              gradeStep={gradeStep}
+              onStepChange={setGradeStep}
               onEntry={openEntryForCurrent}
               onSave={() => save.mutate()}
               onReset={resetPricingModel}
