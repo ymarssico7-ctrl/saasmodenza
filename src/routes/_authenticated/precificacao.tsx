@@ -814,8 +814,8 @@ function LivePricingSummaryPanel({
           <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <Layers className="size-3.5" />
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            {mode === "grade" ? "Resumo do Lote" : "Resumo da Peça"}
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+            {mode === "grade" ? "Resumo do lote" : "Resumo da peça"}
           </span>
         </div>
         {hasData && suggestedPrice > 0 && (
@@ -838,8 +838,10 @@ function LivePricingSummaryPanel({
         <div className="flex items-center justify-between py-1 border-b border-border/40">
           <span className="text-xs font-semibold text-muted-foreground">Volume no lote</span>
           <span className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-bold",
-            totalUnits > 0 ? "bg-primary/10 text-primary border border-primary/20" : "bg-muted text-muted-foreground"
+            "rounded-full px-2.5 py-0.5 text-xs font-semibold border",
+            totalUnits > 0
+              ? "bg-secondary text-foreground border-border/60"
+              : "bg-muted text-muted-foreground border-border/40"
           )}>
             {totalUnits} {totalUnits === 1 ? "peça na grade" : "peças na grade"}
           </span>
@@ -870,13 +872,13 @@ function LivePricingSummaryPanel({
         <div className="flex items-center justify-between text-muted-foreground">
           <span>Custo de compra</span>
           <span className="num-display font-semibold text-foreground">
-            {baseWholesaleCost > 0 ? `${brl(baseWholesaleCost)} / peça` : "R$ 0,00"}
+            {baseWholesaleCost > 0 ? `${brl(baseWholesaleCost)} / peça` : "—"}
           </span>
         </div>
         <div className="flex items-center justify-between text-muted-foreground">
           <span>Custos adicionais</span>
           <span className="num-display font-semibold text-foreground">
-            {sharedCostsPerUnit > 0 ? `+${brl(sharedCostsPerUnit)} / peça` : "R$ 0,00"}
+            {sharedCostsPerUnit > 0 ? `+${brl(sharedCostsPerUnit)} / peça` : "—"}
           </span>
         </div>
         <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold">
@@ -884,7 +886,7 @@ function LivePricingSummaryPanel({
           <span className="num-display text-foreground text-sm font-extrabold">
             {totalUnitCost > 0
               ? brl(totalUnitCost)
-              : (baseWholesaleCost + sharedCostsPerUnit > 0 ? brl(baseWholesaleCost + sharedCostsPerUnit) : "R$ 0,00")}
+              : (baseWholesaleCost + sharedCostsPerUnit > 0 ? brl(baseWholesaleCost + sharedCostsPerUnit) : "—")}
           </span>
         </div>
       </div>
@@ -901,11 +903,11 @@ function LivePricingSummaryPanel({
             </span>
           )}
         </div>
-        <p className="num-display text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+        <p className="num-display text-4xl font-black text-foreground tracking-tight leading-none">
           {suggestedPrice > 0 ? brl(suggestedPrice) : "R$ —,——"}
         </p>
         {suggestedPrice > 0 && (
-          <div className="flex items-center justify-center gap-2 text-xs pt-0.5">
+          <div className="flex items-center justify-center gap-2 text-xs pt-1">
             <span className="text-emerald-600 dark:text-emerald-400 font-bold">
               +{brl(profitPerUnit)} lucro
             </span>
@@ -2855,7 +2857,6 @@ function Precificacao() {
       </div>
 
       <PageHeader
-        eyebrow="Inteligência de Precificação"
         title="Precificação"
         description="O preço certo. Uma grade de cada vez."
         actions={
@@ -2923,7 +2924,7 @@ function Precificacao() {
         {/* Grade de 2 colunas no desktop: conteúdo principal fluido + painel lateral responsivo */}
         <div className={cn(
           "gap-5 xl:gap-6",
-          mode !== "historico" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_310px] lg:items-start" : ""
+          mode !== "historico" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_368px] lg:items-start" : ""
         )}>
 
         {/* ── COLUNA ESQUERDA: todo o conteúdo existente ── */}
@@ -4331,11 +4332,6 @@ function Precificacao() {
                   <span className="truncate">3. Revisão &amp; Lote</span>
                 </button>
               </div>
-
-              <div className="hidden sm:flex items-center gap-2 pr-2 text-[11px] text-muted-foreground font-medium">
-                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Fluxo assistido em 3 passos</span>
-              </div>
             </div>
 
             {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
@@ -4631,9 +4627,10 @@ function Precificacao() {
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
                         onClick={() => handleAddMatrixColor(newMatrixColorInput)}
                         disabled={!newMatrixColorInput.trim()}
-                        className="h-8 rounded-xl px-3 text-xs font-bold gradient-primary shadow-glow cursor-pointer disabled:opacity-40"
+                        className="h-8 rounded-xl px-3 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
                       >
                         <Plus className="size-3 mr-1" />
                         Adicionar
@@ -4643,28 +4640,26 @@ function Precificacao() {
 
                   {/* Tabela Matriz 2D: Cores (linhas) × Tamanhos (colunas) */}
                   {matrixColors.length > 0 && activeMatrixSizes.length > 0 ? (
-                    <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-2xs">
+                    <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
                       <div className="overflow-x-auto">
-                        <table className="w-full text-xs border-collapse">
+                        <table className="w-full text-xs">
                           <thead>
-                            <tr className="bg-secondary/60 border-b border-border/70 text-muted-foreground font-semibold">
-                              <th className="py-2.5 px-4 text-left font-bold text-foreground min-w-[140px]">
+                            <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground">
+                              <th className="py-3 px-4 text-left font-semibold text-muted-foreground min-w-[140px]">
                                 Cor / Tamanho
                               </th>
                               {activeMatrixSizes.map((sz) => (
-                                <th key={sz} className="py-2.5 px-3 text-center min-w-[70px]">
-                                  <span className="inline-flex size-6 items-center justify-center rounded-lg bg-card border border-border/70 font-bold text-foreground text-xs shadow-2xs">
-                                    {sz}
-                                  </span>
+                                <th key={sz} className="py-3 px-3 text-center min-w-[70px] font-bold text-foreground">
+                                  {sz}
                                 </th>
                               ))}
-                              <th className="py-2.5 px-4 text-right font-bold text-foreground min-w-[90px]">
-                                Total Cor
+                              <th className="py-3 px-4 text-right font-semibold text-muted-foreground min-w-[90px]">
+                                Total
                               </th>
-                              <th className="py-2.5 px-2 text-center w-10"></th>
+                              <th className="py-3 px-2 text-center w-10"></th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-border/50">
+                          <tbody className="divide-y divide-border/40">
                             {matrixColors.map((color) => {
                               const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
                               const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
@@ -5406,24 +5401,17 @@ function Precificacao() {
                               {renderInlineRateio("other", "Gastos Extras")}
                             </div>
 
-                          {/* Mini-Barra Segmentada de Proporção de Custos */}
-                          <div className="space-y-1.5 px-0.5">
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/80 flex gap-0.5">
-                              <div style={{ width: `${totalUnitCost > 0 ? (baseCost / totalUnitCost) * 100 : 100}%` }} className="h-full bg-primary transition-all duration-300" title={`Atacado: ${brl(baseCost)}`} />
-                              {freightPct > 0 && <div style={{ width: `${(freightVal / totalUnitCost) * 100}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Frete: ${brl(freightVal)}`} />}
-                              {packagingPct > 0 && <div style={{ width: `${(packagingVal / totalUnitCost) * 100}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Embalagem: ${brl(packagingVal)}`} />}
-                              {otherPct > 0 && <div style={{ width: `${(otherVal / totalUnitCost) * 100}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`Extras: ${brl(otherVal)}`} />}
-                            </div>
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                              <span className="inline-flex items-center gap-1.5">
-                                <span className="size-2 rounded-full bg-primary" /> Atacado {brl(baseCost)}
+                          {/* Linha de Síntese de Custo — Limpa e Legível */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 px-1 text-xs text-muted-foreground border-t border-border/40">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="size-2 rounded-full bg-primary/60 shrink-0" />
+                              Atacado {baseCost > 0 ? brl(baseCost) : "—"}
+                            </span>
+                            {totalSharedCost > 0 && (
+                              <span className="font-semibold text-foreground">
+                                +{brl(totalSharedCost)} custos adicionais rateados
                               </span>
-                              {totalSharedCost > 0 && (
-                                <span className="font-medium text-foreground">
-                                  +{brl(totalSharedCost)} custos adicionais rateados
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
 
@@ -6333,7 +6321,7 @@ function Precificacao() {
               onSave={() => save.mutate()}
               onReset={resetPricingModel}
               saveDisabled={save.isPending || (mode === "grade" ? (actualLotUnits === 0 && !name.trim()) : !name.trim() || toNumber(wholesale) <= 0)}
-              entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
+              entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0 || (mode === "grade" && gradeStep < 3)}
             />
           </div>
         )}

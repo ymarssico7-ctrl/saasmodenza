@@ -84,6 +84,7 @@ type NavGroupItem = {
   to: string;
   search?: Record<string, string>;
   section?: string;
+  dividerBefore?: boolean;
   badgeKey?: "pedidos";
   externalPreview?: boolean;
   children?: NavSubItem[];
@@ -124,6 +125,7 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGr
       icon: Boxes,
       to: "/estoque",
       search: { tab: "pecas" },
+      dividerBefore: true,
       isMatch: (p) =>
         p.startsWith("/estoque") ||
         p.startsWith("/precificacao") ||
@@ -186,6 +188,7 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGr
       label: "Marketing",
       icon: BadgePercent,
       to: "/loja/cupons",
+      dividerBefore: true,
       isMatch: (p) =>
         p.startsWith("/loja/cupons") ||
         p.startsWith("/loja/compartilhar"),
@@ -207,6 +210,7 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGr
       label: "Finanças",
       icon: BarChart3,
       to: "/relatorio",
+      dividerBefore: true,
       isMatch: (p) =>
         p.startsWith("/relatorio") ||
         p.startsWith("/metas") ||
@@ -440,7 +444,7 @@ const NavGroupRow = memo(function NavGroupRow({
               >
                 <item.icon
                   className={cn(
-                    "size-4.5 shrink-0 transition-opacity duration-150",
+                    "size-4 shrink-0 transition-opacity duration-150",
                     isCurrentGroupRoute ? "opacity-100 text-white" : "opacity-55 group-hover:opacity-100",
                   )}
                 />
@@ -522,7 +526,7 @@ const NavGroupRow = memo(function NavGroupRow({
             >
               <item.icon
                 className={cn(
-                  "size-4.5 shrink-0 transition-opacity duration-150",
+                  "size-4 shrink-0 transition-opacity duration-150",
                   isCurrentGroupRoute ? "opacity-100 text-white" : "opacity-55 group-hover:opacity-100",
                 )}
               />
@@ -815,11 +819,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   function renderNavItems(onItemClick?: () => void, collapsed = false) {
     return navItems.map((item) => (
       <div key={item.id} className="flex flex-col">
+        {item.dividerBefore && !item.section && (
+          collapsed ? (
+            <div className="my-1.5 h-px w-6 bg-white/[0.08] mx-auto" />
+          ) : (
+            <div className="my-1.5 mx-2 h-px bg-white/[0.06]" />
+          )
+        )}
         {item.section && (
           collapsed ? (
             <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
           ) : (
-            <div className="px-3 mt-5 mb-1.5 select-none flex items-center justify-between">
+            <div className="px-3 mt-4 mb-1.5 select-none flex items-center justify-between">
               <span className="text-[11.5px] font-medium text-sidebar-foreground/45 flex items-center gap-1">
                 {item.section}
                 <ChevronRight className="size-3 opacity-40" />
@@ -1003,7 +1014,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10 transition-colors cursor-pointer group"
                   aria-label="Expandir navegação"
                 >
-                  <PanelLeftOpen className="size-4.5 transition-transform group-hover:scale-105" />
+                  <PanelLeftOpen className="size-4 transition-transform group-hover:scale-105" />
                 </button>
                 <Link to="/painel" title="Início — Vestui" className="flex items-center justify-center mt-1">
                   <Logo compact />
