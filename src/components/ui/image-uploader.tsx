@@ -7,10 +7,11 @@
  * - Em modo demo: converte para Base64 Data URL local (sem chamada de rede)
  * - Suporta prop `currentUrl` para exibir foto já salva
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export type ImageUploaderProps = {
   /** URL da imagem já salva (exibida no preview inicial) */
@@ -25,6 +26,10 @@ export type ImageUploaderProps = {
   placeholder?: string;
   /** Proporção do preview: "square" | "portrait" */
   aspect?: "square" | "portrait";
+  /** Modo compacto: slot 1:1 único interativo com overlay e botão de remover */
+  compact?: boolean;
+  /** Classe CSS customizada adicional */
+  className?: string;
 };
 
 export function ImageUploader({
@@ -34,10 +39,16 @@ export function ImageUploader({
   onUploaded,
   placeholder = "Escolher foto",
   aspect = "portrait",
+  compact = false,
+  className,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setPreview(currentUrl ?? null);
+  }, [currentUrl]);
 
   const aspectClass = aspect === "portrait" ? "aspect-[3/4]" : "aspect-square";
 
@@ -107,6 +118,68 @@ export function ImageUploader({
   function clearPhoto() {
     setPreview(null);
     onUploaded("");
+  }
+
+  if (compact) {
+    return (
+      <div className={cn("relative shrink-0", className)}>
+        {/* Input oculto que abre o seletor nativo */}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={handleChange}
+          aria-label="Selecionar imagem"
+        />
+
+        <button
+          type="button"
+          onClick={openPicker}
+          disabled={loading}
+          className="group relative flex size-24 sm:size-28 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-secondary/30 transition-all hover:border-primary/50 hover:shadow-2xs disabled:opacity-60"
+          aria-label={placeholder}
+          title={preview ? "Clique para trocar a foto" : "Clique para adicionar uma foto"}
+        >
+          {preview ? (
+            <>
+              <img
+                src={preview}
+                alt="Preview"
+                className="size-full object-cover"
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <Camera className="size-5 text-white" />
+                <span className="text-[10px] font-semibold text-white">Trocar</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5 p-2 text-center text-muted-foreground transition-colors group-hover:text-primary">
+              {loading ? (
+                <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : (
+                <Camera className="size-6 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+              )}
+              <span className="text-[10px] font-semibold">
+                {loading ? "Enviando…" : placeholder}
+              </span>
+            </div>
+          )}
+        </button>
+
+        {preview && !loading && (
+          <button
+            type="button"
+            onClick={clearPhoto}
+            className="absolute -top-1.5 -right-1.5 size-5 flex items-center justify-center rounded-full bg-background border border-border shadow-2xs text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer z-10"
+            title="Remover foto"
+          >
+            <X className="size-3" />
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -821,14 +821,15 @@ function LivePricingSummaryPanel({
         )}
       </div>
 
-      {/* ── Métrica Herói: Peças na Grade (Vértice Imagem 5) ── */}
+      {/* ── Métrica: Peças na Grade ── */}
       {mode === "grade" && (
-        <div className="flex items-baseline gap-2 pt-0.5">
-          <span className="num-display text-4xl sm:text-5xl font-black text-foreground tracking-tight">
-            {totalUnits}
-          </span>
-          <span className="text-sm font-medium text-muted-foreground">
-            {totalUnits === 1 ? "peça na grade" : "peças na grade"}
+        <div className="flex items-center justify-between py-1 border-b border-border/40">
+          <span className="text-xs font-semibold text-muted-foreground">Volume no lote</span>
+          <span className={cn(
+            "rounded-full px-2.5 py-0.5 text-xs font-bold",
+            totalUnits > 0 ? "bg-primary/10 text-primary border border-primary/20" : "bg-muted text-muted-foreground"
+          )}>
+            {totalUnits} {totalUnits === 1 ? "peça na grade" : "peças na grade"}
           </span>
         </div>
       )}
@@ -869,20 +870,29 @@ function LivePricingSummaryPanel({
         <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold">
           <span className="text-foreground">Custo real por peça</span>
           <span className="num-display text-foreground text-sm font-extrabold">
-            {totalUnitCost > 0 ? brl(totalUnitCost) : "R$ 0,00"}
+            {totalUnitCost > 0
+              ? brl(totalUnitCost)
+              : (baseWholesaleCost + sharedCostsPerUnit > 0 ? brl(baseWholesaleCost + sharedCostsPerUnit) : "R$ 0,00")}
           </span>
         </div>
       </div>
 
       {/* ── Preço Sugerido Herói ── */}
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-4 text-center space-y-1">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          Preço Sugerido de Venda
+        <div className="flex items-center justify-center gap-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Preço Sugerido de Venda
+          </p>
+          {totalUnits === 0 && suggestedPrice > 0 && (
+            <span className="text-[9px] font-semibold text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-full">
+              Projeção
+            </span>
+          )}
+        </div>
+        <p className="num-display text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+          {suggestedPrice > 0 ? brl(suggestedPrice) : "R$ —,——"}
         </p>
-        <p className="num-display text-3xl sm:text-4xl font-black text-foreground tracking-tight">
-          {hasData && suggestedPrice > 0 ? brl(suggestedPrice) : "R$ —,——"}
-        </p>
-        {hasData && suggestedPrice > 0 && (
+        {suggestedPrice > 0 && (
           <div className="flex items-center justify-center gap-2 text-xs pt-0.5">
             <span className="text-emerald-600 dark:text-emerald-400 font-bold">
               +{brl(profitPerUnit)} lucro
@@ -1304,18 +1314,56 @@ function Precificacao() {
 
     const valid = variantResults.filter((i) => i.wholesaleNum > 0);
     if (!valid.length) {
+      // Projeção contábil unitária para quando ainda não há variantes com quantidade no lote
+      const effectiveWholesale = toNumber(baseWholesaleGrade) > 0
+        ? toNumber(baseWholesaleGrade)
+        : (variants.length > 0 && variants[0] && toNumber(variants[0].wholesaleCost) > 0
+          ? toNumber(variants[0].wholesaleCost)
+          : toNumber(wholesale));
+      const sharedPerUnit =
+        resolvePerUnit(freight, freightMode, 1) +
+        resolvePerUnit(packaging, packagingMode, 1) +
+        resolvePerUnit(other, otherMode, 1);
+      const unitCost = effectiveWholesale + sharedPerUnit;
+
+      const totalDeductionsFrac = (tax + cardRate) / 100;
+      let projPrice = 0;
+      let projProfit = 0;
+      let projMargin = 0;
+
+      if (unitCost > 0) {
+        if (matrixGlobalMode === "margin") {
+          const m = toNumber(matrixGlobalMarginStr) || 50;
+          const div = 1 - (totalDeductionsFrac + m / 100);
+          projPrice = div > 0.05 ? unitCost / div : 0;
+          projMargin = m;
+          projProfit = projPrice > 0 ? projPrice * (1 - totalDeductionsFrac) - unitCost : 0;
+        } else if (matrixGlobalMode === "markup") {
+          const mk = toNumber(matrixGlobalMarkupStr) || 100;
+          const base = unitCost * (1 + mk / 100);
+          const div = 1 - totalDeductionsFrac;
+          projPrice = div > 0.05 ? base / div : 0;
+          projProfit = projPrice > 0 ? projPrice * (1 - totalDeductionsFrac) - unitCost : 0;
+          projMargin = projPrice > 0 ? (projProfit / projPrice) * 100 : 0;
+        } else {
+          projPrice = toNumber(matrixGlobalDirectPrice);
+          projProfit = projPrice > 0 ? projPrice * (1 - totalDeductionsFrac) - unitCost : 0;
+          projMargin = projPrice > 0 ? (projProfit / projPrice) * 100 : 0;
+        }
+      }
+
       return {
-        minSuggested: 0,
-        maxSuggested: 0,
-        avgSuggested: 0,
-        avgProfit: 0,
-        avgCost: 0,
-        avgMargin: 0,
-        avgMarkup: 0,
+        minSuggested: projPrice,
+        maxSuggested: projPrice,
+        avgSuggested: projPrice,
+        avgProfit: projProfit,
+        avgCost: unitCost,
+        avgMargin: projMargin,
+        avgMarkup: unitCost > 0 ? (projProfit / unitCost) * 100 : 0,
         totalRevenue: 0,
         totalInvestment: 0,
         totalProfit: 0,
-        marginHealth: getMarginHealth(0),
+        marginHealth: getMarginHealth(projMargin),
         hasMultiple: variants.length > 1,
       };
     }
@@ -1348,7 +1396,7 @@ function Precificacao() {
       marginHealth: getMarginHealth(avgMarg),
       hasMultiple: minP !== maxP,
     };
-  }, [mode, singleResult, variantResults, variants.length]);
+  }, [mode, singleResult, variantResults, variants.length, baseWholesaleGrade, wholesale, freight, packaging, other, freightMode, packagingMode, otherMode, tax, cardRate, matrixGlobalMode, matrixGlobalMarginStr, matrixGlobalMarkupStr, matrixGlobalDirectPrice]);
 
   // ── Simulador de Meios de Pagamento & Perdas ───────────────────────
   const paymentScenarios = useMemo(() => {
@@ -2716,11 +2764,11 @@ function Precificacao() {
       </div>
 
       {/* ── CANVAS UNIFICADO & MINIMALISTA (PADRÃO APPLE STUDIO - FLUXO SEQUENCIAL NATURAL) ──── */}
-      <div className="mx-auto w-full max-w-7xl">
-        {/* Grade de 2 colunas no desktop: conteúdo principal (68%) + painel sticky (32%) */}
+      <div className="mx-auto w-full max-w-[1440px]">
+        {/* Grade de 2 colunas no desktop: conteúdo principal fluido + painel lateral responsivo */}
         <div className={cn(
-          "gap-7",
-          mode !== "historico" ? "lg:grid lg:grid-cols-[1fr_360px] lg:items-start" : ""
+          "gap-5 xl:gap-6",
+          mode !== "historico" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_310px] lg:items-start" : ""
         )}>
 
         {/* ── COLUNA ESQUERDA: todo o conteúdo existente ── */}
@@ -3135,7 +3183,7 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <Select value={freightMode} onValueChange={(v) => setFreightMode(v as "per_unit" | "lot_total")}>
                             <SelectTrigger className="h-10 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
                               <SelectValue />
@@ -3202,7 +3250,7 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <Select value={packagingMode} onValueChange={(v) => setPackagingMode(v as "per_unit" | "lot_total")}>
                             <SelectTrigger className="h-10 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
                               <SelectValue />
@@ -3269,7 +3317,7 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <Select value={otherMode} onValueChange={(v) => setOtherMode(v as "per_unit" | "lot_total")}>
                             <SelectTrigger className="h-10 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
                               <SelectValue />
@@ -4143,35 +4191,18 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* Grid de Identificação da Peça com Slot de Imagem (Padrão Vértice Imagem 5) */}
+              {/* Grid de Identificação da Peça com Slot de Imagem Único 1:1 (Padrão Apple Studio) */}
               <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5">
-                {/* Slot de Miniatura da Peça */}
-                <div className="flex flex-col items-center gap-1.5 shrink-0 self-center sm:self-start">
-                  <div className="size-20 sm:size-24 rounded-2xl border border-border/80 bg-secondary/30 flex items-center justify-center overflow-hidden shadow-2xs transition-all hover:border-primary/50">
-                    {entryPhotoUrl ? (
-                      <img
-                        src={entryPhotoUrl}
-                        alt={name || "Peça"}
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-1 text-muted-foreground p-2 text-center">
-                        <Shirt className="size-6 text-muted-foreground/60" />
-                        <span className="text-[10px] font-semibold text-muted-foreground/70">Foto da peça</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="scale-90 origin-top">
-                    <ImageUploader
-                      currentUrl={entryPhotoUrl || null}
-                      bucket="product-photos"
-                      folder="inventory"
-                      onUploaded={(url) => setEntryPhotoUrl(url)}
-                      placeholder={entryPhotoUrl ? "Trocar" : "Adicionar"}
-                      aspect="portrait"
-                    />
-                  </div>
-                </div>
+                {/* Slot de Miniatura da Peça Único e Interativo */}
+                <ImageUploader
+                  compact
+                  currentUrl={entryPhotoUrl || null}
+                  bucket="product-photos"
+                  folder="inventory"
+                  onUploaded={(url) => setEntryPhotoUrl(url)}
+                  placeholder="Foto da peça"
+                  className="self-center sm:self-start"
+                />
 
                 {/* Campos de Nome, Categoria e Custo de Compra */}
                 <div className="flex-1 w-full space-y-3.5">
@@ -4473,40 +4504,44 @@ function Precificacao() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/15 p-8 text-center space-y-4">
-                  <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto shadow-xs">
-                    <Boxes className="size-6" />
-                  </div>
-                  <div className="max-w-md mx-auto space-y-1">
-                    <h3 className="text-sm font-bold text-foreground">
-                      Nenhuma variação adicionada ainda
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Monte a grade de peças deste modelo escolhendo um preset rápido ou adicionando variações avulsas abaixo.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => applyModelQuickPreset(SIZE_FAMILIES[0]!.sizes)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl gradient-primary text-xs font-bold text-white shadow-glow hover:opacity-95 transition-all cursor-pointer active:scale-95"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>Começar com Grade P ao GG</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyModelQuickPreset(SIZE_FAMILIES[1]!.sizes)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border/80 bg-card text-xs font-bold text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs active:scale-95"
-                    >
-                      <Plus className="size-3.5" />
-                      <span>Grade Numérica 34 ao 50</span>
-                    </button>
-                    <AddVariantPopover
-                      defaultColor="Off-White"
-                      baseWholesale={baseWholesaleGrade}
-                      onAdd={handleAddNewVariant}
-                    />
+                <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                    <div className="flex items-center gap-3">
+                      <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Boxes className="size-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-bold text-foreground">
+                          Grade pronta para montagem
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground">
+                          Escolha um preset rápido ou clique nos tamanhos acima para montar o lote.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => applyModelQuickPreset(SIZE_FAMILIES[0]!.sizes)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-primary text-xs font-bold text-white shadow-glow hover:opacity-95 transition-all cursor-pointer active:scale-95"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>Grade P ao GG</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyModelQuickPreset(SIZE_FAMILIES[1]!.sizes)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border/80 bg-card text-xs font-semibold text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs active:scale-95"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>34 ao 50</span>
+                      </button>
+                      <AddVariantPopover
+                        defaultColor="Off-White"
+                        baseWholesale={baseWholesaleGrade}
+                        onAdd={handleAddNewVariant}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -4544,9 +4579,12 @@ function Precificacao() {
                 const otherVal = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
                 const totalSharedCost = freightVal + packagingVal + otherVal;
 
+                // Priority: grade average → first variant → wholesale field (Passo 1) → 0
                 const baseCost = toNumber(baseWholesaleGrade) > 0
                   ? toNumber(baseWholesaleGrade)
-                  : (variants.length > 0 && variants[0] && toNumber(variants[0].wholesaleCost) > 0 ? toNumber(variants[0].wholesaleCost) : 0);
+                  : (variants.length > 0 && variants[0] && toNumber(variants[0].wholesaleCost) > 0
+                    ? toNumber(variants[0].wholesaleCost)
+                    : toNumber(wholesale));
 
                 const totalUnitCost = baseCost + totalSharedCost;
                 const freightPct = totalSharedCost > 0 ? (freightVal / totalSharedCost) * 100 : 0;
@@ -4666,48 +4704,47 @@ function Precificacao() {
                 };
 
                 return (
-                  <div className="space-y-6">
-                    {/* ── CARD 1: COMPOSIÇÃO DE CUSTO DA PEÇA & DEDUÇÕES SOBRE A VENDA ── */}
-                    <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xs space-y-6">
-                      <div className="space-y-5">
-                        {/* Cabeçalho da Lista Contábil */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/50">
-                          <div>
-                            <h3 className="text-base font-bold text-foreground">
-                              Composição do Custo da Peça
-                            </h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Do atacado ao estoque pronto para venda (frete, embalagem e extras rateados)
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-primary/10 border border-primary/20 px-3.5 py-1 text-xs font-extrabold text-primary shrink-0 shadow-2xs">
-                            Custo real: {brl(totalUnitCost)} / peça
-                          </span>
+                  <div className="space-y-8">
+                    {/* ── SEÇÃO 1: COMPOSIÇÃO DE CUSTO DA PEÇA ── */}
+                    <div className="space-y-5">
+                      {/* Cabeçalho da Lista Contábil */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/50">
+                        <div>
+                          <h3 className="text-base font-bold text-foreground">
+                            Composição do Custo da Peça
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Do atacado ao estoque pronto para venda (frete, embalagem e extras rateados)
+                          </p>
                         </div>
+                        <span className="rounded-full bg-primary/10 border border-primary/20 px-3.5 py-1 text-xs font-extrabold text-primary shrink-0 shadow-2xs">
+                          Custo real: {brl(totalUnitCost)} / peça
+                        </span>
+                      </div>
 
-                        {/* Lista Contábil Nobre e Fluida */}
-                        <div className="divide-y divide-border/50 rounded-2xl border border-border/60 bg-secondary/10 overflow-hidden">
-                          {/* Linha 1: Custo no Atacado (Base) */}
-                          <div className="flex items-center justify-between p-3.5 sm:px-4 transition-colors hover:bg-secondary/20">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                                <Tag className="size-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="text-xs sm:text-sm font-bold text-foreground block">
-                                  Custo no Atacado (fornecedor)
-                                </span>
-                                <span className="text-[11px] text-muted-foreground block -mt-0.5">
-                                  Preço médio de compra por peça definido na grade do Passo 1
-                                </span>
-                              </div>
+                      {/* Lista Contábil Nobre e Fluida */}
+                      <div className="divide-y divide-border/50 rounded-2xl border border-border/60 bg-secondary/10 overflow-hidden">
+                        {/* Linha 1: Custo no Atacado (Base) */}
+                        <div className="flex items-center justify-between p-3.5 sm:px-4 transition-colors hover:bg-secondary/20">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <Tag className="size-4" />
                             </div>
-                            <div className="text-right shrink-0">
-                              <span className="numeric text-sm sm:text-base font-extrabold text-foreground">
-                                {brl(baseCost)}
+                            <div className="min-w-0">
+                              <span className="text-xs sm:text-sm font-bold text-foreground block">
+                                Custo no Atacado (fornecedor)
+                              </span>
+                              <span className="text-[11px] text-muted-foreground block -mt-0.5">
+                                Preço médio de compra por peça definido na grade do Passo 1
                               </span>
                             </div>
                           </div>
+                          <div className="flex items-center justify-end shrink-0">
+                            <span className="inline-flex h-9 min-w-28 items-center justify-end rounded-xl border border-border/60 bg-card px-3 numeric text-sm font-extrabold text-foreground shadow-2xs">
+                              {brl(baseCost)}
+                            </span>
+                          </div>
+                        </div>
 
                           {/* Linha 2: Frete por Peça */}
                           <div className="p-3.5 sm:px-4 transition-colors hover:bg-secondary/20 space-y-2">
@@ -4726,7 +4763,7 @@ function Precificacao() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <div className="flex items-center gap-1.5 shrink-0">
                                 <Select value={freightMode} onValueChange={(v) => setFreightMode(v as "per_unit" | "lot_total")}>
                                   <SelectTrigger className="h-9 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
                                       <SelectValue />
@@ -4793,7 +4830,7 @@ function Precificacao() {
                                   </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0">
                                   <Select value={packagingMode} onValueChange={(v) => setPackagingMode(v as "per_unit" | "lot_total")}>
                                     <SelectTrigger className="h-9 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
                                       <SelectValue />
@@ -4860,7 +4897,7 @@ function Precificacao() {
                                   </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0">
                                   <Select value={otherMode} onValueChange={(v) => setOtherMode(v as "per_unit" | "lot_total")}>
                                     <SelectTrigger className="h-9 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
                                       <SelectValue />
@@ -4909,7 +4946,6 @@ function Precificacao() {
                               )}
                               {renderInlineRateio("other", "Gastos Extras")}
                             </div>
-                          </div>
 
                           {/* Mini-Barra Segmentada de Proporção de Custos */}
                           <div className="space-y-1.5 px-0.5">
@@ -5101,73 +5137,21 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      {/* ── CARD 2: CENTRO DE COMANDO COMERCIAL & ESTRATÉGIA DE PRECIFICAÇÃO ── */}
-                      <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xs space-y-6">
-                        {/* 1. HERO PREÇO SUGERIDO: DESTAQUE IMEDIATO NÍVEL APPLE */}
-                        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-5 space-y-3 relative overflow-hidden">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Preço de Venda Sugerido
-                            </span>
-                            <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-0.5 text-xs font-bold text-primary">
-                              Projeção em Tempo Real
-                            </span>
+                      {/* ── SEÇÃO 2: CENTRO DE COMANDO COMERCIAL & ESTRATÉGIA DE PRECIFICAÇÃO ── */}
+                      <div className="pt-6 border-t border-border/60 space-y-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h3 className="text-base font-bold text-foreground">
+                              Estratégia de Precificação da Grade
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Defina sua meta comercial para formar o preço de venda sugerido de cada peça
+                            </p>
                           </div>
-
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <div className="numeric text-4xl sm:text-5xl font-extrabold text-foreground tracking-tight">
-                              {previewPrice > 0 ? brl(previewPrice) : "—"}
-                              <span className="text-sm font-normal text-muted-foreground ml-2">/ peça</span>
-                            </div>
-                            {previewPrice > 0 && (
-                              <div className="text-right">
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                                  <Sparkles className="size-3.5" />
-                                  +{brl(previewProfit)} lucro ({Math.round(previewMargin)}%)
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            {previewPrice > 0 ? (
-                              <>
-                                Cobrando <strong className="text-foreground">{brl(previewPrice)}</strong>, sobram <strong className="text-emerald-600 dark:text-emerald-400">{brl(previewProfit)} livres no caixa</strong> após pagar o custo ({brl(totalUnitCost)}) e as deduções de {(tax + cardRate).toFixed(1).replace(".", ",")}% ({brl(previewPrice * ((tax + cardRate) / 100))}).
-                              </>
-                            ) : baseCost <= 0 ? (
-                              <span className="flex flex-wrap items-center justify-between gap-2">
-                                <span>Defina o custo no atacado na identificação da peça para calcular a projeção de preço e lucro.</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    window.scrollTo({ top: 200, behavior: "smooth" });
-                                  }}
-                                  className="text-primary hover:underline font-bold text-xs shrink-0 cursor-pointer"
-                                >
-                                  Preencher custo atacado ↑
-                                </button>
-                              </span>
-                            ) : (
-                              "Escolha sua meta comercial abaixo para projetar o preço e o lucro por peça."
-                            )}
-                          </p>
                         </div>
 
-                        {/* 2. ESTRATÉGIA COMERCIAL: SELETOR MODERNO */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between gap-2">
-                            <div>
-                              <h3 className="text-sm font-bold text-foreground">
-                                Estratégia de Precificação
-                              </h3>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Escolha como deseja formar o preço de venda da grade
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Segmented Control Apple: Margem / Markup / Preço Fixo */}
-                          <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-border/80 bg-secondary/30 p-1.5 shadow-2xs">
+                        {/* Segmented Control Apple: Margem / Markup / Preço Fixo */}
+                        <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-border/80 bg-secondary/30 p-1.5 shadow-2xs">
                             <button
                               type="button"
                               onClick={() => setMatrixGlobalMode("margin")}
@@ -5368,10 +5352,28 @@ function Precificacao() {
                               </div>
                             </div>
                           )}
-                        </div>
+
+                        {/* Feedback Inline de Simulação por Peça */}
+                        {previewPrice > 0 ? (
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="size-4 text-primary shrink-0" />
+                              <span className="text-xs text-muted-foreground">
+                                Preço projetado por peça: <strong className="text-foreground font-bold">{brl(previewPrice)}</strong>
+                              </span>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                              +{brl(previewProfit)} lucro líquido ({Math.round(previewMargin)}%)
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="rounded-xl bg-secondary/30 border border-border/50 px-3.5 py-2.5 text-xs text-muted-foreground">
+                            {baseCost <= 0 ? "Informe o custo de atacado para visualizar a projeção de preço e lucro por peça." : "Ajuste os parâmetros acima para simular a formação de preço."}
+                          </div>
+                        )}
 
                         {/* 3. BOTÃO DE AÇÃO MESTRE */}
-                        <div className="pt-2">
+                        <div className="pt-1">
                           <Button
                             type="button"
                             onClick={applyStrategyToModel}
@@ -5384,19 +5386,19 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      {/* ── PAINEL DE FECHAMENTO CONSOLIDADO DO LOTE & ENTRADA NO ESTOQUE ── */}
-                    <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xs space-y-6">
+                      {/* ── SEÇÃO 3: FECHAMENTO CONSOLIDADO DO LOTE & ENTRADA NO ESTOQUE ── */}
+                      <div className="pt-6 border-t border-border/60 space-y-6">
                       {actualLotUnits === 0 ? (
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-                          <div className="flex items-center gap-3.5">
+                          <div className="flex items-center gap-3.5 min-w-0">
                             <div className="size-11 rounded-2xl bg-secondary/80 text-muted-foreground flex items-center justify-center shrink-0 border border-border/60">
                               <Boxes className="size-5" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <p className="text-sm font-bold text-foreground">
                                 Grade aguardando preenchimento no Passo 1
                               </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
+                              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                                 Adicione quantidades e tamanhos na grade para projetar o faturamento total, investimento e lucro líquido do lote aqui.
                               </p>
                             </div>
@@ -5747,7 +5749,7 @@ function Precificacao() {
                     ? toNumber(baseWholesaleGrade)
                     : variants[0] && toNumber(variants[0].wholesaleCost) > 0
                       ? toNumber(variants[0].wholesaleCost)
-                      : 0
+                      : toNumber(wholesale)
                   : toNumber(wholesale)
               }
               sharedCostsPerUnit={
@@ -5769,7 +5771,7 @@ function Precificacao() {
               totalVariants={mode === "grade" ? variants.length : 1}
               hasData={
                 mode === "grade"
-                  ? actualLotUnits > 0 && summaryPrices.avgSuggested > 0
+                  ? summaryPrices.avgSuggested > 0 && summaryPrices.avgCost > 0
                   : toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0
               }
               mode={mode}

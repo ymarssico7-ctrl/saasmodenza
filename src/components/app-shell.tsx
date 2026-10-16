@@ -1284,7 +1284,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {/* Painel Flutuante Branco com borda sutil e cantos arredondados */}
         <div className="flex-1 h-full bg-background rounded-none lg:rounded-2xl border-none lg:border lg:border-white/10 shadow-none lg:shadow-2xs overflow-y-auto min-w-0 scrollbar-thin">
-          <div className="mx-auto w-full max-w-[1380px] px-4 py-4 sm:px-6 sm:py-5 lg:pb-8">
+          <div className="mx-auto w-full max-w-[1536px] px-4 py-4 sm:px-6 sm:py-5 lg:pb-8">
             {children}
           </div>
         </div>
