@@ -735,7 +735,133 @@ function AddVariantPopover({
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PAINEL LATERAL STICKY — Resumo ao vivo de precificação (Apple / Lovable UX)
+// ─────────────────────────────────────────────────────────────────────────────
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="num-display font-semibold text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function LivePricingSummaryPanel({
+  name,
+  category,
+  suggestedPrice,
+  profitPerUnit,
+  effectiveMargin,
+  lotRevenue,
+  lotProfit,
+  totalUnits,
+  totalVariants,
+  hasData,
+  mode,
+  onEntry,
+  onSave,
+  saveDisabled,
+  entryDisabled,
+}: {
+  name: string;
+  category: string;
+  suggestedPrice: number;
+  profitPerUnit: number;
+  effectiveMargin: number;
+  lotRevenue: number;
+  lotProfit: number;
+  totalUnits: number;
+  totalVariants: number;
+  hasData: boolean;
+  mode: PricingMode;
+  onEntry: () => void;
+  onSave: () => void;
+  saveDisabled: boolean;
+  entryDisabled: boolean;
+}) {
+  return (
+    <div className="sticky top-6 rounded-2xl border border-border bg-card p-5 shadow-soft space-y-4">
+      {/* Cabeçalho */}
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Resumo ao vivo
+        </p>
+        <p className="mt-1.5 text-sm font-semibold text-foreground truncate">
+          {name.trim() || "Nome da peça"}
+        </p>
+        {category && (
+          <span className="inline-block mt-1 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground font-medium">
+            {category}
+          </span>
+        )}
+      </div>
+
+      {/* Divisor */}
+      <div className="border-t border-border/60" />
+
+      {/* Hero price */}
+      <div className="text-center space-y-1.5">
+        {hasData ? (
+          <>
+            <p className="num-display text-3xl font-extrabold text-foreground tracking-tight">
+              {brl(suggestedPrice)}
+            </p>
+            <div className="flex items-center justify-center gap-3 text-xs">
+              <span className="text-success font-semibold">
+                +{brl(profitPerUnit)}/peça
+              </span>
+              <span className="text-muted-foreground">
+                {Math.round(effectiveMargin)}% margem
+              </span>
+            </div>
+          </>
+        ) : (
+          <p className="num-display text-2xl font-extrabold text-muted-foreground/30">
+            R$ —,——
+          </p>
+        )}
+      </div>
+
+      {/* Totais do lote */}
+      {hasData && totalUnits > 1 && (
+        <div className="rounded-xl bg-secondary/50 px-3 py-2.5 space-y-1.5">
+          <SummaryRow label={`Receita (${totalUnits} peças)`} value={brl(lotRevenue)} />
+          <SummaryRow label="Lucro do lote" value={brl(lotProfit)} />
+        </div>
+      )}
+
+      {/* Divisor */}
+      <div className="border-t border-border/60" />
+
+      {/* CTAs */}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          className="w-full h-10 rounded-xl gradient-primary shadow-glow text-sm font-semibold"
+          onClick={mode === "grade" ? onEntry : onSave}
+          disabled={mode === "grade" ? entryDisabled : saveDisabled}
+        >
+          <Check className="mr-2 h-4 w-4" />
+          {mode === "grade" ? "Dar entrada no estoque" : "Salvar no histórico"}
+        </Button>
+
+        {totalVariants > 0 && (
+          <p className="text-center text-[11px] text-muted-foreground">
+            {totalUnits} {totalUnits === 1 ? "peça" : "peças"}{totalVariants > 1 ? ` · ${totalVariants} variações` : ""}
+          </p>
+        )}
+
+        <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+          ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Precificacao() {
+
   const queryClient = useQueryClient();
   const { storeId } = useStore();
   const { categories: storeCategories } = useStoreCategories();
@@ -825,6 +951,11 @@ function Precificacao() {
   const [packaging, setPackaging] = useState("3,50");
   const [other, setOther] = useState("2,00");
 
+  // ── Modo de custo: por peça ou total do lote ─────────────────────
+  const [freightMode, setFreightMode] = useState<"per_unit" | "lot_total">("per_unit");
+  const [packagingMode, setPackagingMode] = useState<"per_unit" | "lot_total">("per_unit");
+  const [otherMode, setOtherMode] = useState<"per_unit" | "lot_total">("per_unit");
+
   const [desiredMargin, setDesiredMargin] = useState(() => pricingSettings.defaultMargin); // Margem líquida padrão da loja
   const [markup, setMarkup] = useState(80); // 80% markup sobre custo
   const [directSalePrice, setDirectSalePrice] = useState("119,90");
@@ -890,11 +1021,24 @@ function Precificacao() {
     GG: 2,
   });
 
+  // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
+  const actualLotUnits = useMemo(() => {
+    if (mode !== "grade") return Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
+    return variants.reduce((acc, v) => acc + (v.qty || 1), 0);
+  }, [mode, variants, rapidaQty]);
+
+  // ── Helper: resolve custo real por peça considerando o modo (por peça ou lote total) ──
+  const resolvePerUnit = (valueStr: string, mode: "per_unit" | "lot_total", units: number): number => {
+    const v = toNumber(valueStr);
+    if (mode === "per_unit") return v;
+    return units > 0 ? v / units : 0;
+  };
+
   // ── Função Central de Cálculo de Item ──────────────────────────────
   const calculateItem = useMemo(() => {
-    const freightNum = toNumber(freight);
-    const packagingNum = toNumber(packaging);
-    const otherNum = toNumber(other);
+    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
 
     return (
       wholesaleCost: number,
@@ -983,7 +1127,7 @@ function Precificacao() {
         marginHealth: getMarginHealth(res.marginOnPrice),
       };
     };
-  }, [freight, packaging, other, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
+  }, [freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
 
   // ── Cálculo do Preço Único (Modo Rápido) ───────────────────────────
   const singleResult = useMemo(() => {
@@ -993,9 +1137,9 @@ function Precificacao() {
   // ── Cálculo da Tabela Unificada de Variantes (Totalmente Reativo) ───
   const variantResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
-    const freightNum = toNumber(freight);
-    const packagingNum = toNumber(packaging);
-    const otherNum = toNumber(other);
+    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
 
     return variants.map((v) => {
       const hasCustomCost = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
@@ -1034,7 +1178,7 @@ function Precificacao() {
         ...res,
       };
     });
-  }, [variants, baseWholesaleGrade, freight, packaging, other, tax, cardRate, colorStrategies, calculateItem]);
+  }, [variants, baseWholesaleGrade, freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits, tax, cardRate, colorStrategies, calculateItem]);
 
   // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
@@ -1113,11 +1257,6 @@ function Precificacao() {
     );
   }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax, cardRate]);
 
-  // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
-  const actualLotUnits = useMemo(() => {
-    if (mode !== "grade") return Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
-    return variantResults.reduce((acc, v) => acc + v.qty, 0);
-  }, [mode, variantResults, rapidaQty]);
 
   // Total consolidado de peças de TODOS os modelos do lote (v74)
   const totalLoteUnits = useMemo(() => {
@@ -2450,7 +2589,16 @@ function Precificacao() {
       </div>
 
       {/* ── CANVAS UNIFICADO & MINIMALISTA (PADRÃO APPLE STUDIO - FLUXO SEQUENCIAL NATURAL) ──── */}
-      <div className="space-y-6 max-w-5xl mx-auto w-full">
+      <div className="mx-auto w-full max-w-6xl">
+        {/* Grade de 2 colunas no desktop: conteúdo principal + painel sticky */}
+        <div className={cn(
+          "gap-6",
+          mode !== "historico" ? "lg:grid lg:grid-cols-[1fr_300px] lg:items-start" : ""
+        )}>
+
+        {/* ── COLUNA ESQUERDA: todo o conteúdo existente ── */}
+        <div className="space-y-6 min-w-0">
+
 
         {/* ══════════════════════════════════════════════════════════════════
             MODO RÁPIDO — PASSO 1: IDENTIFICAÇÃO E CUSTOS DA PEÇA
@@ -2737,9 +2885,9 @@ function Precificacao() {
               ETAPA 1.2 — CUSTOS OPERACIONAIS & RECIBO AO VIVO (2 COLUNAS)
           ══════════════════════════════════════════════════════════════════ */}
           {(() => {
-            const freightVal = toNumber(freight);
-            const packagingVal = toNumber(packaging);
-            const otherVal = toNumber(other);
+            const freightVal = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+            const packagingVal = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+            const otherVal = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
             const totalSharedCost = freightVal + packagingVal + otherVal;
             const freightPct = totalSharedCost > 0 ? (freightVal / totalSharedCost) * 100 : 0;
             const packagingPct = totalSharedCost > 0 ? (packagingVal / totalSharedCost) * 100 : 0;
@@ -2860,7 +3008,17 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <Select value={freightMode} onValueChange={(v) => setFreightMode(v as "per_unit" | "lot_total")}>
+                            <SelectTrigger className="h-10 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="per_unit">Por peça</SelectItem>
+                              <SelectItem value="lot_total">Total lote</SelectItem>
+                            </SelectContent>
+                          </Select>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -2876,9 +3034,9 @@ function Precificacao() {
                                 ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                 : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                             )}
+                            title="Assistente com calculadora de nota fiscal"
                           >
                             <Calculator className="size-3.5" />
-                            <span>Ratear</span>
                           </button>
                           <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -2892,6 +3050,11 @@ function Precificacao() {
                           </div>
                         </div>
                       </div>
+                      {freightMode === "lot_total" && toNumber(freight) > 0 && actualLotUnits > 1 && (
+                        <p className="text-[11px] text-primary font-medium text-right mt-1">
+                          ≈ {brl(toNumber(freight) / actualLotUnits)} / peça ({actualLotUnits} un.)
+                        </p>
+                      )}
                       {renderInlineRateio("freight", "Frete da Nota")}
                     </div>
 
@@ -2912,7 +3075,17 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <Select value={packagingMode} onValueChange={(v) => setPackagingMode(v as "per_unit" | "lot_total")}>
+                            <SelectTrigger className="h-10 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="per_unit">Por peça</SelectItem>
+                              <SelectItem value="lot_total">Total lote</SelectItem>
+                            </SelectContent>
+                          </Select>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -2928,9 +3101,9 @@ function Precificacao() {
                                 ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                 : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                             )}
+                            title="Assistente com calculadora de nota fiscal"
                           >
                             <Calculator className="size-3.5" />
-                            <span>Ratear</span>
                           </button>
                           <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -2944,6 +3117,11 @@ function Precificacao() {
                           </div>
                         </div>
                       </div>
+                      {packagingMode === "lot_total" && toNumber(packaging) > 0 && actualLotUnits > 1 && (
+                        <p className="text-[11px] text-primary font-medium text-right mt-1">
+                          ≈ {brl(toNumber(packaging) / actualLotUnits)} / peça ({actualLotUnits} un.)
+                        </p>
+                      )}
                       {renderInlineRateio("packaging", "Embalagens & Tags")}
                     </div>
 
@@ -2964,7 +3142,17 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <Select value={otherMode} onValueChange={(v) => setOtherMode(v as "per_unit" | "lot_total")}>
+                            <SelectTrigger className="h-10 w-28 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="per_unit">Por peça</SelectItem>
+                              <SelectItem value="lot_total">Total lote</SelectItem>
+                            </SelectContent>
+                          </Select>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -2980,9 +3168,9 @@ function Precificacao() {
                                 ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                 : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/70 hover:border-border",
                             )}
+                            title="Assistente com calculadora de nota fiscal"
                           >
                             <Calculator className="size-3.5" />
-                            <span>Ratear</span>
                           </button>
                           <div className="relative flex h-10 w-28 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -2996,6 +3184,11 @@ function Precificacao() {
                           </div>
                         </div>
                       </div>
+                      {otherMode === "lot_total" && toNumber(other) > 0 && actualLotUnits > 1 && (
+                        <p className="text-[11px] text-primary font-medium text-right mt-1">
+                          ≈ {brl(toNumber(other) / actualLotUnits)} / peça ({actualLotUnits} un.)
+                        </p>
+                      )}
                       {renderInlineRateio("other", "Outros Custos")}
                     </div>
                   </div>
@@ -3706,6 +3899,11 @@ function Precificacao() {
                 </Button>
               </div>
 
+              {/* Disclaimer fiscal discreto */}
+              <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed">
+                ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
+              </p>
+
               {/* Ponto de Equilíbrio no Modo Rápido (quando qty > 1) */}
               {actualLotUnits > 1 && (
                 <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
@@ -3733,6 +3931,34 @@ function Precificacao() {
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <>
+            {/* ── Indicador Posicional Read-only (Apple / Lovable UX - Muito sutil e sem cliques) ── */}
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground select-none px-1 py-0.5">
+              <span className={cn(
+                "inline-flex items-center gap-1.5 font-medium transition-colors",
+                actualLotUnits > 0 ? "text-primary font-semibold" : "text-foreground"
+              )}>
+                {actualLotUnits > 0 ? (
+                  <span className="flex size-4 items-center justify-center rounded-full bg-primary/15 text-primary text-[10px]">
+                    <Check className="size-2.5" />
+                  </span>
+                ) : (
+                  <span className="flex size-4 items-center justify-center rounded-full border border-border bg-card text-[10px] font-bold text-muted-foreground">
+                    1
+                  </span>
+                )}
+                <span>1. Peça &amp; Grade</span>
+              </span>
+
+              <div className="h-px w-8 bg-border/80" />
+
+              <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground">
+                <span className="flex size-4 items-center justify-center rounded-full border border-border bg-card text-[10px] font-bold text-muted-foreground">
+                  2
+                </span>
+                <span>2. Custos &amp; Precificação</span>
+              </span>
+            </div>
+
             {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
             <section className="panel p-6 sm:p-7 space-y-6">
               {/* Cabeçalho */}
@@ -4142,9 +4368,9 @@ function Precificacao() {
               </div>
 
               {(() => {
-                const freightVal = toNumber(freight);
-                const packagingVal = toNumber(packaging);
-                const otherVal = toNumber(other);
+                const freightVal = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+                const packagingVal = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+                const otherVal = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
                 const totalSharedCost = freightVal + packagingVal + otherVal;
 
                 const baseCost = toNumber(baseWholesaleGrade) > 0
@@ -4331,7 +4557,17 @@ function Precificacao() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                  <Select value={freightMode} onValueChange={(v) => setFreightMode(v as "per_unit" | "lot_total")}>
+                                    <SelectTrigger className="h-9 w-24 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="per_unit">Por peça</SelectItem>
+                                      <SelectItem value="lot_total">Total lote</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -4347,10 +4583,9 @@ function Precificacao() {
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                         : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
-                                    title="Dividir frete da nota pelo número de peças"
+                                    title="Assistente com calculadora de nota fiscal"
                                   >
                                     <Calculator className="size-3" />
-                                    <span>Ratear{actualLotUnits > 0 ? ` ÷${actualLotUnits}` : ""}</span>
                                   </button>
                                   <div className="relative flex h-9 w-24 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -4364,6 +4599,11 @@ function Precificacao() {
                                   </div>
                                 </div>
                               </div>
+                              {freightMode === "lot_total" && toNumber(freight) > 0 && actualLotUnits > 1 && (
+                                <p className="text-[11px] text-primary font-medium text-right mt-1">
+                                  ≈ {brl(toNumber(freight) / actualLotUnits)} / peça ({actualLotUnits} un.)
+                                </p>
+                              )}
                               {renderInlineRateio("freight", "Frete da Nota")}
                             </div>
 
@@ -4384,7 +4624,17 @@ function Precificacao() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                  <Select value={packagingMode} onValueChange={(v) => setPackagingMode(v as "per_unit" | "lot_total")}>
+                                    <SelectTrigger className="h-9 w-24 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="per_unit">Por peça</SelectItem>
+                                      <SelectItem value="lot_total">Total lote</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -4400,10 +4650,9 @@ function Precificacao() {
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                         : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
-                                    title="Dividir compra de embalagens pelo número de peças"
+                                    title="Assistente com calculadora de nota fiscal"
                                   >
                                     <Calculator className="size-3" />
-                                    <span>Ratear{actualLotUnits > 0 ? ` ÷${actualLotUnits}` : ""}</span>
                                   </button>
                                   <div className="relative flex h-9 w-24 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -4417,6 +4666,11 @@ function Precificacao() {
                                   </div>
                                 </div>
                               </div>
+                              {packagingMode === "lot_total" && toNumber(packaging) > 0 && actualLotUnits > 1 && (
+                                <p className="text-[11px] text-primary font-medium text-right mt-1">
+                                  ≈ {brl(toNumber(packaging) / actualLotUnits)} / peça ({actualLotUnits} un.)
+                                </p>
+                              )}
                               {renderInlineRateio("packaging", "Embalagens & Tags")}
                             </div>
 
@@ -4437,7 +4691,17 @@ function Precificacao() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                  <Select value={otherMode} onValueChange={(v) => setOtherMode(v as "per_unit" | "lot_total")}>
+                                    <SelectTrigger className="h-9 w-24 text-xs font-semibold rounded-xl border border-border/80 bg-card shadow-2xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="per_unit">Por peça</SelectItem>
+                                      <SelectItem value="lot_total">Total lote</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -4453,10 +4717,9 @@ function Precificacao() {
                                         ? "bg-primary text-primary-foreground border-primary shadow-xs"
                                         : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
                                     )}
-                                    title="Dividir gastos extras pelo número de peças"
+                                    title="Assistente com calculadora de nota fiscal"
                                   >
                                     <Calculator className="size-3" />
-                                    <span>Ratear{actualLotUnits > 0 ? ` ÷${actualLotUnits}` : ""}</span>
                                   </button>
                                   <div className="relative flex h-9 w-24 items-center shrink-0 rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -4470,6 +4733,11 @@ function Precificacao() {
                                   </div>
                                 </div>
                               </div>
+                              {otherMode === "lot_total" && toNumber(other) > 0 && actualLotUnits > 1 && (
+                                <p className="text-[11px] text-primary font-medium text-right mt-1">
+                                  ≈ {brl(toNumber(other) / actualLotUnits)} / peça ({actualLotUnits} un.)
+                                </p>
+                              )}
                               {renderInlineRateio("other", "Gastos Extras")}
                             </div>
                           </div>
@@ -5157,16 +5425,27 @@ function Precificacao() {
                               </Button>
                             </div>
 
-                            <Button
-                              type="button"
-                              onClick={openEntryForCurrent}
-                              disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
-                              className="h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98] text-xs sm:text-sm disabled:opacity-50 w-full sm:w-auto"
-                            >
-                              <PackagePlus className="size-4" />
-                              <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
-                            </Button>
+                            <div className="flex flex-col items-center sm:items-end w-full sm:w-auto">
+                              <Button
+                                type="button"
+                                onClick={openEntryForCurrent}
+                                disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
+                                className="h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98] text-xs sm:text-sm disabled:opacity-50 w-full sm:w-auto"
+                              >
+                                <PackagePlus className="size-4" />
+                                <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                              </Button>
+                              {actualLotUnits > 0 && (
+                                <p className="text-[11px] text-muted-foreground text-center sm:text-right mt-1">
+                                  {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} · {colorGroups.length} {colorGroups.length === 1 ? "variação será registrada" : "variações serão registradas"}
+                                </p>
+                              )}
+                            </div>
                           </div>
+
+                          <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed pt-2">
+                            ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -5285,6 +5564,36 @@ function Precificacao() {
             )}
           </section>
         )}
+        </div>
+
+        {/* ── COLUNA DIREITA: Painel Sticky de Resumo ao Vivo (Modos Rápida & Grade) ── */}
+        {mode !== "historico" && (
+          <div className="hidden lg:block">
+            <LivePricingSummaryPanel
+              name={name}
+              category={category ? getCategoryLabel(storeCategories, category) : ""}
+              suggestedPrice={summaryPrices.avgSuggested}
+              profitPerUnit={summaryPrices.avgProfit}
+              effectiveMargin={summaryPrices.avgMargin}
+              lotRevenue={summaryPrices.totalRevenue}
+              lotProfit={summaryPrices.totalProfit}
+              totalUnits={actualLotUnits}
+              totalVariants={mode === "grade" ? variants.length : 1}
+              hasData={
+                mode === "grade"
+                  ? actualLotUnits > 0 && summaryPrices.avgSuggested > 0
+                  : toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0
+              }
+              mode={mode}
+              onEntry={openEntryForCurrent}
+              onSave={() => save.mutate()}
+              saveDisabled={save.isPending || (mode === "grade" ? (actualLotUnits === 0 && !name.trim()) : !name.trim() || toNumber(wholesale) <= 0)}
+              entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
+            />
+          </div>
+        )}
+
+        </div>
       </div>
 
       {/* ── Modal Sheet: Ficha de Entrada Operacional no Estoque ──── */}
