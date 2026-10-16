@@ -812,8 +812,11 @@ function LivePricingSummaryPanel({
 
   // ── ETAPA 1 NO MODO GRADE: Foco estrito em Lote e Custos de Aquisição (Padrão Consultoria Vértice) ──
   if (mode === "grade" && gradeStep === 1) {
-    const totalUnitAcquisition = baseWholesaleCost + sharedCostsPerUnit;
-    const totalLotInvestment = totalUnits * totalUnitAcquisition;
+    const hasWholesale = baseWholesaleCost > 0;
+    const hasUnits = totalUnits > 0;
+    const effectiveSharedCost = hasUnits && hasWholesale ? sharedCostsPerUnit : 0;
+    const totalUnitAcquisition = hasWholesale ? baseWholesaleCost + effectiveSharedCost : 0;
+    const totalLotInvestment = hasUnits && hasWholesale ? totalUnits * totalUnitAcquisition : 0;
 
     return (
       <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4">
@@ -847,13 +850,13 @@ function LivePricingSummaryPanel({
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Custo de compra</span>
             <span className="num-display font-semibold text-foreground">
-              {baseWholesaleCost > 0 ? `${brl(baseWholesaleCost)} / peça` : "—"}
+              {hasWholesale ? `${brl(baseWholesaleCost)} / peça` : "—"}
             </span>
           </div>
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Custos adicionais</span>
             <span className="num-display font-semibold text-foreground">
-              {sharedCostsPerUnit > 0 ? `+${brl(sharedCostsPerUnit)} / peça` : "—"}
+              {hasUnits && effectiveSharedCost > 0 ? `+${brl(effectiveSharedCost)} / peça` : "—"}
             </span>
           </div>
           <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold">
@@ -870,7 +873,11 @@ function LivePricingSummaryPanel({
           <p className="num-display text-3xl font-black text-foreground tracking-tight leading-none">
             {totalLotInvestment > 0 ? brl(totalLotInvestment) : "R$ 0,00"}
           </p>
-          <p className="text-[11px] text-muted-foreground">Compra + custos adicionais do lote</p>
+          <p className="text-[11px] text-muted-foreground">
+            {totalUnits === 0
+              ? "Preencha as quantidades na grade para calcular o lote"
+              : "Compra + custos adicionais do lote"}
+          </p>
         </div>
 
         {/* CTA Principal da Etapa 1 */}
@@ -1157,7 +1164,7 @@ function Precificacao() {
   const [variants, setVariants] = useState<VariantRow[]>([]);
 
   // Seletor de geração rápida da grade
-  const [activeColors, setActiveColors] = useState<string[]>([]);
+  const [activeColors, setActiveColors] = useState<string[]>(["Off-White"]);
   const [genSizes, setGenSizes] = useState<string[]>([]);
 
   // ── Multi-Modelo / Modo Produção (v74) ────────────────────────────
@@ -2956,46 +2963,31 @@ function Precificacao() {
 
   return (
     <div className="space-y-6">
-      {/* ── Breadcrumb de Navegação (Padrão Shopify / Vértice Imagem 5) ── */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground pb-0.5">
+      {/* ── Breadcrumb de Navegação ── */}
+      <div className="flex items-center text-xs text-muted-foreground pb-0.5">
         <div className="flex items-center gap-1.5 font-medium">
           <span>Produtos</span>
           <ChevronRight className="size-3 text-muted-foreground/50" />
           <span className="text-foreground font-semibold">Precificação</span>
         </div>
-        <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium">
-          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-          Precificador Ativo
-        </span>
       </div>
 
       <PageHeader
         title="Precificação"
         description="O preço certo. Uma grade de cada vez."
-        actions={
-          <Button
-            type="button"
-            variant="outline"
-            onClick={resetPricingModel}
-            className="h-10 rounded-full border-border/80 bg-card px-4 text-xs font-bold text-foreground shadow-2xs hover:bg-secondary transition-all cursor-pointer flex items-center gap-2"
-          >
-            <Plus className="size-4 text-primary" />
-            <span>Nova peça</span>
-          </Button>
-        }
       />
 
       {/* ── Segmented Control Principal (Padrão Apple Studio / Shopify Polaris) ───────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-border/60 bg-secondary/70 p-1 shadow-2xs">
+        <div className="inline-flex rounded-xl border border-border/70 bg-secondary/60 p-1 shadow-2xs">
           <button
             type="button"
             onClick={() => setMode("rapida")}
             className={cn(
-              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer",
+              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               mode === "rapida"
                 ? "bg-card text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground font-medium",
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             Precificação rápida
@@ -3004,10 +2996,10 @@ function Precificacao() {
             type="button"
             onClick={() => setMode("grade")}
             className={cn(
-              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer",
+              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               mode === "grade"
                 ? "bg-card text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground font-medium",
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             Grade &amp; estoque
@@ -3016,10 +3008,10 @@ function Precificacao() {
             type="button"
             onClick={() => setMode("historico")}
             className={cn(
-              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer flex items-center gap-1.5",
+              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer flex items-center gap-1.5 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               mode === "historico"
                 ? "bg-card text-foreground shadow-xs font-semibold"
-                : "text-muted-foreground hover:text-foreground font-medium",
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <span>Peças precificadas</span>
@@ -4382,7 +4374,7 @@ function Precificacao() {
                   type="button"
                   onClick={() => setGradeStep(1)}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     gradeStep === 1
                       ? "bg-card text-foreground shadow-xs border border-border/70"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -4405,7 +4397,7 @@ function Precificacao() {
                   type="button"
                   onClick={() => setGradeStep(2)}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     gradeStep === 2
                       ? "bg-card text-foreground shadow-xs border border-border/70"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -4428,7 +4420,7 @@ function Precificacao() {
                   type="button"
                   onClick={() => setGradeStep(3)}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     gradeStep === 3
                       ? "bg-card text-foreground shadow-xs border border-border/70"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -4533,7 +4525,7 @@ function Precificacao() {
                               }))
                             );
                           }}
-                          placeholder="49,90"
+                          placeholder="0,00"
                           className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
                         />
                       </div>
@@ -4560,8 +4552,14 @@ function Precificacao() {
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-muted-foreground">Tamanhos</span>
-                    <Select value={activeSizeFamily} onValueChange={(val) => setActiveSizeFamily(val as any)}>
-                      <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-xl border-border/80 bg-card text-xs font-bold gap-1 px-3 shadow-2xs">
+                    <Select value={activeSizeFamily} onValueChange={(val) => {
+                      setActiveSizeFamily(val as any);
+                      const targetFam = SIZE_FAMILIES.find((f) => f.id === val);
+                      if (targetFam) {
+                        setMatrixSizes(targetFam.sizes.slice(0, 5));
+                      }
+                    }}>
+                      <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-xl border-border/80 bg-card text-xs font-bold gap-1 px-3 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -4577,14 +4575,14 @@ function Precificacao() {
                   {/* Pills táteis com checkmark ativo */}
                   <div className="flex flex-wrap items-center gap-1.5">
                     {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
-                      const isSzActive = activeModelSizes.has(sz);
+                      const isSzActive = matrixSizes.includes(sz);
                       return (
                         <button
                           key={sz}
                           type="button"
-                          onClick={() => toggleModelSize(sz)}
+                          onClick={() => toggleMatrixSize(sz)}
                           className={cn(
-                            "flex items-center justify-center gap-1 min-w-[44px] h-9 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95",
+                            "flex items-center justify-center gap-1 min-w-[44px] h-9 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                             isSzActive
                               ? "bg-primary/15 text-primary border border-primary/35 shadow-xs"
                               : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border",
@@ -4602,9 +4600,9 @@ function Precificacao() {
                     type="button"
                     onClick={() => {
                       const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
-                      applyModelQuickPreset(currentFam.sizes);
+                      setMatrixSizes(currentFam.sizes);
                     }}
-                    className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs ml-auto"
+                    className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs ml-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     + Selecionar todos
                   </button>
