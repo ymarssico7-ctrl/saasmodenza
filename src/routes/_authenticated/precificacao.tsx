@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Boxes,
@@ -759,7 +758,6 @@ function Precificacao() {
 
   // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
   const [mode, setMode] = useState<PricingMode>("rapida");
-  const [gradeActiveStep, setGradeActiveStep] = useState<1 | 2>(1);
 
   // ── Estratégia de Precificação ────────────────────────────────────
   const [strategy, setStrategy] = useState<PricingStrategy>("margin");
@@ -3731,73 +3729,11 @@ function Precificacao() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            MODO GRADE — FLUXO LINEAR GUIADO EM 2 ETAPAS INTELIGENTES (APPLE LEVEL)
+            MODO GRADE — FLUXO SEQUENCIAL CONTÍNUO (GRADE + CUSTOS & PRECIFICAÇÃO)
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <>
-            {/* ── STEPPER DE ETAPAS (PADRÃO APPLE STUDIO) ── */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-secondary/35 border border-border/70 shadow-2xs">
-              <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGradeActiveStep(1);
-                    window.scrollTo({ top: 200, behavior: "smooth" });
-                  }}
-                  className={cn(
-                    "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    gradeActiveStep === 1
-                      ? "bg-card text-foreground shadow-xs border border-border/60"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                  )}
-                >
-                  <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-extrabold text-primary">
-                    1
-                  </span>
-                  <span>1. Peça &amp; Grade</span>
-                  {actualLotUnits > 0 && (
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-foreground">
-                      {actualLotUnits} un.
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGradeActiveStep(2);
-                    window.scrollTo({ top: 200, behavior: "smooth" });
-                  }}
-                  className={cn(
-                    "flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
-                    gradeActiveStep === 2
-                      ? "bg-card text-foreground shadow-xs border border-border/60"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                  )}
-                >
-                  <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-extrabold text-primary">
-                    2
-                  </span>
-                  <span>2. Custos &amp; Precificação</span>
-                  {summaryPrices.avgSuggested > 0 && (
-                    <span className="rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-extrabold">
-                      {brl(summaryPrices.avgSuggested)}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
-                {gradeActiveStep === 1 ? (
-                  <span>Etapa 1 de 2: Defina modelo e grade</span>
-                ) : (
-                  <span>Etapa 2 de 2: Custos e estratégia comercial</span>
-                )}
-              </div>
-            </div>
-
             {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
-            {gradeActiveStep === 1 && (
             <section className="panel p-6 sm:p-7 space-y-6">
               {/* Cabeçalho */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
@@ -4178,39 +4114,9 @@ function Precificacao() {
                 </div>
               )}
 
-              {/* Barra de Ação da Etapa 1: Avanço Natural */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/60">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Total na grade:</span>
-                  <strong className="text-foreground">{actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}</strong>
-                  {actualLotUnits > 0 && toNumber(baseWholesaleGrade) > 0 && (
-                    <span>· Custo do lote: <strong className="text-foreground">{brl(summaryPrices.totalInvestment)}</strong></span>
-                  )}
-                </div>
-
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (actualLotUnits === 0) {
-                      toast.info("Selecione os tamanhos da grade acima para continuar.", {
-                        description: "Escolha tamanhos na barra ou adicione uma variação.",
-                      });
-                      return;
-                    }
-                    setGradeActiveStep(2);
-                    window.scrollTo({ top: 200, behavior: "smooth" });
-                  }}
-                  className="h-11 rounded-xl gradient-primary text-xs sm:text-sm font-bold shadow-glow hover:opacity-95 transition-all cursor-pointer flex items-center justify-center gap-2 px-6 w-full sm:w-auto"
-                >
-                  <span>Continuar para Custos e Precificação</span>
-                  <ArrowRight className="size-4" />
-                </Button>
-              </div>
             </section>
-            )}
 
             {/* ── ETAPA 2: CUSTOS OPERACIONAIS, RECIBO & FORMAÇÃO DO PREÇO ── */}
-            {gradeActiveStep === 2 && (
             <section className="panel p-6 sm:p-7 space-y-6">
               {/* Cabeçalho */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
@@ -5232,18 +5138,6 @@ function Precificacao() {
                               <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => {
-                                  setGradeActiveStep(1);
-                                  window.scrollTo({ top: 200, behavior: "smooth" });
-                                }}
-                                className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
-                              >
-                                <ArrowLeft className="size-3.5" />
-                                <span>Voltar para Grade</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
                                 onClick={resetPricingModel}
                                 className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
                                 title="Limpar campos e precificar outro modelo"
@@ -5281,7 +5175,6 @@ function Precificacao() {
                 );
               })()}
             </section>
-            )}
           </>
         )}
 
