@@ -819,34 +819,34 @@ function LivePricingSummaryPanel({
     const totalLotInvestment = hasUnits && hasWholesale ? totalUnits * totalUnitAcquisition : 0;
 
     return (
-      <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4">
+      <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-4.5 shadow-soft space-y-3">
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
           <div className="flex items-center gap-2">
-            <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Layers className="size-3.5" />
+            <div className="size-5 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+              <Layers className="size-3" />
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
               Resumo do lote
             </span>
           </div>
-          <Layers className="size-4 text-muted-foreground/35" />
+          <Layers className="size-3.5 text-muted-foreground/35" />
         </div>
 
         {/* Métrica Herói: Volume de Peças na Grade */}
-        <div className="pt-1">
-          <div className="flex items-baseline gap-2.5">
-            <span className="num-display text-5xl font-black text-foreground tracking-tight leading-none">
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="num-display text-4xl font-black text-foreground tracking-tight leading-none">
               {totalUnits}
             </span>
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-xs font-semibold text-muted-foreground">
               {totalUnits === 1 ? "peça na grade" : "peças na grade"}
             </span>
           </div>
         </div>
 
         {/* Decomposição de Custos Unitários */}
-        <div className="space-y-2.5 rounded-2xl bg-secondary/30 p-3.5 border border-border/50 text-xs">
+        <div className="space-y-1.5 rounded-xl bg-secondary/30 p-2.5 border border-border/50 text-xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Custo de compra</span>
             <span className="num-display font-semibold text-foreground">
@@ -859,7 +859,7 @@ function LivePricingSummaryPanel({
               {hasUnits && effectiveSharedCost > 0 ? `+${brl(effectiveSharedCost)} / peça` : "—"}
             </span>
           </div>
-          <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold">
+          <div className="border-t border-border/60 pt-1.5 flex items-center justify-between font-bold">
             <span className="text-foreground">Custo real por peça</span>
             <span className="num-display text-foreground text-sm font-extrabold">
               {totalUnitAcquisition > 0 ? brl(totalUnitAcquisition) : "—"}
@@ -868,12 +868,12 @@ function LivePricingSummaryPanel({
         </div>
 
         {/* Investimento Estimado do Lote */}
-        <div className="rounded-2xl border border-border/60 bg-secondary/40 p-4 space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground">Investimento estimado</p>
-          <p className="num-display text-3xl font-black text-foreground tracking-tight leading-none">
+        <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 space-y-0.5">
+          <p className="text-[11px] font-semibold text-muted-foreground">Investimento estimado</p>
+          <p className="num-display text-2xl font-black text-foreground tracking-tight leading-none">
             {totalLotInvestment > 0 ? brl(totalLotInvestment) : "R$ 0,00"}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[10px] text-muted-foreground/80">
             {totalUnits === 0
               ? "Preencha as quantidades na grade para calcular o lote"
               : "Compra + custos adicionais do lote"}
@@ -881,15 +881,15 @@ function LivePricingSummaryPanel({
         </div>
 
         {/* CTA Principal da Etapa 1 */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-1.5 pt-1">
           <Button
             type="button"
             onClick={() => onStepChange?.(2)}
             disabled={totalUnits === 0 || baseWholesaleCost <= 0}
-            className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            className="w-full h-10 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
           >
             <span>Continuar para custos</span>
-            <ArrowRight className="size-4" />
+            <ArrowRight className="size-3.5" />
           </Button>
 
           {onReset && (
@@ -897,14 +897,14 @@ function LivePricingSummaryPanel({
               type="button"
               variant="ghost"
               onClick={onReset}
-              className="w-full h-8 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+              className="w-full h-7 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
             >
               Limpar grade
             </Button>
           )}
 
           {totalUnits > 0 && (
-            <p className="text-center text-[11px] text-muted-foreground pt-1">
+            <p className="text-center text-[10px] text-muted-foreground pt-0.5">
               {totalUnits} {totalUnits === 1 ? "peça" : "peças"}{totalVariants > 1 ? ` · ${totalVariants} variações` : ""}
             </p>
           )}
@@ -2962,29 +2962,27 @@ function Precificacao() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* ── Breadcrumb de Navegação ── */}
-      <div className="flex items-center text-xs text-muted-foreground pb-0.5">
-        <div className="flex items-center gap-1.5 font-medium">
-          <span>Produtos</span>
-          <ChevronRight className="size-3 text-muted-foreground/50" />
-          <span className="text-foreground font-semibold">Precificação</span>
+    <div className="space-y-4 sm:space-y-5">
+      {/* ── Barra de Topo Unificada (Breadcrumb + Título + Segmented Control na mesma linha) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-border/50">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium mb-0.5">
+            <span>Produtos</span>
+            <ChevronRight className="size-3 text-muted-foreground/40" />
+            <span className="text-foreground font-semibold">Precificação</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display">
+            Precificação
+          </h1>
         </div>
-      </div>
 
-      <PageHeader
-        title="Precificação"
-        description="O preço certo. Uma grade de cada vez."
-      />
-
-      {/* ── Segmented Control Principal (Padrão Apple Studio / Shopify Polaris) ───────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-border/70 bg-secondary/60 p-1 shadow-2xs">
+        {/* Segmented Control no canto direito, sem ocupar uma linha inteira isolada */}
+        <div className="inline-flex rounded-xl border border-border/70 bg-secondary/60 p-1 shadow-2xs self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setMode("rapida")}
             className={cn(
-              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "rounded-lg px-3 py-1.5 text-xs transition-all duration-150 cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               mode === "rapida"
                 ? "bg-card text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground",
@@ -2996,7 +2994,7 @@ function Precificacao() {
             type="button"
             onClick={() => setMode("grade")}
             className={cn(
-              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "rounded-lg px-3 py-1.5 text-xs transition-all duration-150 cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               mode === "grade"
                 ? "bg-card text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground",
@@ -3008,7 +3006,7 @@ function Precificacao() {
             type="button"
             onClick={() => setMode("historico")}
             className={cn(
-              "rounded-lg px-4 py-2 text-xs sm:text-sm transition-all duration-150 cursor-pointer flex items-center gap-1.5 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              "rounded-lg px-3 py-1.5 text-xs transition-all duration-150 cursor-pointer flex items-center gap-1.5 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               mode === "historico"
                 ? "bg-card text-foreground shadow-xs font-semibold"
                 : "text-muted-foreground hover:text-foreground",
@@ -4368,16 +4366,16 @@ function Precificacao() {
         {mode === "grade" && (
           <>
             {/* ── Stepper de 3 Etapas Conectadas (Padrão Apple HIG / Vértice) ── */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-secondary/50 border border-border/80 shadow-2xs">
-              <div className="grid grid-cols-3 gap-1 w-full sm:w-auto flex-1 max-w-xl">
+            <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setGradeStep(1)}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2",
                     gradeStep === 1
-                      ? "bg-card text-foreground shadow-xs border border-border/70"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <span className={cn(
@@ -4390,17 +4388,19 @@ function Precificacao() {
                   )}>
                     {actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "1"}
                   </span>
-                  <span className="truncate">Peça e grade</span>
+                  <span className="hidden sm:block truncate">Peça e grade</span>
                 </button>
+
+                <span className="text-border/80 text-sm select-none">›</span>
 
                 <button
                   type="button"
                   onClick={() => setGradeStep(2)}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2",
                     gradeStep === 2
-                      ? "bg-card text-foreground shadow-xs border border-border/70"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <span className={cn(
@@ -4413,17 +4413,19 @@ function Precificacao() {
                   )}>
                     {summaryPrices.avgSuggested > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "2"}
                   </span>
-                  <span className="truncate">Custos e preço</span>
+                  <span className="hidden sm:block truncate">Custos e preço</span>
                 </button>
+
+                <span className="text-border/80 text-sm select-none">›</span>
 
                 <button
                   type="button"
                   onClick={() => setGradeStep(3)}
                   className={cn(
-                    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2",
                     gradeStep === 3
-                      ? "bg-card text-foreground shadow-xs border border-border/70"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <span className={cn(
@@ -4434,7 +4436,7 @@ function Precificacao() {
                   )}>
                     3
                   </span>
-                  <span className="truncate">Revisão</span>
+                  <span className="hidden sm:block truncate">Revisão</span>
                 </button>
               </div>
 
@@ -4460,98 +4462,83 @@ function Precificacao() {
 
             {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
             {gradeStep === 1 && (
-            <section className="panel p-5 sm:p-6 space-y-6">
-              {/* Identificação da Peça (Padrão Vértice / Apple Studio — Sem molduras repetidas) */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
+            <section className="panel p-4 space-y-3.5">
+              {/* Identificação da Peça (Linha horizontal ultra-compacta) */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <ImageUploader
                   compact
                   currentUrl={entryPhotoUrl || null}
                   bucket="product-photos"
                   folder="inventory"
                   onUploaded={(url) => setEntryPhotoUrl(url)}
-                  placeholder="Foto da peça"
-                  className="self-center sm:self-start shrink-0"
+                  placeholder="Foto"
+                  className="self-center sm:self-auto shrink-0 [&_button]:!size-14 sm:[&_button]:!size-14 [&_button]:!rounded-xl"
                 />
 
-                <div className="flex-1 w-full space-y-3.5">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="grid flex-1 grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                  <div className="sm:col-span-6 space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground">
                       Nome da peça
                     </Label>
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Ex: Vestido midi de linho"
-                      className="h-11 rounded-xl font-bold text-base bg-card shadow-2xs border-border/80 focus:ring-2 focus:ring-primary/20"
+                      className="h-9.5 rounded-xl font-bold text-sm bg-card shadow-2xs border-border/80 focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Categoria
-                      </Label>
-                      <Select value={category} onValueChange={setCategory}>
-                        <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-card shadow-2xs border-border/80">
-                          <SelectValue placeholder="Selecione categoria..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {storeCategories.map((c) => (
-                            <SelectItem key={c.id} value={c.slug} className="text-xs">
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      Categoria
+                    </Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger className="h-9.5 rounded-xl font-medium text-xs bg-card shadow-2xs border-border/80">
+                        <SelectValue placeholder="Selecione categoria..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {storeCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.slug} className="text-xs">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Custo de compra / peça
-                      </Label>
-                      <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                        <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
-                        <input
-                          inputMode="decimal"
-                          value={baseWholesaleGrade}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setBaseWholesaleGrade(val);
-                            setVariants((prev) =>
-                              prev.map((v) => ({
-                                ...v,
-                                wholesaleCost: val,
-                                customSalePrice: "",
-                              }))
-                            );
-                          }}
-                          placeholder="0,00"
-                          className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
-                        />
-                      </div>
+                  <div className="sm:col-span-3 space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      Custo de compra
+                    </Label>
+                    <div className="relative flex h-9.5 items-center rounded-xl border border-border/80 bg-card shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                      <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                      <input
+                        inputMode="decimal"
+                        value={baseWholesaleGrade}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBaseWholesaleGrade(val);
+                          setVariants((prev) =>
+                            prev.map((v) => ({
+                              ...v,
+                              wholesaleCost: val,
+                              customSalePrice: "",
+                            }))
+                          );
+                        }}
+                        placeholder="0,00"
+                        className="h-9.5 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none"
+                      />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ── Grade de peças (Padrão Vértice / Apple HIG) ── */}
-              <div className="space-y-4 pt-4 border-t border-border/60">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">Grade de peças</h3>
-                    <p className="text-xs text-muted-foreground">Cores, tamanhos e quantidades do lote.</p>
-                  </div>
-                  {actualLotUnits > 0 && (
-                    <span className="rounded-full bg-secondary/80 px-3 py-1 text-xs font-semibold text-muted-foreground border border-border/60">
-                      {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tamanho" : "tamanhos"}
-                    </span>
-                  )}
-                </div>
-
-                {/* Linha enxuta de controle: Família (dropdown) + Tamanhos selecionáveis com checkmark */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Tamanhos</span>
+              {/* ── Controles de Grade e Tamanhos ── */}
+              <div className="space-y-3 pt-3 border-t border-border/60">
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Tamanhos:</span>
                     <Select value={activeSizeFamily} onValueChange={(val) => {
                       setActiveSizeFamily(val as any);
                       const targetFam = SIZE_FAMILIES.find((f) => f.id === val);
@@ -4559,7 +4546,7 @@ function Precificacao() {
                         setMatrixSizes(targetFam.sizes.slice(0, 5));
                       }
                     }}>
-                      <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-xl border-border/80 bg-card text-xs font-bold gap-1 px-3 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                      <SelectTrigger className="h-8 w-auto min-w-[105px] rounded-lg border-border/80 bg-card text-xs font-bold gap-1 px-2.5 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -4570,74 +4557,80 @@ function Precificacao() {
                         ))}
                       </SelectContent>
                     </Select>
+
+                    {/* Pills táteis com checkmark ativo */}
+                    <div className="flex flex-wrap items-center gap-1">
+                      {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
+                        const isSzActive = matrixSizes.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleMatrixSize(sz)}
+                            className={cn(
+                              "flex items-center justify-center gap-1 min-w-[38px] h-8 px-2.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                              isSzActive
+                                ? "bg-primary/15 text-primary border border-primary/35 shadow-xs"
+                                : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border",
+                            )}
+                          >
+                            {isSzActive && <Check className="size-2.5 stroke-[3]" />}
+                            <span>{sz}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Selecionar todos */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
+                        setMatrixSizes(currentFam.sizes);
+                      }}
+                      className="rounded-lg border border-border/70 bg-card px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      + Todos
+                    </button>
                   </div>
 
-                  {/* Pills táteis com checkmark ativo */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
-                      const isSzActive = matrixSizes.includes(sz);
-                      return (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => toggleMatrixSize(sz)}
-                          className={cn(
-                            "flex items-center justify-center gap-1 min-w-[44px] h-9 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                            isSzActive
-                              ? "bg-primary/15 text-primary border border-primary/35 shadow-xs"
-                              : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border",
-                          )}
-                        >
-                          {isSzActive && <Check className="size-3 stroke-[3]" />}
-                          <span>{sz}</span>
-                        </button>
-                      );
-                    })}
+                  {/* Alternância Matriz 2D vs Tabela e Badge de status */}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {actualLotUnits > 0 && (
+                      <span className="hidden md:inline-flex rounded-full bg-secondary/80 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground border border-border/60">
+                        {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tam" : "tams"}
+                      </span>
+                    )}
+
+                    <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-secondary/50 border border-border/70 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setGradeViewMode("matrix")}
+                        className={cn(
+                          "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer",
+                          gradeViewMode === "matrix"
+                            ? "bg-card text-foreground shadow-xs border border-border/70"
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        )}
+                      >
+                        <LayoutGrid className="size-3" />
+                        <span>Matriz 2D</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGradeViewMode("table")}
+                        className={cn(
+                          "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer",
+                          gradeViewMode === "table"
+                            ? "bg-card text-foreground shadow-xs border border-border/70"
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        )}
+                      >
+                        <Layers className="size-3" />
+                        <span>Tabela SKUs</span>
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Selecionar todos */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
-                      setMatrixSizes(currentFam.sizes);
-                    }}
-                    className="rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs ml-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  >
-                    + Selecionar todos
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Alternância de visualização: Matriz 2D vs Tabela SKUs ── */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary/50 border border-border/70 shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => setGradeViewMode("matrix")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      gradeViewMode === "matrix"
-                        ? "bg-card text-foreground shadow-xs border border-border/70"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    )}
-                  >
-                    <LayoutGrid className="size-3.5" />
-                    <span>Matriz Rápida 2D</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGradeViewMode("table")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                      gradeViewMode === "table"
-                        ? "bg-card text-foreground shadow-xs border border-border/70"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                    )}
-                  >
-                    <Layers className="size-3.5" />
-                    <span>Tabela Detalhada SKUs</span>
-                  </button>
                 </div>
               </div>
 
