@@ -4699,16 +4699,15 @@ function Precificacao() {
                               </>
                             ) : baseCost <= 0 ? (
                               <span className="flex flex-wrap items-center justify-between gap-2">
-                                <span>Defina o custo no atacado no Passo 1 para calcular a projeção de preço e lucro.</span>
+                                <span>Defina o custo no atacado na identificação da peça para calcular a projeção de preço e lucro.</span>
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setGradeActiveStep(1);
                                     window.scrollTo({ top: 200, behavior: "smooth" });
                                   }}
                                   className="text-primary hover:underline font-bold text-xs shrink-0 cursor-pointer"
                                 >
-                                  Ir para Passo 1 →
+                                  Preencher custo atacado ↑
                                 </button>
                               </span>
                             ) : (
