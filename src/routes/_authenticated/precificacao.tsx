@@ -4594,402 +4594,179 @@ function Precificacao() {
                     </button>
                   </div>
 
-                  {/* Alternância Matriz 2D vs Tabela e Badge de status */}
+                  {/* Badge de status */}
                   <div className="flex items-center gap-2 ml-auto">
                     {actualLotUnits > 0 && (
-                      <span className="hidden md:inline-flex rounded-full bg-secondary/80 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground border border-border/60">
-                        {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tam" : "tams"}
+                      <span className="rounded-full bg-secondary/80 px-2.5 py-1 text-xs font-semibold text-muted-foreground border border-border/60">
+                        {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} · {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tam" : "tams"}
                       </span>
                     )}
-
-                    <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-secondary/50 border border-border/70 shadow-2xs">
-                      <button
-                        type="button"
-                        onClick={() => setGradeViewMode("matrix")}
-                        className={cn(
-                          "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer",
-                          gradeViewMode === "matrix"
-                            ? "bg-card text-foreground shadow-xs border border-border/70"
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                        )}
-                      >
-                        <LayoutGrid className="size-3" />
-                        <span>Matriz 2D</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setGradeViewMode("table")}
-                        className={cn(
-                          "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer",
-                          gradeViewMode === "table"
-                            ? "bg-card text-foreground shadow-xs border border-border/70"
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                        )}
-                      >
-                        <Layers className="size-3" />
-                        <span>Tabela SKUs</span>
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* ── Visualização: Matriz 2D vs Tabela Completa ── */}
-              {gradeViewMode === "matrix" ? (
-                <div className="space-y-4">
-                  {/* Tabela Matriz 2D: Cores (linhas) × Tamanhos (colunas) */}
-                  {matrixColors.length > 0 && activeMatrixSizes.length > 0 ? (
-                    <div className="space-y-3">
-                      <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-secondary/30 border-b border-border/60 text-muted-foreground">
-                                <th className="py-2.5 px-4 text-left font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[140px]">
-                                  COR
+              {/* ── Matriz 2D de Grade (Cores × Tamanhos) ── */}
+              <div className="space-y-4">
+                {matrixColors.length > 0 && activeMatrixSizes.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-secondary/30 border-b border-border/60 text-muted-foreground">
+                              <th className="py-2.5 px-4 text-left font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[140px]">
+                                COR
+                              </th>
+                              {activeMatrixSizes.map((sz) => (
+                                <th key={sz} className="py-2.5 px-3 text-center min-w-[65px] font-bold text-foreground text-xs uppercase">
+                                  {sz}
                                 </th>
-                                {activeMatrixSizes.map((sz) => (
-                                  <th key={sz} className="py-2.5 px-3 text-center min-w-[65px] font-bold text-foreground text-xs uppercase">
-                                    {sz}
-                                  </th>
-                                ))}
-                                <th className="py-2.5 px-4 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[80px]">
-                                  TOTAL
-                                </th>
-                                <th className="py-2.5 px-2 text-center w-10"></th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/40">
-                              {matrixColors.map((color) => {
-                                const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
-                                const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
-                                return (
-                                  <tr key={color} className="hover:bg-secondary/20 transition-colors">
-                                    <td className="py-2.5 px-4 font-semibold text-foreground">
-                                      <div className="flex items-center gap-2.5">
-                                        <span
-                                          className="size-3.5 rounded-full border border-black/10 shrink-0"
-                                          style={{ backgroundColor: cp?.color ?? "#888888" }}
+                              ))}
+                              <th className="py-2.5 px-4 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[80px]">
+                                TOTAL
+                              </th>
+                              <th className="py-2.5 px-2 text-center w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/40">
+                            {matrixColors.map((color) => {
+                              const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
+                              const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
+                              return (
+                                <tr key={color} className="hover:bg-secondary/20 transition-colors">
+                                  <td className="py-2.5 px-4 font-semibold text-foreground">
+                                    <div className="flex items-center gap-2.5">
+                                      <span
+                                        className="size-3.5 rounded-full border border-black/10 shrink-0"
+                                        style={{ backgroundColor: cp?.color ?? "#888888" }}
+                                      />
+                                      <span className="font-medium text-foreground text-xs">{color}</span>
+                                    </div>
+                                  </td>
+                                  {activeMatrixSizes.map((sz) => {
+                                    const qty = getMatrixQty(color, sz);
+                                    return (
+                                      <td key={sz} className="py-2.5 px-2 text-center">
+                                        <input
+                                          inputMode="numeric"
+                                          value={qty === 0 ? "" : qty}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            updateMatrixQty(color, sz, val === "" ? 0 : Number(val));
+                                          }}
+                                          placeholder="0"
+                                          className={cn(
+                                            "h-9 w-12 rounded-lg text-center text-xs font-bold outline-none border transition-all",
+                                            qty > 0
+                                              ? "border-primary/40 bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs"
+                                              : "border-border/60 bg-secondary/35 text-muted-foreground/60 hover:border-border hover:bg-card focus:border-primary focus:bg-card focus:text-foreground"
+                                          )}
+                                          title={`Quantidade de ${color} no tamanho ${sz}`}
                                         />
-                                        <span className="font-medium text-foreground text-xs">{color}</span>
-                                      </div>
-                                    </td>
-                                    {activeMatrixSizes.map((sz) => {
-                                      const qty = getMatrixQty(color, sz);
-                                      return (
-                                        <td key={sz} className="py-2.5 px-2 text-center">
-                                          <input
-                                            inputMode="numeric"
-                                            value={qty === 0 ? "" : qty}
-                                            onChange={(e) => {
-                                              const val = e.target.value.replace(/\D/g, "");
-                                              updateMatrixQty(color, sz, val === "" ? 0 : Number(val));
-                                            }}
-                                            placeholder="0"
-                                            className={cn(
-                                              "h-9 w-12 rounded-lg text-center text-xs font-bold outline-none border transition-all",
-                                              qty > 0
-                                                ? "border-primary/40 bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs"
-                                                : "border-border/60 bg-secondary/35 text-muted-foreground/60 hover:border-border hover:bg-card focus:border-primary focus:bg-card focus:text-foreground"
-                                            )}
-                                            title={`Quantidade de ${color} no tamanho ${sz}`}
-                                          />
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="py-2.5 px-4 text-right font-bold text-sm text-foreground">
-                                      {rowTotal}
-                                    </td>
-                                    <td className="py-2.5 px-2 text-center">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveMatrixColor(color)}
-                                        className="size-6 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                        title={`Remover linha ${color}`}
-                                      >
-                                        <Trash2 className="size-3.5" />
-                                      </button>
-                                    </td>
-                                  </tr>
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="py-2.5 px-4 text-right font-bold text-sm text-foreground">
+                                    {rowTotal}
+                                  </td>
+                                  <td className="py-2.5 px-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveMatrixColor(color)}
+                                      className="size-6 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                      title={`Remover linha ${color}`}
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-secondary/30 border-t border-border/60 text-xs">
+                              <td className="py-3 px-4 text-muted-foreground font-medium">
+                                Total por tamanho
+                              </td>
+                              {activeMatrixSizes.map((sz) => {
+                                const colTotal = matrixColors.reduce((acc, color) => acc + getMatrixQty(color, sz), 0);
+                                return (
+                                  <td key={sz} className="py-3 px-2 text-center font-bold text-foreground">
+                                    {colTotal}
+                                  </td>
                                 );
                               })}
-                            </tbody>
-                            <tfoot>
-                              <tr className="bg-secondary/30 border-t border-border/60 text-xs">
-                                <td className="py-3 px-4 text-muted-foreground font-medium">
-                                  Total por tamanho
-                                </td>
-                                {activeMatrixSizes.map((sz) => {
-                                  const colTotal = matrixColors.reduce((acc, color) => acc + getMatrixQty(color, sz), 0);
-                                  return (
-                                    <td key={sz} className="py-3 px-2 text-center font-bold text-foreground">
-                                      {colTotal}
-                                    </td>
-                                  );
-                                })}
-                                <td className="py-3 px-4 text-right font-black text-sm text-foreground">
-                                  {actualLotUnits}
-                                </td>
-                                <td></td>
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Barra de ação inferior (Padrão Vértice Imagem 2) */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 px-0.5">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={newMatrixColorInput}
-                            onChange={(e) => setNewMatrixColorInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleAddMatrixColor(newMatrixColorInput);
-                                setNewMatrixColorInput("");
-                              }
-                            }}
-                            placeholder="Nova cor (ex: Terracota)..."
-                            className="h-9 w-48 rounded-xl text-xs bg-card border-border/80 shadow-2xs"
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              handleAddMatrixColor(newMatrixColorInput);
-                              setNewMatrixColorInput("");
-                            }}
-                            disabled={!newMatrixColorInput.trim()}
-                            className="h-9 rounded-xl px-3 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
-                          >
-                            <Plus className="size-3.5 mr-1" />
-                            Adicionar cor
-                          </Button>
-                        </div>
-
-                        <span className="text-xs font-bold text-foreground">
-                          {actualLotUnits} {actualLotUnits === 1 ? "peça no lote" : "peças no lote"}
-                        </span>
+                              <td className="py-3 px-4 text-right font-black text-sm text-foreground">
+                                {actualLotUnits}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </table>
                       </div>
                     </div>
-                  ) : (
-                    <div className="rounded-2xl border border-border/70 bg-secondary/20 p-6 text-center space-y-3">
-                      <Boxes className="size-8 text-muted-foreground mx-auto" />
-                      <p className="text-xs font-bold text-foreground">
-                        Adicione cores e selecione tamanhos acima para abrir a matriz de grade
-                      </p>
-                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+
+                    {/* Barra de ação inferior para adicionar cor */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1 px-0.5">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={newMatrixColorInput}
+                          onChange={(e) => setNewMatrixColorInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddMatrixColor(newMatrixColorInput);
+                              setNewMatrixColorInput("");
+                            }
+                          }}
+                          placeholder="Nova cor (ex: Terracota)..."
+                          className="h-9 w-48 rounded-xl text-xs bg-card border-border/80 shadow-2xs"
+                        />
                         <Button
                           type="button"
                           size="sm"
+                          variant="outline"
                           onClick={() => {
-                            handleAddMatrixColor("Off-White");
-                            handleAddMatrixColor("Preto");
-                            applyModelQuickPreset(SIZE_FAMILIES[0]!.sizes);
+                            handleAddMatrixColor(newMatrixColorInput);
+                            setNewMatrixColorInput("");
                           }}
-                          className="rounded-xl gradient-primary text-xs font-bold shadow-glow"
+                          disabled={!newMatrixColorInput.trim()}
+                          className="h-9 rounded-xl px-3 text-xs font-semibold text-primary border-primary/40 hover:bg-primary/5 cursor-pointer disabled:opacity-40"
                         >
-                          <Sparkles className="size-3.5 mr-1.5" />
-                          Iniciar com Grade Clássica (Off-White + Preto, P ao GG)
+                          <Plus className="size-3.5 mr-1" />
+                          Adicionar cor
                         </Button>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ) : variants.length > 0 ? (
-                <div className="rounded-xl border border-border/80 bg-secondary/20 overflow-hidden shadow-2xs">
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[760px]">
-                      {/* Cabeçalho da Tabela */}
-                      <div className="grid grid-cols-[140px_60px_60px_1fr_1fr_1.1fr_1fr_1.1fr_36px] items-center gap-2.5 px-3.5 py-2.5 bg-secondary/60 text-[10px] font-semibold text-muted-foreground border-b border-border/60">
-                        <span>Cor</span>
-                        <span>Tam.</span>
-                        <span>Qtd.</span>
-                        <span>Custo atacado</span>
-                        <span>Custo real</span>
-                        <span>Preço de venda</span>
-                        <span>Margem real</span>
-                        <span className="text-right">Lucro líquido</span>
-                        <span className="text-center"></span>
-                      </div>
 
-                      {/* Linhas de Cada Variante */}
-                      <div className="divide-y divide-border/50 bg-card">
-                        {displayedVariants.map((v) => (
-                          <div
-                            key={v.id}
-                            className="grid grid-cols-[140px_60px_60px_1fr_1fr_1.1fr_1fr_1.1fr_36px] items-center gap-2.5 px-3.5 py-2.5 text-xs hover:bg-secondary/20 transition-colors"
-                          >
-                            <div>
-                              <VariantColorPicker
-                                color={v.color}
-                                onChange={(newCol) => updateVariantColor(v.id, newCol)}
-                              />
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <span className="size-6 flex items-center justify-center rounded-lg bg-secondary font-bold text-foreground text-xs shadow-xs">
-                                {v.size}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => duplicateVariant(v)}
-                                className="size-5 rounded-md flex items-center justify-center text-primary bg-primary/10 hover:bg-primary/20 active:scale-95 transition-all cursor-pointer"
-                                title={`Adicionar outra cor para o tamanho ${v.size}`}
-                              >
-                                <Plus className="size-3" />
-                              </button>
-                            </div>
-
-                            <div>
-                              <input
-                                inputMode="numeric"
-                                value={v.qty ?? 1}
-                                onChange={(e) => updateVariantQty(v.id, Number(e.target.value) || 1)}
-                                className="h-7 w-12 rounded-md border border-border bg-secondary/40 px-1.5 text-center text-xs font-bold text-foreground outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                title="Quantidade desta variante no lote"
-                              />
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-[11px] text-muted-foreground select-none">R$</span>
-                                <input
-                                  inputMode="decimal"
-                                  value={v.wholesaleCost}
-                                  onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                  placeholder={baseWholesaleGrade || "0,00"}
-                                  className={cn(
-                                    "h-7 w-20 rounded-md border px-2 text-right text-xs font-semibold outline-none focus:border-primary focus:bg-card shadow-2xs transition-colors",
-                                    v.wholesaleCost !== "" && baseWholesaleGrade !== "" && v.wholesaleCost !== baseWholesaleGrade
-                                      ? "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
-                                      : "border-border bg-secondary/40 text-foreground"
-                                  )}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="numeric text-muted-foreground font-medium text-xs">
-                              {brl(v.realCost)}
-                            </div>
-
-                            <div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-[11px] text-muted-foreground">R$</span>
-                                <input
-                                  inputMode="decimal"
-                                  value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                  onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                  placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
-                                  className="h-7 w-20 rounded-md border border-primary/30 bg-secondary/30 px-2 text-right text-xs font-bold text-primary outline-none focus:border-primary focus:bg-card shadow-2xs"
-                                />
-                              </div>
-                            </div>
-
-                            <div>
-                              <span className={cn("numeric font-bold text-xs", v.marginHealth.color)}>
-                                {pct(v.marginOnPrice)}
-                              </span>
-                            </div>
-
-                            <div className="text-right">
-                              <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.profit >= 0 ? "text-success" : "text-destructive")}>
-                                <span>{v.marginHealth.emoji}</span>
-                                <span>+{brl(v.profit)}</span>
-                              </span>
-                            </div>
-
-                            <div className="text-center">
-                              <button
-                                type="button"
-                                onClick={() => deleteVariantRow(v.id)}
-                                className="size-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                title="Remover esta variação"
-                              >
-                                <X className="size-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Botões de Adicionar */}
-                      <div className="p-2.5 bg-card border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
-                        <AddVariantPopover
-                          defaultColor={variants[0]?.color || "Off-White"}
-                          baseWholesale={baseWholesaleGrade}
-                          onAdd={handleAddNewVariant}
-                        />
-                        <ReplicateGradeColorPicker onSelectColor={replicateGradeInColor} />
-                      </div>
-
-                      {/* Rodapé / Totais */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-3 bg-secondary/40 border-t border-border/60 text-xs font-semibold">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Totais da grade:</span>
-                          <Badge variant="secondary" className="font-bold">
-                            {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"}
-                          </Badge>
-                          <span className="text-muted-foreground hidden sm:inline">
-                            ({Array.from(new Set(variants.map((v) => v.color))).length} {Array.from(new Set(variants.map((v) => v.color))).length === 1 ? "cor" : "cores"} · {activeModelSizes.size} {activeModelSizes.size === 1 ? "tamanho" : "tamanhos"})
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-muted-foreground">
-                            Faturamento estimado: <strong className="text-foreground font-bold">{brl(summaryPrices.totalRevenue)}</strong>
-                          </span>
-                          <span className="text-muted-foreground">
-                            Lucro líquido total: <strong className="text-success font-bold">+{brl(summaryPrices.totalProfit)}</strong>
-                          </span>
-                        </div>
-                      </div>
+                      <span className="text-xs font-bold text-foreground">
+                        {actualLotUnits} {actualLotUnits === 1 ? "peça no lote" : "peças no lote"}
+                      </span>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-border/70 bg-secondary/20 p-4 sm:p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <Boxes className="size-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-bold text-foreground">
-                          Grade pronta para montagem
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground">
-                          Escolha um preset rápido ou clique nos tamanhos acima para montar o lote.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
+                ) : (
+                  <div className="rounded-2xl border border-border/70 bg-secondary/20 p-6 text-center space-y-3">
+                    <Boxes className="size-8 text-muted-foreground mx-auto" />
+                    <p className="text-xs font-bold text-foreground">
+                      Adicione cores e selecione tamanhos acima para abrir a matriz de grade
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      <Button
                         type="button"
-                        onClick={() => applyModelQuickPreset(SIZE_FAMILIES[0]!.sizes)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-primary text-xs font-bold text-white shadow-glow hover:opacity-95 transition-all cursor-pointer active:scale-95"
+                        size="sm"
+                        onClick={() => {
+                          handleAddMatrixColor("Off-White");
+                          handleAddMatrixColor("Preto");
+                          applyModelQuickPreset(SIZE_FAMILIES[0]!.sizes);
+                        }}
+                        className="rounded-xl gradient-primary text-xs font-bold shadow-glow"
                       >
-                        <Plus className="size-3.5" />
-                        <span>Grade P ao GG</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyModelQuickPreset(SIZE_FAMILIES[1]!.sizes)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border/80 bg-card text-xs font-semibold text-foreground hover:bg-secondary/60 transition-all cursor-pointer shadow-2xs active:scale-95"
-                      >
-                        <Plus className="size-3.5" />
-                        <span>34 ao 50</span>
-                      </button>
-                      <AddVariantPopover
-                        defaultColor="Off-White"
-                        baseWholesale={baseWholesaleGrade}
-                        onAdd={handleAddNewVariant}
-                      />
+                        <Sparkles className="size-3.5 mr-1.5" />
+                        Iniciar com Grade Clássica (Off-White + Preto, P ao GG)
+                      </Button>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Rodapé da Etapa 1: Ação de Continuidade (Padrão Apple / Polaris) */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border/60">
@@ -6112,6 +5889,157 @@ function Precificacao() {
                                   Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
                                 </span>
                               )}
+                            </div>
+                          )}
+
+                          {/* ── TABELA CONSOLIDADA DE SKUs (Valores por Peça e Ajuste Fino) ── */}
+                          {variantResults.length > 0 && (
+                            <div className="space-y-3 pt-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <h4 className="text-sm font-bold text-foreground">
+                                    Detalhamento e Ajuste Fino por SKU
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    O custo de compra herda o unificador ({brl(toNumber(baseWholesaleGrade))}), mas você pode personalizar valores de peças específicas abaixo.
+                                  </p>
+                                </div>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  {variantResults.length} {variantResults.length === 1 ? "variação gerada" : "variações geradas"}
+                                </span>
+                              </div>
+
+                              <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground">
+                                        <th className="py-2.5 px-3.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[150px]">
+                                          Variação
+                                        </th>
+                                        <th className="py-2.5 px-2 text-center font-semibold text-[11px] uppercase tracking-wider w-14">
+                                          Qtd.
+                                        </th>
+                                        <th className="py-2.5 px-3 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[120px]">
+                                          Custo Atacado
+                                        </th>
+                                        <th className="py-2.5 px-3 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[95px]">
+                                          Custo Real
+                                        </th>
+                                        <th className="py-2.5 px-3 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[130px]">
+                                          Preço Venda
+                                        </th>
+                                        <th className="py-2.5 px-3 text-center font-semibold text-[11px] uppercase tracking-wider w-20">
+                                          Margem
+                                        </th>
+                                        <th className="py-2.5 px-3 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[100px]">
+                                          Lucro Líq.
+                                        </th>
+                                        <th className="py-2.5 px-2 text-center w-10"></th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/40">
+                                      {variantResults.map((v) => {
+                                        const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === v.color.toLowerCase());
+                                        const hasCustomOverride = (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "");
+                                        return (
+                                          <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
+                                            {/* Variação: Cor + Tamanho */}
+                                            <td className="py-2.5 px-3.5">
+                                              <div className="flex items-center gap-2">
+                                                <span
+                                                  className="size-3.5 rounded-full border border-black/10 shrink-0"
+                                                  style={{ backgroundColor: cp?.color ?? "#888888" }}
+                                                />
+                                                <span className="font-semibold text-foreground text-xs">{v.color}</span>
+                                                <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-md bg-secondary text-[11px] font-bold text-foreground">
+                                                  {v.size}
+                                                </span>
+                                              </div>
+                                            </td>
+
+                                            {/* Quantidade */}
+                                            <td className="py-2.5 px-2 text-center font-bold text-foreground">
+                                              {v.qty}
+                                            </td>
+
+                                            {/* Custo de Atacado (com unificador ou customizado) */}
+                                            <td className="py-2.5 px-3">
+                                              <div className="relative flex items-center h-8 rounded-lg border border-border/80 bg-background px-2 shadow-2xs focus-within:border-primary">
+                                                <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                                <input
+                                                  inputMode="decimal"
+                                                  value={v.wholesaleCost}
+                                                  onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                                  placeholder={baseWholesaleGrade || "0,00"}
+                                                  className={cn(
+                                                    "w-full bg-transparent text-xs font-semibold outline-none",
+                                                    v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)
+                                                      ? "text-amber-600 dark:text-amber-400 font-bold"
+                                                      : "text-foreground"
+                                                  )}
+                                                  title={v.wholesaleCost !== "" ? `Custo isolado para ${v.color} ${v.size}` : "Herdando custo base da grade"}
+                                                />
+                                              </div>
+                                            </td>
+
+                                            {/* Custo Real (com rateio) */}
+                                            <td className="py-2.5 px-3 text-right numeric font-medium text-muted-foreground text-xs">
+                                              {brl(v.realCost)}
+                                            </td>
+
+                                            {/* Preço de Venda (sugerido ou customizado) */}
+                                            <td className="py-2.5 px-3">
+                                              <div className="relative flex items-center h-8 rounded-lg border border-primary/30 bg-primary/5 px-2 shadow-2xs focus-within:border-primary focus-within:bg-background">
+                                                <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                                <input
+                                                  inputMode="decimal"
+                                                  value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
+                                                  onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                                  placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
+                                                  className="w-full bg-transparent text-xs font-bold text-primary outline-none"
+                                                  title={`Preço de venda para ${v.color} ${v.size}`}
+                                                />
+                                              </div>
+                                            </td>
+
+                                            {/* Margem Líquida */}
+                                            <td className="py-2.5 px-3 text-center">
+                                              <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.marginHealth.color)}>
+                                                <span>{v.marginHealth.emoji}</span>
+                                                <span>{pct(v.marginOnPrice)}</span>
+                                              </span>
+                                            </td>
+
+                                            {/* Lucro Líquido Unitário */}
+                                            <td className="py-2.5 px-3 text-right">
+                                              <span className={cn("numeric font-bold text-xs", v.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                                                +{brl(v.profit)}
+                                              </span>
+                                            </td>
+
+                                            {/* Ação: Restaurar se customizado */}
+                                            <td className="py-2.5 px-2 text-center">
+                                              {hasCustomOverride ? (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => resetVariantOverrides(v.id)}
+                                                  className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                                                  title="Restaurar para os valores padrão da grade"
+                                                >
+                                                  <RotateCcw className="size-3" />
+                                                </button>
+                                              ) : (
+                                                <span className="size-6 inline-block" />
+                                              )}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
                             </div>
                           )}
 
