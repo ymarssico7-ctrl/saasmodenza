@@ -4275,20 +4275,20 @@ function Precificacao() {
                 >
                   <span className={cn(
                     "flex size-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0 transition-colors",
-                    summaryPrices.avgSuggested > 0 && actualLotUnits > 0
+                    summaryPrices.avgCost > 0 && actualLotUnits > 0
                       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                       : "bg-muted text-muted-foreground"
                   )}>
-                    {summaryPrices.avgSuggested > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "2"}
+                    {summaryPrices.avgCost > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "2"}
                   </span>
-                  <span className="hidden sm:block truncate">Custos e preço</span>
+                  <span className="hidden sm:block truncate">Custos operacionais</span>
                 </a>
 
                 <span className="text-border/80 text-sm select-none">›</span>
 
                 <a
-                  href="#revisao-section"
-                  onClick={(e) => { e.preventDefault(); document.getElementById("revisao-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                  href="#precificacao-section"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("precificacao-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
                   className="flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2 border-transparent text-muted-foreground hover:text-foreground"
                 >
                   <span className={cn(
@@ -4299,7 +4299,7 @@ function Precificacao() {
                   )}>
                     {summaryPrices.avgSuggested > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "3"}
                   </span>
-                  <span className="hidden sm:block truncate">Revisão</span>
+                  <span className="hidden sm:block truncate">Precificação e SKUs</span>
                 </a>
               </div>
 
@@ -5215,634 +5215,551 @@ function Precificacao() {
                         </div>
                       </div>
 
-                      {/* ── SEÇÃO 2: CENTRO DE COMANDO COMERCIAL & ESTRATÉGIA DE PRECIFICAÇÃO ── */}
-                      <div className="pt-6 border-t border-border/60 space-y-5">
-                        {/* Cabeçalho da Seção Comercial com Alternador de Escopo */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div>
-                            <h3 className="text-base font-bold text-foreground">
-                              Estratégia de Precificação da Grade
-                            </h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {gradePricingMode === "unified"
-                                ? "Defina sua meta comercial unificada para formar o preço de venda sugerido de toda a grade"
-                                : "Personalize margem (%) e preço de venda (R$) individualmente por SKU"}
-                            </p>
+                      </div>
+                    </section>
+
+                  {/* ── SEÇÃO 3: PRECIFICAÇÃO & TABELA MESTRE DE SKUs ── */}
+                  <section id="precificacao-section" className="panel p-6 sm:p-7 space-y-6">
+                    {/* Cabeçalho da Seção 3 */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
+                          3
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-bold text-foreground">
+                            Precificação &amp; Tabela Mestre de SKUs
+                          </h2>
+                          <p className="text-xs text-muted-foreground">
+                            Defina a meta no Unificador da Grade e ajuste margens ou preços de variações específicas quando necessário
+                          </p>
+                        </div>
+                      </div>
+
+                      {actualLotUnits > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-semibold">
+                            {actualLotUnits} {actualLotUnits === 1 ? "peça configurada" : "peças configuradas"}
+                          </Badge>
+                          {variantResults.some((v) => (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "")) && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <span className="size-1.5 rounded-full bg-amber-500" />
+                              Variações customizadas
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* ── 1. UNIFICADOR GLOBAL DA GRADE ── */}
+                      <div className="rounded-2xl border border-border/80 bg-secondary/15 p-4 sm:p-5 space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="size-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                              <Zap className="size-3.5" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-foreground block">
+                                Unificador da Grade
+                              </span>
+                              <span className="text-[11px] text-muted-foreground block -mt-0.5">
+                                Aplique uma margem, markup ou preço fixo padrão para todas as peças do lote
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="inline-flex items-center rounded-xl border border-border/80 bg-secondary/30 p-1 shadow-2xs self-start sm:self-auto">
-                            <button
+                          {variantResults.some((v) => (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "")) && (
+                            <Button
                               type="button"
-                              onClick={() => setGradePricingMode("unified")}
-                              className={cn(
-                                "flex items-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-bold transition-all cursor-pointer",
-                                gradePricingMode === "unified"
-                                  ? "bg-card text-foreground shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground",
-                              )}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: "", customSalePrice: "" })));
+                                toast.success("Todas as variações restauradas para o padrão unificado da grade");
+                              }}
+                              className="h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer"
+                              title="Remover todas as personalizações individuais"
                             >
-                              <Layers className="size-3.5 text-primary" />
-                              <span>Toda a Grade</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setGradePricingMode("per_unit")}
-                              className={cn(
-                                "flex items-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-bold transition-all cursor-pointer",
-                                gradePricingMode === "per_unit"
-                                  ? "bg-card text-foreground shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground",
-                              )}
-                            >
-                              <Tag className="size-3.5 text-primary" />
-                              <span>Por Variação / SKU</span>
-                              {variantResults.some((v) => (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "")) && (
-                                <span className="size-1.5 rounded-full bg-amber-500" title="Há valores personalizados" />
-                              )}
-                            </button>
-                          </div>
+                              <RotateCcw className="size-3" />
+                              <span>Restaurar todas ao padrão</span>
+                            </Button>
+                          )}
                         </div>
 
-                        {/* ── MODO 1: TODA A GRADE (UNIFICADO) ── */}
-                        {gradePricingMode === "unified" && (
-                          <div className="space-y-5">
-                            {/* Segmented Control Apple: Margem / Markup / Preço Fixo */}
-                            <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-border/80 bg-secondary/30 p-1.5 shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => setMatrixGlobalMode("margin")}
-                                className={cn(
-                                  "flex items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-bold transition-all cursor-pointer",
-                                  matrixGlobalMode === "margin"
-                                    ? "bg-card text-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground",
-                                )}
-                              >
-                                <Target className="size-4 shrink-0 text-primary" />
-                                <span>Margem (%)</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setMatrixGlobalMode("markup")}
-                                className={cn(
-                                  "flex items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-bold transition-all cursor-pointer",
-                                  matrixGlobalMode === "markup"
-                                    ? "bg-card text-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground",
-                                )}
-                              >
-                                <TrendingUp className="size-4 shrink-0 text-primary" />
-                                <span>Markup (×)</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setMatrixGlobalMode("direct_price")}
-                                className={cn(
-                                  "flex items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-bold transition-all cursor-pointer",
-                                  matrixGlobalMode === "direct_price"
-                                    ? "bg-card text-foreground shadow-xs"
-                                    : "text-muted-foreground hover:text-foreground",
-                                )}
-                              >
-                                <Coins className="size-4 shrink-0 text-primary" />
-                                <span>Preço Fixo</span>
-                              </button>
-                            </div>
-
-                            {/* Controles por Modo de Estratégia */}
-                            {matrixGlobalMode === "margin" && (
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="text-xs font-semibold text-muted-foreground">
-                                    Meta de margem líquida no bolso:
-                                  </span>
-                                  <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = toNumber(matrixGlobalMarginStr) || 50;
-                                        setMatrixGlobalMarginStr(String(Math.max(1, Math.round(cur) - 1)));
-                                      }}
-                                      className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
-                                      title="−1%"
-                                    >
-                                      <Minus className="size-3.5" />
-                                    </button>
-                                    <div className="flex items-center px-2.5">
-                                      <input
-                                        inputMode="decimal"
-                                        value={matrixGlobalMarginStr}
-                                        onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarginStr(e.target.value); }}
-                                        className="w-10 text-center text-sm font-bold outline-none bg-transparent text-primary"
-                                      />
-                                      <span className="text-xs font-bold text-muted-foreground">%</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = toNumber(matrixGlobalMarginStr) || 50;
-                                        setMatrixGlobalMarginStr(String(Math.min(85, Math.round(cur) + 1)));
-                                      }}
-                                      className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
-                                      title="+1%"
-                                    >
-                                      <Plus className="size-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-5 gap-2">
-                                  {[30, 40, 50, 60, 70].map((mv) => (
-                                    <button
-                                      key={mv}
-                                      type="button"
-                                      onClick={() => setMatrixGlobalMarginStr(String(mv))}
-                                      className={cn(
-                                        "h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border",
-                                        toNumber(matrixGlobalMarginStr) === mv
-                                          ? "bg-primary text-primary-foreground shadow-xs border-primary"
-                                          : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
-                                      )}
-                                    >
-                                      {mv}%
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                        {/* Segmented Control Apple: Margem / Markup / Preço Fixo */}
+                        <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-border/80 bg-card p-1.5 shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMode("margin")}
+                            className={cn(
+                              "flex items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-bold transition-all cursor-pointer",
+                              matrixGlobalMode === "margin"
+                                ? "bg-primary/10 text-primary shadow-xs font-black"
+                                : "text-muted-foreground hover:text-foreground",
                             )}
-
-                            {matrixGlobalMode === "markup" && (
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="text-xs font-semibold text-muted-foreground">
-                                    Multiplicador sobre o custo:
-                                  </span>
-                                  <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = toNumber(matrixGlobalMarkupStr) || 100;
-                                        setMatrixGlobalMarkupStr(String(Math.max(1, Math.round(cur) - 5)));
-                                      }}
-                                      className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
-                                      title="−5%"
-                                    >
-                                      <Minus className="size-3.5" />
-                                    </button>
-                                    <div className="flex items-center px-2.5">
-                                      <input
-                                        inputMode="decimal"
-                                        value={matrixGlobalMarkupStr}
-                                        onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarkupStr(e.target.value); }}
-                                        className="w-12 text-center text-sm font-bold outline-none bg-transparent text-primary"
-                                      />
-                                      <span className="text-xs font-bold text-muted-foreground">%</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const cur = toNumber(matrixGlobalMarkupStr) || 100;
-                                        setMatrixGlobalMarkupStr(String(Math.min(300, Math.round(cur) + 5)));
-                                      }}
-                                      className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
-                                      title="+5%"
-                                    >
-                                      <Plus className="size-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-5 gap-2">
-                                  {[60, 80, 100, 120, 150].map((mk) => (
-                                    <button
-                                      key={mk}
-                                      type="button"
-                                      onClick={() => setMatrixGlobalMarkupStr(String(mk))}
-                                      className={cn(
-                                        "h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border",
-                                        toNumber(matrixGlobalMarkupStr) === mk
-                                          ? "bg-primary text-primary-foreground shadow-xs border-primary"
-                                          : "border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary",
-                                      )}
-                                    >
-                                      {mk}%
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                          >
+                            <Target className="size-4 shrink-0 text-primary" />
+                            <span>Margem (%)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMode("markup")}
+                            className={cn(
+                              "flex items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-bold transition-all cursor-pointer",
+                              matrixGlobalMode === "markup"
+                                ? "bg-primary/10 text-primary shadow-xs font-black"
+                                : "text-muted-foreground hover:text-foreground",
                             )}
-
-                            {matrixGlobalMode === "direct_price" && (
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="text-xs font-semibold text-muted-foreground">
-                                    Preço de venda direto:
-                                  </span>
-                                  <div className="relative flex items-center rounded-xl border border-border/80 bg-background px-3 py-1.5 shadow-2xs">
-                                    <span className="text-xs text-muted-foreground mr-1.5 font-semibold">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={matrixGlobalDirectPrice}
-                                      onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
-                                      placeholder="139,90"
-                                      className="w-24 text-center text-sm font-bold outline-none bg-transparent text-primary"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-2">
-                                  {[",90", ",00", ",50"].map((ending) => (
-                                    <button
-                                      key={ending}
-                                      type="button"
-                                      onClick={() => {
-                                        const current = matrixGlobalDirectPrice || "139,90";
-                                        const integerPart = Math.floor(toNumber(current));
-                                        setMatrixGlobalDirectPrice(`${integerPart}${ending}`);
-                                      }}
-                                      className="h-10 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground bg-secondary/40 border border-border/60 hover:bg-secondary transition-all cursor-pointer"
-                                    >
-                                      Final {ending}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                          >
+                            <TrendingUp className="size-4 shrink-0 text-primary" />
+                            <span>Markup (×)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMatrixGlobalMode("direct_price")}
+                            className={cn(
+                              "flex items-center justify-center gap-2 rounded-xl py-2 px-2 text-xs font-bold transition-all cursor-pointer",
+                              matrixGlobalMode === "direct_price"
+                                ? "bg-primary/10 text-primary shadow-xs font-black"
+                                : "text-muted-foreground hover:text-foreground",
                             )}
+                          >
+                            <Coins className="size-4 shrink-0 text-primary" />
+                            <span>Preço Fixo</span>
+                          </button>
+                        </div>
 
-                            {/* Feedback Inline de Simulação por Peça */}
-                            {previewPrice > 0 ? (
-                              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <Sparkles className="size-4 text-primary shrink-0" />
-                                  <span className="text-xs text-muted-foreground">
-                                    Preço projetado por peça: <strong className="text-foreground font-bold">{brl(previewPrice)}</strong>
-                                  </span>
-                                </div>
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                                  +{brl(previewProfit)} lucro líquido ({Math.round(previewMargin)}%)
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="rounded-xl bg-secondary/30 border border-border/50 px-3.5 py-2.5 text-xs text-muted-foreground">
-                                {baseCost <= 0 ? "Informe o custo de atacado para visualizar a projeção de preço e lucro por peça." : "Ajuste os parâmetros acima para simular a formação de preço."}
-                              </div>
-                            )}
-
-                            {/* Alerta de Desatualização (Financial Trust) */}
-                            {isStale && (
-                              <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                                  <span>Custo base ou parâmetros foram alterados após a última aplicação.</span>
+                        {/* Controles por Modo de Estratégia */}
+                        {matrixGlobalMode === "margin" && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                Meta de margem líquida no bolso:
+                              </span>
+                              <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cur = toNumber(matrixGlobalMarginStr) || 50;
+                                    setMatrixGlobalMarginStr(String(Math.max(1, Math.round(cur) - 1)));
+                                  }}
+                                  className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                  title="−1%"
+                                >
+                                  <Minus className="size-3.5" />
+                                </button>
+                                <div className="flex items-center px-2.5">
+                                  <input
+                                    inputMode="decimal"
+                                    value={matrixGlobalMarginStr}
+                                    onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarginStr(e.target.value); }}
+                                    className="w-10 text-center text-sm font-bold outline-none bg-transparent text-primary"
+                                  />
+                                  <span className="text-xs font-bold text-muted-foreground">%</span>
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={applyStrategyToModel}
-                                  className="px-2.5 py-1 rounded-lg bg-amber-500 text-amber-950 font-bold hover:bg-amber-400 transition-colors shrink-0 text-xs cursor-pointer shadow-xs"
+                                  onClick={() => {
+                                    const cur = toNumber(matrixGlobalMarginStr) || 50;
+                                    setMatrixGlobalMarginStr(String(Math.min(85, Math.round(cur) + 1)));
+                                  }}
+                                  className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                  title="+1%"
                                 >
-                                  Reaplicar preços
+                                  <Plus className="size-3.5" />
                                 </button>
                               </div>
-                            )}
-
-                            {/* BOTÃO DE AÇÃO MESTRE */}
-                            <div className="pt-1">
-                              <Button
-                                type="button"
-                                onClick={applyStrategyToModel}
-                                disabled={actualLotUnits === 0}
-                                className="h-12 rounded-2xl w-full text-xs sm:text-sm font-bold gradient-primary shadow-glow active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:shadow-none"
-                              >
-                                <Zap className="size-4 mr-2 shrink-0" />
-                                <span>Aplicar a Toda a Grade{actualLotUnits > 0 ? ` (${actualLotUnits} variações)` : ""}</span>
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ── MODO 2: POR VARIAÇÃO / SKU (CONTROLE GRANULAR) ── */}
-                        {gradePricingMode === "per_unit" && (
-                          <div className="space-y-4">
-                            {/* Atalho Rápido do Unificador */}
-                            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-secondary/20 border border-border/60">
-                              <div className="flex items-center gap-2.5">
-                                <div className="size-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                                  <Sliders className="size-3.5" />
-                                </div>
-                                <div>
-                                  <span className="text-xs font-bold text-foreground block">
-                                    Atalho Unificador da Grade
-                                  </span>
-                                  <span className="text-[11px] text-muted-foreground block -mt-0.5">
-                                    Defina uma margem base para toda a grade e ajuste exceções abaixo
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {[35, 45, 50, 55, 60].map((m) => (
-                                  <button
-                                    key={m}
-                                    type="button"
-                                    onClick={() => {
-                                      setMatrixGlobalMode("margin");
-                                      setMatrixGlobalMarginStr(String(m));
-                                      applyStrategyToModel();
-                                    }}
-                                    className="px-2.5 py-1 text-xs font-bold rounded-lg border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-primary transition-all cursor-pointer shadow-2xs"
-                                    title={`Definir ${m}% de margem para todas as peças`}
-                                  >
-                                    {m}%
-                                  </button>
-                                ))}
-
-                                {variantResults.some((v) => (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "")) && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: "", customSalePrice: "" })));
-                                      toast.success("Todas as variações restauradas para o padrão unificado da grade");
-                                    }}
-                                    className="h-7 px-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground gap-1 cursor-pointer ml-1"
-                                    title="Remover todas as personalizações individuais"
-                                  >
-                                    <RotateCcw className="size-3" />
-                                    <span>Restaurar todas</span>
-                                  </Button>
-                                )}
-                              </div>
                             </div>
 
-                            {/* Tabela de Variações por SKU */}
-                            {variantResults.length === 0 ? (
-                              <div className="rounded-2xl border border-border/70 bg-secondary/15 p-6 text-center space-y-2">
-                                <p className="text-xs font-bold text-foreground">
-                                  Grade aguardando preenchimento no Passo 1
-                                </p>
-                                <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                                  Defina as cores e quantidades na grade do Passo 1 para visualizar e personalizar a precificação de cada variação aqui.
-                                </p>
-                                <Button
+                            <div className="grid grid-cols-5 gap-2">
+                              {[30, 40, 50, 60, 70].map((mv) => (
+                                <button
+                                  key={mv}
                                   type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setGradeStep(1)}
-                                  className="h-8 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer mt-2"
+                                  onClick={() => setMatrixGlobalMarginStr(String(mv))}
+                                  className={cn(
+                                    "h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                                    toNumber(matrixGlobalMarginStr) === mv
+                                      ? "bg-primary text-primary-foreground shadow-xs border-primary"
+                                      : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                  )}
                                 >
-                                  <ArrowLeft className="size-3.5" />
-                                  <span>Ir para o Passo 1 (Grade)</span>
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
-                                  <div className="overflow-x-auto">
-                                    <table className="w-full text-xs">
-                                      <thead>
-                                        <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground">
-                                          <th className="py-2.5 px-3.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[140px]">
-                                            Variação
-                                          </th>
-                                          <th className="py-2.5 px-2 text-center font-semibold text-[11px] uppercase tracking-wider w-12">
-                                            Qtd.
-                                          </th>
-                                          <th className="py-2.5 px-2.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[105px]">
-                                            Atacado
-                                          </th>
-                                          <th className="py-2.5 px-2.5 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[90px]">
-                                            Custo Real
-                                          </th>
-                                          <th className="py-2.5 px-2.5 text-center font-semibold text-[11px] uppercase tracking-wider min-w-[130px]">
-                                            Margem (%)
-                                          </th>
-                                          <th className="py-2.5 px-2.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[125px]">
-                                            Preço Venda (R$)
-                                          </th>
-                                          <th className="py-2.5 px-2.5 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[95px]">
-                                            Lucro Líq.
-                                          </th>
-                                          <th className="py-2.5 px-2 text-center w-8"></th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-border/40">
-                                        {variantResults.map((v) => {
-                                          const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === v.color.toLowerCase());
-                                          const hasCustomOverride = (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "");
-                                          const currentMargin = Math.round(v.marginOnPrice);
-
-                                          return (
-                                            <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
-                                              {/* Variação: Cor + Tamanho */}
-                                              <td className="py-2 px-3.5">
-                                                <div className="flex items-center gap-2">
-                                                  <span
-                                                    className="size-3 rounded-full border border-black/10 shrink-0"
-                                                    style={{ backgroundColor: cp?.color ?? "#888888" }}
-                                                  />
-                                                  <span className="font-semibold text-foreground text-xs">{v.color}</span>
-                                                  <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md bg-secondary text-[11px] font-bold text-foreground">
-                                                    {v.size}
-                                                  </span>
-                                                </div>
-                                              </td>
-
-                                              {/* Quantidade */}
-                                              <td className="py-2 px-2 text-center font-bold text-foreground">
-                                                {v.qty}
-                                              </td>
-
-                                              {/* Custo de Atacado */}
-                                              <td className="py-2 px-2.5">
-                                                <div className="relative flex items-center h-8 rounded-lg border border-border/80 bg-background px-2 shadow-2xs focus-within:border-primary">
-                                                  <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
-                                                  <input
-                                                    inputMode="decimal"
-                                                    value={v.wholesaleCost}
-                                                    onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                                    placeholder={baseWholesaleGrade || "0,00"}
-                                                    className={cn(
-                                                      "w-full bg-transparent text-xs font-semibold outline-none",
-                                                      v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)
-                                                        ? "text-amber-600 dark:text-amber-400 font-bold"
-                                                        : "text-foreground"
-                                                    )}
-                                                    title={v.wholesaleCost !== "" ? `Custo isolado para ${v.color} ${v.size}` : "Herdando custo base da grade"}
-                                                  />
-                                                </div>
-                                              </td>
-
-                                              {/* Custo Real */}
-                                              <td className="py-2 px-2.5 text-right numeric font-medium text-muted-foreground text-xs">
-                                                {brl(v.realCost)}
-                                              </td>
-
-                                              {/* Margem (%) com Stepper Interativo */}
-                                              <td className="py-2 px-2.5 text-center">
-                                                <div className="inline-flex items-center rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => updateVariantMargin(v.id, Math.max(1, currentMargin - 1))}
-                                                    className="size-6 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary active:scale-90 transition-all cursor-pointer"
-                                                    title="-1% margem"
-                                                  >
-                                                    <Minus className="size-3" />
-                                                  </button>
-                                                  <input
-                                                    inputMode="decimal"
-                                                    value={currentMargin}
-                                                    onChange={(e) => {
-                                                      const val = toNumber(e.target.value);
-                                                      if (val > 0) updateVariantMargin(v.id, Math.min(85, Math.max(1, val)));
-                                                    }}
-                                                    className="w-8 text-center text-xs font-bold text-primary outline-none bg-transparent"
-                                                  />
-                                                  <span className="text-[10px] font-bold text-muted-foreground pr-0.5">%</span>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => updateVariantMargin(v.id, Math.min(85, currentMargin + 1))}
-                                                    className="size-6 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary active:scale-90 transition-all cursor-pointer"
-                                                    title="+1% margem"
-                                                  >
-                                                    <Plus className="size-3" />
-                                                  </button>
-                                                </div>
-                                              </td>
-
-                                              {/* Preço de Venda Direto */}
-                                              <td className="py-2 px-2.5">
-                                                <div className="relative flex items-center h-8 rounded-lg border border-primary/30 bg-primary/5 px-2 shadow-2xs focus-within:border-primary focus-within:bg-background">
-                                                  <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
-                                                  <input
-                                                    inputMode="decimal"
-                                                    value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                                    onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                                    placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
-                                                    className="w-full bg-transparent text-xs font-bold text-primary outline-none"
-                                                    title={`Preço de venda para ${v.color} ${v.size}`}
-                                                  />
-                                                </div>
-                                              </td>
-
-                                              {/* Lucro Líquido Unitário */}
-                                              <td className="py-2 px-2.5 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                  <span className={cn("numeric font-bold text-xs", v.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
-                                                    +{brl(v.profit)}
-                                                  </span>
-                                                  <span className="text-[11px]" title={v.marginHealth.label}>
-                                                    {v.marginHealth.emoji}
-                                                  </span>
-                                                </div>
-                                              </td>
-
-                                              {/* Ação: Restaurar se customizado */}
-                                              <td className="py-2 px-2 text-center">
-                                                {hasCustomOverride ? (
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => resetVariantOverrides(v.id)}
-                                                    className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                                                    title="Restaurar para os valores padrão da grade"
-                                                  >
-                                                    <RotateCcw className="size-3" />
-                                                  </button>
-                                                ) : (
-                                                  <span className="size-6 inline-block" />
-                                                )}
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </div>
-
-                                  {/* Resumo da Tabela Unitária */}
-                                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-secondary/30 border-t border-border/50 text-xs">
-                                    <span className="text-muted-foreground">
-                                      {variantResults.length} {variantResults.length === 1 ? "variação configurada" : "variações configuradas"} ({actualLotUnits} peças no total)
-                                    </span>
-                                    <div className="flex items-center gap-4">
-                                      <span>
-                                        Preço médio: <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong>
-                                      </span>
-                                      <span>
-                                        Lucro total do lote: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">+{brl(summaryPrices.totalProfit)}</strong>
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                                  {mv}%
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </section>
 
-                    {/* ── SEÇÃO 3: REVISÃO CONSOLIDADA DO LOTE & ENTRADA NO ESTOQUE ── */}
-                    <section id="revisao-section" className="panel p-6 sm:p-7 space-y-6">
-                      {/* Cabeçalho da Seção 3 */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                            3
-                          </span>
+                        {matrixGlobalMode === "markup" && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                Multiplicador sobre o custo:
+                              </span>
+                              <div className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cur = toNumber(matrixGlobalMarkupStr) || 100;
+                                    setMatrixGlobalMarkupStr(String(Math.max(1, Math.round(cur) - 5)));
+                                  }}
+                                  className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                  title="−5%"
+                                >
+                                  <Minus className="size-3.5" />
+                                </button>
+                                <div className="flex items-center px-2.5">
+                                  <input
+                                    inputMode="decimal"
+                                    value={matrixGlobalMarkupStr}
+                                    onChange={(e) => { if (/^[\d,.]*$/.test(e.target.value)) setMatrixGlobalMarkupStr(e.target.value); }}
+                                    className="w-12 text-center text-sm font-bold outline-none bg-transparent text-primary"
+                                  />
+                                  <span className="text-xs font-bold text-muted-foreground">%</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cur = toNumber(matrixGlobalMarkupStr) || 100;
+                                    setMatrixGlobalMarkupStr(String(Math.min(300, Math.round(cur) + 5)));
+                                  }}
+                                  className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground active:scale-90 transition-all cursor-pointer"
+                                  title="+5%"
+                                >
+                                  <Plus className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-5 gap-2">
+                              {[60, 80, 100, 120, 150].map((mk) => (
+                                <button
+                                  key={mk}
+                                  type="button"
+                                  onClick={() => setMatrixGlobalMarkupStr(String(mk))}
+                                  className={cn(
+                                    "h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                                    toNumber(matrixGlobalMarkupStr) === mk
+                                      ? "bg-primary text-primary-foreground shadow-xs border-primary"
+                                      : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                  )}
+                                >
+                                  {mk}%
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {matrixGlobalMode === "direct_price" && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                Preço de venda direto:
+                              </span>
+                              <div className="relative flex items-center rounded-xl border border-border/80 bg-background px-3 py-1.5 shadow-2xs">
+                                <span className="text-xs text-muted-foreground mr-1.5 font-semibold">R$</span>
+                                <input
+                                  inputMode="decimal"
+                                  value={matrixGlobalDirectPrice}
+                                  onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
+                                  placeholder="139,90"
+                                  className="w-24 text-center text-sm font-bold outline-none bg-transparent text-primary"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                              {[",90", ",00", ",50"].map((ending) => (
+                                <button
+                                  key={ending}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = matrixGlobalDirectPrice || "139,90";
+                                    const integerPart = Math.floor(toNumber(current));
+                                    setMatrixGlobalDirectPrice(`${integerPart}${ending}`);
+                                  }}
+                                  className="h-10 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground bg-card border border-border/60 hover:bg-secondary transition-all cursor-pointer"
+                                >
+                                  Final {ending}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Feedback Inline de Simulação por Peça */}
+                        {previewPrice > 0 ? (
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="size-4 text-primary shrink-0" />
+                              <span className="text-xs text-muted-foreground">
+                                Preço projetado por peça: <strong className="text-foreground font-bold">{brl(previewPrice)}</strong>
+                              </span>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                              +{brl(previewProfit)} lucro líquido ({Math.round(previewMargin)}%)
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="rounded-xl bg-card border border-border/50 px-3.5 py-2.5 text-xs text-muted-foreground">
+                            {baseCost <= 0 ? "Informe o custo de compra para visualizar a projeção de preço e lucro por peça." : "Ajuste os parâmetros acima para simular a formação de preço."}
+                          </div>
+                        )}
+
+                        {/* Alerta de Desatualização (Financial Trust) */}
+                        {isStale && (
+                          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                              <span>Custo base ou parâmetros foram alterados após a última aplicação.</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={applyStrategyToModel}
+                              className="px-2.5 py-1 rounded-lg bg-amber-500 text-amber-950 font-bold hover:bg-amber-400 transition-colors shrink-0 text-xs cursor-pointer shadow-xs"
+                            >
+                              Reaplicar preços
+                            </button>
+                          </div>
+                        )}
+
+                        {/* BOTÃO DE AÇÃO DO UNIFICADOR */}
+                        <div className="pt-1">
+                          <Button
+                            type="button"
+                            onClick={applyStrategyToModel}
+                            disabled={actualLotUnits === 0}
+                            className="h-11 rounded-xl w-full text-xs sm:text-sm font-bold gradient-primary shadow-glow active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:shadow-none"
+                          >
+                            <Zap className="size-4 mr-2 shrink-0" />
+                            <span>Aplicar a Toda a Grade{actualLotUnits > 0 ? ` (${actualLotUnits} variações)` : ""}</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* ── 2. TABELA MESTRE UNIFICADA DE SKUs (Valores por Peça e Ajuste Fino) ── */}
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
-                            <h2 className="text-sm font-bold text-foreground">
-                              Revisão consolidada do lote e entrada no estoque
-                            </h2>
-                            <p className="text-xs text-muted-foreground">
-                              Confira a projeção financeira, faturamento total, lucro e ponto de equilíbrio antes de confirmar.
+                            <h3 className="text-sm font-bold text-foreground">
+                              Tabela Mestre de SKUs &amp; Variações
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Valores herdados do unificador acima. Personalize custos de atacado, margens ou preços de variações específicas quando necessário.
                             </p>
                           </div>
+                          {variantResults.length > 0 && (
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              {variantResults.length} {variantResults.length === 1 ? "variação configurada" : "variações configuradas"}
+                            </span>
+                          )}
                         </div>
+
+                        {variantResults.length === 0 ? (
+                          <div className="rounded-2xl border border-border/70 bg-secondary/15 p-6 text-center space-y-2">
+                            <Boxes className="size-8 text-muted-foreground mx-auto" />
+                            <p className="text-xs font-bold text-foreground">
+                              Grade aguardando preenchimento na Seção 1
+                            </p>
+                            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                              Defina as cores e quantidades na grade da Seção 1 para visualizar e personalizar a precificação de cada variação aqui.
+                            </p>
+                            <a
+                              href="#grade-section"
+                              className="inline-flex items-center justify-center h-8 px-3.5 rounded-xl text-xs font-semibold gap-1.5 border border-border/70 bg-card hover:bg-secondary cursor-pointer mt-2 transition-all shadow-2xs"
+                            >
+                              <ArrowLeft className="size-3.5" />
+                              <span>Ir para a Grade de Produção</span>
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground">
+                                    <th className="py-2.5 px-3.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[140px]">
+                                      Variação
+                                    </th>
+                                    <th className="py-2.5 px-2 text-center font-semibold text-[11px] uppercase tracking-wider w-12">
+                                      Qtd.
+                                    </th>
+                                    <th className="py-2.5 px-2.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[110px]">
+                                      Custo Compra
+                                    </th>
+                                    <th className="py-2.5 px-2.5 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[90px]">
+                                      Custo Real
+                                    </th>
+                                    <th className="py-2.5 px-2.5 text-center font-semibold text-[11px] uppercase tracking-wider min-w-[130px]">
+                                      Margem (%)
+                                    </th>
+                                    <th className="py-2.5 px-2.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[125px]">
+                                      Preço Venda (R$)
+                                    </th>
+                                    <th className="py-2.5 px-2.5 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[95px]">
+                                      Lucro Líq.
+                                    </th>
+                                    <th className="py-2.5 px-2 text-center w-8"></th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/40">
+                                  {variantResults.map((v) => {
+                                    const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === v.color.toLowerCase());
+                                    const hasCustomOverride = (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "");
+                                    const currentMargin = Math.round(v.marginOnPrice);
+
+                                    return (
+                                      <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
+                                        {/* Variação: Cor + Tamanho */}
+                                        <td className="py-2 px-3.5">
+                                          <div className="flex items-center gap-2">
+                                            <span
+                                              className="size-3 rounded-full border border-black/10 shrink-0"
+                                              style={{ backgroundColor: cp?.color ?? "#888888" }}
+                                            />
+                                            <span className="font-semibold text-foreground text-xs">{v.color}</span>
+                                            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md bg-secondary text-[11px] font-bold text-foreground">
+                                              {v.size}
+                                            </span>
+                                          </div>
+                                        </td>
+
+                                        {/* Quantidade */}
+                                        <td className="py-2 px-2 text-center font-bold text-foreground">
+                                          {v.qty}
+                                        </td>
+
+                                        {/* Custo de Compra / Atacado */}
+                                        <td className="py-2 px-2.5">
+                                          <div className="relative flex items-center h-8 rounded-lg border border-border/80 bg-background px-2 shadow-2xs focus-within:border-primary">
+                                            <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                            <input
+                                              inputMode="decimal"
+                                              value={v.wholesaleCost}
+                                              onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                              placeholder={baseWholesaleGrade || "0,00"}
+                                              className={cn(
+                                                "w-full bg-transparent text-xs font-semibold outline-none",
+                                                v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)
+                                                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                                                  : "text-foreground"
+                                              )}
+                                              title={v.wholesaleCost !== "" ? `Custo isolado para ${v.color} ${v.size}` : "Herdando custo base da grade"}
+                                            />
+                                          </div>
+                                        </td>
+
+                                        {/* Custo Real (com rateio de frete e custos extras) */}
+                                        <td className="py-2 px-2.5 text-right numeric font-medium text-muted-foreground text-xs">
+                                          {brl(v.realCost)}
+                                        </td>
+
+                                        {/* Margem (%) com Stepper Interativo */}
+                                        <td className="py-2 px-2.5 text-center">
+                                          <div className="inline-flex items-center rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
+                                            <button
+                                              type="button"
+                                              onClick={() => updateVariantMargin(v.id, Math.max(1, currentMargin - 1))}
+                                              className="size-6 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary active:scale-90 transition-all cursor-pointer"
+                                              title="-1% margem"
+                                            >
+                                              <Minus className="size-3" />
+                                            </button>
+                                            <input
+                                              inputMode="decimal"
+                                              value={currentMargin}
+                                              onChange={(e) => {
+                                                const val = toNumber(e.target.value);
+                                                if (val > 0) updateVariantMargin(v.id, Math.min(85, Math.max(1, val)));
+                                              }}
+                                              className="w-8 text-center text-xs font-bold text-primary outline-none bg-transparent"
+                                            />
+                                            <span className="text-[10px] font-bold text-muted-foreground pr-0.5">%</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => updateVariantMargin(v.id, Math.min(85, currentMargin + 1))}
+                                              className="size-6 flex items-center justify-center rounded text-muted-foreground hover:bg-secondary active:scale-90 transition-all cursor-pointer"
+                                              title="+1% margem"
+                                            >
+                                              <Plus className="size-3" />
+                                            </button>
+                                          </div>
+                                        </td>
+
+                                        {/* Preço de Venda Direto */}
+                                        <td className="py-2 px-2.5">
+                                          <div className="relative flex items-center h-8 rounded-lg border border-primary/30 bg-primary/5 px-2 shadow-2xs focus-within:border-primary focus-within:bg-background">
+                                            <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                            <input
+                                              inputMode="decimal"
+                                              value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
+                                              onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                              placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
+                                              className="w-full bg-transparent text-xs font-bold text-primary outline-none"
+                                              title={`Preço de venda para ${v.color} ${v.size}`}
+                                            />
+                                          </div>
+                                        </td>
+
+                                        {/* Lucro Líquido Unitário */}
+                                        <td className="py-2 px-2.5 text-right">
+                                          <div className="flex items-center justify-end gap-1">
+                                            <span className={cn("numeric font-bold text-xs", v.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                                              +{brl(v.profit)}
+                                            </span>
+                                            <span className="text-[11px]" title={v.marginHealth.label}>
+                                              {v.marginHealth.emoji}
+                                            </span>
+                                          </div>
+                                        </td>
+
+                                        {/* Ação: Restaurar se customizado */}
+                                        <td className="py-2 px-2 text-center">
+                                          {hasCustomOverride ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => resetVariantOverrides(v.id)}
+                                              className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                                              title="Restaurar para os valores padrão da grade"
+                                            >
+                                              <RotateCcw className="size-3" />
+                                            </button>
+                                          ) : (
+                                            <span className="size-6 inline-block" />
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Resumo da Tabela Unitária */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-secondary/30 border-t border-border/50 text-xs">
+                              <span className="text-muted-foreground">
+                                {variantResults.length} {variantResults.length === 1 ? "variação configurada" : "variações configuradas"} ({actualLotUnits} peças no total)
+                              </span>
+                              <div className="flex items-center gap-4">
+                                <span>
+                                  Preço médio: <strong className="text-foreground">{brl(summaryPrices.avgSuggested)}</strong>
+                                </span>
+                                <span>
+                                  Lucro total do lote: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">+{brl(summaryPrices.totalProfit)}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                    <div className="space-y-6">
-                      {actualLotUnits === 0 ? (
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="size-11 rounded-2xl bg-secondary/80 text-muted-foreground flex items-center justify-center shrink-0 border border-border/60">
-                              <Boxes className="size-5" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-foreground">
-                                Grade aguardando preenchimento no Passo 1
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                                Adicione quantidades e tamanhos na grade para projetar o faturamento total, investimento e lucro líquido do lote aqui.
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full sm:w-auto">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={resetPricingModel}
-                              className="h-10 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
-                              title="Limpar campos e precificar outro modelo"
-                            >
-                              <RotateCcw className="size-3.5" />
-                              <span>Resetar grade</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              disabled
-                              className="h-10 rounded-xl bg-muted text-muted-foreground font-semibold flex items-center justify-center gap-2 px-5 text-xs opacity-60 cursor-not-allowed"
-                            >
-                              <PackagePlus className="size-4" />
-                              <span>Dar entrada no estoque (0 un.)</span>
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          {/* Cabeçalho do Fechamento Ativo */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+                      {/* ── 3. PROJEÇÃO FINANCEIRA CONSOLIDADA DO LOTE (Cards + Decomposição + Equilíbrio) ── */}
+                      {actualLotUnits > 0 && (
+                        <div className="space-y-4 pt-2 border-t border-border/50">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                                 <TrendingUp className="size-4" />
@@ -5870,7 +5787,7 @@ function Precificacao() {
                           </div>
 
                           {/* 4 Cards de Métricas Estilo Air */}
-                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="rounded-2xl border border-border/70 bg-secondary/15 p-4 space-y-1">
                               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                                 Faturamento Previsto
@@ -5982,207 +5899,56 @@ function Precificacao() {
                               )}
                             </div>
                           )}
-
-                          {/* ── TABELA CONSOLIDADA DE SKUs (Valores por Peça e Ajuste Fino) ── */}
-                          {variantResults.length > 0 && (
-                            <div className="space-y-3 pt-2">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div>
-                                  <h4 className="text-sm font-bold text-foreground">
-                                    Detalhamento e Ajuste Fino por SKU
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    O custo de compra herda o unificador ({brl(toNumber(baseWholesaleGrade))}), mas você pode personalizar valores de peças específicas abaixo.
-                                  </p>
-                                </div>
-                                <span className="text-xs font-semibold text-muted-foreground">
-                                  {variantResults.length} {variantResults.length === 1 ? "variação gerada" : "variações geradas"}
-                                </span>
-                              </div>
-
-                              <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs">
-                                    <thead>
-                                      <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground">
-                                        <th className="py-2.5 px-3.5 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[150px]">
-                                          Variação
-                                        </th>
-                                        <th className="py-2.5 px-2 text-center font-semibold text-[11px] uppercase tracking-wider w-14">
-                                          Qtd.
-                                        </th>
-                                        <th className="py-2.5 px-3 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[120px]">
-                                          Custo Atacado
-                                        </th>
-                                        <th className="py-2.5 px-3 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[95px]">
-                                          Custo Real
-                                        </th>
-                                        <th className="py-2.5 px-3 text-left font-semibold text-[11px] uppercase tracking-wider min-w-[130px]">
-                                          Preço Venda
-                                        </th>
-                                        <th className="py-2.5 px-3 text-center font-semibold text-[11px] uppercase tracking-wider w-20">
-                                          Margem
-                                        </th>
-                                        <th className="py-2.5 px-3 text-right font-semibold text-[11px] uppercase tracking-wider min-w-[100px]">
-                                          Lucro Líq.
-                                        </th>
-                                        <th className="py-2.5 px-2 text-center w-10"></th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/40">
-                                      {variantResults.map((v) => {
-                                        const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === v.color.toLowerCase());
-                                        const hasCustomOverride = (v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)) || (v.customSalePrice !== "");
-                                        return (
-                                          <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
-                                            {/* Variação: Cor + Tamanho */}
-                                            <td className="py-2.5 px-3.5">
-                                              <div className="flex items-center gap-2">
-                                                <span
-                                                  className="size-3.5 rounded-full border border-black/10 shrink-0"
-                                                  style={{ backgroundColor: cp?.color ?? "#888888" }}
-                                                />
-                                                <span className="font-semibold text-foreground text-xs">{v.color}</span>
-                                                <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-md bg-secondary text-[11px] font-bold text-foreground">
-                                                  {v.size}
-                                                </span>
-                                              </div>
-                                            </td>
-
-                                            {/* Quantidade */}
-                                            <td className="py-2.5 px-2 text-center font-bold text-foreground">
-                                              {v.qty}
-                                            </td>
-
-                                            {/* Custo de Atacado (com unificador ou customizado) */}
-                                            <td className="py-2.5 px-3">
-                                              <div className="relative flex items-center h-8 rounded-lg border border-border/80 bg-background px-2 shadow-2xs focus-within:border-primary">
-                                                <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
-                                                <input
-                                                  inputMode="decimal"
-                                                  value={v.wholesaleCost}
-                                                  onChange={(e) => updateVariantCost(v.id, e.target.value)}
-                                                  placeholder={baseWholesaleGrade || "0,00"}
-                                                  className={cn(
-                                                    "w-full bg-transparent text-xs font-semibold outline-none",
-                                                    v.wholesaleCost !== "" && toNumber(v.wholesaleCost) !== toNumber(baseWholesaleGrade)
-                                                      ? "text-amber-600 dark:text-amber-400 font-bold"
-                                                      : "text-foreground"
-                                                  )}
-                                                  title={v.wholesaleCost !== "" ? `Custo isolado para ${v.color} ${v.size}` : "Herdando custo base da grade"}
-                                                />
-                                              </div>
-                                            </td>
-
-                                            {/* Custo Real (com rateio) */}
-                                            <td className="py-2.5 px-3 text-right numeric font-medium text-muted-foreground text-xs">
-                                              {brl(v.realCost)}
-                                            </td>
-
-                                            {/* Preço de Venda (sugerido ou customizado) */}
-                                            <td className="py-2.5 px-3">
-                                              <div className="relative flex items-center h-8 rounded-lg border border-primary/30 bg-primary/5 px-2 shadow-2xs focus-within:border-primary focus-within:bg-background">
-                                                <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
-                                                <input
-                                                  inputMode="decimal"
-                                                  value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                                  onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                                  placeholder={v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "0,00"}
-                                                  className="w-full bg-transparent text-xs font-bold text-primary outline-none"
-                                                  title={`Preço de venda para ${v.color} ${v.size}`}
-                                                />
-                                              </div>
-                                            </td>
-
-                                            {/* Margem Líquida */}
-                                            <td className="py-2.5 px-3 text-center">
-                                              <span className={cn("numeric font-bold text-xs inline-flex items-center gap-1", v.marginHealth.color)}>
-                                                <span>{v.marginHealth.emoji}</span>
-                                                <span>{pct(v.marginOnPrice)}</span>
-                                              </span>
-                                            </td>
-
-                                            {/* Lucro Líquido Unitário */}
-                                            <td className="py-2.5 px-3 text-right">
-                                              <span className={cn("numeric font-bold text-xs", v.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
-                                                +{brl(v.profit)}
-                                              </span>
-                                            </td>
-
-                                            {/* Ação: Restaurar se customizado */}
-                                            <td className="py-2.5 px-2 text-center">
-                                              {hasCustomOverride ? (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => resetVariantOverrides(v.id)}
-                                                  className="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                                                  title="Restaurar para os valores padrão da grade"
-                                                >
-                                                  <RotateCcw className="size-3" />
-                                                </button>
-                                              ) : (
-                                                <span className="size-6 inline-block" />
-                                              )}
-                                            </td>
-                                          </tr>
-                                        );
-                                      })}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Barra de Ações Integrada */}
-                          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50">
-                            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setResetAlertOpen(true)}
-                                className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
-                                title="Limpar campos e precificar outro modelo"
-                              >
-                                <RotateCcw className="size-3.5" />
-                                <span>Resetar grade</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => save.mutate()}
-                                disabled={save.isPending || (actualLotUnits === 0 && !name.trim())}
-                                className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all disabled:opacity-50"
-                                title={!name.trim() && actualLotUnits === 0 ? "Dê um nome para a peça antes de salvar" : "Salvar no histórico"}
-                              >
-                                <Save className="size-3.5" />
-                                <span>Salvar no histórico</span>
-                              </Button>
-                            </div>
-
-                            <div className="flex flex-col items-center sm:items-end w-full sm:w-auto">
-                              <Button
-                                type="button"
-                                onClick={openEntryForCurrent}
-                                disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
-                                className="h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98] text-xs sm:text-sm disabled:opacity-50 w-full sm:w-auto"
-                              >
-                                <PackagePlus className="size-4" />
-                                <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
-                              </Button>
-                              {actualLotUnits > 0 && (
-                                <p className="text-[11px] text-muted-foreground text-center sm:text-right mt-1">
-                                  {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} · {colorGroups.length} {colorGroups.length === 1 ? "variação será registrada" : "variações serão registradas"}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed pt-2">
-                            ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
-                          </p>
                         </div>
                       )}
+
+                      {/* ── 4. BARRA DE AÇÕES INTEGRADA DO LOTE ── */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/50">
+                        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setResetAlertOpen(true)}
+                            className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
+                            title="Limpar campos e precificar outro modelo"
+                          >
+                            <RotateCcw className="size-3.5" />
+                            <span>Resetar grade</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => save.mutate()}
+                            disabled={save.isPending || (actualLotUnits === 0 && !name.trim())}
+                            className="h-11 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all disabled:opacity-50"
+                            title={!name.trim() && actualLotUnits === 0 ? "Dê um nome para a peça antes de salvar" : "Salvar no histórico"}
+                          >
+                            <Save className="size-3.5" />
+                            <span>Salvar no histórico</span>
+                          </Button>
+                        </div>
+
+                        <div className="flex flex-col items-center sm:items-end w-full sm:w-auto">
+                          <Button
+                            type="button"
+                            onClick={openEntryForCurrent}
+                            disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
+                            className="h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98] text-xs sm:text-sm disabled:opacity-50 w-full sm:w-auto"
+                          >
+                            <PackagePlus className="size-4" />
+                            <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                          </Button>
+                          {actualLotUnits > 0 && (
+                            <p className="text-[11px] text-muted-foreground text-center sm:text-right mt-1">
+                              {actualLotUnits} {actualLotUnits === 1 ? "peça" : "peças"} · {colorGroups.length} {colorGroups.length === 1 ? "variação será registrada" : "variações serão registradas"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed pt-1">
+                        ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
+                      </p>
                     </div>
                   </section>
                 </>
