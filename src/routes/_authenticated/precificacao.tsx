@@ -810,110 +810,6 @@ function LivePricingSummaryPanel({
 }) {
   const marginHealth = getMarginHealth(effectiveMargin);
 
-  // ── ETAPA 1 NO MODO GRADE: Foco estrito em Lote e Custos de Aquisição (Padrão Consultoria Vértice) ──
-  if (mode === "grade" && gradeStep === 1) {
-    const hasWholesale = baseWholesaleCost > 0;
-    const hasUnits = totalUnits > 0;
-    const effectiveSharedCost = hasUnits && hasWholesale ? sharedCostsPerUnit : 0;
-    const totalUnitAcquisition = hasWholesale ? baseWholesaleCost + effectiveSharedCost : 0;
-    const totalLotInvestment = hasUnits && hasWholesale ? totalUnits * totalUnitAcquisition : 0;
-
-    return (
-      <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-4.5 shadow-soft space-y-3">
-        {/* Cabeçalho */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="size-5 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-              <Layers className="size-3" />
-            </div>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
-              Resumo do lote
-            </span>
-          </div>
-          <Layers className="size-3.5 text-muted-foreground/35" />
-        </div>
-
-        {/* Métrica Herói: Volume de Peças na Grade */}
-        <div>
-          <div className="flex items-baseline gap-2">
-            <span className="num-display text-4xl font-black text-foreground tracking-tight leading-none">
-              {totalUnits}
-            </span>
-            <span className="text-xs font-semibold text-muted-foreground">
-              {totalUnits === 1 ? "peça na grade" : "peças na grade"}
-            </span>
-          </div>
-        </div>
-
-        {/* Decomposição de Custos Unitários */}
-        <div className="space-y-1.5 rounded-xl bg-secondary/30 p-2.5 border border-border/50 text-xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span>Custo de compra</span>
-            <span className="num-display font-semibold text-foreground">
-              {hasWholesale ? `${brl(baseWholesaleCost)} / peça` : "—"}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span>Custos adicionais</span>
-            <span className="num-display font-semibold text-foreground">
-              {hasUnits && effectiveSharedCost > 0 ? `+${brl(effectiveSharedCost)} / peça` : "—"}
-            </span>
-          </div>
-          <div className="border-t border-border/60 pt-1.5 flex items-center justify-between font-bold">
-            <span className="text-foreground">Custo real por peça</span>
-            <span className="num-display text-foreground text-sm font-extrabold">
-              {totalUnitAcquisition > 0 ? brl(totalUnitAcquisition) : "—"}
-            </span>
-          </div>
-        </div>
-
-        {/* Investimento Estimado do Lote */}
-        <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 space-y-0.5">
-          <p className="text-[11px] font-semibold text-muted-foreground">Investimento estimado</p>
-          <p className="num-display text-2xl font-black text-foreground tracking-tight leading-none">
-            {totalLotInvestment > 0 ? brl(totalLotInvestment) : "R$ 0,00"}
-          </p>
-          <p className="text-[10px] text-muted-foreground/80">
-            {totalUnits === 0
-              ? "Preencha as quantidades na grade para calcular o lote"
-              : "Compra + custos adicionais do lote"}
-          </p>
-        </div>
-
-        {/* CTA Principal da Etapa 1 */}
-        <div className="space-y-1.5 pt-1">
-          <Button
-            type="button"
-            onClick={() => onStepChange?.(2)}
-            disabled={totalUnits === 0 || baseWholesaleCost <= 0}
-            className="w-full h-10 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            <span>Continuar para custos</span>
-            <ArrowRight className="size-3.5" />
-          </Button>
-
-          {onReset && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onReset}
-              className="w-full h-7 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              Limpar grade
-            </Button>
-          )}
-
-          {totalUnits > 0 && (
-            <p className="text-center text-[10px] text-muted-foreground pt-0.5">
-              {totalUnits} {totalUnits === 1 ? "peça" : "peças"}{totalVariants > 1 ? ` · ${totalVariants} variações` : ""}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── ETAPAS 2 E 3 (OU MODO RÁPIDO): Formação de Preço e Fechamento ──
   return (
     <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4">
       {/* ── Cabeçalho do Resumo ── */}
@@ -923,9 +819,7 @@ function LivePricingSummaryPanel({
             <Layers className="size-3.5" />
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-            {mode === "grade"
-              ? (gradeStep === 3 ? "Revisão do lote" : "Formação de preço")
-              : "Resumo da peça"}
+            {mode === "grade" ? "Resumo financeiro" : "Resumo da peça"}
           </span>
         </div>
         {hasData && suggestedPrice > 0 && (
@@ -1030,67 +924,53 @@ function LivePricingSummaryPanel({
         </div>
       )}
 
-      {/* ── Botões de Ação por Contexto ── */}
+      {/* ── Botões de Ação Unificados (Cockpit Panorâmico) ── */}
       <div className="space-y-2 pt-1">
-        {mode === "grade" && gradeStep === 2 && (
+        {mode === "grade" ? (
           <>
             <Button
               type="button"
-              onClick={() => onStepChange?.(3)}
-              disabled={suggestedPrice <= 0}
+              onClick={onEntry}
+              disabled={entryDisabled}
               className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              <span>Avançar para revisão</span>
-              <ArrowRight className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onStepChange?.(1)}
-              className="w-full h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer"
-            >
-              ← Voltar para grade
-            </Button>
-          </>
-        )}
-
-        {(mode === "rapida" || (mode === "grade" && gradeStep === 3)) && (
-          <>
-            <Button
-              type="button"
-              onClick={mode === "grade" ? onEntry : onSave}
-              disabled={mode === "grade" ? entryDisabled : saveDisabled}
-              className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {mode === "grade" ? <PackagePlus className="size-4" /> : <Save className="size-4" />}
-              <span>{mode === "grade" ? `Dar entrada no estoque (${totalUnits} un.)` : "Salvar no histórico"}</span>
+              <PackagePlus className="size-4" />
+              <span>Dar entrada no estoque ({totalUnits} un.)</span>
             </Button>
 
-            {mode === "grade" && (
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onSave}
+                disabled={saveDisabled}
+                className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer gap-1.5"
+              >
+                <Save className="size-3.5" />
+                <span>Salvar histórico</span>
+              </Button>
+              {onReset && (
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={onSave}
-                  disabled={saveDisabled}
-                  className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer gap-1.5"
+                  variant="ghost"
+                  onClick={onReset}
+                  className="h-9 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  <Save className="size-3.5" />
-                  <span>Salvar histórico</span>
+                  Limpar
                 </Button>
-                {onStepChange && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onStepChange(2)}
-                    className="h-9 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-                  >
-                    Voltar
-                  </Button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </>
+        ) : (
+          <Button
+            type="button"
+            onClick={onSave}
+            disabled={saveDisabled}
+            className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            <Save className="size-4" />
+            <span>Salvar no histórico</span>
+          </Button>
         )}
 
         {totalUnits > 0 && (
@@ -4367,79 +4247,60 @@ function Precificacao() {
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "grade" && (
           <>
-            {/* ── Stepper de 3 Etapas Conectadas (Padrão Apple HIG / Vértice) ── */}
+            {/* ── Navegação por Âncora (Cockpit Panorâmico) ── */}
             <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setGradeStep(1)}
-                  className={cn(
-                    "flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2",
-                    gradeStep === 1
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
+                <a
+                  href="#grade-section"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("grade-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                  className="flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2 border-transparent text-muted-foreground hover:text-foreground"
                 >
                   <span className={cn(
                     "flex size-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0 transition-colors",
                     actualLotUnits > 0
                       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                      : gradeStep === 1
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground"
                   )}>
                     {actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "1"}
                   </span>
                   <span className="hidden sm:block truncate">Peça e grade</span>
-                </button>
+                </a>
 
                 <span className="text-border/80 text-sm select-none">›</span>
 
-                <button
-                  type="button"
-                  onClick={() => setGradeStep(2)}
-                  className={cn(
-                    "flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2",
-                    gradeStep === 2
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
+                <a
+                  href="#custos-section"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("custos-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                  className="flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2 border-transparent text-muted-foreground hover:text-foreground"
                 >
                   <span className={cn(
                     "flex size-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0 transition-colors",
                     summaryPrices.avgSuggested > 0 && actualLotUnits > 0
                       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                      : gradeStep === 2
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground"
                   )}>
                     {summaryPrices.avgSuggested > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "2"}
                   </span>
                   <span className="hidden sm:block truncate">Custos e preço</span>
-                </button>
+                </a>
 
                 <span className="text-border/80 text-sm select-none">›</span>
 
-                <button
-                  type="button"
-                  onClick={() => setGradeStep(3)}
-                  className={cn(
-                    "flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2",
-                    gradeStep === 3
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
+                <a
+                  href="#revisao-section"
+                  onClick={(e) => { e.preventDefault(); document.getElementById("revisao-section")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                  className="flex items-center gap-2 py-1.5 px-2 text-xs font-semibold transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg border-b-2 border-transparent text-muted-foreground hover:text-foreground"
                 >
                   <span className={cn(
                     "flex size-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0 transition-colors",
-                    gradeStep === 3
-                      ? "bg-primary text-primary-foreground"
+                    summaryPrices.avgSuggested > 0 && actualLotUnits > 0
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                       : "bg-muted text-muted-foreground"
                   )}>
-                    3
+                    {summaryPrices.avgSuggested > 0 && actualLotUnits > 0 ? <Check className="size-3 stroke-[2.5]" /> : "3"}
                   </span>
                   <span className="hidden sm:block truncate">Revisão</span>
-                </button>
+                </a>
               </div>
 
               {(name.trim() !== "" || baseWholesaleGrade.trim() !== "" || variants.length > 0) && (
@@ -4462,9 +4323,8 @@ function Precificacao() {
               )}
             </div>
 
-            {/* ── ETAPA 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
-            {gradeStep === 1 && (
-            <section className="panel p-4 space-y-3.5">
+            {/* ── SEÇÃO 1: A PEÇA & SUA GRADE DE PRODUÇÃO ── */}
+            <section id="grade-section" className="panel p-4 space-y-3.5">
               {/* Identificação da Peça (Linha horizontal ultra-compacta) */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <ImageUploader
@@ -4770,33 +4630,9 @@ function Precificacao() {
                 )}
               </div>
 
-              {/* Rodapé da Etapa 1: Ação de Continuidade (Padrão Apple / Polaris) */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border/60">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">
-                    {actualLotUnits} {actualLotUnits === 1 ? "peça configurada" : "peças configuradas"}
-                  </span>
-                  <span>·</span>
-                  <span>{matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"}</span>
-                  <span>·</span>
-                  <span>{matrixSizes.length} {matrixSizes.length === 1 ? "tamanho" : "tamanhos"}</span>
-                </div>
-
-                <Button
-                  type="button"
-                  onClick={() => setGradeStep(2)}
-                  disabled={actualLotUnits === 0 && !name.trim()}
-                  className="h-11 px-6 rounded-xl font-bold gradient-primary shadow-glow cursor-pointer text-xs sm:text-sm flex items-center gap-2 disabled:opacity-50"
-                >
-                  <span>Avançar para Custos &amp; Preço</span>
-                  <ArrowRight className="size-4" />
-                </Button>
-              </div>
-
             </section>
-            )}
 
-            {/* ── ETAPA 2 & 3: CUSTOS, FORMAÇÃO DO PREÇO E FECHAMENTO ── */}
+            {/* ── SEÇÃO 2 & 3: CUSTOS, FORMAÇÃO DO PREÇO E FECHAMENTO ── */}
             {(() => {
               const freightVal = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
               const packagingVal = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
@@ -4927,11 +4763,10 @@ function Precificacao() {
                   );
                 };
 
-                return (
+                 return (
                   <>
-                    {gradeStep === 2 && (
-                      <section className="panel p-6 sm:p-7 space-y-6">
-                        {/* Cabeçalho da Etapa 2 */}
+                    <section id="custos-section" className="panel p-6 sm:p-7 space-y-6">
+                        {/* Cabeçalho da Seção 2 */}
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
                           <div className="flex items-center gap-3">
                             <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
@@ -4953,16 +4788,6 @@ function Precificacao() {
                                 Rateio ativo para {actualLotUnits} peças
                               </Badge>
                             )}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setGradeStep(1)}
-                              className="h-8 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer"
-                            >
-                              <ArrowLeft className="size-3.5" />
-                              <span>Voltar à Grade</span>
-                            </Button>
                           </div>
                         </div>
 
@@ -5953,63 +5778,28 @@ function Precificacao() {
                             )}
                           </div>
                         )}
-
-                        {/* Rodapé da Etapa 2: Navegação Conectada (Padrão Apple HIG / Polaris) */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border/60">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setGradeStep(1)}
-                            className="h-11 px-4 rounded-xl font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer text-xs flex items-center gap-1.5"
-                          >
-                            <ArrowLeft className="size-4" />
-                            <span>Voltar para Grade</span>
-                          </Button>
-
-                          <Button
-                            type="button"
-                            onClick={() => setGradeStep(3)}
-                            className="h-11 px-6 rounded-xl font-bold gradient-primary shadow-glow cursor-pointer text-xs sm:text-sm flex items-center gap-2"
-                          >
-                            <span>Avançar para Revisão &amp; Lote</span>
-                            <ArrowRight className="size-4" />
-                          </Button>
-                        </div>
                       </div>
                     </div>
                   </section>
-                )}
 
-                {/* ── ETAPA 3: REVISÃO CONSOLIDADA DO LOTE & ENTRADA NO ESTOQUE ── */}
-                {gradeStep === 3 && (
-                  <section className="panel p-6 sm:p-7 space-y-6">
-                    {/* Cabeçalho da Etapa 3 */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                          3
-                        </span>
-                        <div>
-                          <h2 className="text-sm font-bold text-foreground">
-                            Revisão consolidada do lote e entrada no estoque
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Confira a projeção financeira, faturamento total, lucro e ponto de equilíbrio antes de confirmar.
-                          </p>
+                    {/* ── SEÇÃO 3: REVISÃO CONSOLIDADA DO LOTE & ENTRADA NO ESTOQUE ── */}
+                    <section id="revisao-section" className="panel p-6 sm:p-7 space-y-6">
+                      {/* Cabeçalho da Seção 3 */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
+                            3
+                          </span>
+                          <div>
+                            <h2 className="text-sm font-bold text-foreground">
+                              Revisão consolidada do lote e entrada no estoque
+                            </h2>
+                            <p className="text-xs text-muted-foreground">
+                              Confira a projeção financeira, faturamento total, lucro e ponto de equilíbrio antes de confirmar.
+                            </p>
+                          </div>
                         </div>
                       </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setGradeStep(2)}
-                        className="h-8 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer"
-                      >
-                        <ArrowLeft className="size-3.5" />
-                        <span>Voltar aos Custos</span>
-                      </Button>
-                    </div>
 
                     <div className="space-y-6">
                       {actualLotUnits === 0 ? (
@@ -6395,10 +6185,9 @@ function Precificacao() {
                       )}
                     </div>
                   </section>
-                )}
-              </>
-            );
-          })()}
+                </>
+              );
+            })()}
 
           {/* Modal de Confirmação Segura para Resetar Grade (Financial Trust) */}
           <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
@@ -6581,7 +6370,7 @@ function Precificacao() {
               onSave={() => save.mutate()}
               onReset={resetPricingModel}
               saveDisabled={save.isPending || (mode === "grade" ? (actualLotUnits === 0 && !name.trim()) : !name.trim() || toNumber(wholesale) <= 0)}
-              entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0 || (mode === "grade" && gradeStep < 3)}
+              entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
             />
           </div>
         )}
