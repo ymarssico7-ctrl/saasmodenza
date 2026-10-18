@@ -2911,7 +2911,7 @@ function Precificacao() {
         {/* Grade de 2 colunas no desktop: conteúdo principal fluido + painel lateral responsivo */}
         <div className={cn(
           "gap-5 xl:gap-6",
-          mode !== "historico" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_368px] lg:items-start" : ""
+          mode === "rapida" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_368px] lg:items-start" : ""
         )}>
 
         {/* ── COLUNA ESQUERDA: todo o conteúdo existente ── */}
@@ -4303,1085 +4303,1049 @@ function Precificacao() {
           };
 
           return (
-            <>
-              {/* ── COCKPIT PANORÂMICO DE PRECIFICAÇÃO POR GRADE (LAYOUT 2 COLUNAS) ── */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                {/* ══════════════════════════════════════════════════════════════════ */}
-                {/* COLUNA PRINCIPAL: FLUXO CRONOLÓGICO CONTÍNUO (8 Colunas)          */}
-                {/* ══════════════════════════════════════════════════════════════════ */}
-                <div className="lg:col-span-8 space-y-6">
+            <div className="w-full space-y-6">
 
-                  {/* Barra Superior de Âncoras Rápidas (Scroll Suave) */}
-                  <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-secondary/40 border border-border/60 overflow-x-auto shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById("sec-grade")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold bg-card text-foreground shadow-2xs border border-border/60 hover:bg-secondary/80 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">1</span>
-                      <span>O Que Chegou?</span>
-                      {actualLotUnits > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-bold">
-                          {actualLotUnits} un
-                        </span>
-                      )}
-                    </button>
+              {/* ── BARRA SUPERIOR DE ANCORAGEM & PROGRESSO DO LOTE ── */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl bg-secondary/40 border border-border/70 shadow-2xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("sec-grade")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-card text-foreground shadow-2xs border border-border/70 hover:bg-secondary transition-all cursor-pointer"
+                  >
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">1</span>
+                    <span>1. O Que Chegou?</span>
+                    {actualLotUnits > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-extrabold">
+                        {actualLotUnits} un
+                      </span>
+                    )}
+                  </button>
 
-                    <ChevronRight className="size-3 text-muted-foreground/40 shrink-0" />
+                  <ChevronRight className="size-3 text-muted-foreground/40 shrink-0" />
 
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById("sec-costs")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-card/70 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      <span className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold">2</span>
-                      <span>Custos &amp; Rateio</span>
-                      {totalUnitCost > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-muted text-foreground text-[10px] font-bold">
-                          {brl(totalUnitCost)}/un
-                        </span>
-                      )}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("sec-costs")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-card/70 transition-all cursor-pointer"
+                  >
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold">2</span>
+                    <span>2. Custos &amp; Rateio</span>
+                    {totalUnitCost > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-muted text-foreground text-[10px] font-bold">
+                        {brl(totalUnitCost)}/un
+                      </span>
+                    )}
+                  </button>
 
-                    <ChevronRight className="size-3 text-muted-foreground/40 shrink-0" />
+                  <ChevronRight className="size-3 text-muted-foreground/40 shrink-0" />
 
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById("sec-pricing")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-card/70 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      <span className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold">3</span>
-                      <span>Estratégia &amp; Preço</span>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("sec-pricing")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-card/70 transition-all cursor-pointer"
+                  >
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-bold">3</span>
+                    <span>3. Estratégia &amp; Preço</span>
+                    {summaryPrices.avgSuggested > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold">
+                        {brl(summaryPrices.avgSuggested)}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Status Geral do Lote no Topo */}
+                <div className="flex items-center gap-3 pr-2 text-xs">
+                  {actualLotUnits > 0 ? (
+                    <span className="text-muted-foreground">
+                      Lote: <strong className="text-foreground">{actualLotUnits} peças</strong>
                       {summaryPrices.avgSuggested > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                          {brl(summaryPrices.avgSuggested)}
-                        </span>
+                        <> · Faturamento previsto: <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold">{brl(summaryPrices.totalRevenue > 0 ? summaryPrices.totalRevenue : summaryPrices.avgSuggested * actualLotUnits)}</strong></>
                       )}
-                    </button>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Preencha a grade para simular faturamento e lucros
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* ────────────────────────────────────────────────────────────── */}
+              {/* ETAPA 1: O Que Chegou? (Produto & Grade Física)               */}
+              {/* ────────────────────────────────────────────────────────────── */}
+              <section id="sec-grade" className="panel p-6 sm:p-7 space-y-6 scroll-mt-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
+                      1
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-foreground">
+                        O Que Chegou? <span className="text-muted-foreground font-normal text-xs ml-1">(Produto &amp; Grade Física)</span>
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Identifique o modelo recebido e digite as quantidades físicas por cor e tamanho na matriz abaixo.
+                      </p>
+                    </div>
                   </div>
 
-                  {/* ────────────────────────────────────────────────────────────── */}
-                  {/* SEÇÃO 1: O Que Chegou? (Produto & Grade Física)               */}
-                  {/* ────────────────────────────────────────────────────────────── */}
-                  <section id="sec-grade" className="panel p-5 sm:p-6 space-y-6 scroll-mt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
-                          1
-                        </div>
-                        <div>
-                          <h2 className="text-base font-semibold text-foreground">
-                            O Que Chegou? <span className="text-muted-foreground font-normal text-xs ml-1">(Produto &amp; Grade Física)</span>
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Identifique o modelo e registre a contagem física de peças recebidas na matriz abaixo.
-                          </p>
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-2">
+                    {actualLotUnits > 0 ? (
+                      <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 rounded-full text-xs">
+                        ✓ {actualLotUnits} {actualLotUnits === 1 ? "peça contada" : "peças contadas"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground text-xs rounded-full">
+                        Aguardando grade
+                      </Badge>
+                    )}
+                  </div>
+                </div>
 
-                      <div className="flex items-center gap-2">
-                        {actualLotUnits > 0 ? (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 rounded-full text-xs">
-                            ✓ {actualLotUnits} {actualLotUnits === 1 ? "peça contada" : "peças contadas"}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground text-xs rounded-full">
-                            Aguardando grade
-                          </Badge>
-                        )}
+                {/* Identificação do Modelo */}
+                <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-2xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                    {/* Foto da Peça */}
+                    <div className="sm:col-span-2 flex flex-col items-center">
+                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 self-start">
+                        Foto da peça
+                      </Label>
+                      <div className="w-full aspect-square max-w-[110px] rounded-2xl border border-dashed border-border flex items-center justify-center overflow-hidden bg-secondary/30 hover:bg-secondary/60 transition-colors">
+                        <ImageUploader
+                          compact
+                          currentUrl={entryPhotoUrl}
+                          bucket="inventory-photos"
+                          folder="pricing"
+                          onUploaded={(url) => setEntryPhotoUrl(url)}
+                          placeholder="Foto"
+                        />
                       </div>
                     </div>
 
-                    {/* Identificação do Modelo */}
-                    <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-2xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
-                        {/* Foto da Peça */}
-                        <div className="sm:col-span-3 flex flex-col items-center">
-                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 self-start">
-                            Foto da peça
-                          </Label>
-                          <div className="w-full aspect-square max-w-[120px] rounded-2xl border border-dashed border-border flex items-center justify-center overflow-hidden bg-secondary/30 hover:bg-secondary/60 transition-colors">
-                            <ImageUploader
-                              compact
-                              currentUrl={entryPhotoUrl}
-                              bucket="inventory-photos"
-                              folder="pricing"
-                              onUploaded={(url) => setEntryPhotoUrl(url)}
-                              placeholder="Foto"
-                            />
-                          </div>
-                        </div>
+                    {/* Nome da Peça */}
+                    <div className="sm:col-span-4 space-y-1">
+                      <Label className="text-xs font-medium text-muted-foreground">
+                        Nome da peça ou modelo <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Ex: Vestido midi de linho com cinto"
+                        className="h-10 text-xs font-semibold rounded-xl"
+                      />
+                    </div>
 
-                        {/* Nome da Peça */}
-                        <div className="sm:col-span-9 space-y-1">
-                          <Label className="text-xs font-medium text-muted-foreground">
-                            Nome da peça <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Ex: Vestido midi de linho com cinto"
-                            className="h-10 text-xs font-semibold"
-                          />
-                        </div>
+                    {/* Categoria */}
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-xs font-medium text-muted-foreground">
+                        Categoria
+                      </Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger className="h-10 text-xs rounded-xl">
+                          <SelectValue placeholder="Selecione categ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {storeCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.slug} className="text-xs capitalize">
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                        {/* Categoria */}
-                        <div className="sm:col-span-6 space-y-1">
-                          <Label className="text-xs font-medium text-muted-foreground">
-                            Categoria
-                          </Label>
-                          <Select value={category} onValueChange={setCategory}>
-                            <SelectTrigger className="h-10 text-xs">
-                              <SelectValue placeholder="Selecione categ" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {storeCategories.map((c) => (
-                                <SelectItem key={c.id} value={c.slug} className="text-xs capitalize">
-                                  {c.name}
-                                </SelectItem>
+                    {/* Fornecedor */}
+                    <div className="sm:col-span-3 space-y-1">
+                      <Label className="text-xs font-medium text-muted-foreground">
+                        Fornecedor (opcional)
+                      </Label>
+                      <Input
+                        value={supplier}
+                        onChange={(e) => setSupplier(e.target.value)}
+                        placeholder="Ex: Confecções Brás"
+                        className="h-10 text-xs font-semibold rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grade Física (Matriz Cores × Tamanhos em Largura Total Confortável) */}
+                <div className="space-y-4 pt-2 border-t border-border/50">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-foreground">Família de Tamanhos:</span>
+                      <Select value={activeSizeFamily} onValueChange={(val) => {
+                        setActiveSizeFamily(val as any);
+                        const targetFam = SIZE_FAMILIES.find((f) => f.id === val);
+                        if (targetFam) {
+                          setMatrixSizes(targetFam.sizes.slice(0, 5));
+                        }
+                      }}>
+                        <SelectTrigger className="h-8 w-auto min-w-[110px] rounded-xl border-border/80 bg-card text-xs font-bold gap-1 px-2.5 shadow-2xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SIZE_FAMILIES.map((fam) => (
+                            <SelectItem key={fam.id} value={fam.id} className="text-xs font-semibold">
+                              {fam.shortLabel}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Pills de Tamanho com Checkmark */}
+                      <div className="flex flex-wrap items-center gap-1.5 ml-1">
+                        {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
+                          const isSzActive = matrixSizes.includes(sz);
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => toggleMatrixSize(sz)}
+                              className={cn(
+                                "flex items-center justify-center gap-1 min-w-[42px] h-8 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95",
+                                isSzActive
+                                  ? "bg-primary/15 text-primary border border-primary/35 shadow-xs font-black"
+                                  : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border",
+                              )}
+                            >
+                              {isSzActive && <Check className="size-2.5 stroke-[3]" />}
+                              <span>{sz}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selecionar todos */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
+                          setMatrixSizes(currentFam.sizes);
+                        }}
+                        className="rounded-xl border border-border/70 bg-card px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs"
+                      >
+                        + Todos
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-secondary/80 px-3 py-1 text-xs font-semibold text-muted-foreground border border-border/60">
+                        {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tamanho" : "tamanhos"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Matriz 2D Visual Larga */}
+                  {matrixColors.length > 0 && activeMatrixSizes.length > 0 ? (
+                    <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-secondary/30 border-b border-border/60 text-muted-foreground">
+                              <th className="py-3 px-4 text-left font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[160px]">
+                                COR
+                              </th>
+                              {activeMatrixSizes.map((sz) => (
+                                <th key={sz} className="py-3 px-3 text-center min-w-[75px] font-bold text-foreground text-xs uppercase">
+                                  {sz}
+                                </th>
                               ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Fornecedor */}
-                        <div className="sm:col-span-6 space-y-1">
-                          <Label className="text-xs font-medium text-muted-foreground">
-                            Fornecedor (opcional)
-                          </Label>
-                          <Input
-                            value={supplier}
-                            onChange={(e) => setSupplier(e.target.value)}
-                            placeholder="Ex: Confecções Brás"
-                            className="h-10 text-xs font-semibold"
-                          />
-                        </div>
+                              <th className="py-3 px-4 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[90px]">
+                                TOTAL
+                              </th>
+                              <th className="py-3 px-2 text-center w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/40">
+                            {matrixColors.map((color) => {
+                              const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
+                              const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
+                              return (
+                                <tr key={color} className="hover:bg-secondary/20 transition-colors">
+                                  <td className="py-3 px-4 font-semibold text-foreground">
+                                    <div className="flex items-center gap-2.5">
+                                      <span
+                                        className="size-4 rounded-full border border-black/10 shrink-0 shadow-2xs"
+                                        style={{ backgroundColor: cp?.color ?? "#888888" }}
+                                      />
+                                      <span className="font-semibold text-foreground text-xs">{color}</span>
+                                    </div>
+                                  </td>
+                                  {activeMatrixSizes.map((sz) => {
+                                    const qty = getMatrixQty(color, sz);
+                                    return (
+                                      <td key={sz} className="py-3 px-2 text-center">
+                                        <input
+                                          inputMode="numeric"
+                                          value={qty === 0 ? "" : qty}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, "");
+                                            updateMatrixQty(color, sz, val === "" ? 0 : Number(val));
+                                          }}
+                                          placeholder="0"
+                                          className={cn(
+                                            "h-10 w-14 rounded-xl text-center text-xs font-bold outline-none border transition-all",
+                                            qty > 0
+                                              ? "border-primary/40 bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs font-black text-primary text-sm"
+                                              : "border-border/60 bg-secondary/35 text-muted-foreground/60 hover:border-border hover:bg-card focus:border-primary focus:bg-card focus:text-foreground"
+                                          )}
+                                          title={`Quantidade de ${color} no tamanho ${sz}`}
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="py-3 px-4 text-right font-black text-sm text-foreground">
+                                    {rowTotal}
+                                  </td>
+                                  <td className="py-3 px-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveMatrixColor(color)}
+                                      className="size-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                      title={`Remover linha ${color}`}
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-secondary/40 border-t border-border/70 text-xs">
+                              <td className="py-3.5 px-4 text-muted-foreground font-bold">
+                                Total por tamanho
+                              </td>
+                              {activeMatrixSizes.map((sz) => {
+                                const colTotal = matrixColors.reduce((acc, color) => acc + getMatrixQty(color, sz), 0);
+                                return (
+                                  <td key={sz} className="py-3.5 px-2 text-center font-extrabold text-foreground text-sm">
+                                    {colTotal}
+                                  </td>
+                                );
+                              })}
+                              <td className="py-3.5 px-4 text-right font-black text-base text-primary">
+                                {actualLotUnits} un
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </table>
                       </div>
-                    </div>
 
-                    {/* Grade Física (Matriz Cores × Tamanhos) */}
-                    <div className="space-y-4 pt-3 border-t border-border/50">
-                      <div className="flex flex-wrap items-center justify-between gap-2.5">
+                      {/* Barra de Adicionar Nova Cor */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-secondary/15 p-3.5 text-xs">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-bold text-foreground">Tamanhos:</span>
-                          <Select value={activeSizeFamily} onValueChange={(val) => {
-                            setActiveSizeFamily(val as any);
-                            const targetFam = SIZE_FAMILIES.find((f) => f.id === val);
-                            if (targetFam) {
-                              setMatrixSizes(targetFam.sizes.slice(0, 5));
-                            }
-                          }}>
-                            <SelectTrigger className="h-8 w-auto min-w-[105px] rounded-lg border-border/80 bg-card text-xs font-bold gap-1 px-2.5 shadow-2xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SIZE_FAMILIES.map((fam) => (
-                                <SelectItem key={fam.id} value={fam.id} className="text-xs font-semibold">
-                                  {fam.shortLabel}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          {/* Pills de Tamanho com Checkmark */}
-                          <div className="flex flex-wrap items-center gap-1">
-                            {(SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!).sizes.map((sz) => {
-                              const isSzActive = matrixSizes.includes(sz);
+                          <span className="font-semibold text-muted-foreground">Adicionar cor:</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {COLOR_PRESETS.slice(0, 8).map((preset) => {
+                              const alreadyIn = matrixColors.some((c) => c.toLowerCase() === preset.name.toLowerCase());
+                              if (alreadyIn) return null;
                               return (
                                 <button
-                                  key={sz}
+                                  key={preset.name}
                                   type="button"
-                                  onClick={() => toggleMatrixSize(sz)}
-                                  className={cn(
-                                    "flex items-center justify-center gap-1 min-w-[38px] h-8 px-2.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-2xs active:scale-95",
-                                    isSzActive
-                                      ? "bg-primary/15 text-primary border border-primary/35 shadow-xs"
-                                      : "border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:border-border",
-                                  )}
+                                  onClick={() => handleAddMatrixColor(preset.name)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-secondary cursor-pointer shadow-2xs transition-colors"
                                 >
-                                  {isSzActive && <Check className="size-2.5 stroke-[3]" />}
-                                  <span>{sz}</span>
+                                  <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: preset.color }} />
+                                  <span>{preset.name}</span>
                                 </button>
                               );
                             })}
                           </div>
-
-                          {/* Selecionar todos */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const currentFam = SIZE_FAMILIES.find((f) => f.id === activeSizeFamily) ?? SIZE_FAMILIES[0]!;
-                              setMatrixSizes(currentFam.sizes);
-                            }}
-                            className="rounded-lg border border-border/70 bg-card px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 transition-all cursor-pointer shadow-2xs"
-                          >
-                            + Todos
-                          </button>
                         </div>
 
                         <div className="flex items-center gap-2 ml-auto">
-                          <span className="rounded-full bg-secondary/80 px-2.5 py-1 text-xs font-semibold text-muted-foreground border border-border/60">
-                            {matrixColors.length} {matrixColors.length === 1 ? "cor" : "cores"} · {activeMatrixSizes.length} {activeMatrixSizes.length === 1 ? "tam" : "tams"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Matriz 2D Visual */}
-                      {matrixColors.length > 0 && activeMatrixSizes.length > 0 ? (
-                        <div className="space-y-3">
-                          <div className="rounded-2xl border border-border/70 bg-card overflow-hidden shadow-2xs">
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="bg-secondary/30 border-b border-border/60 text-muted-foreground">
-                                    <th className="py-2.5 px-4 text-left font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[140px]">
-                                      COR
-                                    </th>
-                                    {activeMatrixSizes.map((sz) => (
-                                      <th key={sz} className="py-2.5 px-3 text-center min-w-[65px] font-bold text-foreground text-xs uppercase">
-                                        {sz}
-                                      </th>
-                                    ))}
-                                    <th className="py-2.5 px-4 text-right font-semibold text-[11px] uppercase tracking-wider text-muted-foreground min-w-[80px]">
-                                      TOTAL
-                                    </th>
-                                    <th className="py-2.5 px-2 text-center w-10"></th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border/40">
-                                  {matrixColors.map((color) => {
-                                    const cp = COLOR_PRESETS.find((p) => p.name.toLowerCase() === color.toLowerCase());
-                                    const rowTotal = activeMatrixSizes.reduce((acc, sz) => acc + getMatrixQty(color, sz), 0);
-                                    return (
-                                      <tr key={color} className="hover:bg-secondary/20 transition-colors">
-                                        <td className="py-2.5 px-4 font-semibold text-foreground">
-                                          <div className="flex items-center gap-2.5">
-                                            <span
-                                              className="size-3.5 rounded-full border border-black/10 shrink-0"
-                                              style={{ backgroundColor: cp?.color ?? "#888888" }}
-                                            />
-                                            <span className="font-medium text-foreground text-xs">{color}</span>
-                                          </div>
-                                        </td>
-                                        {activeMatrixSizes.map((sz) => {
-                                          const qty = getMatrixQty(color, sz);
-                                          return (
-                                            <td key={sz} className="py-2.5 px-2 text-center">
-                                              <input
-                                                inputMode="numeric"
-                                                value={qty === 0 ? "" : qty}
-                                                onChange={(e) => {
-                                                  const val = e.target.value.replace(/\D/g, "");
-                                                  updateMatrixQty(color, sz, val === "" ? 0 : Number(val));
-                                                }}
-                                                placeholder="0"
-                                                className={cn(
-                                                  "h-9 w-12 rounded-lg text-center text-xs font-bold outline-none border transition-all",
-                                                  qty > 0
-                                                    ? "border-primary/40 bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-2xs font-black text-primary"
-                                                    : "border-border/60 bg-secondary/35 text-muted-foreground/60 hover:border-border hover:bg-card focus:border-primary focus:bg-card focus:text-foreground"
-                                                )}
-                                                title={`Quantidade de ${color} no tamanho ${sz}`}
-                                              />
-                                            </td>
-                                          );
-                                        })}
-                                        <td className="py-2.5 px-4 text-right font-bold text-sm text-foreground">
-                                          {rowTotal}
-                                        </td>
-                                        <td className="py-2.5 px-2 text-center">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveMatrixColor(color)}
-                                            className="size-6 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                            title={`Remover linha ${color}`}
-                                          >
-                                            <Trash2 className="size-3.5" />
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                                <tfoot>
-                                  <tr className="bg-secondary/30 border-t border-border/60 text-xs">
-                                    <td className="py-3 px-4 text-muted-foreground font-medium">
-                                      Total por tamanho
-                                    </td>
-                                    {activeMatrixSizes.map((sz) => {
-                                      const colTotal = matrixColors.reduce((acc, color) => acc + getMatrixQty(color, sz), 0);
-                                      return (
-                                        <td key={sz} className="py-3 px-2 text-center font-bold text-foreground">
-                                          {colTotal}
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="py-3 px-4 text-right font-black text-sm text-primary">
-                                      {actualLotUnits}
-                                    </td>
-                                    <td></td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-
-                            {/* Barra de Adicionar Nova Cor */}
-                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-secondary/15 p-3 text-xs">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-semibold text-muted-foreground">Adicionar cor:</span>
-                                <div className="flex flex-wrap items-center gap-1">
-                                  {COLOR_PRESETS.slice(0, 7).map((preset) => {
-                                    const alreadyIn = matrixColors.some((c) => c.toLowerCase() === preset.name.toLowerCase());
-                                    if (alreadyIn) return null;
-                                    return (
-                                      <button
-                                        key={preset.name}
-                                        type="button"
-                                        onClick={() => handleAddMatrixColor(preset.name)}
-                                        className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-0.5 text-[11px] font-semibold text-foreground hover:bg-secondary cursor-pointer shadow-2xs transition-colors"
-                                      >
-                                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: preset.color }} />
-                                        <span>{preset.name}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 ml-auto">
-                                <Input
-                                  value={newCustomColor}
-                                  onChange={(e) => setNewCustomColor(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && newCustomColor.trim()) {
-                                      e.preventDefault();
-                                      handleAddMatrixColor(newCustomColor.trim());
-                                      setNewCustomColor("");
-                                    }
-                                  }}
-                                  placeholder="Outra cor..."
-                                  className="h-7 w-28 text-xs font-medium"
-                                />
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    if (newCustomColor.trim()) {
-                                      handleAddMatrixColor(newCustomColor.trim());
-                                      setNewCustomColor("");
-                                    }
-                                  }}
-                                  disabled={!newCustomColor.trim()}
-                                  className="h-7 text-xs font-semibold px-2 cursor-pointer"
-                                >
-                                  <Plus className="size-3 mr-1" />
-                                  <span>Add</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-8 text-center space-y-3">
-                          <Shirt className="size-8 text-muted-foreground/40 mx-auto" />
-                          <p className="text-xs font-bold text-foreground">Grade vazia</p>
-                          <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-                            Selecione pelo menos um tamanho e adicione uma cor para abrir a matriz de peças.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </section>
-
-                  {/* ────────────────────────────────────────────────────────────── */}
-                  {/* SEÇÃO 2: Quanto Custou? (Custo de Atacado & Rateio Real)       */}
-                  {/* ────────────────────────────────────────────────────────────── */}
-                  <section id="sec-costs" className="panel p-5 sm:p-6 space-y-6 scroll-mt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
-                          2
-                        </div>
-                        <div>
-                          <h2 className="text-base font-semibold text-foreground">
-                            Quanto Custou? <span className="text-muted-foreground font-normal text-xs ml-1">(Compra no Atacado &amp; Rateio Real)</span>
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Defina o custo pago no atacado e rateie as despesas do pacote com base nas {actualLotUnits} peças contadas.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Badge variant={baseCost > 0 ? "default" : "secondary"} className="rounded-full px-3 py-1 text-xs font-semibold">
-                          {baseCost > 0 ? `Custo Real: ${brl(totalUnitCost)}/un` : "Aguardando custo"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Custo de Compra (Atacado) */}
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <label className="text-xs font-bold text-foreground">Custo de Compra no Atacado</label>
-                          <p className="text-[11px] text-muted-foreground">
-                            Quanto você pagou ao fornecedor por cada peça da confecção?
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 rounded-xl p-0.5 bg-secondary/60 border border-border/70 text-xs font-semibold">
-                          <button
-                            type="button"
-                            onClick={() => setGradePricingMode("unified")}
-                            className={cn(
-                              "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
-                              gradePricingMode === "unified" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
-                            Custo Único para Todo o Lote
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setGradePricingMode("per_unit")}
-                            className={cn(
-                              "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
-                              gradePricingMode === "per_unit" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
-                            Custos Diferentes por Tamanho
-                          </button>
-                        </div>
-                      </div>
-
-                      {gradePricingMode === "unified" ? (
-                        <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-2 max-w-sm shadow-2xs">
-                          <span className="text-xs font-semibold text-muted-foreground">Valor pago por peça (atacado)</span>
-                          <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary shadow-2xs">
-                            <span className="text-xs font-bold text-muted-foreground mr-1.5 select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={baseWholesaleGrade}
-                              onChange={(e) => setBaseWholesaleGrade(e.target.value)}
-                              placeholder="0,00"
-                              className="w-full bg-transparent text-sm font-black text-foreground outline-none"
-                            />
-                          </div>
-                          {baseCost > 0 && (
-                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                              Total de atacado do lote: {brl(baseCost * actualLotUnits)} ({actualLotUnits} peças)
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-2xs">
-                          <p className="text-xs font-semibold text-muted-foreground">
-                            Defina o custo de fábrica de cada tamanho da grade:
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                            {activeMatrixSizes.map((sz) => {
-                              const vOverride = variants.find((v) => v.size === sz);
-                              const val = vOverride?.wholesaleCost ?? "";
-                              return (
-                                <div key={sz} className="rounded-xl border border-border/70 bg-secondary/30 p-2.5 space-y-1">
-                                  <span className="text-[11px] font-bold text-foreground">Tam {sz}</span>
-                                  <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-2 focus-within:border-primary">
-                                    <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={val}
-                                      onChange={(e) => {
-                                        const nVal = e.target.value;
-                                        setVariants((cur) =>
-                                          cur.map((it) => (it.size === sz ? { ...it, wholesaleCost: nVal } : it))
-                                        );
-                                      }}
-                                      placeholder={baseWholesaleGrade || "0,00"}
-                                      className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Despesas do Pacote & Rateio Operacional */}
-                    <div className="space-y-3 pt-2 border-t border-border/40">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <label className="text-xs font-bold text-foreground">Despesas do Pacote &amp; Rateio Operacional</label>
-                          <p className="text-[11px] text-muted-foreground">
-                            Rateio calculado com exatidão matemática sobre as {actualLotUnits} peças contadas
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="text-[11px] font-semibold text-primary border-primary/30 bg-primary/5">
-                          ÷ {actualLotUnits > 0 ? actualLotUnits : 1} peças no rateio
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                        {/* Frete */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2 shadow-2xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                              <Truck className="size-3.5 text-primary" /> Frete
-                            </span>
-                            <Select value={freightMode} onValueChange={(val: any) => setFreightMode(val)}>
-                              <SelectTrigger className="h-6 w-24 text-[10px] font-semibold rounded-md border-border/70 bg-secondary/50 px-1.5">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="lot_total" className="text-xs">Total do lote</SelectItem>
-                                <SelectItem value="per_unit" className="text-xs">Por peça</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="relative flex h-9 items-center rounded-xl border border-border/80 bg-background px-2.5 focus-within:border-primary">
-                            <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={freight}
-                              onChange={(e) => setFreight(e.target.value)}
-                              placeholder="0,00"
-                              className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
-                            />
-                          </div>
-                          <span className="text-[10px] text-muted-foreground block text-right font-medium">
-                            {freightMode === "lot_total" ? `= ${brl(freightVal)} / peça` : `= ${brl(freightVal * actualLotUnits)} total`}
-                          </span>
-                        </div>
-
-                        {/* Embalagem */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2 shadow-2xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                              <Package className="size-3.5 text-primary" /> Embalagem
-                            </span>
-                            <Select value={packagingMode} onValueChange={(val: any) => setPackagingMode(val)}>
-                              <SelectTrigger className="h-6 w-24 text-[10px] font-semibold rounded-md border-border/70 bg-secondary/50 px-1.5">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="per_unit" className="text-xs">Por peça</SelectItem>
-                                <SelectItem value="lot_total" className="text-xs">Total do lote</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="relative flex h-9 items-center rounded-xl border border-border/80 bg-background px-2.5 focus-within:border-primary">
-                            <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={packaging}
-                              onChange={(e) => setPackaging(e.target.value)}
-                              placeholder="0,00"
-                              className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
-                            />
-                          </div>
-                          <span className="text-[10px] text-muted-foreground block text-right font-medium">
-                            {packagingMode === "per_unit" ? `= ${brl(packagingVal * actualLotUnits)} total` : `= ${brl(packagingVal)} / peça`}
-                          </span>
-                        </div>
-
-                        {/* Extras */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2 shadow-2xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                              <Coins className="size-3.5 text-primary" /> Extras
-                            </span>
-                            <Select value={otherMode} onValueChange={(val: any) => setOtherMode(val)}>
-                              <SelectTrigger className="h-6 w-24 text-[10px] font-semibold rounded-md border-border/70 bg-secondary/50 px-1.5">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="per_unit" className="text-xs">Por peça</SelectItem>
-                                <SelectItem value="lot_total" className="text-xs">Total do lote</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="relative flex h-9 items-center rounded-xl border border-border/80 bg-background px-2.5 focus-within:border-primary">
-                            <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={other}
-                              onChange={(e) => setOther(e.target.value)}
-                              placeholder="0,00"
-                              className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
-                            />
-                          </div>
-                          <span className="text-[10px] text-muted-foreground block text-right font-medium">
-                            {otherMode === "per_unit" ? `= ${brl(otherVal * actualLotUnits)} total` : `= ${brl(otherVal)} / peça`}
-                          </span>
-                        </div>
-
-                        {/* Deduções & Taxas */}
-                        <div className="rounded-2xl border border-border/80 bg-card p-3 space-y-2 shadow-2xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                              <CreditCard className="size-3.5 text-primary" /> Deduções
-                            </span>
-                            <span className="text-[11px] font-extrabold text-foreground">
-                              {(tax + cardRate).toFixed(1)}%
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground leading-tight">
-                            DAS ({tax}%) + Cartão ({cardRate}%)
-                          </p>
+                          <Input
+                            value={newCustomColor}
+                            onChange={(e) => setNewCustomColor(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && newCustomColor.trim()) {
+                                e.preventDefault();
+                                handleAddMatrixColor(newCustomColor.trim());
+                                setNewCustomColor("");
+                              }
+                            }}
+                            placeholder="Outra cor (ex: Terracota)..."
+                            className="h-8 w-44 text-xs font-medium rounded-xl"
+                          />
                           <Button
                             type="button"
-                            variant="outline"
                             size="sm"
+                            variant="outline"
                             onClick={() => {
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                              toast.info("Acesse o topo da página para alterar as taxas padrão da loja.");
+                              if (newCustomColor.trim()) {
+                                handleAddMatrixColor(newCustomColor.trim());
+                                setNewCustomColor("");
+                              }
                             }}
-                            className="w-full h-8 text-[11px] font-semibold rounded-xl gap-1 border-border/80 bg-card hover:bg-secondary cursor-pointer"
+                            disabled={!newCustomColor.trim()}
+                            className="h-8 text-xs font-semibold px-3 rounded-xl cursor-pointer"
                           >
-                            <SlidersHorizontal className="size-3" />
-                            Ajustar taxas
+                            <Plus className="size-3.5 mr-1" />
+                            <span>Adicionar</span>
                           </Button>
                         </div>
                       </div>
-
-                      {/* Card Consolidado do Custo Unitário */}
-                      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-                        <div className="space-y-0.5">
-                          <p className="text-xs text-foreground font-semibold">
-                            Compra Atacado: <strong className="font-extrabold text-foreground">{baseCost > 0 ? brl(baseCost) : "R$ 0,00"}</strong> + Rateio Operacional: <strong className="font-extrabold text-foreground">+{brl(totalSharedCost)}</strong>
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Total investido na produção do lote: <strong className="font-bold text-foreground">{brl(totalUnitCost * actualLotUnits)}</strong> ({actualLotUnits} peças)
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                            CUSTO REAL POR PEÇA
-                          </span>
-                          <span className="num-display text-2xl font-black text-primary">
-                            {totalUnitCost > 0 ? brl(totalUnitCost) : "R$ ──,──"}
-                          </span>
-                        </div>
-                      </div>
                     </div>
-                  </section>
-
-                  {/* ────────────────────────────────────────────────────────────── */}
-                  {/* SEÇÃO 3: Por Quanto Vender? (Estratégia & Projeção)             */}
-                  {/* ────────────────────────────────────────────────────────────── */}
-                  <section id="sec-pricing" className="panel p-5 sm:p-6 space-y-6 scroll-mt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
-                          3
-                        </div>
-                        <div>
-                          <h2 className="text-base font-semibold text-foreground">
-                            Por Quanto Vender? <span className="text-muted-foreground font-normal text-xs ml-1">(Estratégia &amp; Estoque)</span>
-                          </h2>
-                          <p className="text-xs text-muted-foreground">
-                            Defina a margem ou preço de venda, confira as projeções e lance o lote no estoque.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default" className="rounded-full px-3 py-1 text-xs font-semibold">
-                          {summaryPrices.avgSuggested > 0 ? `Preço Sugerido: ${brl(summaryPrices.avgSuggested)}` : "Aguardando preço"}
-                        </Badge>
-                      </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 p-8 text-center space-y-3">
+                      <Shirt className="size-8 text-muted-foreground/40 mx-auto" />
+                      <p className="text-xs font-bold text-foreground">Grade vazia</p>
+                      <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+                        Selecione pelo menos um tamanho e adicione uma cor para abrir a matriz de peças.
+                      </p>
                     </div>
-
-                    {/* Régua de Estratégia de Precificação */}
-                    <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-2xs">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <label className="text-xs font-bold text-foreground">Como deseja precificar o modelo?</label>
-                          <p className="text-[11px] text-muted-foreground">
-                            A estratégia escolhida será herdada automaticamente por todos os SKUs da grade
-                          </p>
-                        </div>
-
-                        {/* Seletor de Modo: Margem, Markup, Preço Fixo */}
-                        <div className="grid grid-cols-3 gap-1 rounded-xl p-1 bg-secondary/60 border border-border/70 text-xs font-semibold">
-                          <button
-                            type="button"
-                            onClick={() => setMatrixGlobalMode("margin")}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                              matrixGlobalMode === "margin" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
-                            Margem (%)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMatrixGlobalMode("markup")}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                              matrixGlobalMode === "markup" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
-                            Markup (%)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMatrixGlobalMode("direct_price")}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg transition-all cursor-pointer text-center",
-                              matrixGlobalMode === "direct_price" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
-                            )}
-                          >
-                            Preço Fixo (R$)
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Controles do Modo Ativo */}
-                      {matrixGlobalMode === "margin" && (
-                        <div className="space-y-3 pt-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {[40, 45, 50, 55, 60].map((m) => (
-                              <button
-                                key={m}
-                                type="button"
-                                onClick={() => {
-                                  setMatrixGlobalMarginStr(String(m));
-                                }}
-                                className={cn(
-                                  "flex-1 min-w-[60px] h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                                  matrixGlobalMarginStr === String(m)
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                    : "border-border/70 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/70",
-                                )}
-                              >
-                                {m}%
-                              </button>
-                            ))}
-                            <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-background px-2 h-9 shadow-2xs">
-                              <span className="text-[10px] font-bold text-muted-foreground">Outro:</span>
-                              <input
-                                type="number"
-                                value={matrixGlobalMarginStr}
-                                onChange={(e) => setMatrixGlobalMarginStr(e.target.value)}
-                                className="w-12 bg-transparent text-xs font-black text-foreground outline-none text-right"
-                              />
-                              <span className="text-xs font-bold text-muted-foreground">%</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {matrixGlobalMode === "markup" && (
-                        <div className="space-y-3 pt-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {[60, 80, 100, 120, 150].map((mk) => (
-                              <button
-                                key={mk}
-                                type="button"
-                                onClick={() => setMatrixGlobalMarkupStr(String(mk))}
-                                className={cn(
-                                  "flex-1 min-w-[60px] h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                                  matrixGlobalMarkupStr === String(mk)
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                    : "border-border/70 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/70",
-                                )}
-                              >
-                                {mk}%
-                              </button>
-                            ))}
-                            <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-background px-2 h-9 shadow-2xs">
-                              <span className="text-[10px] font-bold text-muted-foreground">Outro:</span>
-                              <input
-                                type="number"
-                                value={matrixGlobalMarkupStr}
-                                onChange={(e) => setMatrixGlobalMarkupStr(e.target.value)}
-                                className="w-12 bg-transparent text-xs font-black text-foreground outline-none text-right"
-                              />
-                              <span className="text-xs font-bold text-muted-foreground">%</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {matrixGlobalMode === "direct_price" && (
-                        <div className="space-y-3 pt-1">
-                          <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary max-w-xs shadow-2xs">
-                            <span className="text-xs font-bold text-muted-foreground mr-1.5 select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={matrixGlobalDirectPrice}
-                              onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
-                              placeholder="Ex: 89,90"
-                              className="w-full bg-transparent text-sm font-black text-foreground outline-none"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="pt-2 flex justify-end">
-                        <Button
-                          type="button"
-                          onClick={handleApplyGlobalStrategy}
-                          className="rounded-xl gradient-primary text-xs font-bold shadow-glow h-9 px-4 cursor-pointer"
-                        >
-                          <Zap className="size-3.5 mr-1.5" />
-                          <span>Aplicar a toda a grade</span>
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* ──────────────────────────────────────────────────────────── */}
-                    {/* SEÇÃO 4: Tabela Mestre de SKUs (Recolhível / Opcional)       */}
-                    {/* ──────────────────────────────────────────────────────────── */}
-                    <div className="pt-2 border-t border-border/40">
-                      <details className="group rounded-2xl border border-border/80 bg-card overflow-hidden shadow-2xs">
-                        <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-secondary/30 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <Package className="size-4 text-primary" />
-                            <span className="text-xs font-bold text-foreground">
-                              Personalizar SKUs individualmente ({variantResults.length} variações)
-                            </span>
-                            <span className="text-[11px] text-muted-foreground font-normal hidden sm:inline">
-                              — opcional, todos os tamanhos já herdaram a regra padrão
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground group-open:text-primary">
-                            <span className="text-[11px] group-open:hidden">Abrir tabela</span>
-                            <span className="text-[11px] hidden group-open:inline">Recolher</span>
-                            <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
-                          </div>
-                        </summary>
-
-                        <div className="p-4 pt-0 border-t border-border/50">
-                          {variantResults.length === 0 ? (
-                            <div className="py-6 text-center text-xs text-muted-foreground">
-                              Preencha as quantidades na matriz da Etapa 1 para visualizar e ajustar os SKUs aqui.
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto mt-3">
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="border-b border-border/60 bg-secondary/20 text-muted-foreground text-[10px] uppercase tracking-wider">
-                                    <th className="py-2.5 px-3 text-left font-semibold">Variação</th>
-                                    <th className="py-2.5 px-3 text-center font-semibold">Qtd</th>
-                                    <th className="py-2.5 px-3 text-center font-semibold">Custo Real</th>
-                                    <th className="py-2.5 px-3 text-center font-semibold">Margem</th>
-                                    <th className="py-2.5 px-3 text-center font-semibold">Lucro Líq</th>
-                                    <th className="py-2.5 px-4 text-right font-semibold">Preço de Venda</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border/40">
-                                  {variantResults.map((v) => {
-                                    const preset = COLOR_PRESETS.find(
-                                      (p) => p.name.toLowerCase() === v.color.toLowerCase(),
-                                    );
-                                    return (
-                                      <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
-                                        <td className="py-2.5 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <span
-                                              className="size-3 rounded-full border border-black/10 shrink-0"
-                                              style={{ backgroundColor: preset?.color ?? "#888888" }}
-                                            />
-                                            <span className="font-semibold text-foreground">{v.color}</span>
-                                            <span className="text-muted-foreground">·</span>
-                                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-md font-bold">
-                                              {v.size}
-                                            </Badge>
-                                          </div>
-                                        </td>
-                                        <td className="py-2.5 px-3 text-center font-bold text-foreground">
-                                          {v.qty} un
-                                        </td>
-                                        <td className="py-2.5 px-3 text-center font-semibold text-muted-foreground">
-                                          {brl(v.realCost)}
-                                        </td>
-                                        <td className="py-2.5 px-3 text-center font-bold text-foreground">
-                                          {Math.round(v.marginOnPrice)}%
-                                        </td>
-                                        <td className="py-2.5 px-3 text-center font-extrabold text-emerald-600 dark:text-emerald-400">
-                                          +{brl(v.profit)}
-                                        </td>
-                                        <td className="py-2 px-4 text-right">
-                                          <div className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-background px-2 h-8 focus-within:border-primary shadow-2xs">
-                                            <span className="text-[10px] font-bold text-muted-foreground select-none">R$</span>
-                                            <input
-                                              inputMode="decimal"
-                                              value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                setVariants((cur) =>
-                                                  cur.map((it) => (it.id === v.id ? { ...it, customSalePrice: val } : it)),
-                                                );
-                                              }}
-                                              className="w-20 text-right font-bold text-xs bg-transparent outline-none"
-                                            />
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      </details>
-                    </div>
-                  </section>
+                  )}
                 </div>
+              </section>
 
-                {/* ══════════════════════════════════════════════════════════════════ */}
-                {/* COLUNA LATERAL: O COCKPIT FINANCEIRO DO LOTE (Sticky / Fixado)    */}
-                {/* ══════════════════════════════════════════════════════════════════ */}
-                <div className="lg:col-span-4 lg:sticky lg:top-6 space-y-4">
-                  <div className="panel p-5 sm:p-6 space-y-5 border-primary/20 shadow-soft bg-card/95 backdrop-blur-sm">
-                    
-                    {/* Header do Cockpit */}
-                    <div className="flex items-center justify-between border-b border-border/50 pb-3.5">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-wider font-extrabold text-primary block">
-                          Painel do Lote
-                        </span>
-                        <h3 className="text-base font-bold text-foreground truncate max-w-[170px]" title={name || "Novo Modelo"}>
-                          {name.trim() || "Modelo em edição"}
-                        </h3>
-                      </div>
-
-                      {actualLotUnits === 0 ? (
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground rounded-full">
-                          0 un no lote
-                        </Badge>
-                      ) : summaryPrices.avgSuggested <= 0 ? (
-                        <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[10px] rounded-full">
-                          Defina o preço
-                        </Badge>
-                      ) : summaryPrices.avgMargin >= 40 ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] rounded-full font-bold">
-                          ✓ Margem Ótima
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[10px] rounded-full font-bold">
-                          Margem Saudável
-                        </Badge>
-                      )}
+              {/* ────────────────────────────────────────────────────────────── */}
+              {/* ETAPA 2: Quanto Custou? (Custo de Atacado & Rateio Real)       */}
+              {/* ────────────────────────────────────────────────────────────── */}
+              <section id="sec-costs" className="panel p-6 sm:p-7 space-y-6 scroll-mt-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
+                      2
                     </div>
-
-                    {/* Síntese Unitária: Custo vs Preço */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-2xl bg-secondary/30 border border-border/60">
-                        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground block">
-                          Custo Real / un
-                        </span>
-                        <span className="text-lg font-black text-foreground block mt-0.5">
-                          {summaryPrices.avgCost > 0 ? brl(summaryPrices.avgCost) : "R$ ──,──"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground/80 block mt-0.5">
-                          {baseCost > 0 ? `Atac: ${brl(baseCost)}` : "Sem custo"}
-                        </span>
-                      </div>
-
-                      <div className="p-3 rounded-2xl bg-primary/5 border border-primary/20">
-                        <span className="text-[10px] uppercase tracking-wider font-bold text-primary block">
-                          Preço Médio / un
-                        </span>
-                        <span className="text-lg font-black text-primary block mt-0.5">
-                          {summaryPrices.avgSuggested > 0 ? brl(summaryPrices.avgSuggested) : "R$ ──,──"}
-                        </span>
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">
-                          {summaryPrices.avgSuggested > 0 ? `+${brl(summaryPrices.avgProfit)} líq` : "Sem venda"}
-                        </span>
-                      </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-foreground">
+                        Quanto Custou? <span className="text-muted-foreground font-normal text-xs ml-1">(Compra no Atacado &amp; Rateio Real)</span>
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Defina o custo pago no atacado e rateie as despesas do pacote com base nas {actualLotUnits} peças contadas.
+                      </p>
                     </div>
+                  </div>
 
-                    {/* Destaque Financeiro Global do Lote */}
-                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground font-medium">Peças no Lote:</span>
-                        <span className="font-extrabold text-foreground">{actualLotUnits} un.</span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground font-medium">Investimento Total:</span>
-                        <span className="font-bold text-foreground">
-                          {brl(summaryPrices.avgCost * actualLotUnits)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground font-medium">Faturamento Previsto:</span>
-                        <span className="font-bold text-foreground">
-                          {brl(summaryPrices.avgSuggested * actualLotUnits)}
-                        </span>
-                      </div>
-
-                      <div className="pt-2 border-t border-emerald-500/20">
-                        <span className="text-[10px] uppercase tracking-wider font-black text-emerald-700 dark:text-emerald-300 block">
-                          Lucro Líquido do Lote
-                        </span>
-                        <div className="flex items-baseline justify-between gap-2 mt-0.5">
-                          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                            {summaryPrices.avgSuggested > 0 && actualLotUnits > 0
-                              ? `+${brl(summaryPrices.avgProfit * actualLotUnits)}`
-                              : "R$ 0,00"}
-                          </span>
-                          {summaryPrices.avgMargin > 0 && (
-                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                              {Math.round(summaryPrices.avgMargin)}% margem
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 mt-1">
-                          Lucro limpo no caixa após impostos ({tax}%) e cartão ({cardRate}%).
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Ações Primárias do Cockpit */}
-                    <div className="space-y-2 pt-1">
-                      <Button
-                        type="button"
-                        onClick={openEntryForCurrent}
-                        disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
-                        className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 text-sm transition-all active:scale-[0.98] disabled:opacity-40"
-                      >
-                        <PackagePlus className="size-4" />
-                        <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
-                      </Button>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => save.mutate()}
-                          disabled={save.isPending || actualLotUnits === 0}
-                          className="h-10 rounded-xl text-xs font-semibold gap-1.5 border-border/80 bg-background hover:bg-secondary cursor-pointer"
-                        >
-                          <Save className="size-3.5" />
-                          <span>Salvar histórico</span>
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setResetAlertOpen(true)}
-                          className="h-10 rounded-xl text-xs font-semibold gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 bg-background hover:bg-destructive/5 cursor-pointer"
-                        >
-                          <RotateCcw className="size-3.5" />
-                          <span>Resetar grade</span>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed">
-                      ⊙ Atualização reativa instantânea conforme você preenche a grade.
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={baseCost > 0 ? "default" : "secondary"} className="rounded-full px-3 py-1 text-xs font-semibold">
+                      {baseCost > 0 ? `Custo Real: ${brl(totalUnitCost)}/un` : "Aguardando custo"}
+                    </Badge>
                   </div>
                 </div>
 
-              </div>
+                {/* Custo de Compra (Atacado) */}
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-bold text-foreground">Custo de Compra no Atacado</label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Quanto você pagou ao fornecedor por cada peça da confecção?
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-xl p-0.5 bg-secondary/60 border border-border/70 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setGradePricingMode("unified")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg transition-all cursor-pointer",
+                          gradePricingMode === "unified" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Custo Único para Todo o Lote
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGradePricingMode("per_unit")}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg transition-all cursor-pointer",
+                          gradePricingMode === "per_unit" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Custos Diferentes por Tamanho
+                      </button>
+                    </div>
+                  </div>
+
+                  {gradePricingMode === "unified" ? (
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-2 max-w-md shadow-2xs">
+                      <span className="text-xs font-semibold text-muted-foreground">Valor pago por peça (atacado)</span>
+                      <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary shadow-2xs">
+                        <span className="text-xs font-bold text-muted-foreground mr-1.5 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={baseWholesaleGrade}
+                          onChange={(e) => setBaseWholesaleGrade(e.target.value)}
+                          placeholder="0,00"
+                          className="w-full bg-transparent text-sm font-black text-foreground outline-none"
+                        />
+                      </div>
+                      {baseCost > 0 && (
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold pt-1">
+                          Total de atacado do lote: {brl(baseCost * actualLotUnits)} ({actualLotUnits} peças)
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-2xs">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Defina o custo de fábrica de cada tamanho da grade:
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                        {activeMatrixSizes.map((sz) => {
+                          const vOverride = variants.find((v) => v.size === sz);
+                          const val = vOverride?.wholesaleCost ?? "";
+                          return (
+                            <div key={sz} className="rounded-xl border border-border/70 bg-secondary/30 p-2.5 space-y-1">
+                              <span className="text-xs font-bold text-foreground">Tam {sz}</span>
+                              <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-2 focus-within:border-primary">
+                                <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                <input
+                                  inputMode="decimal"
+                                  value={val}
+                                  onChange={(e) => {
+                                    const nVal = e.target.value;
+                                    setVariants((cur) =>
+                                      cur.map((it) => (it.size === sz ? { ...it, wholesaleCost: nVal } : it))
+                                    );
+                                  }}
+                                  placeholder={baseWholesaleGrade || "0,00"}
+                                  className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Despesas do Pacote & Rateio Operacional */}
+                <div className="space-y-3 pt-2 border-t border-border/40">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-bold text-foreground">Despesas do Pacote &amp; Rateio Operacional</label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Rateio calculado com exatidão matemática sobre as {actualLotUnits} peças contadas
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30 bg-primary/5 px-3 py-1 rounded-full">
+                      ÷ {actualLotUnits > 0 ? actualLotUnits : 1} peças no rateio
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    {/* Frete */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-3.5 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Truck className="size-3.5 text-primary" /> Frete
+                        </span>
+                        <Select value={freightMode} onValueChange={(val: any) => setFreightMode(val)}>
+                          <SelectTrigger className="h-6 w-24 text-[10px] font-semibold rounded-md border-border/70 bg-secondary/50 px-1.5">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="lot_total" className="text-xs">Total do lote</SelectItem>
+                            <SelectItem value="per_unit" className="text-xs">Por peça</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary">
+                        <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={freight}
+                          onChange={(e) => setFreight(e.target.value)}
+                          placeholder="0,00"
+                          className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground block text-right font-medium">
+                        {freightMode === "lot_total" ? `= ${brl(freightVal)} / peça` : `= ${brl(freightVal * actualLotUnits)} total`}
+                      </span>
+                    </div>
+
+                    {/* Embalagem */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-3.5 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Package className="size-3.5 text-primary" /> Embalagem
+                        </span>
+                        <Select value={packagingMode} onValueChange={(val: any) => setPackagingMode(val)}>
+                          <SelectTrigger className="h-6 w-24 text-[10px] font-semibold rounded-md border-border/70 bg-secondary/50 px-1.5">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="per_unit" className="text-xs">Por peça</SelectItem>
+                            <SelectItem value="lot_total" className="text-xs">Total do lote</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary">
+                        <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={packaging}
+                          onChange={(e) => setPackaging(e.target.value)}
+                          placeholder="0,00"
+                          className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground block text-right font-medium">
+                        {packagingMode === "per_unit" ? `= ${brl(packagingVal * actualLotUnits)} total` : `= ${brl(packagingVal)} / peça`}
+                      </span>
+                    </div>
+
+                    {/* Extras */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-3.5 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Coins className="size-3.5 text-primary" /> Extras
+                        </span>
+                        <Select value={otherMode} onValueChange={(val: any) => setOtherMode(val)}>
+                          <SelectTrigger className="h-6 w-24 text-[10px] font-semibold rounded-md border-border/70 bg-secondary/50 px-1.5">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="per_unit" className="text-xs">Por peça</SelectItem>
+                            <SelectItem value="lot_total" className="text-xs">Total do lote</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary">
+                        <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={other}
+                          onChange={(e) => setOther(e.target.value)}
+                          placeholder="0,00"
+                          className="w-full bg-transparent text-xs font-bold text-foreground outline-none text-right"
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground block text-right font-medium">
+                        {otherMode === "per_unit" ? `= ${brl(otherVal * actualLotUnits)} total` : `= ${brl(otherVal)} / peça`}
+                      </span>
+                    </div>
+
+                    {/* Deduções & Taxas */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-3.5 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <CreditCard className="size-3.5 text-primary" /> Deduções
+                        </span>
+                        <span className="text-xs font-extrabold text-foreground">
+                          {(tax + cardRate).toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        DAS ({tax}%) + Cartão ({cardRate}%)
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                          toast.info("Acesse o topo da página para alterar as taxas padrão da loja.");
+                        }}
+                        className="w-full h-8 text-[11px] font-semibold rounded-xl gap-1 border-border/80 bg-card hover:bg-secondary cursor-pointer"
+                      >
+                        <SlidersHorizontal className="size-3" />
+                        Ajustar taxas
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Banner Consolidado do Custo Unitário */}
+                  <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+                    <div className="space-y-1">
+                      <p className="text-xs sm:text-sm text-foreground font-semibold">
+                        Compra Atacado: <strong className="font-extrabold text-foreground">{baseCost > 0 ? brl(baseCost) : "R$ 0,00"}</strong> + Rateio Operacional: <strong className="font-extrabold text-foreground">+{brl(totalSharedCost)}</strong>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Total investido na produção do lote: <strong className="font-bold text-foreground">{brl(totalUnitCost * actualLotUnits)}</strong> ({actualLotUnits} peças)
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        CUSTO REAL POR PEÇA
+                      </span>
+                      <span className="num-display text-2xl sm:text-3xl font-black text-primary">
+                        {totalUnitCost > 0 ? brl(totalUnitCost) : "R$ ──,──"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* ────────────────────────────────────────────────────────────── */}
+              {/* ETAPA 3: Por Quanto Vender? (Estratégia de Precificação)       */}
+              {/* ────────────────────────────────────────────────────────────── */}
+              <section id="sec-pricing" className="panel p-6 sm:p-7 space-y-6 scroll-mt-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
+                      3
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-foreground">
+                        Por Quanto Vender? <span className="text-muted-foreground font-normal text-xs ml-1">(Estratégia de Precificação)</span>
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Defina a margem ou preço de venda, confira o faturamento e lucros previstos para o lote.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="rounded-full px-3 py-1 text-xs font-semibold">
+                      {summaryPrices.avgSuggested > 0 ? `Preço Sugerido: ${brl(summaryPrices.avgSuggested)}` : "Aguardando preço"}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Régua de Estratégia de Precificação */}
+                <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 space-y-4 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-foreground">Como deseja precificar o modelo?</label>
+                      <p className="text-[11px] text-muted-foreground">
+                        A estratégia escolhida será herdada automaticamente por todos os SKUs da grade
+                      </p>
+                    </div>
+
+                    {/* Seletor de Modo: Margem, Markup, Preço Fixo */}
+                    <div className="grid grid-cols-3 gap-1 rounded-xl p-1 bg-secondary/60 border border-border/70 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setMatrixGlobalMode("margin")}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                          matrixGlobalMode === "margin" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Margem (%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMatrixGlobalMode("markup")}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                          matrixGlobalMode === "markup" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Markup (%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMatrixGlobalMode("direct_price")}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-lg transition-all cursor-pointer text-center",
+                          matrixGlobalMode === "direct_price" ? "bg-card text-foreground shadow-2xs font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Preço Fixo (R$)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Controles do Modo Ativo */}
+                  {matrixGlobalMode === "margin" && (
+                    <div className="space-y-3 pt-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[40, 45, 50, 55, 60].map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              setMatrixGlobalMarginStr(String(m));
+                            }}
+                            className={cn(
+                              "flex-1 min-w-[65px] h-10 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                              matrixGlobalMarginStr === String(m)
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs font-extrabold"
+                                : "border-border/70 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/70",
+                            )}
+                          >
+                            {m}%
+                          </button>
+                        ))}
+                        <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-background px-3 h-10 shadow-2xs">
+                          <span className="text-xs font-bold text-muted-foreground">Outro:</span>
+                          <input
+                            type="number"
+                            value={matrixGlobalMarginStr}
+                            onChange={(e) => setMatrixGlobalMarginStr(e.target.value)}
+                            className="w-14 bg-transparent text-xs font-black text-foreground outline-none text-right"
+                          />
+                          <span className="text-xs font-bold text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {matrixGlobalMode === "markup" && (
+                    <div className="space-y-3 pt-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {[60, 80, 100, 120, 150].map((mk) => (
+                          <button
+                            key={mk}
+                            type="button"
+                            onClick={() => setMatrixGlobalMarkupStr(String(mk))}
+                            className={cn(
+                              "flex-1 min-w-[65px] h-10 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                              matrixGlobalMarkupStr === String(mk)
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs font-extrabold"
+                                : "border-border/70 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/70",
+                            )}
+                          >
+                            {mk}%
+                          </button>
+                        ))}
+                        <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-background px-3 h-10 shadow-2xs">
+                          <span className="text-xs font-bold text-muted-foreground">Outro:</span>
+                          <input
+                            type="number"
+                            value={matrixGlobalMarkupStr}
+                            onChange={(e) => setMatrixGlobalMarkupStr(e.target.value)}
+                            className="w-14 bg-transparent text-xs font-black text-foreground outline-none text-right"
+                          />
+                          <span className="text-xs font-bold text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {matrixGlobalMode === "direct_price" && (
+                    <div className="space-y-3 pt-1">
+                      <div className="relative flex h-11 items-center rounded-xl border border-border/80 bg-background px-3 focus-within:border-primary max-w-xs shadow-2xs">
+                        <span className="text-xs font-bold text-muted-foreground mr-1.5 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={matrixGlobalDirectPrice}
+                          onChange={(e) => setMatrixGlobalDirectPrice(e.target.value)}
+                          placeholder="Ex: 89,90"
+                          className="w-full bg-transparent text-sm font-black text-foreground outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={handleApplyGlobalStrategy}
+                      className="rounded-xl gradient-primary text-xs font-bold shadow-glow h-10 px-5 cursor-pointer"
+                    >
+                      <Zap className="size-4 mr-1.5" />
+                      <span>Aplicar a toda a grade</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* ── RAIO-X FINANCEIRO DO LOTE (DESTAQUE HORIZONTAL AMPLO) ── */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      Projeção Financeira do Lote
+                    </span>
+                    <Badge variant="outline" className="text-xs font-semibold text-muted-foreground">
+                      {actualLotUnits} peças contadas
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    {/* Preço de Venda Médio */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-1 shadow-2xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Preço Médio de Venda
+                      </span>
+                      <p className="num-display text-2xl font-black text-foreground">
+                        {summaryPrices.avgSuggested > 0 ? brl(summaryPrices.avgSuggested) : "R$ ──,──"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        por unidade sugerida
+                      </p>
+                    </div>
+
+                    {/* Lucro por Peça */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-1 shadow-2xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Lucro Líquido / Peça
+                      </span>
+                      <p className="num-display text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {summaryPrices.avgProfit > 0 ? `+${brl(summaryPrices.avgProfit)}` : "R$ ──,──"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground font-medium">
+                        {Math.round(summaryPrices.avgMargin)}% margem líquida real
+                      </p>
+                    </div>
+
+                    {/* Faturamento Previsto */}
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-1 shadow-2xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Faturamento Previsto
+                      </span>
+                      <p className="num-display text-2xl font-black text-foreground">
+                        {summaryPrices.totalRevenue > 0
+                          ? brl(summaryPrices.totalRevenue)
+                          : brl(summaryPrices.avgSuggested * actualLotUnits)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        venda total de {actualLotUnits} peças
+                      </p>
+                    </div>
+
+                    {/* Lucro Total do Lote (Destaque Esmeralda) */}
+                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-1 shadow-2xs">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                        LUCRO LÍQUIDO DO LOTE
+                      </span>
+                      <p className="num-display text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {summaryPrices.totalProfit > 0
+                          ? `+${brl(summaryPrices.totalProfit)}`
+                          : (actualLotUnits > 0 && summaryPrices.avgProfit > 0 ? `+${brl(summaryPrices.avgProfit * actualLotUnits)}` : "R$ 0,00")}
+                      </p>
+                      <p className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80 font-bold">
+                        lucro limpo após taxas e impostos
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── SEÇÃO 4: Tabela Mestre de SKUs (Opcional & Recolhível) ── */}
+                <div className="pt-2 border-t border-border/40">
+                  <details className="group rounded-2xl border border-border/80 bg-card overflow-hidden shadow-2xs">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-secondary/30 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Package className="size-4 text-primary" />
+                        <span className="text-xs font-bold text-foreground">
+                          Personalizar SKUs individualmente ({variantResults.length} variações)
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-normal hidden sm:inline">
+                          — opcional, todos os tamanhos já herdaram a regra padrão
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground group-open:text-primary">
+                        <span className="text-[11px] group-open:hidden">Abrir tabela</span>
+                        <span className="text-[11px] hidden group-open:inline">Recolher</span>
+                        <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
+                      </div>
+                    </summary>
+
+                    <div className="p-4 pt-0 border-t border-border/50">
+                      {variantResults.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-muted-foreground">
+                          Preencha as quantidades na matriz da Etapa 1 para visualizar e ajustar os SKUs aqui.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto mt-3">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-border/60 bg-secondary/20 text-muted-foreground text-[10px] uppercase tracking-wider">
+                                <th className="py-2.5 px-4 text-left font-semibold">Variação</th>
+                                <th className="py-2.5 px-3 text-center font-semibold">Qtd</th>
+                                <th className="py-2.5 px-3 text-center font-semibold">Custo Real</th>
+                                <th className="py-2.5 px-3 text-center font-semibold">Margem</th>
+                                <th className="py-2.5 px-3 text-center font-semibold">Lucro Líq</th>
+                                <th className="py-2.5 px-4 text-right font-semibold">Preço de Venda</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/40">
+                              {variantResults.map((v) => {
+                                const preset = COLOR_PRESETS.find(
+                                  (p) => p.name.toLowerCase() === v.color.toLowerCase(),
+                                );
+                                return (
+                                  <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
+                                    <td className="py-2.5 px-4">
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className="size-3 rounded-full border border-black/10 shrink-0"
+                                          style={{ backgroundColor: preset?.color ?? "#888888" }}
+                                        />
+                                        <span className="font-semibold text-foreground">{v.color}</span>
+                                        <span className="text-muted-foreground">·</span>
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-md font-bold">
+                                          {v.size}
+                                        </Badge>
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center font-bold text-foreground">
+                                      {v.qty} un
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center font-semibold text-muted-foreground">
+                                      {brl(v.realCost)}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center font-bold text-foreground">
+                                      {Math.round(v.marginOnPrice)}%
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center font-extrabold text-emerald-600 dark:text-emerald-400">
+                                      +{brl(v.profit)}
+                                    </td>
+                                    <td className="py-2 px-4 text-right">
+                                      <div className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-background px-2 h-8 focus-within:border-primary shadow-2xs">
+                                        <span className="text-[10px] font-bold text-muted-foreground select-none">R$</span>
+                                        <input
+                                          inputMode="decimal"
+                                          value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setVariants((cur) =>
+                                              cur.map((it) => (it.id === v.id ? { ...it, customSalePrice: val } : it)),
+                                            );
+                                          }}
+                                          className="w-20 text-right font-bold text-xs bg-transparent outline-none"
+                                        />
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                </div>
+
+                {/* ── BARRA DE AÇÃO PRINCIPAL / RODAPÉ DO LOTE ── */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-border/60">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setResetAlertOpen(true)}
+                      className="h-11 rounded-xl text-xs font-semibold gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 bg-card hover:bg-destructive/5 cursor-pointer"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      <span>Resetar grade</span>
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => save.mutate()}
+                      disabled={save.isPending || actualLotUnits === 0}
+                      className="h-11 rounded-xl text-xs font-semibold gap-1.5 border-border/80 bg-card hover:bg-secondary cursor-pointer px-4"
+                    >
+                      <Save className="size-3.5" />
+                      <span>Salvar no histórico</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      onClick={openEntryForCurrent}
+                      disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
+                      className="h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow cursor-pointer flex items-center justify-center gap-2 px-6 transition-all active:scale-[0.98] text-xs sm:text-sm disabled:opacity-50"
+                    >
+                      <PackagePlus className="size-4" />
+                      <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                    </Button>
+                  </div>
+                </div>
+              </section>
 
               {/* Modal de Confirmação Segura para Resetar Grade */}
               <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
@@ -5406,7 +5370,7 @@ function Precificacao() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </>
+            </div>
           );
         })()}
 
@@ -5521,29 +5485,17 @@ function Precificacao() {
         </div>
 
         {/* ── COLUNA DIREITA: Painel Sticky de Resumo ao Vivo (Padrão Vértice Imagem 5 / Shopify) ── */}
-        {mode !== "historico" && (
+        {mode === "rapida" && (
           <div className="hidden lg:block sticky top-6 self-start">
             <LivePricingSummaryPanel
               name={name}
               category={category ? getCategoryLabel(storeCategories, category) : ""}
               photoUrl={entryPhotoUrl}
-              baseWholesaleCost={
-                mode === "grade"
-                  ? toNumber(baseWholesaleGrade) > 0
-                    ? toNumber(baseWholesaleGrade)
-                    : variants[0] && toNumber(variants[0].wholesaleCost) > 0
-                      ? toNumber(variants[0].wholesaleCost)
-                      : 0
-                  : toNumber(wholesale)
-              }
+              baseWholesaleCost={toNumber(wholesale)}
               sharedCostsPerUnit={
-                mode === "grade"
-                  ? resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                    resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                    resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1)
-                  : resolvePerUnit(freight, freightMode, 1) +
-                    resolvePerUnit(packaging, packagingMode, 1) +
-                    resolvePerUnit(other, otherMode, 1)
+                resolvePerUnit(freight, freightMode, 1) +
+                resolvePerUnit(packaging, packagingMode, 1) +
+                resolvePerUnit(other, otherMode, 1)
               }
               totalUnitCost={summaryPrices.avgCost}
               suggestedPrice={summaryPrices.avgSuggested}
@@ -5552,19 +5504,15 @@ function Precificacao() {
               lotRevenue={summaryPrices.totalRevenue}
               lotProfit={summaryPrices.totalProfit}
               totalUnits={actualLotUnits}
-              totalVariants={mode === "grade" ? variants.length : 1}
-              hasData={
-                mode === "grade"
-                  ? summaryPrices.avgSuggested > 0 && summaryPrices.avgCost > 0
-                  : toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0
-              }
+              totalVariants={1}
+              hasData={toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0}
               mode={mode}
               gradeStep={gradeStep}
               onStepChange={setGradeStep}
               onEntry={openEntryForCurrent}
               onSave={() => save.mutate()}
               onReset={resetPricingModel}
-              saveDisabled={save.isPending || (mode === "grade" ? (actualLotUnits === 0 && !name.trim()) : !name.trim() || toNumber(wholesale) <= 0)}
+              saveDisabled={save.isPending || !name.trim() || toNumber(wholesale) <= 0}
               entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0}
             />
           </div>
