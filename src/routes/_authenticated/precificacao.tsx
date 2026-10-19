@@ -4466,629 +4466,715 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* BOTÃO DISCRETO APPLE: PERSONALIZAR POR VARIAÇÃO / TAMANHO */}
-                    <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setShowVariantCustomizer(!showVariantCustomizer)}
-                        className={cn(
-                          "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border",
-                          showVariantCustomizer
-                            ? "bg-primary/10 border-primary text-primary shadow-2xs"
-                            : "border-border/80 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <SlidersHorizontal className="size-3.5" />
-                        <span>
-                          {showVariantCustomizer
-                            ? "Ocultar personalização por tamanho"
-                            : "Personalizar custo ou preço por tamanho (ex: GG diferente)"}
+                    {/* EXCEÇÃO INTELIGENTE POR TAMANHO: Compacto, Apple Level, ZERO tabelas duplicadas */}
+                    <div className="pt-2 border-t border-border/40 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowVariantCustomizer(!showVariantCustomizer)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border",
+                            showVariantCustomizer || matrixSizes.some((sz) => variants.some((v) => v.size === sz && ((v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== ""))))
+                              ? "bg-primary/10 border-primary/40 text-primary shadow-2xs"
+                              : "border-border/80 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          <SlidersHorizontal className="size-3.5" />
+                          <span>
+                            {showVariantCustomizer
+                              ? "Ocultar ajustes de tamanho"
+                              : "Algum tamanho custa ou vende por valor diferente? (ex: GG)"}
+                          </span>
+                          {matrixSizes.some((sz) => variants.some((v) => v.size === sz && ((v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== "")))) && (
+                            <span className="size-2 rounded-full bg-primary" />
+                          )}
+                        </button>
+
+                        <span className="text-[11px] text-muted-foreground">
+                          {matrixSizes.some((sz) => variants.some((v) => v.size === sz && ((v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== ""))))
+                            ? "Exceções ativas aplicadas na grade"
+                            : "Padrão: toda a grade tem o mesmo valor"}
                         </span>
-                        {variants.some((v) => (v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== "")) && (
-                          <span className="size-2 rounded-full bg-primary" />
-                        )}
-                      </button>
+                      </div>
 
-                      <span className="text-[11px] text-muted-foreground">
-                        {showVariantCustomizer ? "Edite custos ou preços abaixo" : "Padrão: toda a grade tem o mesmo valor"}
-                      </span>
-                    </div>
-
-                    {/* GAVETA EXPANSÍVEL: AJUSTE FINO DAS VARIANTES */}
-                    {showVariantCustomizer && (
-                      <div className="rounded-2xl border border-primary/20 bg-primary/[0.02] p-4 space-y-3 animate-in fade-in-50 duration-200">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
-                          <div>
-                            <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                              <SlidersHorizontal className="size-3.5 text-primary" />
-                              <span>Ajuste Fino por Variação da Grade</span>
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              Altere o custo ou o preço de um tamanho específico (ex: GG). Peças vazias herdam o padrão do lote.
-                            </p>
+                      {/* Barramento Inline de Exceções de Tamanho: 1 chip por tamanho, SEM duplicar linhas */}
+                      {showVariantCustomizer && (
+                        <div className="rounded-2xl border border-primary/20 bg-primary/[0.02] p-3.5 space-y-2.5 animate-in fade-in-50 duration-200">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+                            <div>
+                              <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                <Tag className="size-3.5 text-primary" />
+                                <span>Ajustar valor específico por tamanho</span>
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Preencha apenas o tamanho que for diferente (ex: GG). Tamanhos vazios herdam o valor padrão do lote ({brl(toNumber(baseWholesaleGrade))}).
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: "", customSalePrice: "" })));
+                                toast.success("Todos os tamanhos restaurados para o padrão do lote");
+                              }}
+                              className="h-7 text-[11px] text-muted-foreground hover:text-destructive cursor-pointer"
+                            >
+                              Redefinir tudo ao padrão
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: "", customSalePrice: "" })));
-                              toast.success("Custos e preços personalizados redefinidos para o padrão");
-                            }}
-                            className="h-7 text-[11px] text-muted-foreground hover:text-destructive cursor-pointer"
-                          >
-                            Redefinir tudo ao padrão
-                          </Button>
-                        </div>
 
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-xs border-collapse">
-                            <thead>
-                              <tr className="border-b border-border/60 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                <th className="py-2 pl-2">Variação</th>
-                                <th className="py-2 px-2 text-center">Qtd</th>
-                                <th className="py-2 px-2 min-w-[130px]">Custo Atacado</th>
-                                <th className="py-2 px-2 min-w-[130px]">Preço de Venda</th>
-                                <th className="py-2 px-2 text-center">Lucro Líq.</th>
-                                <th className="py-2 pr-2 text-right">Margem</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/40">
-                              {variantResults.filter((v) => v.qty > 0).map((vr) => {
-                                const isCustomCost = vr.wholesaleCost && vr.wholesaleCost !== "";
-                                const isCustomPrice = vr.customSalePrice && vr.customSalePrice !== "";
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                            {matrixSizes.map((sz) => {
+                              const szVars = variants.filter((v) => v.size === sz);
+                              const currentCost = szVars[0]?.wholesaleCost ?? "";
+                              const currentPrice = szVars[0]?.customSalePrice ?? "";
+                              const hasCustom = (currentCost && currentCost !== "") || (currentPrice && currentPrice !== "");
 
-                                return (
-                                  <tr key={vr.id} className="hover:bg-secondary/30 transition-colors">
-                                    <td className="py-2 pl-2 font-semibold text-foreground flex items-center gap-2">
-                                      <span className="size-2 rounded-full" style={{ backgroundColor: getColorDot(vr.color) }} />
-                                      <span className="font-bold text-primary">{vr.size}</span>
-                                      <span className="text-muted-foreground">· {vr.color}</span>
-                                      {(isCustomCost || isCustomPrice) && (
-                                        <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                              return (
+                                <div
+                                  key={sz}
+                                  className={cn(
+                                    "rounded-xl border p-2.5 space-y-1.5 transition-all",
+                                    hasCustom
+                                      ? "border-primary/50 bg-background shadow-xs"
+                                      : "border-border/60 bg-secondary/30"
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-extrabold text-foreground flex items-center gap-1">
+                                      <span>Tamanho {sz}</span>
+                                      {hasCustom && (
+                                        <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded-full">
                                           Personalizado
                                         </span>
                                       )}
-                                    </td>
-                                    <td className="py-2 px-2 text-center font-bold numeric">{vr.qty} un.</td>
-                                    <td className="py-2 px-2">
-                                      <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-2 focus-within:border-primary">
-                                        <span className="text-[10px] text-muted-foreground mr-1">R$</span>
+                                    </span>
+                                    {hasCustom && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setVariants((prev) =>
+                                            prev.map((v) => (v.size === sz ? { ...v, wholesaleCost: "", customSalePrice: "" } : v))
+                                          );
+                                        }}
+                                        className="text-[10px] text-muted-foreground hover:text-destructive cursor-pointer"
+                                        title="Voltar ao padrão"
+                                      >
+                                        Limpar
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                                    <div className="space-y-0.5">
+                                      <span className="text-[10px] text-muted-foreground">Custo Atacado:</span>
+                                      <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-1.5 focus-within:border-primary">
+                                        <span className="text-[9px] font-bold text-muted-foreground mr-1">R$</span>
                                         <input
                                           inputMode="decimal"
-                                          value={vr.wholesaleCost ?? ""}
-                                          onChange={(e) => updateVariantCost(vr.id, e.target.value)}
+                                          value={currentCost}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setVariants((prev) =>
+                                              prev.map((v) => (v.size === sz ? { ...v, wholesaleCost: val } : v))
+                                            );
+                                          }}
                                           placeholder={baseWholesaleGrade || "0,00"}
                                           className="w-full bg-transparent text-xs font-bold text-foreground outline-none numeric"
                                         />
                                       </div>
-                                    </td>
-                                    <td className="py-2 px-2">
-                                      <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-2 focus-within:border-primary">
-                                        <span className="text-[10px] text-muted-foreground mr-1">R$</span>
+                                    </div>
+
+                                    <div className="space-y-0.5">
+                                      <span className="text-[10px] text-muted-foreground">Preço Venda:</span>
+                                      <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-1.5 focus-within:border-primary">
+                                        <span className="text-[9px] font-bold text-muted-foreground mr-1">R$</span>
                                         <input
                                           inputMode="decimal"
-                                          value={vr.customSalePrice ?? ""}
-                                          onChange={(e) => updateVariantPrice(vr.id, e.target.value)}
-                                          placeholder={summaryPrices.avgSuggested > 0 ? summaryPrices.avgSuggested.toFixed(2).replace(".", ",") : "0,00"}
+                                          value={currentPrice}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setVariants((prev) =>
+                                              prev.map((v) => (v.size === sz ? { ...v, customSalePrice: val } : v))
+                                            );
+                                          }}
+                                          placeholder={summaryPrices.avgSuggested > 0 ? summaryPrices.avgSuggested.toFixed(2).replace(".", ",") : "Padrão"}
                                           className="w-full bg-transparent text-xs font-bold text-foreground outline-none numeric"
                                         />
                                       </div>
-                                    </td>
-                                    <td className="py-2 px-2 text-center numeric font-bold text-emerald-600 dark:text-emerald-400">
-                                      +{brl(vr.profit)}
-                                    </td>
-                                    <td className="py-2 pr-2 text-right numeric font-bold">
-                                      <span className={cn(
-                                        "px-1.5 py-0.5 rounded text-[10px]",
-                                        vr.marginHealth.status === "healthy" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                                        vr.marginHealth.status === "warning" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                                        vr.marginHealth.status === "danger" && "bg-destructive/10 text-destructive"
-                                      )}>
-                                        {pct(vr.marginOnPrice)}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             </section>
 
             {/* ══════════════════════════════════════════════════════════════════
-                SEÇÃO C: Custos de Envio & Rateio Inteligente (Aparece com Grade)
+                SEÇÃO C: Custos de Envio & Rateio Inteligente (Sempre Estável)
             ══════════════════════════════════════════════════════════════════ */}
-            {actualLotUnits > 0 ? (
-              <section className="panel p-5 sm:p-7 space-y-6 border border-border/80 bg-card shadow-soft animate-in fade-in-50 duration-200">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-                      <span>Custos de Envio & Rateio Inteligente</span>
-                      <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full">
-                        Rateado em {actualLotUnits} peças
-                      </span>
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Insira o valor total da nota ou frete. O sistema divide automaticamente pelas {actualLotUnits} peças da sua grade.
+            <section className="panel p-5 sm:p-7 space-y-5 border border-border/80 bg-card shadow-soft">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+                    <span>Custos de Envio & Rateio Inteligente</span>
+                    <span className={cn(
+                      "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                      actualLotUnits > 0
+                        ? "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400"
+                        : "text-muted-foreground bg-secondary/80"
+                    )}>
+                      {actualLotUnits > 0 ? `Rateado em ${actualLotUnits} peças` : "Aguardando peças na grade"}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Insira o valor total da nota ou frete. O sistema divide automaticamente pelas {actualLotUnits > 0 ? actualLotUnits : 1} peças da sua grade.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Linhas de Custos com Fórmula Viva */}
+              <div className="grid gap-3 sm:grid-cols-3">
+                {/* Frete da Nota */}
+                <div className="rounded-2xl border border-border/70 bg-background p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Truck className="size-3.5 text-primary" />
+                      <span>Frete da nota</span>
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">total</span>
+                  </div>
+                  <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-secondary/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                    <input
+                      inputMode="decimal"
+                      value={freight}
+                      onChange={(e) => setFreight(e.target.value)}
+                      placeholder="0,00"
+                      className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
+                    />
+                  </div>
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
+                    <span>Rateio por peça:</span>
+                    <span className="font-bold text-foreground numeric">
+                      {actualLotUnits > 0 ? `+ ${brl(resolvePerUnit(freight, freightMode, actualLotUnits))}` : "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Embalagem & Tags */}
+                <div className="rounded-2xl border border-border/70 bg-background p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Package className="size-3.5 text-primary" />
+                      <span>Embalagens & tags</span>
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">total</span>
+                  </div>
+                  <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-secondary/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                    <input
+                      inputMode="decimal"
+                      value={packaging}
+                      onChange={(e) => setPackaging(e.target.value)}
+                      placeholder="0,00"
+                      className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
+                    />
+                  </div>
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
+                    <span>Rateio por peça:</span>
+                    <span className="font-bold text-foreground numeric">
+                      {actualLotUnits > 0 ? `+ ${brl(resolvePerUnit(packaging, packagingMode, actualLotUnits))}` : "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Extras / Outros Custos */}
+                <div className="rounded-2xl border border-border/70 bg-background p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Tag className="size-3.5 text-primary" />
+                      <span>Outros custos</span>
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-normal">opcional</span>
+                  </div>
+                  <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-secondary/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                    <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
+                    <input
+                      inputMode="decimal"
+                      value={other}
+                      onChange={(e) => setOther(e.target.value)}
+                      placeholder="0,00"
+                      className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
+                    />
+                  </div>
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
+                    <span>Rateio por peça:</span>
+                    <span className="font-bold text-foreground numeric">
+                      {actualLotUnits > 0 ? `+ ${brl(resolvePerUnit(other, otherMode, actualLotUnits))}` : "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner de Custo Real da Peça + Deduções Tributárias */}
+              <div className="rounded-2xl bg-secondary/50 border border-border/80 p-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Custo Real Médio da Peça
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl sm:text-2xl font-black text-foreground numeric">
+                      {brl(summaryPrices.avgCost)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({brl(toNumber(baseWholesaleGrade))} atacado base + {brl(
+                        resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
+                        resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
+                        resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1)
+                      )} rateio)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Steppers Compactos de Imposto & Cartão */}
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Imposto DAS */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Imposto (DAS):</span>
+                    <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setTax((t) => Math.max(0, Number((t - 0.5).toFixed(1))))}
+                        className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                      >
+                        <Minus className="size-3" />
+                      </button>
+                      <span className="px-2 text-xs font-bold numeric">{tax}%</span>
+                      <button
+                        type="button"
+                        onClick={() => setTax((t) => Number((t + 0.5).toFixed(1)))}
+                        className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Taxa Cartão */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Taxa cartão:</span>
+                    <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setCardRate((c) => Math.max(0, Number((c - 0.5).toFixed(1))))}
+                        className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                      >
+                        <Minus className="size-3" />
+                      </button>
+                      <span className="px-2 text-xs font-bold numeric">{cardRate}%</span>
+                      <button
+                        type="button"
+                        onClick={() => setCardRate((c) => Number((c + 0.5).toFixed(1)))}
+                        className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                      >
+                        <Plus className="size-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════════════
+                SEÇÃO D: Formação de Preço de Venda & Lucro do Lote (Os 3 Motores Sempre Visíveis)
+            ══════════════════════════════════════════════════════════════════ */}
+            <section className="panel p-5 sm:p-7 space-y-6 border border-border/80 bg-card shadow-soft">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+                    <span>Preço de Venda & Lucro da Grade</span>
+                    <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      Formação Comercial
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Escolha a estratégia comercial desejada. O sistema calcula o lucro líquido real descontando impostos e taxas.
+                  </p>
+                </div>
+
+                {/* SEGMENTED CONTROL APPLE: OS 3 MOTORES COMERCIAIS */}
+                <div className="flex rounded-xl bg-secondary/80 p-1 border border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStrategy("direct_price");
+                      setMatrixGlobalMode("direct_price");
+                      if (!directSalePrice && summaryPrices.avgSuggested > 0) {
+                        setDirectSalePrice(summaryPrices.avgSuggested.toFixed(2).replace(".", ","));
+                      }
+                    }}
+                    className={cn(
+                      "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                      strategy === "direct_price"
+                        ? "bg-card text-foreground shadow-xs font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Tag className="size-3" />
+                    <span>Preço Único (R$)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStrategy("margin");
+                      setMatrixGlobalMode("margin");
+                    }}
+                    className={cn(
+                      "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                      strategy === "margin"
+                        ? "bg-card text-foreground shadow-xs font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Sparkles className="size-3" />
+                    <span>Margem de Contribuição (%)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStrategy("markup");
+                      setMatrixGlobalMode("markup");
+                    }}
+                    className={cn(
+                      "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                      strategy === "markup"
+                        ? "bg-card text-foreground shadow-xs font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Zap className="size-3" />
+                    <span>Markup (×)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ÁREA DA ESTRATÉGIA ATIVA */}
+              <div className="space-y-4">
+                {/* Modo 1: Preço Único / Fixo com Cálculo Reverso */}
+                {strategy === "direct_price" && (
+                  <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-secondary/30 border border-border/70">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-foreground">
+                        Preço Único de Venda da Peça (R$)
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Digite o valor que deseja cobrar na etiqueta. O sistema calcula a margem e o markup automaticamente.
+                      </p>
+                      <div className="relative flex h-11 w-48 items-center rounded-xl border border-border/80 bg-background px-3 shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 mt-1.5">
+                        <span className="text-sm font-bold text-muted-foreground mr-1.5 select-none">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={directSalePrice}
+                          onChange={(e) => {
+                            setDirectSalePrice(e.target.value);
+                            setMatrixGlobalDirectPrice(e.target.value);
+                          }}
+                          placeholder="119,90"
+                          className="w-full bg-transparent text-base font-black text-foreground outline-none numeric"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 self-end">
+                      <span className="text-[11px] font-semibold text-muted-foreground mr-1">Centavos rápidos:</span>
+                      {[",90", ",00", ",99", ",50"].map((suf) => (
+                        <button
+                          key={suf}
+                          type="button"
+                          onClick={() => {
+                            const intPart = directSalePrice.split(",")[0] || "119";
+                            const next = intPart + suf;
+                            setDirectSalePrice(next);
+                            setMatrixGlobalDirectPrice(next);
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-border/70 bg-card hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer shadow-2xs"
+                        >
+                          {suf}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Modo 2: Margem de Contribuição */}
+                {strategy === "margin" && (
+                  <div className="space-y-2 p-4 rounded-2xl bg-secondary/30 border border-border/70">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-xs font-bold text-foreground">
+                          Margem de Contribuição Desejada (% sobre a venda)
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Porcentagem líquida que sobra no caixa após pagar custo da peça, imposto (DAS) e taxa de cartão.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.max(5, desiredMargin - 5);
+                            setDesiredMargin(next);
+                            setMatrixGlobalMarginStr(String(next));
+                          }}
+                          className="size-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Minus className="size-3.5" />
+                        </button>
+                        <span className="px-3 text-sm font-black numeric text-foreground">{desiredMargin}%</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.min(85, desiredMargin + 5);
+                            setDesiredMargin(next);
+                            setMatrixGlobalMarginStr(String(next));
+                          }}
+                          className="size-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Plus className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                      <span className="text-[11px] font-semibold text-muted-foreground mr-1">Metas sugeridas:</span>
+                      {[
+                        { label: "35% (Varejo Alto Giro)", val: 35 },
+                        { label: "45% (Equilíbrio)", val: 45 },
+                        { label: "50% (Recomendada)", val: 50 },
+                        { label: "60% (Marca Própria)", val: 60 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => {
+                            setDesiredMargin(preset.val);
+                            setMatrixGlobalMarginStr(String(preset.val));
+                          }}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border",
+                            desiredMargin === preset.val
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                              : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Modo 3: Markup Multiplicador */}
+                {strategy === "markup" && (
+                  <div className="space-y-2 p-4 rounded-2xl bg-secondary/30 border border-border/70">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-xs font-bold text-foreground">
+                          Multiplicador de Markup sobre o Custo Real
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Multiplica o custo total da peça (atacado + frete) pelo fator escolhido.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.max(10, markup - 10);
+                            setMarkup(next);
+                            setMatrixGlobalMarkupStr(String(next));
+                          }}
+                          className="size-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Minus className="size-3.5" />
+                        </button>
+                        <span className="px-3 text-sm font-black numeric text-foreground">
+                          {(1 + markup / 100).toFixed(2)}× ({markup}%)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.min(300, markup + 10);
+                            setMarkup(next);
+                            setMatrixGlobalMarkupStr(String(next));
+                          }}
+                          className="size-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Plus className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                      <span className="text-[11px] font-semibold text-muted-foreground mr-1">Multiplicadores da moda:</span>
+                      {[
+                        { label: "1.8× (Atacado)", val: 80 },
+                        { label: "2.0× (100% Varejo)", val: 100 },
+                        { label: "2.2× (120% Confecção)", val: 120 },
+                        { label: "2.5× (150% Boutique)", val: 150 },
+                        { label: "3.0× (200% Grife)", val: 200 },
+                      ].map((preset) => (
+                        <button
+                          key={preset.val}
+                          type="button"
+                          onClick={() => {
+                            setMarkup(preset.val);
+                            setMatrixGlobalMarkupStr(String(preset.val));
+                          }}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border",
+                            markup === preset.val
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                              : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Vitrine de Preço e Lucro com Alto Impacto Visual */}
+                <div className="grid gap-4 sm:grid-cols-2 rounded-2xl bg-secondary/30 border border-border/80 p-5">
+                  {/* Preço de Venda Sugerido */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">Preço de Venda Formado</span>
+                      {summaryPrices.hasMultiple && (
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          Faixa: {brl(summaryPrices.minSuggested)} a {brl(summaryPrices.maxSuggested)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
+                      {summaryPrices.avgSuggested > 0 ? brl(summaryPrices.avgSuggested) : "R$ —,——"}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Margem líquida no preço: <strong className="text-foreground">{summaryPrices.avgMargin > 0 ? pct(summaryPrices.avgMargin) : "—"}</strong>
+                    </p>
+                  </div>
+
+                  {/* Lucro Líquido por Peça */}
+                  <div className="space-y-1 sm:border-l sm:border-border/60 sm:pl-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">Lucro Líquido no Bolso (por peça)</span>
+                      {summaryPrices.avgProfit > 0 && (
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold border",
+                          summaryPrices.marginHealth.status === "healthy" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                          summaryPrices.marginHealth.status === "premium" && "bg-primary/10 text-primary border-primary/20",
+                          summaryPrices.marginHealth.status === "warning" && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                          summaryPrices.marginHealth.status === "danger" && "bg-destructive/10 text-destructive border-destructive/20",
+                        )}>
+                          {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 numeric tracking-tight">
+                      {summaryPrices.avgProfit > 0 ? `+ ${brl(summaryPrices.avgProfit)}` : "R$ —,——"}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Já descontados DAS ({tax}%) e taxa de cartão ({cardRate}%)
                     </p>
                   </div>
                 </div>
 
-                {/* 3 Linhas de Custos com Fórmula Viva */}
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {/* Frete da Nota */}
-                  <div className="rounded-2xl border border-border/70 bg-background p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Truck className="size-3.5 text-primary" />
-                        <span>Frete da nota</span>
-                      </Label>
-                      <span className="text-[10px] text-muted-foreground">total</span>
-                    </div>
-                    <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-secondary/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
-                      <input
-                        inputMode="decimal"
-                        value={freight}
-                        onChange={(e) => setFreight(e.target.value)}
-                        placeholder="0,00"
-                        className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
-                      />
-                    </div>
-                    <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
-                      <span>Rateio por peça:</span>
-                      <span className="font-bold text-foreground numeric">
-                        + {brl(resolvePerUnit(freight, freightMode, actualLotUnits))}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Embalagem & Tags */}
-                  <div className="rounded-2xl border border-border/70 bg-background p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Package className="size-3.5 text-primary" />
-                        <span>Embalagens & tags</span>
-                      </Label>
-                      <span className="text-[10px] text-muted-foreground">total</span>
-                    </div>
-                    <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-secondary/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
-                      <input
-                        inputMode="decimal"
-                        value={packaging}
-                        onChange={(e) => setPackaging(e.target.value)}
-                        placeholder="0,00"
-                        className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
-                      />
-                    </div>
-                    <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
-                      <span>Rateio por peça:</span>
-                      <span className="font-bold text-foreground numeric">
-                        + {brl(resolvePerUnit(packaging, packagingMode, actualLotUnits))}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Extras / Outros Custos */}
-                  <div className="rounded-2xl border border-border/70 bg-background p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <Tag className="size-3.5 text-primary" />
-                        <span>Outros custos</span>
-                      </Label>
-                      <span className="text-[10px] text-muted-foreground font-normal">opcional</span>
-                    </div>
-                    <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-secondary/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                      <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
-                      <input
-                        inputMode="decimal"
-                        value={other}
-                        onChange={(e) => setOther(e.target.value)}
-                        placeholder="0,00"
-                        className="h-10 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
-                      />
-                    </div>
-                    <div className="text-[11px] font-medium text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">
-                      <span>Rateio por peça:</span>
-                      <span className="font-bold text-foreground numeric">
-                        + {brl(resolvePerUnit(other, otherMode, actualLotUnits))}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Banner de Custo Real da Peça + Deduções Tributárias */}
-                <div className="rounded-2xl bg-secondary/50 border border-border/80 p-4 flex flex-wrap items-center justify-between gap-4">
-                  <div className="space-y-0.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Custo Real Médio da Peça
+                {/* 4 KPIs Panorâmicos do Lote Completo */}
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 pt-2 border-t border-border/50">
+                  <div className="rounded-xl border border-border/60 bg-background p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Peças na grade
                     </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl sm:text-2xl font-black text-foreground numeric">
-                        {brl(summaryPrices.avgCost)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({brl(toNumber(baseWholesaleGrade))} atacado base + {brl(
-                          resolvePerUnit(freight, freightMode, actualLotUnits) +
-                          resolvePerUnit(packaging, packagingMode, actualLotUnits) +
-                          resolvePerUnit(other, otherMode, actualLotUnits)
-                        )} rateio)
-                      </span>
-                    </div>
+                    <p className="text-lg font-black text-foreground numeric mt-0.5">
+                      {actualLotUnits} un.
+                    </p>
                   </div>
 
-                  {/* Steppers Compactos de Imposto & Cartão */}
-                  <div className="flex flex-wrap items-center gap-4">
-                    {/* Imposto DAS */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-muted-foreground">Imposto (DAS):</span>
-                      <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setTax((t) => Math.max(0, Number((t - 0.5).toFixed(1))))}
-                          className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                        <span className="px-2 text-xs font-bold numeric">{tax}%</span>
-                        <button
-                          type="button"
-                          onClick={() => setTax((t) => Number((t + 0.5).toFixed(1)))}
-                          className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="rounded-xl border border-border/60 bg-background p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Investimento Lote
+                    </span>
+                    <p className="text-lg font-black text-foreground numeric mt-0.5">
+                      {summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"}
+                    </p>
+                  </div>
 
-                    {/* Taxa Cartão */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-muted-foreground">Taxa cartão:</span>
-                      <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setCardRate((c) => Math.max(0, Number((c - 0.5).toFixed(1))))}
-                          className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                        <span className="px-2 text-xs font-bold numeric">{cardRate}%</span>
-                        <button
-                          type="button"
-                          onClick={() => setCardRate((c) => Number((c + 0.5).toFixed(1)))}
-                          className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="rounded-xl border border-border/60 bg-background p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Faturamento Previsto
+                    </span>
+                    <p className="text-lg font-black text-foreground numeric mt-0.5">
+                      {summaryPrices.totalRevenue > 0 ? brl(summaryPrices.totalRevenue) : "R$ 0,00"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border/60 bg-background p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      Lucro Líquido Total
+                    </span>
+                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 numeric mt-0.5">
+                      {summaryPrices.totalProfit > 0 ? `+ ${brl(summaryPrices.totalProfit)}` : "R$ 0,00"}
+                    </p>
                   </div>
                 </div>
-              </section>
-            ) : null}
 
-            {/* ══════════════════════════════════════════════════════════════════
-                SEÇÃO D: Formação de Preço de Venda & Lucro do Lote (Os 3 Motores)
-            ══════════════════════════════════════════════════════════════════ */}
-            {actualLotUnits > 0 ? (
-              toNumber(baseWholesaleGrade) > 0 ? (
-                <section className="panel p-5 sm:p-7 space-y-6 border border-border/80 bg-card shadow-soft animate-in fade-in-50 duration-200">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
-                    <div>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-                        <span>Preço de Venda & Lucro da Grade</span>
-                        <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                          Formação Comercial
-                        </span>
-                      </h2>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Escolha a estratégia comercial desejada. O sistema calcula o lucro líquido real descontando impostos e taxas.
-                      </p>
-                    </div>
-
-                    {/* SEGMENTED CONTROL APPLE: OS 3 MOTORES COMERCIAIS */}
-                    <div className="flex rounded-xl bg-secondary/80 p-1 border border-border/60">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStrategy("margin");
-                          setMatrixGlobalMode("margin");
-                        }}
-                        className={cn(
-                          "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
-                          strategy === "margin"
-                            ? "bg-card text-foreground shadow-xs font-bold"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Sparkles className="size-3" />
-                        <span>Margem %</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStrategy("markup");
-                          setMatrixGlobalMode("markup");
-                        }}
-                        className={cn(
-                          "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
-                          strategy === "markup"
-                            ? "bg-card text-foreground shadow-xs font-bold"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Zap className="size-3" />
-                        <span>Markup (×)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStrategy("direct_price");
-                          setMatrixGlobalMode("direct_price");
-                          if (!directSalePrice && summaryPrices.avgSuggested > 0) {
-                            setDirectSalePrice(summaryPrices.avgSuggested.toFixed(2).replace(".", ","));
-                          }
-                        }}
-                        className={cn(
-                          "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
-                          strategy === "direct_price"
-                            ? "bg-card text-foreground shadow-xs font-bold"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Tag className="size-3" />
-                        <span>Preço Fixo R$</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* ÁREA DA ESTRATÉGIA ATIVA */}
-                  <div className="space-y-3">
-                    {/* Modo 1: Margem Líquida */}
-                    {strategy === "margin" && (
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <Label className="text-xs font-bold text-foreground">
-                          Margem líquida desejada no preço de venda:
-                        </Label>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {[35, 40, 45, 50, 60].map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              onClick={() => {
-                                setDesiredMargin(m);
-                                setMatrixGlobalMarginStr(String(m));
-                              }}
-                              className={cn(
-                                "px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border",
-                                desiredMargin === m
-                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                  : "border-border/80 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                              )}
-                            >
-                              {m}% margem
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Modo 2: Markup Multiplicador */}
-                    {strategy === "markup" && (
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <Label className="text-xs font-bold text-foreground">
-                          Multiplicador de confecção sobre o custo:
-                        </Label>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {[
-                            { label: "2.0× (100%)", val: 100 },
-                            { label: "2.2× (120%)", val: 120 },
-                            { label: "2.5× (150%)", val: 150 },
-                            { label: "3.0× (200%)", val: 200 },
-                          ].map((preset) => (
-                            <button
-                              key={preset.label}
-                              type="button"
-                              onClick={() => {
-                                setMarkup(preset.val);
-                                setMatrixGlobalMarkupStr(String(preset.val));
-                              }}
-                              className={cn(
-                                "px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border",
-                                markup === preset.val
-                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                  : "border-border/80 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                              )}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Modo 3: Preço Fixo com Cálculo Reverso */}
-                    {strategy === "direct_price" && (
-                      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-secondary/30 border border-border/70">
-                        <div className="space-y-1">
-                          <Label className="text-xs font-bold text-foreground">
-                            Preço de etiqueta da peça (R$)
-                          </Label>
-                          <div className="relative flex h-11 w-44 items-center rounded-xl border border-border/80 bg-background px-3 shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
-                            <span className="text-sm font-bold text-muted-foreground mr-1.5 select-none">R$</span>
-                            <input
-                              inputMode="decimal"
-                              value={directSalePrice}
-                              onChange={(e) => {
-                                setDirectSalePrice(e.target.value);
-                                setMatrixGlobalDirectPrice(e.target.value);
-                              }}
-                              placeholder="119,90"
-                              className="w-full bg-transparent text-base font-black text-foreground outline-none numeric"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5 self-end">
-                          <span className="text-[11px] font-semibold text-muted-foreground mr-1">Centavos rápidos:</span>
-                          {[",90", ",00", ",50"].map((suf) => (
-                            <button
-                              key={suf}
-                              type="button"
-                              onClick={() => {
-                                const intPart = directSalePrice.split(",")[0] || "119";
-                                const next = intPart + suf;
-                                setDirectSalePrice(next);
-                                setMatrixGlobalDirectPrice(next);
-                              }}
-                              className="px-2.5 py-1 rounded-lg border border-border/70 bg-card hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer shadow-2xs"
-                            >
-                              {suf}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Vitrine de Preço e Lucro com Alto Impacto Visual */}
-                    <div className="grid gap-4 sm:grid-cols-2 rounded-2xl bg-secondary/30 border border-border/80 p-5">
-                      {/* Preço de Venda Sugerido */}
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-muted-foreground">Preço Médio de Venda</span>
-                          {summaryPrices.hasMultiple && (
-                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                              Faixa: {brl(summaryPrices.minSuggested)} a {brl(summaryPrices.maxSuggested)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
-                          {brl(summaryPrices.avgSuggested)}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Margem líquida no preço: <strong className="text-foreground">{pct(summaryPrices.avgMargin)}</strong>
-                        </p>
-                      </div>
-
-                      {/* Lucro Líquido por Peça */}
-                      <div className="space-y-1 sm:border-l sm:border-border/60 sm:pl-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-muted-foreground">Lucro Líquido no Bolso (médio)</span>
-                          <span className={cn(
-                            "rounded-full px-2 py-0.5 text-[10px] font-bold border",
-                            summaryPrices.marginHealth.status === "healthy" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-                            summaryPrices.marginHealth.status === "premium" && "bg-primary/10 text-primary border-primary/20",
-                            summaryPrices.marginHealth.status === "warning" && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-                            summaryPrices.marginHealth.status === "danger" && "bg-destructive/10 text-destructive border-destructive/20",
-                          )}>
-                            {summaryPrices.marginHealth.emoji} {summaryPrices.marginHealth.label}
-                          </span>
-                        </div>
-                        <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 numeric tracking-tight">
-                          + {brl(summaryPrices.avgProfit)}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          Já descontados DAS ({tax}%) e taxas ({cardRate}%)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 4 KPIs Panorâmicos do Lote Completo */}
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 pt-2 border-t border-border/50">
-                    <div className="rounded-xl border border-border/60 bg-background p-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Peças na grade
-                      </span>
-                      <p className="text-lg font-black text-foreground numeric mt-0.5">
-                        {actualLotUnits} un.
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-border/60 bg-background p-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Investimento Lote
-                      </span>
-                      <p className="text-lg font-black text-foreground numeric mt-0.5">
-                        {brl(summaryPrices.totalInvestment)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-border/60 bg-background p-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Faturamento Previsto
-                      </span>
-                      <p className="text-lg font-black text-foreground numeric mt-0.5">
-                        {brl(summaryPrices.totalRevenue)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-border/60 bg-background p-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                        Lucro Líquido Total
-                      </span>
-                      <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 numeric mt-0.5">
-                        + {brl(summaryPrices.totalProfit)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Ações Nobres de Entrada e Salvamento */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/60">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => save.mutate()}
-                        disabled={save.isPending || !name.trim()}
-                        className="h-11 rounded-xl text-xs font-semibold border-border bg-background hover:bg-secondary cursor-pointer flex-1 sm:flex-initial"
-                      >
-                        <Save className="size-3.5 mr-1.5" />
-                        Salvar no histórico
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={resetPricingModel}
-                        className="h-11 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-                      >
-                        <RotateCcw className="size-3.5 mr-1.5" />
-                        Limpar
-                      </Button>
-                    </div>
-
+                {/* Ações Nobres de Entrada e Salvamento */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border/60">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                       type="button"
-                      onClick={openEntryForCurrent}
-                      disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0 || summaryPrices.avgCost <= 0 || !name.trim()}
-                      className="h-12 px-8 rounded-xl gradient-primary text-primary-foreground font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer text-sm w-full sm:w-auto flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                      variant="outline"
+                      onClick={() => save.mutate()}
+                      disabled={save.isPending || !name.trim()}
+                      className="h-11 rounded-xl text-xs font-semibold border-border bg-background hover:bg-secondary cursor-pointer flex-1 sm:flex-initial"
                     >
-                      <PackagePlus className="size-4" />
-                      <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                      <Save className="size-3.5 mr-1.5" />
+                      Salvar no histórico
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={resetPricingModel}
+                      className="h-11 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <RotateCcw className="size-3.5 mr-1.5" />
+                      Limpar
                     </Button>
                   </div>
-                </section>
-              ) : (
-                <section className="panel p-6 border border-dashed border-border/80 bg-secondary/20 text-center space-y-2 rounded-2xl animate-in fade-in-50 duration-200">
-                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                    <Tag className="size-5" />
-                  </div>
-                  <p className="text-sm font-bold text-foreground">
-                    Informe o custo de atacado da peça no campo acima
-                  </p>
-                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                    Assim que você preencher o valor pago no atacado, o sistema calculará o preço sugerido, margem e o lucro líquido do lote inteiro.
-                  </p>
-                </section>
-              )
-            ) : null}
+
+                  <Button
+                    type="button"
+                    onClick={openEntryForCurrent}
+                    disabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0 || summaryPrices.avgCost <= 0 || !name.trim()}
+                    className="h-12 px-8 rounded-xl gradient-primary text-primary-foreground font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer text-sm w-full sm:w-auto flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <PackagePlus className="size-4" />
+                    <span>Dar entrada no estoque ({actualLotUnits} un.)</span>
+                  </Button>
+                </div>
+              </div>
+            </section>
           </div>
         )}
 
