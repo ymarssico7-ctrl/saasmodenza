@@ -24,6 +24,7 @@ import {
   Palette,
   Percent,
   Plus,
+  Receipt,
   RotateCcw,
   Save,
   Search,
@@ -1897,6 +1898,138 @@ function Precificacao() {
       return a.size.localeCompare(b.size);
     });
   }, [variantResults]);
+
+  const filteredVariants = useMemo(() => {
+    if (tableColorFilter === "all") return displayedVariants;
+    return displayedVariants.filter(
+      (v) => v.color.toLowerCase() === tableColorFilter.toLowerCase()
+    );
+  }, [displayedVariants, tableColorFilter]);
+
+  const distinctModelColors = useMemo(() => {
+    const fromVariants = Array.from(new Set(variants.map((v) => v.color)));
+    const combined = Array.from(new Set([...activeColors, ...fromVariants]));
+    return combined.filter(Boolean);
+  }, [activeColors, variants]);
+
+  const toggleSizeInGrade = (sz: string) => {
+    const isCurrentlyActive = variants.some((v) => v.size === sz);
+    if (isCurrentlyActive) {
+      setVariants((prev) => prev.filter((v) => v.size !== sz));
+      setMatrixSizes((prev) => prev.filter((s) => s !== sz));
+      toast.success(`Tamanho ${sz} removido da grade`);
+    } else {
+      const colorsToUse = activeColors.length > 0 ? activeColors : ["Off-White"];
+      if (activeColors.length === 0) {
+        setActiveColors(["Off-White"]);
+      }
+      setMatrixSizes((prev) => sortCanonicalSizes([...prev, sz]));
+      const newRows: VariantRow[] = colorsToUse.map((color) => ({
+        id: `v-${sz.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        size: sz,
+        color,
+        wholesaleCost: baseWholesaleGrade || "",
+        customSalePrice: "",
+        qty: matrixDefaultQtys[sz] ?? 2,
+      }));
+      setVariants((prev) => {
+        const combined = [...prev, ...newRows];
+        return combined.sort((a, b) => {
+          const colComp = a.color.localeCompare(b.color);
+          if (colComp !== 0) return colComp;
+          const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+          const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return a.size.localeCompare(b.size);
+        });
+      });
+      toast.success(`Tamanho ${sz} adicionado à grade`);
+    }
+  };
+
+  const applySizePreset = (presetSizes: string[]) => {
+    setMatrixSizes(presetSizes);
+    const colorsToUse = activeColors.length > 0 ? activeColors : ["Off-White"];
+    if (activeColors.length === 0) {
+      setActiveColors(["Off-White"]);
+    }
+    const newRows: VariantRow[] = [];
+    colorsToUse.forEach((color) => {
+      presetSizes.forEach((sz) => {
+        const existing = variants.find(
+          (v) => v.color.toLowerCase() === color.toLowerCase() && v.size === sz
+        );
+        newRows.push({
+          id: existing?.id ?? `v-${sz.toLowerCase()}-${color.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          size: sz,
+          color,
+          wholesaleCost: existing?.wholesaleCost || baseWholesaleGrade || "",
+          customSalePrice: existing?.customSalePrice ?? "",
+          qty: existing?.qty ?? (matrixDefaultQtys[sz] ?? 2),
+        });
+      });
+    });
+    setVariants(newRows);
+    toast.success(`Grade de tamanhos aplicada: ${presetSizes.join(", ")}`);
+  };
+
+  const clearGradeSizes = () => {
+    setMatrixSizes([]);
+    setVariants([]);
+    toast.success("Grade de tamanhos limpa");
+  };
+
+  const addColorToGrade = (colName: string) => {
+    const clean = colName.trim();
+    if (!clean) return;
+    if (activeColors.some((c) => c.toLowerCase() === clean.toLowerCase())) {
+      toast.error(`Cor "${clean}" já está na grade`);
+      return;
+    }
+    const newActiveColors = [...activeColors, clean];
+    setActiveColors(newActiveColors);
+
+    const currentSizes = Array.from(new Set(variants.map((v) => v.size)));
+    const sizesToUse = currentSizes.length > 0 ? currentSizes : (matrixSizes.length > 0 ? matrixSizes : ["P", "M", "G", "GG"]);
+    if (matrixSizes.length === 0) {
+      setMatrixSizes(sizesToUse);
+    }
+
+    const newRows: VariantRow[] = sizesToUse.map((sz) => ({
+      id: `v-${sz.toLowerCase()}-${clean.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      size: sz,
+      color: clean,
+      wholesaleCost: baseWholesaleGrade || "",
+      customSalePrice: "",
+      qty: matrixDefaultQtys[sz] ?? 2,
+    }));
+
+    setVariants((prev) => {
+      const combined = [...prev, ...newRows];
+      return combined.sort((a, b) => {
+        const colComp = a.color.localeCompare(b.color);
+        if (colComp !== 0) return colComp;
+        const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+        const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.size.localeCompare(b.size);
+      });
+    });
+    toast.success(`Cor "${clean}" adicionada à grade`);
+  };
+
+  const removeColorFromGrade = (colName: string) => {
+    setActiveColors((prev) => prev.filter((c) => c.toLowerCase() !== colName.toLowerCase()));
+    setVariants((prev) => prev.filter((v) => v.color.toLowerCase() !== colName.toLowerCase()));
+    if (tableColorFilter.toLowerCase() === colName.toLowerCase()) {
+      setTableColorFilter("all");
+    }
+    toast.success(`Cor "${colName}" removida da grade`);
+  };
 
   const addQuickColor = (colorName: string) => {
     const clean = colorName.trim();
@@ -4528,187 +4661,409 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* SEÇÃO B: Grade de Cores e Tamanhos (Matriz Fluida) */}
-              <div className="space-y-4 pt-2 border-t border-border/50">
-                {/* Seleção de Família de Tamanhos como Chips Compactos */}
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* ── SEÇÃO B: Cores, Tamanhos & Planilha de Variações do Modelo ── */}
+              <div className="space-y-5 pt-3 border-t border-border/50">
+                {/* 1. SELEÇÃO DE CORES DO MODELO */}
+                <div className="space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Palette className="size-3.5 text-primary" />
+                      <span>Cores deste modelo:</span>
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {activeColors.length === 0
+                        ? "Nenhuma cor adicionada"
+                        : `${activeColors.length} ${activeColors.length === 1 ? "cor ativa" : "cores ativas"}`}
+                    </span>
+                  </div>
+
+                  {/* Tags de cores selecionadas + Campo de adicionar cor */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {activeColors.map((color) => (
+                      <span
+                        key={color}
+                        className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-border/80 bg-background text-xs font-semibold text-foreground shadow-2xs group"
+                      >
+                        <span
+                          className="size-2.5 rounded-full border border-black/10 shrink-0"
+                          style={{ backgroundColor: getColorDot(color) }}
+                        />
+                        <span>{color}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeColorFromGrade(color)}
+                          className="size-4 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          title={`Remover cor ${color}`}
+                        >
+                          <X className="size-2.5" />
+                        </button>
+                      </span>
+                    ))}
+
+                    {/* Adicionar nova cor inline */}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={colorSearchQuery}
+                        onChange={(e) => setColorSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && colorSearchQuery.trim()) {
+                            e.preventDefault();
+                            addColorToGrade(colorSearchQuery.trim());
+                            setColorSearchQuery("");
+                          }
+                        }}
+                        placeholder="+ Adicionar cor..."
+                        className="h-8 w-32 sm:w-40 rounded-full border border-border/80 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 shadow-2xs"
+                      />
+                      {colorSearchQuery.trim() && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            addColorToGrade(colorSearchQuery.trim());
+                            setColorSearchQuery("");
+                          }}
+                          className="h-8 px-2.5 rounded-full text-xs font-semibold cursor-pointer shadow-xs"
+                        >
+                          <Plus className="size-3 mr-1" /> Adicionar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sugestões rápidas de cores da moda */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[11px] font-semibold text-muted-foreground mr-1">Sugestões:</span>
+                    {["Off-White", "Preto", "Areia", "Nude", "Bege", "Terracota", "Grafite", "Caramelo", "Azul Marinho", "Verde Militar"]
+                      .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                      .map((col) => (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => addColorToGrade(col)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border/60 bg-secondary/40 hover:bg-secondary text-[11px] font-medium text-foreground transition-all active:scale-95 cursor-pointer shadow-2xs"
+                        >
+                          <span className="size-2 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: getColorDot(col) }} />
+                          <span>+ {col}</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                {/* 2. GRADE DE TAMANHOS DESTE MODELO */}
+                <div className="space-y-2.5 pt-3 border-t border-border/40">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <SlidersHorizontal className="size-3.5 text-primary" />
+                      <span>Grade de tamanhos deste modelo:</span>
+                    </Label>
+
+                    {/* Presets de Grade Rápidos */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-muted-foreground mr-1">Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => applySizePreset(["P", "M", "G", "GG"])}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/70 bg-card hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                      >
+                        + P–GG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applySizePreset(["36", "38", "40", "42", "44", "46"])}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/70 bg-card hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                      >
+                        + 36–46
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applySizePreset(["GG", "G1", "G2", "G3"])}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/70 bg-card hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                      >
+                        + Plus
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applySizePreset(["34", "36", "38", "40", "42", "44", "46", "48"])}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/70 bg-card hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                      >
+                        + Jeans
+                      </button>
+                      {variants.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={clearGradeSizes}
+                          className="px-2 py-1 rounded-full text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pills de todos os tamanhos canônicos da moda (Toggleáveis) */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs font-semibold text-muted-foreground mr-1">Grade:</span>
-                    {SIZE_FAMILIES.filter((f) => f.id !== "todas").map((fam) => {
-                      const isActive = activeSizeFamily === fam.id;
+                    {ALL_FASHION_SIZES.map((sz) => {
+                      const isSelected = variants.some((v) => v.size === sz);
                       return (
                         <button
-                          key={fam.id}
+                          key={sz}
                           type="button"
-                          onClick={() => {
-                            setActiveSizeFamily(fam.id);
-                            setMatrixSizes(fam.sizes);
-                          }}
+                          onClick={() => toggleSizeInGrade(sz)}
                           className={cn(
-                            "px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border",
-                            isActive
+                            "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 shadow-2xs active:scale-95",
+                            isSelected
                               ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                              : "border-border/80 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                           )}
                         >
-                          {fam.label}
+                          <span>{sz}</span>
+                          {isSelected && <Check className="size-3 ml-0.5 text-primary-foreground" />}
                         </button>
                       );
                     })}
                   </div>
-
-                  <div className="text-[11px] text-muted-foreground">
-                    Clique nas células para digitar a quantidade recebida.
-                  </div>
                 </div>
 
-                {/* MATRIZ DE CORES × TAMANHOS */}
-                {activeColors.length === 0 ? (
-                  <div className="rounded-2xl border-2 border-dashed border-border/70 bg-secondary/20 p-8 text-center space-y-3">
-                    <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                      <Palette className="size-5" />
-                    </div>
+                {/* 3. PLANILHA DE VARIAÇÕES DO MODELO (O Retorno Triunfal da Tabela Linha a Linha) */}
+                <div className="space-y-3 pt-3 border-t border-border/50">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-bold text-foreground">Nenhuma cor adicionada na grade</p>
-                      <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-0.5">
-                        Escolha uma cor abaixo com 1 clique para abrir a tabela de grade e digitar as quantidades.
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Receipt className="size-4 text-primary" />
+                        <span>Planilha de variações do modelo</span>
+                        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          {variants.length} {variants.length === 1 ? "variação" : "variações"}
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Cada linha gera um SKU único. Ajuste quantidades, custos ou preços individualmente quando necessário.
                       </p>
                     </div>
-                    {/* Pills de Adição Rápida */}
-                    <div className="flex flex-wrap justify-center gap-1.5 pt-2 max-w-lg mx-auto">
-                      {["Off-White", "Preto", "Bege", "Terracota", "Azul Marinho", "Areia", "Verde Militar", "Fúcsia", "Caramelo"].map((col) => (
-                        <button
-                          key={col}
-                          type="button"
-                          onClick={() => addColorToMatrix(col)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/80 bg-card hover:bg-secondary text-xs font-semibold text-foreground transition-all active:scale-95 shadow-2xs cursor-pointer"
-                        >
-                          <span className="size-2.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: getColorDot(col) }} />
-                          <span>+ {col}</span>
-                        </button>
-                      ))}
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addNewVariantRow}
+                        className="h-8 rounded-xl text-xs font-semibold cursor-pointer shadow-2xs"
+                      >
+                        <Plus className="size-3.5 mr-1" /> Variação avulsa
+                      </Button>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {/* Tabela de Matriz Estilo Apple/Linear */}
+
+                  {/* Filtro de Visualização por Cor */}
+                  {distinctModelColors.length > 1 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[11px] font-semibold text-muted-foreground mr-1">Filtrar cor:</span>
+                      <button
+                        type="button"
+                        onClick={() => setTableColorFilter("all")}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border",
+                          tableColorFilter === "all"
+                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        Todas as cores ({actualLotUnits} un.)
+                      </button>
+
+                      {distinctModelColors.map((color) => {
+                        const colorTotalQty = variants
+                          .filter((v) => v.color.toLowerCase() === color.toLowerCase())
+                          .reduce((a, b) => a + (b.qty || 1), 0);
+                        const isCurrent = tableColorFilter.toLowerCase() === color.toLowerCase();
+
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setTableColorFilter(color)}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border",
+                              isCurrent
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
+                            )}
+                          >
+                            <span
+                              className="size-2 rounded-full border border-black/10 shrink-0"
+                              style={{ backgroundColor: getColorDot(color) }}
+                            />
+                            <span>{color} ({colorTotalQty} un.)</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* TABELA RESOLUTIVA LINHA A LINHA */}
+                  {filteredVariants.length === 0 ? (
+                    <div className="rounded-2xl border-2 border-dashed border-border/80 bg-secondary/20 p-8 text-center space-y-3">
+                      <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                        <Palette className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">Nenhuma variação na grade deste modelo</p>
+                        <p className="text-xs text-muted-foreground max-w-md mx-auto mt-0.5">
+                          Selecione uma cor e os tamanhos desejados acima (ou use os presets como + P-GG) para gerar a grade automaticamente.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-2 pt-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            if (activeColors.length === 0) setActiveColors(["Off-White"]);
+                            applySizePreset(["P", "M", "G", "GG"]);
+                          }}
+                          className="rounded-full text-xs font-semibold cursor-pointer shadow-xs"
+                        >
+                          <Sparkles className="size-3.5 mr-1" /> Criar Grade Padrão (Off-White P-GG)
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
                     <div className="overflow-x-auto rounded-2xl border border-border/80 bg-background shadow-2xs">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
                           <tr className="border-b border-border/70 bg-secondary/40 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                            <th className="py-2.5 pl-4 pr-3 min-w-[130px]">Cor</th>
-                            {matrixSizes.map((sz) => (
-                              <th key={sz} className="py-2.5 px-2 text-center min-w-[54px] font-bold">
-                                {sz}
-                              </th>
-                            ))}
-                            <th className="py-2.5 px-3 text-center min-w-[60px] font-bold text-foreground">
-                              Total
-                            </th>
-                            <th className="py-2.5 px-3 text-right min-w-[80px] font-bold text-foreground">
-                              Preço
-                            </th>
-                            <th className="py-2.5 px-3 text-right min-w-[80px] font-bold text-emerald-600 dark:text-emerald-400">
-                              Lucro
-                            </th>
+                            <th className="py-2.5 pl-4 pr-3 min-w-[120px]">Cor</th>
+                            <th className="py-2.5 px-2 text-center min-w-[60px]">Tam.</th>
+                            <th className="py-2.5 px-2 text-center min-w-[70px]">Qtd.</th>
+                            <th className="py-2.5 px-3 min-w-[130px]">Custo Atacado</th>
+                            <th className="py-2.5 px-3 min-w-[100px]">Custo Real</th>
+                            <th className="py-2.5 px-3 min-w-[140px]">Preço de Venda</th>
+                            <th className="py-2.5 px-2 text-center min-w-[90px]">Margem Real</th>
+                            <th className="py-2.5 px-3 text-right min-w-[110px]">Lucro Líquido</th>
                             <th className="py-2.5 pr-3 text-right w-10"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
-                          {activeColors.map((color) => {
-                            const colorRows = variants.filter(
-                              (v) => v.color.toLowerCase() === color.toLowerCase()
-                            );
-                            const rowTotal = colorRows.reduce((a, b) => a + (b.qty || 0), 0);
-                            const cg = colorGroups.find((g) => g.color.toLowerCase() === color.toLowerCase());
-                            const rowPrice = cg && cg.avgPrice > 0 ? cg.avgPrice : null;
-                            const rowProfit = cg && cg.avgProfit !== 0 ? cg.avgProfit : null;
-                            const profitNeg = rowProfit !== null && rowProfit < 0;
+                          {filteredVariants.map((v) => {
+                            const hasCustomWholesale = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
+                            const hasCustomPrice = v.customSalePrice !== undefined && v.customSalePrice !== "" && toNumber(v.customSalePrice) > 0;
+                            const profitNeg = v.profit < 0;
 
                             return (
-                              <tr key={color} className="hover:bg-secondary/20 transition-colors">
+                              <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
+                                {/* Cor */}
                                 <td className="py-2 pl-4 pr-3 font-semibold text-foreground flex items-center gap-2">
                                   <span
                                     className="size-3 rounded-full border border-black/10 shrink-0"
-                                    style={{ backgroundColor: getColorDot(color) }}
+                                    style={{ backgroundColor: getColorDot(v.color) }}
                                   />
-                                  <span className="truncate max-w-[120px]">{color}</span>
+                                  <span className="truncate max-w-[110px]">{v.color}</span>
                                 </td>
 
-                                {matrixSizes.map((sz) => {
-                                  const cellVar = variants.find(
-                                    (v) =>
-                                      v.color.toLowerCase() === color.toLowerCase() &&
-                                      v.size === sz
-                                  );
-                                  const cellQty = cellVar?.qty ?? 0;
-
-                                  return (
-                                    <td key={sz} className="py-2 px-1 text-center">
-                                      <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        value={cellQty === 0 ? "" : cellQty}
-                                        onChange={(e) => {
-                                          const raw = e.target.value.replace(/\D/g, "");
-                                          const next = raw === "" ? 0 : parseInt(raw, 10);
-                                          updateMatrixCellQty(color, sz, next);
-                                        }}
-                                        placeholder="0"
-                                        className={cn(
-                                          "w-11 h-9 rounded-lg text-center font-bold text-xs numeric transition-all outline-none border focus:ring-2 focus:ring-primary/30",
-                                          cellQty > 0
-                                            ? "bg-primary/10 border-primary/40 text-primary font-black"
-                                            : "bg-secondary/40 border-transparent text-muted-foreground/60 hover:border-border/60"
-                                        )}
-                                      />
-                                    </td>
-                                  );
-                                })}
-
-                                <td className="py-2 px-3 text-center font-black numeric text-foreground">
-                                  {rowTotal > 0 ? (
-                                    <span className="text-primary">{rowTotal}</span>
-                                  ) : (
-                                    <span className="text-muted-foreground/40">0</span>
-                                  )}
+                                {/* Tamanho */}
+                                <td className="py-2 px-2 text-center">
+                                  <span className="inline-block px-2 py-0.5 rounded-md bg-secondary/80 text-foreground font-black text-xs">
+                                    {v.size}
+                                  </span>
                                 </td>
 
-                                {/* Preço de Venda calculado pelo motor ativo */}
+                                {/* Quantidade (Input Direto) */}
+                                <td className="py-2 px-2 text-center">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={v.qty}
+                                    onChange={(e) => {
+                                      const raw = e.target.value.replace(/\D/g, "");
+                                      const qty = raw === "" ? 1 : parseInt(raw, 10);
+                                      updateVariantQty(v.id, qty);
+                                    }}
+                                    className="w-14 h-8 rounded-lg text-center font-bold text-xs numeric bg-secondary/40 border border-border/80 focus:border-primary focus:bg-background outline-none transition-all shadow-2xs"
+                                  />
+                                </td>
+
+                                {/* Custo Atacado (Input Direto na Linha!) */}
+                                <td className="py-2 px-3">
+                                  <div className="relative flex h-8 w-28 items-center rounded-lg border border-border/80 bg-background px-2 shadow-2xs focus-within:border-primary">
+                                    <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                    <input
+                                      inputMode="decimal"
+                                      value={v.wholesaleCost !== "" ? v.wholesaleCost : baseWholesaleGrade}
+                                      onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                      placeholder="0,00"
+                                      className={cn(
+                                        "w-full bg-transparent text-xs font-bold outline-none numeric",
+                                        hasCustomWholesale ? "text-primary font-black" : "text-foreground"
+                                      )}
+                                    />
+                                  </div>
+                                </td>
+
+                                {/* Custo Real (Calculado com Rateio de Frete/Embalagem) */}
+                                <td className="py-2 px-3 font-bold text-xs numeric text-foreground">
+                                  {brl(v.realCost)}
+                                </td>
+
+                                {/* Preço de Venda (Input Direto na Linha!) */}
+                                <td className="py-2 px-3">
+                                  <div className="relative flex h-8 w-28 items-center rounded-lg border border-border/80 bg-background px-2 shadow-2xs focus-within:border-primary">
+                                    <span className="text-[10px] font-bold text-muted-foreground mr-1 select-none">R$</span>
+                                    <input
+                                      inputMode="decimal"
+                                      value={
+                                        v.customSalePrice !== ""
+                                          ? v.customSalePrice
+                                          : v.suggestedPrice > 0
+                                            ? v.suggestedPrice.toFixed(2).replace(".", ",")
+                                            : ""
+                                      }
+                                      onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                      placeholder="0,00"
+                                      className={cn(
+                                        "w-full bg-transparent text-xs font-bold outline-none numeric",
+                                        hasCustomPrice ? "text-primary font-black" : "text-foreground"
+                                      )}
+                                    />
+                                  </div>
+                                </td>
+
+                                {/* Margem Real (%) */}
+                                <td className="py-2 px-2 text-center">
+                                  <span
+                                    className={cn(
+                                      "inline-block px-2 py-0.5 rounded-full text-xs font-bold numeric",
+                                      v.marginOnPrice >= 45
+                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                        : v.marginOnPrice >= 25
+                                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                          : "bg-destructive/10 text-destructive"
+                                    )}
+                                  >
+                                    {Math.round(v.marginOnPrice)}%
+                                  </span>
+                                </td>
+
+                                {/* Lucro Líquido (R$) */}
                                 <td className="py-2 px-3 text-right">
-                                  {rowPrice !== null ? (
-                                    <span className="text-xs font-black numeric text-foreground">
-                                      {brl(rowPrice)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-[11px] text-muted-foreground/40">—</span>
-                                  )}
-                                </td>
-
-                                {/* Lucro líquido por peça */}
-                                <td className="py-2 px-3 text-right">
-                                  {rowProfit !== null ? (
-                                    <span className={cn(
+                                  <span
+                                    className={cn(
                                       "text-xs font-black numeric",
-                                      profitNeg
-                                        ? "text-destructive"
-                                        : "text-emerald-600 dark:text-emerald-400"
-                                    )}>
-                                      {profitNeg ? "" : "+"}{brl(rowProfit)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-[11px] text-muted-foreground/40">—</span>
-                                  )}
+                                      profitNeg ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
+                                    )}
+                                  >
+                                    {profitNeg ? "" : "+"}{brl(v.profit)}
+                                  </span>
                                 </td>
 
+                                {/* Excluir Variação */}
                                 <td className="py-2 pr-3 text-right">
                                   <button
                                     type="button"
-                                    onClick={() => removeColorFromMatrix(color)}
-                                    className="size-7 rounded-lg inline-flex items-center justify-center text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                    title={`Remover cor ${color}`}
+                                    onClick={() => removeVariant(v.id)}
+                                    className="size-7 rounded-lg inline-flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                    title="Excluir esta variação"
                                   >
-                                    <X className="size-3.5" />
+                                    <Trash2 className="size-3.5" />
                                   </button>
                                 </td>
                               </tr>
@@ -4716,251 +5071,33 @@ function Precificacao() {
                           })}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t border-border/80 bg-secondary/30 font-bold text-foreground">
-                            <td className="py-2.5 pl-4 pr-3 text-[11px] uppercase tracking-wider text-muted-foreground">
-                              Total Peças
+                          <tr className="border-t border-border/80 bg-secondary/40 font-bold text-foreground">
+                            <td colSpan={2} className="py-3 pl-4 pr-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+                              Totais do lote ({actualLotUnits} un. · {distinctModelColors.length} {distinctModelColors.length === 1 ? "cor" : "cores"})
                             </td>
-                            {matrixSizes.map((sz) => {
-                              const szTotal = variants
-                                .filter((v) => v.size === sz)
-                                .reduce((a, b) => a + (b.qty || 0), 0);
-                              return (
-                                <td key={sz} className="py-2.5 px-2 text-center numeric text-xs font-bold">
-                                  {szTotal > 0 ? szTotal : "—"}
-                                </td>
-                              );
-                            })}
-                            <td className="py-2.5 px-3 text-center numeric text-sm font-black text-primary">
+                            <td className="py-3 px-2 text-center numeric text-xs font-black text-primary">
                               {actualLotUnits} un.
                             </td>
-                            {/* Preço Médio Sugerido */}
-                            <td className="py-2.5 px-3 text-right">
-                              {summaryPrices.avgSuggested > 0 ? (
-                                <span className="text-xs font-black numeric text-foreground" title="Preço Médio de Venda">
-                                  {brl(summaryPrices.avgSuggested)}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-muted-foreground/40">—</span>
-                              )}
+                            <td></td>
+                            <td className="py-3 px-3 text-xs numeric font-bold text-muted-foreground">
+                              {summaryPrices.avgCost > 0 ? `Média ${brl(summaryPrices.avgCost)}` : "—"}
                             </td>
-                            {/* Lucro Médio por Peça */}
-                            <td className="py-2.5 px-3 text-right">
-                              {summaryPrices.avgProfit > 0 ? (
-                                <span className="text-xs font-black numeric text-emerald-600 dark:text-emerald-400" title="Lucro Médio por Peça">
-                                  +{brl(summaryPrices.avgProfit)}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-muted-foreground/40">—</span>
-                              )}
+                            <td className="py-3 px-3 text-xs numeric font-black text-foreground">
+                              {summaryPrices.avgSuggested > 0 ? `Média ${brl(summaryPrices.avgSuggested)}` : "—"}
+                            </td>
+                            <td className="py-3 px-2 text-center numeric text-xs font-bold text-foreground">
+                              {summaryPrices.avgMargin > 0 ? `${Math.round(summaryPrices.avgMargin)}%` : "—"}
+                            </td>
+                            <td className="py-3 px-3 text-right numeric text-xs font-black text-emerald-600 dark:text-emerald-400">
+                              {summaryPrices.totalProfit > 0 ? `+${brl(summaryPrices.totalProfit)}` : "—"}
                             </td>
                             <td></td>
                           </tr>
                         </tfoot>
                       </table>
                     </div>
-
-                    {/* Barra de Adicionar Mais Cores & Botão de Personalizar Variações */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[11px] font-semibold text-muted-foreground mr-1">+ Cor rápida:</span>
-                        {["Off-White", "Preto", "Bege", "Terracota", "Azul Marinho", "Areia", "Verde Militar", "Branco"]
-                          .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
-                          .slice(0, 5)
-                          .map((col) => (
-                            <button
-                              key={col}
-                              type="button"
-                              onClick={() => addColorToMatrix(col)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border/60 bg-secondary/50 hover:bg-secondary text-[11px] font-medium text-foreground transition-all active:scale-95 cursor-pointer"
-                            >
-                              <span className="size-2 rounded-full" style={{ backgroundColor: getColorDot(col) }} />
-                              <span>{col}</span>
-                            </button>
-                          ))}
-                      </div>
-
-                      {/* Campo de Cor Personalizada */}
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={colorSearchQuery}
-                          onChange={(e) => setColorSearchQuery(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && colorSearchQuery.trim()) {
-                              e.preventDefault();
-                              addColorToMatrix(colorSearchQuery.trim());
-                              setColorSearchQuery("");
-                            }
-                          }}
-                          placeholder="Outra cor..."
-                          className="h-8 w-28 sm:w-36 rounded-lg border border-border/70 bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (colorSearchQuery.trim()) {
-                              addColorToMatrix(colorSearchQuery.trim());
-                              setColorSearchQuery("");
-                            }
-                          }}
-                          disabled={!colorSearchQuery.trim()}
-                          className="h-8 px-2.5 rounded-lg text-xs font-semibold cursor-pointer"
-                        >
-                          <Plus className="size-3" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* EXCEÇÃO INTELIGENTE POR TAMANHO: Compacto, Apple Level, ZERO tabelas duplicadas */}
-                    <div className="pt-2 border-t border-border/40 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowVariantCustomizer(!showVariantCustomizer)}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border",
-                            showVariantCustomizer || matrixSizes.some((sz) => variants.some((v) => v.size === sz && ((v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== ""))))
-                              ? "bg-primary/10 border-primary/40 text-primary shadow-2xs"
-                              : "border-border/80 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                          )}
-                        >
-                          <SlidersHorizontal className="size-3.5" />
-                          <span>
-                            {showVariantCustomizer
-                              ? "Ocultar ajustes de tamanho"
-                              : "Algum tamanho custa ou vende por valor diferente? (ex: GG)"}
-                          </span>
-                          {matrixSizes.some((sz) => variants.some((v) => v.size === sz && ((v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== "")))) && (
-                            <span className="size-2 rounded-full bg-primary" />
-                          )}
-                        </button>
-
-                        <span className="text-[11px] text-muted-foreground">
-                          {matrixSizes.some((sz) => variants.some((v) => v.size === sz && ((v.wholesaleCost && v.wholesaleCost !== "") || (v.customSalePrice && v.customSalePrice !== ""))))
-                            ? "Exceções ativas aplicadas na grade"
-                            : "Padrão: toda a grade tem o mesmo valor"}
-                        </span>
-                      </div>
-
-                      {/* Barramento Inline de Exceções de Tamanho: 1 chip por tamanho, SEM duplicar linhas */}
-                      {showVariantCustomizer && (
-                        <div className="rounded-2xl border border-primary/20 bg-primary/[0.02] p-3.5 space-y-2.5 animate-in fade-in-50 duration-200">
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
-                            <div>
-                              <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                <Tag className="size-3.5 text-primary" />
-                                <span>Ajustar valor específico por tamanho</span>
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                Preencha apenas o tamanho que for diferente (ex: GG). Tamanhos vazios herdam o valor padrão do lote ({brl(toNumber(baseWholesaleGrade))}).
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: "", customSalePrice: "" })));
-                                toast.success("Todos os tamanhos restaurados para o padrão do lote");
-                              }}
-                              className="h-7 text-[11px] text-muted-foreground hover:text-destructive cursor-pointer"
-                            >
-                              Redefinir tudo ao padrão
-                            </Button>
-                          </div>
-
-                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                            {matrixSizes.map((sz) => {
-                              const szVars = variants.filter((v) => v.size === sz);
-                              const currentCost = szVars[0]?.wholesaleCost ?? "";
-                              const currentPrice = szVars[0]?.customSalePrice ?? "";
-                              const hasCustom = (currentCost && currentCost !== "") || (currentPrice && currentPrice !== "");
-
-                              return (
-                                <div
-                                  key={sz}
-                                  className={cn(
-                                    "rounded-xl border p-2.5 space-y-1.5 transition-all",
-                                    hasCustom
-                                      ? "border-primary/50 bg-background shadow-xs"
-                                      : "border-border/60 bg-secondary/30"
-                                  )}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-extrabold text-foreground flex items-center gap-1">
-                                      <span>Tamanho {sz}</span>
-                                      {hasCustom && (
-                                        <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded-full">
-                                          Personalizado
-                                        </span>
-                                      )}
-                                    </span>
-                                    {hasCustom && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setVariants((prev) =>
-                                            prev.map((v) => (v.size === sz ? { ...v, wholesaleCost: "", customSalePrice: "" } : v))
-                                          );
-                                        }}
-                                        className="text-[10px] text-muted-foreground hover:text-destructive cursor-pointer"
-                                        title="Voltar ao padrão"
-                                      >
-                                        Limpar
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                                    <div className="space-y-0.5">
-                                      <span className="text-[10px] text-muted-foreground">Custo Atacado:</span>
-                                      <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-1.5 focus-within:border-primary">
-                                        <span className="text-[9px] font-bold text-muted-foreground mr-1">R$</span>
-                                        <input
-                                          inputMode="decimal"
-                                          value={currentCost}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            setVariants((prev) =>
-                                              prev.map((v) => (v.size === sz ? { ...v, wholesaleCost: val } : v))
-                                            );
-                                          }}
-                                          placeholder={baseWholesaleGrade || "0,00"}
-                                          className="w-full bg-transparent text-xs font-bold text-foreground outline-none numeric"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-0.5">
-                                      <span className="text-[10px] text-muted-foreground">Preço Venda:</span>
-                                      <div className="relative flex h-8 items-center rounded-lg border border-border/80 bg-background px-1.5 focus-within:border-primary">
-                                        <span className="text-[9px] font-bold text-muted-foreground mr-1">R$</span>
-                                        <input
-                                          inputMode="decimal"
-                                          value={currentPrice}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            setVariants((prev) =>
-                                              prev.map((v) => (v.size === sz ? { ...v, customSalePrice: val } : v))
-                                            );
-                                          }}
-                                          placeholder={summaryPrices.avgSuggested > 0 ? summaryPrices.avgSuggested.toFixed(2).replace(".", ",") : "Padrão"}
-                                          className="w-full bg-transparent text-xs font-bold text-foreground outline-none numeric"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </section>
 
