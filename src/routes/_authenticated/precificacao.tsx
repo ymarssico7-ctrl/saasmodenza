@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useRef, Fragment } from "react";
+import { useEffect, useMemo, useState, useRef, Fragment } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -93,16 +93,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
     meta: [
-      { title: "PrecificaÃ§Ã£o EstratÃ©gica & InteligÃªncia de Margem â€” Vestui" },
+      { title: "Precificação Estratégica & Inteligência de Margem — Vestui" },
       {
         name: "description",
         content:
-          "Calcule o preÃ§o de venda das suas peÃ§as com margem real, controle unificado por variante de tamanho e cor, simulador de taxas e ponto de equilÃ­brio do lote.",
+          "Calcule o preço de venda das suas peças com margem real, controle unificado por variante de tamanho e cor, simulador de taxas e ponto de equilíbrio do lote.",
       },
-      { property: "og:title", content: "PrecificaÃ§Ã£o EstratÃ©gica â€” Vestui" },
+      { property: "og:title", content: "Precificação Estratégica — Vestui" },
       {
         name: "og:description",
-        content: "Descubra o preÃ§o ideal por grade ou peÃ§a Ãºnica, simulando perdas e margem real lÃ­quida.",
+        content: "Descubra o preço ideal por grade ou peça única, simulando perdas e margem real líquida.",
       },
     ],
   }),
@@ -114,8 +114,8 @@ type PricingStrategy = "margin" | "markup" | "direct_price";
 
 type ColorStrategy = {
   mode: PricingStrategy;
-  margin: number | string; // 0â€“85 ou string enquanto digita livremente
-  markup: number | string; // 0â€“300 ou string enquanto digita livremente
+  margin: number | string; // 0–85 ou string enquanto digita livremente
+  markup: number | string; // 0–300 ou string enquanto digita livremente
   directPrice: string; // e.g. "139,90"
 };
 
@@ -127,7 +127,7 @@ export type VariantRow = {
   color: string;
   wholesaleCost: string; // custom cost string or "" (inherits baseWholesaleGrade)
   customSalePrice: string; // custom sale price string or "" (calculated by strategy)
-  qty?: number; // quantidade fÃ­sica da variante no lote
+  qty?: number; // quantidade física da variante no lote
 };
 
 export type GradeModel = {
@@ -157,23 +157,23 @@ export const createEmptyGradeModel = (index = 1): GradeModel => ({
 });
 
 const PRESET_OPTIONS = [
-  { id: "letras", label: "PadrÃ£o (PPâ€“GG)", sizes: ["PP", "P", "M", "G", "GG"] },
-  { id: "numeros", label: "NumÃ©rica (36â€“46)", sizes: ["36", "38", "40", "42", "44", "46"] },
-  { id: "plus", label: "Plus Size (GGâ€“G3)", sizes: ["GG", "G1", "G2", "G3"] },
-  { id: "calcas", label: "Jeans (34â€“48)", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
+  { id: "letras", label: "Padrão (PP–GG)", sizes: ["PP", "P", "M", "G", "GG"] },
+  { id: "numeros", label: "Numérica (36–46)", sizes: ["36", "38", "40", "42", "44", "46"] },
+  { id: "plus", label: "Plus Size (GG–G3)", sizes: ["GG", "G1", "G2", "G3"] },
+  { id: "calcas", label: "Jeans (34–48)", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
 ];
 
-// Todas as medidas do vestuÃ¡rio brasileiro em ordem canÃ´nica da moda
+// Todas as medidas do vestuário brasileiro em ordem canônica da moda
 const ALL_FASHION_SIZES = [
   "PP", "P", "M", "G", "GG", "G1", "G2", "G3",
   "34", "36", "38", "40", "42", "44", "46", "48", "50",
-  "Ãšnico",
+  "Único",
 ];
 
-// Atalhos rÃ¡pidos de categoria para seleÃ§Ã£o em 1 clique no card da cor
+// Atalhos rápidos de categoria para seleção em 1 clique no card da cor
 const SIZE_QUICK_PRESETS = [
-  { id: "padrao",   label: "Pâ€“GG",    sizes: ["PP", "P", "M", "G", "GG"] },
-  { id: "numerico", label: "36â€“46",   sizes: ["36", "38", "40", "42", "44", "46"] },
+  { id: "padrao",   label: "P–GG",    sizes: ["PP", "P", "M", "G", "GG"] },
+  { id: "numerico", label: "36–46",   sizes: ["36", "38", "40", "42", "44", "46"] },
   { id: "plus",     label: "Plus",    sizes: ["GG", "G1", "G2", "G3"] },
   { id: "jeans",    label: "Jeans",   sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
 ];
@@ -181,27 +181,27 @@ const SIZE_QUICK_PRESETS = [
 export const SIZE_FAMILIES = [
   {
     id: "padrao" as const,
-    label: "Letras (PPâ€“GG)",
+    label: "Letras (PP–GG)",
     shortLabel: "PP ao GG",
     sizes: ["PP", "P", "M", "G", "GG"],
   },
   {
     id: "numerica" as const,
-    label: "NumÃ©rica (34â€“50)",
+    label: "Numérica (34–50)",
     shortLabel: "34 ao 50",
     sizes: ["34", "36", "38", "40", "42", "44", "46", "48", "50"],
   },
   {
     id: "plus" as const,
-    label: "Plus Size (G1â€“G3)",
+    label: "Plus Size (G1–G3)",
     shortLabel: "G1 ao G3",
     sizes: ["GG", "G1", "G2", "G3"],
   },
   {
     id: "unico" as const,
-    label: "Tamanho Ãšnico",
-    shortLabel: "Ãšnico",
-    sizes: ["Ãšnico"],
+    label: "Tamanho Único",
+    shortLabel: "Único",
+    sizes: ["Único"],
   },
   {
     id: "todas" as const,
@@ -212,7 +212,7 @@ export const SIZE_FAMILIES = [
 ];
 
 const COLOR_PRESETS = [
-  // Neutros & ClÃ¡ssicos
+  // Neutros & Clássicos
   { name: "Off-White", color: "#F8F6F0" },
   { name: "Preto", color: "#1A1A1A" },
   { name: "Areia", color: "#D8C7B5" },
@@ -235,30 +235,30 @@ const COLOR_PRESETS = [
   { name: "Verde Militar", color: "#4B5320" },
   { name: "Verde Menta", color: "#98FF98" },
   { name: "Verde Esmeralda", color: "#046307" },
-  { name: "Verde SÃ¡lvia", color: "#9DC183" },
+  { name: "Verde Sálvia", color: "#9DC183" },
   { name: "Verde Lima", color: "#32CD32" },
 
   // Azuis
   { name: "Azul Marinho", color: "#1B2A4A" },
   { name: "Azul Jeans", color: "#4B6B94" },
-  { name: "Azul CÃ©u", color: "#87CEEB" },
+  { name: "Azul Céu", color: "#87CEEB" },
   { name: "Azul Royal", color: "#4169E1" },
   { name: "Azul Turquesa", color: "#40E0D0" },
-  { name: "Ãndigo", color: "#3F51B5" },
+  { name: "Índigo", color: "#3F51B5" },
 
   // Rosas & Vermelhos
   { name: "Rosa Seco", color: "#D4A5A5" },
-  { name: "Rosa BebÃª", color: "#FFB6C1" },
-  { name: "FÃºcsia", color: "#C71585" },
+  { name: "Rosa Bebê", color: "#FFB6C1" },
+  { name: "Fúcsia", color: "#C71585" },
   { name: "Pink", color: "#FF1493" },
-  { name: "RosÃª", color: "#C98A7D" },
+  { name: "Rosê", color: "#C98A7D" },
   { name: "Coral", color: "#FF7F50" },
   { name: "Vermelho", color: "#C41E3A" },
   { name: "Vinho", color: "#722F37" },
   { name: "Marsala", color: "#651C32" },
 
-  // Roxos & LilÃ¡s
-  { name: "LilÃ¡s", color: "#C8A2C8" },
+  // Roxos & Lilás
+  { name: "Lilás", color: "#C8A2C8" },
   { name: "Lavanda", color: "#E6E6FA" },
   { name: "Roxo", color: "#800080" },
 
@@ -276,18 +276,18 @@ function getColorDot(col: string): string {
   if (normalized.includes("preto") || normalized.includes("black")) return "bg-[#1A1A1A]";
   if (normalized.includes("areia") || normalized.includes("bege") || normalized.includes("nude")) return "bg-[#D8C7B5]";
   if (normalized.includes("terracota") || normalized.includes("caramelo") || normalized.includes("telha")) return "bg-[#C86D51]";
-  if (normalized.includes("menta") || normalized.includes("sÃ¡lvia") || normalized.includes("salvia")) return "bg-[#9DC183]";
+  if (normalized.includes("menta") || normalized.includes("sálvia") || normalized.includes("salvia")) return "bg-[#9DC183]";
   if (normalized.includes("militar") || normalized.includes("oliva") || normalized.includes("verde")) return "bg-[#556B2F]";
-  if (normalized.includes("jeans") || normalized.includes("Ã­ndigo") || normalized.includes("indigo")) return "bg-[#4B6B94]";
+  if (normalized.includes("jeans") || normalized.includes("índigo") || normalized.includes("indigo")) return "bg-[#4B6B94]";
   if (normalized.includes("marinho") || normalized.includes("royal") || normalized.includes("azul") || normalized.includes("turquesa")) return "bg-[#1B2A4A]";
-  if (normalized.includes("fÃºcsia") || normalized.includes("fucsia") || normalized.includes("pink")) return "bg-[#C71585]";
-  if (normalized.includes("rosa") || normalized.includes("rose") || normalized.includes("rosÃª")) return "bg-[#D4A5A5]";
+  if (normalized.includes("fúcsia") || normalized.includes("fucsia") || normalized.includes("pink")) return "bg-[#C71585]";
+  if (normalized.includes("rosa") || normalized.includes("rose") || normalized.includes("rosê")) return "bg-[#D4A5A5]";
   if (normalized.includes("vinho") || normalized.includes("marsala")) return "bg-[#651C32]";
   if (normalized.includes("vermelho") || normalized.includes("coral") || normalized.includes("laranja")) return "bg-[#C41E3A]";
   if (normalized.includes("cinza") || normalized.includes("grafite") || normalized.includes("mescla")) return "bg-[#707070]";
   if (normalized.includes("amarelo") || normalized.includes("mostarda") || normalized.includes("manteiga")) return "bg-[#D4AF37]";
   if (normalized.includes("marrom") || normalized.includes("chocolate")) return "bg-[#5C4033]";
-  if (normalized.includes("lilas") || normalized.includes("lilÃ¡s") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF]";
+  if (normalized.includes("lilas") || normalized.includes("lilás") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF]";
   if (normalized.includes("dourado") || normalized.includes("ouro")) return "bg-[#FFD700]";
   if (normalized.includes("prata")) return "bg-[#C0C0C0]";
   if (normalized.includes("estampa") || normalized.includes("floral") || normalized.includes("animal")) return "bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500";
@@ -296,7 +296,7 @@ function getColorDot(col: string): string {
 
 const CANONICAL_SIZE_ORDER = [
   "PP", "P", "M", "G", "GG", "G1", "G2", "G3",
-  "34", "36", "38", "40", "42", "44", "46", "48", "50", "Ãšnico",
+  "34", "36", "38", "40", "42", "44", "46", "48", "50", "Único",
 ];
 
 function sortCanonicalSizes(sizes: string[]): string[] {
@@ -336,7 +336,7 @@ function VariantColorPicker({
           }
         }}
         className="w-full flex items-center gap-1.5 rounded-lg border border-border/80 bg-card hover:bg-secondary/40 px-2 py-1 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs text-left"
-        title="Clique para alterar a cor desta variaÃ§Ã£o"
+        title="Clique para alterar a cor desta variação"
       >
         <span className={cn("size-2.5 rounded-full shrink-0 shadow-xs", getColorDot(color))} />
         <span className="truncate flex-1">{color}</span>
@@ -536,7 +536,7 @@ function AddVariantPopover({
   const [colorQuery, setColorQuery] = useState("");
   const [showColorSearch, setShowColorSearch] = useState(false);
 
-  const quickSizes = ["PP", "P", "M", "G", "GG", "36", "38", "40", "42", "44", "Ãšnico"];
+  const quickSizes = ["PP", "P", "M", "G", "GG", "36", "38", "40", "42", "44", "Único"];
   const filteredColors = COLOR_PRESETS.filter((c) =>
     c.name.toLowerCase().includes(colorQuery.toLowerCase()),
   );
@@ -561,7 +561,7 @@ function AddVariantPopover({
         className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-primary/5 border border-primary/20 bg-primary/5"
       >
         <Plus className="size-3.5" />
-        <span>Adicionar variaÃ§Ã£o</span>
+        <span>Adicionar variação</span>
       </button>
 
       {open && (
@@ -577,7 +577,7 @@ function AddVariantPopover({
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
               <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Plus className="size-3.5 text-primary" />
-                Nova VariaÃ§Ã£o (SKU)
+                Nova Variação (SKU)
               </span>
               <button
                 type="button"
@@ -613,7 +613,7 @@ function AddVariantPopover({
             {/* 2. Escolha da Cor */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-muted-foreground">Cor da PeÃ§a</label>
+                <label className="text-[11px] font-semibold text-muted-foreground">Cor da Peça</label>
                 <button
                   type="button"
                   onClick={() => setShowColorSearch((prev) => !prev)}
@@ -722,14 +722,14 @@ function AddVariantPopover({
               </div>
             </div>
 
-            {/* BotÃ£o Adicionar */}
+            {/* Botão Adicionar */}
             <Button
               type="button"
               onClick={handleConfirm}
               className="w-full h-8.5 rounded-xl gradient-primary text-xs font-bold shadow-glow text-white cursor-pointer"
             >
               <Plus className="size-3.5 mr-1" />
-              Adicionar Ã  Grade
+              Adicionar à Grade
             </Button>
           </div>
         </>
@@ -738,9 +738,9 @@ function AddVariantPopover({
   );
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// PAINEL LATERAL STICKY â€” Resumo ao vivo de precificaÃ§Ã£o (Apple / Lovable UX)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// PAINEL LATERAL STICKY — Resumo ao vivo de precificação (Apple / Lovable UX)
+// ─────────────────────────────────────────────────────────────────────────────
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-2 text-xs">
@@ -797,14 +797,14 @@ function LivePricingSummaryPanel({
 
   return (
     <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft space-y-4">
-      {/* â”€â”€ CabeÃ§alho do Resumo (PadrÃ£o VÃ©rtice / Shopify) â”€â”€ */}
+      {/* ── Cabeçalho do Resumo (Padrão Vértice / Shopify) ── */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
             <Layers className="size-3.5" />
           </div>
           <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            {mode === "grade" ? "Resumo do Lote" : "Resumo da PeÃ§a"}
+            {mode === "grade" ? "Resumo do Lote" : "Resumo da Peça"}
           </span>
         </div>
         {hasData && suggestedPrice > 0 && (
@@ -822,7 +822,7 @@ function LivePricingSummaryPanel({
         )}
       </div>
 
-      {/* â”€â”€ MÃ©trica: PeÃ§as na Grade â”€â”€ */}
+      {/* ── Métrica: Peças na Grade ── */}
       {mode === "grade" && (
         <div className="flex items-center justify-between py-1 border-b border-border/40">
           <span className="text-xs font-semibold text-muted-foreground">Volume no lote</span>
@@ -830,12 +830,12 @@ function LivePricingSummaryPanel({
             "rounded-full px-2.5 py-0.5 text-xs font-bold",
             totalUnits > 0 ? "bg-primary/10 text-primary border border-primary/20" : "bg-muted text-muted-foreground"
           )}>
-            {totalUnits} {totalUnits === 1 ? "peÃ§a na grade" : "peÃ§as na grade"}
+            {totalUnits} {totalUnits === 1 ? "peça na grade" : "peças na grade"}
           </span>
         </div>
       )}
 
-      {/* IdentificaÃ§Ã£o da PeÃ§a */}
+      {/* Identificação da Peça */}
       <div className="flex items-center gap-3">
         <div className="size-11 rounded-xl border border-border/80 bg-secondary/30 flex items-center justify-center shrink-0 overflow-hidden">
           {photoUrl ? (
@@ -846,7 +846,7 @@ function LivePricingSummaryPanel({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-foreground truncate">
-            {name.trim() || (mode === "grade" ? "Modelo sem nome" : "PeÃ§a sem nome")}
+            {name.trim() || (mode === "grade" ? "Modelo sem nome" : "Peça sem nome")}
           </p>
           <p className="text-xs text-muted-foreground truncate">
             {category || "Sem categoria"}
@@ -854,22 +854,22 @@ function LivePricingSummaryPanel({
         </div>
       </div>
 
-      {/* â”€â”€ DecomposiÃ§Ã£o de Custos (Cascata Limpa) â”€â”€ */}
+      {/* ── Decomposição de Custos (Cascata Limpa) ── */}
       <div className="space-y-2 rounded-2xl bg-secondary/30 p-3.5 border border-border/50 text-xs">
         <div className="flex items-center justify-between text-muted-foreground">
           <span>Custo de compra</span>
           <span className="num-display font-semibold text-foreground">
-            {baseWholesaleCost > 0 ? `${brl(baseWholesaleCost)} / peÃ§a` : "R$ 0,00"}
+            {baseWholesaleCost > 0 ? `${brl(baseWholesaleCost)} / peça` : "R$ 0,00"}
           </span>
         </div>
         <div className="flex items-center justify-between text-muted-foreground">
           <span>Custos adicionais</span>
           <span className="num-display font-semibold text-foreground">
-            {sharedCostsPerUnit > 0 ? `+${brl(sharedCostsPerUnit)} / peÃ§a` : "R$ 0,00"}
+            {sharedCostsPerUnit > 0 ? `+${brl(sharedCostsPerUnit)} / peça` : "R$ 0,00"}
           </span>
         </div>
         <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold">
-          <span className="text-foreground">Custo real por peÃ§a</span>
+          <span className="text-foreground">Custo real por peça</span>
           <span className="num-display text-foreground text-sm font-extrabold">
             {totalUnitCost > 0
               ? brl(totalUnitCost)
@@ -878,27 +878,27 @@ function LivePricingSummaryPanel({
         </div>
       </div>
 
-      {/* â”€â”€ PreÃ§o Sugerido HerÃ³i â”€â”€ */}
+      {/* ── Preço Sugerido Herói ── */}
       <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-4 text-center space-y-1">
         <div className="flex items-center justify-center gap-1.5">
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            PreÃ§o Sugerido de Venda
+            Preço Sugerido de Venda
           </p>
           {totalUnits === 0 && suggestedPrice > 0 && (
             <span className="text-[9px] font-semibold text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-full">
-              ProjeÃ§Ã£o
+              Projeção
             </span>
           )}
         </div>
         <p className="num-display text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-          {suggestedPrice > 0 ? brl(suggestedPrice) : "R$ â€”,â€”â€”"}
+          {suggestedPrice > 0 ? brl(suggestedPrice) : "R$ —,——"}
         </p>
         {suggestedPrice > 0 && (
           <div className="flex items-center justify-center gap-2 text-xs pt-0.5">
             <span className="text-emerald-600 dark:text-emerald-400 font-bold">
               +{brl(profitPerUnit)} lucro
             </span>
-            <span className="text-muted-foreground">Â·</span>
+            <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground font-semibold">
               {Math.round(effectiveMargin)}% margem
             </span>
@@ -906,7 +906,7 @@ function LivePricingSummaryPanel({
         )}
       </div>
 
-      {/* â”€â”€ Totais do Lote (quando totalUnits > 1) â”€â”€ */}
+      {/* ── Totais do Lote (quando totalUnits > 1) ── */}
       {hasData && totalUnits > 1 && (
         <div className="space-y-2 rounded-2xl bg-secondary/40 p-3 border border-border/60 text-xs">
           <div className="flex items-center justify-between text-muted-foreground">
@@ -914,7 +914,7 @@ function LivePricingSummaryPanel({
             <span className="num-display font-bold text-foreground">{brl(lotRevenue)}</span>
           </div>
           <div className="flex items-center justify-between text-muted-foreground">
-            <span>Lucro lÃ­quido total</span>
+            <span>Lucro líquido total</span>
             <span className="num-display font-extrabold text-emerald-600 dark:text-emerald-400">
               +{brl(lotProfit)}
             </span>
@@ -922,7 +922,7 @@ function LivePricingSummaryPanel({
         </div>
       )}
 
-      {/* â”€â”€ BotÃµes de AÃ§Ã£o â”€â”€ */}
+      {/* ── Botões de Ação ── */}
       <div className="space-y-2 pt-1">
         <Button
           type="button"
@@ -931,7 +931,7 @@ function LivePricingSummaryPanel({
           className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
         >
           {mode === "grade" ? <PackagePlus className="size-4" /> : <Save className="size-4" />}
-          <span>{mode === "grade" ? `Dar entrada no estoque (${totalUnits} un.)` : "Salvar no histÃ³rico"}</span>
+          <span>{mode === "grade" ? `Dar entrada no estoque (${totalUnits} un.)` : "Salvar no histórico"}</span>
         </Button>
 
         {mode === "grade" && (
@@ -944,7 +944,7 @@ function LivePricingSummaryPanel({
               className="flex-1 h-9 rounded-xl text-xs font-semibold border-border/80 bg-background hover:bg-secondary cursor-pointer gap-1.5"
             >
               <Save className="size-3.5" />
-              <span>Salvar histÃ³rico</span>
+              <span>Salvar histórico</span>
             </Button>
             {onReset && (
               <Button
@@ -962,12 +962,12 @@ function LivePricingSummaryPanel({
 
         {totalUnits > 0 && (
           <p className="text-center text-[11px] text-muted-foreground">
-            {totalUnits} {totalUnits === 1 ? "peÃ§a" : "peÃ§as"}{totalVariants > 1 ? ` Â· ${totalVariants} variaÃ§Ãµes` : ""}
+            {totalUnits} {totalUnits === 1 ? "peça" : "peças"}{totalVariants > 1 ? ` · ${totalVariants} variações` : ""}
           </p>
         )}
 
         <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed pt-0.5">
-          âŠ™ Estimativa com as taxas informadas. NÃ£o representa orientaÃ§Ã£o fiscal.
+          ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
         </p>
       </div>
     </div>
@@ -981,7 +981,7 @@ function Precificacao() {
   const { categories: storeCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
-  // â”€â”€ PredefiniÃ§Ãµes da Loja (Configuradas em /configuracoes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Predefinições da Loja (Configuradas em /configuracoes) ───────────
   const [pricingSettings, setPricingSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
 
   useEffect(() => {
@@ -996,34 +996,34 @@ function Precificacao() {
     return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
   }, [storeId]);
 
-  // â”€â”€ Modo Principal (RÃ¡pida | Grade | HistÃ³rico) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
   const [mode, setMode] = useState<PricingMode>("rapida");
 
-  // â”€â”€ EstratÃ©gia de PrecificaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Estratégia de Precificação ────────────────────────────────────
   const [strategy, setStrategy] = useState<PricingStrategy>("margin");
 
-  // â”€â”€ IdentificaÃ§Ã£o da PeÃ§a â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Identificação da Peça ─────────────────────────────────────────
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
 
-  // â”€â”€ Modo 1: PrecificaÃ§Ã£o RÃ¡pida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modo 1: Precificação Rápida ───────────────────────────────────
   const [wholesale, setWholesale] = useState("");
-  const [rapidaQty, setRapidaQty] = useState("1");     // quantidade de peÃ§as no lote rÃ¡pido
-  const [rapidaColor, setRapidaColor] = useState("");   // cor opcional (identificaÃ§Ã£o)
-  const [rapidaSize, setRapidaSize] = useState("");     // tamanho opcional (identificaÃ§Ã£o)
+  const [rapidaQty, setRapidaQty] = useState("1");     // quantidade de peças no lote rápido
+  const [rapidaColor, setRapidaColor] = useState("");   // cor opcional (identificação)
+  const [rapidaSize, setRapidaSize] = useState("");     // tamanho opcional (identificação)
 
-  // â”€â”€ Modo 2: Grade Detalhada de Variantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modo 2: Grade Detalhada de Variantes ──────────────────────────
   const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("");
   const [gradePricingMode, setGradePricingMode] = useState<"unified" | "per_unit">("unified");
 
   // Lista Unificada de Variantes (SKUs)
   const [variants, setVariants] = useState<VariantRow[]>([]);
 
-  // Seletor de geraÃ§Ã£o rÃ¡pida da grade
+  // Seletor de geração rápida da grade
   const [activeColors, setActiveColors] = useState<string[]>([]);
   const [genSizes, setGenSizes] = useState<string[]>([]);
 
-  // â”€â”€ Multi-Modelo / Modo ProduÃ§Ã£o (v74) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Multi-Modelo / Modo Produção (v74) ────────────────────────────
   const [initialGradeModel] = useState<GradeModel>(() => createEmptyGradeModel(1));
   const [gradeModels, setGradeModels] = useState<GradeModel[]>([initialGradeModel]);
   const [activeModelId, setActiveModelId] = useState<string>(initialGradeModel.id);
@@ -1042,42 +1042,42 @@ function Precificacao() {
   const [showColorPopover, setShowColorPopover] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
-  // Busca Spotlight de Cores & Seletor de Tamanhos (Apple Level - Modo RÃ¡pido)
+  // Busca Spotlight de Cores & Seletor de Tamanhos (Apple Level - Modo Rápido)
   const [rapidaColorSearchQuery, setRapidaColorSearchQuery] = useState("");
   const [showRapidaColorPopover, setShowRapidaColorPopover] = useState(false);
   const rapidaColorInputRef = useRef<HTMLInputElement>(null);
   const [showRapidaMoreSizes, setShowRapidaMoreSizes] = useState(false);
 
-  // EstratÃ©gia de precificaÃ§Ã£o por cor (independente por card de cor)
+  // Estratégia de precificação por cor (independente por card de cor)
   const [colorStrategies, setColorStrategies] = useState<Record<string, ColorStrategy>>({});
 
-  // InserÃ§Ã£o manual no rodapÃ© da tabela
+  // Inserção manual no rodapé da tabela
   const [manualSize, setManualSize] = useState("M");
   const [manualColor, setManualColor] = useState("Off-White");
   const [manualCost, setManualCost] = useState("");
 
-  // â”€â”€ Assistente de Rateio RÃ¡pido de Custos Operacionais â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Assistente de Rateio Rápido de Custos Operacionais ─────────────
   const [rateioTarget, setRateioTarget] = useState<"freight" | "packaging" | "other" | null>(null);
   const [rateioTotal, setRateioTotal] = useState("");
   const [rateioPieces, setRateioPieces] = useState("");
 
-  // â”€â”€ Custos Operacionais Rateados (por peÃ§a) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Custos Operacionais Rateados (por peça) ───────────────────────
   const [freight, setFreight] = useState("");
   const [packaging, setPackaging] = useState("");
   const [other, setOther] = useState("");
 
-  // â”€â”€ Modo de custo: por peÃ§a ou total do lote â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modo de custo: por peça ou total do lote ─────────────────────
   const [freightMode, setFreightMode] = useState<"per_unit" | "lot_total">("lot_total");
   const [packagingMode, setPackagingMode] = useState<"per_unit" | "lot_total">("lot_total");
   const [otherMode, setOtherMode] = useState<"per_unit" | "lot_total">("lot_total");
 
-  const [desiredMargin, setDesiredMargin] = useState(() => pricingSettings.defaultMargin); // Margem lÃ­quida padrÃ£o da loja
+  const [desiredMargin, setDesiredMargin] = useState(() => pricingSettings.defaultMargin); // Margem líquida padrão da loja
   const [markup, setMarkup] = useState(80); // 80% markup sobre custo
   const [directSalePrice, setDirectSalePrice] = useState("");
-  const [tax, setTax] = useState(() => pricingSettings.defaultTax); // Imposto padrÃ£o da loja
-  const [cardRate, setCardRate] = useState(() => pricingSettings.defaultCardRate); // Taxa de maquininha padrÃ£o da loja
+  const [tax, setTax] = useState(() => pricingSettings.defaultTax); // Imposto padrão da loja
+  const [cardRate, setCardRate] = useState(() => pricingSettings.defaultCardRate); // Taxa de maquininha padrão da loja
 
-  // Estados locais para digitaÃ§Ã£o livre nos steppers
+  // Estados locais para digitação livre nos steppers
   const [marginInputVal, setMarginInputVal] = useState(() =>
     Number.isInteger(pricingSettings.defaultMargin)
       ? String(pricingSettings.defaultMargin)
@@ -1101,18 +1101,18 @@ function Precificacao() {
     setMarkupInputVal(formatted);
   }, [markup]);
 
-  // â”€â”€ Rateio Operacional: ColapsÃ¡vel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
   const [showColorInput, setShowColorInput] = useState(false);
   const [showDeducoes, setShowDeducoes] = useState(false);
   const [sizePresetDropdown, setSizePresetDropdown] = useState("padrao");
 
-  // â”€â”€ Simuladores & Lote â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Simuladores & Lote ─────────────────────────────────────────
   const [lotUnits] = useState(20);
   const [showSimulator, setShowSimulator] = useState(false);
   const [showGradeColorBreakdown, setShowGradeColorBreakdown] = useState(false);
 
-  // â”€â”€ Grid-First Matrix State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Grid-First Matrix State ─────────────────────────────────────────
   const [matrixSizes, setMatrixSizes] = useState<string[]>(["P", "M", "G", "GG"]);
   const [matrixDefaultQtys, setMatrixDefaultQtys] = useState<Record<string, number>>({ PP: 1, P: 2, M: 4, G: 4, GG: 2, G1: 2, G2: 2, G3: 1 });
   const [matrixGlobalMode, setMatrixGlobalMode] = useState<PricingStrategy>("margin");
@@ -1123,7 +1123,7 @@ function Precificacao() {
   const [matrixSetupOpen, setMatrixSetupOpen] = useState(true);
   const [activeSizeFamily, setActiveSizeFamily] = useState<"padrao" | "numerica" | "plus" | "unico" | "todas">("padrao");
 
-  // â”€â”€ Modal Sheet: Ficha de Entrada no Estoque â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
   const [entryName, setEntryName] = useState("");
   const [entryCategory, setEntryCategory] = useState("vestido");
@@ -1139,20 +1139,20 @@ function Precificacao() {
     GG: 2,
   });
 
-  // â”€â”€ Total Real de Unidades do Lote (DinÃ¢mico e Preciso) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Total Real de Unidades do Lote (Dinâmico e Preciso) ─────────────
   const actualLotUnits = useMemo(() => {
     if (mode !== "grade") return Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
     return variants.reduce((acc, v) => acc + (v.qty || 1), 0);
   }, [mode, variants, rapidaQty]);
 
-  // â”€â”€ Helper: resolve custo real por peÃ§a considerando o modo (por peÃ§a ou lote total) â”€â”€
+  // ── Helper: resolve custo real por peça considerando o modo (por peça ou lote total) ──
   const resolvePerUnit = (valueStr: string, mode: "per_unit" | "lot_total", units: number): number => {
     const v = toNumber(valueStr);
     if (mode === "per_unit") return v;
     return units > 0 ? v / units : 0;
   };
 
-  // â”€â”€ FunÃ§Ã£o Central de CÃ¡lculo de Item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Função Central de Cálculo de Item ──────────────────────────────
   const calculateItem = useMemo(() => {
     const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
     const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
@@ -1175,7 +1175,7 @@ function Precificacao() {
       const customPriceNum = customSalePriceStr ? toNumber(customSalePriceStr) : 0;
       const hasCustomPrice = customPriceNum > 0;
 
-      // 1. PreÃ§o de venda fixo personalizado ou estratÃ©gia direct_price
+      // 1. Preço de venda fixo personalizado ou estratégia direct_price
       if (hasCustomPrice || strategy === "direct_price") {
         const targetPrice = hasCustomPrice ? customPriceNum : toNumber(directSalePrice);
         const res = computeReversePricing({
@@ -1199,7 +1199,7 @@ function Precificacao() {
         };
       }
 
-      // 2. Margem Real LÃ­quida sobre a Venda
+      // 2. Margem Real Líquida sobre a Venda
       if (strategy === "margin") {
         const res = computePricingByMargin({
           wholesale_cost: wholesaleCost,
@@ -1247,12 +1247,12 @@ function Precificacao() {
     };
   }, [freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
 
-  // â”€â”€ CÃ¡lculo do PreÃ§o Ãšnico (Modo RÃ¡pido) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cálculo do Preço Único (Modo Rápido) ───────────────────────────
   const singleResult = useMemo(() => {
     return calculateItem(toNumber(wholesale));
   }, [wholesale, calculateItem]);
 
-  // â”€â”€ CÃ¡lculo da Tabela Unificada de Variantes (Totalmente Reativo) â”€â”€â”€
+  // ── Cálculo da Tabela Unificada de Variantes (Totalmente Reativo) ───
   const variantResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
     const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
@@ -1298,7 +1298,7 @@ function Precificacao() {
     });
   }, [variants, baseWholesaleGrade, freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits, tax, cardRate, colorStrategies, calculateItem]);
 
-  // â”€â”€ Resumo Geral de PreÃ§os (Faixas, MÃ©dias e Totais do Lote) â”€â”€â”€â”€â”€â”€â”€
+  // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
     if (mode === "rapida") {
       return {
@@ -1335,7 +1335,7 @@ function Precificacao() {
           hasMultiple: false,
         };
       }
-      // ProjeÃ§Ã£o contÃ¡bil unitÃ¡ria para quando ainda nÃ£o hÃ¡ variantes com quantidade no lote
+      // Projeção contábil unitária para quando ainda não há variantes com quantidade no lote
       const effectiveWholesale = toNumber(baseWholesaleGrade) > 0
         ? toNumber(baseWholesaleGrade)
         : (variants.length > 0 && variants[0] && toNumber(variants[0].wholesaleCost) > 0
@@ -1419,7 +1419,7 @@ function Precificacao() {
     };
   }, [mode, singleResult, variantResults, variants.length, baseWholesaleGrade, wholesale, freight, packaging, other, freightMode, packagingMode, otherMode, tax, cardRate, matrixGlobalMode, matrixGlobalMarginStr, matrixGlobalMarkupStr, matrixGlobalDirectPrice]);
 
-  // â”€â”€ Simulador de Meios de Pagamento & Perdas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Simulador de Meios de Pagamento & Perdas ───────────────────────
   const paymentScenarios = useMemo(() => {
     return computePaymentScenarios(
       summaryPrices.avgSuggested,
@@ -1430,7 +1430,7 @@ function Precificacao() {
   }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax, cardRate]);
 
 
-  // Total consolidado de peÃ§as de TODOS os modelos do lote (v74)
+  // Total consolidado de peças de TODOS os modelos do lote (v74)
   const totalLoteUnits = useMemo(() => {
     if (mode !== "grade") return actualLotUnits;
     return gradeModels.reduce((acc, m) => {
@@ -1439,7 +1439,7 @@ function Precificacao() {
     }, 0);
   }, [gradeModels, mode, actualLotUnits, activeModelId, variants]);
 
-  // â”€â”€ Ponto de Cobertura do Lote (Break-Even DinÃ¢mico) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ponto de Cobertura do Lote (Break-Even Dinâmico) ────────────────
   const lotBreakEven = useMemo(() => {
     return computeLotBreakEven(
       summaryPrices.avgSuggested,
@@ -1450,7 +1450,7 @@ function Precificacao() {
     );
   }, [summaryPrices.avgSuggested, summaryPrices.avgCost, actualLotUnits, tax, cardRate]);
 
-  // â”€â”€ Agrupamento por Cor com OrdenaÃ§Ã£o CanÃ´nica de Tamanhos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Agrupamento por Cor com Ordenação Canônica de Tamanhos ──────────
   const colorGroups = useMemo(() => {
     const map = new Map<string, typeof variantResults>();
 
@@ -1482,7 +1482,7 @@ function Precificacao() {
     }[] = [];
 
     map.forEach((items, color) => {
-      // Ordena os itens da cor na sequÃªncia canÃ´nica da moda (PP -> GG -> G1 -> 36 -> 38... -> Ãšnico)
+      // Ordena os itens da cor na sequência canônica da moda (PP -> GG -> G1 -> 36 -> 38... -> Único)
       const sortedItems = [...items].sort((a, b) => {
         const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
         const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
@@ -1520,7 +1520,7 @@ function Precificacao() {
     return groups;
   }, [activeColors, variantResults]);
 
-  // â”€â”€ AÃ§Ãµes de ManipulaÃ§Ã£o da Grade por PeÃ§a / Modelo (v68) â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ações de Manipulação da Grade por Peça / Modelo (v68) ────────
   const activeModelSizes = useMemo(() => {
     return new Set(variants.map((v) => v.size));
   }, [variants]);
@@ -1591,7 +1591,7 @@ function Precificacao() {
   };
 
   const updateVariantColor = (id: string, newColor: string) => {
-    const clean = newColor.trim() || "PadrÃ£o";
+    const clean = newColor.trim() || "Padrão";
     setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, color: clean } : v)));
     setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === clean.toLowerCase()) ? prev : [...prev, clean]));
   };
@@ -1625,7 +1625,7 @@ function Precificacao() {
   };
 
   const handleAddNewVariant = (newSize: string, newColor: string, newQty: number, newCost: string) => {
-    const cleanColor = newColor.trim() || "PadrÃ£o";
+    const cleanColor = newColor.trim() || "Padrão";
     const newId = `v-${newSize.toLowerCase()}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`;
     setVariants((prev) => [
       ...prev,
@@ -1639,7 +1639,7 @@ function Precificacao() {
       },
     ]);
     setActiveColors((prev) => (prev.some((c) => c.toLowerCase() === cleanColor.toLowerCase()) ? prev : [...prev, cleanColor]));
-    toast.success(`VariaÃ§Ã£o ${newSize} ${cleanColor} (${newQty} un.) adicionada!`);
+    toast.success(`Variação ${newSize} ${cleanColor} (${newQty} un.) adicionada!`);
   };
 
   const addNewVariantRow = () => {
@@ -1663,11 +1663,11 @@ function Precificacao() {
     setRapidaSize("");
     setRapidaQty("1");
     toast.success("Novo modelo iniciado!", {
-      description: "Campos limpos para precificar a prÃ³xima peÃ§a.",
+      description: "Campos limpos para precificar a próxima peça.",
     });
   };
 
-  // â”€â”€ Helpers de gerenciamento de mÃºltiplos modelos (v74) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Helpers de gerenciamento de múltiplos modelos (v74) ──────────
   const addNewGradeModel = () => {
     // 1. Snapshot do modelo ativo atual
     const currentSnapshot: GradeModel = {
@@ -1701,8 +1701,8 @@ function Precificacao() {
       isSwitchingModelRef.current = false;
     }, 50);
 
-    toast.success(`Modelo ${nextIndex} adicionado ao lote! âœ¨`, {
-      description: "Preencha o nome da peÃ§a e monte a grade abaixo.",
+    toast.success(`Modelo ${nextIndex} adicionado ao lote! ✨`, {
+      description: "Preencha o nome da peça e monte a grade abaixo.",
     });
   };
 
@@ -1779,7 +1779,7 @@ function Precificacao() {
     toast.success("Modelo removido do lote");
   };
 
-  // SincronizaÃ§Ã£o reativa do modelo ativo para o array gradeModels
+  // Sincronização reativa do modelo ativo para o array gradeModels
   useEffect(() => {
     if (mode !== "grade" || !activeModelId || isSwitchingModelRef.current) return;
     setGradeModels((prev) =>
@@ -1802,7 +1802,7 @@ function Precificacao() {
     const cleanColor = newColor.trim();
     if (!cleanColor) return;
 
-    // ObtÃ©m todos os tamanhos Ãºnicos atualmente na grade (ou os presets padrÃ£o)
+    // Obtém todos os tamanhos únicos atualmente na grade (ou os presets padrão)
     const existingSizes = Array.from(new Set(variants.map((v) => v.size)));
     const sizesToReplicate = existingSizes.length > 0 ? sortCanonicalSizes(existingSizes) : ["P", "M", "G", "GG"];
 
@@ -1826,7 +1826,7 @@ function Precificacao() {
     });
 
     if (newRows.length === 0) {
-      toast.info(`A grade jÃ¡ possui todas as variaÃ§Ãµes para a cor "${cleanColor}".`);
+      toast.info(`A grade já possui todas as variações para a cor "${cleanColor}".`);
       return;
     }
 
@@ -1849,8 +1849,8 @@ function Precificacao() {
       return [...prev, cleanColor];
     });
 
-    toast.success(`Grade replicada na cor ${cleanColor}! âœ¨`, {
-      description: `${newRows.length} novas variaÃ§Ãµes adicionadas Ã  tabela.`,
+    toast.success(`Grade replicada na cor ${cleanColor}! ✨`, {
+      description: `${newRows.length} novas variações adicionadas à tabela.`,
     });
   };
 
@@ -1885,7 +1885,7 @@ function Precificacao() {
         ? `Margem ${matrixGlobalMarginStr}%`
         : matrixGlobalMode === "markup"
           ? `Markup ${matrixGlobalMarkupStr}%`
-          : `PreÃ§o R$ ${matrixGlobalDirectPrice}`;
+          : `Preço R$ ${matrixGlobalDirectPrice}`;
     toast.success(`${label} e custo atacado aplicados ao modelo!`);
   };
 
@@ -1948,7 +1948,7 @@ function Precificacao() {
           return a.size.localeCompare(b.size);
         });
       });
-      toast.success(`Tamanho ${sz} adicionado Ã  grade`);
+      toast.success(`Tamanho ${sz} adicionado à grade`);
     }
   };
 
@@ -1988,7 +1988,7 @@ function Precificacao() {
     const clean = colName.trim();
     if (!clean) return;
     if (activeColors.some((c) => c.toLowerCase() === clean.toLowerCase())) {
-      toast.error(`Cor "${clean}" jÃ¡ estÃ¡ na grade`);
+      toast.error(`Cor "${clean}" já está na grade`);
       return;
     }
     const newActiveColors = [...activeColors, clean];
@@ -2022,7 +2022,7 @@ function Precificacao() {
         return a.size.localeCompare(b.size);
       });
     });
-    toast.success(`Cor "${clean}" adicionada Ã  grade`);
+    toast.success(`Cor "${clean}" adicionada à grade`);
   };
 
   const removeColorFromGrade = (colName: string) => {
@@ -2052,7 +2052,7 @@ function Precificacao() {
     toast.success(`Cor "${clean}" adicionada com grade completa!`);
   };
 
-  // â”€â”€ Handlers do Color Spotlight Autocomplete (Apple Level) â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Handlers do Color Spotlight Autocomplete (Apple Level) ────────
   const matchingColorPresets = useMemo(() => {
     const q = colorSearchQuery.trim().toLowerCase();
     const available = COLOR_PRESETS.filter(
@@ -2076,7 +2076,7 @@ function Precificacao() {
     setShowColorPopover(false);
   };
 
-  // â”€â”€ Handlers do Color Spotlight no Modo RÃ¡pido (Apple Level) â”€â”€â”€â”€â”€â”€â”€
+  // ── Handlers do Color Spotlight no Modo Rápido (Apple Level) ───────
   const matchingRapidaColorPresets = useMemo(() => {
     const q = rapidaColorSearchQuery.trim().toLowerCase();
     if (!q) return COLOR_PRESETS.slice(0, 18);
@@ -2097,7 +2097,7 @@ function Precificacao() {
     setShowRapidaColorPopover(false);
   };
 
-  // â”€â”€ AÃ§Ãµes de ManipulaÃ§Ã£o da Tabela de Variantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ações de Manipulação da Tabela de Variantes ────────────────────
   const removeVariant = (id: string) => {
     setVariants((prev) => prev.filter((v) => v.id !== id));
   };
@@ -2140,13 +2140,13 @@ function Precificacao() {
 
     if (rateioTarget === "freight") {
       setFreight(formatted);
-      toast.success(`Frete rateado: R$ ${formatted}/peÃ§a (R$ ${total.toFixed(2)} Ã· ${pieces} un.)`);
+      toast.success(`Frete rateado: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
     } else if (rateioTarget === "packaging") {
       setPackaging(formatted);
-      toast.success(`Embalagem rateada: R$ ${formatted}/peÃ§a (R$ ${total.toFixed(2)} Ã· ${pieces} un.)`);
+      toast.success(`Embalagem rateada: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
     } else if (rateioTarget === "other") {
       setOther(formatted);
-      toast.success(`Outros custos rateados: R$ ${formatted}/peÃ§a (R$ ${total.toFixed(2)} Ã· ${pieces} un.)`);
+      toast.success(`Outros custos rateados: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
     }
     setRateioTarget(null);
   };
@@ -2186,7 +2186,7 @@ function Precificacao() {
     setVariants((prev) =>
       prev.map((vr) => (vr.color.toLowerCase() === color.toLowerCase() ? { ...vr, customSalePrice: priceStr } : vr))
     );
-    toast.success(`PreÃ§o de R$ ${priceStr} aplicado em todos os tamanhos de ${color}`);
+    toast.success(`Preço de R$ ${priceStr} aplicado em todos os tamanhos de ${color}`);
   };
 
   const applyMarginToColor = (color: string, marginPct: number) => {
@@ -2194,7 +2194,7 @@ function Precificacao() {
     toast.success(`Margem de ${marginPct}% aplicada a todos os tamanhos de ${color}`);
   };
 
-  // â”€â”€ EstratÃ©gia Completa por Cor com Live-Sync Reativo (Margem / Markup / PreÃ§o Fixo) â”€â”€â”€â”€â”€â”€
+  // ── Estratégia Completa por Cor com Live-Sync Reativo (Margem / Markup / Preço Fixo) ──────
 
   const getColorStrategy = (color: string): ColorStrategy =>
     colorStrategies[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
@@ -2207,7 +2207,7 @@ function Precificacao() {
   };
 
   const updateColorMargin = (color: string, marginVal: number | string) => {
-    // Permite strings intermediÃ¡rias com vÃ­rgula (ex: "13,", "13,5") durante digitaÃ§Ã£o
+    // Permite strings intermediárias com vírgula (ex: "13,", "13,5") durante digitação
     if (marginVal === "" || marginVal === undefined || marginVal === "," || marginVal === ".") {
       setColorStrategies((prev) => {
         const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
@@ -2215,7 +2215,7 @@ function Precificacao() {
       });
       return;
     }
-    // Se for string com vÃ­rgula ou ponto incompleto (ex: "13,"), guarda como string sem clampar
+    // Se for string com vírgula ou ponto incompleto (ex: "13,"), guarda como string sem clampar
     const strVal = String(marginVal);
     if (strVal.endsWith(",") || strVal.endsWith(".")) {
       setColorStrategies((prev) => {
@@ -2224,10 +2224,10 @@ function Precificacao() {
       });
       return;
     }
-    // NÃºmero completo: converte usando toNumber (aceita vÃ­rgula BR) e clampeia
+    // Número completo: converte usando toNumber (aceita vírgula BR) e clampeia
     const num = typeof marginVal === "number" ? marginVal : toNumber(String(marginVal));
     if (isNaN(num) || num === 0) {
-      // Guarda a string bruta para permitir ediÃ§Ã£o contÃ­nua
+      // Guarda a string bruta para permitir edição contínua
       setColorStrategies((prev) => {
         const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
         return { ...prev, [color.toLowerCase()]: { ...current, mode: "margin", margin: strVal } };
@@ -2245,7 +2245,7 @@ function Precificacao() {
   };
 
   const updateColorMarkup = (color: string, markupVal: number | string) => {
-    // Permite strings intermediÃ¡rias com vÃ­rgula (ex: "115,", "115,5") durante digitaÃ§Ã£o
+    // Permite strings intermediárias com vírgula (ex: "115,", "115,5") durante digitação
     if (markupVal === "" || markupVal === undefined || markupVal === "," || markupVal === ".") {
       setColorStrategies((prev) => {
         const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
@@ -2253,7 +2253,7 @@ function Precificacao() {
       });
       return;
     }
-    // Se for string com vÃ­rgula ou ponto incompleto (ex: "115,"), guarda como string sem clampar
+    // Se for string com vírgula ou ponto incompleto (ex: "115,"), guarda como string sem clampar
     const strVal = String(markupVal);
     if (strVal.endsWith(",") || strVal.endsWith(".")) {
       setColorStrategies((prev) => {
@@ -2262,10 +2262,10 @@ function Precificacao() {
       });
       return;
     }
-    // NÃºmero completo: converte usando toNumber (aceita vÃ­rgula BR) e clampeia
+    // Número completo: converte usando toNumber (aceita vírgula BR) e clampeia
     const num = typeof markupVal === "number" ? markupVal : toNumber(String(markupVal));
     if (isNaN(num) || num === 0) {
-      // Guarda a string bruta para permitir ediÃ§Ã£o contÃ­nua
+      // Guarda a string bruta para permitir edição contínua
       setColorStrategies((prev) => {
         const current = prev[color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
         return { ...prev, [color.toLowerCase()]: { ...current, mode: "markup", markup: strVal } };
@@ -2313,7 +2313,7 @@ function Precificacao() {
     const label =
       cs.mode === "margin" ? `Margem ${cs.margin}%` :
       cs.mode === "markup" ? `Markup ${cs.markup}%` :
-      `PreÃ§o Fixo R$ ${cs.directPrice}`;
+      `Preço Fixo R$ ${cs.directPrice}`;
     toast.success(`${label} aplicado(a) a todos os tamanhos de ${color}`);
   };
 
@@ -2321,18 +2321,18 @@ function Precificacao() {
     setVariants((prev) =>
       prev.map((v) => (v.id === id ? { ...v, wholesaleCost: "", customSalePrice: "" } : v)),
     );
-    toast.success("Valores restaurados para o padrÃ£o da grade");
+    toast.success("Valores restaurados para o padrão da grade");
   };
 
   const addManualVariant = () => {
     const s = manualSize.trim().toUpperCase() || "M";
-    const c = manualColor.trim() || "PadrÃ£o";
+    const c = manualColor.trim() || "Padrão";
     const newId = `v-${s.toLowerCase()}-${c.toLowerCase()}-${Date.now().toString(36)}`;
 
-    // Verificar se jÃ¡ existe exatamente essa combinaÃ§Ã£o
+    // Verificar se já existe exatamente essa combinação
     const exists = variants.some((v) => v.size === s && v.color.toLowerCase() === c.toLowerCase());
     if (exists) {
-      toast.error(`A variante ${s} Â· ${c} jÃ¡ estÃ¡ na lista`);
+      toast.error(`A variante ${s} · ${c} já está na lista`);
       return;
     }
 
@@ -2347,10 +2347,10 @@ function Precificacao() {
       },
     ]);
     setManualCost("");
-    toast.success(`Variante ${s} Â· ${c} adicionada Ã  lista!`);
+    toast.success(`Variante ${s} · ${c} adicionada à lista!`);
   };
 
-  // Gerar Matriz RÃ¡pida (Tamanhos Ã— Cores)
+  // Gerar Matriz Rápida (Tamanhos × Cores)
   const generateMatrix = () => {
     if (genSizes.length === 0) {
       toast.error("Selecione ao menos um tamanho");
@@ -2407,19 +2407,19 @@ function Precificacao() {
     const clean = customGenColor.trim();
     if (!clean) return;
     if (genColors.includes(clean)) {
-      toast.error(`A cor "${clean}" jÃ¡ estÃ¡ selecionada`);
+      toast.error(`A cor "${clean}" já está selecionada`);
       return;
     }
     setGenColors((prev) => [...prev, clean]);
     setCustomGenColor("");
   };
 
-  // â”€â”€ Grid-First Matrix Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Grid-First Matrix Helpers ───────────────────────────────────────
 
-  /** Builds / rebuilds the full Cores Ã— Tamanhos matrix from current setup state */
+  /** Builds / rebuilds the full Cores × Tamanhos matrix from current setup state */
   const applyGlobalGrade = () => {
     if (activeColors.length === 0) {
-      toast.error("Adicione ao menos uma cor Ã  coleÃ§Ã£o");
+      toast.error("Adicione ao menos uma cor à coleção");
       return;
     }
     if (matrixSizes.length === 0) {
@@ -2465,7 +2465,7 @@ function Precificacao() {
     });
 
     const total = activeColors.length * matrixSizes.length;
-    toast.success(`Matriz gerada: ${activeColors.length} cores Ã— ${matrixSizes.length} tamanhos = ${total} SKUs`);
+    toast.success(`Matriz gerada: ${activeColors.length} cores × ${matrixSizes.length} tamanhos = ${total} SKUs`);
     setMatrixSetupOpen(false);
   };
 
@@ -2501,7 +2501,7 @@ function Precificacao() {
     }
   };
 
-  /** Update quantity for a specific Color Ã— Size cell in the matrix */
+  /** Update quantity for a specific Color × Size cell in the matrix */
   const updateMatrixCellQty = (color: string, size: string, qty: number) => {
     const safeQty = Math.max(0, Math.round(qty) || 0);
     setVariants((prev) => {
@@ -2539,7 +2539,7 @@ function Precificacao() {
   /** Apply global pricing strategy to ALL active colors at once */
   const applyGlobalStrategy = () => {
     if (activeColors.length === 0) {
-      toast.error("Adicione ao menos uma cor antes de aplicar a estratÃ©gia");
+      toast.error("Adicione ao menos uma cor antes de aplicar a estratégia");
       return;
     }
     const margin = toNumber(matrixGlobalMarginStr) || 50;
@@ -2563,7 +2563,7 @@ function Precificacao() {
         ? `Margem ${margin}%`
         : matrixGlobalMode === "markup"
           ? `Markup ${markupVal}%`
-          : `PreÃ§o R$ ${matrixGlobalDirectPrice}`;
+          : `Preço R$ ${matrixGlobalDirectPrice}`;
     toast.success(`${label} aplicado a todas as ${activeColors.length} cores`);
   };
 
@@ -2572,7 +2572,7 @@ function Precificacao() {
     const clean = colName.trim();
     if (!clean) return;
     if (activeColors.some((c) => c.toLowerCase() === clean.toLowerCase())) {
-      toast.error(`Cor "${clean}" jÃ¡ estÃ¡ na grade`);
+      toast.error(`Cor "${clean}" já está na grade`);
       return;
     }
     const newActiveColors = [...activeColors, clean];
@@ -2609,20 +2609,20 @@ function Precificacao() {
     setVariants((prev) => prev.filter((v) => v.color.toLowerCase() !== colName.toLowerCase()));
   };
 
-  // PromoÃ§Ã£o fluida de RÃ¡pida para Grade
+  // Promoção fluida de Rápida para Grade
   const promoteToGrade = () => {
     setBaseWholesaleGrade(wholesale);
     setMode("grade");
     toast.success("Dados transferidos para a Grade Detalhada!", {
-      description: "Agora vocÃª pode visualizar e personalizar cada variante por tamanho e cor.",
+      description: "Agora você pode visualizar e personalizar cada variante por tamanho e cor.",
     });
   };
 
-  // â”€â”€ MutaÃ§Ãµes de HistÃ³rico (Salvar / Deletar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Mutações de Histórico (Salvar / Deletar) ────────────────────────
   const save = useMutation({
     mutationFn: async () => {
       if (mode === "grade") {
-        // Garante que o modelo ativo atual estÃ¡ atualizado com o state local mais recente
+        // Garante que o modelo ativo atual está atualizado com o state local mais recente
         const synchronizedModels = gradeModels.map((m, idx) => {
           if (m.id === activeModelId) {
             return {
@@ -2636,7 +2636,7 @@ function Precificacao() {
           return m;
         });
 
-        // Coleta modelos que possuem nome ou variaÃ§Ãµes
+        // Coleta modelos que possuem nome ou variações
         const modelsWithData = synchronizedModels.filter(
           (m) => m.name.trim() || m.variants.length > 0
         );
@@ -2668,13 +2668,13 @@ function Precificacao() {
         return listToSave.length;
       }
 
-      // Modo rÃ¡pido:
+      // Modo rápido:
       const pieceName = name.trim();
-      if (!pieceName) throw new Error("DÃª um nome para a peÃ§a antes de salvar no histÃ³rico");
+      if (!pieceName) throw new Error("Dê um nome para a peça antes de salvar no histórico");
 
       const wholesaleNum = toNumber(wholesale);
       if (isNaN(wholesaleNum) || wholesaleNum <= 0) {
-        throw new Error("Informe o custo no atacado da peÃ§a (maior que zero) antes de salvar");
+        throw new Error("Informe o custo no atacado da peça (maior que zero) antes de salvar");
       }
 
       await insertPricing({
@@ -2693,15 +2693,15 @@ function Precificacao() {
       queryClient.invalidateQueries({ queryKey: ["pricings"] });
       toast.success(
         savedCount && savedCount > 1
-          ? `${savedCount} modelos salvos no histÃ³rico com sucesso!`
-          : "PrecificaÃ§Ã£o salva no histÃ³rico!",
+          ? `${savedCount} modelos salvos no histórico com sucesso!`
+          : "Precificação salva no histórico!",
         {
-          description: "VocÃª pode consultÃ¡-la ou dar entrada no estoque a qualquer momento.",
+          description: "Você pode consultá-la ou dar entrada no estoque a qualquer momento.",
         }
       );
     },
     onError: (err: Error) => {
-      toast.error("Erro ao salvar precificaÃ§Ã£o", { description: err.message });
+      toast.error("Erro ao salvar precificação", { description: err.message });
     },
   });
 
@@ -2709,24 +2709,24 @@ function Precificacao() {
     mutationFn: async (id: string) => deletePricing(storeId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pricings"] });
-      toast.success("PeÃ§a removida do histÃ³rico");
+      toast.success("Peça removida do histórico");
     },
     onError: (err: Error) => {
-      toast.error("Erro ao remover peÃ§a", { description: err.message });
+      toast.error("Erro ao remover peça", { description: err.message });
     },
   });
 
-  // â”€â”€ AÃ§Ãµes da Ficha de Entrada no Estoque â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Ações da Ficha de Entrada no Estoque ─────────────────────────────
   const openEntryForCurrent = () => {
-    setEntryName(name.trim() || "Nova PeÃ§a");
+    setEntryName(name.trim() || "Nova Peça");
     setEntryCostPrice(summaryPrices.avgCost);
     setEntrySalePrice(summaryPrices.avgSuggested);
     if (category) setEntryCategory(category);
 
     if (mode === "rapida") {
-      // Modo RÃ¡pido: usar cor/tamanho/quantidade informados pelo lojista
+      // Modo Rápido: usar cor/tamanho/quantidade informados pelo lojista
       setEntryColor(rapidaColor.trim() || "");
-      const sz = rapidaSize.trim() || "Ãšnico";
+      const sz = rapidaSize.trim() || "Único";
       const qty = Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
       setEntrySizes({ [sz]: qty });
     } else {
@@ -2782,7 +2782,7 @@ function Precificacao() {
           });
           const id = await insertInventoryItem({
             storeId,
-            name: entryName.trim() || "PeÃ§a sem nome",
+            name: entryName.trim() || "Peça sem nome",
             category: entryCategory,
             color: cg.color,
             supplier: entrySupplier.trim() || null,
@@ -2798,7 +2798,7 @@ function Precificacao() {
 
       const singleId = await insertInventoryItem({
         storeId,
-        name: entryName.trim() || "PeÃ§a sem nome",
+        name: entryName.trim() || "Peça sem nome",
         category: entryCategory,
         color: entryColor.trim() || null,
         supplier: entrySupplier.trim() || null,
@@ -2816,18 +2816,18 @@ function Precificacao() {
       // Auto-publicar na vitrine se a flag estiver ativa (sincronizado com estoque.tsx)
       if (res?.firstId && getAutoPublish()) {
         patchShowcaseConfig(res.firstId, { ativo: true });
-        toast.info("PeÃ§a publicada automaticamente na vitrine", {
-          description: "VocÃª pode ajustar a visibilidade em Loja â†’ Produtos.",
+        toast.info("Peça publicada automaticamente na vitrine", {
+          description: "Você pode ajustar a visibilidade em Loja → Produtos.",
           duration: 4000,
         });
       }
 
       if (res && res.count > 1) {
-        toast.success(`Grade de ${res.count} cores cadastrada no Estoque! ðŸ“¦`, {
+        toast.success(`Grade de ${res.count} cores cadastrada no Estoque! 📦`, {
           description: `${entryTotalUnits} unidades registradas individualmente por cor.`,
         });
       } else {
-        toast.success("PeÃ§a cadastrada no Estoque com sucesso! ðŸ“¦", {
+        toast.success("Peça cadastrada no Estoque com sucesso! 📦", {
           description: `${entryTotalUnits} unidades registradas na grade.`,
         });
       }
@@ -2837,9 +2837,9 @@ function Precificacao() {
     },
   });
 
-  // â”€â”€ ValidaÃ§Ã£o do CTA Principal (Apple-Level UX: feedback em tempo real do que falta) â”€â”€
+  // ── Validação do CTA Principal (Apple-Level UX: feedback em tempo real do que falta) ──
   const validationParts: string[] = [];
-  if (!name.trim()) validationParts.push("nome da peÃ§a");
+  if (!name.trim()) validationParts.push("nome da peça");
   if (!baseWholesaleGrade || toNumber(baseWholesaleGrade) <= 0) validationParts.push("custo de atacado");
   if (variants.length === 0 || actualLotUnits === 0) validationParts.push("grade e quantidades");
   const validationMsg = validationParts.join(", ") || null;
@@ -2851,16 +2851,16 @@ function Precificacao() {
 
   return (
     <div className="space-y-6">
-      {/* â”€â”€ Header Unificado no Estilo Apple: Breadcrumbs + TÃ­tulo + Segmented Pills na Mesma Faixa â”€â”€ */}
+      {/* ── Header Unificado no Estilo Apple: Breadcrumbs + Título + Segmented Pills na Mesma Faixa ── */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-2">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Produtos &gt; PrecificaÃ§Ã£o</p>
+          <p className="text-xs font-medium text-muted-foreground">Produtos &gt; Precificação</p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
-            PrecificaÃ§Ã£o
+            Precificação
           </h1>
         </div>
 
-        {/* â”€â”€ Segmented Control em PÃ­lula â”€â”€ */}
+        {/* ── Segmented Control em Pílula ── */}
         <div className="inline-flex rounded-full border border-border/80 bg-secondary/50 p-1 shadow-2xs">
           <button
             type="button"
@@ -2872,7 +2872,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            PrecificaÃ§Ã£o rÃ¡pida
+            Precificação rápida
           </button>
           <button
             type="button"
@@ -2896,7 +2896,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <span>PeÃ§as precificadas</span>
+            <span>Peças precificadas</span>
             {saved.length > 0 && (
               <span className="rounded-full bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0.5">
                 {saved.length}
@@ -2906,21 +2906,21 @@ function Precificacao() {
         </div>
       </div>
 
-      {/* â”€â”€ CANVAS UNIFICADO & MINIMALISTA (PADRÃƒO APPLE STUDIO - FLUXO SEQUENCIAL NATURAL) â”€â”€â”€â”€ */}
+      {/* ── CANVAS UNIFICADO & MINIMALISTA (PADRÃO APPLE STUDIO - FLUXO SEQUENCIAL NATURAL) ──── */}
       <div className="mx-auto w-full max-w-[1440px]">
-        {/* Grade de 2 colunas no desktop: conteÃºdo principal fluido + painel lateral responsivo */}
+        {/* Grade de 2 colunas no desktop: conteúdo principal fluido + painel lateral responsivo */}
         <div className={cn(
           "gap-5 xl:gap-6",
           mode === "rapida" ? "lg:grid lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_310px] lg:items-start" : ""
         )}>
 
-        {/* â”€â”€ COLUNA ESQUERDA: todo o conteÃºdo existente â”€â”€ */}
+        {/* ── COLUNA ESQUERDA: todo o conteúdo existente ── */}
         <div className="space-y-6 min-w-0">
 
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            MODO RÃPIDO â€” PASSO 1: IDENTIFICAÃ‡ÃƒO E CUSTOS DA PEÃ‡A
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══════════════════════════════════════════════════════════════════
+            MODO RÁPIDO — PASSO 1: IDENTIFICAÇÃO E CUSTOS DA PEÇA
+        ══════════════════════════════════════════════════════════════════ */}
         {mode === "rapida" && (
         <section className="panel p-6 sm:p-7 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
@@ -2930,23 +2930,23 @@ function Precificacao() {
               </span>
               <div>
                 <h2 className="text-sm font-bold text-foreground">
-                  IdentificaÃ§Ã£o e custo da peÃ§a
+                  Identificação e custo da peça
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mode === "rapida"
-                    ? "Informe o nome, categoria, valor de atacado e variantes da peÃ§a"
-                    : "Frete, embalagem e taxas rateados entre todos os modelos. Nome e custo de cada peÃ§a ficam no Passo 2."}
+                    ? "Informe o nome, categoria, valor de atacado e variantes da peça"
+                    : "Frete, embalagem e taxas rateados entre todos os modelos. Nome e custo de cada peça ficam no Passo 2."}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Grid de IdentificaÃ§Ã£o da PeÃ§a â€” apenas no modo rÃ¡pido */}
+          {/* Grid de Identificação da Peça — apenas no modo rápido */}
           {mode === "rapida" && (
           <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">
-                Nome da peÃ§a ou modelo
+                Nome da peça ou modelo
               </Label>
               <Input
                 value={name}
@@ -2976,7 +2976,7 @@ function Precificacao() {
           </div>
           )}
 
-          {/* Variantes do Modo RÃ¡pido: Custo de Atacado, Quantidade, Cor e Tamanho (4 colunas) */}
+          {/* Variantes do Modo Rápido: Custo de Atacado, Quantidade, Cor e Tamanho (4 colunas) */}
           {mode === "rapida" && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
@@ -2997,7 +2997,7 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* 2. Quantidade de PeÃ§as */}
+              {/* 2. Quantidade de Peças */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">
                   Quantidade no lote
@@ -3042,7 +3042,7 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* 3. Cor da PeÃ§a (opcional) */}
+              {/* 3. Cor da Peça (opcional) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <span>Cor</span>
@@ -3136,13 +3136,13 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* 4. Tamanho da PeÃ§a (opcional) */}
+              {/* 4. Tamanho da Peça (opcional) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <span>Tamanho</span>
                   {rapidaSize ? (
                     <span className="text-[10px] font-bold text-primary">
-                      Â· {rapidaSize}
+                      · {rapidaSize}
                     </span>
                   ) : (
                     <span className="text-[10px] text-muted-foreground font-normal">(opcional)</span>
@@ -3155,18 +3155,18 @@ function Precificacao() {
                     </SelectTrigger>
                     <SelectContent className="max-h-64 rounded-xl border border-border/80 bg-card shadow-xl">
                       <SelectItem value="nenhum" className="text-xs font-medium text-muted-foreground">
-                        â€” Sem tamanho definido â€”
+                        — Sem tamanho definido —
                       </SelectItem>
                       <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
-                        Tamanhos padrÃ£o
+                        Tamanhos padrão
                       </div>
-                      {["PP", "P", "M", "G", "GG", "Ãšnico"].map((sz) => (
+                      {["PP", "P", "M", "G", "GG", "Único"].map((sz) => (
                         <SelectItem key={sz} value={sz} className="text-xs font-semibold">
                           Tamanho {sz}
                         </SelectItem>
                       ))}
                       <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
-                        NumeraÃ§Ã£o & calÃ§as
+                        Numeração & calças
                       </div>
                       {["34", "36", "38", "40", "42", "44", "46", "48", "50"].map((sz) => (
                         <SelectItem key={sz} value={sz} className="text-xs font-semibold">
@@ -3199,9 +3199,9 @@ function Precificacao() {
             </div>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-              ETAPA 1.2 â€” CUSTOS OPERACIONAIS & RECIBO AO VIVO (2 COLUNAS)
-          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ══════════════════════════════════════════════════════════════════
+              ETAPA 1.2 — CUSTOS OPERACIONAIS & RECIBO AO VIVO (2 COLUNAS)
+          ══════════════════════════════════════════════════════════════════ */}
           {(() => {
             const freightVal = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
             const packagingVal = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
@@ -3255,7 +3255,7 @@ function Precificacao() {
 
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <Label className="text-[11px] font-semibold text-muted-foreground">Total de PeÃ§as</Label>
+                        <Label className="text-[11px] font-semibold text-muted-foreground">Total de Peças</Label>
                         {actualLotUnits > 0 && (
                           <button
                             type="button"
@@ -3285,7 +3285,7 @@ function Precificacao() {
                       className="h-9 rounded-xl gradient-primary text-xs font-bold shadow-glow shrink-0 cursor-pointer active:scale-95 transition-all"
                     >
                       {toNumber(rateioTotal) > 0 && Number(rateioPieces) > 0 ? (
-                        <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peÃ§a</>
+                        <>Aplicar {brl(toNumber(rateioTotal) / Math.max(1, Number(rateioPieces)))} / peça</>
                       ) : (
                         <>Calcular e Aplicar</>
                       )}
@@ -3297,14 +3297,14 @@ function Precificacao() {
 
             return (
               <div className="grid gap-4 lg:grid-cols-12 items-stretch">
-                {/* â”€â”€ COLUNA DA ESQUERDA: CUSTOS ADICIONAIS POR PEÃ‡A (7 colunas lg) â”€â”€ */}
+                {/* ── COLUNA DA ESQUERDA: CUSTOS ADICIONAIS POR PEÇA (7 colunas lg) ── */}
                 <div className="lg:col-span-7 rounded-2xl border border-border/80 bg-card p-5 shadow-2xs space-y-4 flex flex-col justify-between">
                   <div>
                     <p className="text-sm font-bold text-foreground">
-                      Custos adicionais por peÃ§a
+                      Custos adicionais por peça
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Despesas operacionais rateadas para compor o custo real da peÃ§a
+                      Despesas operacionais rateadas para compor o custo real da peça
                     </p>
                   </div>
 
@@ -3318,10 +3318,10 @@ function Precificacao() {
                           </div>
                           <div className="min-w-0">
                             <Label className="text-xs font-bold text-foreground cursor-pointer block truncate">
-                              Frete por peÃ§a
+                              Frete por peça
                             </Label>
                             <span className="text-[10px] text-muted-foreground block -mt-0.5 truncate">
-                              Transporte atÃ© o estoque
+                              Transporte até o estoque
                             </span>
                           </div>
                         </div>
@@ -3332,7 +3332,7 @@ function Precificacao() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="per_unit">Por peÃ§a</SelectItem>
+                              <SelectItem value="per_unit">Por peça</SelectItem>
                               <SelectItem value="lot_total">Total lote</SelectItem>
                             </SelectContent>
                           </Select>
@@ -3370,7 +3370,7 @@ function Precificacao() {
                       </div>
                       {freightMode === "lot_total" && toNumber(freight) > 0 && actualLotUnits > 1 && (
                         <p className="text-[11px] text-primary font-medium text-right mt-1">
-                          â‰ˆ {brl(toNumber(freight) / actualLotUnits)} / peÃ§a ({actualLotUnits} un.)
+                          ≈ {brl(toNumber(freight) / actualLotUnits)} / peça ({actualLotUnits} un.)
                         </p>
                       )}
                       {renderInlineRateio("freight", "Frete da Nota")}
@@ -3399,7 +3399,7 @@ function Precificacao() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="per_unit">Por peÃ§a</SelectItem>
+                              <SelectItem value="per_unit">Por peça</SelectItem>
                               <SelectItem value="lot_total">Total lote</SelectItem>
                             </SelectContent>
                           </Select>
@@ -3437,7 +3437,7 @@ function Precificacao() {
                       </div>
                       {packagingMode === "lot_total" && toNumber(packaging) > 0 && actualLotUnits > 1 && (
                         <p className="text-[11px] text-primary font-medium text-right mt-1">
-                          â‰ˆ {brl(toNumber(packaging) / actualLotUnits)} / peÃ§a ({actualLotUnits} un.)
+                          ≈ {brl(toNumber(packaging) / actualLotUnits)} / peça ({actualLotUnits} un.)
                         </p>
                       )}
                       {renderInlineRateio("packaging", "Embalagens & Tags")}
@@ -3466,7 +3466,7 @@ function Precificacao() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="per_unit">Por peÃ§a</SelectItem>
+                              <SelectItem value="per_unit">Por peça</SelectItem>
                               <SelectItem value="lot_total">Total lote</SelectItem>
                             </SelectContent>
                           </Select>
@@ -3504,7 +3504,7 @@ function Precificacao() {
                       </div>
                       {otherMode === "lot_total" && toNumber(other) > 0 && actualLotUnits > 1 && (
                         <p className="text-[11px] text-primary font-medium text-right mt-1">
-                          â‰ˆ {brl(toNumber(other) / actualLotUnits)} / peÃ§a ({actualLotUnits} un.)
+                          ≈ {brl(toNumber(other) / actualLotUnits)} / peça ({actualLotUnits} un.)
                         </p>
                       )}
                       {renderInlineRateio("other", "Outros Custos")}
@@ -3512,22 +3512,22 @@ function Precificacao() {
                   </div>
                 </div>
 
-                {/* â”€â”€ COLUNA DA DIREITA: RECIBO DO CUSTO REAL DA PEÃ‡A (5 colunas lg) â”€â”€ */}
+                {/* ── COLUNA DA DIREITA: RECIBO DO CUSTO REAL DA PEÇA (5 colunas lg) ── */}
                 <div className="lg:col-span-5 rounded-2xl border border-border/80 bg-card p-5 shadow-2xs flex flex-col justify-between space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Custo Real da PeÃ§a
+                        Custo Real da Peça
                       </span>
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                        Base de precificaÃ§Ã£o
+                        Base de precificação
                       </span>
                     </div>
 
                     <div>
                       <div className="numeric text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
                         {brl(totalUnitCost)}
-                        <span className="text-xs font-normal text-muted-foreground ml-1">/ peÃ§a</span>
+                        <span className="text-xs font-normal text-muted-foreground ml-1">/ peça</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {brl(baseCost)} atacado + {brl(totalSharedCost)} adicionais
@@ -3584,20 +3584,20 @@ function Precificacao() {
                     </div>
                   </div>
 
-                  {/* Caixa de EquaÃ§Ã£o Explicativa */}
+                  {/* Caixa de Equação Explicativa */}
                   <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground shadow-2xs">
                     <Info className="size-4 shrink-0 text-primary/80" />
                     <span>
                       {totalSharedCost > 0 ? (
                         <>
-                          Adicionais compÃµem{" "}
+                          Adicionais compõem{" "}
                           <strong className="text-foreground">
                             {Math.round(totalUnitCost > 0 ? (totalSharedCost / totalUnitCost) * 100 : 0)}%
                           </strong>{" "}
-                          do custo desta peÃ§a
+                          do custo desta peça
                         </>
                       ) : (
-                        <>Sem custos adicionais Â· Custo real igual ao atacado</>
+                        <>Sem custos adicionais · Custo real igual ao atacado</>
                       )}
                     </span>
                   </div>
@@ -3606,11 +3606,11 @@ function Precificacao() {
             );
           })()}
 
-          {/* Taxas Fiscais e de CartÃ£o com Controles HÃ­bridos Studio */}
+          {/* Taxas Fiscais e de Cartão com Controles Híbridos Studio */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-3 px-0.5">
               <span className="text-xs font-bold text-foreground">
-                Taxas e deduÃ§Ãµes da venda
+                Taxas e deduções da venda
               </span>
 
               <Button
@@ -3630,7 +3630,7 @@ function Precificacao() {
             <div className="grid gap-4 sm:grid-cols-2">
               <HybridTaxControl
                 label="Imposto DAS / Simples (%)"
-                hint="AlÃ­quota aplicada sobre faturamento bruto"
+                hint="Alíquota aplicada sobre faturamento bruto"
                 value={tax}
                 max={25}
                 onChange={setTax}
@@ -3642,15 +3642,15 @@ function Precificacao() {
                 ]}
               />
               <HybridTaxControl
-                label="Taxa mÃ©dia de cartÃ£o (%)"
-                hint="MÃ©dia ponderada descontada pelas maquininhas"
+                label="Taxa média de cartão (%)"
+                hint="Média ponderada descontada pelas maquininhas"
                 value={cardRate}
                 max={15}
                 onChange={setCardRate}
                 presets={[
                   { label: `Pix (${(pricingSettings.cardRates?.pix ?? 0.9).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.pix ?? 0.9 },
-                  { label: `DÃ©bito (${(pricingSettings.cardRates?.debito ?? 1.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.debito ?? 1.5 },
-                  { label: `CrÃ©dito 1Ã— (${(pricingSettings.cardRates?.credito1x ?? 3.2).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.credito1x ?? 3.2 },
+                  { label: `Débito (${(pricingSettings.cardRates?.debito ?? 1.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.debito ?? 1.5 },
+                  { label: `Crédito 1× (${(pricingSettings.cardRates?.credito1x ?? 3.2).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.credito1x ?? 3.2 },
                   { label: `Parcelado (${(pricingSettings.cardRates?.parcelado ?? 4.5).toString().replace(".", ",")}%)`, value: pricingSettings.cardRates?.parcelado ?? 4.5 },
                 ]}
               />
@@ -3659,27 +3659,27 @@ function Precificacao() {
         </section>
         )}
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            MODO RÃPIDO â€” PASSO 2: FORMAÃ‡ÃƒO DO PREÃ‡O DE VENDA
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+        {/* ══════════════════════════════════════════════════════════════════
+            MODO RÁPIDO — PASSO 2: FORMAÇÃO DO PREÇO DE VENDA
+        ══════════════════════════════════════════════════════════════════ */}
         {mode === "rapida" && (
           <section className="panel p-5 sm:p-6 space-y-4">
-            {/* â”€â”€ CABEÃ‡ALHO INTEGRADO â”€â”€ */}
+            {/* ── CABEÇALHO INTEGRADO ── */}
             <div className="flex items-center gap-2.5 border-b border-border/50 pb-3">
               <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary shrink-0">
                 2
               </span>
               <div>
                 <h2 className="text-base font-bold text-foreground tracking-tight">
-                  FormaÃ§Ã£o do PreÃ§o de Venda
+                  Formação do Preço de Venda
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Defina sua margem e visualize instantaneamente o preÃ§o comercial da peÃ§a
+                  Defina sua margem e visualize instantaneamente o preço comercial da peça
                 </p>
               </div>
             </div>
             <div className="space-y-4">
-              {/* â”€â”€ SELETOR DE ESTRATÃ‰GIA PROEMINENTE & NOTÃVEL â”€â”€ */}
+              {/* ── SELETOR DE ESTRATÉGIA PROEMINENTE & NOTÁVEL ── */}
               <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-secondary/40 border border-border/70 shadow-2xs">
                 <button
                   type="button"
@@ -3718,20 +3718,20 @@ function Precificacao() {
                   )}
                 >
                   <Tag className={cn("size-3.5 shrink-0", strategy === "direct_price" ? "text-primary" : "text-muted-foreground")} />
-                  <span>PreÃ§o fixo</span>
+                  <span>Preço fixo</span>
                 </button>
               </div>
 
-              {/* â”€â”€ FAIXA 1: CONTROLE DE ENTRADA UNIFICADO & HARMONIOSO (SEM VÃCUO) â”€â”€ */}
+              {/* ── FAIXA 1: CONTROLE DE ENTRADA UNIFICADO & HARMONIOSO (SEM VÁCUO) ── */}
               {strategy === "margin" && (() => {
                 const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
                 const effectiveMargin = Math.min(desiredMargin, maxMarginSafe);
                 return (
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl bg-secondary/25 border border-border/60">
-                    {/* Stepper com RÃ³tulo */}
+                    {/* Stepper com Rótulo */}
                     <div className="flex items-center gap-2.5 shrink-0">
                       <span className="text-xs font-semibold text-foreground whitespace-nowrap">
-                        Meta de margem lÃ­quida:
+                        Meta de margem líquida:
                       </span>
 
                       <div className="inline-flex items-center rounded-xl border border-border/80 bg-background shadow-soft focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all overflow-hidden shrink-0">
@@ -3799,11 +3799,11 @@ function Precificacao() {
                     {/* Divisor vertical sutil */}
                     <div className="hidden sm:block h-6 w-px bg-border/70 shrink-0" />
 
-                    {/* Atalhos RÃ¡pidos */}
+                    {/* Atalhos Rápidos */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {[
                         { label: "35%", tag: "Varejo", val: 35 },
-                        { label: "45%", tag: "EquilÃ­brio", val: 45 },
+                        { label: "45%", tag: "Equilíbrio", val: 45 },
                         { label: "50%", tag: "Recomendada", val: 50 },
                         { label: "60%", tag: "Alta margem", val: 60 },
                       ].map((m) => {
@@ -3838,7 +3838,7 @@ function Precificacao() {
 
               {strategy === "markup" && (
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl bg-secondary/25 border border-border/60">
-                  {/* Lado Esquerdo: RÃ³tulo + CÃ¡psula de Markup */}
+                  {/* Lado Esquerdo: Rótulo + Cápsula de Markup */}
                   <div className="flex items-center gap-2.5 shrink-0">
                     <span className="text-xs font-semibold text-foreground whitespace-nowrap">
                       Multiplicador de Markup:
@@ -3908,7 +3908,7 @@ function Precificacao() {
                   {/* Divisor vertical */}
                   <div className="hidden sm:block h-6 w-px bg-border/70 shrink-0" />
 
-                  {/* Lado Direito: Atalhos RÃ¡pidos */}
+                  {/* Lado Direito: Atalhos Rápidos */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {[
                       { label: "1.8x", tag: "Atacado", val: 80 },
@@ -3945,10 +3945,10 @@ function Precificacao() {
 
               {strategy === "direct_price" && (
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl bg-secondary/25 border border-border/60">
-                  {/* Lado Esquerdo: PreÃ§o Fixo */}
+                  {/* Lado Esquerdo: Preço Fixo */}
                   <div className="flex items-center gap-2.5 shrink-0">
                     <span className="text-xs font-semibold text-foreground whitespace-nowrap">
-                      PreÃ§o fixo de venda:
+                      Preço fixo de venda:
                     </span>
 
                     <div className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-background shadow-soft px-2.5 py-1 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shrink-0">
@@ -3969,11 +3969,11 @@ function Precificacao() {
                   {/* Divisor vertical */}
                   <div className="hidden sm:block h-6 w-px bg-border/70 shrink-0" />
 
-                  {/* Lado Direito: SugestÃµes de PreÃ§o */}
+                  {/* Lado Direito: Sugestões de Preço */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {[
                       { label: "R$ 99,90", val: "99,90", tag: "Entrada" },
-                      { label: "R$ 119,90", val: "119,90", tag: "MÃ©dio" },
+                      { label: "R$ 119,90", val: "119,90", tag: "Médio" },
                       { label: "R$ 149,90", val: "149,90", tag: "Popular" },
                       { label: "R$ 199,90", val: "199,90", tag: "Premium" },
                     ].map((pVal) => {
@@ -4001,7 +4001,7 @@ function Precificacao() {
                 </div>
               )}
 
-              {/* â”€â”€ DEMONSTRATIVO COMERCIAL DA PEÃ‡A (RECIBO HARMONIOSO) â”€â”€ */}
+              {/* ── DEMONSTRATIVO COMERCIAL DA PEÇA (RECIBO HARMONIOSO) ── */}
               {summaryPrices.avgSuggested > 0 && (() => {
                 const cost = summaryPrices.avgCost;
                 const profit = summaryPrices.avgProfit;
@@ -4016,14 +4016,14 @@ function Precificacao() {
 
                 return (
                   <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 shadow-soft space-y-4">
-                    {/* 1. Header do Demonstrativo: PreÃ§o Sugerido e Sobra no Caixa (Sem card-in-card) */}
+                    {/* 1. Header do Demonstrativo: Preço Sugerido e Sobra no Caixa (Sem card-in-card) */}
                     <div className="grid sm:grid-cols-2 gap-4 pb-4 border-b border-border/60">
-                      {/* Lado A: PreÃ§o sugerido na vitrine */}
+                      {/* Lado A: Preço sugerido na vitrine */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between sm:justify-start gap-2">
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                             <Tag className="size-3.5 text-primary" />
-                            PreÃ§o sugerido na vitrine
+                            Preço sugerido na vitrine
                           </span>
                           <Badge
                             variant="outline"
@@ -4036,19 +4036,19 @@ function Precificacao() {
                           <span className="numeric text-2xl sm:text-3xl font-black tracking-tight text-foreground leading-none">
                             {brl(summaryPrices.avgSuggested)}
                           </span>
-                          <span className="text-xs font-medium text-muted-foreground">/ peÃ§a</span>
+                          <span className="text-xs font-medium text-muted-foreground">/ peça</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground/80">
                           Valor final recomendado para venda na vitrine e loja.
                         </p>
                       </div>
 
-                      {/* Lado B: Sobra lÃ­quida no caixa */}
+                      {/* Lado B: Sobra líquida no caixa */}
                       <div className="space-y-1 sm:border-l sm:border-border/60 sm:pl-5">
                         <div className="flex items-center justify-between sm:justify-start gap-2">
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                             <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                            Sobra lÃ­quida no caixa
+                            Sobra líquida no caixa
                           </span>
                           <span className="numeric text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full shadow-2xs">
                             {pct(summaryPrices.avgMargin)} de margem
@@ -4058,19 +4058,19 @@ function Precificacao() {
                           <span className="numeric text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">
                             {brl(summaryPrices.avgProfit)}
                           </span>
-                          <span className="text-xs font-medium text-emerald-700/70 dark:text-emerald-400/70">/ peÃ§a</span>
+                          <span className="text-xs font-medium text-emerald-700/70 dark:text-emerald-400/70">/ peça</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground/80">
-                          Lucro limpo no bolso apÃ³s abatimento de custos e taxas.
+                          Lucro limpo no bolso após abatimento de custos e taxas.
                         </p>
                       </div>
                     </div>
 
-                    {/* 2. Barra Visual Proporcional ContÃ­nua */}
+                    {/* 2. Barra Visual Proporcional Contínua */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-foreground">
-                          DecomposiÃ§Ã£o do preÃ§o ({brl(total)})
+                          Decomposição do preço ({brl(total)})
                         </span>
                         <span className="text-[11px] text-muted-foreground">
                           Para onde vai cada real cobrado
@@ -4103,12 +4103,12 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* 3. A Tabela DRE em Lista (O Recibo ClÃ¡ssico Harmonioso) */}
+                    {/* 3. A Tabela DRE em Lista (O Recibo Clássico Harmonioso) */}
                     <div className="rounded-xl border border-border/60 bg-background/90 overflow-hidden shadow-2xs">
-                      {/* CabeÃ§alho do Recibo */}
+                      {/* Cabeçalho do Recibo */}
                       <div className="grid grid-cols-[1fr_auto_auto] items-center text-[11px] font-medium text-muted-foreground py-2 px-3.5 bg-secondary/25 border-b border-border/50">
-                        <span>Componente da formaÃ§Ã£o</span>
-                        <span className="text-right pr-6 sm:pr-8">Valor unitÃ¡rio</span>
+                        <span>Componente da formação</span>
+                        <span className="text-right pr-6 sm:pr-8">Valor unitário</span>
                         <span className="text-right w-16 sm:w-20">% do total</span>
                       </div>
 
@@ -4116,8 +4116,8 @@ function Precificacao() {
                       <div className="grid grid-cols-[1fr_auto_auto] items-center py-2.5 px-3.5 text-xs border-b border-border/40 hover:bg-secondary/15 transition-colors">
                         <div className="flex items-center gap-2">
                           <span className="size-2 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
-                          <span className="font-medium text-foreground">Custo da PeÃ§a</span>
-                          <span className="text-[11px] text-muted-foreground hidden sm:inline">Â· PreÃ§o atacado</span>
+                          <span className="font-medium text-foreground">Custo da Peça</span>
+                          <span className="text-[11px] text-muted-foreground hidden sm:inline">· Preço atacado</span>
                         </div>
                         <span className="numeric font-semibold text-foreground text-right pr-6 sm:pr-8">{brl(cost)}</span>
                         <span className="numeric text-muted-foreground text-right w-16 sm:w-20">{Math.round(costPct)}%</span>
@@ -4128,24 +4128,24 @@ function Precificacao() {
                         <div className="flex items-center gap-2">
                           <span className="size-2 rounded-full bg-amber-400 shrink-0" />
                           <span className="font-medium text-foreground">Imposto DAS ({tax.toFixed(1)}%)</span>
-                          <span className="text-[11px] text-muted-foreground hidden sm:inline">Â· Simples Nacional</span>
+                          <span className="text-[11px] text-muted-foreground hidden sm:inline">· Simples Nacional</span>
                         </div>
                         <span className="numeric font-semibold text-foreground text-right pr-6 sm:pr-8">{brl(taxes)}</span>
                         <span className="numeric text-muted-foreground text-right w-16 sm:w-20">{Math.round(taxPct)}%</span>
                       </div>
 
-                      {/* Linha 3: Taxa de CartÃ£o */}
+                      {/* Linha 3: Taxa de Cartão */}
                       <div className="grid grid-cols-[1fr_auto_auto] items-center py-2.5 px-3.5 text-xs border-b border-border/40 hover:bg-secondary/15 transition-colors">
                         <div className="flex items-center gap-2">
                           <span className="size-2 rounded-full bg-sky-400 shrink-0" />
-                          <span className="font-medium text-foreground">Taxa de CartÃ£o ({cardRate.toFixed(1)}%)</span>
-                          <span className="text-[11px] text-muted-foreground hidden sm:inline">Â· Maquininha/gateway</span>
+                          <span className="font-medium text-foreground">Taxa de Cartão ({cardRate.toFixed(1)}%)</span>
+                          <span className="text-[11px] text-muted-foreground hidden sm:inline">· Maquininha/gateway</span>
                         </div>
                         <span className="numeric font-semibold text-foreground text-right pr-6 sm:pr-8">{brl(cardFees)}</span>
                         <span className="numeric text-muted-foreground text-right w-16 sm:w-20">{Math.round(cardPct)}%</span>
                       </div>
 
-                      {/* Linha 4: Lucro LÃ­quido Real (Destaque Nobre Suave) */}
+                      {/* Linha 4: Lucro Líquido Real (Destaque Nobre Suave) */}
                       <div className={cn(
                         "grid grid-cols-[1fr_auto_auto] items-center py-2.5 px-3.5 text-xs font-semibold",
                         profit < 0
@@ -4155,9 +4155,9 @@ function Precificacao() {
                         <div className="flex items-center gap-2">
                           <span className={cn("size-2 rounded-full shrink-0", profit < 0 ? "bg-rose-500" : "bg-emerald-500")} />
                           <span className="font-bold">
-                            Lucro LÃ­quido Real
+                            Lucro Líquido Real
                           </span>
-                          <span className="text-[11px] opacity-75 hidden sm:inline">Â· Sobra limpa por peÃ§a</span>
+                          <span className="text-[11px] opacity-75 hidden sm:inline">· Sobra limpa por peça</span>
                         </div>
                         <span className={cn("numeric font-bold text-sm text-right pr-6 sm:pr-8", profit < 0 ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400")}>
                           {brl(profit)}
@@ -4173,7 +4173,7 @@ function Precificacao() {
 
               <div className="border-t border-border/50" />
 
-              {/* â”€â”€ AÃ‡Ã•ES FINAIS UNIFICADAS (RODAPÃ‰) â”€â”€ */}
+              {/* ── AÇÕES FINAIS UNIFICADAS (RODAPÉ) ── */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-0.5">
                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <Button
@@ -4192,7 +4192,7 @@ function Precificacao() {
                     className="h-10 rounded-full text-xs font-semibold border-border/80 bg-background hover:bg-secondary/60 cursor-pointer flex items-center justify-center gap-1.5 px-4 transition-all"
                   >
                     <Save className="size-3.5" />
-                    <span>Salvar no histÃ³rico</span>
+                    <span>Salvar no histórico</span>
                   </Button>
                   <Button
                     type="button"
@@ -4219,23 +4219,23 @@ function Precificacao() {
 
               {/* Disclaimer fiscal discreto */}
               <p className="text-[10px] text-muted-foreground/60 text-center leading-relaxed">
-                âŠ™ Estimativa com as taxas informadas. NÃ£o representa orientaÃ§Ã£o fiscal.
+                ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
               </p>
 
-              {/* Ponto de EquilÃ­brio no Modo RÃ¡pido (quando qty > 1) */}
+              {/* Ponto de Equilíbrio no Modo Rápido (quando qty > 1) */}
               {actualLotUnits > 1 && (
                 <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
-                  Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peÃ§a" : "peÃ§as"}</strong> vocÃª quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
+                  Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
                     Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (
                       <>
-                        As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peÃ§as</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> lÃ­quidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
+                        As outras <strong className="text-foreground">{Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0)} peças</strong> geram <strong className="text-success">+{brl(lotBreakEven.profitOnRemainder)}</strong> líquidos no seu caixa (Lucro total do lote: <strong className="text-foreground">{brl(lotBreakEven.totalLotProfit)}</strong>).
                       </>
                     ) : (
-                      "Lote quitado com margem saudÃ¡vel."
+                      "Lote quitado com margem saudável."
                     )
                   ) : (
                     <span className="text-destructive font-semibold">
-                      AtenÃ§Ã£o: este preÃ§o resulta em prejuÃ­zo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
+                      Atenção: este preço resulta em prejuízo previsto de {brl(Math.abs(lotBreakEven.totalLotProfit))} no lote.
                     </span>
                   )}
                 </div>
@@ -4244,37 +4244,37 @@ function Precificacao() {
           </section>
         )}
 
-        {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-        {/* â•â• MODO GRADE: Ficha Ãšnica Progressiva (Design System Modaly - PadrÃ£o Apple / Linear) â•â• */}
+        {/* ══════════════════════════════════════════════════════════════════
+        {/* ══ MODO GRADE: Ficha Única Progressiva (Design System Modaly - Padrão Apple / Linear) ══ */}
         {mode === "grade" && (
           <div className="space-y-6 pb-24 lg:pb-8">
             {/* Grid de 2 colunas: Painel Principal + Sidebar Sticky */}
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px] items-start">
               
-              {/* â”€â”€ COLUNA PRINCIPAL: SeÃ§Ãµes 1 a 4 â”€â”€ */}
+              {/* ── COLUNA PRINCIPAL: Seções 1 a 4 ── */}
               <div className="space-y-5 min-w-0">
 
-                {/* â”€â”€ SEÃ‡ÃƒO 1: Ficha da PeÃ§a â”€â”€ */}
+                {/* ── SEÇÃO 1: Ficha da Peça ── */}
                 <section className="panel p-5 sm:p-6 space-y-4 border border-border/80 bg-card shadow-soft">
                   <div className="flex items-center justify-between border-b border-border/60 pb-3">
                     <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
                       <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-foreground text-xs font-bold">
                         1
                       </span>
-                      <span>Ficha da peÃ§a</span>
+                      <span>Ficha da peça</span>
                     </h2>
                     <span className="text-xs text-muted-foreground">
-                      IdentificaÃ§Ã£o e custo de atacado base
+                      Identificação e custo de atacado base
                     </span>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-[56px_1fr_180px_150px] items-center">
-                    {/* Foto da peÃ§a */}
+                    {/* Foto da peça */}
                     <div className="flex flex-col items-center gap-1">
                       <div className="size-14 rounded-2xl border-2 border-dashed border-border/80 bg-secondary/30 flex items-center justify-center overflow-hidden hover:border-primary/50 transition-colors relative group">
                         {entryPhotoUrl ? (
                           <div className="relative size-full">
-                            <img src={entryPhotoUrl} alt="Foto da peÃ§a" className="size-full object-cover" />
+                            <img src={entryPhotoUrl} alt="Foto da peça" className="size-full object-cover" />
                             <button
                               type="button"
                               onClick={() => setEntryPhotoUrl("")}
@@ -4305,10 +4305,10 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* Nome da PeÃ§a */}
+                    {/* Nome da Peça */}
                     <div className="space-y-1">
                       <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Nome da peÃ§a
+                        Nome da peça
                       </Label>
                       <Input
                         value={name}
@@ -4408,10 +4408,10 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* Destaque Custo Real UnitÃ¡rio */}
+                    {/* Destaque Custo Real Unitário */}
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Custo real / peÃ§a</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Custo real / peça</span>
                         <span className="text-[10px] text-muted-foreground">
                           {actualLotUnits > 0 ? `${actualLotUnits} un.` : "1 un."}
                         </span>
@@ -4435,17 +4435,17 @@ function Precificacao() {
                   </div>
                 </section>
 
-                {/* â”€â”€ SEÃ‡ÃƒO 2: EstratÃ©gia de PreÃ§o â”€â”€ */}
+                {/* ── SEÇÃO 2: Estratégia de Preço ── */}
                 <section className="panel p-5 sm:p-6 space-y-4 border border-border/80 bg-card shadow-soft">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
                     <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
                       <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-foreground text-xs font-bold">
                         2
                       </span>
-                      <span>EstratÃ©gia de preÃ§o</span>
+                      <span>Estratégia de preço</span>
                     </h2>
 
-                    {/* Segmented control: PreÃ§o Ãºnico | Margem | Markup */}
+                    {/* Segmented control: Preço único | Margem | Markup */}
                     <div className="inline-flex rounded-full border border-border/80 bg-secondary/50 p-1 shadow-2xs">
                       <button
                         type="button"
@@ -4457,7 +4457,7 @@ function Precificacao() {
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        PreÃ§o Ãºnico
+                        Preço único
                       </button>
                       <button
                         type="button"
@@ -4486,7 +4486,7 @@ function Precificacao() {
                     </div>
                   </div>
 
-                  {/* Controles de precificaÃ§Ã£o */}
+                  {/* Controles de precificação */}
                   <div className="space-y-3">
                     {strategy === "margin" && (
                       <div className="flex flex-wrap items-center gap-4">
@@ -4523,7 +4523,7 @@ function Precificacao() {
                         <div className="flex flex-wrap items-center gap-1.5">
                           {[
                             { val: 35, label: "35% Giro" },
-                            { val: 45, label: "45% EquilÃ­brio" },
+                            { val: 45, label: "45% Equilíbrio" },
                             { val: 50, label: "50% Ideal" },
                             { val: 60, label: "60% Marca" },
                           ].map((preset) => (
@@ -4610,7 +4610,7 @@ function Precificacao() {
 
                     {strategy === "direct_price" && (
                       <div className="flex items-center gap-3">
-                        <Label className="text-xs font-semibold text-foreground">PreÃ§o de venda direto:</Label>
+                        <Label className="text-xs font-semibold text-foreground">Preço de venda direto:</Label>
                         <div className="relative flex h-10 w-44 items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                           <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
@@ -4625,17 +4625,17 @@ function Precificacao() {
                       </div>
                     )}
 
-                    {/* DeduÃ§Ãµes â–¾ (DAS + CartÃ£o recolhidos) */}
+                    {/* Deduções ▾ (DAS + Cartão recolhidos) */}
                     <div className="pt-2 border-t border-border/40">
                       <button
                         type="button"
                         onClick={() => setShowDeducoes(!showDeducoes)}
                         className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                       >
-                        <span>DeduÃ§Ãµes {(tax + cardRate).toFixed(1).replace(".", ",")}%</span>
+                        <span>Deduções {(tax + cardRate).toFixed(1).replace(".", ",")}%</span>
                         <ChevronDown className={cn("size-3.5 transition-transform duration-200", showDeducoes && "rotate-180")} />
                         <span className="text-[11px] text-muted-foreground/70 font-normal">
-                          Â· DAS ({tax}%) + Taxa CartÃ£o ({cardRate}%)
+                          · DAS ({tax}%) + Taxa Cartão ({cardRate}%)
                         </span>
                       </button>
 
@@ -4659,7 +4659,7 @@ function Precificacao() {
 
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between text-xs font-semibold">
-                              <Label className="text-xs">Taxa MÃ©dia do CartÃ£o</Label>
+                              <Label className="text-xs">Taxa Média do Cartão</Label>
                               <span className="numeric text-foreground font-bold">{cardRate}%</span>
                             </div>
                             <Slider
@@ -4678,7 +4678,7 @@ function Precificacao() {
                   </div>
                 </section>
 
-                {/* â”€â”€ SEÃ‡ÃƒO 3: Cores e Tamanhos â”€â”€ */}
+                {/* ── SEÇÃO 3: Cores e Tamanhos ── */}
                 <section className="panel p-5 sm:p-6 space-y-4 border border-border/80 bg-card shadow-soft">
                   <div className="flex items-center justify-between border-b border-border/60 pb-3">
                     <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
@@ -4688,7 +4688,7 @@ function Precificacao() {
                       <span>Cores e tamanhos</span>
                     </h2>
                     <span className="text-xs text-muted-foreground">
-                      {activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} Â· {variants.length} variaÃ§Ãµes
+                      {activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {variants.length} variações
                     </span>
                   </div>
 
@@ -4717,7 +4717,7 @@ function Precificacao() {
                           </span>
                         ))}
 
-                        {/* BotÃ£o + Popover de Adicionar Cor */}
+                        {/* Botão + Popover de Adicionar Cor */}
                         <div className="relative">
                           <Button
                             type="button"
@@ -4762,7 +4762,7 @@ function Precificacao() {
                               </div>
 
                               <div className="space-y-1">
-                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Paleta da ColeÃ§Ã£o</p>
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Paleta da Coleção</p>
                                 <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
                                   {["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
                                     .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
@@ -4821,7 +4821,7 @@ function Precificacao() {
                               plus: ["GG", "G1", "G2", "G3"],
                               jeans: ["34", "36", "38", "40", "42", "44", "46", "48"],
                               infantil: ["2", "4", "6", "8", "10", "12", "14", "16"],
-                              unico: ["Ãšnico"],
+                              unico: ["Único"],
                             };
                             if (PRESETS_MAP[val]) {
                               applySizePreset(PRESETS_MAP[val]);
@@ -4837,7 +4837,7 @@ function Precificacao() {
                             <SelectItem value="plus" className="text-xs">Plus Size (GG a G3)</SelectItem>
                             <SelectItem value="jeans" className="text-xs">Jeans (34 a 48)</SelectItem>
                             <SelectItem value="infantil" className="text-xs">Infantil (2 a 16)</SelectItem>
-                            <SelectItem value="unico" className="text-xs">Tamanho Ãšnico</SelectItem>
+                            <SelectItem value="unico" className="text-xs">Tamanho Único</SelectItem>
                           </SelectContent>
                         </Select>
 
@@ -4867,82 +4867,44 @@ function Precificacao() {
 
               </div>
 
-              {/* â”€â”€ SIDEBAR STICKY (RESUMO & CTA - DESKTOP) â”€â”€ */}
+              {/* ── SIDEBAR STICKY (RESUMO & CTA - DESKTOP) ── */}
               <aside className="sticky top-6 hidden lg:block rounded-2xl border border-border/80 bg-card p-5 shadow-soft space-y-5">
-                {/* PreÃ§o sugerido por peÃ§a */}
+                {/* Preço sugerido por peça */}
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground">PreÃ§o sugerido por peÃ§a</p>
+                  <p className="text-xs font-semibold text-muted-foreground">Preço sugerido por peça</p>
                   <p className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Custo real {brl(summaryPrices.avgCost)} Â· lucro {brl(summaryPrices.avgProfit)}
+                    Custo real {brl(summaryPrices.avgCost)} · lucro {brl(summaryPrices.avgProfit)}
                   </p>
                 </div>
 
                 <div className="border-t border-border/60" />
 
-                {/* Grid 2x2 de métricas — sem bordas */}
-
-
+                {/* Grid 2x2 de métricas — plain, sem bordas */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-
-
                   <div>
-
-
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Investimento</p>
-
-
                     <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalInvestment)}</p>
-
-
                   </div>
-
-
                   <div>
-
-
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Faturamento</p>
-
-
                     <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalRevenue)}</p>
-
-
                   </div>
-
-
                   <div>
-
-
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Lucro líquido</p>
-
-
                     <p className={cn("text-sm font-black numeric mt-0.5", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
-
-
                       {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
-
-
                     </p>
-
-
                   </div>
-
-
                   <div>
-
-
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Peças no lote</p>
-
-
                     <p className="text-sm font-black numeric text-foreground mt-0.5">{actualLotUnits} un.</p>
-
-
                   </div>
+                </div>
 
-
-                </div>{/* BotÃ£o Principal: Dar Entrada no Estoque */}
+                {/* Botão Principal: Dar Entrada no Estoque */}
                 <Button
                   type="button"
                   onClick={openEntryForCurrent}
@@ -4953,7 +4915,7 @@ function Precificacao() {
                   <span>Dar entrada no estoque</span>
                 </Button>
 
-                {/* ValidaÃ§Ã£o inline quando desabilitado */}
+                {/* Validação inline quando desabilitado */}
                 {!canSubmitGrade && validationMsg && (
                   <p className="text-xs text-muted-foreground text-center -mt-2">
                     Falta: <span className="font-medium text-foreground">{validationMsg}</span>
@@ -4962,7 +4924,7 @@ function Precificacao() {
 
                 <div className="border-t border-border/60" />
 
-                {/* AÃ§Ãµes SecundÃ¡rias */}
+                {/* Ações Secundárias */}
                 <div className="flex items-center justify-between">
                   <Button
                     type="button"
@@ -4987,7 +4949,7 @@ function Precificacao() {
               </aside>
             </div>
 
-            {/* â”€â”€ SEÃ‡ÃƒO 4: Planilha de VariaÃ§Ãµes (Agrupada por Cor) â”€â”€ */}
+            {/* ── SEÇÃO 4: Planilha de Variações (Agrupada por Cor) ── */}
             <section className="panel p-5 sm:p-6 space-y-4 border border-border/80 bg-card shadow-soft">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
                 <div className="flex items-center gap-2">
@@ -4995,7 +4957,7 @@ function Precificacao() {
                     4
                   </span>
                   <h2 className="text-sm sm:text-base font-bold text-foreground">
-                    Planilha de variaÃ§Ãµes
+                    Planilha de variações
                   </h2>
                   {actualLotUnits > 0 && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-foreground">
@@ -5004,15 +4966,15 @@ function Precificacao() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Clique em custo ou preÃ§o para ajustar uma linha individualmente
+                  Clique em custo ou preço para ajustar uma linha individualmente
                 </p>
               </div>
 
               {variants.length === 0 ? (
                 <div className="py-12 text-center border-2 border-dashed border-border/70 rounded-2xl bg-secondary/10 space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Nenhuma variaÃ§Ã£o criada ainda</p>
+                  <p className="text-sm font-semibold text-foreground">Nenhuma variação criada ainda</p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Selecione as cores e a grade de tamanhos nas seÃ§Ãµes acima para gerar a planilha automaticamente.
+                    Selecione as cores e a grade de tamanhos nas seções acima para gerar a planilha automaticamente.
                   </p>
                 </div>
               ) : (
@@ -5024,10 +4986,10 @@ function Precificacao() {
                         <th className="py-2.5 px-3 text-center w-28">Qtd.</th>
                         <th className="py-2.5 px-3 text-right w-28">Custo Atacado</th>
                         <th className="py-2.5 px-3 text-right w-28">Custo Real</th>
-                        <th className="py-2.5 px-3 text-right w-32">PreÃ§o de Venda</th>
+                        <th className="py-2.5 px-3 text-right w-32">Preço de Venda</th>
                         <th className="py-2.5 px-3 text-center w-24">Margem</th>
-                        <th className="py-2.5 px-3 text-right w-28">Lucro LÃ­quido</th>
-                        <th className="py-2.5 pr-4 text-center w-12"><span className="sr-only">AÃ§Ãµes</span></th>
+                        <th className="py-2.5 px-3 text-right w-28">Lucro Líquido</th>
+                        <th className="py-2.5 pr-4 text-center w-12"><span className="sr-only">Ações</span></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
@@ -5042,11 +5004,11 @@ function Precificacao() {
                                   <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(group.color))} />
                                   <span className="text-xs font-bold text-foreground">{group.color}</span>
                                   <span className="text-[11px] text-muted-foreground font-medium">
-                                    Â· {group.totalUnits} {group.totalUnits === 1 ? "unidade" : "unidades"}
+                                    · {group.totalUnits} {group.totalUnits === 1 ? "unidade" : "unidades"}
                                   </span>
                                   {group.avgPrice > 0 && (
                                     <span className="text-[11px] text-muted-foreground font-medium">
-                                      Â· MÃ©dia {brl(group.avgPrice)}
+                                      · Média {brl(group.avgPrice)}
                                     </span>
                                   )}
                                 </div>
@@ -5116,7 +5078,7 @@ function Precificacao() {
                                     {brl(v.realCost)}
                                   </td>
 
-                                  {/* PreÃ§o de Venda */}
+                                  {/* Preço de Venda */}
                                   <td className="py-2.5 px-3 text-right">
                                     <div className="relative inline-flex items-center">
                                       <input
@@ -5143,24 +5105,24 @@ function Precificacao() {
                                         {pct(v.marginOnPrice)}
                                       </span>
                                     ) : (
-                                      <span className="text-xs text-muted-foreground/40">â€”</span>
+                                      <span className="text-xs text-muted-foreground/40">—</span>
                                     )}
                                   </td>
 
-                                  {/* Lucro LÃ­quido */}
+                                  {/* Lucro Líquido */}
                                   <td className="py-2.5 px-3 text-right font-bold numeric text-xs">
                                     <span className={v.profit >= 0 ? "text-success" : "text-destructive"}>
                                       {v.profit >= 0 ? "+" : ""}{brl(v.profit)}
                                     </span>
                                   </td>
 
-                                  {/* Excluir VariaÃ§Ã£o */}
+                                  {/* Excluir Variação */}
                                   <td className="py-2.5 pr-4 text-center">
                                     <button
                                       type="button"
                                       onClick={() => removeVariant(v.id)}
                                       className="text-muted-foreground/60 hover:text-destructive transition-colors p-1 rounded cursor-pointer"
-                                      aria-label="Excluir variaÃ§Ã£o"
+                                      aria-label="Excluir variação"
                                     >
                                       <Trash2 className="size-3.5" />
                                     </button>
@@ -5184,10 +5146,10 @@ function Precificacao() {
                           {brl(summaryPrices.totalInvestment)}
                         </td>
                         <td className="py-3 px-3 text-right numeric text-muted-foreground">
-                          â€”
+                          —
                         </td>
                         <td className="py-3 px-3 text-right numeric text-foreground font-black">
-                          MÃ©dia {brl(summaryPrices.avgSuggested)}
+                          Média {brl(summaryPrices.avgSuggested)}
                         </td>
                         <td className="py-3 px-3 text-center numeric text-foreground font-bold">
                           {pct(summaryPrices.avgMargin)}
@@ -5205,16 +5167,16 @@ function Precificacao() {
               )}
             </section>
 
-            {/* â”€â”€ BARRA INFERIOR COMPACTA PARA MOBILE (LG:HIDDEN) â”€â”€ */}
+            {/* ── BARRA INFERIOR COMPACTA PARA MOBILE (LG:HIDDEN) ── */}
             <div className="fixed bottom-0 inset-x-0 lg:hidden z-30 border-t border-border/80 bg-background/95 backdrop-blur-md px-4 py-3 shadow-lift">
               <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
                 <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">PreÃ§o sugerido</p>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Preço sugerido</p>
                   <p className="text-xl font-black text-foreground numeric leading-tight">
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="text-[10px] text-muted-foreground truncate">
-                    {actualLotUnits} un. Â· Lucro {brl(summaryPrices.totalProfit)}
+                    {actualLotUnits} un. · Lucro {brl(summaryPrices.totalProfit)}
                   </p>
                 </div>
 
@@ -5232,19 +5194,19 @@ function Precificacao() {
           </div>
         )}
 
-        {/* â”€â”€ PeÃ§as Precificadas (HistÃ³rico & Ficha de Entrada) â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── Peças Precificadas (Histórico & Ficha de Entrada) ─────── */}
         {mode === "historico" && (
           <section className="panel p-5 sm:p-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-3.5">
               <div>
-                <h2 className="text-base font-semibold">PeÃ§as precificadas</h2>
+                <h2 className="text-base font-semibold">Peças precificadas</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  HistÃ³rico dos seus cÃ¡lculos de precificaÃ§Ã£o salvos no sistema.
+                  Histórico dos seus cálculos de precificação salvos no sistema.
                 </p>
               </div>
               {saved.length > 0 && (
                 <Badge variant="outline" className="rounded-full">
-                  {saved.length} {saved.length === 1 ? "peÃ§a" : "peÃ§as"}
+                  {saved.length} {saved.length === 1 ? "peça" : "peças"}
                 </Badge>
               )}
             </div>
@@ -5256,9 +5218,9 @@ function Precificacao() {
                     <Tag className="size-3.5" />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-foreground">Nenhuma peÃ§a salva ainda</p>
+                    <p className="text-xs font-semibold text-foreground">Nenhuma peça salva ainda</p>
                     <p className="text-[11px] text-muted-foreground">
-                      Calcule e clique em &ldquo;Salvar no histÃ³rico&rdquo; para consultar depois na hora de dar entrada.
+                      Calcule e clique em &ldquo;Salvar no histórico&rdquo; para consultar depois na hora de dar entrada.
                     </p>
                   </div>
                 </div>
@@ -5269,7 +5231,7 @@ function Precificacao() {
                   className="h-8 rounded-full text-xs font-medium border-border/80 bg-background hover:bg-secondary shrink-0 cursor-pointer"
                   onClick={() => setMode("grade")}
                 >
-                  Calcular na grade â†’
+                  Calcular na grade →
                 </Button>
               </div>
             ) : (
@@ -5277,11 +5239,11 @@ function Precificacao() {
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                      <th className="pb-3 font-semibold">PeÃ§a</th>
+                      <th className="pb-3 font-semibold">Peça</th>
                       <th className="pb-3 font-semibold">Custo real</th>
                       <th className="pb-3 font-semibold">Margem real</th>
-                      <th className="pb-3 font-semibold">PreÃ§o sugerido</th>
-                      <th className="pb-3 text-right">AÃ§Ãµes</th>
+                      <th className="pb-3 font-semibold">Preço sugerido</th>
+                      <th className="pb-3 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -5318,7 +5280,7 @@ function Precificacao() {
                               </Button>
                               <ConfirmDelete
                                 onConfirm={() => remove.mutate(p.id)}
-                                description={`"${p.name}" serÃ¡ removida das suas precificaÃ§Ãµes.`}
+                                description={`"${p.name}" será removida das suas precificações.`}
                                 trigger={
                                   <Button
                                     variant="ghost"
@@ -5342,7 +5304,7 @@ function Precificacao() {
         )}
         </div>
 
-        {/* â”€â”€ COLUNA DIREITA: Painel Sticky de Resumo ao Vivo (apenas no modo rÃ¡pido de peÃ§a Ãºnica) â”€â”€ */}
+        {/* ── COLUNA DIREITA: Painel Sticky de Resumo ao Vivo (apenas no modo rápido de peça única) ── */}
         {mode === "rapida" && (
           <div className="hidden lg:block sticky top-6 self-start">
             <LivePricingSummaryPanel
@@ -5377,29 +5339,29 @@ function Precificacao() {
         </div>
       </div>
 
-      {/* â”€â”€ Modal Sheet: Ficha de Entrada Operacional no Estoque â”€â”€â”€â”€ */}
+      {/* ── Modal Sheet: Ficha de Entrada Operacional no Estoque ──── */}
       <Sheet open={entrySheetOpen} onOpenChange={setEntrySheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6 space-y-6">
           <SheetHeader>
             <div className="flex items-center gap-2 text-primary font-semibold text-xs">
               <Boxes className="size-4" /> Ficha de entrada no estoque
             </div>
-            <SheetTitle className="text-xl font-bold">{entryName || "Nova peÃ§a"}</SheetTitle>
+            <SheetTitle className="text-xl font-bold">{entryName || "Nova peça"}</SheetTitle>
             <SheetDescription className="text-xs">
               Adicione fotos, categoria, fornecedor e as quantidades reais recebidas para liberar a
-              peÃ§a para venda.
+              peça para venda.
             </SheetDescription>
           </SheetHeader>
 
-          {/* Foto da PeÃ§a */}
+          {/* Foto da Peça */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-muted-foreground">Foto da PeÃ§a</Label>
+            <Label className="text-xs font-semibold text-muted-foreground">Foto da Peça</Label>
             <ImageUploader
               currentUrl={entryPhotoUrl || null}
               bucket="product-photos"
               folder="inventory"
               onUploaded={setEntryPhotoUrl}
-              placeholder="Adicionar foto (cÃ¢mera ou galeria)"
+              placeholder="Adicionar foto (câmera ou galeria)"
               aspect="portrait"
             />
           </div>
@@ -5437,7 +5399,7 @@ function Precificacao() {
               </div>
             ) : (
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Cor da PeÃ§a</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">Cor da Peça</Label>
                 <Input
                   value={entryColor}
                   onChange={(e) => setEntryColor(e.target.value)}
@@ -5467,7 +5429,7 @@ function Precificacao() {
                 <span className="text-xs font-bold text-primary">{entryTotalUnits} un. no total</span>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Cada cor serÃ¡ criada no estoque como um item individual com sua prÃ³pria grade de tamanhos, garantindo controle independente no catÃ¡logo e na vitrine:
+                Cada cor será criada no estoque como um item individual com sua própria grade de tamanhos, garantindo controle independente no catálogo e na vitrine:
               </p>
               <div className="space-y-2">
                 {colorGroups.map((cg) => (
@@ -5550,11 +5512,11 @@ function Precificacao() {
           {/* Card Resumo Financeiro do Lote */}
           <div className="rounded-2xl border border-border bg-secondary/40 p-4 space-y-2 text-xs">
             <div className="flex justify-between text-muted-foreground">
-              <span>Custo UnitÃ¡rio de Entrada (CMV):</span>
+              <span>Custo Unitário de Entrada (CMV):</span>
               <span className="numeric font-semibold text-foreground">{brl(entryCostPrice)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>PreÃ§o Sugerido de Venda:</span>
+              <span>Preço Sugerido de Venda:</span>
               <span className="numeric font-semibold text-primary">{brl(entrySalePrice)}</span>
             </div>
             <div className="border-t border-border/70 pt-2 flex justify-between font-semibold">
@@ -5573,7 +5535,7 @@ function Precificacao() {
             )}
           </div>
 
-          {/* BotÃ£o de ConfirmaÃ§Ã£o */}
+          {/* Botão de Confirmação */}
           <Button
             type="button"
             className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow cursor-pointer"
@@ -5582,7 +5544,7 @@ function Precificacao() {
           >
             <PackagePlus className="mr-2 size-4" />
             {mode === "grade" && colorGroups.length > 1
-              ? `Confirmar Entrada (${colorGroups.length} cores Â· ${entryTotalUnits} un.)`
+              ? `Confirmar Entrada (${colorGroups.length} cores · ${entryTotalUnits} un.)`
               : "Confirmar Entrada no Estoque"}
           </Button>
         </SheetContent>
@@ -5606,7 +5568,7 @@ function HybridTaxControl({
   hint?: string;
   presets?: { label: string; value: number }[];
 }) {
-  // Estado interno de string: permite digitaÃ§Ã£o livre com vÃ­rgula (ex: "3,19")
+  // Estado interno de string: permite digitação livre com vírgula (ex: "3,19")
   const [rawValue, setRawValue] = useState<string>(String(value).replace(".", ","));
 
   // Sincroniza rawValue quando o valor externo muda (ex: slider ou preset)
@@ -5624,9 +5586,9 @@ function HybridTaxControl({
           {hint && <p className="text-[11px] text-muted-foreground truncate sm:whitespace-normal">{hint}</p>}
         </div>
 
-        {/* PÃ­lula de Controle Triplo: [ âˆ’ ] valor% [ + ] */}
+        {/* Pílula de Controle Triplo: [ − ] valor% [ + ] */}
         <div className="flex shrink-0 items-center overflow-hidden rounded-xl border border-border/80 bg-secondary/20 shadow-2xs">
-          {/* BotÃ£o Decremento */}
+          {/* Botão Decremento */}
           <button
             type="button"
             disabled={value <= 0}
@@ -5673,7 +5635,7 @@ function HybridTaxControl({
             <span className="text-xs font-bold text-muted-foreground select-none">%</span>
           </div>
 
-          {/* BotÃ£o Incremento */}
+          {/* Botão Incremento */}
           <button
             type="button"
             disabled={value >= max}
@@ -5690,7 +5652,7 @@ function HybridTaxControl({
         </div>
       </div>
 
-      {/* Chips RÃ¡pidos de Mercado (Presets) */}
+      {/* Chips Rápidos de Mercado (Presets) */}
       {presets && presets.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mr-1 select-none">
@@ -5771,4 +5733,3 @@ function Field({
     </div>
   );
 }
-
