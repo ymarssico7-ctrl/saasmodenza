@@ -1031,7 +1031,6 @@ function Precificacao() {
 
   const [genColors, setGenColors] = useState<string[]>([]);
   const [activePreset, setActivePreset] = useState<string>("letras");
-  const [sizeCategoryTab, setSizeCategoryTab] = useState<"padrao" | "numerica" | "plus" | "unico" | "todas">("padrao");
   const [customGenColor, setCustomGenColor] = useState("");
   const [showMatrixGenerator, setShowMatrixGenerator] = useState(false);
   const [newCustomColor, setNewCustomColor] = useState("");
@@ -4502,287 +4501,8 @@ function Precificacao() {
                 </div>
               </div>
 
-              {/* ══════════════════════════════════════════════════════════════════
-                  ETAPA 2: GRADE DO MODELO (Cores & Tamanhos em Perfeita Harmonia 50% / 50%)
-              ══════════════════════════════════════════════════════════════════ */}
-              <div className="pt-3 border-t border-border/50 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
-                      <Palette className="size-4 text-primary" />
-                      <span>Grade do Modelo (Cores & Tamanhos)</span>
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Selecione as cores da peça e ative a grade de tamanhos desejada para montar as variações.
-                    </p>
-                  </div>
-
-                  {variants.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
-                      <span>{distinctModelColors.length} {distinctModelColors.length === 1 ? "cor" : "cores"}</span>
-                      <span>·</span>
-                      <span>{Array.from(new Set(variants.map((v) => v.size))).length} tamanhos</span>
-                      <span>·</span>
-                      <span>{variants.length} variações no total</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-2 items-stretch">
-                  {/* COLUNA ESQUERDA: CORES DO MODELO */}
-                  <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-2xs">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5">
-                        <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                          <Palette className="size-3.5 text-primary" />
-                          <span>Cores deste modelo</span>
-                        </Label>
-                        <span className={cn(
-                          "text-[11px] font-semibold px-2 py-0.5 rounded-full",
-                          activeColors.length > 0 ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"
-                        )}>
-                          {activeColors.length === 0
-                            ? "Nenhuma cor selecionada"
-                            : `${activeColors.length} ${activeColors.length === 1 ? "cor ativa" : "cores ativas"}`}
-                        </span>
-                      </div>
-
-                      {/* Chips de Cores Ativas */}
-                      <div className="min-h-[38px] flex flex-wrap items-center gap-1.5">
-                        {activeColors.length === 0 ? (
-                          <p className="text-xs text-muted-foreground/80 italic">
-                            Escolha uma das cores da moda abaixo ou digite o nome de uma cor:
-                          </p>
-                        ) : (
-                          activeColors.map((color) => (
-                            <span
-                              key={color}
-                              className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-border/80 bg-background text-xs font-semibold text-foreground shadow-2xs group hover:border-border transition-all"
-                            >
-                              <span
-                                className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(color))}
-                              />
-                              <span>{color}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeColorFromGrade(color)}
-                                className="size-4 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                title={`Remover cor ${color}`}
-                              >
-                                <X className="size-2.5" />
-                              </button>
-                            </span>
-                          ))
-                        )}
-                      </div>
-
-                      {/* Paleta Rápida da Moda com Amostras Táteis (Swatches) */}
-                      <div className="space-y-1.5 pt-2 border-t border-border/40">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Paleta Essencial da Moda:
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {[
-                            { name: "Off-White" },
-                            { name: "Preto" },
-                            { name: "Areia" },
-                            { name: "Nude" },
-                            { name: "Bege" },
-                            { name: "Terracota" },
-                            { name: "Caramelo" },
-                            { name: "Grafite" },
-                            { name: "Azul Marinho" },
-                            { name: "Verde Militar" },
-                            { name: "Rosa Seco" },
-                          ].map((col) => {
-                            const isAdded = activeColors.some((ac) => ac.toLowerCase() === col.name.toLowerCase());
-                            return (
-                              <button
-                                key={col.name}
-                                type="button"
-                                onClick={() => {
-                                  if (isAdded) {
-                                    removeColorFromGrade(col.name);
-                                  } else {
-                                    addColorToGrade(col.name);
-                                  }
-                                }}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border active:scale-95 shadow-2xs",
-                                  isAdded
-                                    ? "bg-primary/10 border-primary/50 text-primary font-bold"
-                                    : "border-border/70 bg-background hover:bg-secondary/70 text-foreground"
-                                )}
-                                title={isAdded ? `Clique para remover ${col.name}` : `Adicionar ${col.name}`}
-                              >
-                                <span
-                                  className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(col.name))}
-                                />
-                                <span>{col.name}</span>
-                                {isAdded && <Check className="size-3 text-primary ml-0.5" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Input de Adição de Cor Customizada */}
-                    <div className="pt-2 border-t border-border/40">
-                      <div className="flex items-center gap-1.5">
-                        <div className="relative flex-1">
-                          <input
-                            type="text"
-                            value={colorSearchQuery}
-                            onChange={(e) => setColorSearchQuery(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && colorSearchQuery.trim()) {
-                                e.preventDefault();
-                                addColorToGrade(colorSearchQuery.trim());
-                                setColorSearchQuery("");
-                              }
-                            }}
-                            placeholder="Digitar outra cor (ex: Fúcsia, Verde Menta)..."
-                            className="h-9 w-full rounded-xl border border-border/80 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground/70 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 shadow-2xs"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={!colorSearchQuery.trim()}
-                          onClick={() => {
-                            if (colorSearchQuery.trim()) {
-                              addColorToGrade(colorSearchQuery.trim());
-                              setColorSearchQuery("");
-                            }
-                          }}
-                          className="h-9 px-3 rounded-xl text-xs font-semibold cursor-pointer shadow-xs shrink-0"
-                        >
-                          <Plus className="size-3.5 mr-1" /> Adicionar
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* COLUNA DIREITA: GRADE DE TAMANHOS */}
-                  <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 flex flex-col justify-between space-y-4 shadow-2xs">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5">
-                        <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                          <SlidersHorizontal className="size-3.5 text-primary" />
-                          <span>Grade de tamanhos deste modelo</span>
-                        </Label>
-
-                        {variants.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={clearGradeSizes}
-                            className="text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                          >
-                            Limpar tamanhos
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Presets Rápidos de Família com 1 Toque */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Atalhos de Grade (1 clique aplica a família):
-                        </span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                          {[
-                            { label: "Padrão (P–GG)", sizes: ["P", "M", "G", "GG"], tab: "padrao" as const },
-                            { label: "Jeans (36–46)", sizes: ["36", "38", "40", "42", "44", "46"], tab: "numerica" as const },
-                            { label: "Plus (GG–G3)", sizes: ["GG", "G1", "G2", "G3"], tab: "plus" as const },
-                            { label: "Tamanho Único", sizes: ["Único"], tab: "unico" as const },
-                          ].map((preset) => {
-                            const isAllSelected = preset.sizes.every((s) => variants.some((v) => v.size === s));
-                            return (
-                              <button
-                                key={preset.label}
-                                type="button"
-                                onClick={() => {
-                                  applySizePreset(preset.sizes);
-                                  setSizeCategoryTab(preset.tab);
-                                }}
-                                className={cn(
-                                  "px-2 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border text-center shadow-2xs active:scale-95",
-                                  isAllSelected
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                                    : "border-border/70 bg-background hover:bg-secondary/70 text-foreground"
-                                )}
-                              >
-                                {preset.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Abas Sutis de Família de Tamanho */}
-                      <div className="space-y-2 pt-2 border-t border-border/40">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Ajustar medidas individuais:
-                          </span>
-                          <div className="flex items-center gap-1 rounded-lg bg-secondary/80 p-0.5 border border-border/60">
-                            {SIZE_FAMILIES.map((fam) => (
-                              <button
-                                key={fam.id}
-                                type="button"
-                                onClick={() => setSizeCategoryTab(fam.id)}
-                                className={cn(
-                                  "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
-                                  sizeCategoryTab === fam.id
-                                    ? "bg-card text-foreground shadow-2xs font-bold"
-                                    : "text-muted-foreground hover:text-foreground"
-                                )}
-                              >
-                                {fam.shortLabel}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Botões dos Tamanhos da Categoria Ativa */}
-                        <div className="flex flex-wrap items-center gap-1.5 min-h-[42px]">
-                          {(SIZE_FAMILIES.find((f) => f.id === sizeCategoryTab)?.sizes ?? ALL_FASHION_SIZES).map((sz) => {
-                            const isSelected = variants.some((v) => v.size === sz);
-                            return (
-                              <button
-                                key={sz}
-                                type="button"
-                                onClick={() => toggleSizeInGrade(sz)}
-                                className={cn(
-                                  "h-9 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 shadow-2xs active:scale-95",
-                                  isSelected
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                    : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                                )}
-                              >
-                                <span>{sz}</span>
-                                {isSelected && <Check className="size-3 text-primary-foreground ml-0.5" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
-                      <span>Tamanhos ativados na grade:</span>
-                      <span className="font-bold text-foreground">
-                        {Array.from(new Set(variants.map((v) => v.size))).join(", ") || "Nenhum tamanho ativo"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ══════════════════════════════════════════════════════════════════
-                  ETAPA 3: ESTRATÉGIA COMERCIAL & DEDUÇÕES DE VENDA (ANTES DA TABELA)
-              ══════════════════════════════════════════════════════════════════ */}
-              <div className="pt-3 border-t border-border/50 space-y-4">
+              {/* ── Estratégia Comercial & Motores de Precificação (ANTES DA GRADE) ── */}
+              <div className="pt-2 border-t border-border/50 space-y-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
@@ -4790,11 +4510,11 @@ function Precificacao() {
                       <span>Estratégia de Precificação da Grade</span>
                     </h3>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Defina a regra de formação de preço e as taxas de venda. A tabela abaixo recalcula na hora.
+                      Escolha a regra de cálculo do modelo. A tabela abaixo e o resumo atualizam em tempo real.
                     </p>
                   </div>
 
-                  {/* Segmented Control dos 3 Motores */}
+                  {/* Segmented Control dos 3 Motores (Preço Único, Margem, Markup) */}
                   <div className="flex rounded-xl bg-secondary/80 p-1 border border-border/60">
                     <button
                       type="button"
@@ -4850,180 +4570,18 @@ function Precificacao() {
                   </div>
                 </div>
 
-                {/* 2 Colunas Perfeitamente Balanceadas: Regra Comercial + Deduções de Venda */}
-                <div className="grid gap-4 lg:grid-cols-2 items-stretch">
-                  {/* COLUNA 1: REGRA COMERCIAL ATIVA */}
-                  <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 flex flex-col justify-between space-y-3.5 shadow-2xs">
-                    {strategy === "margin" && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                          <div>
-                            <Label className="text-xs font-bold text-foreground">
-                              Margem de Contribuição Desejada
-                            </Label>
-                            <span className="text-[10px] text-muted-foreground block">
-                              Percentual de lucro limpo sobre o valor final de venda
-                            </span>
-                          </div>
-                          <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.max(5, desiredMargin - 5);
-                                setDesiredMargin(next);
-                                setMatrixGlobalMarginStr(String(next));
-                              }}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Diminuir margem em 5%"
-                            >
-                              <Minus className="size-3" />
-                            </button>
-                            <span className="px-3 text-xs font-black numeric text-foreground">{desiredMargin}%</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.min(85, desiredMargin + 5);
-                                setDesiredMargin(next);
-                                setMatrixGlobalMarginStr(String(next));
-                              }}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Aumentar margem em 5%"
-                            >
-                              <Plus className="size-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Metas Rápidas */}
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Metas Recomendadas do Varejo de Moda:
-                          </span>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                            {[
-                              { label: "35%", tag: "Giro Rápido", val: 35 },
-                              { label: "45%", tag: "Equilíbrio", val: 45 },
-                              { label: "50%", tag: "Recomendada ⭐", val: 50 },
-                              { label: "60%", tag: "Marca Própria", val: 60 },
-                            ].map((preset) => (
-                              <button
-                                key={preset.val}
-                                type="button"
-                                onClick={() => {
-                                  setDesiredMargin(preset.val);
-                                  setMatrixGlobalMarginStr(String(preset.val));
-                                }}
-                                className={cn(
-                                  "p-2 rounded-xl text-center border transition-all cursor-pointer shadow-2xs active:scale-95",
-                                  desiredMargin === preset.val
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                                    : "border-border/70 bg-background hover:bg-secondary/70 text-foreground"
-                                )}
-                              >
-                                <span className="block text-xs font-black numeric">{preset.label}</span>
-                                <span className={cn("block text-[10px]", desiredMargin === preset.val ? "text-primary-foreground/90 font-medium" : "text-muted-foreground")}>
-                                  {preset.tag}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {strategy === "markup" && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                          <div>
-                            <Label className="text-xs font-bold text-foreground">
-                              Multiplicador de Markup sobre o Custo Real
-                            </Label>
-                            <span className="text-[10px] text-muted-foreground block">
-                              Fator multiplicador aplicado sobre o custo de aquisição + rateio
-                            </span>
-                          </div>
-                          <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.max(10, markup - 10);
-                                setMarkup(next);
-                                setMatrixGlobalMarkupStr(String(next));
-                              }}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Diminuir markup"
-                            >
-                              <Minus className="size-3" />
-                            </button>
-                            <span className="px-3 text-xs font-black numeric text-foreground">
-                              {(1 + markup / 100).toFixed(2)}× ({markup}%)
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.min(300, markup + 10);
-                                setMarkup(next);
-                                setMatrixGlobalMarkupStr(String(next));
-                              }}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Aumentar markup"
-                            >
-                              <Plus className="size-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Presets de Markup */}
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Multiplicadores Comuns do Setor Têxtil:
-                          </span>
-                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                            {[
-                              { label: "1.8×", tag: "Atacado", val: 80 },
-                              { label: "2.0×", tag: "Varejo", val: 100 },
-                              { label: "2.2×", tag: "Confecção", val: 120 },
-                              { label: "2.5×", tag: "Boutique", val: 150 },
-                              { label: "3.0×", tag: "Grife", val: 200 },
-                            ].map((preset) => (
-                              <button
-                                key={preset.val}
-                                type="button"
-                                onClick={() => {
-                                  setMarkup(preset.val);
-                                  setMatrixGlobalMarkupStr(String(preset.val));
-                                }}
-                                className={cn(
-                                  "p-1.5 rounded-xl text-center border transition-all cursor-pointer shadow-2xs active:scale-95",
-                                  markup === preset.val
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                                    : "border-border/70 bg-background hover:bg-secondary/70 text-foreground"
-                                )}
-                              >
-                                <span className="block text-xs font-black numeric">{preset.label}</span>
-                                <span className={cn("block text-[9px]", markup === preset.val ? "text-primary-foreground/90 font-medium" : "text-muted-foreground")}>
-                                  {preset.tag}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
+                {/* Controles do Motor Ativo + Steppers de Imposto e Cartão integrados */}
+                <div className="grid gap-3 lg:grid-cols-[1fr_auto] items-stretch">
+                  {/* Motor Ativo */}
+                  <div>
                     {strategy === "direct_price" && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                          <div>
-                            <Label className="text-xs font-bold text-foreground">
-                              Preço Único de Venda para a Grade
-                            </Label>
-                            <span className="text-[10px] text-muted-foreground block">
-                              Define o mesmo preço de vitrine para todas as variações do lote
-                            </span>
-                          </div>
-                          <div className="relative flex h-10 w-36 items-center rounded-xl border border-border/80 bg-background px-3 shadow-2xs focus-within:border-primary">
-                            <span className="text-xs font-bold text-muted-foreground mr-1 select-none">R$</span>
+                      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-secondary/30 border border-border/70 h-full">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold text-foreground">
+                            Preço de Venda da Peça na Grade (R$)
+                          </Label>
+                          <div className="relative flex h-10 w-44 items-center rounded-xl border border-border/80 bg-background px-3 shadow-2xs focus-within:border-primary">
+                            <span className="text-xs font-bold text-muted-foreground mr-1.5 select-none">R$</span>
                             <input
                               inputMode="decimal"
                               value={directSalePrice}
@@ -5037,131 +4595,369 @@ function Precificacao() {
                           </div>
                         </div>
 
-                        {/* Centavos rápidos */}
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Terminações Psicológicas de Preço:
-                          </span>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {[",90", ",00", ",99", ",50"].map((suf) => (
-                              <button
-                                key={suf}
-                                type="button"
-                                onClick={() => {
-                                  const intPart = directSalePrice.split(",")[0] || "119";
-                                  const next = intPart + suf;
-                                  setDirectSalePrice(next);
-                                  setMatrixGlobalDirectPrice(next);
-                                }}
-                                className="px-3 py-1.5 rounded-xl border border-border/70 bg-background hover:bg-secondary text-xs font-bold text-foreground cursor-pointer shadow-2xs active:scale-95 transition-all"
-                              >
-                                Final {suf}
-                              </button>
-                            ))}
-                          </div>
+                        <div className="flex flex-wrap items-center gap-1 self-end">
+                          <span className="text-[10px] font-semibold text-muted-foreground mr-1">Centavos rápidos:</span>
+                          {[",90", ",00", ",99", ",50"].map((suf) => (
+                            <button
+                              key={suf}
+                              type="button"
+                              onClick={() => {
+                                const intPart = directSalePrice.split(",")[0] || "119";
+                                const next = intPart + suf;
+                                setDirectSalePrice(next);
+                                setMatrixGlobalDirectPrice(next);
+                              }}
+                              className="px-2 py-0.5 rounded-lg border border-border/70 bg-card hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer shadow-2xs"
+                            >
+                              {suf}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )}
 
-                    <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
-                      <span>Cálculo automático ativo:</span>
-                      <span className="font-semibold text-primary">
-                        {strategy === "margin" && `Margem de ${desiredMargin}% sobre o preço final`}
-                        {strategy === "markup" && `Markup de ${(1 + markup / 100).toFixed(2)}× sobre custo real`}
-                        {strategy === "direct_price" && `Preço fixo de R$ ${directSalePrice || "0,00"}`}
-                      </span>
-                    </div>
+                    {strategy === "margin" && (
+                      <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/70 space-y-2 h-full">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <Label className="text-xs font-bold text-foreground">
+                            Margem de Contribuição Desejada (% sobre a venda)
+                          </Label>
+                          <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = Math.max(5, desiredMargin - 5);
+                                setDesiredMargin(next);
+                                setMatrixGlobalMarginStr(String(next));
+                              }}
+                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                            >
+                              <Minus className="size-3" />
+                            </button>
+                            <span className="px-2.5 text-xs font-black numeric text-foreground">{desiredMargin}%</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = Math.min(85, desiredMargin + 5);
+                                setDesiredMargin(next);
+                                setMatrixGlobalMarginStr(String(next));
+                              }}
+                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                            >
+                              <Plus className="size-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[10px] font-semibold text-muted-foreground mr-1">Metas:</span>
+                          {[
+                            { label: "35% (Giro)", val: 35 },
+                            { label: "45% (Equilíbrio)", val: 45 },
+                            { label: "50% (Recomendada)", val: 50 },
+                            { label: "60% (Marca Própria)", val: 60 },
+                          ].map((preset) => (
+                            <button
+                              key={preset.val}
+                              type="button"
+                              onClick={() => {
+                                setDesiredMargin(preset.val);
+                                setMatrixGlobalMarginStr(String(preset.val));
+                              }}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border",
+                                desiredMargin === preset.val
+                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              )}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {strategy === "markup" && (
+                      <div className="p-3.5 rounded-2xl bg-secondary/30 border border-border/70 space-y-2 h-full">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <Label className="text-xs font-bold text-foreground">
+                            Multiplicador de Markup sobre o Custo Real
+                          </Label>
+                          <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = Math.max(10, markup - 10);
+                                setMarkup(next);
+                                setMatrixGlobalMarkupStr(String(next));
+                              }}
+                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                            >
+                              <Minus className="size-3" />
+                            </button>
+                            <span className="px-2.5 text-xs font-black numeric text-foreground">
+                              {(1 + markup / 100).toFixed(2)}× ({markup}%)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = Math.min(300, markup + 10);
+                                setMarkup(next);
+                                setMatrixGlobalMarkupStr(String(next));
+                              }}
+                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                            >
+                              <Plus className="size-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[10px] font-semibold text-muted-foreground mr-1">Presets:</span>
+                          {[
+                            { label: "1.8× (Atacado)", val: 80 },
+                            { label: "2.0× (Varejo)", val: 100 },
+                            { label: "2.2× (Confecção)", val: 120 },
+                            { label: "2.5× (Boutique)", val: 150 },
+                            { label: "3.0× (Grife)", val: 200 },
+                          ].map((preset) => (
+                            <button
+                              key={preset.val}
+                              type="button"
+                              onClick={() => {
+                                setMarkup(preset.val);
+                                setMatrixGlobalMarkupStr(String(preset.val));
+                              }}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border",
+                                markup === preset.val
+                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                  : "border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              )}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* COLUNA 2: DEDUÇÕES DE VENDA (DAS & CARTÃO UNIFICADOS) */}
-                  <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5 flex flex-col justify-between space-y-3.5 shadow-2xs">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                        <div>
-                          <Label className="text-xs font-bold text-foreground">
-                            Deduções sobre a Venda (Tributos & Taxas)
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground block">
-                            Retiradas automáticas para apurar o Lucro Líquido Real
-                          </span>
-                        </div>
-                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full numeric">
-                          {(tax + cardRate).toFixed(1)}% total
-                        </span>
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {/* Imposto DAS */}
-                        <div className="rounded-xl border border-border/70 bg-secondary/20 p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-foreground">Imposto DAS</span>
-                            <span className="text-[10px] text-muted-foreground">Simples</span>
-                          </div>
-                          <div className="flex items-center justify-between rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => setTax((t) => Math.max(0, Number((t - 0.5).toFixed(1))))}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Diminuir DAS em 0.5%"
-                            >
-                              <Minus className="size-3" />
-                            </button>
-                            <span className="px-2 text-xs font-black numeric text-foreground">{tax}%</span>
-                            <button
-                              type="button"
-                              onClick={() => setTax((t) => Number((t + 0.5).toFixed(1)))}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Aumentar DAS em 0.5%"
-                            >
-                              <Plus className="size-3" />
-                            </button>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground text-center">
-                            Alíquota do Simples Nacional
-                          </p>
-                        </div>
-
-                        {/* Taxa de Cartão */}
-                        <div className="rounded-xl border border-border/70 bg-secondary/20 p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-foreground">Taxa Cartão</span>
-                            <span className="text-[10px] text-muted-foreground">Maquininha</span>
-                          </div>
-                          <div className="flex items-center justify-between rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => setCardRate((c) => Math.max(0, Number((c - 0.5).toFixed(1))))}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Diminuir taxa de cartão em 0.5%"
-                            >
-                              <Minus className="size-3" />
-                            </button>
-                            <span className="px-2 text-xs font-black numeric text-foreground">{cardRate}%</span>
-                            <button
-                              type="button"
-                              onClick={() => setCardRate((c) => Number((c + 0.5).toFixed(1)))}
-                              className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
-                              title="Aumentar taxa de cartão em 0.5%"
-                            >
-                              <Plus className="size-3" />
-                            </button>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground text-center">
-                            Média crédito / débito / gateway
-                          </p>
-                        </div>
+                  {/* Steppers de Imposto DAS & Cartão integrados */}
+                  <div className="flex sm:flex-col items-center gap-2 rounded-2xl bg-secondary/30 border border-border/70 p-3 h-full justify-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-muted-foreground">DAS:</span>
+                      <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setTax((t) => Math.max(0, Number((t - 0.5).toFixed(1))))}
+                          className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Minus className="size-2.5" />
+                        </button>
+                        <span className="px-1.5 text-xs font-bold numeric">{tax}%</span>
+                        <button
+                          type="button"
+                          onClick={() => setTax((t) => Number((t + 0.5).toFixed(1)))}
+                          className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Plus className="size-2.5" />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="text-[11px] text-muted-foreground pt-1 border-t border-border/40 flex items-center justify-between">
-                      <span>Impacto no DRE da Peça:</span>
-                      <span className="font-medium text-foreground">
-                        Cada R$ 100 de venda retém R$ {(tax + cardRate).toFixed(2).replace(".", ",")} em tributos e taxas
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold text-muted-foreground">Cartão:</span>
+                      <div className="flex items-center rounded-xl border border-border/80 bg-background shadow-2xs overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setCardRate((c) => Math.max(0, Number((c - 0.5).toFixed(1))))}
+                          className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Minus className="size-2.5" />
+                        </button>
+                        <span className="px-1.5 text-xs font-bold numeric">{cardRate}%</span>
+                        <button
+                          type="button"
+                          onClick={() => setCardRate((c) => Number((c + 0.5).toFixed(1)))}
+                          className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                        >
+                          <Plus className="size-2.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* ── SEÇÃO B: Cores, Tamanhos & Planilha de Variações do Modelo ── */}
+              <div className="space-y-5 pt-3 border-t border-border/50">
+                {/* 1 & 2. SELEÇÃO DE CORES E GRADE DE TAMANHOS (Lado a Lado 50% / 50% no Desktop) */}
+                <div className="grid gap-4 lg:grid-cols-2 items-start">
+                  {/* COLUNA ESQUERDA: CORES DO MODELO */}
+                  <div className="rounded-2xl border border-border/70 bg-secondary/15 p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Palette className="size-3.5 text-primary" />
+                        <span>Cores deste modelo:</span>
+                      </Label>
+                      <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        {activeColors.length === 0
+                          ? "Nenhuma cor"
+                          : `${activeColors.length} ${activeColors.length === 1 ? "cor ativa" : "cores ativas"}`}
+                      </span>
+                    </div>
+
+                    {/* Tags de cores selecionadas + Campo de adicionar cor */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {activeColors.map((color) => (
+                        <span
+                          key={color}
+                          className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-border/80 bg-background text-xs font-semibold text-foreground shadow-2xs group"
+                        >
+                          <span
+                            className="size-2.5 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: getColorDot(color) }}
+                          />
+                          <span>{color}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeColorFromGrade(color)}
+                            className="size-4 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                            title={`Remover cor ${color}`}
+                          >
+                            <X className="size-2.5" />
+                          </button>
+                        </span>
+                      ))}
+
+                      {/* Adicionar nova cor inline */}
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={colorSearchQuery}
+                          onChange={(e) => setColorSearchQuery(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && colorSearchQuery.trim()) {
+                              e.preventDefault();
+                              addColorToGrade(colorSearchQuery.trim());
+                              setColorSearchQuery("");
+                            }
+                          }}
+                          placeholder="+ Adicionar cor..."
+                          className="h-8 w-28 sm:w-36 rounded-full border border-border/80 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 shadow-2xs"
+                        />
+                        {colorSearchQuery.trim() && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              addColorToGrade(colorSearchQuery.trim());
+                              setColorSearchQuery("");
+                            }}
+                            className="h-8 px-2.5 rounded-full text-xs font-semibold cursor-pointer shadow-xs"
+                          >
+                            <Plus className="size-3 mr-1" /> Adicionar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sugestões rápidas de cores da moda */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/30">
+                      <span className="text-[10px] font-semibold text-muted-foreground mr-0.5">Sugestões:</span>
+                      {["Off-White", "Preto", "Areia", "Nude", "Bege", "Terracota", "Grafite", "Caramelo", "Azul Marinho", "Verde Militar"]
+                        .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                        .slice(0, 8)
+                        .map((col) => (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => addColorToGrade(col)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-background hover:bg-secondary text-[10px] font-medium text-foreground transition-all active:scale-95 cursor-pointer shadow-2xs"
+                          >
+                            <span className="size-1.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: getColorDot(col) }} />
+                            <span>+ {col}</span>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* COLUNA DIREITA: GRADE DE TAMANHOS */}
+                  <div className="rounded-2xl border border-border/70 bg-secondary/15 p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <SlidersHorizontal className="size-3.5 text-primary" />
+                        <span>Grade de tamanhos deste modelo:</span>
+                      </Label>
+
+                      {/* Presets de Grade Rápidos */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => applySizePreset(["P", "M", "G", "GG"])}
+                          className="px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border/70 bg-background hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                        >
+                          + P–GG
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applySizePreset(["36", "38", "40", "42", "44", "46"])}
+                          className="px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border/70 bg-background hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                        >
+                          + 36–46
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applySizePreset(["GG", "G1", "G2", "G3"])}
+                          className="px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border/70 bg-background hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                        >
+                          + Plus
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applySizePreset(["34", "36", "38", "40", "42", "44", "46", "48"])}
+                          className="px-2 py-0.5 rounded-full text-[11px] font-semibold border border-border/70 bg-background hover:bg-secondary text-foreground transition-all cursor-pointer shadow-2xs"
+                        >
+                          + Jeans
+                        </button>
+                        {variants.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={clearGradeSizes}
+                            className="px-2 py-0.5 rounded-full text-[11px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                          >
+                            Limpar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pills de todos os tamanhos canônicos da moda (Toggleáveis) */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {ALL_FASHION_SIZES.map((sz) => {
+                        const isSelected = variants.some((v) => v.size === sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSizeInGrade(sz)}
+                            className={cn(
+                              "px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 shadow-2xs active:scale-95",
+                              isSelected
+                                ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                            )}
+                          >
+                            <span>{sz}</span>
+                            {isSelected && <Check className="size-3 ml-0.5 text-primary-foreground" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
 
                 {/* 3. PLANILHA DE VARIAÇÕES DO MODELO (O Retorno Triunfal da Tabela Linha a Linha) */}
                 <div className="space-y-3 pt-3 border-t border-border/50">
@@ -5515,6 +5311,7 @@ function Precificacao() {
                     );
                   })()}
                 </div>
+              </div>
             </section>
 
             {/* ── BARRA EXECUTIVA NATIVA DE RODAPÉ (Padrão Studio Apple - De ponta a ponta, sem cobrir nada) ── */}
