@@ -1040,6 +1040,8 @@ function Precificacao() {
   // Busca Spotlight de Cores (Apple Level - Modo Grade)
   const [colorSearchQuery, setColorSearchQuery] = useState("");
   const [showColorPopover, setShowColorPopover] = useState(false);
+  const [showColorPalette, setShowColorPalette] = useState(false);
+  const [showSizeAdjust, setShowSizeAdjust] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
 
   // Busca Spotlight de Cores & Seletor de Tamanhos (Apple Level - Modo Rápido)
@@ -4864,10 +4866,11 @@ function Precificacao() {
                 <div className="grid gap-4 lg:grid-cols-2 items-start">
                   {/* COLUNA ESQUERDA: CORES DO MODELO */}
                   <div className="rounded-2xl border border-border/70 bg-secondary/15 p-4 space-y-3">
+                    {/* Header */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
                       <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                         <Palette className="size-3.5 text-primary" />
-                        <span>Cores deste modelo:</span>
+                        <span>Cores deste modelo</span>
                       </Label>
                       <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                         {activeColors.length === 0
@@ -4876,166 +4879,183 @@ function Precificacao() {
                       </span>
                     </div>
 
-                    {/* Campo de digitação de nova cor (Input Premium) */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={colorSearchQuery}
-                        onChange={(e) => setColorSearchQuery(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && colorSearchQuery.trim()) {
-                            e.preventDefault();
-                            addColorToGrade(colorSearchQuery.trim());
-                            setColorSearchQuery("");
-                          }
-                        }}
-                        placeholder="Digite o nome da cor (ex: Terracota, Areia)..."
-                        className="h-9 flex-1 rounded-xl border border-border/80 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-2xs transition-all"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={!colorSearchQuery.trim()}
-                        onClick={() => {
-                          if (colorSearchQuery.trim()) {
-                            addColorToGrade(colorSearchQuery.trim());
-                            setColorSearchQuery("");
-                          }
-                        }}
-                        className="h-9 px-3 rounded-xl text-xs font-semibold cursor-pointer shadow-xs shrink-0"
-                      >
-                        <Plus className="size-3.5 mr-1" /> Adicionar
-                      </Button>
-                    </div>
-
-                    {/* Cores Selecionadas Ativas */}
+                    {/* Chips das cores ativas — sempre visíveis */}
                     {activeColors.length > 0 ? (
-                      <div className="space-y-1 pt-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Cores Ativas na Peça:
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {activeColors.map((color) => (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {activeColors.map((color) => (
+                          <span
+                            key={color}
+                            className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-border/80 bg-background text-xs font-semibold text-foreground shadow-2xs"
+                          >
                             <span
-                              key={color}
-                              className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border border-border/80 bg-background text-xs font-semibold text-foreground shadow-2xs group"
+                              className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(color))}
+                            />
+                            <span>{color}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeColorFromGrade(color)}
+                              className="size-4 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              title={`Remover cor ${color}`}
                             >
-                              <span
-                                className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(color))}
-                              />
-                              <span>{color}</span>
+                              <X className="size-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {/* Toggle para abrir/fechar paleta e input */}
+                    <button
+                      type="button"
+                      onClick={() => setShowColorPalette((v) => !v)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "size-3.5 transition-transform duration-200",
+                          showColorPalette && "rotate-180"
+                        )}
+                      />
+                      {showColorPalette ? "Fechar paleta" : activeColors.length === 0 ? "+ Adicionar cor à peça" : "+ Adicionar outra cor"}
+                    </button>
+
+                    {/* Paleta e input — apenas quando disclosure aberto */}
+                    {showColorPalette && (
+                      <div className="space-y-3 pt-1 border-t border-border/40 animate-in slide-in-from-top-1 duration-200">
+                        {/* Campo de digitação de nova cor */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={colorSearchQuery}
+                            onChange={(e) => setColorSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && colorSearchQuery.trim()) {
+                                e.preventDefault();
+                                addColorToGrade(colorSearchQuery.trim());
+                                setColorSearchQuery("");
+                              }
+                            }}
+                            placeholder="Digite o nome da cor (ex: Terracota, Areia)..."
+                            className="h-9 flex-1 rounded-xl border border-border/80 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-2xs transition-all"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={!colorSearchQuery.trim()}
+                            onClick={() => {
+                              if (colorSearchQuery.trim()) {
+                                addColorToGrade(colorSearchQuery.trim());
+                                setColorSearchQuery("");
+                              }
+                            }}
+                            className="h-9 px-3 rounded-xl text-xs font-semibold cursor-pointer shadow-xs shrink-0"
+                          >
+                            <Plus className="size-3.5 mr-1" /> Adicionar
+                          </Button>
+                        </div>
+
+                        {/* Paleta rápida de cores */}
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {["Off-White", "Preto", "Areia", "Nude", "Bege", "Terracota", "Grafite", "Caramelo"].map((col) => {
+                            const isAdded = activeColors.some((ac) => ac.toLowerCase() === col.toLowerCase());
+                            return (
                               <button
+                                key={col}
                                 type="button"
-                                onClick={() => removeColorFromGrade(color)}
-                                className="size-4 rounded-full inline-flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                title={`Remover cor ${color}`}
+                                disabled={isAdded}
+                                onClick={() => addColorToGrade(col)}
+                                className={cn(
+                                  "flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs font-semibold transition-all shadow-2xs",
+                                  isAdded
+                                    ? "border-primary/40 bg-primary/10 text-primary cursor-default"
+                                    : "border-border/70 bg-card hover:bg-secondary text-foreground hover:border-primary/40 cursor-pointer active:scale-95"
+                                )}
                               >
-                                <X className="size-2.5" />
+                                <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(col))} />
+                                <span className="flex-1 text-left">{col}</span>
+                                {isAdded ? (
+                                  <Check className="size-3 text-primary shrink-0" />
+                                ) : null}
                               </button>
-                            </span>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-border/80 bg-background/50 px-3 py-2 text-center">
-                        <p className="text-[11px] text-muted-foreground">
-                          Nenhuma cor selecionada. Escolha na paleta abaixo ou digite acima.
-                        </p>
-                      </div>
                     )}
-
-                    {/* Sugestões rápidas de cores da moda feminina */}
-                    <div className="pt-2 border-t border-border/40 space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Paleta Rápida da Coleção:
-                      </span>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {["Off-White", "Preto", "Areia", "Nude", "Bege", "Terracota", "Grafite", "Caramelo"].map((col) => {
-                          const isAdded = activeColors.some((ac) => ac.toLowerCase() === col.toLowerCase());
-                          return (
-                            <button
-                              key={col}
-                              type="button"
-                              disabled={isAdded}
-                              onClick={() => addColorToGrade(col)}
-                              className={cn(
-                                "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all shadow-2xs",
-                                isAdded
-                                  ? "border-primary/40 bg-primary/10 text-primary cursor-default"
-                                  : "border-border/70 bg-card hover:bg-secondary text-foreground hover:border-primary/40 cursor-pointer active:scale-95"
-                              )}
-                            >
-                              <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(col))} />
-                              <span className="truncate flex-1 text-left">{col}</span>
-                              {isAdded ? (
-                                <Check className="size-3 text-primary shrink-0" />
-                              ) : (
-                                <Plus className="size-3 text-muted-foreground/60 shrink-0" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
                   </div>
 
                   {/* COLUNA DIREITA: GRADE DE TAMANHOS HIERARQUIZADA */}
                   <div className="rounded-2xl border border-border/70 bg-secondary/15 p-4 space-y-3">
+                    {/* Header */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
                       <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                         <SlidersHorizontal className="size-3.5 text-primary" />
-                        <span>Grade de tamanhos deste modelo:</span>
+                        <span>Grade de tamanhos</span>
                       </Label>
-
-                      {variants.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={clearGradeSizes}
-                          className="text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex items-center gap-1"
-                        >
-                          <Trash2 className="size-3" />
-                          <span>Limpar Grade</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Nível 1: Montar Grade por Tipo de Peça (1 Clique) */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                        1. Montar Grade por Tipo de Peça (1 Clique):
-                      </span>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        {[
-                          { label: "P ao GG", sub: "P · M · G · GG", sizes: ["P", "M", "G", "GG"] },
-                          { label: "Alfaiataria", sub: "36 ao 46", sizes: ["36", "38", "40", "42", "44", "46"] },
-                          { label: "Plus Size", sub: "G1 · G2 · G3", sizes: ["GG", "G1", "G2", "G3"] },
-                          { label: "Jeans", sub: "34 ao 48", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
-                        ].map((preset) => (
+                      <div className="flex items-center gap-2">
+                        {/* Badge compacto dos tamanhos selecionados */}
+                        {variants.length > 0 && (
+                          <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            {variants.map((v) => v.size).join(" · ")}
+                          </span>
+                        )}
+                        {variants.length > 0 && (
                           <button
-                            key={preset.label}
                             type="button"
-                            onClick={() => applySizePreset(preset.sizes)}
-                            className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-primary/50 transition-all cursor-pointer shadow-2xs active:scale-95 group text-center"
+                            onClick={clearGradeSizes}
+                            className="text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors cursor-pointer flex items-center gap-1"
                           >
-                            <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-1">
-                              <Sparkles className="size-2.5 text-primary" />
-                              <span>{preset.label}</span>
-                            </span>
-                            <span className="text-[10px] text-muted-foreground mt-0.5">
-                              {preset.sub}
-                            </span>
+                            <Trash2 className="size-3" />
+                            <span>Limpar</span>
                           </button>
-                        ))}
+                        )}
                       </div>
                     </div>
 
-                    {/* Nível 2: Micro-Ajuste em Teclado Compacto */}
-                    <div className="space-y-2 pt-2 border-t border-border/40">
-                      {/* Letras */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          2. Ajuste Fino Individual (Letras):
-                        </span>
+                    {/* Presets — sempre visíveis (ação primária) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {[
+                        { label: "P ao GG", sub: "P · M · G · GG", sizes: ["P", "M", "G", "GG"] },
+                        { label: "Alfaiataria", sub: "36 ao 46", sizes: ["36", "38", "40", "42", "44", "46"] },
+                        { label: "Plus Size", sub: "G1 · G2 · G3", sizes: ["GG", "G1", "G2", "G3"] },
+                        { label: "Jeans", sub: "34 ao 48", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => applySizePreset(preset.sizes)}
+                          className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary text-foreground hover:border-primary/50 transition-all cursor-pointer shadow-2xs active:scale-95 group text-center"
+                        >
+                          <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-1">
+                            <Sparkles className="size-2.5 text-primary" />
+                            <span>{preset.label}</span>
+                          </span>
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                            {preset.sub}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Toggle para ajuste fino individual */}
+                    <button
+                      type="button"
+                      onClick={() => setShowSizeAdjust((v) => !v)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "size-3.5 transition-transform duration-200",
+                          showSizeAdjust && "rotate-180"
+                        )}
+                      />
+                      {showSizeAdjust ? "Fechar ajuste individual" : "Ajuste individual"}
+                    </button>
+
+                    {/* Botões de ajuste fino — apenas quando disclosure aberto */}
+                    {showSizeAdjust && (
+                      <div className="space-y-2 pt-2 border-t border-border/40 animate-in slide-in-from-top-1 duration-200">
+                        {/* Letras */}
                         <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
                           {ALL_FASHION_SIZES.slice(0, 8).map((sz) => {
                             const isSelected = variants.some((v) => v.size === sz);
@@ -5057,13 +5077,8 @@ function Precificacao() {
                             );
                           })}
                         </div>
-                      </div>
 
-                      {/* Números & Único */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          Ajuste Fino (Números &amp; Especial):
-                        </span>
+                        {/* Números & Único */}
                         <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
                           {ALL_FASHION_SIZES.slice(8).map((sz) => {
                             const isSelected = variants.some((v) => v.size === sz);
@@ -5086,7 +5101,7 @@ function Precificacao() {
                           })}
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
