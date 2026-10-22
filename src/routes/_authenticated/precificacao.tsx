@@ -4265,7 +4265,7 @@ function Precificacao() {
         {/* ══════════════════════════════════════════════════════════════════
         {/* ══ MODO GRADE: Ficha Única Progressiva (Design System Modaly - Padrão Apple / Linear) ══ */}
         {mode === "grade" && (
-          <div className="space-y-6 pb-24 lg:pb-8">
+          <div className="space-y-6 pb-20 lg:pb-6">
             {/* Grid de 2 colunas: Painel Principal + Sidebar Sticky */}
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px] items-start">
               

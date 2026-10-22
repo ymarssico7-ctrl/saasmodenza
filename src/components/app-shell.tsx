@@ -856,7 +856,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background lg:bg-sidebar lg:h-screen lg:overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-background lg:bg-sidebar lg:fixed lg:inset-0 lg:overflow-hidden flex flex-col">
       {/* ── Sidebar Desktop (Padrão Shopify Oficial + Ambient Glow) ───────────── */}
       <aside
         className={cn(
@@ -1289,12 +1289,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Main Content (Floating Panel Effect — Padrão Shopify Imagem 1, 3 e 4) ─ */}
       <main
         className={cn(
-          "flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pb-24 lg:pb-0 lg:h-screen lg:overflow-hidden lg:py-2.5 lg:pr-2.5 lg:pl-0",
+          "flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pb-24 lg:pb-0 lg:h-full lg:max-h-full lg:overflow-hidden lg:py-2.5 lg:pr-2.5 lg:pl-0",
           isCollapsed ? "lg:pl-[60px]" : "lg:pl-[240px]",
         )}
       >
         {/* Painel Flutuante Branco com borda sutil e cantos arredondados */}
-        <div className="flex-1 h-full bg-background rounded-none lg:rounded-2xl border-none lg:border lg:border-white/10 shadow-none lg:shadow-2xs overflow-y-auto min-w-0 scrollbar-thin">
+        <div className="flex-1 h-full bg-background rounded-none lg:rounded-2xl border-none lg:border lg:border-white/10 shadow-none lg:shadow-2xs overflow-y-auto min-w-0 scrollbar-apple">
           <div className="mx-auto w-full max-w-[1536px] px-4 py-4 sm:px-6 sm:py-5 lg:pb-8">
             {children}
           </div>
