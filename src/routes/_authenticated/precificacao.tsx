@@ -1104,6 +1104,18 @@ function Precificacao() {
   // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
   const [showColorInput, setShowColorInput] = useState(false);
+  const colorPopoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showColorInput) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (colorPopoverRef.current && !colorPopoverRef.current.contains(e.target as Node)) {
+        setShowColorInput(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showColorInput]);
   const [showDeducoes, setShowDeducoes] = useState(false);
   const [sizePresetDropdown, setSizePresetDropdown] = useState("padrao");
 
@@ -2114,6 +2126,12 @@ function Precificacao() {
     );
   };
 
+  const applyBulkQty = (qty: number) => {
+    const val = Math.max(1, qty);
+    setVariants((prev) => prev.map((v) => ({ ...v, qty: val })));
+    toast.success(`Quantidade ${val} un. aplicada a todas as variações`);
+  };
+
   const updateVariantQty = (id: string, qty: number) => {
     const safeQty = Math.max(1, Math.floor(qty) || 1);
     setVariants((prev) =>
@@ -2951,7 +2969,7 @@ function Precificacao() {
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Vestido Midi Linho com Fenda"
+                placeholder="Ex: Vestido Midi Linho"
                 className="h-11 rounded-xl font-semibold text-sm bg-card shadow-2xs"
               />
             </div>
@@ -4307,7 +4325,7 @@ function Precificacao() {
 
                     {/* Nome da Peça */}
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Label className="text-xs font-semibold text-foreground">
                         Nome da peça
                       </Label>
                       <Input
@@ -4320,7 +4338,7 @@ function Precificacao() {
 
                     {/* Categoria */}
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Label className="text-xs font-semibold text-foreground">
                         Categoria
                       </Label>
                       <Select value={category} onValueChange={setCategory}>
@@ -4339,7 +4357,7 @@ function Precificacao() {
 
                     {/* Custo de Atacado */}
                     <div className="space-y-1">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Label className="text-xs font-semibold text-foreground">
                         Custo atacado / un.
                       </Label>
                       <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
@@ -4359,7 +4377,7 @@ function Precificacao() {
                   <div className="pt-3 border-t border-border/50 grid gap-3 sm:grid-cols-4 items-center">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Frete nota</span>
+                        <span className="text-xs font-medium text-muted-foreground">Frete da nota</span>
                         <span className="text-[10px] text-muted-foreground/70">total</span>
                       </div>
                       <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
@@ -4376,7 +4394,7 @@ function Precificacao() {
 
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Embalagem</span>
+                        <span className="text-xs font-medium text-muted-foreground">Embalagem</span>
                         <span className="text-[10px] text-muted-foreground/70">total</span>
                       </div>
                       <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
@@ -4393,7 +4411,7 @@ function Precificacao() {
 
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Outros extras</span>
+                        <span className="text-xs font-medium text-muted-foreground">Outros extras</span>
                         <span className="text-[10px] text-muted-foreground/70">total</span>
                       </div>
                       <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
@@ -4408,12 +4426,12 @@ function Precificacao() {
                       </div>
                     </div>
 
-                    {/* Destaque Custo Real Unitário */}
+                    {/* Destaque Custo Real Unitário Adaptativo */}
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 flex flex-col justify-center">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Custo real / peça</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {actualLotUnits > 0 ? `${actualLotUnits} un.` : "1 un."}
+                        <span className="text-xs font-bold text-primary">Custo real / peça</span>
+                        <span className="text-[10px] font-bold text-primary px-1.5 py-0.2 rounded-full bg-primary/10">
+                          {actualLotUnits > 0 ? `${actualLotUnits} un.` : "unitário base"}
                         </span>
                       </div>
                       <p className="text-base font-black text-foreground numeric mt-0.5">
@@ -4425,11 +4443,15 @@ function Precificacao() {
                         )}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {brl(toNumber(baseWholesaleGrade))} + {brl(
-                          resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                          resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                          resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1)
-                        )} rateio
+                        {actualLotUnits > 0 ? (
+                          `${brl(toNumber(baseWholesaleGrade))} compra + ${brl(
+                            resolvePerUnit(freight, freightMode, actualLotUnits) +
+                            resolvePerUnit(packaging, packagingMode, actualLotUnits) +
+                            resolvePerUnit(other, otherMode, actualLotUnits)
+                          )} rateio`
+                        ) : (
+                          `${brl(toNumber(baseWholesaleGrade))} atacado (sem lote ativo)`
+                        )}
                       </p>
                     </div>
                   </div>
@@ -4643,8 +4665,19 @@ function Precificacao() {
                         <div className="mt-3 grid gap-4 sm:grid-cols-2 rounded-xl bg-secondary/30 border border-border/60 p-3.5">
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between text-xs font-semibold">
-                              <Label className="text-xs">DAS / Imposto Simples</Label>
-                              <span className="numeric text-foreground font-bold">{tax}%</span>
+                              <Label className="text-xs font-medium text-foreground">DAS / Imposto Simples</Label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  min="0"
+                                  max="35"
+                                  value={tax}
+                                  onChange={(e) => setTax(Math.max(0, parseFloat(e.target.value) || 0))}
+                                  className="h-6 w-14 rounded-md border border-border/70 bg-background px-1 text-right text-xs font-bold numeric text-foreground outline-none focus:border-primary"
+                                />
+                                <span className="text-xs font-bold text-muted-foreground">%</span>
+                              </div>
                             </div>
                             <Slider
                               value={[tax]}
@@ -4654,13 +4687,24 @@ function Precificacao() {
                               step={0.5}
                               className="py-1 cursor-pointer"
                             />
-                            <p className="text-[10px] text-muted-foreground">Imposto sobre a nota ou DAS do Simples Nacional</p>
+                            <p className="text-[10px] text-muted-foreground">Alíquota sobre a nota fiscal ou DAS da sua empresa</p>
                           </div>
 
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between text-xs font-semibold">
-                              <Label className="text-xs">Taxa Média do Cartão</Label>
-                              <span className="numeric text-foreground font-bold">{cardRate}%</span>
+                              <Label className="text-xs font-medium text-foreground">Taxa Média do Cartão</Label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  max="20"
+                                  value={cardRate}
+                                  onChange={(e) => setCardRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                                  className="h-6 w-14 rounded-md border border-border/70 bg-background px-1 text-right text-xs font-bold numeric text-foreground outline-none focus:border-primary"
+                                />
+                                <span className="text-xs font-bold text-muted-foreground">%</span>
+                              </div>
                             </div>
                             <Slider
                               value={[cardRate]}
@@ -4670,7 +4714,7 @@ function Precificacao() {
                               step={0.5}
                               className="py-1 cursor-pointer"
                             />
-                            <p className="text-[10px] text-muted-foreground">Taxa da maquininha ou intermediador de pagamento</p>
+                            <p className="text-[10px] text-muted-foreground">Taxa da maquininha ou intermediador de checkout</p>
                           </div>
                         </div>
                       )}
@@ -4695,9 +4739,14 @@ function Precificacao() {
                   <div className="grid gap-5 md:grid-cols-2">
                     {/* Cores deste modelo */}
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Cores deste modelo
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Cores deste modelo
+                        </Label>
+                        {activeColors.length === 0 && (
+                          <span className="text-[11px] text-muted-foreground">Adicione ao menos uma cor</span>
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {activeColors.map((color) => (
                           <span
@@ -4717,8 +4766,8 @@ function Precificacao() {
                           </span>
                         ))}
 
-                        {/* Botão + Popover de Adicionar Cor */}
-                        <div className="relative">
+                        {/* Botão + Popover de Adicionar Cor com click-outside */}
+                        <div className="relative" ref={colorPopoverRef}>
                           <Button
                             type="button"
                             variant="outline"
@@ -4803,6 +4852,27 @@ function Precificacao() {
                           )}
                         </div>
                       </div>
+
+                      {/* Atalhos rápidos de 1 clique para cores populares */}
+                      {activeColors.length < 3 && (
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <span className="text-[10px] text-muted-foreground mr-1 select-none">Rápido:</span>
+                          {["Preto", "Off-White", "Areia", "Terracota"]
+                            .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                            .slice(0, 3)
+                            .map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => addColorToGrade(c)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border border-border/60 bg-secondary/30 hover:bg-secondary text-foreground hover:border-primary/40 transition-all cursor-pointer"
+                              >
+                                <span className={cn("size-1.5 rounded-full", getColorDot(c))} />
+                                <span>+{c}</span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Grade de tamanhos */}
@@ -4841,24 +4911,38 @@ function Precificacao() {
                           </SelectContent>
                         </Select>
 
-                        {/* Chips dos tamanhos ativos */}
+                        {/* Chips dos tamanhos ativos ou prévia da grade */}
                         <div className="flex flex-wrap items-center gap-1">
-                          {Array.from(new Set(variants.map((v) => v.size))).map((sz) => (
-                            <span
-                              key={sz}
-                              className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full border border-border/80 bg-background shadow-2xs text-xs font-bold text-foreground shrink-0"
-                            >
-                              <span>{sz}</span>
-                              <button
-                                type="button"
-                                onClick={() => toggleSizeInGrade(sz)}
-                                className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                aria-label={`Remover tamanho ${sz}`}
+                          {(() => {
+                            const activeVariantSizes = Array.from(new Set(variants.map((v) => v.size)));
+                            const sizesToShow = activeVariantSizes.length > 0 ? activeVariantSizes : (matrixSizes.length > 0 ? matrixSizes : ["P", "M", "G", "GG"]);
+                            const isPreview = activeVariantSizes.length === 0;
+
+                            return sizesToShow.map((sz) => (
+                              <span
+                                key={sz}
+                                className={cn(
+                                  "inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full border shadow-2xs text-xs font-bold shrink-0 transition-all",
+                                  isPreview
+                                    ? "border-dashed border-border bg-secondary/30 text-muted-foreground"
+                                    : "border-border/80 bg-background text-foreground"
+                                )}
+                                title={isPreview ? "Tamanho pré-selecionado na grade" : undefined}
                               >
-                                <X className="size-2.5" />
-                              </button>
-                            </span>
-                          ))}
+                                <span>{sz}</span>
+                                {!isPreview && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSizeInGrade(sz)}
+                                    className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                    aria-label={`Remover tamanho ${sz}`}
+                                  >
+                                    <X className="size-2.5" />
+                                  </button>
+                                )}
+                              </span>
+                            ));
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -4965,17 +5049,60 @@ function Precificacao() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Clique em custo ou preço para ajustar uma linha individualmente
-                </p>
+                <div className="flex items-center gap-3">
+                  {variants.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-muted-foreground text-[11px]">Qtd em todas:</span>
+                      {[1, 2, 3, 4, 6].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => applyBulkQty(num)}
+                          className="h-6 px-1.5 rounded-md border border-border/60 bg-secondary/40 hover:bg-secondary text-foreground text-[11px] font-bold numeric transition-colors cursor-pointer"
+                          title={`Definir ${num} peças para todas as variações`}
+                        >
+                          {num}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="hidden sm:block text-xs text-muted-foreground">
+                    Clique em custo ou preço para editar individualmente
+                  </p>
+                </div>
               </div>
 
               {variants.length === 0 ? (
-                <div className="py-12 text-center border-2 border-dashed border-border/70 rounded-2xl bg-secondary/10 space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Nenhuma variação criada ainda</p>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Selecione as cores e a grade de tamanhos nas seções acima para gerar a planilha automaticamente.
-                  </p>
+                <div className="py-12 px-4 text-center border-2 border-dashed border-border/70 rounded-2xl bg-secondary/10 space-y-3.5">
+                  <div className="size-11 mx-auto rounded-2xl bg-secondary/60 flex items-center justify-center text-muted-foreground">
+                    <Boxes className="size-5 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Nenhuma variação criada ainda</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Adicione uma cor e selecione a grade acima para gerar a planilha de variações com cálculos automáticos.
+                    </p>
+                  </div>
+                  <div className="pt-1 flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => addColorToGrade("Preto")}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-semibold border-border hover:border-primary/60 cursor-pointer"
+                    >
+                      <Plus className="size-3 mr-1 text-primary" /> Adicionar Preto
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => addColorToGrade("Off-White")}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-semibold border-border hover:border-primary/60 cursor-pointer"
+                    >
+                      <Plus className="size-3 mr-1 text-primary" /> Adicionar Off-White
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-border/70 bg-background">
