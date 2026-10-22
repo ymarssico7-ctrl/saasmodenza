@@ -20,6 +20,7 @@ import {
   LogOut,
   Menu,
   MoreHorizontal,
+  Palette,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -891,6 +892,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav className="flex flex-col gap-1.5 items-center">
                 {[
                   { tab: "geral", label: "Geral", icon: Store },
+                  { tab: "catalogo", label: "Cores & Tamanhos", icon: Palette },
                   { tab: "canais", label: "Canais de Venda", icon: Globe },
                   { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
                   { tab: "precificacao", label: "Precificação & Margens", icon: Calculator },
@@ -902,7 +904,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.tab}
                       to="/configuracoes"
-                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "precificacao" | "equipe" | "plano" }}
+                      search={{ tab: item.tab as "geral" | "catalogo" | "canais" | "caixa" | "precificacao" | "equipe" | "plano" }}
                       title={item.label}
                       className={cn(
                         "relative flex size-9 items-center justify-center rounded-lg transition-colors cursor-pointer",
@@ -959,6 +961,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav className="flex flex-col gap-1">
                 {[
                   { tab: "geral", label: "Geral", icon: Store },
+                  { tab: "catalogo", label: "Cores & Tamanhos", icon: Palette },
                   { tab: "canais", label: "Canais de Venda", icon: Globe },
                   { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
                   { tab: "precificacao", label: "Precificação & Margens", icon: Calculator },
@@ -970,7 +973,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={item.tab}
                       to="/configuracoes"
-                      search={{ tab: item.tab as "geral" | "canais" | "caixa" | "precificacao" | "equipe" | "plano" }}
+                      search={{ tab: item.tab as "geral" | "catalogo" | "canais" | "caixa" | "precificacao" | "equipe" | "plano" }}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-normal transition-colors duration-150 cursor-pointer",
                         active

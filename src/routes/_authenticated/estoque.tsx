@@ -54,6 +54,7 @@ import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
 import { insertInventoryItem, deleteInventoryItem, updateInventoryItem } from "@/lib/mutations";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
+import { getCustomOptions } from "@/lib/custom-options";
 import { cn } from "@/lib/utils";
 
 type EstoqueSearch = {
@@ -95,6 +96,36 @@ function Estoque() {
   // ── Categorias Dinâmicas da Loja (Nível Shopify) ──────────────────────────
   const { categories: storeCategories, saveCategories, isSaving: isSavingCats } = useStoreCategories();
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+
+  // ── Cores e Tamanhos do Catálogo da Loja ──────────────────────────────────
+  const [customOptions, setCustomOptions] = useState(() => getCustomOptions(storeId));
+  useEffect(() => {
+    setCustomOptions(getCustomOptions(storeId));
+    const handleUpdate = () => setCustomOptions(getCustomOptions(storeId));
+    window.addEventListener("custom-options-changed", handleUpdate);
+    return () => window.removeEventListener("custom-options-changed", handleUpdate);
+  }, [storeId]);
+
+  const allColorOptions = useMemo(() => {
+    const custom = customOptions.customColors.map((c) => ({
+      label: c.label,
+      hex: c.hex,
+      isCustom: true,
+    }));
+    const customNames = new Set(custom.map((c) => c.label.toLowerCase()));
+    const factory = [
+      { label: "Off-White", hex: "#F8F6F0", isCustom: false },
+      { label: "Preto", hex: "#1A1A1A", isCustom: false },
+      { label: "Areia", hex: "#D8C7B5", isCustom: false },
+      { label: "Terracota", hex: "#C86D51", isCustom: false },
+      { label: "Verde Oliva", hex: "#556B2F", isCustom: false },
+      { label: "Azul Marinho", hex: "#1B2A4A", isCustom: false },
+      { label: "Vinho", hex: "#651C32", isCustom: false },
+      { label: "Cinza Mescla", hex: "#707070", isCustom: false },
+    ].filter((f) => !customNames.has(f.label.toLowerCase()));
+
+    return [...custom, ...factory];
+  }, [customOptions.customColors]);
 
   // ── Sub-abas: Peças em Estoque / Categorias do Catálogo ────────────────────
   const search = Route.useSearch();
@@ -255,7 +286,7 @@ function Estoque() {
   const [price, setPrice] = useState("");
   const [sizes, setSizes] = useState<Sizes>({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
   const [photoUrl, setPhotoUrl] = useState("");
-  const [gradeMode, setGradeMode] = useState<"grade" | "unico">("grade");
+  const [gradeMode, setGradeMode] = useState<"grade" | "loja" | "unico">("grade");
   const [singleSizeQty, setSingleSizeQty] = useState("");
   const [newPieceOpen, setNewPieceOpen] = useState(false);
 
@@ -1646,11 +1677,53 @@ function Estoque() {
 
                   <Field label="Cor">
                     <Input
+                      list="store-colors-datalist"
                       value={color}
                       onChange={(e) => setColor(e.target.value)}
                       placeholder="Ex: Off-white, Preto"
                       className="h-10 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                     />
+                    <datalist id="store-colors-datalist">
+                      {allColorOptions.map((c) => (
+                        <option key={c.label} value={c.label}>
+                          {c.isCustom ? "🎨 Cor da sua Loja" : "Padrão"}
+                        </option>
+                      ))}
+                    </datalist>
+                    {allColorOptions.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1 pt-1.5">
+                        {allColorOptions.slice(0, 4).map((c) => (
+                          <button
+                            key={c.label}
+                            type="button"
+                            onClick={() => setColor(c.label)}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-all cursor-pointer",
+                              color.toLowerCase() === c.label.toLowerCase()
+                                ? "border-primary bg-primary/10 text-primary font-bold"
+                                : c.isCustom
+                                  ? "border-primary/30 bg-primary/5 hover:bg-primary/15 text-foreground"
+                                  : "border-border/60 bg-secondary/30 hover:bg-secondary text-foreground"
+                            )}
+                          >
+                            <span
+                              className="size-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: c.hex || "#888888" }}
+                            />
+                            <span>{c.label}</span>
+                          </button>
+                        ))}
+                        <Link
+                          to="/configuracoes"
+                          search={{ tab: "catalogo" }}
+                          className="text-[10px] text-muted-foreground hover:text-primary transition-colors ml-auto inline-flex items-center gap-0.5"
+                          title="Cadastrar novas cores da loja em Configurações"
+                        >
+                          <span>+ Gerenciar</span>
+                          <ExternalLink className="size-2.5" />
+                        </Link>
+                      </div>
+                    )}
                   </Field>
                 </div>
 
@@ -1717,7 +1790,18 @@ function Estoque() {
             {/* Grade de tamanhos */}
             <div className="pt-3 border-t border-border/60">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Grade de tamanhos</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs font-semibold text-foreground/90 tracking-tight">Grade de tamanhos</Label>
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "catalogo" }}
+                    className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
+                    title="Configurar tamanhos e numerações em Configurações"
+                  >
+                    <span>Configurar</span>
+                    <ExternalLink className="size-2.5" />
+                  </Link>
+                </div>
                 <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-medium shadow-2xs">
                   <button
                     type="button"
@@ -1730,6 +1814,19 @@ function Estoque() {
                   >
                     Grade P / M / G
                   </button>
+                  {customOptions.customSizes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setGradeMode("loja")}
+                      className={`rounded-full px-3 py-1 transition-all cursor-pointer ${
+                        gradeMode === "loja"
+                          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Grade da Loja ({customOptions.customSizes.length})
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setGradeMode("unico")}
@@ -1744,9 +1841,16 @@ function Estoque() {
                 </div>
               </div>
 
-              {gradeMode === "grade" ? (
-                <div className="mt-3 grid grid-cols-5 gap-2">
-                  {SIZE_GRID.map((s) => {
+              {gradeMode === "grade" || gradeMode === "loja" ? (
+                <div
+                  className={cn(
+                    "mt-3 grid gap-2",
+                    (gradeMode === "loja" ? customOptions.customSizes.map((s) => s.label) : SIZE_GRID).length <= 5
+                      ? "grid-cols-5"
+                      : "grid-cols-4 sm:grid-cols-6"
+                  )}
+                >
+                  {(gradeMode === "loja" ? customOptions.customSizes.map((s) => s.label) : SIZE_GRID).map((s) => {
                     const currentQty = Number(sizes[s] ?? 0);
                     return (
                       <div
@@ -1915,11 +2019,44 @@ function Estoque() {
                 </Field>
                 <Field label="Cor">
                   <Input
+                    list="edit-store-colors-datalist"
                     value={editColor}
                     onChange={(e) => setEditColor(e.target.value)}
                     placeholder="Off-white"
                     className="h-11 rounded-xl bg-card border-border hover:border-foreground/25 focus-visible:ring-2 focus-visible:ring-primary/20 transition-colors"
                   />
+                  <datalist id="edit-store-colors-datalist">
+                    {allColorOptions.map((c) => (
+                      <option key={c.label} value={c.label}>
+                        {c.isCustom ? "🎨 Cor da sua Loja" : "Padrão"}
+                      </option>
+                    ))}
+                  </datalist>
+                  {allColorOptions.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1 pt-1.5">
+                      {allColorOptions.slice(0, 4).map((c) => (
+                        <button
+                          key={c.label}
+                          type="button"
+                          onClick={() => setEditColor(c.label)}
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-all cursor-pointer",
+                            editColor.toLowerCase() === c.label.toLowerCase()
+                              ? "border-primary bg-primary/10 text-primary font-bold"
+                              : c.isCustom
+                                ? "border-primary/30 bg-primary/5 hover:bg-primary/15 text-foreground"
+                                : "border-border/60 bg-secondary/30 hover:bg-secondary text-foreground"
+                          )}
+                        >
+                          <span
+                            className="size-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: c.hex || "#888888" }}
+                          />
+                          <span>{c.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </Field>
                 <Field label="Fornecedor (Opcional)">
                   <SupplierCombobox

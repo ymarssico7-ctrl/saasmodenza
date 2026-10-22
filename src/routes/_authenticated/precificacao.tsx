@@ -86,6 +86,7 @@ import {
 import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
 import { SupplierCombobox } from "@/components/supplier-combobox";
 import { useStore } from "@/lib/store-context";
+import { getCustomOptions, type CustomColorOption, type CustomSizeOption } from "@/lib/custom-options";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { cn } from "@/lib/utils";
@@ -740,11 +741,13 @@ function AddVariantPopover({
 
 function EmptyStateGradeColorPicker({
   activeColors,
+  storeCustomColors = [],
   onAddColor,
   onAddMultipleColors,
   onScrollToSection3,
 }: {
   activeColors: string[];
+  storeCustomColors?: CustomColorOption[];
   onAddColor: (color: string) => void;
   onAddMultipleColors?: (colors: string[]) => void;
   onScrollToSection3: () => void;
@@ -764,13 +767,42 @@ function EmptyStateGradeColorPicker({
     "Cinza Mescla",
   ];
 
-  const filteredColors = COLOR_PRESETS.filter((cp) =>
+  // Cores da loja formatadas
+  const storeColorsList = (storeCustomColors || []).map((c) => ({
+    name: c.label,
+    color: c.hex || "#C86D51",
+    isCustom: true,
+    hex: c.hex,
+  }));
+  const customNamesSet = new Set(storeColorsList.map((c) => c.name.toLowerCase()));
+
+  // Todas as cores unificadas: Loja primeiro, depois presets de fábrica (sem duplicados)
+  const allMergedColors = [
+    ...storeColorsList,
+    ...COLOR_PRESETS.filter((cp) => !customNamesSet.has(cp.name.toLowerCase())).map((cp) => ({
+      name: cp.name,
+      color: cp.color,
+      isCustom: false,
+      hex: cp.color,
+    })),
+  ];
+
+  const filteredColors = allMergedColors.filter((cp) =>
     cp.name.toLowerCase().includes(query.toLowerCase())
   );
 
-  const unselectedPopular = POPULAR_SUGGESTIONS.filter(
-    (c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase())
+  // Sugestões rápidas: Cores da loja não selecionadas vêm primeiro!
+  const unselectedCustom = storeColorsList.filter(
+    (c) => !activeColors.some((ac) => ac.toLowerCase() === c.name.toLowerCase())
   );
+  const unselectedPopular = POPULAR_SUGGESTIONS.filter(
+    (c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()) && !customNamesSet.has(c.toLowerCase())
+  );
+
+  const quickPills = [
+    ...unselectedCustom.map((c) => ({ name: c.name, hex: c.hex, isCustom: true })),
+    ...unselectedPopular.map((name) => ({ name, hex: undefined, isCustom: false })),
+  ];
 
   const handleSelect = (colorName: string) => {
     const clean = colorName.trim();
@@ -813,19 +845,29 @@ function EmptyStateGradeColorPicker({
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            {activeColors.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => handleSelect(color)}
-                className="inline-flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full border border-primary/30 bg-card hover:bg-primary/10 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
-                title={`Clique para gerar variações em ${color}`}
-              >
-                <span className={cn("size-2 rounded-full shrink-0 shadow-2xs", getColorDot(color))} />
-                <span>{color}</span>
-                <Plus className="size-3 text-primary ml-0.5" />
-              </button>
-            ))}
+            {activeColors.map((color) => {
+              const customMatch = storeCustomColors.find((c) => c.label.toLowerCase() === color.toLowerCase());
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => handleSelect(color)}
+                  className="inline-flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full border border-primary/30 bg-card hover:bg-primary/10 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs"
+                  title={`Clique para gerar variações em ${color}`}
+                >
+                  {customMatch?.hex ? (
+                    <span
+                      className="size-2 rounded-full border border-black/10 shrink-0"
+                      style={{ backgroundColor: customMatch.hex }}
+                    />
+                  ) : (
+                    <span className={cn("size-2 rounded-full shrink-0 shadow-2xs", getColorDot(color))} />
+                  )}
+                  <span>{color}</span>
+                  <Plus className="size-3 text-primary ml-0.5" />
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -854,7 +896,7 @@ function EmptyStateGradeColorPicker({
           {open && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-40 w-72 rounded-2xl border border-border/90 bg-card p-3 shadow-xl animate-in fade-in zoom-in-95 space-y-2.5 text-left">
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-40 w-76 rounded-2xl border border-border/90 bg-card p-3 shadow-xl animate-in fade-in zoom-in-95 space-y-2.5 text-left">
                 <div className="flex items-center justify-between pb-1 border-b border-border/50">
                   <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
                     <Palette className="size-3 text-primary" />
@@ -896,7 +938,7 @@ function EmptyStateGradeColorPicker({
                   )}
                 </div>
 
-                <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1">
+                <div className="max-h-52 overflow-y-auto space-y-0.5 pr-1">
                   {query.trim() && !filteredColors.some((c) => c.name.toLowerCase() === query.trim().toLowerCase()) && (
                     <button
                       type="button"
@@ -907,44 +949,122 @@ function EmptyStateGradeColorPicker({
                       <span>Adicionar &quot;{query.trim()}&quot;</span>
                     </button>
                   )}
-                  {filteredColors.map((cp) => {
-                    const isAdded = activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase());
-                    return (
-                      <button
-                        key={cp.name}
-                        type="button"
-                        onClick={() => handleSelect(cp.name)}
-                        className={cn(
-                          "w-full flex items-center justify-between rounded-lg px-2 py-1.5 text-xs text-left transition-colors cursor-pointer",
-                          isAdded ? "bg-secondary/40 text-muted-foreground" : "hover:bg-secondary/60 text-foreground"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={cn("size-2 rounded-full shrink-0 shadow-2xs", getColorDot(cp.name))} />
-                          <span className="truncate">{cp.name}</span>
-                        </div>
-                        {isAdded && <span className="text-[10px] text-muted-foreground font-medium">Na grade</span>}
-                      </button>
-                    );
-                  })}
+
+                  {/* Cores da sua Loja */}
+                  {filteredColors.some((c) => c.isCustom) && (
+                    <div className="pt-1 pb-0.5">
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-1 px-1">
+                        <Sparkles className="size-2.5" />
+                        Cores da sua Loja
+                      </span>
+                    </div>
+                  )}
+
+                  {filteredColors
+                    .filter((c) => c.isCustom)
+                    .map((cp) => {
+                      const isAdded = activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase());
+                      return (
+                        <button
+                          key={cp.name}
+                          type="button"
+                          onClick={() => handleSelect(cp.name)}
+                          className={cn(
+                            "w-full flex items-center justify-between rounded-lg px-2 py-1.5 text-xs text-left transition-colors cursor-pointer",
+                            isAdded ? "bg-secondary/40 text-muted-foreground" : "hover:bg-primary/10 text-foreground"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {cp.hex ? (
+                              <span
+                                className="size-2.5 rounded-full border border-black/10 shrink-0"
+                                style={{ backgroundColor: cp.hex }}
+                              />
+                            ) : (
+                              <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(cp.name))} />
+                            )}
+                            <span className="truncate font-semibold text-primary">{cp.name}</span>
+                          </div>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
+                            Loja
+                          </span>
+                        </button>
+                      );
+                    })}
+
+                  {/* Paleta Padrão */}
+                  {filteredColors.some((c) => !c.isCustom) && (
+                    <div className="pt-2 pb-0.5 border-t border-border/40 mt-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+                        Paleta Padrão
+                      </span>
+                    </div>
+                  )}
+
+                  {filteredColors
+                    .filter((c) => !c.isCustom)
+                    .map((cp) => {
+                      const isAdded = activeColors.some((ac) => ac.toLowerCase() === cp.name.toLowerCase());
+                      return (
+                        <button
+                          key={cp.name}
+                          type="button"
+                          onClick={() => handleSelect(cp.name)}
+                          className={cn(
+                            "w-full flex items-center justify-between rounded-lg px-2 py-1.5 text-xs text-left transition-colors cursor-pointer",
+                            isAdded ? "bg-secondary/40 text-muted-foreground" : "hover:bg-secondary/60 text-foreground"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={cn("size-2 rounded-full shrink-0 shadow-2xs", getColorDot(cp.name))} />
+                            <span className="truncate">{cp.name}</span>
+                          </div>
+                          {isAdded && <span className="text-[10px] text-muted-foreground font-medium">Na grade</span>}
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {/* Rodapé: Link para Configurações de Cores */}
+                <div className="pt-2 border-t border-border/50 text-center">
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "catalogo" }}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                  >
+                    <span>⚙️ Gerenciar cores da loja</span>
+                  </Link>
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Sugestões rápidas de 1 clique das cores populares que não estão na grade */}
-        {unselectedPopular.slice(0, 4).map((c) => (
+        {/* Sugestões rápidas de 1 clique: Cores da loja primeiro, depois populares */}
+        {quickPills.slice(0, 5).map((c) => (
           <Button
-            key={c}
+            key={c.name}
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => handleSelect(c)}
-            className="rounded-xl text-xs font-semibold border-border hover:border-primary/60 cursor-pointer bg-card h-8.5 px-2.5"
+            onClick={() => handleSelect(c.name)}
+            className={cn(
+              "rounded-xl text-xs font-semibold cursor-pointer h-8.5 px-2.5 transition-all",
+              c.isCustom
+                ? "border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary font-bold shadow-2xs"
+                : "border-border hover:border-primary/60 bg-card"
+            )}
+            title={c.isCustom ? "Cor exclusiva da sua loja" : undefined}
           >
-            <span className={cn("size-2 rounded-full mr-1.5 shrink-0 shadow-2xs", getColorDot(c))} />
-            <span>+{c}</span>
+            {c.hex ? (
+              <span
+                className="size-2 rounded-full mr-1.5 shrink-0 border border-black/10"
+                style={{ backgroundColor: c.hex }}
+              />
+            ) : (
+              <span className={cn("size-2 rounded-full mr-1.5 shrink-0 shadow-2xs", getColorDot(c.name))} />
+            )}
+            <span>+{c.name}</span>
           </Button>
         ))}
       </div>
@@ -1220,6 +1340,17 @@ function Precificacao() {
     };
     window.addEventListener(PRICING_SETTINGS_EVENT, handler);
     return () => window.removeEventListener(PRICING_SETTINGS_EVENT, handler);
+  }, [storeId]);
+
+  // ── Cores e Tamanhos da Loja (Configuradas em /configuracoes?tab=catalogo) ──
+  const [customOptions, setCustomOptions] = useState(() => getCustomOptions(storeId));
+
+  useEffect(() => {
+    const handler = () => {
+      setCustomOptions(getCustomOptions(storeId));
+    };
+    window.addEventListener("custom-options-changed", handler);
+    return () => window.removeEventListener("custom-options-changed", handler);
   }, [storeId]);
 
   // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
@@ -4741,7 +4872,7 @@ function Precificacao() {
                           </Button>
 
                           {showColorInput && (
-                            <div className="absolute left-0 top-9 z-20 w-64 rounded-2xl border border-border bg-popover p-3 shadow-lift space-y-2.5">
+                            <div className="absolute left-0 top-9 z-20 w-72 rounded-2xl border border-border bg-popover p-3 shadow-lift space-y-2.5">
                               <div className="flex items-center gap-1.5 border-b border-border/60 pb-2">
                                 <Search className="size-3.5 text-muted-foreground" />
                                 <input
@@ -4771,8 +4902,51 @@ function Precificacao() {
                                 )}
                               </div>
 
+                              {/* Cores Personalizadas da Loja */}
+                              {customOptions.customColors.length > 0 && (
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Cores da sua Loja</p>
+                                    <Link
+                                      to="/configuracoes"
+                                      search={{ tab: "catalogo" }}
+                                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
+                                    >
+                                      <span>Gerenciar</span>
+                                      <ArrowUpRight className="size-2.5" />
+                                    </Link>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
+                                    {customOptions.customColors
+                                      .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
+                                      .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
+                                      .map((c) => (
+                                        <button
+                                          key={c.value}
+                                          type="button"
+                                          onClick={() => {
+                                            addColorToGrade(c.label);
+                                            setColorSearchQuery("");
+                                            setShowColorInput(false);
+                                          }}
+                                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/20 hover:bg-primary/20 text-foreground transition-colors cursor-pointer"
+                                        >
+                                          <span
+                                            className="size-2 rounded-full border border-black/10 shrink-0"
+                                            style={{ backgroundColor: c.hex }}
+                                          />
+                                          <span>{c.label}</span>
+                                        </button>
+                                      ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Paleta Padrão da Coleção */}
                               <div className="space-y-1">
-                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Paleta da Coleção</p>
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                  {customOptions.customColors.length > 0 ? "Padrões de Fábrica" : "Paleta da Coleção"}
+                                </p>
                                 <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
                                   {["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
                                     .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
@@ -4809,43 +4983,85 @@ function Precificacao() {
                                   Adicionar "{colorSearchQuery.trim()}"
                                 </Button>
                               )}
+
+                              <div className="pt-1 border-t border-border/50 flex justify-between items-center text-[10px] text-muted-foreground">
+                                <span>Cadastrar mais cores?</span>
+                                <Link
+                                  to="/configuracoes"
+                                  search={{ tab: "catalogo" }}
+                                  className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  <span>Catálogo da loja</span>
+                                  <ArrowUpRight className="size-2.5" />
+                                </Link>
+                              </div>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Atalhos rápidos de 1 clique para cores populares */}
+                      {/* Atalhos rápidos de 1 clique para cores populares (priorizando cores da loja) */}
                       {activeColors.length < 3 && (
                         <div className="flex items-center gap-1 pt-0.5">
                           <span className="text-[10px] text-muted-foreground mr-1 select-none">Rápido:</span>
-                          {["Preto", "Off-White", "Areia", "Terracota"]
-                            .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
-                            .slice(0, 3)
-                            .map((c) => (
+                          {(() => {
+                            const storeCandidates = customOptions.customColors
+                              .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
+                              .map((c) => ({ name: c.label, hex: c.hex, isStore: true }));
+                            const factoryCandidates = ["Preto", "Off-White", "Areia", "Terracota"]
+                              .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                              .map((c) => ({ name: c, hex: undefined as string | undefined, isStore: false }));
+                            const combined = [...storeCandidates, ...factoryCandidates].slice(0, 3);
+
+                            return combined.map((item) => (
                               <button
-                                key={c}
+                                key={item.name}
                                 type="button"
-                                onClick={() => addColorToGrade(c)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border border-border/60 bg-secondary/30 hover:bg-secondary text-foreground hover:border-primary/40 transition-all cursor-pointer"
+                                onClick={() => addColorToGrade(item.name)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-all cursor-pointer",
+                                  item.isStore
+                                    ? "border-primary/30 bg-primary/10 hover:bg-primary/20 text-foreground"
+                                    : "border-border/60 bg-secondary/30 hover:bg-secondary text-foreground hover:border-primary/40"
+                                )}
                               >
-                                <span className={cn("size-1.5 rounded-full", getColorDot(c))} />
-                                <span>+{c}</span>
+                                <span
+                                  className={cn("size-1.5 rounded-full shrink-0", !item.hex && getColorDot(item.name))}
+                                  style={item.hex ? { backgroundColor: item.hex } : undefined}
+                                />
+                                <span>+{item.name}</span>
                               </button>
-                            ))}
+                            ));
+                          })()}
                         </div>
                       )}
                     </div>
 
                     {/* Grade de tamanhos */}
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Grade de tamanhos
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Grade de tamanhos
+                        </Label>
+                        <Link
+                          to="/configuracoes"
+                          search={{ tab: "catalogo" }}
+                          className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
+                          title="Personalizar tamanhos da loja em Configurações"
+                        >
+                          <span>Personalizar</span>
+                          <ArrowUpRight className="size-2.5" />
+                        </Link>
+                      </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Select
                           value={sizePresetDropdown}
                           onValueChange={(val) => {
                             setSizePresetDropdown(val);
+                            if (val === "loja" && customOptions.customSizes.length > 0) {
+                              applySizePreset(customOptions.customSizes.map((s) => s.label));
+                              return;
+                            }
                             const PRESETS_MAP: Record<string, string[]> = {
                               padrao: ["P", "M", "G", "GG"],
                               alfaiataria: ["36", "38", "40", "42", "44", "46"],
@@ -4859,10 +5075,15 @@ function Precificacao() {
                             }
                           }}
                         >
-                          <SelectTrigger className="h-8 w-44 rounded-xl text-xs font-semibold bg-background border-border shadow-2xs">
+                          <SelectTrigger className="h-8 w-48 rounded-xl text-xs font-semibold bg-background border-border shadow-2xs">
                             <SelectValue placeholder="Escolha a grade..." />
                           </SelectTrigger>
                           <SelectContent>
+                            {customOptions.customSizes.length > 0 && (
+                              <SelectItem value="loja" className="text-xs font-bold text-primary">
+                                ✨ Loja ({customOptions.customSizes.map((s) => s.label).join(", ")})
+                              </SelectItem>
+                            )}
                             <SelectItem value="padrao" className="text-xs">P ao GG</SelectItem>
                             <SelectItem value="alfaiataria" className="text-xs">Alfaiataria (36 a 46)</SelectItem>
                             <SelectItem value="plus" className="text-xs">Plus Size (GG a G3)</SelectItem>
@@ -5419,6 +5640,7 @@ function Precificacao() {
                 {variants.length === 0 ? (
                   <EmptyStateGradeColorPicker
                     activeColors={activeColors}
+                    storeCustomColors={customOptions.customColors}
                     onAddColor={addColorToGrade}
                     onAddMultipleColors={(colors) => {
                       let added = 0;

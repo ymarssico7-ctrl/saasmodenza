@@ -14,16 +14,33 @@ export type CustomOption = {
   rate?: number;
 };
 
+export type CustomColorOption = {
+  value: string;
+  label: string;
+  hex?: string | undefined;
+  custom: true;
+};
+
+export type CustomSizeOption = {
+  value: string;
+  label: string;
+  custom: true;
+};
+
 type CustomOptionsStore = {
   entryCategories: CustomOption[];
   exitCategories: CustomOption[];
   paymentMethods: CustomOption[];
+  customColors: CustomColorOption[];
+  customSizes: CustomSizeOption[];
 };
 
 const DEFAULT: CustomOptionsStore = {
   entryCategories: [],
   exitCategories: [],
   paymentMethods: [],
+  customColors: [],
+  customSizes: [],
 };
 
 function key(storeId: string) {
@@ -46,7 +63,16 @@ export function getCustomOptions(storeId: string): CustomOptionsStore {
       localStorage.getItem(legacyKey(storeId)) ||
       localStorage.getItem(ancestralKey(storeId));
     if (!raw) return DEFAULT;
-    return { ...DEFAULT, ...JSON.parse(raw) } as CustomOptionsStore;
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT,
+      ...parsed,
+      entryCategories: parsed.entryCategories ?? [],
+      exitCategories: parsed.exitCategories ?? [],
+      paymentMethods: parsed.paymentMethods ?? [],
+      customColors: parsed.customColors ?? [],
+      customSizes: parsed.customSizes ?? [],
+    } as CustomOptionsStore;
   } catch {
     return DEFAULT;
   }
@@ -112,7 +138,7 @@ export function updateCustomOption(
   newRate?: number,
 ) {
   const opts = getCustomOptions(storeId);
-  opts[kind] = opts[kind].map((o) => {
+  opts[kind] = (opts[kind] as any[]).map((o) => {
     if (o.value !== value) return o;
     const updated = { ...o, label: newLabel.trim() };
     if (newRate !== undefined) updated.rate = newRate;
@@ -120,4 +146,76 @@ export function updateCustomOption(
   });
   saveCustomOptions(storeId, opts);
 }
+
+export function addCustomColor(storeId: string, label: string, hex?: string): CustomColorOption {
+  const opts = getCustomOptions(storeId);
+  const value = `custom_color_${Date.now()}`;
+  const option: CustomColorOption = {
+    value,
+    label: label.trim(),
+    ...(hex?.trim() ? { hex: hex.trim() } : {}),
+    custom: true,
+  };
+  opts.customColors = [...opts.customColors, option];
+  saveCustomOptions(storeId, opts);
+  return option;
+}
+
+export function addCustomSize(storeId: string, label: string): CustomSizeOption {
+  const opts = getCustomOptions(storeId);
+  const value = `custom_size_${Date.now()}`;
+  const option: CustomSizeOption = {
+    value,
+    label: label.trim().toUpperCase(),
+    custom: true,
+  };
+  opts.customSizes = [...opts.customSizes, option];
+  saveCustomOptions(storeId, opts);
+  return option;
+}
+
+export function removeCustomColor(storeId: string, value: string) {
+  const opts = getCustomOptions(storeId);
+  opts.customColors = opts.customColors.filter((o) => o.value !== value);
+  saveCustomOptions(storeId, opts);
+}
+
+export function removeCustomSize(storeId: string, value: string) {
+  const opts = getCustomOptions(storeId);
+  opts.customSizes = opts.customSizes.filter((o) => o.value !== value);
+  saveCustomOptions(storeId, opts);
+}
+
+export function updateCustomColor(
+  storeId: string,
+  value: string,
+  newLabel: string,
+  newHex?: string,
+) {
+  const opts = getCustomOptions(storeId);
+  opts.customColors = opts.customColors.map((o) => {
+    if (o.value !== value) return o;
+    const updated: CustomColorOption = { ...o, label: newLabel.trim() };
+    if (newHex !== undefined) {
+      if (newHex.trim()) updated.hex = newHex.trim();
+      else delete updated.hex;
+    }
+    return updated;
+  });
+  saveCustomOptions(storeId, opts);
+}
+
+export function updateCustomSize(
+  storeId: string,
+  value: string,
+  newLabel: string,
+) {
+  const opts = getCustomOptions(storeId);
+  opts.customSizes = opts.customSizes.map((o) => {
+    if (o.value !== value) return o;
+    return { ...o, label: newLabel.trim().toUpperCase() };
+  });
+  saveCustomOptions(storeId, opts);
+}
+
 export type { CustomOptionsStore };

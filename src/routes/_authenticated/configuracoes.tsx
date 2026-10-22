@@ -13,6 +13,7 @@ import {
   Globe,
   HandCoins,
   LogOut,
+  Palette,
   Pencil,
   Percent,
   Plus,
@@ -76,7 +77,15 @@ import {
   addCustomPaymentMethod,
   removeCustomOption,
   updateCustomOption,
+  addCustomColor,
+  addCustomSize,
+  removeCustomColor,
+  removeCustomSize,
+  updateCustomColor,
+  updateCustomSize,
   type CustomOptionsStore,
+  type CustomColorOption,
+  type CustomSizeOption,
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
 import { insertMember, deleteMember } from "@/lib/mutations";
@@ -89,7 +98,7 @@ import {
 } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 
-type ConfiguracoesTab = "geral" | "canais" | "caixa" | "precificacao" | "equipe" | "plano";
+type ConfiguracoesTab = "geral" | "catalogo" | "canais" | "caixa" | "precificacao" | "equipe" | "plano";
 
 type ConfiguracoesSearch = {
   tab?: ConfiguracoesTab;
@@ -97,7 +106,7 @@ type ConfiguracoesSearch = {
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   validateSearch: (search: Record<string, unknown>): ConfiguracoesSearch => {
-    const validTabs: ConfiguracoesTab[] = ["geral", "canais", "caixa", "precificacao", "equipe", "plano"];
+    const validTabs: ConfiguracoesTab[] = ["geral", "catalogo", "canais", "caixa", "precificacao", "equipe", "plano"];
     const tab =
       typeof search["tab"] === "string" && validTabs.includes(search["tab"] as ConfiguracoesTab)
         ? (search["tab"] as ConfiguracoesTab)
@@ -327,6 +336,10 @@ function Configuracoes() {
       title: "Geral",
       description: "Informações oficiais da empresa, regime fiscal e dados da sua boutique.",
     },
+    catalogo: {
+      title: "Cores & Tamanhos da Grade",
+      description: "Personalize a paleta de cores e a grade de tamanhos da sua boutique para precificação e estoque.",
+    },
     canais: {
       title: "Canais de Venda",
       description: "Defina como você atende suas clientes (Balcão Físico vs Vitrine Digital).",
@@ -356,6 +369,7 @@ function Configuracoes() {
         <div className="inline-flex gap-1.5 p-1 rounded-2xl bg-surface-muted border border-border/60">
           {[
             { tab: "geral", label: "Geral" },
+            { tab: "catalogo", label: "Cores & Tamanhos" },
             { tab: "canais", label: "Canais" },
             { tab: "caixa", label: "Caixa" },
             { tab: "precificacao", label: "Precificação" },
@@ -482,6 +496,13 @@ function Configuracoes() {
               {saveProfile.isPending ? "Salvando alterações..." : "Salvar alterações"}
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* ════ ABA: Catálogo (Cores & Tamanhos da Grade) ══════════════════════ */}
+      {activeTab === "catalogo" && (
+        <div className="space-y-6">
+          <CoresETamanhosSection storeId={storeId} />
         </div>
       )}
 
@@ -1119,6 +1140,531 @@ function CashFlowCategoriesSection({ storeId }: { storeId: string }) {
           );
         })}
       </div>
+    </section>
+  );
+}
+
+// ── Card de Cores & Tamanhos Personalizados do Catálogo ─────────────────────
+const FACTORY_COLORS_PREVIEW = [
+  { name: "Off-White", hex: "#F8F6F0" },
+  { name: "Preto", hex: "#1A1A1A" },
+  { name: "Areia", hex: "#D8C7B5" },
+  { name: "Nude", hex: "#E3BC9A" },
+  { name: "Terracota", hex: "#C86D51" },
+  { name: "Caramelo", hex: "#A86538" },
+  { name: "Verde Oliva", hex: "#556B2F" },
+  { name: "Azul Marinho", hex: "#1B2A4A" },
+  { name: "Rosa Seco", hex: "#D4A5A5" },
+  { name: "Vinho", hex: "#722F37" },
+  { name: "Cinza Mescla", hex: "#9E9E9E" },
+  { name: "Mostarda", hex: "#D4AF37" },
+  { name: "Lilás", hex: "#C8A2C8" },
+];
+
+const FACTORY_SIZES_PREVIEW = [
+  "PP", "P", "M", "G", "GG", "G1", "G2", "G3",
+  "34", "36", "38", "40", "42", "44", "46", "48", "50", "Único",
+];
+
+function ColorPreviewBadge({ hex }: { hex?: string | undefined }) {
+  return (
+    <span
+      className="size-3.5 rounded-full border border-black/10 dark:border-white/20 shrink-0 shadow-2xs"
+      style={{ backgroundColor: hex || "#888888" }}
+    />
+  );
+}
+
+function CoresETamanhosSection({ storeId }: { storeId: string }) {
+  const [tab, setTab] = useState<"cores" | "tamanhos">("cores");
+  const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editHex, setEditHex] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const [newHex, setNewHex] = useState("#C86D51");
+  const [showHexPicker, setShowHexPicker] = useState(false);
+
+  const refresh = useCallback(() => {
+    setCustomOpts(getCustomOptions(storeId));
+  }, [storeId]);
+
+  useEffect(() => {
+    window.addEventListener("custom-options-changed", refresh);
+    return () => window.removeEventListener("custom-options-changed", refresh);
+  }, [refresh]);
+
+  const handleStartEdit = (value: string, label: string, hex?: string) => {
+    setEditingValue(value);
+    setEditLabel(label);
+    setEditHex(hex || "");
+  };
+
+  const handleSaveColorEdit = (value: string) => {
+    const trimmed = editLabel.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    const jaExiste =
+      FACTORY_COLORS_PREVIEW.some((b) => b.name.toLowerCase() === lower) ||
+      customOpts.customColors.some((c) => c.value !== value && c.label.toLowerCase() === lower);
+
+    if (jaExiste) {
+      toast.error("Já existe uma cor com este nome.", {
+        description: `"${trimmed}" já está cadastrada na lista.`,
+      });
+      return;
+    }
+
+    updateCustomColor(storeId, value, trimmed, editHex);
+    setEditingValue(null);
+    setEditLabel("");
+    setEditHex("");
+    toast.success("Cor atualizada com sucesso!");
+  };
+
+  const handleSaveSizeEdit = (value: string) => {
+    const trimmed = editLabel.trim().toUpperCase();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    const jaExiste =
+      FACTORY_SIZES_PREVIEW.some((b) => b.toLowerCase() === lower) ||
+      customOpts.customSizes.some((c) => c.value !== value && c.label.toLowerCase() === lower);
+
+    if (jaExiste) {
+      toast.error("Já existe um tamanho com este nome.", {
+        description: `"${trimmed}" já está cadastrado na lista.`,
+      });
+      return;
+    }
+
+    updateCustomSize(storeId, value, trimmed);
+    setEditingValue(null);
+    setEditLabel("");
+    toast.success("Tamanho atualizado com sucesso!");
+  };
+
+  const handleDeleteColor = (value: string) => {
+    removeCustomColor(storeId, value);
+    toast.success("Cor removida do catálogo.");
+  };
+
+  const handleDeleteSize = (value: string) => {
+    removeCustomSize(storeId, value);
+    toast.success("Tamanho removido do catálogo.");
+  };
+
+  const handleAddColor = () => {
+    const trimmed = newLabel.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    const jaExiste =
+      FACTORY_COLORS_PREVIEW.some((b) => b.name.toLowerCase() === lower) ||
+      customOpts.customColors.some((c) => c.label.toLowerCase() === lower);
+
+    if (jaExiste) {
+      toast.error("Esta cor já existe.", {
+        description: `"${trimmed}" já está cadastrada no catálogo.`,
+      });
+      return;
+    }
+
+    addCustomColor(storeId, trimmed, showHexPicker ? newHex : undefined);
+    setNewLabel("");
+    setShowHexPicker(false);
+    toast.success("Nova cor adicionada ao catálogo! 🎨");
+  };
+
+  const handleAddSize = () => {
+    const trimmed = newLabel.trim().toUpperCase();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    const jaExiste =
+      FACTORY_SIZES_PREVIEW.some((b) => b.toLowerCase() === lower) ||
+      customOpts.customSizes.some((c) => c.label.toLowerCase() === lower);
+
+    if (jaExiste) {
+      toast.error("Este tamanho já existe.", {
+        description: `"${trimmed}" já está cadastrado na lista.`,
+      });
+      return;
+    }
+
+    addCustomSize(storeId, trimmed);
+    setNewLabel("");
+    toast.success("Novo tamanho adicionado ao catálogo! 📐");
+  };
+
+  return (
+    <section id="cores-tamanhos-catalogo" className="panel p-6 sm:p-7 space-y-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border/60">
+        <div>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <Palette className="size-4.5 text-primary" />
+            Cores & Tamanhos da Grade
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+            Personalize as opções da sua boutique. As cores e tamanhos adicionados aqui aparecem automaticamente na Precificação de Grade e no Cadastro de Peças do Estoque.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Sub-Abas Segmentadas ── */}
+      <div className="flex rounded-xl bg-surface-muted/70 border border-border/60 p-1 gap-1 max-w-sm">
+        <button
+          type="button"
+          onClick={() => {
+            setTab("cores");
+            setEditingValue(null);
+            setNewLabel("");
+          }}
+          className={cn(
+            "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+            tab === "cores"
+              ? "bg-card text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <span>🎨 Cores da Loja</span>
+          {customOpts.customColors.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
+              {customOpts.customColors.length}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTab("tamanhos");
+            setEditingValue(null);
+            setNewLabel("");
+          }}
+          className={cn(
+            "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+            tab === "tamanhos"
+              ? "bg-card text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <span>📐 Tamanhos</span>
+          {customOpts.customSizes.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold">
+              {customOpts.customSizes.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ── Conteúdo da Aba Cores ── */}
+      {tab === "cores" && (
+        <div className="space-y-6">
+          {/* Formulário de Adicionar Cor */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Adicionar Nova Cor à Loja
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-2.5 max-w-xl">
+              <div className="flex-1 relative">
+                <Input
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  placeholder="Nome da cor... Ex: Verde Menta Bordado, Rosa Antigo"
+                  className="h-10 rounded-xl text-xs bg-card border-border"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddColor();
+                  }}
+                />
+              </div>
+
+              {/* Seletor de Hex opcional */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 h-10 px-3 rounded-xl border border-border bg-card shadow-2xs">
+                  <input
+                    type="color"
+                    value={newHex}
+                    onChange={(e) => {
+                      setNewHex(e.target.value);
+                      setShowHexPicker(true);
+                    }}
+                    className="size-5 rounded-full cursor-pointer border-0 p-0 bg-transparent"
+                    title="Escolha a tonalidade da cor"
+                  />
+                  <span className="text-[11px] font-mono text-muted-foreground select-none uppercase">
+                    {showHexPicker ? newHex : "Tom"}
+                  </span>
+                </div>
+
+                <Button
+                  size="sm"
+                  className="h-10 rounded-xl px-4 text-xs font-semibold shrink-0 cursor-pointer gradient-primary text-primary-foreground shadow-glow"
+                  disabled={!newLabel.trim()}
+                  onClick={handleAddColor}
+                >
+                  <Plus className="size-3.5 mr-1" /> Adicionar Cor
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Cores Personalizadas da Loja */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-primary" />
+                Cores Personalizadas da sua Loja ({customOpts.customColors.length})
+              </h3>
+            </div>
+
+            {customOpts.customColors.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/70 bg-surface-muted/30 p-5 text-center space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">Nenhuma cor personalizada cadastrada ainda</p>
+                <p className="text-[11px] text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  Adicione as tonalidades exclusivas da sua marca acima. Elas aparecerão com destaque na precificação de grade e na criação de estoque.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl">
+                {customOpts.customColors.map((item) => {
+                  const isEditing = editingValue === item.value;
+                  return (
+                    <div
+                      key={item.value}
+                      className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-2.5 px-3 text-xs shadow-2xs transition-all hover:border-primary/50"
+                    >
+                      {isEditing ? (
+                        <div className="flex flex-1 items-center gap-1.5">
+                          <input
+                            type="color"
+                            value={editHex || "#C86D51"}
+                            onChange={(e) => setEditHex(e.target.value)}
+                            className="size-5 rounded-full cursor-pointer border-0 p-0 bg-transparent shrink-0"
+                          />
+                          <Input
+                            autoFocus
+                            value={editLabel}
+                            onChange={(e) => setEditLabel(e.target.value)}
+                            className="h-8 rounded-lg text-xs bg-card flex-1"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveColorEdit(item.value);
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-lg px-2.5 text-xs cursor-pointer"
+                            onClick={() => handleSaveColorEdit(item.value)}
+                          >
+                            Salvar
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ColorPreviewBadge hex={item.hex} />
+                            <span className="font-semibold text-foreground truncate">{item.label}</span>
+                            {item.hex && (
+                              <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                                {item.hex}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                              onClick={() => handleStartEdit(item.value, item.label, item.hex)}
+                              aria-label={`Editar cor ${item.label}`}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-lg text-destructive hover:bg-destructive/10 cursor-pointer"
+                              onClick={() => handleDeleteColor(item.value)}
+                              aria-label={`Excluir cor ${item.label}`}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Paleta Padrão de Fábrica */}
+          <div className="space-y-3 pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Paleta Padrão do Sistema ({FACTORY_COLORS_PREVIEW.length} referências)
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Cores universais disponíveis automaticamente em todas as peças para agilidade.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 max-w-4xl">
+              {FACTORY_COLORS_PREVIEW.map((item) => (
+                <div
+                  key={item.name}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs shadow-2xs"
+                >
+                  <ColorPreviewBadge hex={item.hex} />
+                  <span className="font-medium text-foreground">{item.name}</span>
+                  <Badge variant="outline" className="rounded-full text-[9px] text-muted-foreground border-border/60 px-1 py-0 select-none">
+                    Padrão
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Conteúdo da Aba Tamanhos ── */}
+      {tab === "tamanhos" && (
+        <div className="space-y-6">
+          {/* Formulário de Adicionar Tamanho */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Adicionar Novo Tamanho à Loja
+            </h3>
+            <div className="flex gap-2 max-w-md">
+              <Input
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Ex: 52, 54, Plus Size, 0 a 3 meses..."
+                className="h-10 rounded-xl text-xs bg-card border-border"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddSize();
+                }}
+              />
+              <Button
+                size="sm"
+                className="h-10 rounded-xl px-4 text-xs font-semibold shrink-0 cursor-pointer gradient-primary text-primary-foreground shadow-glow"
+                disabled={!newLabel.trim()}
+                onClick={handleAddSize}
+              >
+                <Plus className="size-3.5 mr-1" /> Adicionar Tamanho
+              </Button>
+            </div>
+          </div>
+
+          {/* Tamanhos Personalizados da Loja */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-primary" />
+                Tamanhos Personalizados da sua Loja ({customOpts.customSizes.length})
+              </h3>
+            </div>
+
+            {customOpts.customSizes.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/70 bg-surface-muted/30 p-5 text-center space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">Nenhum tamanho personalizado cadastrado ainda</p>
+                <p className="text-[11px] text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  Adicione numerações especiais, grades infantis ou plus size da sua boutique.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-w-3xl">
+                {customOpts.customSizes.map((item) => {
+                  const isEditing = editingValue === item.value;
+                  return (
+                    <div
+                      key={item.value}
+                      className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-2.5 px-3 text-xs shadow-2xs transition-all hover:border-primary/50"
+                    >
+                      {isEditing ? (
+                        <div className="flex flex-1 items-center gap-2">
+                          <Input
+                            autoFocus
+                            value={editLabel}
+                            onChange={(e) => setEditLabel(e.target.value)}
+                            className="h-8 rounded-lg text-xs bg-card flex-1 font-bold"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveSizeEdit(item.value);
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-lg px-2.5 text-xs cursor-pointer"
+                            onClick={() => handleSaveSizeEdit(item.value)}
+                          >
+                            Salvar
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className="flex size-6 items-center justify-center rounded-lg bg-primary/10 text-primary text-[11px] font-bold">
+                              {item.label}
+                            </span>
+                            <span className="font-semibold text-foreground">{item.label}</span>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                              onClick={() => handleStartEdit(item.value, item.label)}
+                              aria-label={`Editar tamanho ${item.label}`}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-lg text-destructive hover:bg-destructive/10 cursor-pointer"
+                              onClick={() => handleDeleteSize(item.value)}
+                              aria-label={`Excluir tamanho ${item.label}`}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Grade Padrão de Fábrica */}
+          <div className="space-y-3 pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Grade Padrão do Sistema ({FACTORY_SIZES_PREVIEW.length} tamanhos)
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Tamanhos padrão de vestuário prontos para uso em qualquer produto.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 max-w-4xl">
+              {FACTORY_SIZES_PREVIEW.map((item) => (
+                <div
+                  key={item}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-card px-2.5 py-1 text-xs shadow-2xs font-semibold text-foreground"
+                >
+                  <span>{item}</span>
+                  <Badge variant="outline" className="rounded-full text-[9px] text-muted-foreground border-border/60 px-1 py-0 select-none">
+                    Padrão
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
