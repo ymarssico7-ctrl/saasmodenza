@@ -1857,7 +1857,7 @@ function Precificacao() {
         totalInvestment: 0,
         totalProfit: 0,
         marginHealth: getMarginHealth(projMargin),
-        hasMultiple: variants.length > 1,
+        hasMultiple: false,
       };
     }
 
@@ -1887,9 +1887,39 @@ function Precificacao() {
       totalInvestment: totalInv,
       totalProfit: totalProf,
       marginHealth: getMarginHealth(avgMarg),
-      hasMultiple: minP !== maxP,
+      hasMultiple: valid.length > 1 && Math.abs(minP - maxP) > 0.05,
     };
   }, [mode, singleResult, variantResults, variants.length, baseWholesaleGrade, wholesale, freight, packaging, other, freightMode, packagingMode, otherMode, tax, cardRate, matrixGlobalMode, matrixGlobalMarginStr, matrixGlobalMarkupStr, matrixGlobalDirectPrice]);
+
+  // ── Detecção Adaptativa de Faixas de Custo Real ───────────────────
+  const variantRealCosts = useMemo(() => {
+    const baseShared =
+      resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
+      resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
+      resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const baseTotalCost = toNumber(baseWholesaleGrade) + baseShared;
+
+    if (mode !== "grade" || variantResults.length === 0) {
+      return { minCost: baseTotalCost, maxCost: baseTotalCost, hasMultipleCosts: false, baseShared };
+    }
+
+    const validCosts = variantResults
+      .map((v) => v.realCost)
+      .filter((c) => c > 0);
+
+    if (validCosts.length <= 1) {
+      return { minCost: baseTotalCost, maxCost: baseTotalCost, hasMultipleCosts: false, baseShared };
+    }
+
+    const minC = Math.min(...validCosts);
+    const maxC = Math.max(...validCosts);
+    return {
+      minCost: minC,
+      maxCost: maxC,
+      hasMultipleCosts: Math.abs(minC - maxC) > 0.05,
+      baseShared,
+    };
+  }, [mode, variantResults, baseWholesaleGrade, freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits]);
 
   // ── Simulador de Meios de Pagamento & Perdas ───────────────────────
   const paymentScenarios = useMemo(() => {
@@ -4889,27 +4919,31 @@ function Precificacao() {
                     </div>
                   </div>
 
-                  {/* Linha 3: Custo Real Unitário em Zona Dedicada */}
+                  {/* Linha 3: Custo Real Unitário Adaptativo em Zona Dedicada */}
                   <div className="pt-2.5 border-t border-border/50">
                     <div className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border/60 px-3.5 py-2.5 gap-4">
                       <div className="space-y-0.5 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                            Custo real / peça
+                            {variantRealCosts.hasMultipleCosts ? "Custo real (faixa da grade)" : "Custo real / peça"}
                           </span>
                           <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10">
-                            {actualLotUnits > 0 ? `${actualLotUnits} un.` : "unitário base"}
+                            {variantRealCosts.hasMultipleCosts
+                              ? "custos variam"
+                              : actualLotUnits > 0
+                              ? `${actualLotUnits} un.`
+                              : "unitário base"}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {actualLotUnits > 0 ? (
+                          {variantRealCosts.hasMultipleCosts ? (
+                            <>
+                              Custo de fábrica varia na grade · Rateio de extras <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span>/un
+                            </>
+                          ) : actualLotUnits > 0 ? (
                             <>
                               <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra +{" "}
-                              <span className="font-semibold text-foreground/80">{brl(
-                                resolvePerUnit(freight, freightMode, actualLotUnits) +
-                                resolvePerUnit(packaging, packagingMode, actualLotUnits) +
-                                resolvePerUnit(other, otherMode, actualLotUnits)
-                              )}</span> rateio por peça
+                              <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span> rateio por peça
                             </>
                           ) : (
                             <>
@@ -4920,13 +4954,13 @@ function Precificacao() {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <p className="text-xl sm:text-2xl font-black text-foreground numeric tracking-tight">
-                          {brl(
-                            toNumber(baseWholesaleGrade) +
-                            resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                            resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                            resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1)
-                          )}
+                        <p className={cn(
+                          "font-black text-foreground numeric tracking-tight",
+                          variantRealCosts.hasMultipleCosts ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
+                        )}>
+                          {variantRealCosts.hasMultipleCosts
+                            ? `${brl(variantRealCosts.minCost)} ~ ${brl(variantRealCosts.maxCost)}`
+                            : brl(variantRealCosts.minCost)}
                         </p>
                       </div>
                     </div>
@@ -4936,41 +4970,76 @@ function Precificacao() {
 
               {/* ── CARD RESUMO & CTA DO TOPO (DESKTOP) ── */}
               <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3">
-                {/* 1. Preço sugerido por peça e métricas de margem */}
+                {/* 1. Preço sugerido por peça e métricas de margem (Adaptativo para Faixas) */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                      Preço sugerido / peça
+                      {summaryPrices.hasMultiple ? "Preço sugerido (faixa da grade)" : "Preço sugerido / peça"}
                     </p>
-                    {actualLotUnits > 0 && (
-                      <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 numeric">
-                        lote {actualLotUnits} un.
-                      </span>
+                    <div className="flex items-center gap-1.5">
+                      {summaryPrices.hasMultiple && (
+                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                          Preços variam ⚡
+                        </span>
+                      )}
+                      {actualLotUnits > 0 && (
+                        <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 numeric">
+                          lote {actualLotUnits} un.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className={cn(
+                    "font-black text-foreground numeric tracking-tight",
+                    summaryPrices.hasMultiple
+                      ? "text-2xl sm:text-3xl"
+                      : "text-3xl sm:text-4xl"
+                  )}>
+                    {summaryPrices.hasMultiple
+                      ? `${brl(summaryPrices.minSuggested)} ~ ${brl(summaryPrices.maxSuggested)}`
+                      : brl(summaryPrices.avgSuggested)}
+                  </p>
+
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      {summaryPrices.avgSuggested > 0 ? (
+                        summaryPrices.hasMultiple ? (
+                          <>
+                            Média ponderada <span className="font-semibold text-foreground/80 numeric">{brl(summaryPrices.avgSuggested)}</span>
+                            {" · "}Margem média <span className="font-semibold text-foreground/80 numeric">{summaryPrices.avgMargin.toFixed(0)}%</span>
+                          </>
+                        ) : (
+                          <>
+                            Margem estimada <span className="font-semibold text-foreground/80 numeric">{summaryPrices.avgMargin.toFixed(0)}%</span>
+                            {" · "}Lucro unitário{" "}
+                            <span className={cn(
+                              "font-bold numeric",
+                              summaryPrices.avgProfit > 0
+                                ? "text-success"
+                                : summaryPrices.avgProfit < 0
+                                ? "text-destructive"
+                                : "text-foreground"
+                            )}>
+                              {summaryPrices.avgProfit > 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
+                            </span>
+                          </>
+                        )
+                      ) : (
+                        <span>Preencha o atacado e a grade para calcular</span>
+                      )}
+                    </p>
+
+                    {summaryPrices.hasMultiple && (
+                      <a
+                        href="#secao-matriz-precificacao"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline pt-0.5"
+                      >
+                        <span>Preços individuais por tamanho e cor na planilha abaixo</span>
+                        <ChevronDown className="size-3" />
+                      </a>
                     )}
                   </div>
-                  <p className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
-                    {brl(summaryPrices.avgSuggested)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {summaryPrices.avgSuggested > 0 ? (
-                      <>
-                        Margem estimada <span className="font-semibold text-foreground/80 numeric">{summaryPrices.avgMargin.toFixed(0)}%</span>
-                        {" · "}Lucro unitário{" "}
-                        <span className={cn(
-                          "font-bold numeric",
-                          summaryPrices.avgProfit > 0
-                            ? "text-success"
-                            : summaryPrices.avgProfit < 0
-                            ? "text-destructive"
-                            : "text-foreground"
-                        )}>
-                          {summaryPrices.avgProfit > 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
-                        </span>
-                      </>
-                    ) : (
-                      <span>Preencha o atacado e a grade para calcular</span>
-                    )}
-                  </p>
                 </div>
 
                 {/* 2. Ilha Suave Integrada: Métricas do Lote (Padrão Apple Card) */}
