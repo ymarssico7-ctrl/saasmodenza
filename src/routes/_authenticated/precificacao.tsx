@@ -4944,94 +4944,103 @@ function Precificacao() {
               </div>
 
               {/* ── CARD RESUMO & CTA DO TOPO (DESKTOP) ── */}
-              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3">
-                {/* 1. Preço sugerido por peça */}
-                <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-2.5">
-                  <div className="space-y-0.5 min-w-0">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Preço sugerido / peça</p>
-                    <div className="flex items-baseline gap-2">
-                      <p className="text-2xl sm:text-3xl font-black text-foreground numeric tracking-tight">
-                        {brl(summaryPrices.avgSuggested)}
-                      </p>
-                      {actualLotUnits > 0 && (
-                        <span className="text-[11px] font-bold text-primary numeric">
-                          (lote {actualLotUnits} un.)
-                        </span>
-                      )}
-                    </div>
+              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3.5">
+                {/* 1. Preço sugerido por peça e detalhamento */}
+                <div className="space-y-1 border-b border-border/60 pb-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground">Preço sugerido por peça</p>
+                    {actualLotUnits > 0 && (
+                      <span className="text-[11px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 numeric">
+                        lote {actualLotUnits} un.
+                      </span>
+                    )}
                   </div>
-                  <div className="text-right text-[11px] text-muted-foreground shrink-0 pt-0.5 space-y-0.5">
-                    <p>Custo: <strong className="text-foreground numeric">{brl(summaryPrices.avgCost)}</strong></p>
-                    <p>Lucro: <strong className={cn("numeric", summaryPrices.avgProfit >= 0 ? "text-success" : "text-destructive")}>
+                  <p className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
+                    {brl(summaryPrices.avgSuggested)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Custo real <span className="font-semibold text-foreground/80 numeric">{brl(summaryPrices.avgCost)}</span>
+                    {" · "}lucro{" "}
+                    <span className={cn("font-bold numeric", summaryPrices.avgProfit >= 0 ? "text-success" : "text-destructive")}>
                       {summaryPrices.avgProfit >= 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
-                    </strong></p>
-                  </div>
+                    </span>
+                  </p>
                 </div>
 
-                {/* 2. Grid de 4 Métricas Financeiras Compactas */}
-                <div className="grid grid-cols-4 gap-2 text-center py-0.5">
-                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Investimento</p>
-                    <p className="text-xs font-black numeric text-foreground mt-0.5 truncate">{brl(summaryPrices.totalInvestment)}</p>
+                {/* 2. Grid 2x2 com as 4 Métricas Financeiras (Zero truncamento) */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-0.5">
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Investimento</p>
+                    <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                      {brl(summaryPrices.totalInvestment)}
+                    </p>
                   </div>
-                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Faturamento</p>
-                    <p className="text-xs font-black numeric text-foreground mt-0.5 truncate">{brl(summaryPrices.totalRevenue)}</p>
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Faturamento</p>
+                    <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                      {brl(summaryPrices.totalRevenue)}
+                    </p>
                   </div>
-                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Lucro líq.</p>
-                    <p className={cn("text-xs font-black numeric mt-0.5 truncate", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Lucro líquido</p>
+                    <p className={cn("text-sm sm:text-base font-black numeric mt-0.5", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
                       {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
-                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Peças</p>
-                    <p className="text-xs font-black numeric text-foreground mt-0.5 truncate">{actualLotUnits} un.</p>
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Peças no lote</p>
+                    <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                      {actualLotUnits > 0 ? `${actualLotUnits} un.` : "0 un."}
+                    </p>
                   </div>
                 </div>
 
-                {/* 3. Ações e Entrada no Estoque */}
-                <div className="space-y-2 pt-0.5">
+                {/* 3. Botão Principal & Validação */}
+                <div className="space-y-2">
                   <Button
                     type="button"
                     onClick={openEntryForCurrent}
                     disabled={!canSubmitGrade}
-                    className="w-full h-10 rounded-xl gradient-primary text-primary-foreground text-xs sm:text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
+                    className="w-full h-11 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
                   >
                     <PackagePlus className="size-4 mr-2" />
                     <span>Dar entrada no estoque</span>
                   </Button>
 
-                  <div className="flex items-center justify-between text-[11px] pt-0.5">
+                  <div className="min-h-[1.5rem] flex items-center justify-center text-center text-xs text-muted-foreground">
                     {!canSubmitGrade && validationMsg ? (
-                      <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">
+                      <p className="leading-tight">
                         Falta: <span className="font-semibold text-foreground">{validationMsg}</span>
                       </p>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground font-medium">Pronto para dar entrada</span>
+                      <p className="text-success font-semibold flex items-center justify-center gap-1.5">
+                        <Check className="size-3.5" /> Pronto para dar entrada no estoque
+                      </p>
                     )}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => save.mutate()}
-                        disabled={save.isPending || !name.trim()}
-                        className="h-7 text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-1.5"
-                      >
-                        <Save className="size-3 mr-1" /> Salvar modelo
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={resetPricingModel}
-                        className="h-7 text-[11px] font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-1.5"
-                      >
-                        <RotateCcw className="size-3 mr-1" /> Limpar
-                      </Button>
-                    </div>
                   </div>
+                </div>
+
+                {/* 4. Rodapé com Ações Secundárias */}
+                <div className="border-t border-border/60 pt-2.5 flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => save.mutate()}
+                    disabled={save.isPending || !name.trim()}
+                    className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
+                  >
+                    <Save className="size-3.5 mr-1.5" /> Salvar modelo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetPricingModel}
+                    className="h-8 text-xs font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-2"
+                  >
+                    <RotateCcw className="size-3.5 mr-1.5" /> Limpar
+                  </Button>
                 </div>
               </aside>
             </div>
