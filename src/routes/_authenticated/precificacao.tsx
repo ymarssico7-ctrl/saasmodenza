@@ -4846,10 +4846,7 @@ function Precificacao() {
 
                     <div className="grid gap-3 sm:grid-cols-3">
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Frete</span>
-                          <span className="text-[10px] text-muted-foreground/70">total</span>
-                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">Frete</span>
                         <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
                           <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
@@ -4863,10 +4860,7 @@ function Precificacao() {
                       </div>
 
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Embalagem</span>
-                          <span className="text-[10px] text-muted-foreground/70">total</span>
-                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">Embalagem</span>
                         <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
                           <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
@@ -4880,10 +4874,7 @@ function Precificacao() {
                       </div>
 
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Outros extras</span>
-                          <span className="text-[10px] text-muted-foreground/70">total</span>
-                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">Outros extras</span>
                         <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
                           <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
@@ -4944,13 +4935,15 @@ function Precificacao() {
               </div>
 
               {/* ── CARD RESUMO & CTA DO TOPO (DESKTOP) ── */}
-              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3.5">
-                {/* 1. Preço sugerido por peça e detalhamento */}
-                <div className="space-y-1 border-b border-border/60 pb-3">
+              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3">
+                {/* 1. Preço sugerido por peça e métricas de margem */}
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-muted-foreground">Preço sugerido por peça</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Preço sugerido / peça
+                    </p>
                     {actualLotUnits > 0 && (
-                      <span className="text-[11px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 numeric">
+                      <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 numeric">
                         lote {actualLotUnits} un.
                       </span>
                     )}
@@ -4959,43 +4952,68 @@ function Precificacao() {
                     {brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Custo real <span className="font-semibold text-foreground/80 numeric">{brl(summaryPrices.avgCost)}</span>
-                    {" · "}lucro{" "}
-                    <span className={cn("font-bold numeric", summaryPrices.avgProfit >= 0 ? "text-success" : "text-destructive")}>
-                      {summaryPrices.avgProfit >= 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
-                    </span>
+                    {summaryPrices.avgSuggested > 0 ? (
+                      <>
+                        Margem estimada <span className="font-semibold text-foreground/80 numeric">{summaryPrices.avgMargin.toFixed(0)}%</span>
+                        {" · "}Lucro unitário{" "}
+                        <span className={cn(
+                          "font-bold numeric",
+                          summaryPrices.avgProfit > 0
+                            ? "text-success"
+                            : summaryPrices.avgProfit < 0
+                            ? "text-destructive"
+                            : "text-foreground"
+                        )}>
+                          {summaryPrices.avgProfit > 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
+                        </span>
+                      </>
+                    ) : (
+                      <span>Preencha o atacado e a grade para calcular</span>
+                    )}
                   </p>
                 </div>
 
-                {/* 2. Grid 2x2 com as 4 Métricas Financeiras (Zero truncamento) */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 py-0.5">
-                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Investimento</p>
-                    <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
-                      {brl(summaryPrices.totalInvestment)}
-                    </p>
+                {/* 2. Ilha Suave Integrada: Métricas do Lote (Padrão Apple Card) */}
+                <div className="rounded-2xl bg-secondary/35 border border-border/50 p-3.5 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Investimento</p>
+                      <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                        {brl(summaryPrices.totalInvestment)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Faturamento</p>
+                      <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                        {brl(summaryPrices.totalRevenue)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Faturamento</p>
-                    <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
-                      {brl(summaryPrices.totalRevenue)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Lucro líquido</p>
-                    <p className={cn("text-sm sm:text-base font-black numeric mt-0.5", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
-                      {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Peças no lote</p>
-                    <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
-                      {actualLotUnits > 0 ? `${actualLotUnits} un.` : "0 un."}
-                    </p>
+
+                  <div className="border-t border-border/30 pt-2.5 grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Lucro líquido</p>
+                      <p className={cn(
+                        "text-sm sm:text-base font-black numeric mt-0.5",
+                        summaryPrices.totalProfit > 0
+                          ? "text-success"
+                          : summaryPrices.totalProfit < 0
+                          ? "text-destructive"
+                          : "text-foreground"
+                      )}>
+                        {summaryPrices.totalProfit > 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Peças no lote</p>
+                      <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                        {actualLotUnits > 0 ? `${actualLotUnits} un.` : "0 un."}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* 3. Botão Principal & Validação */}
+                {/* 3. Ação Principal & Status */}
                 <div className="space-y-2">
                   <Button
                     type="button"
@@ -5007,13 +5025,13 @@ function Precificacao() {
                     <span>Dar entrada no estoque</span>
                   </Button>
 
-                  <div className="min-h-[1.5rem] flex items-center justify-center text-center text-xs text-muted-foreground">
+                  <div className="min-h-[1.25rem] flex items-center justify-center text-center">
                     {!canSubmitGrade && validationMsg ? (
-                      <p className="leading-tight">
-                        Falta: <span className="font-semibold text-foreground">{validationMsg}</span>
+                      <p className="text-[11px] text-muted-foreground leading-normal">
+                        Falta preencher: <span className="font-semibold text-foreground/80">{validationMsg}</span>
                       </p>
                     ) : (
-                      <p className="text-success font-semibold flex items-center justify-center gap-1.5">
+                      <p className="text-[11px] text-success font-semibold flex items-center justify-center gap-1.5">
                         <Check className="size-3.5" /> Pronto para dar entrada no estoque
                       </p>
                     )}
@@ -5021,7 +5039,7 @@ function Precificacao() {
                 </div>
 
                 {/* 4. Rodapé com Ações Secundárias */}
-                <div className="border-t border-border/60 pt-2.5 flex items-center justify-between">
+                <div className="border-t border-border/50 pt-2 flex items-center justify-between">
                   <Button
                     type="button"
                     variant="ghost"
