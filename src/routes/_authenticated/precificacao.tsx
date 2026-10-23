@@ -4688,7 +4688,7 @@ function Precificacao() {
                       <Input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Ex: Vestido Midi Linho"
+                        placeholder="Ex: Vestido Midi Linho com Fenda"
                         className="h-10 rounded-xl font-semibold text-sm bg-background shadow-2xs"
                       />
                     </div>
@@ -4785,10 +4785,10 @@ function Precificacao() {
 
                     {/* Destaque Custo Real Unitário Adaptativo */}
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 flex flex-col justify-center">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-bold text-primary">Custo real / un.</span>
-                        <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 shrink-0">
-                          {actualLotUnits > 0 ? `${actualLotUnits} un.` : "Base"}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-primary">Custo real / peça</span>
+                        <span className="text-[10px] font-bold text-primary px-1.5 py-0.2 rounded-full bg-primary/10">
+                          {actualLotUnits > 0 ? `${actualLotUnits} un.` : "unitário base"}
                         </span>
                       </div>
                       <p className="text-base font-black text-foreground numeric mt-0.5">
@@ -4800,376 +4800,480 @@ function Precificacao() {
                         )}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {actualLotUnits > 0 ? "Compra + rateio do lote" : "Custo atacado s/ rateio"}
+                        {actualLotUnits > 0 ? (
+                          `${brl(toNumber(baseWholesaleGrade))} compra + ${brl(
+                            resolvePerUnit(freight, freightMode, actualLotUnits) +
+                            resolvePerUnit(packaging, packagingMode, actualLotUnits) +
+                            resolvePerUnit(other, otherMode, actualLotUnits)
+                          )} rateio`
+                        ) : (
+                          `${brl(toNumber(baseWholesaleGrade))} atacado (sem lote ativo)`
+                        )}
                       </p>
                     </div>
                   </div>
                 </section>
 
-                {/* ── SEÇÃO 2: Matriz de Grade & Precificação (Grade Generator integrado) ── */}
-                <section id="secao-matriz-precificacao" className="panel p-5 sm:p-6 space-y-5 border border-border/80 bg-card shadow-soft">
-                  {/* Cabeçalho da Seção 2 com Gerador de Grade + Seletor de Modo */}
-                  <div className="space-y-4 border-b border-border/60 pb-4">
+                {/* ── SEÇÃO 3: Cores e Tamanhos ── */}
+                <section id="secao-cores-grade" className="panel p-5 sm:p-6 space-y-4 border border-border/80 bg-card shadow-soft">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                    <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-foreground text-xs font-bold">
+                        3
+                      </span>
+                      <span>Grade do modelo (Cores &amp; tamanhos)</span>
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      {activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {variants.length} variações
+                    </span>
+                  </div>
 
-                    {/* Linha 1: Título + modo de precificação */}
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-foreground text-xs font-bold">
-                          2
-                        </span>
-                        <div>
-                          <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
-                            <span>Matriz de grade &amp; precificação</span>
-                            {actualLotUnits > 0 && (
-                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-foreground">
-                                {actualLotUnits} un.
-                              </span>
-                            )}
-                          </h2>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {gradePricingMode === "unified"
-                              ? "Preço único: todos os tamanhos compartilham a mesma margem ou preço de venda."
-                              : "Preço isolado: cada tamanho possui seu próprio custo atacado e preço de venda."}
-                          </p>
-                        </div>
+                  <div className="grid gap-5 md:grid-cols-2">
+                    {/* Cores deste modelo */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Cores deste modelo
+                        </Label>
+                        {activeColors.length === 0 && (
+                          <span className="text-[11px] text-muted-foreground">Adicione ao menos uma cor</span>
+                        )}
                       </div>
-
-                      {/* Seletor de Modo: 🎛️ Precificar isoladamente / 🔗 Preço unificado na grade */}
-                      <div className="inline-flex rounded-full border border-border/80 bg-secondary/50 p-1 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGradePricingMode("isolated");
-                            toast.info("Modo Isolado ativado: personalize custos e preços linha por linha.");
-                          }}
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
-                            gradePricingMode === "isolated"
-                              ? "bg-card text-foreground shadow-xs font-bold"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          <span>🎛️ Precificar isoladamente</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setGradePricingMode("unified");
-                            toast.info("Modo Preço Unificado ativado: toda a grade segue a mesma margem.");
-                          }}
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
-                            gradePricingMode === "unified"
-                              ? "bg-card text-foreground shadow-xs font-bold"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          <span>🔗 Preço unificado na grade</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Linha 2: Gerador de Grade — Cores & Tamanhos integrados */}
-                    <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-border/60 bg-secondary/20 p-3.5">
-                      {/* Cores deste modelo */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Cores do modelo
-                          </Label>
-                          {activeColors.length === 0 && (
-                            <span className="text-[11px] text-muted-foreground">Adicione ao menos uma</span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {activeColors.map((color) => (
-                            <span
-                              key={color}
-                              className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full border border-border/80 bg-background shadow-2xs text-xs font-semibold text-foreground shrink-0"
-                            >
-                              <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(color))} />
-                              <span className="whitespace-nowrap">{color}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeColorFromGrade(color)}
-                                className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                aria-label={`Remover cor ${color}`}
-                              >
-                                <X className="size-2.5" />
-                              </button>
-                            </span>
-                          ))}
-
-                          {/* Botão + Popover de Adicionar Cor */}
-                          <div className="relative" ref={colorPopoverRef}>
-                            <Button
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {activeColors.map((color) => (
+                          <span
+                            key={color}
+                            className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full border border-border/80 bg-background shadow-2xs text-xs font-semibold text-foreground shrink-0"
+                          >
+                            <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(color))} />
+                            <span className="whitespace-nowrap">{color}</span>
+                            <button
                               type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowColorInput(!showColorInput)}
-                              className="h-7 px-2.5 rounded-full text-xs font-semibold border-dashed border-border hover:border-primary/60 cursor-pointer"
+                              onClick={() => removeColorFromGrade(color)}
+                              className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              aria-label={`Remover cor ${color}`}
                             >
-                              <Plus className="size-3 mr-1 text-primary" />
-                              + Cor
-                            </Button>
+                              <X className="size-2.5" />
+                            </button>
+                          </span>
+                        ))}
 
-                            {showColorInput && (
-                              <div className="absolute left-0 top-9 z-20 w-72 rounded-2xl border border-border bg-popover p-3 shadow-lift space-y-2.5">
-                                <div className="flex items-center gap-1.5 border-b border-border/60 pb-2">
-                                  <Search className="size-3.5 text-muted-foreground" />
-                                  <input
-                                    autoFocus
-                                    type="text"
-                                    value={colorSearchQuery}
-                                    onChange={(e) => setColorSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" && colorSearchQuery.trim()) {
-                                        e.preventDefault();
-                                        addColorToGrade(colorSearchQuery.trim());
-                                        setColorSearchQuery("");
-                                        setShowColorInput(false);
-                                      }
-                                    }}
-                                    placeholder="Buscar ou digitar cor..."
-                                    className="w-full bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
-                                  />
-                                  {colorSearchQuery && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setColorSearchQuery("")}
-                                      className="text-muted-foreground hover:text-foreground cursor-pointer"
-                                    >
-                                      <X className="size-3" />
-                                    </button>
-                                  )}
-                                </div>
+                        {/* Botão + Popover de Adicionar Cor com click-outside */}
+                        <div className="relative" ref={colorPopoverRef}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowColorInput(!showColorInput)}
+                            className="h-7 px-2.5 rounded-full text-xs font-semibold border-dashed border-border hover:border-primary/60 cursor-pointer"
+                          >
+                            <Plus className="size-3 mr-1 text-primary" />
+                            Adicionar cor
+                          </Button>
 
-                                {/* Cores da Loja */}
-                                {customOptions.customColors.length > 0 && (
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Cores da sua Loja</p>
-                                      <Link
-                                        to="/configuracoes"
-                                        search={{ tab: "catalogo" }}
-                                        className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
-                                      >
-                                        <span>Gerenciar</span>
-                                        <ArrowUpRight className="size-2.5" />
-                                      </Link>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
-                                      {customOptions.customColors
-                                        .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
-                                        .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
-                                        .map((c) => (
-                                          <button
-                                            key={c.value}
-                                            type="button"
-                                            onClick={() => {
-                                              addColorToGrade(c.label);
-                                              setColorSearchQuery("");
-                                              setShowColorInput(false);
-                                            }}
-                                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/20 hover:bg-primary/20 text-foreground transition-colors cursor-pointer"
-                                          >
-                                            <span
-                                              className="size-2 rounded-full border border-black/10 shrink-0"
-                                              style={{ backgroundColor: c.hex }}
-                                            />
-                                            <span>{c.label}</span>
-                                          </button>
-                                        ))}
-                                    </div>
-                                  </div>
+                          {showColorInput && (
+                            <div className="absolute left-0 top-9 z-20 w-72 rounded-2xl border border-border bg-popover p-3 shadow-lift space-y-2.5">
+                              <div className="flex items-center gap-1.5 border-b border-border/60 pb-2">
+                                <Search className="size-3.5 text-muted-foreground" />
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={colorSearchQuery}
+                                  onChange={(e) => setColorSearchQuery(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && colorSearchQuery.trim()) {
+                                      e.preventDefault();
+                                      addColorToGrade(colorSearchQuery.trim());
+                                      setColorSearchQuery("");
+                                      setShowColorInput(false);
+                                    }
+                                  }}
+                                  placeholder="Buscar ou digitar cor..."
+                                  className="w-full bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
+                                />
+                                {colorSearchQuery && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setColorSearchQuery("")}
+                                    className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                  >
+                                    <X className="size-3" />
+                                  </button>
                                 )}
+                              </div>
 
-                                {/* Padrões de Fábrica */}
+                              {/* Cores Personalizadas da Loja */}
+                              {customOptions.customColors.length > 0 && (
                                 <div className="space-y-1">
-                                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                                    {customOptions.customColors.length > 0 ? "Padrões de Fábrica" : "Paleta da Coleção"}
-                                  </p>
-                                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                                    {["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
-                                      .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
-                                      .filter((c) => !colorSearchQuery || c.toLowerCase().includes(colorSearchQuery.toLowerCase()))
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Cores da sua Loja</p>
+                                    <Link
+                                      to="/configuracoes"
+                                      search={{ tab: "catalogo" }}
+                                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
+                                    >
+                                      <span>Gerenciar</span>
+                                      <ArrowUpRight className="size-2.5" />
+                                    </Link>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
+                                    {customOptions.customColors
+                                      .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
+                                      .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
                                       .map((c) => (
                                         <button
-                                          key={c}
+                                          key={c.value}
                                           type="button"
                                           onClick={() => {
-                                            addColorToGrade(c);
+                                            addColorToGrade(c.label);
                                             setColorSearchQuery("");
                                             setShowColorInput(false);
                                           }}
-                                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-foreground transition-colors cursor-pointer"
+                                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/20 hover:bg-primary/20 text-foreground transition-colors cursor-pointer"
                                         >
-                                          <span className={cn("size-2 rounded-full", getColorDot(c))} />
-                                          <span>{c}</span>
+                                          <span
+                                            className="size-2 rounded-full border border-black/10 shrink-0"
+                                            style={{ backgroundColor: c.hex }}
+                                          />
+                                          <span>{c.label}</span>
                                         </button>
                                       ))}
                                   </div>
                                 </div>
+                              )}
 
-                                {colorSearchQuery.trim() && (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => {
-                                      addColorToGrade(colorSearchQuery.trim());
-                                      setColorSearchQuery("");
-                                      setShowColorInput(false);
-                                    }}
-                                    className="w-full h-8 text-xs font-bold gradient-primary text-primary-foreground rounded-xl"
-                                  >
-                                    Adicionar "{colorSearchQuery.trim()}"
-                                  </Button>
-                                )}
-
-                                <div className="pt-1 border-t border-border/50 flex justify-between items-center text-[10px] text-muted-foreground">
-                                  <span>Cadastrar mais cores?</span>
-                                  <Link
-                                    to="/configuracoes"
-                                    search={{ tab: "catalogo" }}
-                                    className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5"
-                                  >
-                                    <span>Catálogo da loja</span>
-                                    <ArrowUpRight className="size-2.5" />
-                                  </Link>
+                              {/* Paleta Padrão da Coleção */}
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                  {customOptions.customColors.length > 0 ? "Padrões de Fábrica" : "Paleta da Coleção"}
+                                </p>
+                                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                                  {["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
+                                    .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                                    .filter((c) => !colorSearchQuery || c.toLowerCase().includes(colorSearchQuery.toLowerCase()))
+                                    .map((c) => (
+                                      <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => {
+                                          addColorToGrade(c);
+                                          setColorSearchQuery("");
+                                          setShowColorInput(false);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-foreground transition-colors cursor-pointer"
+                                      >
+                                        <span className={cn("size-2 rounded-full", getColorDot(c))} />
+                                        <span>{c}</span>
+                                      </button>
+                                    ))}
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Atalhos rápidos de 1 clique (priorizando cores da loja) */}
-                        {activeColors.length < 4 && (
-                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                            <span className="text-[10px] text-muted-foreground mr-0.5 select-none">Rápido:</span>
-                            {(() => {
-                              const storeCandidates = customOptions.customColors
-                                .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
-                                .map((c) => ({ name: c.label, hex: c.hex, isStore: true }));
-                              const factoryCandidates = ["Preto", "Off-White", "Areia", "Terracota"]
-                                .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
-                                .map((c) => ({ name: c, hex: undefined as string | undefined, isStore: false }));
-                              return [...storeCandidates, ...factoryCandidates].slice(0, 4).map((item) => (
-                                <button
-                                  key={item.name}
+                              {colorSearchQuery.trim() && (
+                                <Button
                                   type="button"
-                                  onClick={() => addColorToGrade(item.name)}
-                                  className={cn(
-                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-all cursor-pointer",
-                                    item.isStore
-                                      ? "border-primary/30 bg-primary/10 hover:bg-primary/20 text-foreground"
-                                      : "border-border/60 bg-secondary/30 hover:bg-secondary text-foreground hover:border-primary/40"
-                                  )}
+                                  size="sm"
+                                  onClick={() => {
+                                    addColorToGrade(colorSearchQuery.trim());
+                                    setColorSearchQuery("");
+                                    setShowColorInput(false);
+                                  }}
+                                  className="w-full h-8 text-xs font-bold gradient-primary text-primary-foreground rounded-xl"
                                 >
-                                  <span
-                                    className={cn("size-1.5 rounded-full shrink-0", !item.hex && getColorDot(item.name))}
-                                    style={item.hex ? { backgroundColor: item.hex } : undefined}
-                                  />
-                                  <span>+{item.name}</span>
-                                </button>
-                              ));
-                            })()}
-                          </div>
-                        )}
+                                  Adicionar "{colorSearchQuery.trim()}"
+                                </Button>
+                              )}
+
+                              <div className="pt-1 border-t border-border/50 flex justify-between items-center text-[10px] text-muted-foreground">
+                                <span>Cadastrar mais cores?</span>
+                                <Link
+                                  to="/configuracoes"
+                                  search={{ tab: "catalogo" }}
+                                  className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  <span>Catálogo da loja</span>
+                                  <ArrowUpRight className="size-2.5" />
+                                </Link>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Grade de tamanhos */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Grade de tamanhos
-                          </Label>
-                          <Link
-                            to="/configuracoes"
-                            search={{ tab: "catalogo" }}
-                            className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
-                            title="Personalizar tamanhos da loja em Configurações"
-                          >
-                            <span>Personalizar ↗</span>
-                          </Link>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Select
-                            value={sizePresetDropdown}
-                            onValueChange={(val) => {
-                              setSizePresetDropdown(val);
-                              if (val === "loja" && customOptions.customSizes.length > 0) {
-                                applySizePreset(customOptions.customSizes.map((s) => s.label));
-                                return;
-                              }
-                              const PRESETS_MAP: Record<string, string[]> = {
-                                padrao: ["P", "M", "G", "GG"],
-                                alfaiataria: ["36", "38", "40", "42", "44", "46"],
-                                plus: ["GG", "G1", "G2", "G3"],
-                                jeans: ["34", "36", "38", "40", "42", "44", "46", "48"],
-                                infantil: ["2", "4", "6", "8", "10", "12", "14", "16"],
-                                unico: ["Único"],
-                              };
-                              if (PRESETS_MAP[val]) {
-                                applySizePreset(PRESETS_MAP[val]);
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="h-8 w-44 rounded-xl text-xs font-semibold bg-background border-border shadow-2xs">
-                              <SelectValue placeholder="Escolha a grade..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {customOptions.customSizes.length > 0 && (
-                                <SelectItem value="loja" className="text-xs font-bold text-primary">
-                                  ✨ Loja ({customOptions.customSizes.map((s) => s.label).join(", ")})
-                                </SelectItem>
-                              )}
-                              <SelectItem value="padrao" className="text-xs">P ao GG</SelectItem>
-                              <SelectItem value="alfaiataria" className="text-xs">Alfaiataria (36 a 46)</SelectItem>
-                              <SelectItem value="plus" className="text-xs">Plus Size (GG a G3)</SelectItem>
-                              <SelectItem value="jeans" className="text-xs">Jeans (34 a 48)</SelectItem>
-                              <SelectItem value="infantil" className="text-xs">Infantil (2 a 16)</SelectItem>
-                              <SelectItem value="unico" className="text-xs">Tamanho Único</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      {/* Atalhos rápidos de 1 clique para cores populares (priorizando cores da loja) */}
+                      {activeColors.length < 3 && (
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <span className="text-[10px] text-muted-foreground mr-1 select-none">Rápido:</span>
+                          {(() => {
+                            const storeCandidates = customOptions.customColors
+                              .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
+                              .map((c) => ({ name: c.label, hex: c.hex, isStore: true }));
+                            const factoryCandidates = ["Preto", "Off-White", "Areia", "Terracota"]
+                              .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                              .map((c) => ({ name: c, hex: undefined as string | undefined, isStore: false }));
+                            const combined = [...storeCandidates, ...factoryCandidates].slice(0, 3);
 
-                          {/* Chips dos tamanhos ativos ou prévia */}
-                          <div className="flex flex-wrap items-center gap-1">
-                            {(() => {
-                              const activeVariantSizes = Array.from(new Set(variants.map((v) => v.size)));
-                              const sizesToShow = activeVariantSizes.length > 0 ? activeVariantSizes : (matrixSizes.length > 0 ? matrixSizes : ["P", "M", "G", "GG"]);
-                              const isPreview = activeVariantSizes.length === 0;
-
-                              return sizesToShow.map((sz) => (
+                            return combined.map((item) => (
+                              <button
+                                key={item.name}
+                                type="button"
+                                onClick={() => addColorToGrade(item.name)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-all cursor-pointer",
+                                  item.isStore
+                                    ? "border-primary/30 bg-primary/10 hover:bg-primary/20 text-foreground"
+                                    : "border-border/60 bg-secondary/30 hover:bg-secondary text-foreground hover:border-primary/40"
+                                )}
+                              >
                                 <span
-                                  key={sz}
-                                  className={cn(
-                                    "inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full border shadow-2xs text-xs font-bold shrink-0 transition-all",
-                                    isPreview
-                                      ? "border-dashed border-border bg-secondary/30 text-muted-foreground"
-                                      : "border-border/80 bg-background text-foreground"
-                                  )}
-                                  title={isPreview ? "Tamanho pré-selecionado na grade" : undefined}
-                                >
-                                  <span>{sz}</span>
-                                  {!isPreview && (
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleSizeInGrade(sz)}
-                                      className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                      aria-label={`Remover tamanho ${sz}`}
-                                    >
-                                      <X className="size-2.5" />
-                                    </button>
-                                  )}
-                                </span>
-                              ));
-                            })()}
-                          </div>
+                                  className={cn("size-1.5 rounded-full shrink-0", !item.hex && getColorDot(item.name))}
+                                  style={item.hex ? { backgroundColor: item.hex } : undefined}
+                                />
+                                <span>+{item.name}</span>
+                              </button>
+                            ));
+                          })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Grade de tamanhos */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Grade de tamanhos
+                        </Label>
+                        <Link
+                          to="/configuracoes"
+                          search={{ tab: "catalogo" }}
+                          className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
+                          title="Personalizar tamanhos da loja em Configurações"
+                        >
+                          <span>Personalizar</span>
+                          <ArrowUpRight className="size-2.5" />
+                        </Link>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Select
+                          value={sizePresetDropdown}
+                          onValueChange={(val) => {
+                            setSizePresetDropdown(val);
+                            if (val === "loja" && customOptions.customSizes.length > 0) {
+                              applySizePreset(customOptions.customSizes.map((s) => s.label));
+                              return;
+                            }
+                            const PRESETS_MAP: Record<string, string[]> = {
+                              padrao: ["P", "M", "G", "GG"],
+                              alfaiataria: ["36", "38", "40", "42", "44", "46"],
+                              plus: ["GG", "G1", "G2", "G3"],
+                              jeans: ["34", "36", "38", "40", "42", "44", "46", "48"],
+                              infantil: ["2", "4", "6", "8", "10", "12", "14", "16"],
+                              unico: ["Único"],
+                            };
+                            if (PRESETS_MAP[val]) {
+                              applySizePreset(PRESETS_MAP[val]);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 w-48 rounded-xl text-xs font-semibold bg-background border-border shadow-2xs">
+                            <SelectValue placeholder="Escolha a grade..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {customOptions.customSizes.length > 0 && (
+                              <SelectItem value="loja" className="text-xs font-bold text-primary">
+                                ✨ Loja ({customOptions.customSizes.map((s) => s.label).join(", ")})
+                              </SelectItem>
+                            )}
+                            <SelectItem value="padrao" className="text-xs">P ao GG</SelectItem>
+                            <SelectItem value="alfaiataria" className="text-xs">Alfaiataria (36 a 46)</SelectItem>
+                            <SelectItem value="plus" className="text-xs">Plus Size (GG a G3)</SelectItem>
+                            <SelectItem value="jeans" className="text-xs">Jeans (34 a 48)</SelectItem>
+                            <SelectItem value="infantil" className="text-xs">Infantil (2 a 16)</SelectItem>
+                            <SelectItem value="unico" className="text-xs">Tamanho Único</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {/* Chips dos tamanhos ativos ou prévia da grade */}
+                        <div className="flex flex-wrap items-center gap-1">
+                          {(() => {
+                            const activeVariantSizes = Array.from(new Set(variants.map((v) => v.size)));
+                            const sizesToShow = activeVariantSizes.length > 0 ? activeVariantSizes : (matrixSizes.length > 0 ? matrixSizes : ["P", "M", "G", "GG"]);
+                            const isPreview = activeVariantSizes.length === 0;
+
+                            return sizesToShow.map((sz) => (
+                              <span
+                                key={sz}
+                                className={cn(
+                                  "inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full border shadow-2xs text-xs font-bold shrink-0 transition-all",
+                                  isPreview
+                                    ? "border-dashed border-border bg-secondary/30 text-muted-foreground"
+                                    : "border-border/80 bg-background text-foreground"
+                                )}
+                                title={isPreview ? "Tamanho pré-selecionado na grade" : undefined}
+                              >
+                                <span>{sz}</span>
+                                {!isPreview && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSizeInGrade(sz)}
+                                    className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                    aria-label={`Remover tamanho ${sz}`}
+                                  >
+                                    <X className="size-2.5" />
+                                  </button>
+                                )}
+                              </span>
+                            ));
+                          })()}
                         </div>
                       </div>
                     </div>
                   </div>
+                </section>
 
+              </div>
+
+              {/* ── SIDEBAR STICKY (RESUMO & CTA - DESKTOP) ── */}
+              <aside className="sticky top-6 hidden lg:block rounded-2xl border border-border/80 bg-card p-5 shadow-soft space-y-5">
+                {/* Preço sugerido por peça */}
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground">Preço sugerido por peça</p>
+                  <p className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
+                    {brl(summaryPrices.avgSuggested)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Custo real {brl(summaryPrices.avgCost)} · lucro {brl(summaryPrices.avgProfit)}
+                  </p>
+                </div>
+
+                <div className="border-t border-border/60" />
+
+                {/* Grid 2x2 de métricas — plain, sem bordas */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Investimento</p>
+                    <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalInvestment)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Faturamento</p>
+                    <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalRevenue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Lucro líquido</p>
+                    <p className={cn("text-sm font-black numeric mt-0.5", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
+                      {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Peças no lote</p>
+                    <p className="text-sm font-black numeric text-foreground mt-0.5">{actualLotUnits} un.</p>
+                  </div>
+                </div>
+
+                {/* Botão Principal: Dar Entrada no Estoque */}
+                <Button
+                  type="button"
+                  onClick={openEntryForCurrent}
+                  disabled={!canSubmitGrade}
+                  className="w-full h-12 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
+                >
+                  <PackagePlus className="size-4 mr-2" />
+                  <span>Dar entrada no estoque</span>
+                </Button>
+
+                {/* Validação inline quando desabilitado */}
+                {!canSubmitGrade && validationMsg && (
+                  <p className="text-xs text-muted-foreground text-center -mt-2">
+                    Falta: <span className="font-medium text-foreground">{validationMsg}</span>
+                  </p>
+                )}
+
+                <div className="border-t border-border/60" />
+
+                {/* Ações Secundárias */}
+                <div className="flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => save.mutate()}
+                    disabled={save.isPending || !name.trim()}
+                    className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
+                  >
+                    <Save className="size-3.5 mr-1.5" /> Salvar modelo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetPricingModel}
+                    className="text-xs font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-2"
+                  >
+                    <RotateCcw className="size-3.5 mr-1.5" /> Limpar
+                  </Button>
+                </div>
+              </aside>
+            </div>
+
+                        {/* ── SEÇÃO 3: Planilha de Variações & Precificação da Grade ── */}
+            <section className="panel p-5 sm:p-6 space-y-5 border border-border/80 bg-card shadow-soft">
+              {/* Cabeçalho da Seção 3 com Seletor de Modo da Grade */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-foreground text-xs font-bold">
+                    3
+                  </span>
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                      <span>Planilha de variações &amp; precificação</span>
+                      {actualLotUnits > 0 && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-foreground">
+                          {actualLotUnits} un.
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {gradePricingMode === "unified"
+                        ? "Preço único: todos os tamanhos compartilham a mesma margem ou preço de venda."
+                        : "Preço isolado: cada tamanho possui seu próprio custo atacado e preço de venda."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Seletor de Modo: Precificar isoladamente vs Preço unificado na grade */}
+                <div className="inline-flex rounded-full border border-border/80 bg-secondary/50 p-1 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGradePricingMode("isolated");
+                      toast.info("Modo Isolado ativado: personalize custos e preços linha por linha.");
+                    }}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                      gradePricingMode === "isolated"
+                        ? "bg-card text-foreground shadow-xs font-bold"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span>🎛️ Precificar isoladamente</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGradePricingMode("unified");
+                      toast.info("Modo Preço Unificado ativado: toda a grade segue a mesma margem.");
+                    }}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                      gradePricingMode === "unified"
+                        ? "bg-card text-foreground shadow-xs font-bold"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span>🔗 Preço unificado na grade</span>
+                  </button>
+                </div>
+              </div>
 
               {/* ── BARRA DE COMANDO DE PRECIFICAÇÃO (INTEGRADA À PLANILHA) ── */}
               {gradePricingMode === "unified" ? (
@@ -5552,7 +5656,7 @@ function Precificacao() {
                       }
                     }}
                     onScrollToSection3={() => {
-                      const el = document.getElementById("secao-matriz-precificacao");
+                      const el = document.getElementById("secao-cores-grade");
                       if (el) {
                         el.scrollIntoView({ behavior: "smooth", block: "start" });
                       }
@@ -5747,91 +5851,7 @@ function Precificacao() {
                 </div>
               )}
               </div>
-              </section>
-
-              </div>{/* ── /left column div.space-y-5.min-w-0 ── */}
-
-              {/* ── SIDEBAR STICKY (RESUMO & CTA - DESKTOP) ── */}
-              <aside className="sticky top-6 hidden lg:block rounded-2xl border border-border/80 bg-card p-5 shadow-soft space-y-5">
-                {/* Preço sugerido por peça */}
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground">Preço sugerido por peça</p>
-                  <p className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
-                    {brl(summaryPrices.avgSuggested)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Custo real {brl(summaryPrices.avgCost)} · lucro {brl(summaryPrices.avgProfit)}
-                  </p>
-                </div>
-
-                <div className="border-t border-border/60" />
-
-                {/* Grid 2x2 de métricas */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Investimento</p>
-                    <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalInvestment)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Faturamento</p>
-                    <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalRevenue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Lucro líquido</p>
-                    <p className={cn("text-sm font-black numeric mt-0.5", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
-                      {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Peças no lote</p>
-                    <p className="text-sm font-black numeric text-foreground mt-0.5">{actualLotUnits} un.</p>
-                  </div>
-                </div>
-
-                {/* Botão Principal: Dar Entrada no Estoque */}
-                <Button
-                  type="button"
-                  onClick={openEntryForCurrent}
-                  disabled={!canSubmitGrade}
-                  className="w-full h-12 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:bg-secondary disabled:text-muted-foreground disabled:border disabled:border-border/60 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
-                >
-                  <PackagePlus className="size-4 mr-2" />
-                  <span>Dar entrada no estoque</span>
-                </Button>
-
-                {/* Validação inline quando desabilitado */}
-                {!canSubmitGrade && validationMsg && (
-                  <p className="text-xs text-muted-foreground text-center -mt-2">
-                    Falta: <span className="font-medium text-foreground">{validationMsg}</span>
-                  </p>
-                )}
-
-                <div className="border-t border-border/60" />
-
-                {/* Ações Secundárias */}
-                <div className="flex items-center justify-between">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => save.mutate()}
-                    disabled={save.isPending || !name.trim()}
-                    className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
-                  >
-                    <Save className="size-3.5 mr-1.5" /> Salvar modelo
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetPricingModel}
-                    className="text-xs font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-2"
-                  >
-                    <RotateCcw className="size-3.5 mr-1.5" /> Limpar
-                  </Button>
-                </div>
-              </aside>
-            </div>{/* ── /2-column grid ── */}
+            </section>
 
             {/* ── BARRA INFERIOR COMPACTA PARA MOBILE (LG:HIDDEN) ── */}
             <div className="fixed bottom-0 inset-x-0 lg:hidden z-30 border-t border-border/80 bg-background/95 backdrop-blur-md px-4 py-3 shadow-lift">
