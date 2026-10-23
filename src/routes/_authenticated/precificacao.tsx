@@ -4833,86 +4833,111 @@ function Precificacao() {
                     </div>
                   </div>
 
-                  {/* Linha 2: Custos Extras e Custo Real Unificado */}
-                  <div className="pt-3 border-t border-border/50 grid gap-3 sm:grid-cols-4 items-center">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground">Frete da nota</span>
-                        <span className="text-[10px] text-muted-foreground/70">total</span>
-                      </div>
-                      <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
-                        <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
-                        <input
-                          inputMode="decimal"
-                          value={freight}
-                          onChange={(e) => setFreight(e.target.value)}
-                          placeholder="0,00"
-                          className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
-                        />
-                      </div>
+                  {/* Linha 2: Custos Extras da Nota */}
+                  <div className="pt-3 border-t border-border/50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        Custos extras da nota
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/70">
+                        Rateados proporcionalmente entre as peças
+                      </span>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground">Embalagem</span>
-                        <span className="text-[10px] text-muted-foreground/70">total</span>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Frete</span>
+                          <span className="text-[10px] text-muted-foreground/70">total</span>
+                        </div>
+                        <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
+                          <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                          <input
+                            inputMode="decimal"
+                            value={freight}
+                            onChange={(e) => setFreight(e.target.value)}
+                            placeholder="0,00"
+                            className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
+                          />
+                        </div>
                       </div>
-                      <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
-                        <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
-                        <input
-                          inputMode="decimal"
-                          value={packaging}
-                          onChange={(e) => setPackaging(e.target.value)}
-                          placeholder="0,00"
-                          className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
-                        />
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Embalagem</span>
+                          <span className="text-[10px] text-muted-foreground/70">total</span>
+                        </div>
+                        <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
+                          <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                          <input
+                            inputMode="decimal"
+                            value={packaging}
+                            onChange={(e) => setPackaging(e.target.value)}
+                            placeholder="0,00"
+                            className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Outros extras</span>
+                          <span className="text-[10px] text-muted-foreground/70">total</span>
+                        </div>
+                        <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
+                          <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
+                          <input
+                            inputMode="decimal"
+                            value={other}
+                            onChange={(e) => setOther(e.target.value)}
+                            placeholder="0,00"
+                            className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
+                          />
+                        </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground">Outros extras</span>
-                        <span className="text-[10px] text-muted-foreground/70">total</span>
+                  {/* Linha 3: Custo Real Unitário em Zona Dedicada */}
+                  <div className="pt-2.5 border-t border-border/50">
+                    <div className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border/60 px-3.5 py-2.5 gap-4">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                            Custo real / peça
+                          </span>
+                          <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10">
+                            {actualLotUnits > 0 ? `${actualLotUnits} un.` : "unitário base"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {actualLotUnits > 0 ? (
+                            <>
+                              <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra +{" "}
+                              <span className="font-semibold text-foreground/80">{brl(
+                                resolvePerUnit(freight, freightMode, actualLotUnits) +
+                                resolvePerUnit(packaging, packagingMode, actualLotUnits) +
+                                resolvePerUnit(other, otherMode, actualLotUnits)
+                              )}</span> rateio por peça
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> atacado (sem lote ativo para rateio)
+                            </>
+                          )}
+                        </p>
                       </div>
-                      <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
-                        <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
-                        <input
-                          inputMode="decimal"
-                          value={other}
-                          onChange={(e) => setOther(e.target.value)}
-                          placeholder="0,00"
-                          className="h-9 w-full bg-transparent px-2 text-xs font-bold text-foreground outline-none numeric"
-                        />
-                      </div>
-                    </div>
 
-                    {/* Destaque Custo Real Unitário Adaptativo */}
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-2.5 flex flex-col justify-center">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-primary">Custo real / peça</span>
-                        <span className="text-[10px] font-bold text-primary px-1.5 py-0.2 rounded-full bg-primary/10">
-                          {actualLotUnits > 0 ? `${actualLotUnits} un.` : "unitário base"}
-                        </span>
+                      <div className="text-right shrink-0">
+                        <p className="text-xl sm:text-2xl font-black text-foreground numeric tracking-tight">
+                          {brl(
+                            toNumber(baseWholesaleGrade) +
+                            resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
+                            resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
+                            resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1)
+                          )}
+                        </p>
                       </div>
-                      <p className="text-base font-black text-foreground numeric mt-0.5">
-                        {brl(
-                          toNumber(baseWholesaleGrade) +
-                          resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                          resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-                          resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1)
-                        )}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {actualLotUnits > 0 ? (
-                          `${brl(toNumber(baseWholesaleGrade))} compra + ${brl(
-                            resolvePerUnit(freight, freightMode, actualLotUnits) +
-                            resolvePerUnit(packaging, packagingMode, actualLotUnits) +
-                            resolvePerUnit(other, otherMode, actualLotUnits)
-                          )} rateio`
-                        ) : (
-                          `${brl(toNumber(baseWholesaleGrade))} atacado (sem lote ativo)`
-                        )}
-                      </p>
                     </div>
                   </div>
                 </section>
