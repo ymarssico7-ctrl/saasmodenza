@@ -4725,16 +4725,16 @@ function Precificacao() {
         {/* ══════════════════════════════════════════════════════════════════
         {/* ══ MODO GRADE: Ficha Única Progressiva (Design System Modaly - Padrão Apple / Linear) ══ */}
         {mode === "grade" && (
-          <div className="space-y-6 pb-20 lg:pb-6">
-            {/* Grid de 2 colunas: Painel Principal + Sidebar Sticky */}
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px] items-start">
+          <div className="space-y-4 pb-16 lg:pb-2">
+            {/* Grid de 2 colunas: Painel Principal + Sidebar com alturas harmonizadas */}
+            <div className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px] items-stretch">
               
-              {/* ── COLUNA PRINCIPAL: Seções 1 a 4 ── */}
-              <div className="space-y-5 min-w-0">
+              {/* ── COLUNA PRINCIPAL: Seção 1 (Ficha da Peça) ── */}
+              <div className="min-w-0 h-full">
 
                 {/* ── SEÇÃO 1: Ficha da Peça ── */}
-                <section className="panel p-5 sm:p-6 space-y-4 border border-border/80 bg-card shadow-soft">
-                  <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <section className="panel p-4 sm:p-5 border border-border/80 bg-card shadow-soft h-full flex flex-col justify-between gap-3 sm:gap-3.5">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                     <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
                       <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-foreground text-xs font-bold">
                         1
@@ -4918,90 +4918,101 @@ function Precificacao() {
                 </section>
               </div>
 
-              {/* ── SIDEBAR STICKY (RESUMO & CTA - DESKTOP) ── */}
-              <aside className="sticky top-6 hidden lg:block rounded-2xl border border-border/80 bg-card p-5 shadow-soft space-y-5">
-                {/* Preço sugerido por peça */}
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground">Preço sugerido por peça</p>
-                  <p className="text-3xl sm:text-4xl font-black text-foreground numeric tracking-tight">
-                    {brl(summaryPrices.avgSuggested)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Custo real {brl(summaryPrices.avgCost)} · lucro {brl(summaryPrices.avgProfit)}
-                  </p>
+              {/* ── CARD RESUMO & CTA DO TOPO (DESKTOP) ── */}
+              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3">
+                {/* 1. Preço sugerido por peça */}
+                <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-2.5">
+                  <div className="space-y-0.5 min-w-0">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Preço sugerido / peça</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-2xl sm:text-3xl font-black text-foreground numeric tracking-tight">
+                        {brl(summaryPrices.avgSuggested)}
+                      </p>
+                      {actualLotUnits > 0 && (
+                        <span className="text-[11px] font-bold text-primary numeric">
+                          (lote {actualLotUnits} un.)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right text-[11px] text-muted-foreground shrink-0 pt-0.5 space-y-0.5">
+                    <p>Custo: <strong className="text-foreground numeric">{brl(summaryPrices.avgCost)}</strong></p>
+                    <p>Lucro: <strong className={cn("numeric", summaryPrices.avgProfit >= 0 ? "text-success" : "text-destructive")}>
+                      {summaryPrices.avgProfit >= 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
+                    </strong></p>
+                  </div>
                 </div>
 
-                <div className="border-t border-border/60" />
-
-                {/* Grid 2x2 de métricas — plain, sem bordas */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Investimento</p>
-                    <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalInvestment)}</p>
+                {/* 2. Grid de 4 Métricas Financeiras Compactas */}
+                <div className="grid grid-cols-4 gap-2 text-center py-0.5">
+                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Investimento</p>
+                    <p className="text-xs font-black numeric text-foreground mt-0.5 truncate">{brl(summaryPrices.totalInvestment)}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Faturamento</p>
-                    <p className="text-sm font-black numeric text-foreground mt-0.5">{brl(summaryPrices.totalRevenue)}</p>
+                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Faturamento</p>
+                    <p className="text-xs font-black numeric text-foreground mt-0.5 truncate">{brl(summaryPrices.totalRevenue)}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Lucro líquido</p>
-                    <p className={cn("text-sm font-black numeric mt-0.5", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
+                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Lucro líq.</p>
+                    <p className={cn("text-xs font-black numeric mt-0.5 truncate", summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive")}>
                       {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Peças no lote</p>
-                    <p className="text-sm font-black numeric text-foreground mt-0.5">{actualLotUnits} un.</p>
+                  <div className="rounded-lg bg-secondary/35 px-1.5 py-1">
+                    <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide truncate">Peças</p>
+                    <p className="text-xs font-black numeric text-foreground mt-0.5 truncate">{actualLotUnits} un.</p>
                   </div>
                 </div>
 
-                {/* Botão Principal: Dar Entrada no Estoque */}
-                <Button
-                  type="button"
-                  onClick={openEntryForCurrent}
-                  disabled={!canSubmitGrade}
-                  className="w-full h-12 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
-                >
-                  <PackagePlus className="size-4 mr-2" />
-                  <span>Dar entrada no estoque</span>
-                </Button>
-
-                {/* Validação inline quando desabilitado */}
-                {!canSubmitGrade && validationMsg && (
-                  <p className="text-xs text-muted-foreground text-center -mt-2">
-                    Falta: <span className="font-medium text-foreground">{validationMsg}</span>
-                  </p>
-                )}
-
-                <div className="border-t border-border/60" />
-
-                {/* Ações Secundárias */}
-                <div className="flex items-center justify-between">
+                {/* 3. Ações e Entrada no Estoque */}
+                <div className="space-y-2 pt-0.5">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => save.mutate()}
-                    disabled={save.isPending || !name.trim()}
-                    className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
+                    onClick={openEntryForCurrent}
+                    disabled={!canSubmitGrade}
+                    className="w-full h-10 rounded-xl gradient-primary text-primary-foreground text-xs sm:text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
                   >
-                    <Save className="size-3.5 mr-1.5" /> Salvar modelo
+                    <PackagePlus className="size-4 mr-2" />
+                    <span>Dar entrada no estoque</span>
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetPricingModel}
-                    className="text-xs font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-2"
-                  >
-                    <RotateCcw className="size-3.5 mr-1.5" /> Limpar
-                  </Button>
+
+                  <div className="flex items-center justify-between text-[11px] pt-0.5">
+                    {!canSubmitGrade && validationMsg ? (
+                      <p className="text-[11px] text-muted-foreground truncate max-w-[160px]">
+                        Falta: <span className="font-semibold text-foreground">{validationMsg}</span>
+                      </p>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground font-medium">Pronto para dar entrada</span>
+                    )}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => save.mutate()}
+                        disabled={save.isPending || !name.trim()}
+                        className="h-7 text-[11px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-1.5"
+                      >
+                        <Save className="size-3 mr-1" /> Salvar modelo
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetPricingModel}
+                        className="h-7 text-[11px] font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-1.5"
+                      >
+                        <RotateCcw className="size-3 mr-1" /> Limpar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </aside>
             </div>
 
             {/* ── SEÇÃO 2: Planilha de Variações & Precificação da Grade ── */}
-            <section id="secao-matriz-precificacao" className="panel p-5 sm:p-6 space-y-5 border border-border/80 bg-card shadow-soft">
+            <section id="secao-matriz-precificacao" className="panel p-4 sm:p-5 space-y-4 border border-border/80 bg-card shadow-soft">
               {/* ── LINHA 1: CABEÇALHO SEMÂNTICO & CONTROLES GLOBAIS ── */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3.5">
                 <div className="flex items-center gap-2.5">
@@ -5602,25 +5613,25 @@ function Precificacao() {
               {/* ── CORPO DA PLANILHA DE VARIAÇÕES ── */}
               <div className="pt-1">
                 {variants.length === 0 ? (
-                  <div className="rounded-2xl border-2 border-dashed border-border/80 bg-secondary/15 p-8 sm:p-12 text-center space-y-5">
-                    <div className="flex size-14 mx-auto items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-glow">
-                      <Boxes className="size-7" />
+                  <div className="rounded-2xl border-2 border-dashed border-border/80 bg-secondary/15 py-6 px-4 sm:py-7 sm:px-6 text-center space-y-3.5">
+                    <div className="flex size-11 mx-auto items-center justify-center rounded-xl bg-primary/10 text-primary shadow-glow">
+                      <Boxes className="size-5" />
                     </div>
-                    <div className="max-w-md mx-auto space-y-1.5">
-                      <h3 className="text-base sm:text-lg font-bold text-foreground">
+                    <div className="max-w-md mx-auto space-y-1">
+                      <h3 className="text-sm sm:text-base font-bold text-foreground">
                         Monte a grade do modelo para precificar
                       </h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
                         Defina as cores, os tamanhos e as quantidades do lote. A planilha com custos e lucros será gerada automaticamente.
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
                       <Button
                         type="button"
-                        size="lg"
+                        size="default"
                         onClick={() => setShowGradeModal(true)}
-                        className="gradient-primary text-primary-foreground font-bold rounded-2xl text-sm h-12 px-7 shadow-glow hover:opacity-95 transition-all cursor-pointer"
+                        className="gradient-primary text-primary-foreground font-bold rounded-xl text-xs sm:text-sm h-10 sm:h-11 px-6 shadow-glow hover:opacity-95 transition-all cursor-pointer"
                       >
                         <Sparkles className="size-4 mr-2" />
                         <span>Gerar Grade de Variações</span>
@@ -5628,7 +5639,7 @@ function Precificacao() {
                     </div>
 
                     {/* Sugestões rápidas de início com 1 clique */}
-                    <div className="pt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
+                    <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-xs">
                       <span className="text-muted-foreground text-[11px] font-semibold">Início rápido:</span>
                       {["Preto", "Off-White", "Areia", "Terracota"].map((cor) => (
                         <button
