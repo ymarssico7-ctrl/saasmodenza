@@ -2060,7 +2060,11 @@ function Precificacao() {
   }, [showColorInput]);
   const [showDeducoes, setShowDeducoes] = useState(false);
   const [sizePresetDropdown, setSizePresetDropdown] = useState("padrao");
-  const [gradePricingMode, setGradePricingMode] = useState<"unified" | "isolated">("unified");
+  const [gradePricingMode, setGradePricingMode] = useState<"unified" | "isolated">(() =>
+    loadDraft("gradePricingMode", "unified"),
+  );
+  const [editingMarginVariantId, setEditingMarginVariantId] = useState<string | null>(null);
+  const [inlineMarginInput, setInlineMarginInput] = useState<string>("");
   const [showGradeModal, setShowGradeModal] = useState<boolean>(() =>
     loadDraft("showGradeModal", false),
   );
@@ -2196,6 +2200,7 @@ function Precificacao() {
           cardRate,
           matrixSizes,
           matrixDefaultQtys,
+          gradePricingMode,
           showGradeModal,
           gradeModalDraft,
         };
@@ -2236,6 +2241,7 @@ function Precificacao() {
     cardRate,
     matrixSizes,
     matrixDefaultQtys,
+    gradePricingMode,
     showGradeModal,
     gradeModalDraft,
   ]);
@@ -2378,37 +2384,21 @@ function Precificacao() {
   // ── Cálculo da Tabela Unificada de Variantes (Totalmente Reativo) ───
   const variantResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
-    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
 
     return variants.map((v) => {
       const hasCustomCost = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
       const wholesaleNum = hasCustomCost ? toNumber(v.wholesaleCost) : baseNum;
-      const cs = colorStrategies[v.color.toLowerCase()] ?? DEFAULT_COLOR_STRATEGY;
 
-      let customPriceStr = v.customSalePrice;
-      const hasExplicitManualPrice = customPriceStr !== undefined && customPriceStr !== "" && toNumber(customPriceStr) > 0;
+      // No modo isolado, se a variação tiver customSalePrice definido manualmente, usa esse preço;
+      // Caso contrário (modo unificado ou sem customSalePrice), passa string vazia para que
+      // calculateItem use a estratégia global ativa (Margem, Markup ou Preço Fixo).
+      const hasExplicitManualPrice =
+        gradePricingMode === "isolated" &&
+        v.customSalePrice !== undefined &&
+        v.customSalePrice !== "" &&
+        toNumber(v.customSalePrice) > 0;
 
-      if (!hasExplicitManualPrice) {
-        if (cs.mode === "margin") {
-          const targetMargin = typeof cs.margin === "number" ? cs.margin : (toNumber(cs.margin) || 50);
-          const divisor = 1 - (targetMargin + tax + cardRate) / 100;
-          const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-          const price = divisor > 0 ? realCost / divisor : realCost * 2;
-          customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
-        } else if (cs.mode === "markup") {
-          const targetMarkup = typeof cs.markup === "number" ? cs.markup : (toNumber(cs.markup) || 100);
-          const totalDeductions = (tax + cardRate) / 100;
-          const divisor = Math.max(1 - totalDeductions, 0.01);
-          const realCost = wholesaleNum + freightNum + packagingNum + otherNum;
-          const price = (realCost * (1 + targetMarkup / 100)) / divisor;
-          customPriceStr = price > 0 ? price.toFixed(2).replace(".", ",") : "";
-        } else if (cs.mode === "direct_price") {
-          customPriceStr = cs.directPrice;
-        }
-      }
-
+      const customPriceStr = hasExplicitManualPrice ? v.customSalePrice : "";
       const res = calculateItem(wholesaleNum, customPriceStr);
       const qty = v.qty && v.qty > 0 ? v.qty : 1;
       return {
@@ -2419,7 +2409,7 @@ function Precificacao() {
         ...res,
       };
     });
-  }, [variants, baseWholesaleGrade, freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits, tax, cardRate, colorStrategies, calculateItem]);
+  }, [variants, baseWholesaleGrade, gradePricingMode, calculateItem]);
 
   // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
@@ -2476,21 +2466,21 @@ function Precificacao() {
       let projMargin = 0;
 
       if (unitCost > 0) {
-        if (matrixGlobalMode === "margin") {
-          const m = toNumber(matrixGlobalMarginStr) || 50;
+        if (strategy === "margin") {
+          const m = desiredMargin || 50;
           const div = 1 - (totalDeductionsFrac + m / 100);
           projPrice = div > 0.05 ? unitCost / div : 0;
           projMargin = m;
           projProfit = projPrice > 0 ? projPrice * (1 - totalDeductionsFrac) - unitCost : 0;
-        } else if (matrixGlobalMode === "markup") {
-          const mk = toNumber(matrixGlobalMarkupStr) || 100;
+        } else if (strategy === "markup") {
+          const mk = markup || 100;
           const base = unitCost * (1 + mk / 100);
           const div = 1 - totalDeductionsFrac;
           projPrice = div > 0.05 ? base / div : 0;
           projProfit = projPrice > 0 ? projPrice * (1 - totalDeductionsFrac) - unitCost : 0;
           projMargin = projPrice > 0 ? (projProfit / projPrice) * 100 : 0;
         } else {
-          projPrice = toNumber(matrixGlobalDirectPrice);
+          projPrice = toNumber(directSalePrice);
           projProfit = projPrice > 0 ? projPrice * (1 - totalDeductionsFrac) - unitCost : 0;
           projMargin = projPrice > 0 ? (projProfit / projPrice) * 100 : 0;
         }
@@ -2540,7 +2530,7 @@ function Precificacao() {
       marginHealth: getMarginHealth(avgMarg),
       hasMultiple: valid.length > 1 && Math.abs(minP - maxP) > 0.05,
     };
-  }, [mode, singleResult, variantResults, variants.length, baseWholesaleGrade, wholesale, freight, packaging, other, freightMode, packagingMode, otherMode, tax, cardRate, matrixGlobalMode, matrixGlobalMarginStr, matrixGlobalMarkupStr, matrixGlobalDirectPrice]);
+  }, [mode, singleResult, variantResults, variants.length, baseWholesaleGrade, wholesale, freight, packaging, other, freightMode, packagingMode, otherMode, tax, cardRate, strategy, desiredMargin, markup, directSalePrice]);
 
   // ── Detecção Adaptativa de Faixas de Custo Real ───────────────────
   const variantRealCosts = useMemo(() => {
@@ -3321,13 +3311,23 @@ function Precificacao() {
   };
 
   const computePriceForVariantMargin = (wholesaleCost: number, targetMargin: number): number => {
-    const freightNum = toNumber(freight);
-    const packagingNum = toNumber(packaging);
-    const otherNum = toNumber(other);
+    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
     const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
     const divisor = 1 - (targetMargin + tax + cardRate) / 100;
     if (divisor <= 0) return 0;
     return realCost / divisor;
+  };
+
+  const computePriceForVariantMarkup = (wholesaleCost: number, targetMarkup: number): number => {
+    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
+    const totalDeductions = (tax + cardRate) / 100;
+    const divisor = Math.max(1 - totalDeductions, 0.01);
+    return (realCost * (1 + targetMarkup / 100)) / divisor;
   };
 
   const updateVariantMargin = (id: string, marginPct: number) => {
@@ -3335,8 +3335,24 @@ function Precificacao() {
     if (!target) return;
     const price = computePriceForVariantMargin(target.wholesaleNum, marginPct);
     if (price > 0) {
+      if (gradePricingMode === "unified") {
+        setGradePricingMode("isolated");
+      }
       updateVariantPrice(id, price.toFixed(2).replace(".", ","));
       toast.success(`Tamanho ${target.size}: margem definida em ${marginPct}% (R$ ${price.toFixed(2).replace(".", ",")})`);
+    }
+  };
+
+  const updateVariantMarkup = (id: string, markupPct: number) => {
+    const target = variantResults.find((v) => v.id === id);
+    if (!target) return;
+    const price = computePriceForVariantMarkup(target.wholesaleNum, markupPct);
+    if (price > 0) {
+      if (gradePricingMode === "unified") {
+        setGradePricingMode("isolated");
+      }
+      updateVariantPrice(id, price.toFixed(2).replace(".", ","));
+      toast.success(`Tamanho ${target.size}: markup definido em ${markupPct}% (R$ ${price.toFixed(2).replace(".", ",")})`);
     }
   };
 
@@ -6149,193 +6165,267 @@ function Precificacao() {
 
                 {/* BLOCO DIREITA: Estratégia de Precificação & Quantidade */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {gradePricingMode === "unified" ? (
-                    <div className="flex items-center gap-2">
-                      {/* Divisor vertical */}
-                      <div className="h-5 w-px bg-border/70 shrink-0 hidden md:block" />
+                  <div className="flex items-center gap-2">
+                    {/* Divisor vertical */}
+                    <div className="h-5 w-px bg-border/70 shrink-0 hidden md:block" />
 
-                      {/* Mini seletor de estratégia */}
-                      <div className="inline-flex rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => setStrategy("margin")}
-                          className={cn(
-                            "rounded-md px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer",
-                            strategy === "margin"
-                              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          Margem
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setStrategy("markup")}
-                          className={cn(
-                            "rounded-md px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer",
-                            strategy === "markup"
-                              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          Markup
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setStrategy("direct_price")}
-                          className={cn(
-                            "rounded-md px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer",
-                            strategy === "direct_price"
-                              ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          Preço fixo
-                        </button>
+                    {/* Mini seletor de estratégia (Sempre visível em ambos os modos) */}
+                    <div className="inline-flex rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStrategy("margin");
+                          setMatrixGlobalMode("margin");
+                        }}
+                        className={cn(
+                          "rounded-md px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer",
+                          strategy === "margin"
+                            ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        Margem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStrategy("markup");
+                          setMatrixGlobalMode("markup");
+                        }}
+                        className={cn(
+                          "rounded-md px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer",
+                          strategy === "markup"
+                            ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        Markup
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStrategy("direct_price");
+                          setMatrixGlobalMode("direct_price");
+                        }}
+                        className={cn(
+                          "rounded-md px-2 py-0.5 text-xs font-semibold transition-all cursor-pointer",
+                          strategy === "direct_price"
+                            ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        Preço fixo
+                      </button>
+                    </div>
+
+                    {/* Controles da Estratégia inline com badges de resultado em tempo real */}
+                    {strategy === "margin" && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = Math.max(5, desiredMargin - 5);
+                              setDesiredMargin(next);
+                              setMatrixGlobalMarginStr(String(next));
+                            }}
+                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+                          <span className="px-2 text-xs font-black numeric text-foreground">{desiredMargin}%</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = Math.min(95, desiredMargin + 5);
+                              setDesiredMargin(next);
+                              setMatrixGlobalMarginStr(String(next));
+                            }}
+                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+                        </div>
+
+                        {/* Presets compactos de margem */}
+                        <div className="hidden lg:flex items-center gap-1">
+                          {[
+                            { val: 35, label: "35%" },
+                            { val: 45, label: "45%" },
+                            { val: 50, label: "50%" },
+                            { val: 60, label: "60%" },
+                          ].map((preset) => (
+                            <button
+                              key={preset.val}
+                              type="button"
+                              onClick={() => {
+                                setDesiredMargin(preset.val);
+                                setMatrixGlobalMarginStr(String(preset.val));
+                              }}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                                Math.abs(desiredMargin - preset.val) < 0.5
+                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                              )}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {summaryPrices.avgSuggested > 0 && (
+                          <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/80 text-[11px] font-semibold text-muted-foreground">
+                            <span>→ Preço Médio</span>
+                            <span className="text-foreground font-bold">{brl(summaryPrices.avgSuggested)}</span>
+                          </div>
+                        )}
                       </div>
+                    )}
 
-                      {/* Controles da Estratégia inline */}
-                      {strategy === "margin" && (
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.max(5, desiredMargin - 5);
-                                setDesiredMargin(next);
-                                setMatrixGlobalMarginStr(String(next));
-                              }}
-                              className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                            >
-                              <Minus className="size-3" />
-                            </button>
-                            <span className="px-2 text-xs font-black numeric text-foreground">{desiredMargin}%</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = Math.min(95, desiredMargin + 5);
-                                setDesiredMargin(next);
-                                setMatrixGlobalMarginStr(String(next));
-                              }}
-                              className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                            >
-                              <Plus className="size-3" />
-                            </button>
-                          </div>
-
-                          {/* Presets compactos de margem */}
-                          <div className="hidden lg:flex items-center gap-1">
-                            {[
-                              { val: 35, label: "35%" },
-                              { val: 45, label: "45%" },
-                              { val: 50, label: "50%" },
-                              { val: 60, label: "60%" },
-                            ].map((preset) => (
-                              <button
-                                key={preset.val}
-                                type="button"
-                                onClick={() => {
-                                  setDesiredMargin(preset.val);
-                                  setMatrixGlobalMarginStr(String(preset.val));
-                                }}
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                  Math.abs(desiredMargin - preset.val) < 0.5
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                    : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                {preset.label}
-                              </button>
-                            ))}
-                          </div>
+                    {strategy === "markup" && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = Math.max(10, markup - 10);
+                              setMarkup(next);
+                              setMatrixGlobalMarkupStr(String(next));
+                            }}
+                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+                          <span className="px-2 text-xs font-black numeric text-foreground">{markup}%</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = markup + 10;
+                              setMarkup(next);
+                              setMatrixGlobalMarkupStr(String(next));
+                            }}
+                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                          >
+                            <Plus className="size-3" />
+                          </button>
                         </div>
-                      )}
 
-                      {strategy === "markup" && (
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
+                        <div className="hidden lg:flex items-center gap-1">
+                          {[
+                            { val: 80, label: "1.8x" },
+                            { val: 100, label: "2.0x" },
+                            { val: 150, label: "2.5x" },
+                            { val: 200, label: "3.0x" },
+                          ].map((preset) => (
                             <button
+                              key={preset.val}
                               type="button"
                               onClick={() => {
-                                const next = Math.max(10, markup - 10);
-                                setMarkup(next);
-                                setMatrixGlobalMarkupStr(String(next));
+                                setMarkup(preset.val);
+                                setMatrixGlobalMarkupStr(String(preset.val));
                               }}
-                              className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                              className={cn(
+                                "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                                Math.abs(markup - preset.val) < 0.5
+                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                              )}
                             >
-                              <Minus className="size-3" />
+                              {preset.label}
                             </button>
-                            <span className="px-2 text-xs font-black numeric text-foreground">{markup}%</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const next = markup + 10;
-                                setMarkup(next);
-                                setMatrixGlobalMarkupStr(String(next));
-                              }}
-                              className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                            >
-                              <Plus className="size-3" />
-                            </button>
-                          </div>
-
-                          <div className="hidden lg:flex items-center gap-1">
-                            {[
-                              { val: 100, label: "100%" },
-                              { val: 150, label: "150%" },
-                              { val: 200, label: "200%" },
-                            ].map((preset) => (
-                              <button
-                                key={preset.val}
-                                type="button"
-                                onClick={() => {
-                                  setMarkup(preset.val);
-                                  setMatrixGlobalMarkupStr(String(preset.val));
-                                }}
-                                className={cn(
-                                  "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                  Math.abs(markup - preset.val) < 0.5
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                    : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                )}
-                              >
-                                {preset.label}
-                              </button>
-                            ))}
-                          </div>
+                          ))}
                         </div>
-                      )}
 
-                      {strategy === "direct_price" && (
+                        {summaryPrices.avgMargin > 0 && (
+                          <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
+                            <span>→ Margem Líquida</span>
+                            <span className="font-bold">{pct(summaryPrices.avgMargin)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {strategy === "direct_price" && (
+                      <div className="flex items-center gap-1.5">
                         <div className="relative flex h-8 w-28 items-center rounded-lg border border-border/80 bg-background shadow-2xs focus-within:border-primary transition-all">
                           <span className="pl-2 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
                             inputMode="decimal"
                             value={directSalePrice}
-                            onChange={(e) => setDirectSalePrice(e.target.value)}
+                            onChange={(e) => {
+                              setDirectSalePrice(e.target.value);
+                              setMatrixGlobalDirectPrice(e.target.value);
+                            }}
                             placeholder="0,00"
                             className="h-8 w-full bg-transparent px-1.5 text-xs font-black text-foreground outline-none numeric"
                           />
                         </div>
+
+                        <div className="hidden lg:flex items-center gap-1">
+                          {["49,90", "69,90", "89,90", "119,90"].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => {
+                                setDirectSalePrice(preset);
+                                setMatrixGlobalDirectPrice(preset);
+                              }}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                                directSalePrice === preset
+                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                              )}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                        </div>
+
+                        {summaryPrices.avgMargin > 0 && (
+                          <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
+                            <span>→ Margem</span>
+                            <span className="font-bold">{pct(summaryPrices.avgMargin)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ações Específicas do Modo Isolado */}
+                  {gradePricingMode === "isolated" && (
+                    <div className="flex items-center gap-1.5">
+                      {baseWholesaleGrade && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: baseWholesaleGrade })));
+                            toast.success(`Custo base R$ ${baseWholesaleGrade} aplicado a todas as variações`);
+                          }}
+                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
+                        >
+                          ⚡ Replicar custo ({brl(toNumber(baseWholesaleGrade))})
+                        </Button>
+                      )}
+
+                      {variants.some((v) => v.customSalePrice !== undefined && v.customSalePrice !== "") && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: "" })));
+                            toast.success("Todas as variações foram sincronizadas com a estratégia da grade.");
+                          }}
+                          className="h-8 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                        >
+                          ⚡ Sincronizar com estratégia
+                        </Button>
                       )}
                     </div>
-                  ) : (
-                    /* Modo Isolado: Ação rápida para replicar custo base */
-                    baseWholesaleGrade && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: baseWholesaleGrade })));
-                          toast.success(`Custo base R$ ${baseWholesaleGrade} aplicado a todas as variações`);
-                        }}
-                        className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
-                      >
-                        ⚡ Replicar custo ({brl(toNumber(baseWholesaleGrade))})
-                      </Button>
-                    )
                   )}
 
                   {/* Qtd em todas (quando há variações) */}
@@ -6493,30 +6583,163 @@ function Precificacao() {
 
                                   {/* Preço de Venda */}
                                   <td className="py-2.5 px-3 text-right">
-                                    <div className="relative inline-flex items-center">
+                                    <div className="relative inline-flex items-center gap-1">
                                       <input
                                         inputMode="decimal"
-                                        value={v.customSalePrice !== "" ? v.customSalePrice : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")}
-                                        onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                        value={
+                                          v.customSalePrice !== "" && v.customSalePrice !== undefined
+                                            ? v.customSalePrice
+                                            : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")
+                                        }
+                                        onChange={(e) => {
+                                          if (gradePricingMode === "unified") {
+                                            setGradePricingMode("isolated");
+                                            toast.info("Modo Isolado ativado: personalização individual desta variação.");
+                                          }
+                                          updateVariantPrice(v.id, e.target.value);
+                                        }}
                                         placeholder="0,00"
-                                        className="h-7 w-24 text-right font-bold numeric text-xs rounded border border-border/60 bg-transparent px-1.5 text-foreground focus:bg-background focus:border-primary outline-none"
+                                        className={cn(
+                                          "h-7 w-24 text-right font-bold numeric text-xs rounded border bg-transparent px-1.5 text-foreground focus:bg-background focus:border-primary outline-none transition-all",
+                                          v.customSalePrice !== "" && v.customSalePrice !== undefined
+                                            ? "border-primary/50 bg-primary/5 text-primary"
+                                            : "border-border/60",
+                                        )}
                                       />
+                                      {v.customSalePrice !== "" && v.customSalePrice !== undefined && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setVariants((prev) =>
+                                              prev.map((item) => (item.id === v.id ? { ...item, customSalePrice: "" } : item))
+                                            );
+                                            toast.success(`Tamanho ${v.size}: voltando ao cálculo automático da grade.`);
+                                          }}
+                                          title="Resetar para a estratégia da grade"
+                                          className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
+                                        >
+                                          <RotateCcw className="size-3" />
+                                        </button>
+                                      )}
                                     </div>
                                   </td>
 
                                   {/* Margem */}
                                   <td className="py-2.5 px-3 text-center">
                                     {v.wholesaleNum > 0 && v.suggestedPrice > 0 ? (
-                                      <span
-                                        className={cn(
-                                          "text-xs font-bold numeric",
-                                          marginHealthy && "text-success",
-                                          marginModerate && "text-amber-500",
-                                          v.marginOnPrice <= 0 && "text-destructive",
+                                      <div className="relative inline-flex items-center justify-center">
+                                        {gradePricingMode === "isolated" ? (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (editingMarginVariantId === v.id) {
+                                                  setEditingMarginVariantId(null);
+                                                } else {
+                                                  setEditingMarginVariantId(v.id);
+                                                  setInlineMarginInput(v.marginOnPrice > 0 ? String(Math.round(v.marginOnPrice)) : "50");
+                                                }
+                                              }}
+                                              title="Clique para definir margem individual deste tamanho"
+                                              className={cn(
+                                                "text-xs font-bold numeric px-1.5 py-0.5 rounded-md hover:bg-secondary cursor-pointer transition-all border border-transparent hover:border-border/80 flex items-center gap-1",
+                                                marginHealthy && "text-success",
+                                                marginModerate && "text-amber-500",
+                                                v.marginOnPrice <= 0 && "text-destructive",
+                                              )}
+                                            >
+                                              <span>{pct(v.marginOnPrice)}</span>
+                                              <span className="text-[10px] text-muted-foreground/60">✎</span>
+                                            </button>
+
+                                            {/* Popover flutuante para editar margem do tamanho */}
+                                            {editingMarginVariantId === v.id && (
+                                              <>
+                                                <div className="fixed inset-0 z-30" onClick={() => setEditingMarginVariantId(null)} />
+                                                <div className="absolute right-0 top-8 z-40 w-52 rounded-xl border border-border bg-popover p-3 shadow-lift space-y-2 text-left">
+                                                  <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-bold text-foreground">
+                                                      Margem {v.size} ({v.color})
+                                                    </span>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setEditingMarginVariantId(null)}
+                                                      className="text-muted-foreground hover:text-foreground text-xs p-0.5 cursor-pointer"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  </div>
+                                                  <div className="flex items-center gap-1">
+                                                    {[30, 40, 50, 60].map((mVal) => (
+                                                      <button
+                                                        key={mVal}
+                                                        type="button"
+                                                        onClick={() => {
+                                                          updateVariantMargin(v.id, mVal);
+                                                          setEditingMarginVariantId(null);
+                                                        }}
+                                                        className={cn(
+                                                          "flex-1 py-1 text-[11px] font-bold rounded border cursor-pointer transition-colors text-center",
+                                                          Math.round(v.marginOnPrice) === mVal
+                                                            ? "bg-primary text-primary-foreground border-primary"
+                                                            : "border-border/70 hover:bg-secondary text-foreground",
+                                                        )}
+                                                      >
+                                                        {mVal}%
+                                                      </button>
+                                                    ))}
+                                                  </div>
+                                                  <div className="flex items-center gap-1.5 pt-1">
+                                                    <div className="relative flex-1">
+                                                      <input
+                                                        inputMode="decimal"
+                                                        value={inlineMarginInput}
+                                                        onChange={(e) => setInlineMarginInput(e.target.value)}
+                                                        placeholder="Ex: 45"
+                                                        className="h-7 w-full rounded border border-border/70 bg-background px-2 text-xs font-bold text-foreground outline-none focus:border-primary"
+                                                        onKeyDown={(e) => {
+                                                          if (e.key === "Enter") {
+                                                            const val = toNumber(inlineMarginInput);
+                                                            if (val > 0 && val < 95) {
+                                                              updateVariantMargin(v.id, val);
+                                                              setEditingMarginVariantId(null);
+                                                            }
+                                                          }
+                                                        }}
+                                                      />
+                                                      <span className="absolute right-2 top-1.5 text-[10px] text-muted-foreground font-bold">%</span>
+                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        const val = toNumber(inlineMarginInput);
+                                                        if (val > 0 && val < 95) {
+                                                          updateVariantMargin(v.id, val);
+                                                          setEditingMarginVariantId(null);
+                                                        }
+                                                      }}
+                                                      className="h-7 px-2.5 rounded bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 cursor-pointer transition-opacity"
+                                                    >
+                                                      OK
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <span
+                                            className={cn(
+                                              "text-xs font-bold numeric",
+                                              marginHealthy && "text-success",
+                                              marginModerate && "text-amber-500",
+                                              v.marginOnPrice <= 0 && "text-destructive",
+                                            )}
+                                          >
+                                            {pct(v.marginOnPrice)}
+                                          </span>
                                         )}
-                                      >
-                                        {pct(v.marginOnPrice)}
-                                      </span>
+                                      </div>
                                     ) : (
                                       <span className="text-xs text-muted-foreground/40">—</span>
                                     )}
