@@ -1504,36 +1504,55 @@ function Precificacao() {
     return () => window.removeEventListener("custom-options-changed", handler);
   }, [storeId]);
 
+  // ── Persistência de Rascunho (localStorage) ──────────────────────
+  const DRAFT_KEY = `modaly_precificacao_draft_${storeId}`;
+
+  const loadDraft = <T,>(key: string, fallback: T): T => {
+    try {
+      if (typeof window === "undefined") return fallback;
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return (parsed && key in parsed && parsed[key] !== undefined ? parsed[key] : fallback) as T;
+    } catch {
+      return fallback;
+    }
+  };
+
   // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
-  const [mode, setMode] = useState<PricingMode>("rapida");
+  const [mode, setMode] = useState<PricingMode>(() => loadDraft("mode", "rapida"));
 
   // ── Estratégia de Precificação ────────────────────────────────────
-  const [strategy, setStrategy] = useState<PricingStrategy>("margin");
+  const [strategy, setStrategy] = useState<PricingStrategy>(() => loadDraft("strategy", "margin"));
 
   // ── Identificação da Peça ─────────────────────────────────────────
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [name, setName] = useState(() => loadDraft("name", ""));
+  const [category, setCategory] = useState(() => loadDraft("category", ""));
 
   // ── Modo 1: Precificação Rápida ───────────────────────────────────
-  const [wholesale, setWholesale] = useState("");
-  const [rapidaQty, setRapidaQty] = useState("1");     // quantidade de peças no lote rápido
-  const [rapidaColor, setRapidaColor] = useState("");   // cor opcional (identificação)
-  const [rapidaSize, setRapidaSize] = useState("");     // tamanho opcional (identificação)
+  const [wholesale, setWholesale] = useState(() => loadDraft("wholesale", ""));
+  const [rapidaQty, setRapidaQty] = useState(() => loadDraft("rapidaQty", "1"));     // quantidade de peças no lote rápido
+  const [rapidaColor, setRapidaColor] = useState(() => loadDraft("rapidaColor", ""));   // cor opcional (identificação)
+  const [rapidaSize, setRapidaSize] = useState(() => loadDraft("rapidaSize", ""));     // tamanho opcional (identificação)
 
   // ── Modo 2: Grade Detalhada de Variantes ──────────────────────────
-  const [baseWholesaleGrade, setBaseWholesaleGrade] = useState("");
+  const [baseWholesaleGrade, setBaseWholesaleGrade] = useState(() => loadDraft("baseWholesaleGrade", ""));
 
   // Lista Unificada de Variantes (SKUs)
-  const [variants, setVariants] = useState<VariantRow[]>([]);
+  const [variants, setVariants] = useState<VariantRow[]>(() => loadDraft("variants", []));
 
   // Seletor de geração rápida da grade
-  const [activeColors, setActiveColors] = useState<string[]>([]);
-  const [genSizes, setGenSizes] = useState<string[]>([]);
+  const [activeColors, setActiveColors] = useState<string[]>(() => loadDraft("activeColors", []));
+  const [genSizes, setGenSizes] = useState<string[]>(() => loadDraft("genSizes", []));
 
   // ── Multi-Modelo / Modo Produção (v74) ────────────────────────────
   const [initialGradeModel] = useState<GradeModel>(() => createEmptyGradeModel(1));
-  const [gradeModels, setGradeModels] = useState<GradeModel[]>([initialGradeModel]);
-  const [activeModelId, setActiveModelId] = useState<string>(initialGradeModel.id);
+  const [gradeModels, setGradeModels] = useState<GradeModel[]>(() =>
+    loadDraft("gradeModels", [initialGradeModel]),
+  );
+  const [activeModelId, setActiveModelId] = useState<string>(() =>
+    loadDraft("activeModelId", initialGradeModel.id),
+  );
   const isSwitchingModelRef = useRef(false);
 
   const [genColors, setGenColors] = useState<string[]>([]);
@@ -1556,7 +1575,9 @@ function Precificacao() {
   const [showRapidaMoreSizes, setShowRapidaMoreSizes] = useState(false);
 
   // Estratégia de precificação por cor (independente por card de cor)
-  const [colorStrategies, setColorStrategies] = useState<Record<string, ColorStrategy>>({});
+  const [colorStrategies, setColorStrategies] = useState<Record<string, ColorStrategy>>(() =>
+    loadDraft("colorStrategies", {}),
+  );
 
   // Inserção manual no rodapé da tabela
   const [manualSize, setManualSize] = useState("M");
@@ -1569,28 +1590,40 @@ function Precificacao() {
   const [rateioPieces, setRateioPieces] = useState("");
 
   // ── Custos Operacionais Rateados (por peça) ───────────────────────
-  const [freight, setFreight] = useState("");
-  const [packaging, setPackaging] = useState("");
-  const [other, setOther] = useState("");
+  const [freight, setFreight] = useState(() => loadDraft("freight", ""));
+  const [packaging, setPackaging] = useState(() => loadDraft("packaging", ""));
+  const [other, setOther] = useState(() => loadDraft("other", ""));
 
   // ── Modo de custo: por peça ou total do lote ─────────────────────
-  const [freightMode, setFreightMode] = useState<"per_unit" | "lot_total">("lot_total");
-  const [packagingMode, setPackagingMode] = useState<"per_unit" | "lot_total">("lot_total");
-  const [otherMode, setOtherMode] = useState<"per_unit" | "lot_total">("lot_total");
+  const [freightMode, setFreightMode] = useState<"per_unit" | "lot_total">(() =>
+    loadDraft("freightMode", "lot_total"),
+  );
+  const [packagingMode, setPackagingMode] = useState<"per_unit" | "lot_total">(() =>
+    loadDraft("packagingMode", "lot_total"),
+  );
+  const [otherMode, setOtherMode] = useState<"per_unit" | "lot_total">(() =>
+    loadDraft("otherMode", "lot_total"),
+  );
 
-  const [desiredMargin, setDesiredMargin] = useState(() => pricingSettings.defaultMargin); // Margem líquida padrão da loja
-  const [markup, setMarkup] = useState(80); // 80% markup sobre custo
-  const [directSalePrice, setDirectSalePrice] = useState("");
-  const [tax, setTax] = useState(() => pricingSettings.defaultTax); // Imposto padrão da loja
-  const [cardRate, setCardRate] = useState(() => pricingSettings.defaultCardRate); // Taxa de maquininha padrão da loja
+  const [desiredMargin, setDesiredMargin] = useState<number>(() =>
+    loadDraft("desiredMargin", pricingSettings.defaultMargin),
+  ); // Margem líquida padrão da loja
+  const [markup, setMarkup] = useState<number>(() => loadDraft("markup", 80)); // 80% markup sobre custo
+  const [directSalePrice, setDirectSalePrice] = useState(() => loadDraft("directSalePrice", ""));
+  const [tax, setTax] = useState<number>(() => loadDraft("tax", pricingSettings.defaultTax)); // Imposto padrão da loja
+  const [cardRate, setCardRate] = useState<number>(() => loadDraft("cardRate", pricingSettings.defaultCardRate)); // Taxa de maquininha padrão da loja
 
   // Estados locais para digitação livre nos steppers
   const [marginInputVal, setMarginInputVal] = useState(() =>
-    Number.isInteger(pricingSettings.defaultMargin)
-      ? String(pricingSettings.defaultMargin)
-      : String(pricingSettings.defaultMargin).replace(".", ","),
+    Number.isInteger(desiredMargin)
+      ? String(desiredMargin)
+      : String(desiredMargin).replace(".", ","),
   );
-  const [markupInputVal, setMarkupInputVal] = useState("80");
+  const [markupInputVal, setMarkupInputVal] = useState(() =>
+    Number.isInteger(markup)
+      ? String(markup)
+      : String(markup).replace(".", ","),
+  );
 
   useEffect(() => {
     const numInState = typeof desiredMargin === "number" ? desiredMargin : 0;
@@ -1680,8 +1713,12 @@ function Precificacao() {
   const [showGradeColorBreakdown, setShowGradeColorBreakdown] = useState(false);
 
   // ── Grid-First Matrix State ─────────────────────────────────────────
-  const [matrixSizes, setMatrixSizes] = useState<string[]>(["P", "M", "G", "GG"]);
-  const [matrixDefaultQtys, setMatrixDefaultQtys] = useState<Record<string, number>>({ PP: 1, P: 2, M: 4, G: 4, GG: 2, G1: 2, G2: 2, G3: 1 });
+  const [matrixSizes, setMatrixSizes] = useState<string[]>(() =>
+    loadDraft("matrixSizes", ["P", "M", "G", "GG"]),
+  );
+  const [matrixDefaultQtys, setMatrixDefaultQtys] = useState<Record<string, number>>(() =>
+    loadDraft("matrixDefaultQtys", { PP: 1, P: 2, M: 4, G: 4, GG: 2, G1: 2, G2: 2, G3: 1 }),
+  );
   const [matrixGlobalMode, setMatrixGlobalMode] = useState<PricingStrategy>("margin");
   const [matrixGlobalMarginStr, setMatrixGlobalMarginStr] = useState("50");
   const [matrixGlobalMarkupStr, setMatrixGlobalMarkupStr] = useState("100");
@@ -1689,6 +1726,82 @@ function Precificacao() {
   const [showAdvancedMatrix, setShowAdvancedMatrix] = useState(false);
   const [matrixSetupOpen, setMatrixSetupOpen] = useState(true);
   const [activeSizeFamily, setActiveSizeFamily] = useState<"padrao" | "numerica" | "plus" | "unico" | "todas">("padrao");
+
+  // ── Auto-save Draft para localStorage (Debounced 500ms) ───────────
+  useEffect(() => {
+    if (isSwitchingModelRef.current) return;
+
+    const timer = setTimeout(() => {
+      try {
+        if (typeof window === "undefined") return;
+        const draft = {
+          mode,
+          strategy,
+          name,
+          category,
+          wholesale,
+          rapidaQty,
+          rapidaColor,
+          rapidaSize,
+          baseWholesaleGrade,
+          variants,
+          activeColors,
+          genSizes,
+          gradeModels,
+          activeModelId,
+          colorStrategies,
+          freight,
+          packaging,
+          other,
+          freightMode,
+          packagingMode,
+          otherMode,
+          desiredMargin,
+          markup,
+          directSalePrice,
+          tax,
+          cardRate,
+          matrixSizes,
+          matrixDefaultQtys,
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch {
+        // Ignora silenciosamente se ultrapassar cota
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    DRAFT_KEY,
+    mode,
+    strategy,
+    name,
+    category,
+    wholesale,
+    rapidaQty,
+    rapidaColor,
+    rapidaSize,
+    baseWholesaleGrade,
+    variants,
+    activeColors,
+    genSizes,
+    gradeModels,
+    activeModelId,
+    colorStrategies,
+    freight,
+    packaging,
+    other,
+    freightMode,
+    packagingMode,
+    otherMode,
+    desiredMargin,
+    markup,
+    directSalePrice,
+    tax,
+    cardRate,
+    matrixSizes,
+    matrixDefaultQtys,
+  ]);
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
@@ -2244,7 +2357,8 @@ function Precificacao() {
     handleAddNewVariant("M", defaultColor, 2, "");
   };
 
-  const resetPricingModel = () => {
+  const resetPricingModel = (opts?: boolean | { silent?: boolean } | React.MouseEvent) => {
+    const isSilent = opts === true || (typeof opts === "object" && opts !== null && "silent" in opts && Boolean((opts as { silent?: boolean }).silent));
     setName("");
     setCategory("");
     setWholesale("");
@@ -2259,9 +2373,16 @@ function Precificacao() {
     setRapidaColor("");
     setRapidaSize("");
     setRapidaQty("1");
-    toast.success("Novo modelo iniciado!", {
-      description: "Campos limpos para precificar a próxima peça.",
-    });
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+    if (!isSilent) {
+      toast.success("Novo modelo iniciado!", {
+        description: "Campos limpos para precificar a próxima peça.",
+      });
+    }
   };
 
   // ── Helpers de gerenciamento de múltiplos modelos (v74) ──────────
@@ -3415,6 +3536,7 @@ function Precificacao() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       setEntrySheetOpen(false);
+      resetPricingModel(true);
 
       // Auto-publicar na vitrine se a flag estiver ativa (sincronizado com estoque.tsx)
       if (res?.firstId && getAutoPublish()) {
