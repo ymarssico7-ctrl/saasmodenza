@@ -24,6 +24,7 @@ import {
   Package,
   PackagePlus,
   Palette,
+  Pencil,
   Percent,
   Plus,
   Receipt,
@@ -2202,7 +2203,6 @@ function Precificacao() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showColorInput]);
   const [showDeducoes, setShowDeducoes] = useState(false);
-  const [sizePresetDropdown, setSizePresetDropdown] = useState("padrao");
   const [gradePricingMode, setGradePricingMode] = useState<"unified" | "isolated">(() =>
     loadDraft("gradePricingMode", "unified"),
   );
@@ -6038,7 +6038,7 @@ function Precificacao() {
                       Planilha de variações &amp; precificação
                     </h2>
                     {actualLotUnits > 0 ? (
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-secondary/80 text-muted-foreground border border-border/60">
                         {actualLotUnits} un. no lote
                       </span>
                     ) : (
@@ -6148,34 +6148,45 @@ function Precificacao() {
 
               {/* ── LINHA 2: TOOLBAR CONTÍNUA UNIFICADA (CORES, TAMANHOS & PRECIFICAÇÃO) ── */}
               {variants.length > 0 && (
-                <div className="rounded-xl border border-border/80 bg-secondary/30 p-2 sm:px-3 sm:py-2 flex flex-wrap items-center justify-between gap-2.5">
-                  {/* BLOCO ESQUERDA: Grade (Editar Grade + Cores) */}
-                  <div className="flex flex-wrap items-center gap-2 min-w-0">
-                    {/* Botão de Abrir Modal para Editar Grade Completa */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowGradeModal(true)}
-                      className="h-8 px-2.5 rounded-lg text-xs font-bold border-border bg-background hover:bg-secondary cursor-pointer shadow-2xs flex items-center gap-1.5"
-                      title="Abrir gerador para alterar cores, tamanhos e quantidades"
-                    >
-                      <Boxes className="size-3.5 text-primary" />
-                      <span>Editar Grade ({activeColors.length} {activeColors.length === 1 ? "cor" : "cores"} · {Array.from(new Set(variants.map((v) => v.size))).length} tam.)</span>
-                    </Button>
+                <div className="flex flex-wrap items-center justify-between gap-3 py-2 border-b border-border/40">
+                  {/* BLOCO ESQUERDA: Controle Mestre da Grade & Adicionar Cor */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Botão Mestre da Grade (Resumo elegante com 1 clique para editar) */}
+                    {(() => {
+                      const activeVariantSizes = Array.from(new Set(variants.map((v) => v.size)));
+                      const sizesLabel = activeVariantSizes.length > 0 ? activeVariantSizes.join(", ") : "Grade";
+                      const colorsSummary = activeColors.length > 0
+                        ? `${activeColors.slice(0, 2).join(", ")}${activeColors.length > 2 ? ` +${activeColors.length - 2}` : ""}`
+                        : "Sem cores";
 
-                    {/* Cores */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* Botão + Popover de Adicionar Cor */}
-                      <div className="relative" ref={colorPopoverRef}>
-                        <Button
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setShowGradeModal(true)}
+                          className="h-8 px-2.5 rounded-lg border border-border/70 bg-background hover:bg-secondary/60 text-xs font-semibold text-foreground flex items-center gap-1.5 transition-all shadow-2xs hover:border-primary/40 group cursor-pointer"
+                          title="Abrir gerador para alterar cores, tamanhos e quantidades da grade"
+                        >
+                          <Boxes className="size-3.5 text-primary group-hover:scale-105 transition-transform" />
+                          <span className="text-muted-foreground font-normal">Grade:</span>
+                          <span className="font-bold text-foreground">{colorsSummary}</span>
+                          <span className="text-muted-foreground/40">·</span>
+                          <span className="font-semibold text-foreground">{sizesLabel}</span>
+                          <Pencil className="size-2.5 text-muted-foreground group-hover:text-primary transition-colors ml-0.5" />
+                        </button>
+                      );
+                    })()}
+
+                    {/* Botão rápido + Cor */}
+                    <div className="relative" ref={colorPopoverRef}>
+                      <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => setShowColorInput(!showColorInput)}
-                        className="h-8 px-2.5 rounded-lg text-xs font-bold border-border bg-background hover:bg-secondary/60 cursor-pointer shadow-2xs"
+                        className="h-8 px-2.5 rounded-lg text-xs font-semibold border-border/70 bg-background hover:bg-secondary/60 cursor-pointer shadow-2xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        title="Adicionar uma nova cor à grade"
                       >
-                        <Plus className="size-3.5 mr-1 text-primary" />
+                        <Plus className="size-3 text-primary" />
                         <span>Cor</span>
                       </Button>
 
@@ -6294,131 +6305,13 @@ function Precificacao() {
                         </div>
                       )}
                     </div>
-
-                    {/* Chips das Cores Ativas */}
-                    {activeColors.map((color) => (
-                      <span
-                        key={color}
-                        className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full border border-border/80 bg-background shadow-2xs text-xs font-semibold text-foreground shrink-0"
-                      >
-                        <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(color))} />
-                        <span className="whitespace-nowrap">{color}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeColorFromGrade(color)}
-                          className="size-4 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                          aria-label={`Remover cor ${color}`}
-                        >
-                          <X className="size-2.5" />
-                        </button>
-                      </span>
-                    ))}
-
-                    {/* Se não houver cores ativas, exibir 3 atalhos rápidos de 1 clique */}
-                    {activeColors.length === 0 && (
-                      <div className="flex items-center gap-1">
-                        {["Preto", "Off-White", "Areia"].map((cor) => (
-                          <button
-                            key={cor}
-                            type="button"
-                            onClick={() => addColorToGrade(cor)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-border/60 bg-background hover:bg-secondary/80 text-foreground transition-all cursor-pointer shadow-2xs"
-                          >
-                            <span className={cn("size-1.5 rounded-full shrink-0", getColorDot(cor))} />
-                            <span>+{cor}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Divisor vertical */}
-                  <div className="h-5 w-px bg-border/70 shrink-0 hidden sm:block" />
-
-                  {/* Grade de Tamanhos */}
-                  <div className="flex items-center gap-1.5">
-                    <Select
-                      value={sizePresetDropdown}
-                      onValueChange={(val) => {
-                        setSizePresetDropdown(val);
-                        if (val === "loja" && customOptions.customSizes.length > 0) {
-                          applySizePreset(customOptions.customSizes.map((s) => s.label));
-                          return;
-                        }
-                        const PRESETS_MAP: Record<string, string[]> = {
-                          padrao: ["P", "M", "G", "GG"],
-                          alfaiataria: ["36", "38", "40", "42", "44", "46"],
-                          plus: ["GG", "G1", "G2", "G3"],
-                          jeans: ["34", "36", "38", "40", "42", "44", "46", "48"],
-                          infantil: ["2", "4", "6", "8", "10", "12", "14", "16"],
-                          unico: ["Único"],
-                        };
-                        if (PRESETS_MAP[val]) {
-                          applySizePreset(PRESETS_MAP[val]);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-32 sm:w-36 rounded-lg text-xs font-semibold bg-background border-border shadow-2xs">
-                        <SelectValue placeholder="Grade..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customOptions.customSizes.length > 0 && (
-                          <SelectItem value="loja" className="text-xs font-bold text-primary">
-                            ✨ Loja ({customOptions.customSizes.map((s) => s.label).join(", ")})
-                          </SelectItem>
-                        )}
-                        <SelectItem value="padrao" className="text-xs">P ao GG</SelectItem>
-                        <SelectItem value="alfaiataria" className="text-xs">Alfaiataria (36 a 46)</SelectItem>
-                        <SelectItem value="plus" className="text-xs">Plus Size (GG a G3)</SelectItem>
-                        <SelectItem value="jeans" className="text-xs">Jeans (34 a 48)</SelectItem>
-                        <SelectItem value="infantil" className="text-xs">Infantil (2 a 16)</SelectItem>
-                        <SelectItem value="unico" className="text-xs">Tamanho Único</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Chips compactos dos tamanhos */}
-                    <div className="flex items-center gap-0.5">
-                      {(() => {
-                        const activeVariantSizes = Array.from(new Set(variants.map((v) => v.size)));
-                        const sizesToShow = activeVariantSizes.length > 0 ? activeVariantSizes : (matrixSizes.length > 0 ? matrixSizes : ["P", "M", "G", "GG"]);
-                        const isPreview = activeVariantSizes.length === 0;
-
-                        return sizesToShow.map((sz) => (
-                          <span
-                            key={sz}
-                            className={cn(
-                              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-bold shrink-0 transition-all",
-                              isPreview
-                                ? "border-dashed border-border bg-secondary/30 text-muted-foreground"
-                                : "border-border/80 bg-background text-foreground shadow-2xs",
-                            )}
-                          >
-                            <span>{sz}</span>
-                            {!isPreview && (
-                              <button
-                                type="button"
-                                onClick={() => toggleSizeInGrade(sz)}
-                                className="size-3.5 rounded-full flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
-                                aria-label={`Remover tamanho ${sz}`}
-                              >
-                                <X className="size-2" />
-                              </button>
-                            )}
-                          </span>
-                        ));
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* BLOCO DIREITA: Estratégia de Precificação & Quantidade */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    {/* Divisor vertical */}
-                    <div className="h-5 w-px bg-border/70 shrink-0 hidden md:block" />
-
-                    {/* Mini seletor de estratégia (Sempre visível em ambos os modos) */}
-                    <div className="inline-flex rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
+                  {/* BLOCO DIREITA: Estratégia de Precificação & Quantidade */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      {/* Mini seletor de estratégia (Sempre visível em ambos os modos) */}
+                      <div className="inline-flex rounded-lg border border-border/80 bg-background p-0.5 shadow-2xs">
                       <button
                         type="button"
                         onClick={() => {
