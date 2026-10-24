@@ -4959,7 +4959,7 @@ function Precificacao() {
                           variantRealCosts.hasMultipleCosts ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
                         )}>
                           {variantRealCosts.hasMultipleCosts
-                            ? `${brl(variantRealCosts.minCost)} ~ ${brl(variantRealCosts.maxCost)}`
+                            ? `${brl(variantRealCosts.minCost)} a ${brl(variantRealCosts.maxCost)}`
                             : brl(variantRealCosts.minCost)}
                         </p>
                       </div>
@@ -4970,24 +4970,17 @@ function Precificacao() {
 
               {/* ── CARD RESUMO & CTA DO TOPO (DESKTOP) ── */}
               <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3">
-                {/* 1. Preço sugerido por peça e métricas de margem (Adaptativo para Faixas) */}
+                {/* 1. Cabeçalho Estável: Preço Sugerido */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                      {summaryPrices.hasMultiple ? "Preço sugerido (faixa da grade)" : "Preço sugerido / peça"}
+                      Preço sugerido
                     </p>
-                    <div className="flex items-center gap-1.5">
-                      {summaryPrices.hasMultiple && (
-                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                          Preços variam ⚡
-                        </span>
-                      )}
-                      {actualLotUnits > 0 && (
-                        <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10 numeric">
-                          lote {actualLotUnits} un.
-                        </span>
-                      )}
-                    </div>
+                    {summaryPrices.avgSuggested > 0 && (
+                      <span className="text-[10px] font-bold text-foreground/85 px-2.5 py-0.5 rounded-full bg-secondary/80 border border-border/60 numeric">
+                        {summaryPrices.avgMargin.toFixed(0)}% margem
+                      </span>
+                    )}
                   </div>
 
                   <p className={cn(
@@ -4997,73 +4990,48 @@ function Precificacao() {
                       : "text-3xl sm:text-4xl"
                   )}>
                     {summaryPrices.hasMultiple
-                      ? `${brl(summaryPrices.minSuggested)} ~ ${brl(summaryPrices.maxSuggested)}`
+                      ? `${brl(summaryPrices.minSuggested)} a ${brl(summaryPrices.maxSuggested)}`
                       : brl(summaryPrices.avgSuggested)}
                   </p>
 
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">
-                      {summaryPrices.avgSuggested > 0 ? (
-                        summaryPrices.hasMultiple ? (
-                          <>
-                            Média ponderada <span className="font-semibold text-foreground/80 numeric">{brl(summaryPrices.avgSuggested)}</span>
-                            {" · "}Margem média <span className="font-semibold text-foreground/80 numeric">{summaryPrices.avgMargin.toFixed(0)}%</span>
-                          </>
-                        ) : (
-                          <>
-                            Margem estimada <span className="font-semibold text-foreground/80 numeric">{summaryPrices.avgMargin.toFixed(0)}%</span>
-                            {" · "}Lucro unitário{" "}
-                            <span className={cn(
-                              "font-bold numeric",
-                              summaryPrices.avgProfit > 0
-                                ? "text-success"
-                                : summaryPrices.avgProfit < 0
-                                ? "text-destructive"
-                                : "text-foreground"
-                            )}>
-                              {summaryPrices.avgProfit > 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
-                            </span>
-                          </>
-                        )
+                  <p className="text-xs text-muted-foreground">
+                    {summaryPrices.avgSuggested > 0 ? (
+                      summaryPrices.hasMultiple ? (
+                        <span>Preço varia por tamanho na grade</span>
                       ) : (
-                        <span>Preencha o atacado e a grade para calcular</span>
-                      )}
-                    </p>
-
-                    {summaryPrices.hasMultiple && (
-                      <a
-                        href="#secao-matriz-precificacao"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline pt-0.5"
-                      >
-                        <span>Preços individuais por tamanho e cor na planilha abaixo</span>
-                        <ChevronDown className="size-3" />
-                      </a>
+                        <>
+                          Lucro unitário{" "}
+                          <span className={cn(
+                            "font-bold numeric",
+                            summaryPrices.avgProfit > 0
+                              ? "text-success"
+                              : summaryPrices.avgProfit < 0
+                              ? "text-destructive"
+                              : "text-foreground"
+                          )}>
+                            {summaryPrices.avgProfit > 0 ? "+" : ""}{brl(summaryPrices.avgProfit)}
+                          </span>
+                        </>
+                      )
+                    ) : (
+                      <span>Preencha o atacado e a grade para calcular</span>
                     )}
-                  </div>
+                  </p>
                 </div>
 
-                {/* 2. Ilha Suave Integrada: Métricas do Lote (Padrão Apple Card) */}
-                <div className="rounded-2xl bg-secondary/35 border border-border/50 p-3.5 space-y-3">
+                {/* 2. Ilha Financeira do Lote (Padrão Apple Wallet) */}
+                <div className="rounded-2xl bg-secondary/35 border border-border/50 p-3.5 space-y-2.5">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Investimento</p>
-                      <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
-                        {brl(summaryPrices.totalInvestment)}
-                      </p>
-                    </div>
-                    <div>
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Faturamento</p>
-                      <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
+                      <p className="text-base sm:text-lg font-black text-foreground numeric mt-0.5">
                         {brl(summaryPrices.totalRevenue)}
                       </p>
                     </div>
-                  </div>
-
-                  <div className="border-t border-border/30 pt-2.5 grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Lucro líquido</p>
                       <p className={cn(
-                        "text-sm sm:text-base font-black numeric mt-0.5",
+                        "text-base sm:text-lg font-black numeric mt-0.5",
                         summaryPrices.totalProfit > 0
                           ? "text-success"
                           : summaryPrices.totalProfit < 0
@@ -5073,17 +5041,16 @@ function Precificacao() {
                         {summaryPrices.totalProfit > 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Peças no lote</p>
-                      <p className="text-sm sm:text-base font-black text-foreground numeric mt-0.5">
-                        {actualLotUnits > 0 ? `${actualLotUnits} un.` : "0 un."}
-                      </p>
-                    </div>
+                  </div>
+
+                  <div className="border-t border-border/40 pt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Investimento: <strong className="text-foreground font-semibold numeric">{brl(summaryPrices.totalInvestment)}</strong></span>
+                    <span className="numeric">{actualLotUnits > 0 ? `${actualLotUnits} peças no lote` : "0 peças"}</span>
                   </div>
                 </div>
 
                 {/* 3. Ação Principal & Status */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Button
                     type="button"
                     onClick={openEntryForCurrent}
@@ -5091,17 +5058,17 @@ function Precificacao() {
                     className="w-full h-11 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
                   >
                     <PackagePlus className="size-4 mr-2" />
-                    <span>Dar entrada no estoque</span>
+                    <span>
+                      {actualLotUnits > 0
+                        ? `Dar entrada no estoque (${actualLotUnits} un.)`
+                        : "Dar entrada no estoque"}
+                    </span>
                   </Button>
 
-                  <div className="min-h-[1.25rem] flex items-center justify-center text-center">
-                    {!canSubmitGrade && validationMsg ? (
+                  <div className="min-h-[1rem] flex items-center justify-center text-center">
+                    {!canSubmitGrade && validationMsg && (
                       <p className="text-[11px] text-muted-foreground leading-normal">
                         Falta preencher: <span className="font-semibold text-foreground/80">{validationMsg}</span>
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-success font-semibold flex items-center justify-center gap-1.5">
-                        <Check className="size-3.5" /> Pronto para dar entrada no estoque
                       </p>
                     )}
                   </div>
@@ -5985,7 +5952,9 @@ function Precificacao() {
                 <div className="min-w-0">
                   <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Preço sugerido</p>
                   <p className="text-xl font-black text-foreground numeric leading-tight">
-                    {brl(summaryPrices.avgSuggested)}
+                    {summaryPrices.hasMultiple
+                      ? `${brl(summaryPrices.minSuggested)} a ${brl(summaryPrices.maxSuggested)}`
+                      : brl(summaryPrices.avgSuggested)}
                   </p>
                   <p className="text-[10px] text-muted-foreground truncate">
                     {actualLotUnits} un. · Lucro {brl(summaryPrices.totalProfit)}
