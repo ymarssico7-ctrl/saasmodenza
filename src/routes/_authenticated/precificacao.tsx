@@ -768,15 +768,15 @@ function GradeGeneratorModal({
 }) {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [defaultQty, setDefaultQty] = useState<number>(2);
+  const [defaultQty, setDefaultQty] = useState<number>(1);
   const [customColorInput, setCustomColorInput] = useState<string>("");
   const [customSizeInput, setCustomSizeInput] = useState<string>("");
 
   useEffect(() => {
     if (open) {
-      setSelectedColors(currentColors.length > 0 ? currentColors : ["Preto", "Off-White"]);
-      setSelectedSizes(currentSizes.length > 0 ? currentSizes : ["P", "M", "G", "GG"]);
-      setDefaultQty(2);
+      setSelectedColors(currentColors);
+      setSelectedSizes(currentSizes);
+      setDefaultQty(1);
       setCustomColorInput("");
       setCustomSizeInput("");
     }
