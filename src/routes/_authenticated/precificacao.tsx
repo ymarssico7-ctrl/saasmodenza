@@ -756,6 +756,8 @@ function GradeGeneratorModal({
   storeCustomSizes = [],
   onConfirm,
   isEditing = false,
+  initialDraft = null,
+  onDraftChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -765,22 +767,57 @@ function GradeGeneratorModal({
   storeCustomSizes?: CustomSizeOption[];
   onConfirm: (colors: string[], sizes: string[], defaultQty: number) => void;
   isEditing?: boolean;
+  initialDraft?: { selectedColors: string[]; selectedSizes: string[]; defaultQty: number } | null;
+  onDraftChange?: (draft: { selectedColors: string[]; selectedSizes: string[]; defaultQty: number } | null) => void;
 }) {
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [defaultQty, setDefaultQty] = useState<number>(1);
+  const [selectedColors, setSelectedColors] = useState<string[]>(() => {
+    if (initialDraft && initialDraft.selectedColors && initialDraft.selectedColors.length > 0) {
+      return initialDraft.selectedColors;
+    }
+    return currentColors;
+  });
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(() => {
+    if (initialDraft && initialDraft.selectedSizes && initialDraft.selectedSizes.length > 0) {
+      return initialDraft.selectedSizes;
+    }
+    return currentSizes;
+  });
+  const [defaultQty, setDefaultQty] = useState<number>(() => initialDraft?.defaultQty ?? 1);
   const [customColorInput, setCustomColorInput] = useState<string>("");
   const [customSizeInput, setCustomSizeInput] = useState<string>("");
 
+  const prevOpenRef = useRef(open);
+
   useEffect(() => {
-    if (open) {
-      setSelectedColors(currentColors);
-      setSelectedSizes(currentSizes);
-      setDefaultQty(1);
+    const wasOpen = prevOpenRef.current;
+    prevOpenRef.current = open;
+
+    // Dispara APENAS quando o modal transiciona de fechado para aberto:
+    if (!wasOpen && open) {
+      if (initialDraft && (initialDraft.selectedColors?.length > 0 || initialDraft.selectedSizes?.length > 0)) {
+        setSelectedColors(initialDraft.selectedColors || []);
+        setSelectedSizes(initialDraft.selectedSizes || []);
+        setDefaultQty(initialDraft.defaultQty ?? 1);
+      } else {
+        setSelectedColors(currentColors);
+        setSelectedSizes(currentSizes);
+        setDefaultQty(1);
+      }
       setCustomColorInput("");
       setCustomSizeInput("");
     }
-  }, [open, currentColors, currentSizes]);
+  }, [open, initialDraft, currentColors, currentSizes]);
+
+  // Sincroniza rascunho em tempo real enquanto o modal estiver aberto:
+  useEffect(() => {
+    if (open) {
+      onDraftChange?.({
+        selectedColors,
+        selectedSizes,
+        defaultQty,
+      });
+    }
+  }, [open, selectedColors, selectedSizes, defaultQty, onDraftChange]);
 
   const toggleColor = (c: string) => {
     setSelectedColors((prev) =>
@@ -850,7 +887,15 @@ function GradeGeneratorModal({
   const totalPieces = totalVariations * defaultQty;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onDraftChange?.(null);
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="sm:max-w-xl max-h-[88vh] h-[88vh] sm:h-auto flex flex-col p-0 rounded-3xl overflow-hidden border border-border/80 shadow-lift bg-card gap-0">
         {/* ── HEADER FIXO (NUNCA ROLA) ── */}
         <DialogHeader className="p-5 pb-3.5 border-b border-border/60 shrink-0 text-left pr-10">
@@ -1210,14 +1255,20 @@ function GradeGeneratorModal({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                onDraftChange?.(null);
+                onOpenChange(false);
+              }}
               className="rounded-xl text-xs h-10 cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               type="button"
-              onClick={() => onConfirm(selectedColors, selectedSizes, defaultQty)}
+              onClick={() => {
+                onConfirm(selectedColors, selectedSizes, defaultQty);
+                onDraftChange?.(null);
+              }}
               disabled={totalVariations === 0}
               className="gradient-primary text-primary-foreground font-bold rounded-xl text-xs sm:text-sm h-10 px-5 shadow-glow cursor-pointer disabled:opacity-40"
             >
@@ -1659,7 +1710,14 @@ function Precificacao() {
   const [showDeducoes, setShowDeducoes] = useState(false);
   const [sizePresetDropdown, setSizePresetDropdown] = useState("padrao");
   const [gradePricingMode, setGradePricingMode] = useState<"unified" | "isolated">("unified");
-  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [showGradeModal, setShowGradeModal] = useState<boolean>(() =>
+    loadDraft("showGradeModal", false),
+  );
+  const [gradeModalDraft, setGradeModalDraft] = useState<{
+    selectedColors: string[];
+    selectedSizes: string[];
+    defaultQty: number;
+  } | null>(() => loadDraft("gradeModalDraft", null));
 
   const handleConfirmGradeModal = (
     colors: string[],
@@ -1704,6 +1762,7 @@ function Precificacao() {
 
     setVariants(newRows);
     setShowGradeModal(false);
+    setGradeModalDraft(null);
     toast.success(`Grade gerada com sucesso! ${newRows.length} variações na planilha 🎉`);
   };
 
@@ -1763,6 +1822,8 @@ function Precificacao() {
           cardRate,
           matrixSizes,
           matrixDefaultQtys,
+          showGradeModal,
+          gradeModalDraft,
         };
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch {
@@ -1801,6 +1862,8 @@ function Precificacao() {
     cardRate,
     matrixSizes,
     matrixDefaultQtys,
+    showGradeModal,
+    gradeModalDraft,
   ]);
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
@@ -1824,6 +1887,12 @@ function Precificacao() {
     if (mode !== "grade") return Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
     return variants.reduce((acc, v) => acc + (v.qty || 1), 0);
   }, [mode, variants, rapidaQty]);
+
+  // Lista única e estável de tamanhos para props do modal gerador
+  const modalCurrentSizes = useMemo(
+    () => Array.from(new Set(variants.map((v) => v.size))),
+    [variants],
+  );
 
   // ── Helper: resolve custo real por peça considerando o modo (por peça ou lote total) ──
   const resolvePerUnit = (valueStr: string, mode: "per_unit" | "lot_total", units: number): number => {
@@ -2373,6 +2442,8 @@ function Precificacao() {
     setRapidaColor("");
     setRapidaSize("");
     setRapidaQty("1");
+    setShowGradeModal(false);
+    setGradeModalDraft(null);
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {
@@ -6156,11 +6227,13 @@ function Precificacao() {
                 open={showGradeModal}
                 onOpenChange={setShowGradeModal}
                 currentColors={activeColors}
-                currentSizes={Array.from(new Set(variants.map((v) => v.size)))}
+                currentSizes={modalCurrentSizes}
                 storeCustomColors={customOptions.customColors}
                 storeCustomSizes={customOptions.customSizes}
                 onConfirm={handleConfirmGradeModal}
                 isEditing={variants.length > 0}
+                initialDraft={gradeModalDraft}
+                onDraftChange={setGradeModalDraft}
               />
             </section>
 
