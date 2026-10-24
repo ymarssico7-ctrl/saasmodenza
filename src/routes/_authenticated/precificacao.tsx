@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   Coins,
+  Copy,
   CreditCard,
   Flame,
   HelpCircle,
@@ -765,10 +766,22 @@ function GradeGeneratorModal({
   currentSizes: string[];
   storeCustomColors?: CustomColorOption[];
   storeCustomSizes?: CustomSizeOption[];
-  onConfirm: (colors: string[], sizes: string[], defaultQty: number) => void;
+  onConfirm: (colors: string[], sizes: string[], defaultQty: number, colorSizesMap?: Record<string, string[]>) => void;
   isEditing?: boolean;
-  initialDraft?: { selectedColors: string[]; selectedSizes: string[]; defaultQty: number } | null;
-  onDraftChange?: (draft: { selectedColors: string[]; selectedSizes: string[]; defaultQty: number } | null) => void;
+  initialDraft?: {
+    selectedColors: string[];
+    selectedSizes: string[];
+    defaultQty: number;
+    customSizesByColor?: boolean;
+    colorSizesMap?: Record<string, string[]>;
+  } | null;
+  onDraftChange?: (draft: {
+    selectedColors: string[];
+    selectedSizes: string[];
+    defaultQty: number;
+    customSizesByColor?: boolean;
+    colorSizesMap?: Record<string, string[]>;
+  } | null) => void;
 }) {
   const [selectedColors, setSelectedColors] = useState<string[]>(() => {
     if (initialDraft && initialDraft.selectedColors && initialDraft.selectedColors.length > 0) {
@@ -783,8 +796,16 @@ function GradeGeneratorModal({
     return currentSizes;
   });
   const [defaultQty, setDefaultQty] = useState<number>(() => initialDraft?.defaultQty ?? 1);
+  const [customSizesByColor, setCustomSizesByColor] = useState<boolean>(
+    () => initialDraft?.customSizesByColor ?? false,
+  );
+  const [colorSizesMap, setColorSizesMap] = useState<Record<string, string[]>>(
+    () => initialDraft?.colorSizesMap ?? {},
+  );
+  const [activeTabColor, setActiveTabColor] = useState<string>("");
   const [customColorInput, setCustomColorInput] = useState<string>("");
   const [customSizeInput, setCustomSizeInput] = useState<string>("");
+
 
   const prevOpenRef = useRef(open);
 
@@ -798,10 +819,16 @@ function GradeGeneratorModal({
         setSelectedColors(initialDraft.selectedColors || []);
         setSelectedSizes(initialDraft.selectedSizes || []);
         setDefaultQty(initialDraft.defaultQty ?? 1);
+        setCustomSizesByColor(initialDraft.customSizesByColor ?? false);
+        setColorSizesMap(initialDraft.colorSizesMap ?? {});
+        setActiveTabColor(initialDraft.selectedColors?.[0] ?? "");
       } else {
         setSelectedColors(currentColors);
         setSelectedSizes(currentSizes);
         setDefaultQty(1);
+        setCustomSizesByColor(false);
+        setColorSizesMap({});
+        setActiveTabColor(currentColors[0] ?? "");
       }
       setCustomColorInput("");
       setCustomSizeInput("");
@@ -815,9 +842,13 @@ function GradeGeneratorModal({
         selectedColors,
         selectedSizes,
         defaultQty,
+        customSizesByColor,
+        colorSizesMap,
       });
     }
-  }, [open, selectedColors, selectedSizes, defaultQty, onDraftChange]);
+
+  }, [open, selectedColors, selectedSizes, defaultQty, customSizesByColor, colorSizesMap, onDraftChange]);
+
 
   const toggleColor = (c: string) => {
     setSelectedColors((prev) =>
@@ -883,8 +914,76 @@ function GradeGeneratorModal({
     { id: "unico", label: "Tamanho Único", sizes: ["Único"] },
   ];
 
-  const totalVariations = selectedColors.length * selectedSizes.length;
+  // ── Funções auxiliares para modo assimétrico ──────────────────────────────
+
+  /** Alterna um tamanho para uma cor específica no modo assimétrico */
+  const toggleSizeForColor = (color: string, sz: string) => {
+    setColorSizesMap((prev) => {
+      const current = prev[color] ?? [...selectedSizes];
+      const next = current.includes(sz)
+        ? current.filter((s) => s !== sz)
+        : sortCanonicalSizes([...current, sz]);
+      return { ...prev, [color]: next };
+    });
+  };
+
+  /** Aplica um preset para uma cor específica no modo assimétrico */
+  const applyPresetForColor = (color: string, presetSizes: string[]) => {
+    setColorSizesMap((prev) => {
+      const current = prev[color] ?? [...selectedSizes];
+      const isAllSelected = presetSizes.every((sz) => current.includes(sz));
+      const next = isAllSelected
+        ? current.filter((sz) => !presetSizes.includes(sz))
+        : sortCanonicalSizes(Array.from(new Set([...current, ...presetSizes])));
+      return { ...prev, [color]: next };
+    });
+  };
+
+  /** Adiciona tamanho customizado para uma cor específica */
+  const handleAddCustomSizeForColor = (color: string) => {
+    const clean = customSizeInput.trim().toUpperCase();
+    if (!clean) return;
+    setColorSizesMap((prev) => {
+      const current = prev[color] ?? [...selectedSizes];
+      if (current.includes(clean)) return prev;
+      return { ...prev, [color]: sortCanonicalSizes([...current, clean]) };
+    });
+    setCustomSizeInput("");
+  };
+
+  /** Copia os tamanhos da cor ativa para todas as cores selecionadas */
+  const copySizesToAllColors = (sourceColor: string) => {
+    const sizes = colorSizesMap[sourceColor] ?? selectedSizes;
+    const newMap: Record<string, string[]> = {};
+    selectedColors.forEach((col) => {
+      newMap[col] = [...sizes];
+    });
+    setColorSizesMap(newMap);
+  };
+
+  /** Inicializa o colorSizesMap ao ativar o modo assimétrico */
+  const activateCustomSizesByColor = () => {
+    const newMap: Record<string, string[]> = {};
+    selectedColors.forEach((col) => {
+      newMap[col] = colorSizesMap[col] ?? [...selectedSizes];
+    });
+    setColorSizesMap(newMap);
+    setActiveTabColor(selectedColors[0] ?? "");
+    setCustomSizesByColor(true);
+  };
+
+  // ── Cálculo de variações (dinâmico conforme modo) ─────────────────────────
+
+  const totalVariations = customSizesByColor
+    ? selectedColors.reduce((sum, col) => sum + (colorSizesMap[col] ?? selectedSizes).length, 0)
+    : selectedColors.length * selectedSizes.length;
   const totalPieces = totalVariations * defaultQty;
+
+  // Cor ativa válida (garante que sempre aponta para uma cor selecionada)
+  const resolvedActiveTab =
+    selectedColors.includes(activeTabColor) ? activeTabColor : (selectedColors[0] ?? "");
+  const activeSizesForTab = colorSizesMap[resolvedActiveTab] ?? selectedSizes;
+
 
   return (
     <Dialog
@@ -1034,166 +1133,392 @@ function GradeGeneratorModal({
 
           {/* 2. SELEÇÃO DE TAMANHOS */}
           <div className="space-y-3 pt-3 border-t border-border/50">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-2">
-                <span>2. Grade de tamanhos</span>
-                <Badge variant="secondary" className="text-[10px] h-5 font-bold px-2">
-                  {selectedSizes.length} {selectedSizes.length === 1 ? "tamanho" : "tamanhos"}
-                </Badge>
-              </Label>
-              {selectedSizes.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedSizes([])}
-                  className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-destructive/10"
-                >
-                  Limpar tamanhos
-                </button>
+            {/* Header + segmentador de modo */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <span>2. Grade de tamanhos</span>
+                  <Badge variant="secondary" className="text-[10px] h-5 font-bold px-2">
+                    {customSizesByColor
+                      ? `${totalVariations} variações`
+                      : `${selectedSizes.length} ${selectedSizes.length === 1 ? "tamanho" : "tamanhos"}`}
+                  </Badge>
+                </Label>
+                {!customSizesByColor && selectedSizes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSizes([])}
+                    className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-destructive/10"
+                  >
+                    Limpar tamanhos
+                  </button>
+                )}
+              </div>
+
+              {/* Segmentador Simétrico / Assimétrico — visível apenas com 2+ cores */}
+              {selectedColors.length > 1 && (
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary/60 border border-border/60 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setCustomSizesByColor(false)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
+                      !customSizesByColor
+                        ? "bg-card shadow-xs text-foreground border border-border/80"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Check className={cn("size-3", !customSizesByColor ? "text-primary" : "opacity-0")} />
+                    Mesmos tamanhos para todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={activateCustomSizesByColor}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
+                      customSizesByColor
+                        ? "bg-card shadow-xs text-foreground border border-border/80"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Check className={cn("size-3", customSizesByColor ? "text-primary" : "opacity-0")} />
+                    Personalizar por cor
+                  </button>
+                </div>
               )}
             </div>
 
-            {/* Presets Rápidos */}
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Atalhos Recomendados:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {storeCustomSizes.length > 0 && (
+            {/* ── MODO ASSIMÉTRICO: abas por cor ───────────────────────────────── */}
+            {customSizesByColor && selectedColors.length > 1 ? (
+              <div className="space-y-3">
+                {/* Abas de cores */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {selectedColors.map((col) => {
+                    const sizesCount = (colorSizesMap[col] ?? selectedSizes).length;
+                    const isActive = resolvedActiveTab === col;
+                    return (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => setActiveTabColor(col)}
+                        className={cn(
+                          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer select-none",
+                          isActive
+                            ? "border-primary bg-primary/10 text-foreground font-bold shadow-2xs ring-1 ring-primary/30"
+                            : "border-border/80 bg-background text-muted-foreground hover:bg-secondary/70 hover:border-border",
+                        )}
+                      >
+                        <span className={cn("size-2.5 rounded-full shrink-0 ring-1 ring-black/10", getColorDot(col))} />
+                        <span>{col}</span>
+                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold min-w-[18px] text-center">
+                          {sizesCount}
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Botão de ação rápida: copiar para todas */}
+                {resolvedActiveTab && (
                   <button
                     type="button"
-                    onClick={() => applyPreset(storeCustomSizes.map((s) => s.label))}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary transition-all cursor-pointer shadow-2xs"
+                    onClick={() => copySizesToAllColors(resolvedActiveTab)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-border/60 bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all cursor-pointer"
                   >
-                    ✨ Minha Loja ({storeCustomSizes.map((s) => s.label).join(", ")})
+                    <Copy className="size-3 shrink-0" />
+                    Copiar tamanhos de <strong className="text-foreground">{resolvedActiveTab}</strong> para todas as cores
                   </button>
                 )}
-                {PRESETS_LIST.map((p) => {
-                  const isAllSelected = p.sizes.every((sz) => selectedSizes.includes(sz));
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => applyPreset(p.sizes)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs select-none",
-                        isAllSelected
-                          ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
-                          : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
-                      )}
-                    >
-                      {isAllSelected && <Check className="size-3 text-primary stroke-[2.5]" />}
-                      <span>{p.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* Chips de Tamanhos Organizados por Famílias */}
-            <div className="space-y-2.5 pt-1">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tamanhos Individuais:</p>
-
-              {/* Família Letras */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Padrão:</span>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {["PP", "P", "M", "G", "GG"].map((sz) => {
-                    const isSelected = selectedSizes.includes(sz);
-                    return (
+                {/* Atalhos Recomendados (para a cor ativa) */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Atalhos para {resolvedActiveTab}:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {storeCustomSizes.length > 0 && (
                       <button
-                        key={sz}
                         type="button"
-                        onClick={() => toggleSize(sz)}
-                        className={cn(
-                          "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
-                          isSelected
-                            ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
-                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
-                        )}
+                        onClick={() => applyPresetForColor(resolvedActiveTab, storeCustomSizes.map((s) => s.label))}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary transition-all cursor-pointer shadow-2xs"
                       >
-                        {sz}
+                        ✨ Minha Loja ({storeCustomSizes.map((s) => s.label).join(", ")})
                       </button>
-                    );
-                  })}
+                    )}
+                    {PRESETS_LIST.map((p) => {
+                      const isAllSelected = p.sizes.every((sz) => activeSizesForTab.includes(sz));
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => applyPresetForColor(resolvedActiveTab, p.sizes)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs select-none",
+                            isAllSelected
+                              ? "border-primary bg-primary/10 text-primary font-bold"
+                              : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                          )}
+                        >
+                          {isAllSelected && <Check className="size-3 text-primary stroke-[2.5]" />}
+                          <span>{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Chips de tamanhos para a cor ativa */}
+                <div className="space-y-2.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tamanhos para {resolvedActiveTab}:</p>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Padrão:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {["PP", "P", "M", "G", "GG"].map((sz) => {
+                        const isSelected = activeSizesForTab.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSizeForColor(resolvedActiveTab, sz)}
+                            className={cn(
+                              "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Números:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {["34", "36", "38", "40", "42", "44", "46", "48"].map((sz) => {
+                        const isSelected = activeSizesForTab.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSizeForColor(resolvedActiveTab, sz)}
+                            className={cn(
+                              "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Especiais:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {["G1", "G2", "G3", "Único"].map((sz) => {
+                        const isSelected = activeSizesForTab.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSizeForColor(resolvedActiveTab, sz)}
+                            className={cn(
+                              "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Adicionar tamanho customizado para a cor ativa */}
+                <div className="flex items-center gap-2 pt-1 max-w-md">
+                  <Input
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomSizeForColor(resolvedActiveTab);
+                      }
+                    }}
+                    placeholder={`Outro tamanho para ${resolvedActiveTab} (ex: 50, G4)...`}
+                    className="h-8 text-xs rounded-xl bg-background border-border/80"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAddCustomSizeForColor(resolvedActiveTab)}
+                    disabled={!customSizeInput.trim()}
+                    className="h-8 px-3 text-xs font-semibold rounded-xl border-border shrink-0 cursor-pointer"
+                  >
+                    <Plus className="size-3.5 mr-1" />
+                    Adicionar
+                  </Button>
                 </div>
               </div>
-
-              {/* Família Numérica */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Números:</span>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {["34", "36", "38", "40", "42", "44", "46", "48"].map((sz) => {
-                    const isSelected = selectedSizes.includes(sz);
-                    return (
+            ) : (
+              /* ── MODO SIMÉTRICO (padrão): igual ao original ──────────────────── */
+              <>
+                {/* Presets Rápidos */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Atalhos Recomendados:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {storeCustomSizes.length > 0 && (
                       <button
-                        key={sz}
                         type="button"
-                        onClick={() => toggleSize(sz)}
-                        className={cn(
-                          "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
-                          isSelected
-                            ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
-                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
-                        )}
+                        onClick={() => applyPreset(storeCustomSizes.map((s) => s.label))}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary transition-all cursor-pointer shadow-2xs"
                       >
-                        {sz}
+                        ✨ Minha Loja ({storeCustomSizes.map((s) => s.label).join(", ")})
                       </button>
-                    );
-                  })}
+                    )}
+                    {PRESETS_LIST.map((p) => {
+                      const isAllSelected = p.sizes.every((sz) => selectedSizes.includes(sz));
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => applyPreset(p.sizes)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs select-none",
+                            isAllSelected
+                              ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
+                              : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                          )}
+                        >
+                          {isAllSelected && <Check className="size-3 text-primary stroke-[2.5]" />}
+                          <span>{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              {/* Família Especiais */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Especiais:</span>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {["G1", "G2", "G3", "Único"].map((sz) => {
-                    const isSelected = selectedSizes.includes(sz);
-                    return (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleSize(sz)}
-                        className={cn(
-                          "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
-                          isSelected
-                            ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
-                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        {sz}
-                      </button>
-                    );
-                  })}
+                {/* Chips de Tamanhos Organizados por Famílias */}
+                <div className="space-y-2.5 pt-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tamanhos Individuais:</p>
+
+                  {/* Família Letras */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Padrão:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {["PP", "P", "M", "G", "GG"].map((sz) => {
+                        const isSelected = selectedSizes.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSize(sz)}
+                            className={cn(
+                              "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Família Numérica */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Números:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {["34", "36", "38", "40", "42", "44", "46", "48"].map((sz) => {
+                        const isSelected = selectedSizes.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSize(sz)}
+                            className={cn(
+                              "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Família Especiais */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Especiais:</span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {["G1", "G2", "G3", "Único"].map((sz) => {
+                        const isSelected = selectedSizes.includes(sz);
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => toggleSize(sz)}
+                            className={cn(
+                              "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary",
+                            )}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Adicionar tamanho customizado */}
-            <div className="flex items-center gap-2 pt-1 max-w-md">
-              <Input
-                value={customSizeInput}
-                onChange={(e) => setCustomSizeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddCustomSize();
-                  }
-                }}
-                placeholder="Outro tamanho (ex: 50, 52, G4)..."
-                className="h-8 text-xs rounded-xl bg-background border-border/80"
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={handleAddCustomSize}
-                disabled={!customSizeInput.trim()}
-                className="h-8 px-3 text-xs font-semibold rounded-xl border-border shrink-0 cursor-pointer"
-              >
-                <Plus className="size-3.5 mr-1" />
-                Adicionar
-              </Button>
-            </div>
+                {/* Adicionar tamanho customizado */}
+                <div className="flex items-center gap-2 pt-1 max-w-md">
+                  <Input
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomSize();
+                      }
+                    }}
+                    placeholder="Outro tamanho (ex: 50, 52, G4)..."
+                    className="h-8 text-xs rounded-xl bg-background border-border/80"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddCustomSize}
+                    disabled={!customSizeInput.trim()}
+                    className="h-8 px-3 text-xs font-semibold rounded-xl border-border shrink-0 cursor-pointer"
+                  >
+                    <Plus className="size-3.5 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
+
 
           {/* 3. QUANTIDADE INICIAL SUGERIDA */}
           <div className="space-y-2 pt-3 border-t border-border/50">
@@ -1233,15 +1558,35 @@ function GradeGeneratorModal({
                 <Sparkles className="size-3.5 text-primary shrink-0" />
                 <span>Resumo da Matriz</span>
               </p>
-              <p className="text-[11px] text-muted-foreground truncate">
-                {selectedColors.length > 0 && selectedSizes.length > 0 ? (
-                  <>
-                    <strong className="text-foreground font-semibold">{selectedColors.length}</strong> {selectedColors.length === 1 ? "cor" : "cores"}
-                    {" × "}
-                    <strong className="text-foreground font-semibold">{selectedSizes.length}</strong> {selectedSizes.length === 1 ? "tamanho" : "tamanhos"}
-                  </>
+              <p className="text-[11px] text-muted-foreground">
+                {customSizesByColor && selectedColors.length > 1 ? (
+                  totalVariations > 0 ? (
+                    <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+                      {selectedColors.map((col) => {
+                        const count = (colorSizesMap[col] ?? selectedSizes).length;
+                        return (
+                          <span key={col}>
+                            <strong className="text-foreground font-semibold">{col}</strong>
+                            {": "}
+                            <strong className="text-foreground font-semibold">{count}</strong>
+                            {" tam."}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">Defina tamanhos para cada cor</span>
+                  )
                 ) : (
-                  <span className="text-amber-600 dark:text-amber-400 font-medium">Selecione ao menos 1 cor e 1 tamanho</span>
+                  selectedColors.length > 0 && selectedSizes.length > 0 ? (
+                    <>
+                      <strong className="text-foreground font-semibold">{selectedColors.length}</strong> {selectedColors.length === 1 ? "cor" : "cores"}
+                      {" × "}
+                      <strong className="text-foreground font-semibold">{selectedSizes.length}</strong> {selectedSizes.length === 1 ? "tamanho" : "tamanhos"}
+                    </>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">Selecione ao menos 1 cor e 1 tamanho</span>
+                  )
                 )}
               </p>
             </div>
@@ -1266,7 +1611,12 @@ function GradeGeneratorModal({
             <Button
               type="button"
               onClick={() => {
-                onConfirm(selectedColors, selectedSizes, defaultQty);
+                onConfirm(
+                  selectedColors,
+                  selectedSizes,
+                  defaultQty,
+                  customSizesByColor && selectedColors.length > 1 ? colorSizesMap : undefined,
+                );
                 onDraftChange?.(null);
               }}
               disabled={totalVariations === 0}
@@ -1281,6 +1631,7 @@ function GradeGeneratorModal({
             </Button>
           </DialogFooter>
         </div>
+
       </DialogContent>
     </Dialog>
   );
@@ -1717,24 +2068,46 @@ function Precificacao() {
     selectedColors: string[];
     selectedSizes: string[];
     defaultQty: number;
+    customSizesByColor?: boolean;
+    colorSizesMap?: Record<string, string[]>;
   } | null>(() => loadDraft("gradeModalDraft", null));
+
 
   const handleConfirmGradeModal = (
     colors: string[],
     sizes: string[],
     defaultQty: number,
+    colorSizesMap?: Record<string, string[]>,
   ) => {
-    if (colors.length === 0 || sizes.length === 0) {
-      toast.error("Selecione ao menos 1 cor e 1 tamanho para gerar a grade");
+    // Validação: grade simétrica precisa de sizes; grade assimétrica precisa que pelo menos 1 cor tenha tamanhos
+    const isAsymmetric = !!colorSizesMap && Object.keys(colorSizesMap).length > 0;
+    if (colors.length === 0) {
+      toast.error("Selecione ao menos 1 cor para gerar a grade");
+      return;
+    }
+    if (!isAsymmetric && sizes.length === 0) {
+      toast.error("Selecione ao menos 1 tamanho para gerar a grade");
+      return;
+    }
+    if (isAsymmetric && colors.every((col) => (colorSizesMap[col] ?? []).length === 0)) {
+      toast.error("Defina ao menos 1 tamanho para ao menos 1 cor");
       return;
     }
 
     setActiveColors(colors);
-    setMatrixSizes(sizes);
+
+    // Na grade assimétrica os tamanhos globais são a união de todos os tamanhos por cor
+    const allSizes = isAsymmetric
+      ? Array.from(new Set(colors.flatMap((col) => colorSizesMap[col] ?? [])))
+      : sizes;
+    setMatrixSizes(allSizes);
 
     const newRows: VariantRow[] = [];
     colors.forEach((col) => {
-      sizes.forEach((sz) => {
+      const sizesForColor = isAsymmetric
+        ? (colorSizesMap[col] ?? sizes)
+        : sizes;
+      sizesForColor.forEach((sz) => {
         const existing = variants.find(
           (v) => v.color.toLowerCase() === col.toLowerCase() && v.size === sz,
         );
@@ -1765,6 +2138,7 @@ function Precificacao() {
     setGradeModalDraft(null);
     toast.success(`Grade gerada com sucesso! ${newRows.length} variações na planilha 🎉`);
   };
+
 
   // ── Simuladores & Lote ─────────────────────────────────────────
   const [lotUnits] = useState(20);
