@@ -755,6 +755,7 @@ function GradeGeneratorModal({
   storeCustomColors = [],
   storeCustomSizes = [],
   onConfirm,
+  isEditing = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -763,6 +764,7 @@ function GradeGeneratorModal({
   storeCustomColors?: CustomColorOption[];
   storeCustomSizes?: CustomSizeOption[];
   onConfirm: (colors: string[], sizes: string[], defaultQty: number) => void;
+  isEditing?: boolean;
 }) {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -795,7 +797,12 @@ function GradeGeneratorModal({
   };
 
   const applyPreset = (presetSizes: string[]) => {
-    setSelectedSizes(sortCanonicalSizes(presetSizes));
+    const isAllSelected = presetSizes.every((sz) => selectedSizes.includes(sz));
+    if (isAllSelected) {
+      setSelectedSizes((prev) => prev.filter((sz) => !presetSizes.includes(sz)));
+    } else {
+      setSelectedSizes((prev) => sortCanonicalSizes(Array.from(new Set([...prev, ...presetSizes]))));
+    }
   };
 
   const handleAddCustomColor = () => {
@@ -833,15 +840,10 @@ function GradeGeneratorModal({
 
   const PRESETS_LIST = [
     { id: "padrao", label: "P ao GG", sizes: ["P", "M", "G", "GG"] },
-    { id: "alfaiataria", label: "Alfaiataria (36 a 46)", sizes: ["36", "38", "40", "42", "44", "46"] },
+    { id: "alfaiataria", label: "Alfaiataria (36 a 44)", sizes: ["36", "38", "40", "42", "44"] },
+    { id: "jeans", label: "Jeans (36 a 46)", sizes: ["36", "38", "40", "42", "44", "46"] },
     { id: "plus", label: "Plus Size (GG a G3)", sizes: ["GG", "G1", "G2", "G3"] },
-    { id: "jeans", label: "Jeans (34 a 48)", sizes: ["34", "36", "38", "40", "42", "44", "46", "48"] },
     { id: "unico", label: "Tamanho Único", sizes: ["Único"] },
-  ];
-
-  const ALL_AVAILABLE_SIZES = [
-    "PP", "P", "M", "G", "GG", "G1", "G2", "G3",
-    "34", "36", "38", "40", "42", "44", "46", "48", "Único",
   ];
 
   const totalVariations = selectedColors.length * selectedSizes.length;
@@ -849,26 +851,41 @@ function GradeGeneratorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-5 sm:p-6 rounded-3xl">
-        <DialogHeader className="space-y-1 text-left pb-2 border-b border-border/60">
-          <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <DialogContent className="sm:max-w-xl max-h-[88vh] h-[88vh] sm:h-auto flex flex-col p-0 rounded-3xl overflow-hidden border border-border/80 shadow-lift bg-card gap-0">
+        {/* ── HEADER FIXO (NUNCA ROLA) ── */}
+        <DialogHeader className="p-5 pb-3.5 border-b border-border/60 shrink-0 text-left pr-10">
+          <div className="flex items-start gap-3">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
               <Boxes className="size-4" />
             </span>
-            Gerador de Grade de Variações
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Selecione as cores e os tamanhos para montar a matriz de produção e precificação do lote.
-          </DialogDescription>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
+                  {isEditing ? "Ajustar Grade do Modelo" : "Gerador de Grade de Variações"}
+                </DialogTitle>
+                {isEditing && (
+                  <Badge variant="secondary" className="text-[10px] h-5 font-bold px-2 bg-secondary text-muted-foreground border-border/60">
+                    Grade existente
+                  </Badge>
+                )}
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5 leading-normal">
+                {isEditing
+                  ? "Altere cores e tamanhos. As variações já existentes manterão seus custos e quantidades intactos."
+                  : "Selecione as cores e os tamanhos para montar a matriz de produção e precificação do lote."}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
+        {/* ── CORPO ROLÁVEL COM SCROLL SUAVE ── */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 scrollbar-thin">
           {/* 1. SELEÇÃO DE CORES */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-2">
                 <span>1. Cores deste modelo</span>
-                <Badge variant="secondary" className="text-[10px] h-5 font-bold px-1.5">
+                <Badge variant="secondary" className="text-[10px] h-5 font-bold px-2">
                   {selectedColors.length} {selectedColors.length === 1 ? "cor" : "cores"}
                 </Badge>
               </Label>
@@ -876,7 +893,7 @@ function GradeGeneratorModal({
                 <button
                   type="button"
                   onClick={() => setSelectedColors([])}
-                  className="text-[10px] text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                  className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-destructive/10"
                 >
                   Limpar cores
                 </button>
@@ -896,18 +913,18 @@ function GradeGeneratorModal({
                         type="button"
                         onClick={() => toggleColor(c.label)}
                         className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border shadow-2xs",
+                          "group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer border select-none",
                           isSelected
-                            ? "border-primary bg-primary text-primary-foreground shadow-xs font-bold"
-                            : "border-border/80 bg-background text-foreground hover:bg-secondary"
+                            ? "border-primary bg-primary/10 text-foreground font-bold shadow-2xs ring-1 ring-primary/40"
+                            : "border-border/80 bg-background text-foreground/80 hover:bg-secondary/70 hover:border-border"
                         )}
                       >
                         <span
-                          className="size-2.5 rounded-full shrink-0 border border-black/10"
+                          className="size-3 rounded-full shrink-0 border border-black/15 shadow-xs"
                           style={{ backgroundColor: c.hex }}
                         />
                         <span>{c.label}</span>
-                        {isSelected && <Check className="size-3 ml-0.5" />}
+                        {isSelected && <Check className="size-3.5 text-primary stroke-[2.5]" />}
                       </button>
                     );
                   })}
@@ -927,15 +944,15 @@ function GradeGeneratorModal({
                       type="button"
                       onClick={() => toggleColor(c)}
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer border shadow-2xs",
+                        "group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer border select-none",
                         isSelected
-                          ? "border-primary bg-primary text-primary-foreground shadow-xs font-bold"
-                          : "border-border/80 bg-background text-foreground hover:bg-secondary"
+                          ? "border-primary bg-primary/10 text-foreground font-bold shadow-2xs ring-1 ring-primary/40"
+                          : "border-border/80 bg-background text-foreground/80 hover:bg-secondary/70 hover:border-border"
                       )}
                     >
-                      <span className={cn("size-2.5 rounded-full shrink-0 shadow-2xs", getColorDot(c))} />
+                      <span className={cn("size-3 rounded-full shrink-0 shadow-xs ring-1 ring-black/10", getColorDot(c))} />
                       <span>{c}</span>
-                      {isSelected && <Check className="size-3 ml-0.5" />}
+                      {isSelected && <Check className="size-3.5 text-primary stroke-[2.5]" />}
                     </button>
                   );
                 })}
@@ -943,21 +960,19 @@ function GradeGeneratorModal({
             </div>
 
             {/* Input de Adicionar Outra Cor */}
-            <div className="flex items-center gap-1.5 pt-1">
-              <div className="relative flex-1">
-                <Input
-                  value={customColorInput}
-                  onChange={(e) => setCustomColorInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustomColor();
-                    }
-                  }}
-                  placeholder="Digitar outra cor (ex: Azul Tiffany, Marsala)..."
-                  className="h-8 text-xs rounded-xl bg-background border-border/80"
-                />
-              </div>
+            <div className="flex items-center gap-2 pt-1 max-w-md">
+              <Input
+                value={customColorInput}
+                onChange={(e) => setCustomColorInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustomColor();
+                  }
+                }}
+                placeholder="Digitar outra cor (ex: Azul Tiffany, Marsala)..."
+                className="h-8 text-xs rounded-xl bg-background border-border/80"
+              />
               <Button
                 type="button"
                 size="sm"
@@ -966,98 +981,161 @@ function GradeGeneratorModal({
                 disabled={!customColorInput.trim()}
                 className="h-8 px-3 text-xs font-semibold rounded-xl border-border shrink-0 cursor-pointer"
               >
-                <Plus className="size-3 mr-1" />
+                <Plus className="size-3.5 mr-1" />
                 Adicionar
               </Button>
             </div>
           </div>
 
           {/* 2. SELEÇÃO DE TAMANHOS */}
-          <div className="space-y-2.5 pt-3 border-t border-border/50">
+          <div className="space-y-3 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-2">
                 <span>2. Grade de tamanhos</span>
-                <Badge variant="secondary" className="text-[10px] h-5 font-bold px-1.5">
+                <Badge variant="secondary" className="text-[10px] h-5 font-bold px-2">
                   {selectedSizes.length} {selectedSizes.length === 1 ? "tamanho" : "tamanhos"}
                 </Badge>
               </Label>
+              {selectedSizes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedSizes([])}
+                  className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-destructive/10"
+                >
+                  Limpar tamanhos
+                </button>
+              )}
             </div>
 
             {/* Presets Rápidos */}
-            <div className="space-y-1">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Presets Recomendados:</p>
-              <div className="flex flex-wrap gap-1">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Atalhos Recomendados:</p>
+              <div className="flex flex-wrap gap-1.5">
                 {storeCustomSizes.length > 0 && (
                   <button
                     type="button"
                     onClick={() => applyPreset(storeCustomSizes.map((s) => s.label))}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary transition-all cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border border-primary/40 bg-primary/10 text-primary transition-all cursor-pointer shadow-2xs"
                   >
                     ✨ Minha Loja ({storeCustomSizes.map((s) => s.label).join(", ")})
                   </button>
                 )}
                 {PRESETS_LIST.map((p) => {
-                  const isFullyActive = p.sizes.every((sz) => selectedSizes.includes(sz)) && selectedSizes.length === p.sizes.length;
+                  const isAllSelected = p.sizes.every((sz) => selectedSizes.includes(sz));
                   return (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => applyPreset(p.sizes)}
                       className={cn(
-                        "px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs",
-                        isFullyActive
-                          ? "border-primary bg-primary text-primary-foreground font-bold shadow-xs"
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs select-none",
+                        isAllSelected
+                          ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
                           : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
                       )}
                     >
-                      {p.label}
+                      {isAllSelected && <Check className="size-3 text-primary stroke-[2.5]" />}
+                      <span>{p.label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Chips de Tamanhos Individuais */}
-            <div className="space-y-1">
+            {/* Chips de Tamanhos Organizados por Famílias */}
+            <div className="space-y-2.5 pt-1">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tamanhos Individuais:</p>
-              <div className="flex flex-wrap gap-1">
-                {ALL_AVAILABLE_SIZES.map((sz) => {
-                  const isSelected = selectedSizes.includes(sz);
-                  return (
-                    <button
-                      key={sz}
-                      type="button"
-                      onClick={() => toggleSize(sz)}
-                      className={cn(
-                        "size-8 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs",
-                        isSelected
-                          ? "border-primary bg-primary text-primary-foreground font-black shadow-xs"
-                          : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
-                      )}
-                    >
-                      {sz}
-                    </button>
-                  );
-                })}
+
+              {/* Família Letras */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Padrão:</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {["PP", "P", "M", "G", "GG"].map((sz) => {
+                    const isSelected = selectedSizes.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className={cn(
+                          "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                          isSelected
+                            ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Família Numérica */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Números:</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {["34", "36", "38", "40", "42", "44", "46", "48"].map((sz) => {
+                    const isSelected = selectedSizes.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className={cn(
+                          "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                          isSelected
+                            ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Família Especiais */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold text-muted-foreground w-16 shrink-0">Especiais:</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {["G1", "G2", "G3", "Único"].map((sz) => {
+                    const isSelected = selectedSizes.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className={cn(
+                          "h-8 min-w-8 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center shadow-2xs select-none",
+                          isSelected
+                            ? "border-primary bg-primary text-primary-foreground font-black shadow-xs scale-102"
+                            : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        )}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
             {/* Adicionar tamanho customizado */}
-            <div className="flex items-center gap-1.5 pt-1">
-              <div className="relative flex-1">
-                <Input
-                  value={customSizeInput}
-                  onChange={(e) => setCustomSizeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustomSize();
-                    }
-                  }}
-                  placeholder="Outro tamanho (ex: 50, 52, G4)..."
-                  className="h-8 text-xs rounded-xl bg-background border-border/80"
-                />
-              </div>
+            <div className="flex items-center gap-2 pt-1 max-w-md">
+              <Input
+                value={customSizeInput}
+                onChange={(e) => setCustomSizeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustomSize();
+                  }
+                }}
+                placeholder="Outro tamanho (ex: 50, 52, G4)..."
+                className="h-8 text-xs rounded-xl bg-background border-border/80"
+              />
               <Button
                 type="button"
                 size="sm"
@@ -1066,7 +1144,7 @@ function GradeGeneratorModal({
                 disabled={!customSizeInput.trim()}
                 className="h-8 px-3 text-xs font-semibold rounded-xl border-border shrink-0 cursor-pointer"
               >
-                <Plus className="size-3 mr-1" />
+                <Plus className="size-3.5 mr-1" />
                 Adicionar
               </Button>
             </div>
@@ -1074,10 +1152,15 @@ function GradeGeneratorModal({
 
           {/* 3. QUANTIDADE INICIAL SUGERIDA */}
           <div className="space-y-2 pt-3 border-t border-border/50">
-            <Label className="text-xs font-bold text-foreground">
-              3. Quantidade inicial por variação:
-            </Label>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold text-foreground">
+                3. Quantidade inicial por variação:
+              </Label>
+              <span className="text-[11px] text-muted-foreground">
+                Padrão para novas variações
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
               {[1, 2, 3, 4, 6].map((num) => (
                 <button
                   key={num}
@@ -1097,21 +1180,29 @@ function GradeGeneratorModal({
           </div>
         </div>
 
-        {/* RODAPÉ COM RESUMO E AÇÃO */}
-        <div className="space-y-3 pt-3 border-t border-border/60">
+        {/* ── RODAPÉ FIXO COM RESUMO E AÇÃO (STICKY) ── */}
+        <div className="p-4 sm:p-5 pt-3.5 border-t border-border/60 bg-card/95 backdrop-blur-xs shrink-0 space-y-3">
           <div className="flex items-center justify-between p-3 rounded-2xl bg-secondary/40 border border-border/70 text-xs">
-            <div className="space-y-0.5">
-              <p className="font-bold text-foreground flex items-center gap-1.5">
-                <Sparkles className="size-3.5 text-primary" />
-                Resumo da Grade
+            <div className="space-y-0.5 min-w-0">
+              <p className="font-bold text-foreground flex items-center gap-1.5 truncate">
+                <Sparkles className="size-3.5 text-primary shrink-0" />
+                <span>Resumo da Matriz</span>
               </p>
-              <p className="text-[11px] text-muted-foreground">
-                {selectedColors.length} {selectedColors.length === 1 ? "cor" : "cores"} × {selectedSizes.length} {selectedSizes.length === 1 ? "tamanho" : "tamanhos"}
+              <p className="text-[11px] text-muted-foreground truncate">
+                {selectedColors.length > 0 && selectedSizes.length > 0 ? (
+                  <>
+                    <strong className="text-foreground font-semibold">{selectedColors.length}</strong> {selectedColors.length === 1 ? "cor" : "cores"}
+                    {" × "}
+                    <strong className="text-foreground font-semibold">{selectedSizes.length}</strong> {selectedSizes.length === 1 ? "tamanho" : "tamanhos"}
+                  </>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">Selecione ao menos 1 cor e 1 tamanho</span>
+                )}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="font-black text-sm text-foreground numeric">{totalVariations} variações</p>
-              <p className="text-[10px] text-muted-foreground font-medium">{totalPieces} peças no lote</p>
+              <p className="text-[10px] text-muted-foreground font-medium numeric">{totalPieces} peças no lote</p>
             </div>
           </div>
 
@@ -1128,10 +1219,14 @@ function GradeGeneratorModal({
               type="button"
               onClick={() => onConfirm(selectedColors, selectedSizes, defaultQty)}
               disabled={totalVariations === 0}
-              className="gradient-primary text-primary-foreground font-bold rounded-xl text-xs h-10 px-5 shadow-glow cursor-pointer disabled:opacity-50"
+              className="gradient-primary text-primary-foreground font-bold rounded-xl text-xs sm:text-sm h-10 px-5 shadow-glow cursor-pointer disabled:opacity-40"
             >
               <Boxes className="size-4 mr-1.5" />
-              Gerar Planilha do Lote ({totalVariations} variações)
+              <span>
+                {isEditing
+                  ? `Atualizar Grade (${totalVariations} variações)`
+                  : `Gerar Planilha do Lote (${totalVariations} variações)`}
+              </span>
             </Button>
           </DialogFooter>
         </div>
@@ -5943,6 +6038,7 @@ function Precificacao() {
                 storeCustomColors={customOptions.customColors}
                 storeCustomSizes={customOptions.customSizes}
                 onConfirm={handleConfirmGradeModal}
+                isEditing={variants.length > 0}
               />
             </section>
 
