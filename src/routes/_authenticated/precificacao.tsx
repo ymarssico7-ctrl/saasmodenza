@@ -6014,23 +6014,7 @@ function Precificacao() {
                       </Button>
                     </div>
 
-                    {/* Sugestões rápidas de início com 1 clique */}
-                    <div className="pt-1 flex flex-wrap items-center justify-center gap-2 text-xs">
-                      <span className="text-muted-foreground text-[11px] font-semibold">Início rápido:</span>
-                      {["Preto", "Off-White", "Areia", "Terracota"].map((cor) => (
-                        <button
-                          key={cor}
-                          type="button"
-                          onClick={() => {
-                            addColorToGrade(cor);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border/70 bg-card hover:bg-secondary text-foreground text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40"
-                        >
-                          <span className={cn("size-2 rounded-full", getColorDot(cor))} />
-                          <span>+ {cor}</span>
-                        </button>
-                      ))}
-                    </div>
+
                   </div>
                 ) : (
                 <div className="overflow-x-auto rounded-xl border border-border/70 bg-background">
