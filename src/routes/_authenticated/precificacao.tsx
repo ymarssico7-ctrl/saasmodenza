@@ -58,6 +58,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -3343,6 +3344,10 @@ function Precificacao() {
   };
 
   const updateVariantPrice = (id: string, val: string) => {
+    if (gradePricingMode === "unified") {
+      setGradePricingMode("isolated");
+      toast.info("Modo Isolado ativado: personalizando preço desta variação.");
+    }
     setVariants((prev) =>
       prev.map((v) => (v.id === id ? { ...v, customSalePrice: val } : v)),
     );
@@ -6322,176 +6327,190 @@ function Precificacao() {
                     </div>
 
                     {/* Controles da Estratégia inline com badges de resultado em tempo real */}
-                    {strategy === "margin" && (
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = Math.max(5, desiredMargin - 5);
-                              setDesiredMargin(next);
-                              setMatrixGlobalMarginStr(String(next));
-                            }}
-                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                          >
-                            <Minus className="size-3" />
-                          </button>
-                          <span className="px-2 text-xs font-black numeric text-foreground">{desiredMargin}%</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = Math.min(95, desiredMargin + 5);
-                              setDesiredMargin(next);
-                              setMatrixGlobalMarginStr(String(next));
-                            }}
-                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                          >
-                            <Plus className="size-3" />
-                          </button>
-                        </div>
+                    {gradePricingMode === "unified" ? (
+                      <>
+                        {strategy === "margin" && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = Math.max(5, desiredMargin - 5);
+                                  setDesiredMargin(next);
+                                  setMatrixGlobalMarginStr(String(next));
+                                }}
+                                className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                              >
+                                <Minus className="size-3" />
+                              </button>
+                              <span className="px-2 text-xs font-black numeric text-foreground">{desiredMargin}%</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = Math.min(95, desiredMargin + 5);
+                                  setDesiredMargin(next);
+                                  setMatrixGlobalMarginStr(String(next));
+                                }}
+                                className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                              >
+                                <Plus className="size-3" />
+                              </button>
+                            </div>
 
-                        {/* Presets compactos de margem */}
-                        <div className="hidden lg:flex items-center gap-1">
-                          {[
-                            { val: 35, label: "35%" },
-                            { val: 45, label: "45%" },
-                            { val: 50, label: "50%" },
-                            { val: 60, label: "60%" },
-                          ].map((preset) => (
-                            <button
-                              key={preset.val}
-                              type="button"
-                              onClick={() => {
-                                setDesiredMargin(preset.val);
-                                setMatrixGlobalMarginStr(String(preset.val));
-                              }}
-                              className={cn(
-                                "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                Math.abs(desiredMargin - preset.val) < 0.5
-                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
+                            {/* Presets compactos de margem */}
+                            <div className="hidden lg:flex items-center gap-1">
+                              {[
+                                { val: 35, label: "35%" },
+                                { val: 45, label: "45%" },
+                                { val: 50, label: "50%" },
+                                { val: 60, label: "60%" },
+                              ].map((preset) => (
+                                <button
+                                  key={preset.val}
+                                  type="button"
+                                  onClick={() => {
+                                    setDesiredMargin(preset.val);
+                                    setMatrixGlobalMarginStr(String(preset.val));
+                                  }}
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                                    Math.abs(desiredMargin - preset.val) < 0.5
+                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                  )}
+                                >
+                                  {preset.label}
+                                </button>
+                              ))}
+                            </div>
 
-                        {summaryPrices.avgSuggested > 0 && (
-                          <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/80 text-[11px] font-semibold text-muted-foreground">
-                            <span>→ Preço Médio</span>
-                            <span className="text-foreground font-bold">{brl(summaryPrices.avgSuggested)}</span>
+                            {summaryPrices.avgSuggested > 0 && (
+                              <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/80 text-[11px] font-semibold text-muted-foreground">
+                                <span>→ Preço Médio</span>
+                                <span className="text-foreground font-bold">{brl(summaryPrices.avgSuggested)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
-                    )}
 
-                    {strategy === "markup" && (
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = Math.max(10, markup - 10);
-                              setMarkup(next);
-                              setMatrixGlobalMarkupStr(String(next));
-                            }}
-                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                          >
-                            <Minus className="size-3" />
-                          </button>
-                          <span className="px-2 text-xs font-black numeric text-foreground">{markup}%</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = markup + 10;
-                              setMarkup(next);
-                              setMatrixGlobalMarkupStr(String(next));
-                            }}
-                            className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
-                          >
-                            <Plus className="size-3" />
-                          </button>
-                        </div>
+                        {strategy === "markup" && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = Math.max(10, markup - 10);
+                                  setMarkup(next);
+                                  setMatrixGlobalMarkupStr(String(next));
+                                }}
+                                className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                              >
+                                <Minus className="size-3" />
+                              </button>
+                              <span className="px-2 text-xs font-black numeric text-foreground">{markup}%</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = markup + 10;
+                                  setMarkup(next);
+                                  setMatrixGlobalMarkupStr(String(next));
+                                }}
+                                className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+                              >
+                                <Plus className="size-3" />
+                              </button>
+                            </div>
 
-                        <div className="hidden lg:flex items-center gap-1">
-                          {[
-                            { val: 80, label: "1.8x" },
-                            { val: 100, label: "2.0x" },
-                            { val: 150, label: "2.5x" },
-                            { val: 200, label: "3.0x" },
-                          ].map((preset) => (
-                            <button
-                              key={preset.val}
-                              type="button"
-                              onClick={() => {
-                                setMarkup(preset.val);
-                                setMatrixGlobalMarkupStr(String(preset.val));
-                              }}
-                              className={cn(
-                                "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                Math.abs(markup - preset.val) < 0.5
-                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
+                            <div className="hidden lg:flex items-center gap-1">
+                              {[
+                                { val: 80, label: "1.8x" },
+                                { val: 100, label: "2.0x" },
+                                { val: 150, label: "2.5x" },
+                                { val: 200, label: "3.0x" },
+                              ].map((preset) => (
+                                <button
+                                  key={preset.val}
+                                  type="button"
+                                  onClick={() => {
+                                    setMarkup(preset.val);
+                                    setMatrixGlobalMarkupStr(String(preset.val));
+                                  }}
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                                    Math.abs(markup - preset.val) < 0.5
+                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                  )}
+                                >
+                                  {preset.label}
+                                </button>
+                              ))}
+                            </div>
 
-                        {summaryPrices.avgMargin > 0 && (
-                          <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
-                            <span>→ Margem Líquida</span>
-                            <span className="font-bold">{pct(summaryPrices.avgMargin)}</span>
+                            {summaryPrices.avgMargin > 0 && (
+                              <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
+                                <span>→ Margem Líquida</span>
+                                <span className="font-bold">{pct(summaryPrices.avgMargin)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
-                    )}
 
-                    {strategy === "direct_price" && (
-                      <div className="flex items-center gap-1.5">
-                        <div className="relative flex h-8 w-28 items-center rounded-lg border border-border/80 bg-background shadow-2xs focus-within:border-primary transition-all">
-                          <span className="pl-2 text-xs font-bold text-muted-foreground select-none">R$</span>
-                          <input
-                            inputMode="decimal"
-                            value={directSalePrice}
-                            onChange={(e) => {
-                              setDirectSalePrice(e.target.value);
-                              setMatrixGlobalDirectPrice(e.target.value);
-                            }}
-                            placeholder="0,00"
-                            className="h-8 w-full bg-transparent px-1.5 text-xs font-black text-foreground outline-none numeric"
-                          />
-                        </div>
+                        {strategy === "direct_price" && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative flex h-8 w-28 items-center rounded-lg border border-border/80 bg-background shadow-2xs focus-within:border-primary transition-all">
+                              <span className="pl-2 text-xs font-bold text-muted-foreground select-none">R$</span>
+                              <input
+                                inputMode="decimal"
+                                value={directSalePrice}
+                                onChange={(e) => {
+                                  setDirectSalePrice(e.target.value);
+                                  setMatrixGlobalDirectPrice(e.target.value);
+                                }}
+                                placeholder="0,00"
+                                className="h-8 w-full bg-transparent px-1.5 text-xs font-black text-foreground outline-none numeric"
+                              />
+                            </div>
 
-                        <div className="hidden lg:flex items-center gap-1">
-                          {["49,90", "69,90", "89,90", "119,90"].map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() => {
-                                setDirectSalePrice(preset);
-                                setMatrixGlobalDirectPrice(preset);
-                              }}
-                              className={cn(
-                                "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                directSalePrice === preset
-                                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                  : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                              )}
-                            >
-                              {preset}
-                            </button>
-                          ))}
-                        </div>
+                            <div className="hidden lg:flex items-center gap-1">
+                              {["49,90", "69,90", "89,90", "119,90"].map((preset) => (
+                                <button
+                                  key={preset}
+                                  type="button"
+                                  onClick={() => {
+                                    setDirectSalePrice(preset);
+                                    setMatrixGlobalDirectPrice(preset);
+                                  }}
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                                    directSalePrice === preset
+                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
+                                  )}
+                                >
+                                  {preset}
+                                </button>
+                              ))}
+                            </div>
 
-                        {summaryPrices.avgMargin > 0 && (
-                          <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
-                            <span>→ Margem</span>
-                            <span className="font-bold">{pct(summaryPrices.avgMargin)}</span>
+                            {summaryPrices.avgMargin > 0 && (
+                              <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
+                                <span>→ Margem</span>
+                                <span className="font-bold">{pct(summaryPrices.avgMargin)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
+                      </>
+                    ) : (
+                      /* Modo ISOLADO: indicador limpo e informativo sem modificador global concorrente */
+                      <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-medium select-none">
+                        <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                        <span>
+                          {strategy === "margin" && "Margem editável por linha"}
+                          {strategy === "markup" && "Markup editável por linha"}
+                          {strategy === "direct_price" && "Preço editável por linha"}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -6499,69 +6518,132 @@ function Precificacao() {
                   {/* Ações Específicas do Modo Isolado */}
                   {gradePricingMode === "isolated" && (
                     <div className="flex items-center gap-1.5">
+                      {/* Utilitário Preenchimento Rápido / Preencher Todas */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs gap-1.5 hover:bg-secondary/60"
+                          >
+                            <Zap className="size-3 text-amber-500 fill-amber-500" />
+                            <span>Preencher todas</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-68 p-3 rounded-xl border border-border bg-popover shadow-lift space-y-2.5">
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-foreground">Preenchimento rápido do lote</p>
+                            <p className="text-[11px] text-muted-foreground leading-tight">
+                              {strategy === "margin" && "Aplica uma margem base a todas as peças da tabela:"}
+                              {strategy === "markup" && "Aplica um markup multiplicador a todas as peças:"}
+                              {strategy === "direct_price" && "Aplica um preço de venda inicial a todas as peças:"}
+                            </p>
+                          </div>
+
+                          {/* Opções por Estratégia */}
+                          {strategy === "margin" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-4 gap-1">
+                                {[35, 45, 50, 60].map((pctVal) => (
+                                  <button
+                                    key={pctVal}
+                                    type="button"
+                                    onClick={() => {
+                                      setVariants((prev) => prev.map((v) => ({ ...v, customMargin: String(pctVal), customSalePrice: "" })));
+                                      toast.success(`Margem de ${pctVal}% aplicada a todas as variações.`);
+                                    }}
+                                    className="py-1 px-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-primary hover:text-primary-foreground hover:border-primary text-xs font-bold transition-all text-center cursor-pointer"
+                                  >
+                                    {pctVal}%
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {strategy === "markup" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-4 gap-1">
+                                {[
+                                  { val: 80, label: "1.8x" },
+                                  { val: 100, label: "2.0x" },
+                                  { val: 150, label: "2.5x" },
+                                  { val: 200, label: "3.0x" },
+                                ].map((mk) => (
+                                  <button
+                                    key={mk.val}
+                                    type="button"
+                                    onClick={() => {
+                                      setVariants((prev) => prev.map((v) => ({ ...v, customMarkup: String(mk.val), customSalePrice: "" })));
+                                      toast.success(`Markup de ${mk.label} (${mk.val}%) aplicado a todas as variações.`);
+                                    }}
+                                    className="py-1 px-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-primary hover:text-primary-foreground hover:border-primary text-xs font-bold transition-all text-center cursor-pointer"
+                                  >
+                                    {mk.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {strategy === "direct_price" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-4 gap-1">
+                                {["49,90", "69,90", "89,90", "119,90"].map((pr) => (
+                                  <button
+                                    key={pr}
+                                    type="button"
+                                    onClick={() => {
+                                      setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: pr })));
+                                      toast.success(`Preço de R$ ${pr} aplicado a todas as variações.`);
+                                    }}
+                                    className="py-1 px-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-primary hover:text-primary-foreground hover:border-primary text-xs font-bold transition-all text-center cursor-pointer"
+                                  >
+                                    {pr}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Replicar custo de atacado dentro do menu se houver baseWholesaleGrade */}
+                          {baseWholesaleGrade && (
+                            <div className="pt-1.5 border-t border-border/60">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: baseWholesaleGrade })));
+                                  toast.success(`Custo base R$ ${baseWholesaleGrade} replicado em todas as variações.`);
+                                }}
+                                className="w-full text-left py-1 px-2 rounded-lg hover:bg-secondary text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-between"
+                              >
+                                <span>Replicar custo de atacado</span>
+                                <span className="font-bold text-foreground">{brl(toNumber(baseWholesaleGrade))}</span>
+                              </button>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+
+                      {/* Replicar custo de atacado (atalho rápido se houver) */}
                       {baseWholesaleGrade && (
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={() => {
                             setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: baseWholesaleGrade })));
                             toast.success(`Custo base R$ ${baseWholesaleGrade} aplicado a todas as variações`);
                           }}
-                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
+                          className="h-8 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground cursor-pointer hidden md:inline-flex"
+                          title="Replica o custo do topo em todas as variações"
                         >
                           ⚡ Replicar custo ({brl(toNumber(baseWholesaleGrade))})
                         </Button>
                       )}
 
-                      {/* Botão Aplicar Padrão da Grade a Todas */}
-                      {strategy === "margin" && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setVariants((prev) => prev.map((v) => ({ ...v, customMargin: String(desiredMargin), customSalePrice: "" })));
-                            toast.success(`Margem padrão de ${desiredMargin}% aplicada a todas as variações`);
-                          }}
-                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
-                          title="Define a margem padrão em todas as variações"
-                        >
-                          ⚡ Aplicar {desiredMargin}% a todas
-                        </Button>
-                      )}
-                      {strategy === "markup" && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setVariants((prev) => prev.map((v) => ({ ...v, customMarkup: String(markup), customSalePrice: "" })));
-                            toast.success(`Markup padrão de ${markup}% aplicado a todas as variações`);
-                          }}
-                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
-                          title="Define o markup padrão em todas as variações"
-                        >
-                          ⚡ Aplicar {markup}% a todas
-                        </Button>
-                      )}
-                      {strategy === "direct_price" && directSalePrice && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: directSalePrice })));
-                            toast.success(`Preço padrão R$ ${directSalePrice} aplicado a todas as variações`);
-                          }}
-                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
-                          title="Define o preço fixo padrão em todas as variações"
-                        >
-                          ⚡ Aplicar R$ {directSalePrice} a todas
-                        </Button>
-                      )}
-
-                      {/* Sincronizar com estratégia (limpar personalizações manuais) */}
+                      {/* Limpar personalizações manuais (aparece somente se houver customizações ativas) */}
                       {variants.some((v) => (v.customSalePrice !== undefined && v.customSalePrice !== "") || v.customMargin !== undefined || v.customMarkup !== undefined) && (
                         <Button
                           type="button"
@@ -6569,11 +6651,13 @@ function Precificacao() {
                           size="sm"
                           onClick={() => {
                             setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: "", customMargin: undefined, customMarkup: undefined })));
-                            toast.success("Todas as variações foram sincronizadas com a estratégia da grade.");
+                            toast.success("Personalizações limpas: todas as variações sincronizadas.");
                           }}
-                          className="h-8 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                          className="h-8 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground cursor-pointer gap-1"
+                          title="Limpa margens, markups e preços manuais desta grade"
                         >
-                          ↺ Sincronizar com estratégia
+                          <RotateCcw className="size-3" />
+                          <span>Limpar</span>
                         </Button>
                       )}
                     </div>
@@ -6723,8 +6807,12 @@ function Precificacao() {
                                 ? v.customMargin : String(desiredMargin);
                               const effectiveMarkupStr = (v.customMarkup !== undefined && v.customMarkup !== "")
                                 ? v.customMarkup : String(markup);
+                              const effectivePriceStr = (v.customSalePrice !== undefined && v.customSalePrice !== "")
+                                ? v.customSalePrice
+                                : (directSalePrice || (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : ""));
                               const hasCustomMargin = v.customMargin !== undefined && v.customMargin !== "" && gradePricingMode === "isolated";
                               const hasCustomMarkup = v.customMarkup !== undefined && v.customMarkup !== "" && gradePricingMode === "isolated";
+                              const hasCustomPrice = v.customSalePrice !== undefined && v.customSalePrice !== "" && gradePricingMode === "isolated";
 
                               return (
                                 <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
@@ -6854,6 +6942,43 @@ function Precificacao() {
                                   {/* ── COLUNA 6: SAÍDA PRINCIPAL ── */}
 
                                   {/* strategy=margin | markup → Preço calculado (output, read-only) */}
+                                  {/* strategy=direct_price → INPUT Preço de Venda Individual */}
+                                  {strategy === "direct_price" && (
+                                    <td className="py-2.5 px-3 text-right">
+                                      <div className="relative inline-flex items-center gap-1 justify-end">
+                                        <div className={cn(
+                                          "relative inline-flex items-center rounded border overflow-hidden h-7",
+                                          hasCustomPrice ? "border-primary/50 bg-primary/5" : "border-border/60 bg-transparent",
+                                        )}>
+                                          <span className="pl-1.5 text-[10px] font-bold text-muted-foreground select-none">R$</span>
+                                          <input
+                                            inputMode="decimal"
+                                            value={effectivePriceStr}
+                                            onChange={(e) => updateVariantPrice(v.id, e.target.value)}
+                                            placeholder="0,00"
+                                            className="w-16 text-right font-bold numeric text-xs bg-transparent pr-1.5 focus:outline-none focus:bg-background/80 text-foreground"
+                                          />
+                                        </div>
+                                        {hasCustomPrice && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setVariants((prev) => prev.map((item) =>
+                                                item.id === v.id ? { ...item, customSalePrice: "" } : item
+                                              ));
+                                              toast.success(`${v.size}: usando preço padrão da grade.`);
+                                            }}
+                                            title="Resetar para preço padrão"
+                                            className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
+                                          >
+                                            <RotateCcw className="size-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  )}
+
+                                  {/* ── COLUNA 6: SAÍDA PRINCIPAL ── */}
                                   {(strategy === "margin" || strategy === "markup") && (
                                     <td className="py-2.5 px-3 text-right">
                                       <span className={cn(
