@@ -10,6 +10,7 @@ import {
   Calculator,
   Check,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Coins,
   Copy,
@@ -1872,6 +1873,145 @@ function LivePricingSummaryPanel({
           ⊙ Estimativa com as taxas informadas. Não representa orientação fiscal.
         </p>
       </div>
+    </div>
+  );
+}
+
+interface SmartTableNumericInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  mode?: "percentage" | "currency" | "multiplier" | "plain";
+  placeholder?: string;
+  className?: string;
+  inputClassName?: string;
+  isCustom?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
+  shiftStep?: number;
+  altStep?: number;
+  onReset?: (() => void) | undefined;
+  resetTitle?: string;
+}
+
+function SmartTableNumericInput({
+  value,
+  onChange,
+  mode = "plain",
+  placeholder = "0",
+  className,
+  inputClassName,
+  isCustom = false,
+  min = 0,
+  max = 999999,
+  step = 1,
+  shiftStep = 5,
+  altStep = 0.5,
+  onReset,
+  resetTitle = "Resetar para padrão",
+}: SmartTableNumericInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const applyDelta = (delta: number) => {
+    const currentNum = toNumber(value);
+    const nextNum = Math.min(max, Math.max(min, Math.round((currentNum + delta) * 100) / 100));
+
+    if (mode === "currency") {
+      onChange(nextNum.toFixed(2).replace(".", ","));
+    } else if (mode === "percentage") {
+      if (Number.isInteger(nextNum)) {
+        onChange(String(nextNum));
+      } else {
+        onChange(nextNum.toFixed(1).replace(".", ","));
+      }
+    } else {
+      if (Number.isInteger(nextNum)) {
+        onChange(String(nextNum));
+      } else {
+        onChange(nextNum.toFixed(2).replace(".", ","));
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const delta = e.shiftKey ? shiftStep : (e.altKey || e.ctrlKey ? altStep : step);
+      applyDelta(delta);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const delta = e.shiftKey ? shiftStep : (e.altKey || e.ctrlKey ? altStep : step);
+      applyDelta(-delta);
+    }
+  };
+
+  return (
+    <div className={cn("relative inline-flex items-center gap-1", className)}>
+      <div
+        className={cn(
+          "group relative inline-flex items-center rounded-md border h-7 transition-all overflow-hidden",
+          isCustom
+            ? "border-primary/60 bg-primary/5 shadow-2xs focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40"
+            : "border-border/70 bg-background/50 hover:border-border focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 focus-within:bg-background",
+        )}
+      >
+        {mode === "currency" && (
+          <span className="pl-1.5 text-[10px] font-bold text-muted-foreground select-none">
+            R$
+          </span>
+        )}
+        <input
+          ref={inputRef}
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={cn(
+            "bg-transparent font-bold numeric text-xs outline-none text-foreground px-1 h-full",
+            mode === "currency" ? "w-16 sm:w-18 text-right pr-0.5" : "w-11 text-center",
+            inputClassName,
+          )}
+        />
+        {mode === "percentage" && (
+          <span className="pr-1 text-[10px] font-bold text-muted-foreground select-none">
+            %
+          </span>
+        )}
+
+        {/* Micro-steppers verticais (▲ / ▼) */}
+        <div className="flex flex-col h-full border-l border-border/50 divide-y divide-border/40 shrink-0 opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => applyDelta(step)}
+            className="flex-1 w-3.5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+            title="Aumentar · Shift (+5) · Alt (+0.5)"
+          >
+            <ChevronUp className="size-2.5" />
+          </button>
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => applyDelta(-step)}
+            className="flex-1 w-3.5 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors"
+            title="Diminuir · Shift (-5) · Alt (-0.5)"
+          >
+            <ChevronDown className="size-2.5" />
+          </button>
+        </div>
+      </div>
+
+      {isCustom && onReset && (
+        <button
+          type="button"
+          onClick={onReset}
+          title={resetTitle}
+          className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer shrink-0"
+        >
+          <RotateCcw className="size-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -6502,17 +6642,7 @@ function Precificacao() {
                           </div>
                         )}
                       </>
-                    ) : (
-                      /* Modo ISOLADO: indicador limpo e informativo sem modificador global concorrente */
-                      <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/20 bg-primary/5 text-primary text-xs font-medium select-none">
-                        <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-                        <span>
-                          {strategy === "margin" && "Margem editável por linha"}
-                          {strategy === "markup" && "Markup editável por linha"}
-                          {strategy === "direct_price" && "Preço editável por linha"}
-                        </span>
-                      </div>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Ações Específicas do Modo Isolado */}
@@ -6663,22 +6793,26 @@ function Precificacao() {
                     </div>
                   )}
 
-                  {/* Qtd em todas (quando há variações) */}
+                  {/* Qtd do lote (quando há variações) */}
                   {variants.length > 0 && (
-                    <div className="flex items-center gap-1 pl-1">
-                      <div className="h-5 w-px bg-border/70 shrink-0" />
-                      <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider pl-1">Qtd:</span>
-                      {[1, 2, 3, 4, 6].map((num) => (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => applyBulkQty(num)}
-                          className="size-6 rounded-md border border-border/60 bg-background hover:bg-secondary text-foreground text-[11px] font-bold numeric transition-colors cursor-pointer shadow-2xs"
-                          title={`Definir ${num} peças para todas as variações`}
-                        >
-                          {num}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-border/70">
+                      <span className="text-muted-foreground text-[10px] font-bold tracking-wider flex items-center gap-1 select-none">
+                        <Boxes className="size-3 text-muted-foreground" />
+                        <span>Qtd:</span>
+                      </span>
+                      <div className="inline-flex rounded-lg border border-border/70 bg-secondary/30 p-0.5 gap-0.5">
+                        {[1, 2, 3, 4, 6].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => applyBulkQty(num)}
+                            className="size-6 rounded-md bg-background hover:bg-card text-foreground text-[11px] font-bold numeric transition-colors cursor-pointer shadow-2xs flex items-center justify-center border border-transparent hover:border-border/60"
+                            title={`Definir ${num} unidades para todas as peças da grade`}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -6813,6 +6947,7 @@ function Precificacao() {
                               const hasCustomMargin = v.customMargin !== undefined && v.customMargin !== "" && gradePricingMode === "isolated";
                               const hasCustomMarkup = v.customMarkup !== undefined && v.customMarkup !== "" && gradePricingMode === "isolated";
                               const hasCustomPrice = v.customSalePrice !== undefined && v.customSalePrice !== "" && gradePricingMode === "isolated";
+                              const hasCustomWholesale = v.wholesaleCost !== "" && gradePricingMode === "isolated";
 
                               return (
                                 <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
@@ -6846,13 +6981,22 @@ function Precificacao() {
 
                                   {/* Custo de Atacado */}
                                   <td className="py-2.5 px-3 text-right">
-                                    <div className="relative inline-flex items-center">
-                                      <input
-                                        inputMode="decimal"
+                                    <div className="inline-flex justify-end">
+                                      <SmartTableNumericInput
+                                        mode="currency"
                                         value={effectiveWholesale}
-                                        onChange={(e) => updateVariantCost(v.id, e.target.value)}
+                                        onChange={(val) => updateVariantCost(v.id, val)}
                                         placeholder="0,00"
-                                        className="h-7 w-20 text-right font-medium numeric text-xs rounded border border-border/60 bg-transparent px-1.5 focus:bg-background focus:border-primary outline-none"
+                                        isCustom={hasCustomWholesale}
+                                        onReset={hasCustomWholesale ? () => {
+                                          updateVariantCost(v.id, "");
+                                          toast.success(`${v.size}: usando custo padrão da grade.`);
+                                        } : undefined}
+                                        resetTitle="Resetar para custo padrão da grade"
+                                        min={0}
+                                        step={1}
+                                        shiftStep={5}
+                                        altStep={0.5}
                                       />
                                     </div>
                                   </td>
@@ -6867,74 +7011,53 @@ function Precificacao() {
                                   {/* strategy=margin → INPUT Margem % */}
                                   {strategy === "margin" && (
                                     <td className="py-2.5 px-3 text-center">
-                                      <div className="relative inline-flex items-center gap-1">
-                                        <div className={cn(
-                                          "relative inline-flex items-center rounded border overflow-hidden h-7",
-                                          hasCustomMargin ? "border-primary/50 bg-primary/5" : "border-border/60 bg-transparent",
-                                        )}>
-                                          <input
-                                            inputMode="decimal"
-                                            value={effectiveMarginStr}
-                                            onChange={(e) => updateVariantCustomMargin(v.id, e.target.value)}
-                                            placeholder="50"
-                                            className="w-12 text-center font-bold numeric text-xs bg-transparent px-1 focus:outline-none focus:bg-background/80 text-foreground"
-                                          />
-                                          <span className="pr-1.5 text-[10px] font-bold text-muted-foreground">%</span>
-                                        </div>
-                                        {hasCustomMargin && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setVariants((prev) => prev.map((item) =>
-                                                item.id === v.id ? { ...item, customMargin: undefined } : item
-                                              ));
-                                              toast.success(`${v.size}: usando margem padrão da grade.`);
-                                            }}
-                                            title="Resetar para margem padrão"
-                                            className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
-                                          >
-                                            <RotateCcw className="size-3" />
-                                          </button>
-                                        )}
-                                      </div>
+                                      <SmartTableNumericInput
+                                        mode="percentage"
+                                        value={effectiveMarginStr}
+                                        onChange={(val) => updateVariantCustomMargin(v.id, val)}
+                                        placeholder="50"
+                                        isCustom={hasCustomMargin}
+                                        onReset={hasCustomMargin ? () => {
+                                          setVariants((prev) => prev.map((item) =>
+                                            item.id === v.id ? { ...item, customMargin: undefined } : item
+                                          ));
+                                          toast.success(`${v.size}: usando margem padrão da grade.`);
+                                        } : undefined}
+                                        resetTitle="Resetar para margem padrão"
+                                        min={1}
+                                        max={99.9}
+                                        step={1}
+                                        shiftStep={5}
+                                        altStep={0.5}
+                                      />
                                     </td>
                                   )}
 
                                   {/* strategy=markup → INPUT Markup % com multiplicador */}
                                   {strategy === "markup" && (
                                     <td className="py-2.5 px-3 text-center">
-                                      <div className="relative inline-flex items-center gap-1">
-                                        <div className={cn(
-                                          "relative inline-flex items-center rounded border overflow-hidden h-7",
-                                          hasCustomMarkup ? "border-primary/50 bg-primary/5" : "border-border/60 bg-transparent",
-                                        )}>
-                                          <input
-                                            inputMode="decimal"
-                                            value={effectiveMarkupStr}
-                                            onChange={(e) => updateVariantCustomMarkup(v.id, e.target.value)}
-                                            placeholder="100"
-                                            className="w-12 text-center font-bold numeric text-xs bg-transparent px-1 focus:outline-none focus:bg-background/80 text-foreground"
-                                          />
-                                          <span className="pr-1.5 text-[10px] font-bold text-muted-foreground">%</span>
-                                        </div>
-                                        <span className="text-[10px] text-muted-foreground font-medium numeric">
+                                      <div className="inline-flex items-center gap-1.5 justify-center">
+                                        <SmartTableNumericInput
+                                          mode="percentage"
+                                          value={effectiveMarkupStr}
+                                          onChange={(val) => updateVariantCustomMarkup(v.id, val)}
+                                          placeholder="100"
+                                          isCustom={hasCustomMarkup}
+                                          onReset={hasCustomMarkup ? () => {
+                                            setVariants((prev) => prev.map((item) =>
+                                              item.id === v.id ? { ...item, customMarkup: undefined } : item
+                                            ));
+                                            toast.success(`${v.size}: usando markup padrão da grade.`);
+                                          } : undefined}
+                                          resetTitle="Resetar para markup padrão"
+                                          min={0}
+                                          step={5}
+                                          shiftStep={20}
+                                          altStep={1}
+                                        />
+                                        <span className="text-[10px] text-muted-foreground font-medium numeric shrink-0">
                                           {(1 + toNumber(effectiveMarkupStr) / 100).toFixed(1)}x
                                         </span>
-                                        {hasCustomMarkup && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setVariants((prev) => prev.map((item) =>
-                                                item.id === v.id ? { ...item, customMarkup: undefined } : item
-                                              ));
-                                              toast.success(`${v.size}: usando markup padrão da grade.`);
-                                            }}
-                                            title="Resetar para markup padrão"
-                                            className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
-                                          >
-                                            <RotateCcw className="size-3" />
-                                          </button>
-                                        )}
                                       </div>
                                     </td>
                                   )}
@@ -6945,35 +7068,25 @@ function Precificacao() {
                                   {/* strategy=direct_price → INPUT Preço de Venda Individual */}
                                   {strategy === "direct_price" && (
                                     <td className="py-2.5 px-3 text-right">
-                                      <div className="relative inline-flex items-center gap-1 justify-end">
-                                        <div className={cn(
-                                          "relative inline-flex items-center rounded border overflow-hidden h-7",
-                                          hasCustomPrice ? "border-primary/50 bg-primary/5" : "border-border/60 bg-transparent",
-                                        )}>
-                                          <span className="pl-1.5 text-[10px] font-bold text-muted-foreground select-none">R$</span>
-                                          <input
-                                            inputMode="decimal"
-                                            value={effectivePriceStr}
-                                            onChange={(e) => updateVariantPrice(v.id, e.target.value)}
-                                            placeholder="0,00"
-                                            className="w-16 text-right font-bold numeric text-xs bg-transparent pr-1.5 focus:outline-none focus:bg-background/80 text-foreground"
-                                          />
-                                        </div>
-                                        {hasCustomPrice && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setVariants((prev) => prev.map((item) =>
-                                                item.id === v.id ? { ...item, customSalePrice: "" } : item
-                                              ));
-                                              toast.success(`${v.size}: usando preço padrão da grade.`);
-                                            }}
-                                            title="Resetar para preço padrão"
-                                            className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
-                                          >
-                                            <RotateCcw className="size-3" />
-                                          </button>
-                                        )}
+                                      <div className="inline-flex justify-end">
+                                        <SmartTableNumericInput
+                                          mode="currency"
+                                          value={effectivePriceStr}
+                                          onChange={(val) => updateVariantPrice(v.id, val)}
+                                          placeholder="0,00"
+                                          isCustom={hasCustomPrice}
+                                          onReset={hasCustomPrice ? () => {
+                                            setVariants((prev) => prev.map((item) =>
+                                              item.id === v.id ? { ...item, customSalePrice: "" } : item
+                                            ));
+                                            toast.success(`${v.size}: usando preço padrão da grade.`);
+                                          } : undefined}
+                                          resetTitle="Resetar para preço padrão"
+                                          min={0}
+                                          step={1}
+                                          shiftStep={5}
+                                          altStep={0.5}
+                                        />
                                       </div>
                                     </td>
                                   )}
@@ -6995,11 +7108,17 @@ function Precificacao() {
                                     <td className="py-2.5 px-3 text-center">
                                       {v.wholesaleNum > 0 && v.suggestedPrice > 0 ? (
                                         <span className={cn(
-                                          "text-xs font-bold numeric",
+                                          "inline-flex items-center gap-1.5 text-xs font-bold numeric justify-center",
                                           marginHealthy && "text-success",
                                           marginModerate && "text-amber-500",
                                           v.marginOnPrice <= 0 && "text-destructive",
                                         )}>
+                                          <span className={cn(
+                                            "size-1.5 rounded-full shrink-0",
+                                            marginHealthy && "bg-emerald-500",
+                                            marginModerate && "bg-amber-500",
+                                            v.marginOnPrice <= 0 && "bg-rose-500",
+                                          )} />
                                           {pct(v.marginOnPrice)}
                                         </span>
                                       ) : (
@@ -7015,11 +7134,17 @@ function Precificacao() {
                                     <td className="py-2.5 px-3 text-center">
                                       {v.wholesaleNum > 0 && v.suggestedPrice > 0 ? (
                                         <span className={cn(
-                                          "text-xs font-bold numeric",
+                                          "inline-flex items-center gap-1.5 text-xs font-bold numeric justify-center",
                                           marginHealthy && "text-success",
                                           marginModerate && "text-amber-500",
                                           v.marginOnPrice <= 0 && "text-destructive",
                                         )}>
+                                          <span className={cn(
+                                            "size-1.5 rounded-full shrink-0",
+                                            marginHealthy && "bg-emerald-500",
+                                            marginModerate && "bg-amber-500",
+                                            v.marginOnPrice <= 0 && "bg-rose-500",
+                                          )} />
                                           {pct(v.marginOnPrice)}
                                         </span>
                                       ) : (
@@ -7031,7 +7156,16 @@ function Precificacao() {
                                   {/* strategy=margin | direct_price → Lucro Líquido */}
                                   {(strategy === "margin" || strategy === "direct_price") && (
                                     <td className="py-2.5 px-3 text-right font-bold numeric text-xs">
-                                      <span className={v.profit >= 0 ? "text-success" : "text-destructive"}>
+                                      <span className={cn(
+                                        "inline-flex items-center gap-1.5 justify-end",
+                                        v.profit >= 0 ? "text-success" : "text-destructive",
+                                      )}>
+                                        <span className={cn(
+                                          "size-1.5 rounded-full shrink-0",
+                                          marginHealthy && "bg-emerald-500",
+                                          marginModerate && "bg-amber-500",
+                                          (v.profit <= 0 || v.marginOnPrice <= 0) && "bg-rose-500",
+                                        )} />
                                         {v.profit >= 0 ? "+" : ""}{brl(v.profit)}
                                       </span>
                                     </td>
