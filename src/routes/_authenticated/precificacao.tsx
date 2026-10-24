@@ -135,9 +135,11 @@ export type VariantRow = {
   id: string;
   size: string;
   color: string;
-  wholesaleCost: string; // custom cost string or "" (inherits baseWholesaleGrade)
-  customSalePrice: string; // custom sale price string or "" (calculated by strategy)
-  qty?: number; // quantidade física da variante no lote
+  wholesaleCost: string;             // custom cost string or "" (inherits baseWholesaleGrade)
+  customSalePrice: string;           // custom sale price string or "" (calculated by strategy)
+  customMargin?: string | undefined; // margem % individual no modo isolado (strategy=margin)
+  customMarkup?: string | undefined; // markup % individual no modo isolado (strategy=markup)
+  qty?: number | undefined;          // quantidade física da variante no lote
 };
 
 export type GradeModel = {
@@ -2121,6 +2123,8 @@ function Precificacao() {
           color: col,
           wholesaleCost: existing?.wholesaleCost || baseWholesaleGrade || "",
           customSalePrice: existing?.customSalePrice ?? "",
+          customMargin: existing?.customMargin,
+          customMarkup: existing?.customMarkup,
           qty: existing?.qty ?? defaultQty,
         });
       });
@@ -2384,32 +2388,109 @@ function Precificacao() {
   // ── Cálculo da Tabela Unificada de Variantes (Totalmente Reativo) ───
   const variantResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
+    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
 
     return variants.map((v) => {
       const hasCustomCost = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
       const wholesaleNum = hasCustomCost ? toNumber(v.wholesaleCost) : baseNum;
-
-      // No modo isolado, se a variação tiver customSalePrice definido manualmente, usa esse preço;
-      // Caso contrário (modo unificado ou sem customSalePrice), passa string vazia para que
-      // calculateItem use a estratégia global ativa (Margem, Markup ou Preço Fixo).
-      const hasExplicitManualPrice =
-        gradePricingMode === "isolated" &&
-        v.customSalePrice !== undefined &&
-        v.customSalePrice !== "" &&
-        toNumber(v.customSalePrice) > 0;
-
-      const customPriceStr = hasExplicitManualPrice ? v.customSalePrice : "";
-      const res = calculateItem(wholesaleNum, customPriceStr);
       const qty = v.qty && v.qty > 0 ? v.qty : 1;
-      return {
-        ...v,
-        qty,
-        wholesaleNum,
-        isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
-        ...res,
-      };
+
+      // Decide qual ramificação usar com base na estratégia + modo isolado
+      if (strategy === "margin") {
+        const effectiveMargin =
+          gradePricingMode === "isolated" &&
+          v.customMargin !== undefined && v.customMargin !== "" &&
+          toNumber(v.customMargin) > 0
+            ? toNumber(v.customMargin)
+            : desiredMargin;
+
+        const res = computePricingByMargin({
+          wholesale_cost: wholesaleNum,
+          freight_cost: freightNum,
+          packaging_cost: packagingNum,
+          other_costs: otherNum,
+          desired_margin_pct: effectiveMargin,
+          tax_pct: tax,
+          card_rate_pct: cardRate,
+        });
+        return {
+          ...v, qty, wholesaleNum,
+          isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
+          realCost: res.realCost,
+          suggestedPrice: res.suggestedPrice,
+          profit: res.profit,
+          marginOnPrice: res.marginOnPrice,
+          markupOnCost: res.markupOnCost,
+          deductions: res.deductions,
+          isCustomPrice: false,
+          marginHealth: res.marginHealth,
+        };
+
+      } else if (strategy === "markup") {
+        const effectiveMarkup =
+          gradePricingMode === "isolated" &&
+          v.customMarkup !== undefined && v.customMarkup !== "" &&
+          toNumber(v.customMarkup) > 0
+            ? toNumber(v.customMarkup)
+            : markup;
+
+        const res = computePricing({
+          wholesale_cost: wholesaleNum,
+          freight_cost: freightNum,
+          packaging_cost: packagingNum,
+          other_costs: otherNum,
+          margin_pct: effectiveMarkup,
+          tax_pct: tax,
+          card_rate_pct: cardRate,
+        });
+        const totalDeductions = res.suggestedPrice * ((tax + cardRate) / 100);
+        return {
+          ...v, qty, wholesaleNum,
+          isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
+          realCost: res.realCost,
+          suggestedPrice: res.suggestedPrice,
+          profit: res.profit,
+          marginOnPrice: res.marginOnPrice,
+          markupOnCost: res.markupOnCost,
+          deductions: totalDeductions,
+          isCustomPrice: false,
+          marginHealth: getMarginHealth(res.marginOnPrice),
+        };
+
+      } else {
+        // direct_price: usa customSalePrice individual (isolado) ou preço fixo global
+        const hasExplicitManualPrice =
+          gradePricingMode === "isolated" &&
+          v.customSalePrice !== undefined && v.customSalePrice !== "" &&
+          toNumber(v.customSalePrice) > 0;
+        const targetPriceStr = hasExplicitManualPrice ? v.customSalePrice : directSalePrice;
+        const res = computeReversePricing({
+          wholesale_cost: wholesaleNum,
+          freight_cost: freightNum,
+          packaging_cost: packagingNum,
+          other_costs: otherNum,
+          sale_price: toNumber(targetPriceStr),
+          tax_pct: tax,
+          card_rate_pct: cardRate,
+        });
+        return {
+          ...v, qty, wholesaleNum,
+          isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
+          realCost: res.realCost,
+          suggestedPrice: res.salePrice,
+          profit: res.profit,
+          marginOnPrice: res.marginOnPrice,
+          markupOnCost: res.markupOnCost,
+          deductions: res.deductions,
+          isCustomPrice: hasExplicitManualPrice,
+          marginHealth: res.marginHealth,
+        };
+      }
     });
-  }, [variants, baseWholesaleGrade, gradePricingMode, calculateItem]);
+  }, [variants, baseWholesaleGrade, gradePricingMode, strategy, desiredMargin, markup, directSalePrice,
+      freight, freightMode, packaging, packagingMode, other, otherMode, actualLotUnits, tax, cardRate]);
 
   // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
@@ -3264,6 +3345,28 @@ function Precificacao() {
   const updateVariantPrice = (id: string, val: string) => {
     setVariants((prev) =>
       prev.map((v) => (v.id === id ? { ...v, customSalePrice: val } : v)),
+    );
+  };
+
+  // Salva margem % individual para a variante (modo isolado, strategy=margin)
+  const updateVariantCustomMargin = (id: string, marginPct: string) => {
+    if (gradePricingMode === "unified") {
+      setGradePricingMode("isolated");
+      toast.info("Modo Isolado ativado: personalizando margem desta variação.");
+    }
+    setVariants((prev) =>
+      prev.map((v) => v.id === id ? { ...v, customMargin: marginPct, customSalePrice: "" } : v)
+    );
+  };
+
+  // Salva markup % individual para a variante (modo isolado, strategy=markup)
+  const updateVariantCustomMarkup = (id: string, markupPct: string) => {
+    if (gradePricingMode === "unified") {
+      setGradePricingMode("isolated");
+      toast.info("Modo Isolado ativado: personalizando markup desta variação.");
+    }
+    setVariants((prev) =>
+      prev.map((v) => v.id === id ? { ...v, customMarkup: markupPct, customSalePrice: "" } : v)
     );
   };
 
@@ -6411,18 +6514,66 @@ function Precificacao() {
                         </Button>
                       )}
 
-                      {variants.some((v) => v.customSalePrice !== undefined && v.customSalePrice !== "") && (
+                      {/* Botão Aplicar Padrão da Grade a Todas */}
+                      {strategy === "margin" && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setVariants((prev) => prev.map((v) => ({ ...v, customMargin: String(desiredMargin), customSalePrice: "" })));
+                            toast.success(`Margem padrão de ${desiredMargin}% aplicada a todas as variações`);
+                          }}
+                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
+                          title="Define a margem padrão em todas as variações"
+                        >
+                          ⚡ Aplicar {desiredMargin}% a todas
+                        </Button>
+                      )}
+                      {strategy === "markup" && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setVariants((prev) => prev.map((v) => ({ ...v, customMarkup: String(markup), customSalePrice: "" })));
+                            toast.success(`Markup padrão de ${markup}% aplicado a todas as variações`);
+                          }}
+                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
+                          title="Define o markup padrão em todas as variações"
+                        >
+                          ⚡ Aplicar {markup}% a todas
+                        </Button>
+                      )}
+                      {strategy === "direct_price" && directSalePrice && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: directSalePrice })));
+                            toast.success(`Preço padrão R$ ${directSalePrice} aplicado a todas as variações`);
+                          }}
+                          className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs"
+                          title="Define o preço fixo padrão em todas as variações"
+                        >
+                          ⚡ Aplicar R$ {directSalePrice} a todas
+                        </Button>
+                      )}
+
+                      {/* Sincronizar com estratégia (limpar personalizações manuais) */}
+                      {variants.some((v) => (v.customSalePrice !== undefined && v.customSalePrice !== "") || v.customMargin !== undefined || v.customMarkup !== undefined) && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: "" })));
+                            setVariants((prev) => prev.map((v) => ({ ...v, customSalePrice: "", customMargin: undefined, customMarkup: undefined })));
                             toast.success("Todas as variações foram sincronizadas com a estratégia da grade.");
                           }}
                           className="h-8 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
                         >
-                          ⚡ Sincronizar com estratégia
+                          ↺ Sincronizar com estratégia
                         </Button>
                       )}
                     </div>
@@ -6489,9 +6640,44 @@ function Precificacao() {
                         <th className="py-2.5 px-3 text-center w-28">Qtd.</th>
                         <th className="py-2.5 px-3 text-right w-28">Custo Atacado</th>
                         <th className="py-2.5 px-3 text-right w-28">Custo Real</th>
-                        <th className="py-2.5 px-3 text-right w-32">Preço de Venda</th>
-                        <th className="py-2.5 px-3 text-center w-24">Margem</th>
-                        <th className="py-2.5 px-3 text-right w-28">Lucro Líquido</th>
+                        {/* Coluna 5: Input Driver */}
+                        {strategy === "margin" && (
+                          <th className="py-2.5 px-3 text-center w-28 text-primary font-black">
+                            Margem % ↓
+                          </th>
+                        )}
+                        {strategy === "markup" && (
+                          <th className="py-2.5 px-3 text-center w-28 text-primary font-black">
+                            Markup % ↓
+                          </th>
+                        )}
+                        {strategy === "direct_price" && (
+                          <th className="py-2.5 px-3 text-right w-32 text-primary font-black">
+                            Preço de Venda ↓
+                          </th>
+                        )}
+                        {/* Coluna 6: Saída Principal */}
+                        {(strategy === "margin" || strategy === "markup") && (
+                          <th className="py-2.5 px-3 text-right w-32">
+                            Preço de Venda
+                          </th>
+                        )}
+                        {strategy === "direct_price" && (
+                          <th className="py-2.5 px-3 text-center w-24">
+                            Margem ↑
+                          </th>
+                        )}
+                        {/* Coluna 7: Feedback Secundário */}
+                        {strategy === "margin" && (
+                          <th className="py-2.5 px-3 text-right w-28">Lucro Líquido</th>
+                        )}
+                        {strategy === "markup" && (
+                          <th className="py-2.5 px-3 text-center w-24">Margem Líquida</th>
+                        )}
+                        {strategy === "direct_price" && (
+                          <th className="py-2.5 px-3 text-right w-28">Lucro Líquido</th>
+                        )}
+                        {/* Coluna 8: Ações */}
                         <th className="py-2.5 pr-4 text-center w-12"><span className="sr-only">Ações</span></th>
                       </tr>
                     </thead>
@@ -6532,6 +6718,13 @@ function Precificacao() {
                               const effectiveWholesale = v.wholesaleCost !== "" ? v.wholesaleCost : baseWholesaleGrade;
                               const marginHealthy = v.marginOnPrice >= 30;
                               const marginModerate = v.marginOnPrice > 0 && v.marginOnPrice < 30;
+                              // Valores efetivos exibidos nos inputs por estratégia
+                              const effectiveMarginStr = (v.customMargin !== undefined && v.customMargin !== "")
+                                ? v.customMargin : String(desiredMargin);
+                              const effectiveMarkupStr = (v.customMarkup !== undefined && v.customMarkup !== "")
+                                ? v.customMarkup : String(markup);
+                              const hasCustomMargin = v.customMargin !== undefined && v.customMargin !== "" && gradePricingMode === "isolated";
+                              const hasCustomMarkup = v.customMarkup !== undefined && v.customMarkup !== "" && gradePricingMode === "isolated";
 
                               return (
                                 <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
@@ -6581,176 +6774,143 @@ function Precificacao() {
                                     {brl(v.realCost)}
                                   </td>
 
-                                  {/* Preço de Venda */}
-                                  <td className="py-2.5 px-3 text-right">
-                                    <div className="relative inline-flex items-center gap-1">
-                                      <input
-                                        inputMode="decimal"
-                                        value={
-                                          v.customSalePrice !== "" && v.customSalePrice !== undefined
-                                            ? v.customSalePrice
-                                            : (v.suggestedPrice > 0 ? v.suggestedPrice.toFixed(2).replace(".", ",") : "")
-                                        }
-                                        onChange={(e) => {
-                                          if (gradePricingMode === "unified") {
-                                            setGradePricingMode("isolated");
-                                            toast.info("Modo Isolado ativado: personalização individual desta variação.");
-                                          }
-                                          updateVariantPrice(v.id, e.target.value);
-                                        }}
-                                        placeholder="0,00"
-                                        className={cn(
-                                          "h-7 w-24 text-right font-bold numeric text-xs rounded border bg-transparent px-1.5 text-foreground focus:bg-background focus:border-primary outline-none transition-all",
-                                          v.customSalePrice !== "" && v.customSalePrice !== undefined
-                                            ? "border-primary/50 bg-primary/5 text-primary"
-                                            : "border-border/60",
-                                        )}
-                                      />
-                                      {v.customSalePrice !== "" && v.customSalePrice !== undefined && (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setVariants((prev) =>
-                                              prev.map((item) => (item.id === v.id ? { ...item, customSalePrice: "" } : item))
-                                            );
-                                            toast.success(`Tamanho ${v.size}: voltando ao cálculo automático da grade.`);
-                                          }}
-                                          title="Resetar para a estratégia da grade"
-                                          className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
-                                        >
-                                          <RotateCcw className="size-3" />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
+                                  {/* ── COLUNA 5: INPUT DRIVER ── */}
 
-                                  {/* Margem */}
-                                  <td className="py-2.5 px-3 text-center">
-                                    {v.wholesaleNum > 0 && v.suggestedPrice > 0 ? (
-                                      <div className="relative inline-flex items-center justify-center">
-                                        {gradePricingMode === "isolated" ? (
-                                          <>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                if (editingMarginVariantId === v.id) {
-                                                  setEditingMarginVariantId(null);
-                                                } else {
-                                                  setEditingMarginVariantId(v.id);
-                                                  setInlineMarginInput(v.marginOnPrice > 0 ? String(Math.round(v.marginOnPrice)) : "50");
-                                                }
-                                              }}
-                                              title="Clique para definir margem individual deste tamanho"
-                                              className={cn(
-                                                "text-xs font-bold numeric px-1.5 py-0.5 rounded-md hover:bg-secondary cursor-pointer transition-all border border-transparent hover:border-border/80 flex items-center gap-1",
-                                                marginHealthy && "text-success",
-                                                marginModerate && "text-amber-500",
-                                                v.marginOnPrice <= 0 && "text-destructive",
-                                              )}
-                                            >
-                                              <span>{pct(v.marginOnPrice)}</span>
-                                              <span className="text-[10px] text-muted-foreground/60">✎</span>
-                                            </button>
-
-                                            {/* Popover flutuante para editar margem do tamanho */}
-                                            {editingMarginVariantId === v.id && (
-                                              <>
-                                                <div className="fixed inset-0 z-30" onClick={() => setEditingMarginVariantId(null)} />
-                                                <div className="absolute right-0 top-8 z-40 w-52 rounded-xl border border-border bg-popover p-3 shadow-lift space-y-2 text-left">
-                                                  <div className="flex items-center justify-between">
-                                                    <span className="text-[11px] font-bold text-foreground">
-                                                      Margem {v.size} ({v.color})
-                                                    </span>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => setEditingMarginVariantId(null)}
-                                                      className="text-muted-foreground hover:text-foreground text-xs p-0.5 cursor-pointer"
-                                                    >
-                                                      ✕
-                                                    </button>
-                                                  </div>
-                                                  <div className="flex items-center gap-1">
-                                                    {[30, 40, 50, 60].map((mVal) => (
-                                                      <button
-                                                        key={mVal}
-                                                        type="button"
-                                                        onClick={() => {
-                                                          updateVariantMargin(v.id, mVal);
-                                                          setEditingMarginVariantId(null);
-                                                        }}
-                                                        className={cn(
-                                                          "flex-1 py-1 text-[11px] font-bold rounded border cursor-pointer transition-colors text-center",
-                                                          Math.round(v.marginOnPrice) === mVal
-                                                            ? "bg-primary text-primary-foreground border-primary"
-                                                            : "border-border/70 hover:bg-secondary text-foreground",
-                                                        )}
-                                                      >
-                                                        {mVal}%
-                                                      </button>
-                                                    ))}
-                                                  </div>
-                                                  <div className="flex items-center gap-1.5 pt-1">
-                                                    <div className="relative flex-1">
-                                                      <input
-                                                        inputMode="decimal"
-                                                        value={inlineMarginInput}
-                                                        onChange={(e) => setInlineMarginInput(e.target.value)}
-                                                        placeholder="Ex: 45"
-                                                        className="h-7 w-full rounded border border-border/70 bg-background px-2 text-xs font-bold text-foreground outline-none focus:border-primary"
-                                                        onKeyDown={(e) => {
-                                                          if (e.key === "Enter") {
-                                                            const val = toNumber(inlineMarginInput);
-                                                            if (val > 0 && val < 95) {
-                                                              updateVariantMargin(v.id, val);
-                                                              setEditingMarginVariantId(null);
-                                                            }
-                                                          }
-                                                        }}
-                                                      />
-                                                      <span className="absolute right-2 top-1.5 text-[10px] text-muted-foreground font-bold">%</span>
-                                                    </div>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        const val = toNumber(inlineMarginInput);
-                                                        if (val > 0 && val < 95) {
-                                                          updateVariantMargin(v.id, val);
-                                                          setEditingMarginVariantId(null);
-                                                        }
-                                                      }}
-                                                      className="h-7 px-2.5 rounded bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 cursor-pointer transition-opacity"
-                                                    >
-                                                      OK
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              </>
-                                            )}
-                                          </>
-                                        ) : (
-                                          <span
-                                            className={cn(
-                                              "text-xs font-bold numeric",
-                                              marginHealthy && "text-success",
-                                              marginModerate && "text-amber-500",
-                                              v.marginOnPrice <= 0 && "text-destructive",
-                                            )}
+                                  {/* strategy=margin → INPUT Margem % */}
+                                  {strategy === "margin" && (
+                                    <td className="py-2.5 px-3 text-center">
+                                      <div className="relative inline-flex items-center gap-1">
+                                        <div className={cn(
+                                          "relative inline-flex items-center rounded border overflow-hidden h-7",
+                                          hasCustomMargin ? "border-primary/50 bg-primary/5" : "border-border/60 bg-transparent",
+                                        )}>
+                                          <input
+                                            inputMode="decimal"
+                                            value={effectiveMarginStr}
+                                            onChange={(e) => updateVariantCustomMargin(v.id, e.target.value)}
+                                            placeholder="50"
+                                            className="w-12 text-center font-bold numeric text-xs bg-transparent px-1 focus:outline-none focus:bg-background/80 text-foreground"
+                                          />
+                                          <span className="pr-1.5 text-[10px] font-bold text-muted-foreground">%</span>
+                                        </div>
+                                        {hasCustomMargin && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setVariants((prev) => prev.map((item) =>
+                                                item.id === v.id ? { ...item, customMargin: undefined } : item
+                                              ));
+                                              toast.success(`${v.size}: usando margem padrão da grade.`);
+                                            }}
+                                            title="Resetar para margem padrão"
+                                            className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
                                           >
-                                            {pct(v.marginOnPrice)}
-                                          </span>
+                                            <RotateCcw className="size-3" />
+                                          </button>
                                         )}
                                       </div>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground/40">—</span>
-                                    )}
-                                  </td>
+                                    </td>
+                                  )}
 
-                                  {/* Lucro Líquido */}
-                                  <td className="py-2.5 px-3 text-right font-bold numeric text-xs">
-                                    <span className={v.profit >= 0 ? "text-success" : "text-destructive"}>
-                                      {v.profit >= 0 ? "+" : ""}{brl(v.profit)}
-                                    </span>
-                                  </td>
+                                  {/* strategy=markup → INPUT Markup % com multiplicador */}
+                                  {strategy === "markup" && (
+                                    <td className="py-2.5 px-3 text-center">
+                                      <div className="relative inline-flex items-center gap-1">
+                                        <div className={cn(
+                                          "relative inline-flex items-center rounded border overflow-hidden h-7",
+                                          hasCustomMarkup ? "border-primary/50 bg-primary/5" : "border-border/60 bg-transparent",
+                                        )}>
+                                          <input
+                                            inputMode="decimal"
+                                            value={effectiveMarkupStr}
+                                            onChange={(e) => updateVariantCustomMarkup(v.id, e.target.value)}
+                                            placeholder="100"
+                                            className="w-12 text-center font-bold numeric text-xs bg-transparent px-1 focus:outline-none focus:bg-background/80 text-foreground"
+                                          />
+                                          <span className="pr-1.5 text-[10px] font-bold text-muted-foreground">%</span>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground font-medium numeric">
+                                          {(1 + toNumber(effectiveMarkupStr) / 100).toFixed(1)}x
+                                        </span>
+                                        {hasCustomMarkup && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setVariants((prev) => prev.map((item) =>
+                                                item.id === v.id ? { ...item, customMarkup: undefined } : item
+                                              ));
+                                              toast.success(`${v.size}: usando markup padrão da grade.`);
+                                            }}
+                                            title="Resetar para markup padrão"
+                                            className="text-muted-foreground/60 hover:text-primary transition-colors p-0.5 rounded cursor-pointer"
+                                          >
+                                            <RotateCcw className="size-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  )}
+
+                                  {/* ── COLUNA 6: SAÍDA PRINCIPAL ── */}
+
+                                  {/* strategy=margin | markup → Preço calculado (output, read-only) */}
+                                  {(strategy === "margin" || strategy === "markup") && (
+                                    <td className="py-2.5 px-3 text-right">
+                                      <span className={cn(
+                                        "text-xs font-black numeric",
+                                        v.suggestedPrice > 0 ? "text-foreground" : "text-muted-foreground/40",
+                                      )}>
+                                        {v.suggestedPrice > 0 ? brl(v.suggestedPrice) : "—"}
+                                      </span>
+                                    </td>
+                                  )}
+
+                                  {/* strategy=direct_price → Margem Resultante (saída principal) */}
+                                  {strategy === "direct_price" && (
+                                    <td className="py-2.5 px-3 text-center">
+                                      {v.wholesaleNum > 0 && v.suggestedPrice > 0 ? (
+                                        <span className={cn(
+                                          "text-xs font-bold numeric",
+                                          marginHealthy && "text-success",
+                                          marginModerate && "text-amber-500",
+                                          v.marginOnPrice <= 0 && "text-destructive",
+                                        )}>
+                                          {pct(v.marginOnPrice)}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground/40">—</span>
+                                      )}
+                                    </td>
+                                  )}
+
+                                  {/* ── COLUNA 7: FEEDBACK SECUNDÁRIO ── */}
+
+                                  {/* strategy=markup → Margem Líquida (feedback de saúde financeira) */}
+                                  {strategy === "markup" && (
+                                    <td className="py-2.5 px-3 text-center">
+                                      {v.wholesaleNum > 0 && v.suggestedPrice > 0 ? (
+                                        <span className={cn(
+                                          "text-xs font-bold numeric",
+                                          marginHealthy && "text-success",
+                                          marginModerate && "text-amber-500",
+                                          v.marginOnPrice <= 0 && "text-destructive",
+                                        )}>
+                                          {pct(v.marginOnPrice)}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground/40">—</span>
+                                      )}
+                                    </td>
+                                  )}
+
+                                  {/* strategy=margin | direct_price → Lucro Líquido */}
+                                  {(strategy === "margin" || strategy === "direct_price") && (
+                                    <td className="py-2.5 px-3 text-right font-bold numeric text-xs">
+                                      <span className={v.profit >= 0 ? "text-success" : "text-destructive"}>
+                                        {v.profit >= 0 ? "+" : ""}{brl(v.profit)}
+                                      </span>
+                                    </td>
+                                  )}
 
                                   {/* Excluir Variação */}
                                   <td className="py-2.5 pr-4 text-center">
@@ -6784,17 +6944,47 @@ function Precificacao() {
                         <td className="py-3 px-3 text-right numeric text-muted-foreground">
                           —
                         </td>
-                        <td className="py-3 px-3 text-right numeric text-foreground font-black">
-                          Média {brl(summaryPrices.avgSuggested)}
-                        </td>
-                        <td className="py-3 px-3 text-center numeric text-foreground font-bold">
-                          {pct(summaryPrices.avgMargin)}
-                        </td>
-                        <td className="py-3 px-3 text-right numeric font-black">
-                          <span className={summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive"}>
-                            {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
-                          </span>
-                        </td>
+                        {/* Coluna 5: Resumo Driver */}
+                        {strategy === "margin" && (
+                          <td className="py-3 px-3 text-center text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">
+                            Média {summaryPrices.avgMargin.toFixed(1)}%
+                          </td>
+                        )}
+                        {strategy === "markup" && (
+                          <td className="py-3 px-3 text-center text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">
+                            Média {(variantResults.reduce((a, v) => a + (v.markupOnCost || 0), 0) / Math.max(1, variantResults.length)).toFixed(1)}%
+                          </td>
+                        )}
+                        {strategy === "direct_price" && (
+                          <td className="py-3 px-3 text-right numeric text-foreground font-black">
+                            Média {brl(summaryPrices.avgSuggested)}
+                          </td>
+                        )}
+                        {/* Coluna 6: Resumo Saída Principal */}
+                        {(strategy === "margin" || strategy === "markup") && (
+                          <td className="py-3 px-3 text-right numeric text-foreground font-black">
+                            Média {brl(summaryPrices.avgSuggested)}
+                          </td>
+                        )}
+                        {strategy === "direct_price" && (
+                          <td className="py-3 px-3 text-center numeric text-foreground font-bold">
+                            {pct(summaryPrices.avgMargin)}
+                          </td>
+                        )}
+                        {/* Coluna 7: Resumo Feedback Secundário */}
+                        {strategy === "markup" && (
+                          <td className="py-3 px-3 text-center numeric text-foreground font-bold">
+                            {pct(summaryPrices.avgMargin)}
+                          </td>
+                        )}
+                        {(strategy === "margin" || strategy === "direct_price") && (
+                          <td className="py-3 px-3 text-right numeric font-black">
+                            <span className={summaryPrices.totalProfit >= 0 ? "text-success" : "text-destructive"}>
+                              {summaryPrices.totalProfit >= 0 ? "+" : ""}{brl(summaryPrices.totalProfit)}
+                            </span>
+                          </td>
+                        )}
+                        {/* Coluna 8: Ações */}
                         <td className="py-3 pr-4" />
                       </tr>
                     </tfoot>
