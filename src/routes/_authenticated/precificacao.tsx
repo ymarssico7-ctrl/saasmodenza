@@ -6184,124 +6184,143 @@ function Precificacao() {
                         size="sm"
                         onClick={() => setShowColorInput(!showColorInput)}
                         className="h-8 px-2.5 rounded-lg text-xs font-semibold border-border/70 bg-background hover:bg-secondary/60 cursor-pointer shadow-2xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                        title="Adicionar uma nova cor à grade"
+                        title="Adicionar cor e tamanhos à grade"
                       >
                         <Plus className="size-3 text-primary" />
-                        <span>Cor</span>
+                        <span>Variação</span>
+                        <ChevronDown className="size-3 text-muted-foreground/60" />
                       </Button>
 
                       {showColorInput && (
-                        <div className="absolute left-0 top-10 z-40 w-72 rounded-2xl border border-border bg-popover p-3 shadow-lift space-y-2.5">
-                          <div className="flex items-center gap-1.5 border-b border-border/60 pb-2">
-                            <Search className="size-3.5 text-muted-foreground" />
-                            <input
-                              autoFocus
-                              type="text"
-                              value={colorSearchQuery}
-                              onChange={(e) => setColorSearchQuery(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && colorSearchQuery.trim()) {
-                                  e.preventDefault();
-                                  addColorToGrade(colorSearchQuery.trim());
-                                  setColorSearchQuery("");
-                                  setShowColorInput(false);
-                                }
-                              }}
-                              placeholder="Buscar ou digitar cor..."
-                              className="w-full bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
-                            />
-                            {colorSearchQuery && (
-                              <button
+                        <div className="absolute left-0 top-10 z-40 w-80 rounded-2xl border border-border bg-popover p-3.5 shadow-lift space-y-3">
+                          {/* Header */}
+                          <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                            <p className="text-xs font-bold text-foreground">Adicionar à Grade</p>
+                            <button
+                              type="button"
+                              onClick={() => { setShowColorInput(false); setColorSearchQuery(""); }}
+                              className="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </div>
+
+                          {/* Seção 1: Cor */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">1 · Cor</p>
+                            <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2 py-1.5">
+                              <Search className="size-3 text-muted-foreground shrink-0" />
+                              <input
+                                autoFocus
+                                type="text"
+                                value={colorSearchQuery}
+                                onChange={(e) => setColorSearchQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && colorSearchQuery.trim()) {
+                                    e.preventDefault();
+                                    addColorToGrade(colorSearchQuery.trim());
+                                    setColorSearchQuery("");
+                                    setShowColorInput(false);
+                                  }
+                                }}
+                                placeholder="Buscar ou digitar cor..."
+                                className="w-full bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
+                              />
+                              {colorSearchQuery && (
+                                <button
+                                  type="button"
+                                  onClick={() => setColorSearchQuery("")}
+                                  className="text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                                >
+                                  <X className="size-3" />
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                              {customOptions.customColors.length > 0
+                                ? customOptions.customColors
+                                    .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
+                                    .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
+                                    .map((c) => (
+                                      <button
+                                        key={c.value}
+                                        type="button"
+                                        onClick={() => { addColorToGrade(c.label); setColorSearchQuery(""); setShowColorInput(false); }}
+                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/20 hover:bg-primary/20 text-foreground transition-colors cursor-pointer"
+                                      >
+                                        <span className="size-2 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
+                                        <span>{c.label}</span>
+                                      </button>
+                                    ))
+                                : ["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
+                                    .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
+                                    .filter((c) => !colorSearchQuery || c.toLowerCase().includes(colorSearchQuery.toLowerCase()))
+                                    .map((c) => (
+                                      <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => { addColorToGrade(c); setColorSearchQuery(""); setShowColorInput(false); }}
+                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-foreground transition-colors cursor-pointer"
+                                      >
+                                        <span className={cn("size-2 rounded-full", getColorDot(c))} />
+                                        <span>{c}</span>
+                                      </button>
+                                    ))
+                              }
+                            </div>
+
+                            {colorSearchQuery.trim() && (
+                              <Button
                                 type="button"
-                                onClick={() => setColorSearchQuery("")}
-                                className="text-muted-foreground hover:text-foreground cursor-pointer"
+                                size="sm"
+                                onClick={() => { addColorToGrade(colorSearchQuery.trim()); setColorSearchQuery(""); setShowColorInput(false); }}
+                                className="w-full h-8 text-xs font-bold gradient-primary text-primary-foreground rounded-xl"
                               >
-                                <X className="size-3" />
-                              </button>
+                                Adicionar &quot;{colorSearchQuery.trim()}&quot;
+                              </Button>
                             )}
                           </div>
 
-                          {/* Cores Personalizadas da Loja */}
-                          {customOptions.customColors.length > 0 && (
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Cores da sua Loja</p>
-                                <Link
-                                  to="/configuracoes"
-                                  search={{ tab: "catalogo" }}
-                                  className="text-[10px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-0.5"
-                                >
-                                  <span>Gerenciar</span>
-                                  <ArrowUpRight className="size-2.5" />
-                                </Link>
-                              </div>
-                              <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto">
-                                {customOptions.customColors
-                                  .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
-                                  .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
-                                  .map((c) => (
-                                    <button
-                                      key={c.value}
-                                      type="button"
-                                      onClick={() => {
-                                        addColorToGrade(c.label);
-                                        setColorSearchQuery("");
-                                        setShowColorInput(false);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/20 hover:bg-primary/20 text-foreground transition-colors cursor-pointer"
-                                    >
-                                      <span
-                                        className="size-2 rounded-full border border-black/10 shrink-0"
-                                        style={{ backgroundColor: c.hex }}
-                                      />
-                                      <span>{c.label}</span>
-                                    </button>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Paleta Padrão da Coleção */}
-                          <div className="space-y-1">
-                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                              {customOptions.customColors.length > 0 ? "Padrões de Fábrica" : "Paleta da Coleção"}
-                            </p>
-                            <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                              {["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
-                                .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
-                                .filter((c) => !colorSearchQuery || c.toLowerCase().includes(colorSearchQuery.toLowerCase()))
-                                .map((c) => (
+                          {/* Seção 2: Tamanho avulso */}
+                          <div className="space-y-2 border-t border-border/40 pt-3">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">2 · Tamanho avulso</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(customOptions.customSizes.length > 0
+                                ? customOptions.customSizes.map((s) => s.label)
+                                : ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "'Unico"]
+                              ).map((sz) => {
+                                const alreadyExists = variants.some((v) => v.size === sz);
+                                return (
                                   <button
-                                    key={c}
+                                    key={sz}
                                     type="button"
-                                    onClick={() => {
-                                      addColorToGrade(c);
-                                      setColorSearchQuery("");
-                                      setShowColorInput(false);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-foreground transition-colors cursor-pointer"
+                                    onClick={() => { if (!alreadyExists) { toggleSizeInGrade(sz); setShowColorInput(false); } }}
+                                    disabled={alreadyExists}
+                                    className={cn(
+                                      "px-2 py-1 rounded-lg border text-[11px] font-bold transition-all",
+                                      alreadyExists
+                                        ? "border-border/40 bg-secondary/30 text-muted-foreground/40 cursor-default"
+                                        : "border-border/70 bg-background text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-2xs cursor-pointer",
+                                    )}
+                                    title={alreadyExists ? `${sz} já está na grade` : `Adicionar tamanho ${sz}`}
                                   >
-                                    <span className={cn("size-2 rounded-full", getColorDot(c))} />
-                                    <span>{c}</span>
+                                    {sz}
                                   </button>
-                                ))}
+                                );
+                              })}
                             </div>
                           </div>
 
-                          {colorSearchQuery.trim() && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                addColorToGrade(colorSearchQuery.trim());
-                                setColorSearchQuery("");
-                                setShowColorInput(false);
-                              }}
-                              className="w-full h-8 text-xs font-bold gradient-primary text-primary-foreground rounded-xl"
-                            >
-                              Adicionar &quot;{colorSearchQuery.trim()}&quot;
-                            </Button>
-                          )}
+                          {/* Link para gerador completo */}
+                          <button
+                            type="button"
+                            onClick={() => { setShowGradeModal(true); setShowColorInput(false); setColorSearchQuery(""); }}
+                            className="w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 border-t border-border/40 pt-3 cursor-pointer"
+                          >
+                            <Pencil className="size-3" />
+                            Abrir gerador de grade completo
+                          </button>
                         </div>
                       )}
                     </div>
@@ -6390,32 +6409,7 @@ function Precificacao() {
                               </button>
                             </div>
 
-                            {/* Presets compactos de margem */}
-                            <div className="hidden lg:flex items-center gap-1">
-                              {[
-                                { val: 35, label: "35%" },
-                                { val: 45, label: "45%" },
-                                { val: 50, label: "50%" },
-                                { val: 60, label: "60%" },
-                              ].map((preset) => (
-                                <button
-                                  key={preset.val}
-                                  type="button"
-                                  onClick={() => {
-                                    setDesiredMargin(preset.val);
-                                    setMatrixGlobalMarginStr(String(preset.val));
-                                  }}
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                    Math.abs(desiredMargin - preset.val) < 0.5
-                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                  )}
-                                >
-                                  {preset.label}
-                                </button>
-                              ))}
-                            </div>
+
 
                             {summaryPrices.avgSuggested > 0 && (
                               <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/80 text-[11px] font-semibold text-muted-foreground">
@@ -6454,31 +6448,6 @@ function Precificacao() {
                               </button>
                             </div>
 
-                            <div className="hidden lg:flex items-center gap-1">
-                              {[
-                                { val: 80, label: "1.8x" },
-                                { val: 100, label: "2.0x" },
-                                { val: 150, label: "2.5x" },
-                                { val: 200, label: "3.0x" },
-                              ].map((preset) => (
-                                <button
-                                  key={preset.val}
-                                  type="button"
-                                  onClick={() => {
-                                    setMarkup(preset.val);
-                                    setMatrixGlobalMarkupStr(String(preset.val));
-                                  }}
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                    Math.abs(markup - preset.val) < 0.5
-                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                  )}
-                                >
-                                  {preset.label}
-                                </button>
-                              ))}
-                            </div>
 
                             {summaryPrices.avgMargin > 0 && (
                               <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
@@ -6505,26 +6474,6 @@ function Precificacao() {
                               />
                             </div>
 
-                            <div className="hidden lg:flex items-center gap-1">
-                              {["49,90", "69,90", "89,90", "119,90"].map((preset) => (
-                                <button
-                                  key={preset}
-                                  type="button"
-                                  onClick={() => {
-                                    setDirectSalePrice(preset);
-                                    setMatrixGlobalDirectPrice(preset);
-                                  }}
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                                    directSalePrice === preset
-                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                      : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/60",
-                                  )}
-                                >
-                                  {preset}
-                                </button>
-                              ))}
-                            </div>
 
                             {summaryPrices.avgMargin > 0 && (
                               <div className="hidden xl:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 border border-success/20 text-[11px] font-semibold text-success">
@@ -6567,18 +6516,24 @@ function Precificacao() {
                           {/* Opções por Estratégia */}
                           {strategy === "margin" && (
                             <div className="space-y-2">
-                              <div className="grid grid-cols-4 gap-1">
-                                {[35, 45, 50, 60].map((pctVal) => (
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {[
+                                  { val: 35, label: "35%", desc: "Giro / Queima" },
+                                  { val: 50, label: "50%", desc: "Padrão Saudável" },
+                                  { val: 60, label: "60%", desc: "Meta de Crescimento" },
+                                  { val: 70, label: "70%", desc: "Premium / Exclusivo" },
+                                ].map((preset) => (
                                   <button
-                                    key={pctVal}
+                                    key={preset.val}
                                     type="button"
                                     onClick={() => {
-                                      setVariants((prev) => prev.map((v) => ({ ...v, customMargin: String(pctVal), customSalePrice: "" })));
-                                      toast.success(`Margem de ${pctVal}% aplicada a todas as variações.`);
+                                      setVariants((prev) => prev.map((v) => ({ ...v, customMargin: String(preset.val), customSalePrice: "" })));
+                                      toast.success(`Margem ${preset.label} (${preset.desc}) aplicada a todas as variações.`);
                                     }}
-                                    className="py-1 px-1.5 rounded-lg border border-border bg-secondary/50 hover:bg-primary hover:text-primary-foreground hover:border-primary text-xs font-bold transition-all text-center cursor-pointer"
+                                    className="py-1.5 px-2 rounded-lg border border-border bg-secondary/50 hover:bg-primary hover:text-primary-foreground hover:border-primary text-xs transition-all text-left cursor-pointer"
                                   >
-                                    {pctVal}%
+                                    <span className="font-black block">{preset.label}</span>
+                                    <span className="text-[10px] font-medium opacity-70">{preset.desc}</span>
                                   </button>
                                 ))}
                               </div>
@@ -6587,7 +6542,7 @@ function Precificacao() {
 
                           {strategy === "markup" && (
                             <div className="space-y-2">
-                              <div className="grid grid-cols-4 gap-1">
+                              <div className="grid grid-cols-2 gap-1.5">
                                 {[
                                   { val: 80, label: "1.8x" },
                                   { val: 100, label: "2.0x" },
@@ -6612,7 +6567,7 @@ function Precificacao() {
 
                           {strategy === "direct_price" && (
                             <div className="space-y-2">
-                              <div className="grid grid-cols-4 gap-1">
+                              <div className="grid grid-cols-2 gap-1.5">
                                 {["49,90", "69,90", "89,90", "119,90"].map((pr) => (
                                   <button
                                     key={pr}
@@ -6649,22 +6604,7 @@ function Precificacao() {
                         </PopoverContent>
                       </Popover>
 
-                      {/* Replicar custo de atacado (atalho rápido se houver) */}
-                      {baseWholesaleGrade && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setVariants((prev) => prev.map((v) => ({ ...v, wholesaleCost: baseWholesaleGrade })));
-                            toast.success(`Custo base R$ ${baseWholesaleGrade} aplicado a todas as variações`);
-                          }}
-                          className="h-8 text-xs font-semibold rounded-lg text-muted-foreground hover:text-foreground cursor-pointer hidden md:inline-flex"
-                          title="Replica o custo do topo em todas as variações"
-                        >
-                          ⚡ Replicar custo ({brl(toNumber(baseWholesaleGrade))})
-                        </Button>
-                      )}
+
 
                       {/* Limpar personalizações manuais (aparece somente se houver customizações ativas) */}
                       {variants.some((v) => (v.customSalePrice !== undefined && v.customSalePrice !== "") || v.customMargin !== undefined || v.customMarkup !== undefined) && (
@@ -6683,29 +6623,6 @@ function Precificacao() {
                           <span>Limpar</span>
                         </Button>
                       )}
-                    </div>
-                  )}
-
-                  {/* Qtd do lote (quando há variações) */}
-                  {variants.length > 0 && (
-                    <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-border/70">
-                      <span className="text-muted-foreground text-[10px] font-bold tracking-wider flex items-center gap-1 select-none">
-                        <Boxes className="size-3 text-muted-foreground" />
-                        <span>Qtd:</span>
-                      </span>
-                      <div className="inline-flex rounded-lg border border-border/70 bg-secondary/30 p-0.5 gap-0.5">
-                        {[1, 2, 3, 4, 6].map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => applyBulkQty(num)}
-                            className="size-6 rounded-md bg-background hover:bg-card text-foreground text-[11px] font-bold numeric transition-colors cursor-pointer shadow-2xs flex items-center justify-center border border-transparent hover:border-border/60"
-                            title={`Definir ${num} unidades para todas as peças da grade`}
-                          >
-                            {num}
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </div>
