@@ -2190,6 +2190,8 @@ function Precificacao() {
   // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
   const [showColorInput, setShowColorInput] = useState(false);
+  const [quickAddColor, setQuickAddColor] = useState<string>("");
+  const [quickAddSizes, setQuickAddSizes] = useState<string[]>([]);
   const colorPopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -3357,6 +3359,64 @@ function Precificacao() {
     setMatrixSizes([]);
     setVariants([]);
     toast.success("Grade de tamanhos limpa");
+  };
+
+  const handleAddCustomVariations = (colorName: string, sizes: string[]) => {
+    const cleanColor = colorName.trim();
+    if (!cleanColor) {
+      toast.error("Por favor, selecione ou digite uma cor.");
+      return;
+    }
+    if (sizes.length === 0) {
+      toast.error("Selecione ao menos um tamanho para esta cor.");
+      return;
+    }
+
+    if (!activeColors.some((c) => c.toLowerCase() === cleanColor.toLowerCase())) {
+      setActiveColors((prev) => [...prev, cleanColor]);
+    }
+
+    const existingSizesForThisColor = variants
+      .filter((v) => v.color.toLowerCase() === cleanColor.toLowerCase())
+      .map((v) => v.size);
+
+    const sizesToAdd = sizes.filter((s) => !existingSizesForThisColor.includes(s));
+    if (sizesToAdd.length === 0) {
+      toast.error(`Todas as variações selecionadas (${cleanColor}: ${sizes.join(", ")}) já existem na grade.`);
+      return;
+    }
+
+    const newRows: VariantRow[] = sizesToAdd.map((sz) => ({
+      id: `v-${sz.toLowerCase()}-${cleanColor.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      size: sz,
+      color: cleanColor,
+      wholesaleCost: baseWholesaleGrade || "",
+      customSalePrice: "",
+      qty: matrixDefaultQtys[sz] ?? 1,
+    }));
+
+    setVariants((prev) => {
+      const combined = [...prev, ...newRows];
+      return combined.sort((a, b) => {
+        const colComp = a.color.localeCompare(b.color);
+        if (colComp !== 0) return colComp;
+        const idxA = CANONICAL_SIZE_ORDER.indexOf(a.size);
+        const idxB = CANONICAL_SIZE_ORDER.indexOf(b.size);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.size.localeCompare(b.size);
+      });
+    });
+
+    toast.success(
+      `${sizesToAdd.length} ${sizesToAdd.length === 1 ? "variação adicionada" : "variações adicionadas"} (${cleanColor}: ${sizesToAdd.join(", ")})`
+    );
+
+    setQuickAddColor("");
+    setQuickAddSizes([]);
+    setColorSearchQuery("");
+    setShowColorInput(false);
   };
 
   const addColorToGrade = (colName: string) => {
@@ -6191,138 +6251,289 @@ function Precificacao() {
                         <ChevronDown className="size-3 text-muted-foreground/60" />
                       </Button>
 
-                      {showColorInput && (
-                        <div className="absolute left-0 top-10 z-40 w-80 rounded-2xl border border-border bg-popover p-3.5 shadow-lift space-y-3">
-                          {/* Header */}
-                          <div className="flex items-center justify-between pb-2 border-b border-border/50">
-                            <p className="text-xs font-bold text-foreground">Adicionar à Grade</p>
-                            <button
-                              type="button"
-                              onClick={() => { setShowColorInput(false); setColorSearchQuery(""); }}
-                              className="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
-                            >
-                              <X className="size-3" />
-                            </button>
-                          </div>
+                      {showColorInput && (() => {
+                        const availableSizes = customOptions.customSizes.length > 0
+                          ? customOptions.customSizes.map((s) => s.label)
+                          : ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "Único"];
 
-                          {/* Seção 1: Cor */}
-                          <div className="space-y-2">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">1 · Cor</p>
-                            <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2 py-1.5">
-                              <Search className="size-3 text-muted-foreground shrink-0" />
-                              <input
-                                autoFocus
-                                type="text"
-                                value={colorSearchQuery}
-                                onChange={(e) => setColorSearchQuery(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && colorSearchQuery.trim()) {
-                                    e.preventDefault();
-                                    addColorToGrade(colorSearchQuery.trim());
-                                    setColorSearchQuery("");
-                                    setShowColorInput(false);
-                                  }
+                        const isColorSelected = Boolean(quickAddColor.trim());
+                        const existingSizesForSelectedColor = isColorSelected
+                          ? variants.filter((v) => v.color.toLowerCase() === quickAddColor.trim().toLowerCase()).map((v) => v.size)
+                          : [];
+
+                        return (
+                          <div className="absolute left-0 top-10 z-40 w-[350px] max-w-[92vw] rounded-2xl border border-border bg-popover p-3.5 shadow-lift space-y-3">
+                            {/* Header */}
+                            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                              <div className="flex items-center gap-1.5">
+                                <Plus className="size-3.5 text-primary" />
+                                <p className="text-xs font-bold text-foreground">Adicionar Variações à Grade</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowColorInput(false);
+                                  setColorSearchQuery("");
                                 }}
-                                placeholder="Buscar ou digitar cor..."
-                                className="w-full bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
-                              />
-                              {colorSearchQuery && (
+                                className="size-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                                aria-label="Fechar"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </div>
+
+                            {/* ETAPA 1: Escolha a Cor */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                  1 · Selecione a Cor
+                                </p>
+                                {quickAddColor && (
+                                  <span className="text-[11px] font-bold text-primary flex items-center gap-1">
+                                    <span className={cn("size-2 rounded-full", getColorDot(quickAddColor))} />
+                                    <span>{quickAddColor}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2 py-1.5 focus-within:border-primary transition-all">
+                                <Search className="size-3 text-muted-foreground shrink-0" />
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={colorSearchQuery}
+                                  onChange={(e) => setColorSearchQuery(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && colorSearchQuery.trim()) {
+                                      e.preventDefault();
+                                      setQuickAddColor(colorSearchQuery.trim());
+                                    }
+                                  }}
+                                  placeholder="Buscar ou digitar nova cor..."
+                                  className="w-full bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
+                                />
+                                {colorSearchQuery && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setColorSearchQuery("")}
+                                    className="text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Cores já na peça (para adicionar tamanhos a elas) */}
+                              {activeColors.length > 0 && !colorSearchQuery && (
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-semibold text-muted-foreground">Já na peça:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {activeColors.map((cor) => {
+                                      const isSelected = quickAddColor.toLowerCase() === cor.toLowerCase();
+                                      return (
+                                        <button
+                                          key={cor}
+                                          type="button"
+                                          onClick={() => setQuickAddColor(cor)}
+                                          className={cn(
+                                            "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                                            isSelected
+                                              ? "bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/40"
+                                              : "bg-secondary/60 hover:bg-secondary text-foreground border border-border/60",
+                                          )}
+                                        >
+                                          <span className={cn("size-2 rounded-full", getColorDot(cor))} />
+                                          <span>{cor}</span>
+                                          {isSelected && <Check className="size-2.5" />}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Paleta da Loja ou Fábrica */}
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-semibold text-muted-foreground">
+                                  {customOptions.customColors.length > 0 ? "Cores da Loja / Paleta:" : "Paleta da Coleção:"}
+                                </p>
+                                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-0.5">
+                                  {(customOptions.customColors.length > 0
+                                    ? customOptions.customColors.map((c) => ({ label: c.label, hex: c.hex }))
+                                    : ["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"].map((name) => ({ label: name, hex: undefined }))
+                                  )
+                                    .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
+                                    .map((c) => {
+                                      const isSelected = quickAddColor.toLowerCase() === c.label.toLowerCase();
+                                      return (
+                                        <button
+                                          key={c.label}
+                                          type="button"
+                                          onClick={() => setQuickAddColor(c.label)}
+                                          className={cn(
+                                            "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                                            isSelected
+                                              ? "bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/40"
+                                              : "bg-secondary/40 hover:bg-secondary text-foreground border border-transparent hover:border-border/60",
+                                          )}
+                                        >
+                                          {c.hex ? (
+                                            <span className="size-2 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
+                                          ) : (
+                                            <span className={cn("size-2 rounded-full shrink-0", getColorDot(c.label))} />
+                                          )}
+                                          <span>{c.label}</span>
+                                          {isSelected && <Check className="size-2.5" />}
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+
+                              {colorSearchQuery.trim() && (
                                 <button
                                   type="button"
-                                  onClick={() => setColorSearchQuery("")}
-                                  className="text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                                  onClick={() => {
+                                    setQuickAddColor(colorSearchQuery.trim());
+                                    setColorSearchQuery("");
+                                  }}
+                                  className="w-full py-1 text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                                 >
-                                  <X className="size-3" />
+                                  <Plus className="size-3" />
+                                  <span>Selecionar cor &quot;{colorSearchQuery.trim()}&quot;</span>
                                 </button>
                               )}
                             </div>
 
-                            <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                              {customOptions.customColors.length > 0
-                                ? customOptions.customColors
-                                    .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.label.toLowerCase()))
-                                    .filter((c) => !colorSearchQuery || c.label.toLowerCase().includes(colorSearchQuery.toLowerCase()))
-                                    .map((c) => (
-                                      <button
-                                        key={c.value}
-                                        type="button"
-                                        onClick={() => { addColorToGrade(c.label); setColorSearchQuery(""); setShowColorInput(false); }}
-                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/20 hover:bg-primary/20 text-foreground transition-colors cursor-pointer"
-                                      >
-                                        <span className="size-2 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c.hex }} />
-                                        <span>{c.label}</span>
-                                      </button>
-                                    ))
-                                : ["Off-White", "Preto", "Areia", "Nude", "Terracota", "Caramelo", "Verde Oliva", "Azul Marinho", "Vinho", "Cinza Mescla"]
-                                    .filter((c) => !activeColors.some((ac) => ac.toLowerCase() === c.toLowerCase()))
-                                    .filter((c) => !colorSearchQuery || c.toLowerCase().includes(colorSearchQuery.toLowerCase()))
-                                    .map((c) => (
-                                      <button
-                                        key={c}
-                                        type="button"
-                                        onClick={() => { addColorToGrade(c); setColorSearchQuery(""); setShowColorInput(false); }}
-                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-foreground transition-colors cursor-pointer"
-                                      >
-                                        <span className={cn("size-2 rounded-full", getColorDot(c))} />
-                                        <span>{c}</span>
-                                      </button>
-                                    ))
-                              }
-                            </div>
-
-                            {colorSearchQuery.trim() && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => { addColorToGrade(colorSearchQuery.trim()); setColorSearchQuery(""); setShowColorInput(false); }}
-                                className="w-full h-8 text-xs font-bold gradient-primary text-primary-foreground rounded-xl"
-                              >
-                                Adicionar &quot;{colorSearchQuery.trim()}&quot;
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Seção 2: Tamanho avulso */}
-                          <div className="space-y-2 border-t border-border/40 pt-3">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">2 · Tamanho avulso</p>
-                            <div className="flex flex-wrap gap-1">
-                              {(customOptions.customSizes.length > 0
-                                ? customOptions.customSizes.map((s) => s.label)
-                                : ["PP", "P", "M", "G", "GG", "G1", "G2", "G3", "'Unico"]
-                              ).map((sz) => {
-                                const alreadyExists = variants.some((v) => v.size === sz);
-                                return (
+                            {/* ETAPA 2: Selecione os Tamanhos */}
+                            <div className="space-y-2 border-t border-border/40 pt-2.5">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                  2 · Tamanhos {quickAddColor ? `para ${quickAddColor}` : ""}
+                                </p>
+                                <div className="flex items-center gap-1.5">
                                   <button
-                                    key={sz}
                                     type="button"
-                                    onClick={() => { if (!alreadyExists) { toggleSizeInGrade(sz); setShowColorInput(false); } }}
-                                    disabled={alreadyExists}
-                                    className={cn(
-                                      "px-2 py-1 rounded-lg border text-[11px] font-bold transition-all",
-                                      alreadyExists
-                                        ? "border-border/40 bg-secondary/30 text-muted-foreground/40 cursor-default"
-                                        : "border-border/70 bg-background text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-2xs cursor-pointer",
-                                    )}
-                                    title={alreadyExists ? `${sz} já está na grade` : `Adicionar tamanho ${sz}`}
+                                    onClick={() => {
+                                      const std = ["P", "M", "G", "GG"];
+                                      const available = std.filter((s) => !existingSizesForSelectedColor.includes(s));
+                                      setQuickAddSizes(Array.from(new Set([...quickAddSizes, ...available])));
+                                    }}
+                                    className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
                                   >
-                                    {sz}
+                                    + P ao GG
                                   </button>
-                                );
-                              })}
+                                  {quickAddSizes.length > 0 && (
+                                    <>
+                                      <span className="text-muted-foreground/40 text-[10px]">·</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setQuickAddSizes([])}
+                                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                                      >
+                                        Limpar
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1">
+                                {availableSizes.map((sz) => {
+                                  const alreadyExistsForThisColor = existingSizesForSelectedColor.includes(sz);
+                                  const isSelected = quickAddSizes.includes(sz);
+
+                                  if (alreadyExistsForThisColor) {
+                                    return (
+                                      <span
+                                        key={sz}
+                                        className="px-2 py-1 rounded-lg border border-dashed border-border/70 bg-secondary/30 text-muted-foreground/50 text-[11px] font-bold select-none flex items-center gap-1"
+                                        title={`${sz} já existe para ${quickAddColor}`}
+                                      >
+                                        <Check className="size-2.5 text-muted-foreground/50" />
+                                        <span>{sz}</span>
+                                      </span>
+                                    );
+                                  }
+
+                                  return (
+                                    <button
+                                      key={sz}
+                                      type="button"
+                                      onClick={() => {
+                                        setQuickAddSizes((prev) =>
+                                          prev.includes(sz) ? prev.filter((s) => s !== sz) : [...prev, sz]
+                                        );
+                                      }}
+                                      className={cn(
+                                        "px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer",
+                                        isSelected
+                                          ? "border-primary bg-primary text-primary-foreground shadow-xs font-black ring-1 ring-primary"
+                                          : "border-border/70 bg-background text-foreground hover:bg-secondary/70 shadow-2xs",
+                                      )}
+                                      title={isSelected ? `Desmarcar ${sz}` : `Marcar tamanho ${sz}`}
+                                    >
+                                      {sz}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {!isColorSelected && (
+                                <p className="text-[10px] text-muted-foreground/70 italic">
+                                  Dica: Escolha a cor no passo 1 para ver os tamanhos disponíveis.
+                                </p>
+                              )}
+                            </div>
+
+                            {/* ETAPA 3: Botão de Ação / Confirmação */}
+                            <div className="border-t border-border/40 pt-2.5 space-y-2">
+                              {isColorSelected && quickAddSizes.length > 0 ? (
+                                <Button
+                                  type="button"
+                                  onClick={() => handleAddCustomVariations(quickAddColor, quickAddSizes)}
+                                  className="w-full h-9 text-xs font-bold gradient-primary text-primary-foreground rounded-xl shadow-glow cursor-pointer gap-1.5 hover:opacity-95 transition-all"
+                                >
+                                  <Plus className="size-3.5" />
+                                  <span>
+                                    Adicionar {quickAddSizes.length} {quickAddSizes.length === 1 ? "variação" : "variações"} ({quickAddColor}: {quickAddSizes.join(", ")})
+                                  </span>
+                                </Button>
+                              ) : !isColorSelected ? (
+                                <Button
+                                  type="button"
+                                  disabled
+                                  className="w-full h-8 text-xs font-medium rounded-xl opacity-50 bg-secondary text-muted-foreground"
+                                >
+                                  Selecione uma cor no passo 1
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  disabled
+                                  className="w-full h-8 text-xs font-medium rounded-xl opacity-50 bg-secondary text-muted-foreground"
+                                >
+                                  Selecione ao menos 1 tamanho para {quickAddColor}
+                                </Button>
+                              )}
+
+                              {/* Link para gerador completo */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowGradeModal(true);
+                                  setShowColorInput(false);
+                                  setColorSearchQuery("");
+                                }}
+                                className="w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
+                              >
+                                <Pencil className="size-3" />
+                                <span>Abrir gerador de grade completo</span>
+                              </button>
                             </div>
                           </div>
-
-                          {/* Link para gerador completo */}
-                          <button
-                            type="button"
-                            onClick={() => { setShowGradeModal(true); setShowColorInput(false); setColorSearchQuery(""); }}
-                            className="w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 border-t border-border/40 pt-3 cursor-pointer"
-                          >
-                            <Pencil className="size-3" />
-                            Abrir gerador de grade completo
-                          </button>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
 
