@@ -2304,6 +2304,83 @@ function Precificacao() {
     setMarkupInputVal(formatted);
   }, [markup]);
 
+  // Estados locais para digitação livre nas taxas de deduções (DAS e Maquininha)
+  const [taxInputVal, setTaxInputVal] = useState(() =>
+    Number.isInteger(tax) ? String(tax) : String(Number(tax.toFixed(1))).replace(".", ","),
+  );
+  const [cardRateInputVal, setCardRateInputVal] = useState(() =>
+    Number.isInteger(cardRate) ? String(cardRate) : String(Number(cardRate.toFixed(1))).replace(".", ","),
+  );
+
+  useEffect(() => {
+    const numInState = typeof tax === "number" ? tax : 0;
+    const formatted = Number.isInteger(numInState)
+      ? String(numInState)
+      : String(Number(numInState.toFixed(1))).replace(".", ",");
+    setTaxInputVal(formatted);
+  }, [tax]);
+
+  useEffect(() => {
+    const numInState = typeof cardRate === "number" ? cardRate : 0;
+    const formatted = Number.isInteger(numInState)
+      ? String(numInState)
+      : String(Number(numInState.toFixed(1))).replace(".", ",");
+    setCardRateInputVal(formatted);
+  }, [cardRate]);
+
+  // Presets fiscais (Simples Nacional / DAS) sincronizados com /configuracoes
+  const dasPresets = useMemo(() => [
+    { label: `Padrão Loja (${(pricingSettings.defaultTax ?? 6).toFixed(1).replace(".", ",")}%)`, shortLabel: "Padrão", value: pricingSettings.defaultTax ?? 6 },
+    { label: `MEI (${pricingSettings.taxPresets?.mei ?? 0}%)`, shortLabel: "MEI", value: pricingSettings.taxPresets?.mei ?? 0 },
+    { label: `Simples F1 (${(pricingSettings.taxPresets?.simplesF1 ?? 4).toFixed(1).replace(".", ",")}%)`, shortLabel: "F1 (4%)", value: pricingSettings.taxPresets?.simplesF1 ?? 4 },
+    { label: `Simples F2 (${(pricingSettings.taxPresets?.simplesF2 ?? 7).toFixed(1).replace(".", ",")}%)`, shortLabel: "F2 (7%)", value: pricingSettings.taxPresets?.simplesF2 ?? 7 },
+    { label: `Simples F3 (${(pricingSettings.taxPresets?.simplesF3 ?? 10).toFixed(1).replace(".", ",")}%)`, shortLabel: "F3 (10%)", value: pricingSettings.taxPresets?.simplesF3 ?? 10 },
+  ], [pricingSettings]);
+
+  // Presets de Meios de Pagamento & Taxas da Maquininha sincronizados com /configuracoes?tab=caixa
+  const cardPresets = useMemo(() => [
+    {
+      label: `Média Maquininha (${(pricingSettings.defaultCardRate ?? 3.4).toFixed(1).replace(".", ",")}%)`,
+      shortLabel: "Média",
+      value: Number((pricingSettings.defaultCardRate ?? 3.4).toFixed(1)),
+    },
+    {
+      label: `Pix (${(pricingSettings.cardRates?.pix ?? 0).toFixed(1).replace(".", ",")}%)`,
+      shortLabel: "Pix",
+      value: pricingSettings.cardRates?.pix ?? 0,
+    },
+    {
+      label: `Débito (${(pricingSettings.cardRates?.debito ?? 1.5).toFixed(1).replace(".", ",")}%)`,
+      shortLabel: "Débito",
+      value: pricingSettings.cardRates?.debito ?? 1.5,
+    },
+    {
+      label: `Crédito 1× (${(pricingSettings.cardRates?.credito1x ?? 3.2).toFixed(1).replace(".", ",")}%)`,
+      shortLabel: "Crédito 1×",
+      value: pricingSettings.cardRates?.credito1x ?? 3.2,
+    },
+    {
+      label: `Parcelado (${(pricingSettings.cardRates?.parcelado ?? 5.5).toFixed(1).replace(".", ",")}%)`,
+      shortLabel: "Parcelado",
+      value: pricingSettings.cardRates?.parcelado ?? 5.5,
+    },
+    ...(customOptions.paymentMethods || []).map((m) => ({
+      label: `${m.label} (${(m.rate ?? 0).toFixed(1).replace(".", ",")}%)`,
+      shortLabel: m.label,
+      value: m.rate ?? 0,
+    })),
+  ], [pricingSettings, customOptions.paymentMethods]);
+
+  const activeDasLabel = useMemo(() => {
+    const match = dasPresets.find((p) => Math.abs(p.value - tax) < 0.05);
+    return match ? match.shortLabel : "Manual";
+  }, [dasPresets, tax]);
+
+  const activeCardLabel = useMemo(() => {
+    const match = cardPresets.find((p) => Math.abs(p.value - cardRate) < 0.05);
+    return match ? match.shortLabel : "Manual";
+  }, [cardPresets, cardRate]);
+
   // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
   const [showColorInput, setShowColorInput] = useState(false);
@@ -4776,8 +4853,8 @@ function Precificacao() {
             </div>
             {/* Toggle Total do lote / Por peça — no cabeçalho */}
             <div className="inline-flex rounded-full border border-border/70 bg-secondary/40 p-0.5 shadow-2xs">
-              {(["total", "per_unit"] as const).map((m) => {
-                const lbl = m === "total" ? "Total do lote" : "Por peça";
+              {(["lot_total", "per_unit"] as const).map((m) => {
+                const lbl = m === "lot_total" ? "Total do lote" : "Por peça";
                 const isActive = freightMode === m;
                 return (
                   <button
@@ -4859,107 +4936,199 @@ function Precificacao() {
                     : "Sem custos extras"}
                 </p>
 
-                {/* ── Linha 2: Deduções — controles compostos acoplados ── */}
+                {/* ── Linha 2: Deduções Harmonizadas — controles conectados a /configuracoes ── */}
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   {/* Imposto DAS */}
-                  <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-9">
+                  <div className="flex items-center rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-9">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex items-center gap-1 h-9 pl-3 pr-2 text-xs font-semibold text-foreground hover:bg-secondary/50 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
+                          className="flex items-center gap-1.5 h-9 pl-3 pr-2 text-xs font-semibold text-foreground hover:bg-secondary/50 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
                         >
-                          Imposto DAS
-                          <ChevronDown className="size-3 text-muted-foreground" />
+                          <Receipt className="size-3.5 text-amber-500" />
+                          <span>Imposto DAS</span>
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded ml-0.5">
+                            {activeDasLabel}
+                          </span>
+                          <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[160px]">
-                        {[
-                          { label: `MEI (Fixo)`, value: pricingSettings.dasRates?.mei ?? 0 },
-                          { label: `Faixa 1 – ${(pricingSettings.dasRates?.faixa1 ?? 4).toFixed(1)}%`, value: pricingSettings.dasRates?.faixa1 ?? 4 },
-                          { label: `Faixa 2 – ${(pricingSettings.dasRates?.faixa2 ?? 6).toFixed(1)}%`, value: pricingSettings.dasRates?.faixa2 ?? 6 },
-                          { label: `Faixa 3 – ${(pricingSettings.dasRates?.faixa3 ?? 8).toFixed(1)}%`, value: pricingSettings.dasRates?.faixa3 ?? 8 },
-                        ].map((preset) => (
-                          <DropdownMenuItem
-                            key={preset.label}
-                            onClick={() => setTax(preset.value)}
-                            className={cn("cursor-pointer text-xs font-semibold rounded-lg", tax === preset.value && "bg-primary/10 text-primary")}
-                          >
-                            {preset.label}
-                          </DropdownMenuItem>
-                        ))}
+                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[200px] p-1.5 space-y-0.5">
+                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 mb-1">
+                          Regime Tributário (DAS)
+                        </div>
+                        {dasPresets.map((preset) => {
+                          const isSelected = Math.abs(preset.value - tax) < 0.05;
+                          return (
+                            <DropdownMenuItem
+                              key={preset.label}
+                              onClick={() => {
+                                setTax(preset.value);
+                                setTaxInputVal(Number.isInteger(preset.value) ? String(preset.value) : String(preset.value).replace(".", ","));
+                              }}
+                              className={cn(
+                                "cursor-pointer text-xs font-semibold rounded-lg flex items-center justify-between px-2.5 py-1.5",
+                                isSelected && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              <span>{preset.label}</span>
+                              {isSelected && <Check className="size-3.5 text-primary ml-2 shrink-0" />}
+                            </DropdownMenuItem>
+                          );
+                        })}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <button
                       type="button"
                       disabled={tax <= 0}
-                      onClick={() => setTax(Math.max(0, Number((tax - 0.5).toFixed(1))))}
+                      onClick={() => {
+                        const next = Math.max(0, Number((tax - 0.5).toFixed(1)));
+                        setTax(next);
+                        setTaxInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
+                      }}
                       className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-r border-border/50"
+                      title="Diminuir alíquota"
                     >
                       <Minus className="size-3" />
                     </button>
-                    <span className="numeric text-xs font-bold text-foreground px-2 min-w-[40px] text-center">{tax.toFixed(1).replace(".", ",")}%</span>
+                    <div className="flex items-center px-2 min-w-[48px] justify-center">
+                      <input
+                        inputMode="decimal"
+                        value={taxInputVal}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setTaxInputVal(raw);
+                          const n = parseFloat(raw.replace(",", "."));
+                          if (!isNaN(n)) setTax(Math.min(30, Math.max(0, n)));
+                        }}
+                        onBlur={() => {
+                          const n = parseFloat(taxInputVal.replace(",", "."));
+                          if (!isNaN(n)) {
+                            const clamped = Math.min(30, Math.max(0, Number(n.toFixed(1))));
+                            setTax(clamped);
+                            setTaxInputVal(Number.isInteger(clamped) ? String(clamped) : String(clamped).replace(".", ","));
+                          } else {
+                            setTax(0);
+                            setTaxInputVal("0");
+                          }
+                        }}
+                        className="w-8 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
+                      />
+                      <span className="text-[11px] font-bold text-muted-foreground select-none">%</span>
+                    </div>
                     <button
                       type="button"
-                      disabled={tax >= 20}
-                      onClick={() => setTax(Math.min(20, Number((tax + 0.5).toFixed(1))))}
+                      disabled={tax >= 30}
+                      onClick={() => {
+                        const next = Math.min(30, Number((tax + 0.5).toFixed(1)));
+                        setTax(next);
+                        setTaxInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
+                      }}
                       className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-l border-border/50"
+                      title="Aumentar alíquota"
                     >
                       <Plus className="size-3" />
                     </button>
                   </div>
 
-                  {/* Taxa de Cartão */}
-                  <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-9">
+                  {/* Taxa de Cartão / Maquininha */}
+                  <div className="flex items-center rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-9">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex items-center gap-1 h-9 pl-3 pr-2 text-xs font-semibold text-foreground hover:bg-secondary/50 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
+                          className="flex items-center gap-1.5 h-9 pl-3 pr-2 text-xs font-semibold text-foreground hover:bg-secondary/50 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
                         >
-                          Taxa de cartão
-                          <ChevronDown className="size-3 text-muted-foreground" />
+                          <CreditCard className="size-3.5 text-sky-500" />
+                          <span>Maquininha</span>
+                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded ml-0.5">
+                            {activeCardLabel}
+                          </span>
+                          <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[180px]">
-                        {[
-                          { label: `Pix – ${(pricingSettings.cardRates?.pix ?? 0.9).toFixed(1).replace(".", ",")}%`, value: pricingSettings.cardRates?.pix ?? 0.9 },
-                          { label: `Débito – ${(pricingSettings.cardRates?.debito ?? 1.5).toFixed(1).replace(".", ",")}%`, value: pricingSettings.cardRates?.debito ?? 1.5 },
-                          { label: `Crédito 1× – ${(pricingSettings.cardRates?.credito1x ?? 3.2).toFixed(1).replace(".", ",")}%`, value: pricingSettings.cardRates?.credito1x ?? 3.2 },
-                          { label: `Parcelado – ${(pricingSettings.cardRates?.parcelado ?? 4.5).toFixed(1).replace(".", ",")}%`, value: pricingSettings.cardRates?.parcelado ?? 4.5 },
-                        ].map((preset) => (
-                          <DropdownMenuItem
-                            key={preset.label}
-                            onClick={() => setCardRate(preset.value)}
-                            className={cn("cursor-pointer text-xs font-semibold rounded-lg", cardRate === preset.value && "bg-primary/10 text-primary")}
-                          >
-                            {preset.label}
-                          </DropdownMenuItem>
-                        ))}
+                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[220px] p-1.5 space-y-0.5">
+                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 mb-1">
+                          Meios de Pagamento & Taxas
+                        </div>
+                        {cardPresets.map((preset) => {
+                          const isSelected = Math.abs(preset.value - cardRate) < 0.05;
+                          return (
+                            <DropdownMenuItem
+                              key={preset.label}
+                              onClick={() => {
+                                setCardRate(preset.value);
+                                setCardRateInputVal(Number.isInteger(preset.value) ? String(preset.value) : String(preset.value).replace(".", ","));
+                              }}
+                              className={cn(
+                                "cursor-pointer text-xs font-semibold rounded-lg flex items-center justify-between px-2.5 py-1.5",
+                                isSelected && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              <span>{preset.label}</span>
+                              {isSelected && <Check className="size-3.5 text-primary ml-2 shrink-0" />}
+                            </DropdownMenuItem>
+                          );
+                        })}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <button
                       type="button"
                       disabled={cardRate <= 0}
-                      onClick={() => setCardRate(Math.max(0, Number((cardRate - 0.1).toFixed(1))))}
+                      onClick={() => {
+                        const next = Math.max(0, Number((cardRate - 0.1).toFixed(1)));
+                        setCardRate(next);
+                        setCardRateInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
+                      }}
                       className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-r border-border/50"
+                      title="Diminuir taxa"
                     >
                       <Minus className="size-3" />
                     </button>
-                    <span className="numeric text-xs font-bold text-foreground px-2 min-w-[40px] text-center">{cardRate.toFixed(1).replace(".", ",")}%</span>
+                    <div className="flex items-center px-2 min-w-[48px] justify-center">
+                      <input
+                        inputMode="decimal"
+                        value={cardRateInputVal}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setCardRateInputVal(raw);
+                          const n = parseFloat(raw.replace(",", "."));
+                          if (!isNaN(n)) setCardRate(Math.min(20, Math.max(0, n)));
+                        }}
+                        onBlur={() => {
+                          const n = parseFloat(cardRateInputVal.replace(",", "."));
+                          if (!isNaN(n)) {
+                            const clamped = Math.min(20, Math.max(0, Number(n.toFixed(1))));
+                            setCardRate(clamped);
+                            setCardRateInputVal(Number.isInteger(clamped) ? String(clamped) : String(clamped).replace(".", ","));
+                          } else {
+                            setCardRate(0);
+                            setCardRateInputVal("0");
+                          }
+                        }}
+                        className="w-8 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
+                      />
+                      <span className="text-[11px] font-bold text-muted-foreground select-none">%</span>
+                    </div>
                     <button
                       type="button"
-                      disabled={cardRate >= 15}
-                      onClick={() => setCardRate(Math.min(15, Number((cardRate + 0.1).toFixed(1))))}
+                      disabled={cardRate >= 20}
+                      onClick={() => {
+                        const next = Math.min(20, Number((cardRate + 0.1).toFixed(1)));
+                        setCardRate(next);
+                        setCardRateInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
+                      }}
                       className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-l border-border/50"
+                      title="Aumentar taxa"
                     >
                       <Plus className="size-3" />
                     </button>
                   </div>
 
-                  {/* Chip Total */}
+                  {/* Chip Totalizador */}
                   <div className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border/70 bg-secondary/30 shadow-2xs">
-                    <span className="text-xs text-muted-foreground font-medium">Total</span>
+                    <span className="text-xs text-muted-foreground font-medium">Total Deduções</span>
                     <span className="numeric text-xs font-black text-foreground">{(tax + cardRate).toFixed(1).replace(".", ",")}%</span>
                   </div>
                 </div>
@@ -5768,7 +5937,7 @@ function Precificacao() {
                       </button>
                     </div>
 
-                    {/* Deduções em Popover flutuante limpo */}
+                    {/* Deduções Harmonizadas em Popover flutuante limpo */}
                     <div className="relative">
                       <button
                         type="button"
@@ -5779,8 +5948,9 @@ function Precificacao() {
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border/80 bg-background text-muted-foreground hover:text-foreground",
                         )}
-                        title="Configurar impostos e taxa de cartão"
+                        title="Configurar impostos e taxas da maquininha"
                       >
+                        <Receipt className="size-3 text-muted-foreground" />
                         <span>Deduções {(tax + cardRate).toFixed(1).replace(".", ",")}%</span>
                         <ChevronDown className={cn("size-3 transition-transform duration-200", showDeducoes && "rotate-180")} />
                       </button>
@@ -5788,36 +5958,113 @@ function Precificacao() {
                       {showDeducoes && (
                         <>
                           <div className="fixed inset-0 z-30" onClick={() => setShowDeducoes(false)} />
-                          <div className="absolute right-0 top-10 z-40 w-72 rounded-2xl border border-border bg-card p-3.5 shadow-lift space-y-3 animate-in fade-in zoom-in-95">
-                            <div className="flex items-center justify-between pb-1.5 border-b border-border/50">
-                              <span className="text-xs font-bold text-foreground">Deduções da venda</span>
-                              <span className="text-[11px] font-bold text-primary">{(tax + cardRate).toFixed(1).replace(".", ",")}% total</span>
+                          <div className="absolute right-0 top-10 z-40 w-84 sm:w-96 rounded-2xl border border-border bg-card p-4 shadow-lift space-y-3.5 animate-in fade-in zoom-in-95">
+                            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                              <div>
+                                <h4 className="text-xs font-bold text-foreground">Deduções da Venda</h4>
+                                <p className="text-[10px] text-muted-foreground">Sincronizado com Meios de Pagamento da loja</p>
+                              </div>
+                              <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
+                                {(tax + cardRate).toFixed(1).replace(".", ",")}% total
+                              </span>
                             </div>
-                            <div className="space-y-1.5">
+
+                            {/* Bloco 1: Imposto DAS / Simples */}
+                            <div className="space-y-2">
                               <div className="flex items-center justify-between text-xs">
-                                <Label className="text-xs font-medium text-muted-foreground">DAS / Simples</Label>
-                                <span className="numeric font-bold">{tax}%</span>
+                                <div className="flex items-center gap-1.5">
+                                  <Receipt className="size-3.5 text-amber-500" />
+                                  <Label className="text-xs font-semibold text-foreground">Imposto DAS</Label>
+                                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded">
+                                    {activeDasLabel}
+                                  </span>
+                                </div>
+                                <span className="numeric text-xs font-bold text-foreground">{tax.toFixed(1).replace(".", ",")}%</span>
+                              </div>
+                              {/* Chips rápidos de presets */}
+                              <div className="flex flex-wrap gap-1">
+                                {dasPresets.map((preset) => {
+                                  const isSelected = Math.abs(preset.value - tax) < 0.05;
+                                  return (
+                                    <button
+                                      key={preset.label}
+                                      type="button"
+                                      onClick={() => {
+                                        setTax(preset.value);
+                                        setTaxInputVal(Number.isInteger(preset.value) ? String(preset.value) : String(preset.value).replace(".", ","));
+                                      }}
+                                      className={cn(
+                                        "h-6 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer border",
+                                        isSelected
+                                          ? "bg-primary text-primary-foreground border-transparent shadow-2xs font-bold"
+                                          : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                      )}
+                                    >
+                                      {preset.shortLabel}
+                                    </button>
+                                  );
+                                })}
                               </div>
                               <Slider
                                 value={[tax]}
-                                onValueChange={([val]) => setTax(val ?? 0)}
+                                onValueChange={([val]) => {
+                                  const v = val ?? 0;
+                                  setTax(v);
+                                  setTaxInputVal(Number.isInteger(v) ? String(v) : String(v).replace(".", ","));
+                                }}
                                 min={0}
                                 max={25}
                                 step={0.5}
                                 className="py-1 cursor-pointer"
                               />
                             </div>
-                            <div className="space-y-1.5">
+
+                            {/* Bloco 2: Taxa da Maquininha */}
+                            <div className="space-y-2 pt-2 border-t border-border/40">
                               <div className="flex items-center justify-between text-xs">
-                                <Label className="text-xs font-medium text-muted-foreground">Taxa Cartão</Label>
-                                <span className="numeric font-bold">{cardRate}%</span>
+                                <div className="flex items-center gap-1.5">
+                                  <CreditCard className="size-3.5 text-sky-500" />
+                                  <Label className="text-xs font-semibold text-foreground">Taxa da Maquininha</Label>
+                                  <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1.5 py-0.2 rounded">
+                                    {activeCardLabel}
+                                  </span>
+                                </div>
+                                <span className="numeric text-xs font-bold text-foreground">{cardRate.toFixed(1).replace(".", ",")}%</span>
+                              </div>
+                              {/* Chips rápidos de presets */}
+                              <div className="flex flex-wrap gap-1">
+                                {cardPresets.map((preset) => {
+                                  const isSelected = Math.abs(preset.value - cardRate) < 0.05;
+                                  return (
+                                    <button
+                                      key={preset.label}
+                                      type="button"
+                                      onClick={() => {
+                                        setCardRate(preset.value);
+                                        setCardRateInputVal(Number.isInteger(preset.value) ? String(preset.value) : String(preset.value).replace(".", ","));
+                                      }}
+                                      className={cn(
+                                        "h-6 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer border",
+                                        isSelected
+                                          ? "bg-primary text-primary-foreground border-transparent shadow-2xs font-bold"
+                                          : "bg-secondary/40 border-border/60 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                      )}
+                                    >
+                                      {preset.shortLabel}
+                                    </button>
+                                  );
+                                })}
                               </div>
                               <Slider
                                 value={[cardRate]}
-                                onValueChange={([val]) => setCardRate(val ?? 0)}
+                                onValueChange={([val]) => {
+                                  const v = val ?? 0;
+                                  setCardRate(v);
+                                  setCardRateInputVal(Number.isInteger(v) ? String(v) : String(v).replace(".", ","));
+                                }}
                                 min={0}
                                 max={15}
-                                step={0.5}
+                                step={0.1}
                                 className="py-1 cursor-pointer"
                               />
                             </div>
