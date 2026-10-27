@@ -4936,25 +4936,21 @@ function Precificacao() {
                     : "Sem custos extras"}
                 </p>
 
-                {/* ── Linha 2: Deduções Harmonizadas — controles conectados a /configuracoes ── */}
-                <div className="flex flex-wrap items-center gap-3 pt-1">
+                {/* ── Linha 2: Deduções Minimalistas & Proporcionais (Opção 1) ── */}
+                <div className="flex flex-wrap items-center gap-2.5 pt-0.5">
                   {/* Imposto DAS */}
-                  <div className="flex items-center rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-9">
+                  <div className="flex items-center rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-8">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex items-center gap-1.5 h-9 pl-3 pr-2 text-xs font-semibold text-foreground hover:bg-secondary/50 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
+                          className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-foreground hover:bg-secondary/40 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
                         >
-                          <Receipt className="size-3.5 text-amber-500" />
                           <span>Imposto DAS</span>
-                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded ml-0.5">
-                            {activeDasLabel}
-                          </span>
-                          <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
+                          <ChevronDown className="size-3 text-muted-foreground" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[200px] p-1.5 space-y-0.5">
+                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[190px] p-1.5 space-y-0.5">
                         <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 mb-1">
                           Regime Tributário (DAS)
                         </div>
@@ -4968,8 +4964,8 @@ function Precificacao() {
                                 setTaxInputVal(Number.isInteger(preset.value) ? String(preset.value) : String(preset.value).replace(".", ","));
                               }}
                               className={cn(
-                                "cursor-pointer text-xs font-semibold rounded-lg flex items-center justify-between px-2.5 py-1.5",
-                                isSelected && "bg-primary/10 text-primary"
+                                "cursor-pointer text-xs font-medium rounded-lg flex items-center justify-between px-2 py-1.5",
+                                isSelected && "bg-primary/10 text-primary font-bold"
                               )}
                             >
                               <span>{preset.label}</span>
@@ -4987,19 +4983,19 @@ function Precificacao() {
                         setTax(next);
                         setTaxInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                       }}
-                      className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-r border-border/50"
+                      className="flex size-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-r border-border/50"
                       title="Diminuir alíquota"
                     >
                       <Minus className="size-3" />
                     </button>
-                    <div className="flex items-center px-2 min-w-[48px] justify-center">
+                    <div className="flex items-center px-1.5 min-w-[40px] justify-center">
                       <input
                         inputMode="decimal"
                         value={taxInputVal}
                         onChange={(e) => {
-                          const raw = e.target.value;
-                          setTaxInputVal(raw);
-                          const n = parseFloat(raw.replace(",", "."));
+                          const rawVal = e.target.value;
+                          setTaxInputVal(rawVal);
+                          const n = parseFloat(rawVal.replace(",", "."));
                           if (!isNaN(n)) setTax(Math.min(30, Math.max(0, n)));
                         }}
                         onBlur={() => {
@@ -5013,9 +5009,9 @@ function Precificacao() {
                             setTaxInputVal("0");
                           }
                         }}
-                        className="w-8 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
+                        className="w-7 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
                       />
-                      <span className="text-[11px] font-bold text-muted-foreground select-none">%</span>
+                      <span className="text-[11px] font-semibold text-muted-foreground select-none">%</span>
                     </div>
                     <button
                       type="button"
@@ -5025,7 +5021,7 @@ function Precificacao() {
                         setTax(next);
                         setTaxInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                       }}
-                      className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-l border-border/50"
+                      className="flex size-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-l border-border/50"
                       title="Aumentar alíquota"
                     >
                       <Plus className="size-3" />
@@ -5033,22 +5029,18 @@ function Precificacao() {
                   </div>
 
                   {/* Taxa de Cartão / Maquininha */}
-                  <div className="flex items-center rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-9">
+                  <div className="flex items-center rounded-xl border border-border/70 bg-card overflow-hidden shadow-2xs h-8">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex items-center gap-1.5 h-9 pl-3 pr-2 text-xs font-semibold text-foreground hover:bg-secondary/50 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
+                          className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-foreground hover:bg-secondary/40 transition-colors cursor-pointer border-r border-border/50 whitespace-nowrap"
                         >
-                          <CreditCard className="size-3.5 text-sky-500" />
-                          <span>Maquininha</span>
-                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded ml-0.5">
-                            {activeCardLabel}
-                          </span>
-                          <ChevronDown className="size-3 text-muted-foreground ml-0.5" />
+                          <span>Taxa de cartão</span>
+                          <ChevronDown className="size-3 text-muted-foreground" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[220px] p-1.5 space-y-0.5">
+                      <DropdownMenuContent align="start" className="rounded-xl border border-border/80 bg-card shadow-xl text-xs min-w-[210px] p-1.5 space-y-0.5">
                         <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 mb-1">
                           Meios de Pagamento & Taxas
                         </div>
@@ -5062,8 +5054,8 @@ function Precificacao() {
                                 setCardRateInputVal(Number.isInteger(preset.value) ? String(preset.value) : String(preset.value).replace(".", ","));
                               }}
                               className={cn(
-                                "cursor-pointer text-xs font-semibold rounded-lg flex items-center justify-between px-2.5 py-1.5",
-                                isSelected && "bg-primary/10 text-primary"
+                                "cursor-pointer text-xs font-medium rounded-lg flex items-center justify-between px-2 py-1.5",
+                                isSelected && "bg-primary/10 text-primary font-bold"
                               )}
                             >
                               <span>{preset.label}</span>
@@ -5081,19 +5073,19 @@ function Precificacao() {
                         setCardRate(next);
                         setCardRateInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                       }}
-                      className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-r border-border/50"
+                      className="flex size-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-r border-border/50"
                       title="Diminuir taxa"
                     >
                       <Minus className="size-3" />
                     </button>
-                    <div className="flex items-center px-2 min-w-[48px] justify-center">
+                    <div className="flex items-center px-1.5 min-w-[40px] justify-center">
                       <input
                         inputMode="decimal"
                         value={cardRateInputVal}
                         onChange={(e) => {
-                          const raw = e.target.value;
-                          setCardRateInputVal(raw);
-                          const n = parseFloat(raw.replace(",", "."));
+                          const rawVal = e.target.value;
+                          setCardRateInputVal(rawVal);
+                          const n = parseFloat(rawVal.replace(",", "."));
                           if (!isNaN(n)) setCardRate(Math.min(20, Math.max(0, n)));
                         }}
                         onBlur={() => {
@@ -5107,9 +5099,9 @@ function Precificacao() {
                             setCardRateInputVal("0");
                           }
                         }}
-                        className="w-8 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
+                        className="w-7 text-center text-xs font-bold text-foreground outline-none bg-transparent numeric"
                       />
-                      <span className="text-[11px] font-bold text-muted-foreground select-none">%</span>
+                      <span className="text-[11px] font-semibold text-muted-foreground select-none">%</span>
                     </div>
                     <button
                       type="button"
@@ -5119,16 +5111,16 @@ function Precificacao() {
                         setCardRate(next);
                         setCardRateInputVal(Number.isInteger(next) ? String(next) : String(next).replace(".", ","));
                       }}
-                      className="flex size-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-l border-border/50"
+                      className="flex size-8 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/50 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer border-l border-border/50"
                       title="Aumentar taxa"
                     >
                       <Plus className="size-3" />
                     </button>
                   </div>
 
-                  {/* Chip Totalizador */}
-                  <div className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border/70 bg-secondary/30 shadow-2xs">
-                    <span className="text-xs text-muted-foreground font-medium">Total Deduções</span>
+                  {/* Chip Totalizador Compacto */}
+                  <div className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-border/70 bg-secondary/30 shadow-2xs">
+                    <span className="text-xs text-muted-foreground font-medium">Total</span>
                     <span className="numeric text-xs font-black text-foreground">{(tax + cardRate).toFixed(1).replace(".", ",")}%</span>
                   </div>
                 </div>
