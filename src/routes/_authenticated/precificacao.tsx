@@ -15,6 +15,7 @@ import {
   Coins,
   Copy,
   CreditCard,
+  ExternalLink,
   Flame,
   HelpCircle,
   Info,
@@ -101,9 +102,8 @@ import {
   getMarginHealth,
   type MarginHealth,
 } from "@/lib/finance";
-import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
+import { useStoreCategories, getCategoryLabel, createCategorySlug } from "@/lib/categories";
 import { SupplierCombobox } from "@/components/supplier-combobox";
-import { CategoryManagerDialog } from "@/components/category-manager-dialog";
 import { useStore } from "@/lib/store-context";
 import { getCustomOptions, type CustomColorOption, type CustomSizeOption } from "@/lib/custom-options";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
@@ -2139,11 +2139,13 @@ function Precificacao() {
 
   const queryClient = useQueryClient();
   const { storeId } = useStore();
-  const { categories: storeCategories } = useStoreCategories();
+  const { categories: storeCategories, saveCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
-  // Diálogo para gerenciar e criar categorias em tempo real
-  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  // Diálogo rápido para criar nova categoria na hora (1 campo, sem popup de gerenciamento)
+  const [showQuickCreateCategory, setShowQuickCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
   useEffect(() => {
     const handler = () => {
@@ -4684,15 +4686,32 @@ function Precificacao() {
                 <Label className="text-xs font-semibold text-foreground">
                   Categoria
                 </Label>
-                <button
-                  type="button"
-                  onClick={() => setShowCategoryManager(true)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                  title="Gerenciar e criar categorias"
-                >
-                  <Tag className="size-2.5" />
-                  <span>Gerenciar</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCategoryName("");
+                      setShowQuickCreateCategory(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                    title="Criar nova categoria rápido"
+                  >
+                    <Plus className="size-2.5" />
+                    <span>Nova</span>
+                  </button>
+                  <span className="text-border/70 text-[10px] select-none">·</span>
+                  <Link
+                    to="/estoque"
+                    search={{ tab: "categorias" }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title="Abrir Central de Coleções & Categorias em nova aba"
+                  >
+                    <span>Central</span>
+                    <ExternalLink className="size-2.5" />
+                  </Link>
+                </div>
               </div>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-10 rounded-xl font-medium text-sm bg-card border-border/80">
@@ -5672,15 +5691,32 @@ function Precificacao() {
                         <Label className="text-xs font-semibold text-foreground">
                           Categoria
                         </Label>
-                        <button
-                          type="button"
-                          onClick={() => setShowCategoryManager(true)}
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                          title="Gerenciar e criar categorias"
-                        >
-                          <Tag className="size-2.5" />
-                          <span>Gerenciar</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewCategoryName("");
+                              setShowQuickCreateCategory(true);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                            title="Criar nova categoria rápido"
+                          >
+                            <Plus className="size-2.5" />
+                            <span>Nova</span>
+                          </button>
+                          <span className="text-border/70 text-[10px] select-none">·</span>
+                          <Link
+                            to="/estoque"
+                            search={{ tab: "categorias" }}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                            title="Abrir Central de Coleções & Categorias em nova aba"
+                          >
+                            <span>Central</span>
+                            <ExternalLink className="size-2.5" />
+                          </Link>
+                        </div>
                       </div>
                       <Select value={category} onValueChange={setCategory}>
                         <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-background shadow-2xs border-border">
@@ -7662,12 +7698,76 @@ function Precificacao() {
         </SheetContent>
       </Sheet>
 
-      {/* Diálogo Central de Gestão Dinâmica de Categorias */}
-      <CategoryManagerDialog
-        open={showCategoryManager}
-        onOpenChange={setShowCategoryManager}
-        onCategoryCreated={(newSlug) => setCategory(newSlug)}
-      />
+      {/* Diálogo Rápido: Adicionar Nova Categoria (1 Campo, Padrão Shopify) */}
+      <Dialog open={showQuickCreateCategory} onOpenChange={setShowQuickCreateCategory}>
+        <DialogContent className="sm:max-w-xs p-5 rounded-2xl">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <Tag className="size-4 text-primary" />
+              <span>Nova Categoria</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Adicione uma categoria ao seu catálogo para organizar suas peças.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const clean = newCategoryName.trim();
+              if (!clean) return;
+              try {
+                setIsCreatingCategory(true);
+                const existingSlugs = storeCategories.map((c) => c.slug);
+                const slug = createCategorySlug(clean, existingSlugs);
+                const newCat = {
+                  id: slug,
+                  name: clean,
+                  slug,
+                  order: storeCategories.length + 1,
+                };
+                await saveCategories([...storeCategories, newCat]);
+                setCategory(slug);
+                setShowQuickCreateCategory(false);
+                setNewCategoryName("");
+                toast.success(`Categoria "${clean}" criada com sucesso!`);
+              } catch (err: any) {
+                toast.error("Erro ao criar categoria: " + (err?.message || "Tente novamente"));
+              } finally {
+                setIsCreatingCategory(false);
+              }
+            }}
+            className="space-y-3.5 pt-1"
+          >
+            <Input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Ex: Alfaiataria, Linho, Festas..."
+              autoFocus
+              className="h-9 rounded-xl text-xs bg-background border-border"
+            />
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowQuickCreateCategory(false)}
+                className="h-8 rounded-xl text-xs cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!newCategoryName.trim() || isCreatingCategory}
+                className="h-8 rounded-xl text-xs font-semibold gradient-primary cursor-pointer"
+              >
+                {isCreatingCategory ? "Salvando..." : "Criar e Selecionar"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
