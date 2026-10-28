@@ -103,6 +103,7 @@ import {
 } from "@/lib/finance";
 import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
 import { SupplierCombobox } from "@/components/supplier-combobox";
+import { CategoryManagerDialog } from "@/components/category-manager-dialog";
 import { useStore } from "@/lib/store-context";
 import { getCustomOptions, type CustomColorOption, type CustomSizeOption } from "@/lib/custom-options";
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
@@ -2141,6 +2142,18 @@ function Precificacao() {
   const { categories: storeCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
+  // Diálogo para gerenciar e criar categorias em tempo real
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+
+  useEffect(() => {
+    const handler = () => {
+      void queryClient.invalidateQueries({ queryKey: ["store_categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    };
+    window.addEventListener("categories-changed", handler);
+    return () => window.removeEventListener("categories-changed", handler);
+  }, [queryClient]);
+
   // ── Predefinições da Loja (Configuradas em /configuracoes) ───────────
   const [pricingSettings, setPricingSettings] = useState<PricingSettings>(() => getPricingSettings(storeId));
 
@@ -3708,9 +3721,21 @@ function Precificacao() {
   // ── Handlers do Color Spotlight no Modo Rápido (Apple Level) ───────
   const matchingRapidaColorPresets = useMemo(() => {
     const q = rapidaColorSearchQuery.trim().toLowerCase();
-    if (!q) return COLOR_PRESETS.slice(0, 18);
-    return COLOR_PRESETS.filter((cp) => cp.name.toLowerCase().includes(q));
-  }, [rapidaColorSearchQuery]);
+    const custom = customOptions.customColors.map((c) => ({
+      name: c.label,
+      color: c.hex || "#94a3b8",
+      hex: c.hex,
+    }));
+    const customNames = new Set(custom.map((c) => c.name.toLowerCase()));
+    const presets = COLOR_PRESETS.filter((cp) => !customNames.has(cp.name.toLowerCase())).map((cp) => ({
+      name: cp.name,
+      color: cp.color,
+      hex: cp.color,
+    }));
+    const combined = [...custom, ...presets];
+    if (!q) return combined.slice(0, 18);
+    return combined.filter((cp) => cp.name.toLowerCase().includes(q)).slice(0, 18);
+  }, [rapidaColorSearchQuery, customOptions.customColors]);
 
   const handleSelectRapidaColor = (colorName: string) => {
     setRapidaColor(colorName);
@@ -4655,9 +4680,20 @@ function Precificacao() {
 
             {/* Categoria */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                Categoria
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground">
+                  Categoria
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryManager(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                  title="Gerenciar e criar categorias"
+                >
+                  <Tag className="size-2.5" />
+                  <span>Gerenciar</span>
+                </button>
+              </div>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-10 rounded-xl font-medium text-sm bg-card border-border/80">
                   <SelectValue placeholder="Selecione..." />
@@ -4772,7 +4808,11 @@ function Precificacao() {
                                   rapidaColor.toLowerCase() === cp.name.toLowerCase() && "bg-primary/10 text-primary font-bold",
                                 )}
                               >
-                                <span className={cn("size-3 rounded-full shrink-0 shadow-2xs", getColorDot(cp.name))} />
+                                {cp.hex ? (
+                                  <span className="size-3 rounded-full shrink-0 shadow-2xs border border-black/10" style={{ backgroundColor: cp.hex }} />
+                                ) : (
+                                  <span className={cn("size-3 rounded-full shrink-0 shadow-2xs", getColorDot(cp.name))} />
+                                )}
                                 <span className="truncate">{cp.name}</span>
                               </button>
                             ))}
@@ -4806,18 +4846,48 @@ function Precificacao() {
                       <SelectItem value="nenhum" className="text-xs font-medium text-muted-foreground">
                         — Sem tamanho —
                       </SelectItem>
-                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">Tamanhos</div>
-                      {["PP", "P", "M", "G", "GG", "Único"].map((sz) => (
-                        <SelectItem key={sz} value={sz} className="text-xs font-semibold">{sz}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">Numeração</div>
-                      {["34", "36", "38", "40", "42", "44", "46", "48", "50"].map((sz) => (
-                        <SelectItem key={sz} value={sz} className="text-xs font-semibold">{sz}</SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">Plus size</div>
-                      {["G1", "G2", "G3"].map((sz) => (
-                        <SelectItem key={sz} value={sz} className="text-xs font-semibold">Plus Size {sz}</SelectItem>
-                      ))}
+                      {customOptions.customSizes.length > 0 ? (
+                        <>
+                          <div className="px-2 py-1 text-[10px] font-semibold text-primary border-t border-border/40 mt-1">
+                            Tamanhos da Loja
+                          </div>
+                          {customOptions.customSizes.map((sz) => (
+                            <SelectItem key={sz.value} value={sz.label} className="text-xs font-semibold">
+                              {sz.label}
+                            </SelectItem>
+                          ))}
+                          <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
+                            Padrões Sugeridos
+                          </div>
+                          {["PP", "P", "M", "G", "GG", "Único", "36", "38", "40", "42", "44"]
+                            .filter(
+                              (s) =>
+                                !customOptions.customSizes.some(
+                                  (cs) => cs.label.toLowerCase() === s.toLowerCase(),
+                                ),
+                            )
+                            .map((sz) => (
+                              <SelectItem key={sz} value={sz} className="text-xs font-semibold">
+                                {sz}
+                              </SelectItem>
+                            ))}
+                        </>
+                      ) : (
+                        <>
+                          <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">Tamanhos</div>
+                          {["PP", "P", "M", "G", "GG", "Único"].map((sz) => (
+                            <SelectItem key={sz} value={sz} className="text-xs font-semibold">{sz}</SelectItem>
+                          ))}
+                          <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">Numeração</div>
+                          {["34", "36", "38", "40", "42", "44", "46", "48", "50"].map((sz) => (
+                            <SelectItem key={sz} value={sz} className="text-xs font-semibold">{sz}</SelectItem>
+                          ))}
+                          <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground border-t border-border/40 mt-1">Plus size</div>
+                          {["G1", "G2", "G3"].map((sz) => (
+                            <SelectItem key={sz} value={sz} className="text-xs font-semibold">Plus Size {sz}</SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                   {rapidaSize && (
@@ -5598,9 +5668,20 @@ function Precificacao() {
 
                     {/* Categoria */}
                     <div className="space-y-1">
-                      <Label className="text-xs font-semibold text-foreground">
-                        Categoria
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Categoria
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCategoryManager(true)}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                          title="Gerenciar e criar categorias"
+                        >
+                          <Tag className="size-2.5" />
+                          <span>Gerenciar</span>
+                        </button>
+                      </div>
                       <Select value={category} onValueChange={setCategory}>
                         <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-background shadow-2xs border-border">
                           <SelectValue placeholder="Selecione..." />
@@ -7580,6 +7661,13 @@ function Precificacao() {
           </Button>
         </SheetContent>
       </Sheet>
+
+      {/* Diálogo Central de Gestão Dinâmica de Categorias */}
+      <CategoryManagerDialog
+        open={showCategoryManager}
+        onOpenChange={setShowCategoryManager}
+        onCategoryCreated={(newSlug) => setCategory(newSlug)}
+      />
     </div>
   );
 }

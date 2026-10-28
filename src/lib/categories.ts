@@ -6,6 +6,7 @@
  * e cache local instantâneo (localStorage).
  */
 
+import { useEffect } from "react";
 import { slugify } from "./format";
 import { supabase } from "@/integrations/supabase/client";
 import { DEMO_STORE } from "./store-context";
@@ -152,6 +153,15 @@ export function createCategorySlug(name: string, existingSlugs: string[]): strin
 export function useStoreCategories() {
   const { store, storeId } = useStore();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handler = () => {
+      void queryClient.invalidateQueries({ queryKey: ["store_categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    };
+    window.addEventListener("categories-changed", handler);
+    return () => window.removeEventListener("categories-changed", handler);
+  }, [queryClient]);
 
   const query = useQuery({
     queryKey: ["store_categories", storeId, store?.metadata],
