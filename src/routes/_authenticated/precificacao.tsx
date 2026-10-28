@@ -83,6 +83,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from "@/components/ui/select";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import {
@@ -2146,6 +2147,21 @@ function Precificacao() {
   const [showQuickCreateCategory, setShowQuickCreateCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+  const handleCategorySelectChange = (val: string) => {
+    if (val === "__action_new__") {
+      setNewCategoryName("");
+      setShowQuickCreateCategory(true);
+      return;
+    }
+    if (val === "__action_central__") {
+      if (typeof window !== "undefined") {
+        window.open("/estoque?tab=categorias", "_blank");
+      }
+      return;
+    }
+    setCategory(val);
+  };
 
   useEffect(() => {
     const handler = () => {
@@ -4682,47 +4698,34 @@ function Precificacao() {
 
             {/* Categoria */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-foreground">
-                  Categoria
-                </Label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewCategoryName("");
-                      setShowQuickCreateCategory(true);
-                    }}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                    title="Criar nova categoria rápido"
-                  >
-                    <Plus className="size-2.5" />
-                    <span>Nova</span>
-                  </button>
-                  <span className="text-border/70 text-[10px] select-none">·</span>
-                  <Link
-                    to="/estoque"
-                    search={{ tab: "categorias" }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                    title="Abrir Central de Coleções & Categorias em nova aba"
-                  >
-                    <span>Central</span>
-                    <ExternalLink className="size-2.5" />
-                  </Link>
-                </div>
-              </div>
-              <Select value={category} onValueChange={setCategory}>
+              <Label className="text-xs font-semibold text-foreground">
+                Categoria
+              </Label>
+              <Select value={category} onValueChange={handleCategorySelectChange}>
                 <SelectTrigger className="h-10 rounded-xl font-medium text-sm bg-card border-border/80">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72 rounded-xl border border-border/80 bg-card shadow-xl">
                   {storeCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.slug}>
+                    <SelectItem key={c.id} value={c.slug} className="text-xs font-medium">
                       {c.name}
                     </SelectItem>
                   ))}
+                  <SelectSeparator />
+                  <SelectItem
+                    value="__action_new__"
+                    className="text-xs font-semibold text-primary focus:bg-primary/10 focus:text-primary cursor-pointer py-2 gap-1.5"
+                  >
+                    <Plus className="size-3.5 text-primary" />
+                    <span>Nova categoria...</span>
+                  </SelectItem>
+                  <SelectItem
+                    value="__action_central__"
+                    className="text-xs font-medium text-muted-foreground focus:bg-secondary focus:text-foreground cursor-pointer py-1.5 gap-1.5"
+                  >
+                    <ExternalLink className="size-3 text-muted-foreground" />
+                    <span>Gerenciar na Central ↗</span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -5687,47 +5690,34 @@ function Precificacao() {
 
                     {/* Categoria */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold text-foreground">
-                          Categoria
-                        </Label>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewCategoryName("");
-                              setShowQuickCreateCategory(true);
-                            }}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                            title="Criar nova categoria rápido"
-                          >
-                            <Plus className="size-2.5" />
-                            <span>Nova</span>
-                          </button>
-                          <span className="text-border/70 text-[10px] select-none">·</span>
-                          <Link
-                            to="/estoque"
-                            search={{ tab: "categorias" }}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                            title="Abrir Central de Coleções & Categorias em nova aba"
-                          >
-                            <span>Central</span>
-                            <ExternalLink className="size-2.5" />
-                          </Link>
-                        </div>
-                      </div>
-                      <Select value={category} onValueChange={setCategory}>
+                      <Label className="text-xs font-semibold text-foreground">
+                        Categoria
+                      </Label>
+                      <Select value={category} onValueChange={handleCategorySelectChange}>
                         <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-background shadow-2xs border-border">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-72 rounded-xl border border-border/80 bg-card shadow-xl">
                           {storeCategories.map((c) => (
-                            <SelectItem key={c.id} value={c.slug} className="text-xs">
+                            <SelectItem key={c.id} value={c.slug} className="text-xs font-medium">
                               {c.name}
                             </SelectItem>
                           ))}
+                          <SelectSeparator />
+                          <SelectItem
+                            value="__action_new__"
+                            className="text-xs font-semibold text-primary focus:bg-primary/10 focus:text-primary cursor-pointer py-2 gap-1.5"
+                          >
+                            <Plus className="size-3.5 text-primary" />
+                            <span>Nova categoria...</span>
+                          </SelectItem>
+                          <SelectItem
+                            value="__action_central__"
+                            className="text-xs font-medium text-muted-foreground focus:bg-secondary focus:text-foreground cursor-pointer py-1.5 gap-1.5"
+                          >
+                            <ExternalLink className="size-3 text-muted-foreground" />
+                            <span>Gerenciar na Central ↗</span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
