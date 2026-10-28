@@ -2143,18 +2143,8 @@ function Precificacao() {
   const { categories: storeCategories, saveCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
-  // Diálogo rápido para criar nova categoria na hora (1 campo, sem popup de gerenciamento)
-  const [showQuickCreateCategory, setShowQuickCreateCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-
   const handleCategorySelectChange = (val: string) => {
-    if (val === "__action_new__") {
-      setNewCategoryName("");
-      setShowQuickCreateCategory(true);
-      return;
-    }
-    if (val === "__action_central__") {
+    if (val === "__manage_cat__" || val === "__action_central__") {
       if (typeof window !== "undefined") {
         window.open("/estoque?tab=categorias", "_blank");
       }
@@ -4711,20 +4701,13 @@ function Precificacao() {
                       {c.name}
                     </SelectItem>
                   ))}
-                  <SelectSeparator />
+                  <div className="my-1 h-px bg-border/60" />
                   <SelectItem
-                    value="__action_new__"
-                    className="text-xs font-semibold text-primary focus:bg-primary/10 focus:text-primary cursor-pointer py-2 gap-1.5"
+                    value="__manage_cat__"
+                    className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer py-2 gap-2"
                   >
-                    <Plus className="size-3.5 text-primary" />
-                    <span>Nova categoria...</span>
-                  </SelectItem>
-                  <SelectItem
-                    value="__action_central__"
-                    className="text-xs font-medium text-muted-foreground focus:bg-secondary focus:text-foreground cursor-pointer py-1.5 gap-1.5"
-                  >
-                    <ExternalLink className="size-3 text-muted-foreground" />
-                    <span>Gerenciar na Central ↗</span>
+                    <Settings className="size-3.5 text-muted-foreground shrink-0" />
+                    <span>Gerenciar categorias em Coleções…</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -5703,20 +5686,13 @@ function Precificacao() {
                               {c.name}
                             </SelectItem>
                           ))}
-                          <SelectSeparator />
+                          <div className="my-1 h-px bg-border/60" />
                           <SelectItem
-                            value="__action_new__"
-                            className="text-xs font-semibold text-primary focus:bg-primary/10 focus:text-primary cursor-pointer py-2 gap-1.5"
+                            value="__manage_cat__"
+                            className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer py-2 gap-2"
                           >
-                            <Plus className="size-3.5 text-primary" />
-                            <span>Nova categoria...</span>
-                          </SelectItem>
-                          <SelectItem
-                            value="__action_central__"
-                            className="text-xs font-medium text-muted-foreground focus:bg-secondary focus:text-foreground cursor-pointer py-1.5 gap-1.5"
-                          >
-                            <ExternalLink className="size-3 text-muted-foreground" />
-                            <span>Gerenciar na Central ↗</span>
+                            <Settings className="size-3.5 text-muted-foreground shrink-0" />
+                            <span>Gerenciar categorias em Coleções…</span>
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -7687,77 +7663,6 @@ function Precificacao() {
           </Button>
         </SheetContent>
       </Sheet>
-
-      {/* Diálogo Rápido: Adicionar Nova Categoria (1 Campo, Padrão Shopify) */}
-      <Dialog open={showQuickCreateCategory} onOpenChange={setShowQuickCreateCategory}>
-        <DialogContent className="sm:max-w-xs p-5 rounded-2xl">
-          <DialogHeader className="space-y-1">
-            <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Tag className="size-4 text-primary" />
-              <span>Nova Categoria</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Adicione uma categoria ao seu catálogo para organizar suas peças.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const clean = newCategoryName.trim();
-              if (!clean) return;
-              try {
-                setIsCreatingCategory(true);
-                const existingSlugs = storeCategories.map((c) => c.slug);
-                const slug = createCategorySlug(clean, existingSlugs);
-                const newCat = {
-                  id: slug,
-                  name: clean,
-                  slug,
-                  order: storeCategories.length + 1,
-                };
-                await saveCategories([...storeCategories, newCat]);
-                setCategory(slug);
-                setShowQuickCreateCategory(false);
-                setNewCategoryName("");
-                toast.success(`Categoria "${clean}" criada com sucesso!`);
-              } catch (err: any) {
-                toast.error("Erro ao criar categoria: " + (err?.message || "Tente novamente"));
-              } finally {
-                setIsCreatingCategory(false);
-              }
-            }}
-            className="space-y-3.5 pt-1"
-          >
-            <Input
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Ex: Alfaiataria, Linho, Festas..."
-              autoFocus
-              className="h-9 rounded-xl text-xs bg-background border-border"
-            />
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowQuickCreateCategory(false)}
-                className="h-8 rounded-xl text-xs cursor-pointer"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!newCategoryName.trim() || isCreatingCategory}
-                className="h-8 rounded-xl text-xs font-semibold gradient-primary cursor-pointer"
-              >
-                {isCreatingCategory ? "Salvando..." : "Criar e Selecionar"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
