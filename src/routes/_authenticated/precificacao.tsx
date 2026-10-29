@@ -5860,59 +5860,80 @@ function Precificacao() {
 
                   {/* Linha 3: Custo Real Unitário Adaptativo em Zona Dedicada */}
                   <div className="pt-2.5 border-t border-border/50">
-                    <div className="flex items-center justify-between rounded-xl bg-secondary/40 border border-border/60 px-3.5 py-2.5 gap-4">
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                            {variantRealCosts.hasMultipleCosts ? "Custo real (faixa da grade)" : "Custo real / peça"}
-                          </span>
-                          <span className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                            variantRealCosts.hasMultipleCosts
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                              : "bg-primary/10 text-primary"
-                          )}>
-                            {variantRealCosts.hasMultipleCosts
-                              ? "custos variam"
-                              : actualLotUnits > 0
-                              ? `${actualLotUnits} un.`
-                              : "aguardando grade"}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {variantRealCosts.hasMultipleCosts ? (
-                            <>
-                              Custo de fábrica varia por tamanho · Rateio de frete & extras <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span>/un. igual para todas as peças
-                            </>
-                          ) : actualLotUnits > 0 ? (
-                            <>
-                              <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra +{" "}
-                              <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span> rateio por peça
-                            </>
-                          ) : (
-                            <>
-                              <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra · Monte a grade abaixo para ratear os extras da nota
-                            </>
-                          )}
-                        </p>
-                      </div>
+                    {(() => {
+                      const totalNoteExtras = toNumber(freight) + toNumber(packaging) + toNumber(other);
+                      const isZeroCost = variantRealCosts.minCost === 0;
 
-                      <div className="text-right shrink-0">
-                        <p className={cn(
-                          "font-black text-foreground numeric tracking-tight",
-                          variantRealCosts.hasMultipleCosts ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
-                        )}>
-                          {variantRealCosts.hasMultipleCosts
-                            ? `${brl(variantRealCosts.minCost)} a ${brl(variantRealCosts.maxCost)}`
-                            : brl(variantRealCosts.minCost)}
-                        </p>
-                        {variantRealCosts.hasMultipleCosts && summaryPrices.avgCost > 0 && (
-                          <p className="text-[10px] text-muted-foreground/80 font-medium numeric mt-0.5">
-                            méd. {brl(summaryPrices.avgCost)} / un.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                      return (
+                        <div className="flex items-center justify-between rounded-xl bg-secondary/35 border border-border/60 px-3.5 py-2.5 gap-4 transition-all">
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                {variantRealCosts.hasMultipleCosts ? "Custo real (faixa da grade)" : "Custo real da peça"}
+                              </span>
+                              <span className={cn(
+                                "text-[10px] font-medium px-2 py-0.5 rounded-full border transition-colors",
+                                variantRealCosts.hasMultipleCosts
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25 font-semibold"
+                                  : actualLotUnits > 0
+                                  ? "bg-primary/10 text-primary border-primary/20 font-semibold"
+                                  : "bg-secondary text-muted-foreground/80 border-border/50"
+                              )}>
+                                {variantRealCosts.hasMultipleCosts
+                                  ? "custos variam"
+                                  : actualLotUnits > 0
+                                  ? `${actualLotUnits} un. no lote`
+                                  : "aguardando grade"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {variantRealCosts.hasMultipleCosts ? (
+                                <>
+                                  Custo varia por tamanho · Rateio de extras <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span>/un. igual para todas as peças
+                                </>
+                              ) : actualLotUnits > 0 ? (
+                                <>
+                                  <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra +{" "}
+                                  <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span> extras
+                                  {totalNoteExtras > 0 && (
+                                    <span className="text-muted-foreground/75 font-normal ml-1">
+                                      ({brl(totalNoteExtras)} ÷ {actualLotUnits} un.)
+                                    </span>
+                                  )}
+                                </>
+                              ) : totalNoteExtras > 0 && toNumber(baseWholesaleGrade) > 0 ? (
+                                <>
+                                  <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra +{" "}
+                                  <span className="font-semibold text-foreground/80">{brl(totalNoteExtras)}</span> extras acumulados na nota · Monte a grade para ratear
+                                </>
+                              ) : totalNoteExtras > 0 ? (
+                                <>
+                                  <span className="font-semibold text-foreground/80">{brl(totalNoteExtras)}</span> em extras na nota · Defina o atacado e monte a grade para ratear
+                                </>
+                              ) : (
+                                <span>Preencha o atacado e monte a grade abaixo para calcular o rateio</span>
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <p className={cn(
+                              "font-black numeric tracking-tight",
+                              variantRealCosts.hasMultipleCosts ? "text-lg sm:text-xl text-foreground" : isZeroCost ? "text-xl sm:text-2xl text-muted-foreground/45" : "text-xl sm:text-2xl text-foreground"
+                            )}>
+                              {variantRealCosts.hasMultipleCosts
+                                ? `${brl(variantRealCosts.minCost)} a ${brl(variantRealCosts.maxCost)}`
+                                : brl(variantRealCosts.minCost)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 font-medium numeric mt-0.5">
+                              {variantRealCosts.hasMultipleCosts && summaryPrices.avgCost > 0
+                                ? `méd. ${brl(summaryPrices.avgCost)} / un.`
+                                : "por peça"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </section>
               </div>
