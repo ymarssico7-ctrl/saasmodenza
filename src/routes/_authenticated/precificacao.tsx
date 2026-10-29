@@ -2609,6 +2609,7 @@ function Precificacao() {
   ]);
 
   // ── Modal Sheet: Ficha de Entrada no Estoque ──────────────────────
+  const [showGradeFinancialDetails, setShowGradeFinancialDetails] = useState(false);
   const [entrySheetOpen, setEntrySheetOpen] = useState(false);
   const [entryName, setEntryName] = useState("");
   const [entryCategory, setEntryCategory] = useState("vestido");
@@ -2853,6 +2854,17 @@ function Precificacao() {
   // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
     if (mode === "rapida") {
+      const wholes = toNumber(wholesale);
+      const shared =
+        resolvePerUnit(freight, freightMode, 1) +
+        resolvePerUnit(packaging, packagingMode, 1) +
+        resolvePerUnit(other, otherMode, 1);
+      const deductions = singleResult.suggestedPrice > 0
+        ? Math.max(0, singleResult.suggestedPrice - singleResult.realCost - singleResult.profit)
+        : 0;
+      const netRev = singleResult.suggestedPrice - deductions;
+      const be = netRev > 0 && singleResult.realCost > 0 ? Math.ceil(singleResult.realCost / netRev) : 1;
+
       return {
         minSuggested: singleResult.suggestedPrice,
         maxSuggested: singleResult.suggestedPrice,
@@ -2866,6 +2878,13 @@ function Precificacao() {
         totalProfit: singleResult.profit,
         marginHealth: singleResult.marginHealth,
         hasMultiple: false,
+        totalWholesale: wholes,
+        totalSharedCosts: shared,
+        totalDeductions: deductions,
+        breakEvenUnits: be,
+        avgWholesale: wholes,
+        avgSharedCost: shared,
+        avgDeduction: deductions,
       };
     }
 
@@ -2885,6 +2904,13 @@ function Precificacao() {
           totalProfit: 0,
           marginHealth: getMarginHealth(0),
           hasMultiple: false,
+          totalWholesale: 0,
+          totalSharedCosts: 0,
+          totalDeductions: 0,
+          breakEvenUnits: 0,
+          avgWholesale: 0,
+          avgSharedCost: 0,
+          avgDeduction: 0,
         };
       }
       // Projeção contábil unitária para quando ainda não há variantes com quantidade no lote
@@ -2925,6 +2951,10 @@ function Precificacao() {
         }
       }
 
+      const projDeductions = projPrice > 0 ? projPrice * totalDeductionsFrac : 0;
+      const projNetRev = projPrice - projDeductions;
+      const projBe = projNetRev > 0 && unitCost > 0 ? Math.ceil(unitCost / projNetRev) : 1;
+
       return {
         minSuggested: projPrice,
         maxSuggested: projPrice,
@@ -2938,6 +2968,13 @@ function Precificacao() {
         totalProfit: 0,
         marginHealth: getMarginHealth(projMargin),
         hasMultiple: false,
+        totalWholesale: 0,
+        totalSharedCosts: 0,
+        totalDeductions: 0,
+        breakEvenUnits: projBe,
+        avgWholesale: effectiveWholesale,
+        avgSharedCost: sharedPerUnit,
+        avgDeduction: projDeductions,
       };
     }
 
@@ -2948,12 +2985,20 @@ function Precificacao() {
     const totalRev = valid.reduce((a, b) => a + b.suggestedPrice * b.qty, 0);
     const totalInv = valid.reduce((a, b) => a + b.realCost * b.qty, 0);
     const totalProf = valid.reduce((a, b) => a + b.profit * b.qty, 0);
+    const totalWholesale = valid.reduce((a, b) => a + b.wholesaleNum * b.qty, 0);
+    const totalSharedCosts = Math.max(0, totalInv - totalWholesale);
+    const totalDeductions = Math.max(0, totalRev - totalInv - totalProf);
 
     const avgP = totalRev / totalQty;
     const avgProf = totalProf / totalQty;
     const avgC = totalInv / totalQty;
     const avgMarg = avgP > 0 ? (avgProf / avgP) * 100 : 0;
     const avgMark = avgC > 0 ? (avgProf / avgC) * 100 : 0;
+    const avgWholesale = totalWholesale / totalQty;
+    const avgShared = totalSharedCosts / totalQty;
+    const avgDeduction = totalDeductions / totalQty;
+    const netRevenuePerUnit = avgP - avgDeduction;
+    const breakEvenUnits = netRevenuePerUnit > 0 && totalInv > 0 ? Math.min(totalQty, Math.ceil(totalInv / netRevenuePerUnit)) : 0;
 
     return {
       minSuggested: minP,
@@ -2968,6 +3013,13 @@ function Precificacao() {
       totalProfit: totalProf,
       marginHealth: getMarginHealth(avgMarg),
       hasMultiple: valid.length > 1 && Math.abs(minP - maxP) > 0.05,
+      totalWholesale,
+      totalSharedCosts,
+      totalDeductions,
+      breakEvenUnits,
+      avgWholesale,
+      avgSharedCost: avgShared,
+      avgDeduction,
     };
   }, [mode, singleResult, variantResults, variants.length, baseWholesaleGrade, wholesale, freight, packaging, other, freightMode, packagingMode, otherMode, tax, cardRate, strategy, desiredMargin, markup, directSalePrice]);
 
@@ -5901,6 +5953,103 @@ function Precificacao() {
                     <span className="numeric">{actualLotUnits > 0 ? `${actualLotUnits} peças no lote` : "0 peças"}</span>
                   </div>
                 </div>
+
+                {/* 2.1 Gatilho Discreto para Extensão Financeira */}
+                <div className="flex items-center justify-center -my-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowGradeFinancialDetails((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer py-1 px-2.5 rounded-lg hover:bg-secondary/60 active:scale-[0.98]"
+                    title="Exibir decomposição e métricas contábeis do lote"
+                  >
+                    <Receipt className="size-3 text-muted-foreground/80" />
+                    <span>{showGradeFinancialDetails ? "Ocultar detalhamento" : "Detalhamento financeiro"}</span>
+                    <ChevronDown
+                      className={cn(
+                        "size-3 text-muted-foreground/80 transition-transform duration-200",
+                        showGradeFinancialDetails && "rotate-180"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* 2.2 Extensão Sanfonada: DRE Completa do Lote & Métricas Estratégicas */}
+                {showGradeFinancialDetails && (
+                  <div className="rounded-2xl bg-secondary/25 border border-border/50 p-3 space-y-2 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 pb-1 border-b border-border/40">
+                      <span>Decomposição do lote</span>
+                      <span className="numeric">{actualLotUnits > 0 ? `${actualLotUnits} un.` : "Projeção"}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>Custo de atacado</span>
+                      <span className="num-display font-medium text-foreground text-right">
+                        {brl(summaryPrices.totalWholesale)}
+                        {actualLotUnits > 0 && (
+                          <span className="text-[10px] text-muted-foreground/70 font-normal ml-1">
+                            (méd. {brl(summaryPrices.avgWholesale)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>Custos extras (rateio)</span>
+                      <span className="num-display font-medium text-foreground text-right">
+                        {brl(summaryPrices.totalSharedCosts)}
+                        {actualLotUnits > 0 && (
+                          <span className="text-[10px] text-muted-foreground/70 font-normal ml-1">
+                            (méd. {brl(summaryPrices.avgSharedCost)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between font-semibold text-foreground pt-1 border-t border-border/40">
+                      <span>Custo real (CMV total)</span>
+                      <span className="num-display text-right">
+                        {brl(summaryPrices.totalInvestment)}
+                        {actualLotUnits > 0 && (
+                          <span className="text-[10px] text-muted-foreground font-normal ml-1">
+                            (méd. {brl(summaryPrices.avgCost)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>
+                        Deduções ({((tax || 0) + (cardRate || 0)).toFixed(1)}% taxas)
+                      </span>
+                      <span className="num-display font-medium text-foreground text-right">
+                        -{brl(summaryPrices.totalDeductions)}
+                        {actualLotUnits > 0 && (
+                          <span className="text-[10px] text-muted-foreground/70 font-normal ml-1">
+                            (méd. -{brl(summaryPrices.avgDeduction)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-border/40 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground">Markup médio praticado:</span>
+                        <span className="font-bold text-foreground numeric">
+                          {summaryPrices.avgMarkup > 0 ? `${(1 + summaryPrices.avgMarkup / 100).toFixed(2)}x` : "0.00x"}
+                        </span>
+                      </div>
+
+                      {summaryPrices.breakEvenUnits > 0 && actualLotUnits > 0 && (
+                        <div className="rounded-lg bg-background/70 border border-border/60 px-2.5 py-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                          <Target className="size-3 text-primary shrink-0" />
+                          <span>
+                            Ponto de equilíbrio: <strong className="text-foreground font-semibold">{summaryPrices.breakEvenUnits} {summaryPrices.breakEvenUnits === 1 ? "peça paga" : "peças pagam"}</strong> o lote todo
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* 3. Ação Principal & Status */}
                 <div className="space-y-1.5">
