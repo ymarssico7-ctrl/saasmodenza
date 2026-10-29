@@ -5752,9 +5752,20 @@ function Precificacao() {
 
                     {/* Custo de Atacado */}
                     <div className="space-y-1">
-                      <Label className="text-xs font-semibold text-foreground">
-                        Custo atacado / un.
-                      </Label>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <Label className="text-xs font-semibold text-foreground">
+                          Custo atacado base
+                        </Label>
+                        {variantRealCosts.hasMultipleCosts ? (
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full numeric">
+                            Varia na grade (méd. {brl(summaryPrices.avgWholesale)})
+                          </span>
+                        ) : toNumber(baseWholesaleGrade) > 0 ? (
+                          <span className="text-[10px] font-medium text-muted-foreground bg-secondary/80 px-2 py-0.5 rounded-full">
+                            Padrão da grade
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                         <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                         <input
@@ -5765,6 +5776,9 @@ function Precificacao() {
                           className="h-10 w-full bg-transparent px-2 text-sm font-black text-foreground outline-none numeric"
                         />
                       </div>
+                      <p className="text-[10px] text-muted-foreground/75 leading-tight">
+                        Aplica a toda a grade. Tamanhos com custo diferente podem ser ajustados na tabela abaixo.
+                      </p>
                     </div>
                   </div>
 
@@ -5832,7 +5846,12 @@ function Precificacao() {
                           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                             {variantRealCosts.hasMultipleCosts ? "Custo real (faixa da grade)" : "Custo real / peça"}
                           </span>
-                          <span className="text-[10px] font-bold text-primary px-2 py-0.5 rounded-full bg-primary/10">
+                          <span className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                            variantRealCosts.hasMultipleCosts
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              : "bg-primary/10 text-primary"
+                          )}>
                             {variantRealCosts.hasMultipleCosts
                               ? "custos variam"
                               : actualLotUnits > 0
@@ -5843,7 +5862,7 @@ function Precificacao() {
                         <p className="text-xs text-muted-foreground">
                           {variantRealCosts.hasMultipleCosts ? (
                             <>
-                              Custo de fábrica varia na grade · Rateio de extras <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span>/un
+                              Custo de fábrica varia por tamanho · Rateio de frete & extras <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span>/un. igual para todas as peças
                             </>
                           ) : actualLotUnits > 0 ? (
                             <>
@@ -5867,6 +5886,11 @@ function Precificacao() {
                             ? `${brl(variantRealCosts.minCost)} a ${brl(variantRealCosts.maxCost)}`
                             : brl(variantRealCosts.minCost)}
                         </p>
+                        {variantRealCosts.hasMultipleCosts && summaryPrices.avgCost > 0 && (
+                          <p className="text-[10px] text-muted-foreground/80 font-medium numeric mt-0.5">
+                            méd. {brl(summaryPrices.avgCost)} / un.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -7067,7 +7091,7 @@ function Precificacao() {
                               const hasCustomMargin = v.customMargin !== undefined && v.customMargin !== "" && gradePricingMode === "isolated";
                               const hasCustomMarkup = v.customMarkup !== undefined && v.customMarkup !== "" && gradePricingMode === "isolated";
                               const hasCustomPrice = v.customSalePrice !== undefined && v.customSalePrice !== "" && gradePricingMode === "isolated";
-                              const hasCustomWholesale = v.wholesaleCost !== "" && gradePricingMode === "isolated";
+                              const hasCustomWholesale = v.wholesaleCost !== "" && v.wholesaleCost !== baseWholesaleGrade;
 
                               return (
                                 <tr key={v.id} className="hover:bg-secondary/15 transition-colors">
