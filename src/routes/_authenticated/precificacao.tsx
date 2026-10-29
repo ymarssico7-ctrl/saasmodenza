@@ -4704,10 +4704,10 @@ function Precificacao() {
                   <div className="my-1 h-px bg-border/60" />
                   <SelectItem
                     value="__manage_cat__"
-                    className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer py-2 gap-2"
+                    className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer"
                   >
-                    <Settings className="size-3.5 text-muted-foreground shrink-0" />
-                    <span>Gerenciar categorias em Coleções…</span>
+                    <Settings className="mr-1.5 inline size-3.5" />
+                    Configurar opções
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -5689,10 +5689,10 @@ function Precificacao() {
                           <div className="my-1 h-px bg-border/60" />
                           <SelectItem
                             value="__manage_cat__"
-                            className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer py-2 gap-2"
+                            className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer"
                           >
-                            <Settings className="size-3.5 text-muted-foreground shrink-0" />
-                            <span>Gerenciar categorias em Coleções…</span>
+                            <Settings className="mr-1.5 inline size-3.5" />
+                            Configurar opções
                           </SelectItem>
                         </SelectContent>
                       </Select>
