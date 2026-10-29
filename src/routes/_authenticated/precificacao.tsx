@@ -3025,10 +3025,11 @@ function Precificacao() {
 
   // ── Detecção Adaptativa de Faixas de Custo Real ───────────────────
   const variantRealCosts = useMemo(() => {
-    const baseShared =
-      resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-      resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1) +
-      resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const baseShared = actualLotUnits > 0
+      ? resolvePerUnit(freight, freightMode, actualLotUnits) +
+        resolvePerUnit(packaging, packagingMode, actualLotUnits) +
+        resolvePerUnit(other, otherMode, actualLotUnits)
+      : 0;
     const baseTotalCost = toNumber(baseWholesaleGrade) + baseShared;
 
     if (mode !== "grade" || variantResults.length === 0) {
@@ -5752,19 +5753,41 @@ function Precificacao() {
 
                     {/* Custo de Atacado */}
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-1.5">
-                        <Label className="text-xs font-semibold text-foreground">
-                          Custo atacado base
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-xs font-semibold text-foreground whitespace-nowrap">
+                          Custo atacado
                         </Label>
-                        {variantRealCosts.hasMultipleCosts ? (
-                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full numeric">
-                            Varia na grade (méd. {brl(summaryPrices.avgWholesale)})
-                          </span>
-                        ) : toNumber(baseWholesaleGrade) > 0 ? (
-                          <span className="text-[10px] font-medium text-muted-foreground bg-secondary/80 px-2 py-0.5 rounded-full">
-                            Padrão da grade
-                          </span>
-                        ) : null}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                              title="Informações sobre o custo atacado da grade"
+                            >
+                              <Info className="size-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-72 p-3 text-xs bg-card border border-border/80 shadow-xl rounded-xl space-y-2 z-50"
+                            align="end"
+                          >
+                            <div className="flex items-center gap-1.5 font-bold text-foreground">
+                              <Info className="size-3.5 text-primary shrink-0" />
+                              <span>Custo de Atacado da Grade</span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Este é o valor de compra padrão aplicado a todas as peças do lote.
+                            </p>
+                            <div className="rounded-lg bg-secondary/50 border border-border/50 p-2 text-[10px] text-muted-foreground leading-normal">
+                              💡 <strong>Dica:</strong> Caso algum tamanho (como GG ou Plus Size) tenha custo maior de confecção, você pode ajustá-lo diretamente na linha daquele tamanho na tabela abaixo.
+                            </div>
+                            {variantRealCosts.hasMultipleCosts && (
+                              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-[10px] text-amber-600 dark:text-amber-400 font-medium leading-normal">
+                                ⚠️ <strong>Custos variam na grade:</strong> O lote possui tamanhos com custos personalizados (média atual: {brl(summaryPrices.avgWholesale)}/un.).
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                         <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
@@ -5776,9 +5799,6 @@ function Precificacao() {
                           className="h-10 w-full bg-transparent px-2 text-sm font-black text-foreground outline-none numeric"
                         />
                       </div>
-                      <p className="text-[10px] text-muted-foreground/75 leading-tight">
-                        Aplica a toda a grade. Tamanhos com custo diferente podem ser ajustados na tabela abaixo.
-                      </p>
                     </div>
                   </div>
 
@@ -5856,7 +5876,7 @@ function Precificacao() {
                               ? "custos variam"
                               : actualLotUnits > 0
                               ? `${actualLotUnits} un.`
-                              : "unitário base"}
+                              : "aguardando grade"}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -5871,7 +5891,7 @@ function Precificacao() {
                             </>
                           ) : (
                             <>
-                              <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> atacado (sem lote ativo para rateio)
+                              <span className="font-semibold text-foreground/80">{brl(toNumber(baseWholesaleGrade))}</span> compra · Monte a grade abaixo para ratear os extras da nota
                             </>
                           )}
                         </p>
