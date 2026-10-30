@@ -5918,14 +5918,14 @@ function Precificacao() {
 
                           <div className="text-right shrink-0">
                             <p className={cn(
-                              "font-black numeric tracking-tight",
-                              variantRealCosts.hasMultipleCosts ? "text-lg sm:text-xl text-foreground" : isZeroCost ? "text-xl sm:text-2xl text-muted-foreground/45" : "text-xl sm:text-2xl text-foreground"
+                              "font-bold numeric tracking-tight",
+                              variantRealCosts.hasMultipleCosts ? "text-sm sm:text-base text-foreground" : isZeroCost ? "text-base sm:text-lg text-muted-foreground/40" : "text-base sm:text-lg text-foreground"
                             )}>
                               {variantRealCosts.hasMultipleCosts
                                 ? `${brl(variantRealCosts.minCost)} a ${brl(variantRealCosts.maxCost)}`
                                 : brl(variantRealCosts.minCost)}
                             </p>
-                            <p className="text-[10px] text-muted-foreground/70 font-medium numeric mt-0.5">
+                            <p className="text-[11px] text-muted-foreground/70 font-medium numeric mt-0.5">
                               {variantRealCosts.hasMultipleCosts && summaryPrices.avgCost > 0
                                 ? `méd. ${brl(summaryPrices.avgCost)} / un.`
                                 : "por peça"}
