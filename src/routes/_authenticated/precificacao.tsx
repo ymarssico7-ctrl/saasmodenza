@@ -2034,6 +2034,7 @@ interface SmartTableNumericInputProps {
   altStep?: number;
   onReset?: (() => void) | undefined;
   resetTitle?: string;
+  showSteppers?: boolean;
 }
 
 function SmartTableNumericInput({
@@ -2051,12 +2052,15 @@ function SmartTableNumericInput({
   altStep = 0.5,
   onReset,
   resetTitle = "Resetar para padrão",
+  showSteppers,
 }: SmartTableNumericInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasSteppers = showSteppers ?? (mode === "percentage");
 
   const applyDelta = (delta: number) => {
-    const currentNum = toNumber(value);
-    const nextNum = Math.min(max, Math.max(min, Math.round((currentNum + delta) * 100) / 100));
+    const rawNum = toNumber(value);
+    const baseVal = rawNum === 0 && placeholder && value === "" ? toNumber(placeholder) : rawNum;
+    const nextNum = Math.min(max, Math.max(min, Math.round((baseVal + delta) * 100) / 100));
 
     if (mode === "currency") {
       onChange(nextNum.toFixed(2).replace(".", ","));
@@ -2087,6 +2091,10 @@ function SmartTableNumericInput({
     }
   };
 
+  const currentNum = toNumber(value);
+  const isAtMin = currentNum <= min;
+  const isAtMax = currentNum >= max;
+
   return (
     <div className={cn("relative inline-flex items-center gap-1", className)}>
       <div
@@ -2111,14 +2119,51 @@ function SmartTableNumericInput({
           placeholder={placeholder}
           className={cn(
             "bg-transparent font-bold numeric text-xs outline-none text-foreground px-2 h-full tabular-nums",
-            mode === "currency" ? "w-20 text-right pr-2" : "w-14 text-center",
+            mode === "currency" ? "w-20 text-right pr-2" : hasSteppers ? "w-11 text-center pl-2 pr-0.5" : "w-14 text-center",
             inputClassName,
           )}
         />
         {mode === "percentage" && (
-          <span className="pr-2 text-[11px] font-bold text-muted-foreground select-none">
+          <span className={cn(
+            "text-[11px] font-bold text-muted-foreground select-none",
+            hasSteppers ? "pr-1.5" : "pr-2"
+          )}>
             %
           </span>
+        )}
+        {hasSteppers && (
+          <div className="flex flex-col h-full border-l border-border/50 divide-y divide-border/30 shrink-0 bg-secondary/15">
+            <button
+              type="button"
+              tabIndex={-1}
+              disabled={isAtMax}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const delta = e.shiftKey ? shiftStep : (e.altKey || e.ctrlKey ? altStep : step);
+                applyDelta(delta);
+              }}
+              title="Aumentar (Shift para +5)"
+              className="flex items-center justify-center w-4 h-1/2 hover:bg-secondary hover:text-foreground text-muted-foreground/70 active:bg-secondary/80 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer select-none"
+            >
+              <ChevronUp className="size-2.5" />
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              disabled={isAtMin}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const delta = e.shiftKey ? shiftStep : (e.altKey || e.ctrlKey ? altStep : step);
+                applyDelta(-delta);
+              }}
+              title="Diminuir (Shift para -5)"
+              className="flex items-center justify-center w-4 h-1/2 hover:bg-secondary hover:text-foreground text-muted-foreground/70 active:bg-secondary/80 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer select-none"
+            >
+              <ChevronDown className="size-2.5" />
+            </button>
+          </div>
         )}
       </div>
 
