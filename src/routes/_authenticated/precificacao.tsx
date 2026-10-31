@@ -296,30 +296,30 @@ const COLOR_PRESETS = [
 function getColorDot(col: string): string {
   const normalized = col.toLowerCase().trim();
   if (normalized.includes("off-white") || normalized.includes("off white") || normalized.includes("offwhite")) {
-    return "bg-[#FAF8F5] border border-neutral-300 dark:border-neutral-600 shadow-2xs";
+    return "bg-[#F0EAE1] border border-[#D4CBBF] shadow-2xs";
   }
   if (normalized.includes("branco") || normalized.includes("white")) {
-    return "bg-[#FFFFFF] border border-neutral-300 dark:border-neutral-600 shadow-2xs";
+    return "bg-[#FFFFFF] border border-neutral-300 shadow-2xs";
   }
-  if (normalized.includes("preto") || normalized.includes("black")) return "bg-[#18181B] border border-neutral-800/30";
-  if (normalized.includes("areia") || normalized.includes("bege") || normalized.includes("nude")) return "bg-[#D8C7B5] border border-stone-400/30";
-  if (normalized.includes("terracota") || normalized.includes("caramelo") || normalized.includes("telha")) return "bg-[#C86D51]";
-  if (normalized.includes("menta") || normalized.includes("sálvia") || normalized.includes("salvia")) return "bg-[#9DC183]";
-  if (normalized.includes("militar") || normalized.includes("oliva") || normalized.includes("verde")) return "bg-[#556B2F]";
-  if (normalized.includes("jeans") || normalized.includes("índigo") || normalized.includes("indigo")) return "bg-[#4B6B94]";
-  if (normalized.includes("marinho") || normalized.includes("royal") || normalized.includes("azul") || normalized.includes("turquesa")) return "bg-[#1B2A4A]";
-  if (normalized.includes("fúcsia") || normalized.includes("fucsia") || normalized.includes("pink")) return "bg-[#C71585]";
-  if (normalized.includes("rosa") || normalized.includes("rose") || normalized.includes("rosê")) return "bg-[#D4A5A5]";
-  if (normalized.includes("vinho") || normalized.includes("marsala")) return "bg-[#651C32]";
-  if (normalized.includes("vermelho") || normalized.includes("coral") || normalized.includes("laranja")) return "bg-[#C41E3A]";
-  if (normalized.includes("cinza") || normalized.includes("grafite") || normalized.includes("mescla")) return "bg-[#707070]";
-  if (normalized.includes("amarelo") || normalized.includes("mostarda") || normalized.includes("manteiga")) return "bg-[#D4AF37]";
-  if (normalized.includes("marrom") || normalized.includes("chocolate")) return "bg-[#5C4033]";
-  if (normalized.includes("lilas") || normalized.includes("lilás") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF]";
-  if (normalized.includes("dourado") || normalized.includes("ouro")) return "bg-[#FFD700]";
-  if (normalized.includes("prata")) return "bg-[#C0C0C0] border border-neutral-400/40";
-  if (normalized.includes("estampa") || normalized.includes("floral") || normalized.includes("animal")) return "bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500";
-  return "bg-primary/40 border border-primary/20";
+  if (normalized.includes("preto") || normalized.includes("black")) return "bg-[#18181B] border border-neutral-800/30 shadow-2xs";
+  if (normalized.includes("areia") || normalized.includes("bege") || normalized.includes("nude")) return "bg-[#D8C7B5] border border-stone-300 shadow-2xs";
+  if (normalized.includes("terracota") || normalized.includes("caramelo") || normalized.includes("telha")) return "bg-[#C86D51] border border-amber-900/20 shadow-2xs";
+  if (normalized.includes("menta") || normalized.includes("sálvia") || normalized.includes("salvia")) return "bg-[#9DC183] border border-emerald-700/20 shadow-2xs";
+  if (normalized.includes("militar") || normalized.includes("oliva") || normalized.includes("verde")) return "bg-[#556B2F] border border-emerald-950/20 shadow-2xs";
+  if (normalized.includes("jeans") || normalized.includes("índigo") || normalized.includes("indigo")) return "bg-[#4B6B94] border border-blue-900/20 shadow-2xs";
+  if (normalized.includes("marinho") || normalized.includes("royal") || normalized.includes("azul") || normalized.includes("turquesa")) return "bg-[#1B2A4A] border border-blue-950/30 shadow-2xs";
+  if (normalized.includes("fúcsia") || normalized.includes("fucsia") || normalized.includes("pink")) return "bg-[#C71585] border border-pink-900/20 shadow-2xs";
+  if (normalized.includes("rosa") || normalized.includes("rose") || normalized.includes("rosê")) return "bg-[#D4A5A5] border border-rose-300 shadow-2xs";
+  if (normalized.includes("vinho") || normalized.includes("marsala")) return "bg-[#651C32] border border-rose-950/30 shadow-2xs";
+  if (normalized.includes("vermelho") || normalized.includes("coral") || normalized.includes("laranja")) return "bg-[#C41E3A] border border-red-900/20 shadow-2xs";
+  if (normalized.includes("cinza") || normalized.includes("grafite") || normalized.includes("mescla")) return "bg-[#707070] border border-neutral-500/30 shadow-2xs";
+  if (normalized.includes("amarelo") || normalized.includes("mostarda") || normalized.includes("manteiga")) return "bg-[#D4AF37] border border-amber-600/30 shadow-2xs";
+  if (normalized.includes("marrom") || normalized.includes("chocolate")) return "bg-[#5C4033] border border-amber-950/30 shadow-2xs";
+  if (normalized.includes("lilas") || normalized.includes("lilás") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF] border border-purple-800/20 shadow-2xs";
+  if (normalized.includes("dourado") || normalized.includes("ouro")) return "bg-[#FFD700] border border-amber-500/30 shadow-2xs";
+  if (normalized.includes("prata")) return "bg-[#C0C0C0] border border-neutral-400/40 shadow-2xs";
+  if (normalized.includes("estampa") || normalized.includes("floral") || normalized.includes("animal")) return "bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500 border border-neutral-300 shadow-2xs";
+  return "bg-primary/40 border border-primary/20 shadow-2xs";
 }
 
 const CANONICAL_SIZE_ORDER = [
@@ -7080,10 +7080,10 @@ function Precificacao() {
 
                   </div>
                 ) : (
-                <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-soft">
+                <div className="overflow-x-auto rounded-2xl border border-neutral-200/80 bg-white shadow-soft">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-border/60 bg-secondary/25 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
+                      <tr className="border-b border-neutral-200/80 bg-neutral-50/90 text-[10px] font-bold uppercase tracking-wider text-neutral-500 select-none">
                         <th className="py-3 pl-4 w-24">Tamanho</th>
                         <th className="py-3 px-3 text-center w-28">Qtd.</th>
                         <th className="py-3 px-3 text-right w-32">Custo Atacado</th>
@@ -7135,17 +7135,17 @@ function Precificacao() {
                         return (
                           <Fragment key={group.color}>
                             {/* Header do Grupo de Cor */}
-                            <tr className="bg-secondary/25 hover:bg-secondary/35 border-y border-border/60 transition-colors">
+                            <tr className="bg-neutral-50/60 hover:bg-neutral-100/70 border-y border-neutral-200/70 transition-colors">
                               <td colSpan={7} className="py-2.5 pl-4">
                                 <div className="flex items-center gap-2.5">
-                                  <span className={cn("size-3.5 rounded-full shrink-0 ring-2 ring-card shadow-xs transition-transform", getColorDot(group.color))} />
-                                  <span className="text-xs font-bold text-foreground tracking-tight">{group.color}</span>
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-card text-muted-foreground/90 border border-border/80 shadow-2xs">
+                                  <span className={cn("size-4.5 rounded-md shrink-0 shadow-2xs ring-1 ring-black/5 transition-transform", getColorDot(group.color))} />
+                                  <span className="text-xs font-bold text-neutral-900 tracking-tight">{group.color}</span>
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white text-neutral-600 border border-neutral-200/80 shadow-2xs">
                                     {group.totalUnits} {group.totalUnits === 1 ? "unidade" : "unidades"} no lote
                                   </span>
                                   {group.avgPrice > 0 && (
-                                    <span className="text-[11px] text-muted-foreground/80 font-medium hidden sm:inline">
-                                      · Preço médio: <strong className="text-foreground font-bold">{brl(group.avgPrice)}</strong>
+                                    <span className="text-[11px] text-neutral-500 font-medium hidden sm:inline">
+                                      · Preço médio: <strong className="text-neutral-800 font-bold">{brl(group.avgPrice)}</strong>
                                     </span>
                                   )}
                                 </div>
@@ -7154,7 +7154,7 @@ function Precificacao() {
                                 <button
                                   type="button"
                                   onClick={() => removeColorFromGrade(group.color)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-muted-foreground/80 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer whitespace-nowrap"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-neutral-400 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer whitespace-nowrap"
                                   title={`Excluir cor ${group.color} e suas variações`}
                                 >
                                   <Trash2 className="size-3" />
@@ -7185,30 +7185,30 @@ function Precificacao() {
                               const hasCustomWholesale = v.wholesaleCost !== "" && v.wholesaleCost !== baseWholesaleGrade;
 
                               return (
-                                <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
+                                <tr key={v.id} className="hover:bg-neutral-50/50 transition-colors">
                                   {/* Tamanho */}
                                   <td className="py-2 pl-4">
-                                    <span className="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-md bg-secondary/80 border border-border/70 text-foreground font-black text-xs shadow-2xs tracking-wide">
+                                    <span className="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-md bg-neutral-100/90 border border-neutral-200 text-neutral-800 font-black text-xs shadow-2xs tracking-wide">
                                       {v.size}
                                     </span>
                                   </td>
 
                                   {/* Stepper QTD Refinado */}
                                   <td className="py-2 px-3 text-center">
-                                    <div className="inline-flex items-center h-8 rounded-lg border border-border/80 bg-card shadow-2xs hover:border-foreground/30 transition-colors">
+                                    <div className="inline-flex items-center h-8 rounded-lg border border-neutral-200 bg-white shadow-2xs hover:border-neutral-400/60 transition-colors">
                                       <button
                                         type="button"
                                         onClick={() => updateVariantQty(v.id, Math.max(1, (v.qty || 1) - 1))}
-                                        className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary rounded-l-md transition-colors cursor-pointer"
+                                        className="size-7 flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-l-md transition-colors cursor-pointer"
                                         title="Diminuir quantidade"
                                       >
                                         <Minus className="size-3" />
                                       </button>
-                                      <span className="w-8 text-center text-xs font-black numeric text-foreground select-none">{v.qty || 1}</span>
+                                      <span className="w-8 text-center text-xs font-black numeric text-neutral-900 select-none">{v.qty || 1}</span>
                                       <button
                                         type="button"
                                         onClick={() => updateVariantQty(v.id, (v.qty || 1) + 1)}
-                                        className="size-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary rounded-r-md transition-colors cursor-pointer"
+                                        className="size-7 flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-r-md transition-colors cursor-pointer"
                                         title="Aumentar quantidade"
                                       >
                                         <Plus className="size-3" />
@@ -7447,53 +7447,53 @@ function Precificacao() {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-border/70 bg-secondary/25 text-xs font-semibold">
-                        <td className="py-3 pl-4 text-xs font-bold text-foreground uppercase tracking-wider">
+                      <tr className="border-t-2 border-neutral-200/80 bg-neutral-50/90 text-xs font-semibold">
+                        <td className="py-3 pl-4 text-xs font-bold text-neutral-800 uppercase tracking-wider">
                           Total do Lote
                         </td>
                         <td className="py-3 px-3 text-center text-xs font-black text-primary numeric">
                           {actualLotUnits} un.
                         </td>
-                        <td className="py-3 px-3 text-right numeric font-bold text-foreground">
+                        <td className="py-3 px-3 text-right numeric font-bold text-neutral-900">
                           {summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"}
                         </td>
-                        <td className="py-3 px-3 text-right numeric font-semibold text-muted-foreground">
+                        <td className="py-3 px-3 text-right numeric font-semibold text-neutral-500">
                           {summaryPrices.avgCost > 0 ? `Méd. ${brl(summaryPrices.avgCost)}` : "R$ 0,00"}
                         </td>
                         {/* Coluna 5: Resumo Margem % */}
                         {strategy === "margin" && (
-                          <td className="py-3 px-3 text-center text-xs font-bold text-foreground">
+                          <td className="py-3 px-3 text-center text-xs font-bold text-neutral-800">
                             {summaryPrices.totalInvestment > 0 && summaryPrices.avgMargin > 0
                               ? `Méd. ${summaryPrices.avgMargin.toFixed(1).replace(".", ",")}%`
                               : `Meta ${(desiredMargin || 50).toFixed(1).replace(".", ",")}%`}
                           </td>
                         )}
                         {strategy === "markup" && (
-                          <td className="py-3 px-3 text-center text-xs font-bold text-foreground">
+                          <td className="py-3 px-3 text-center text-xs font-bold text-neutral-800">
                             {summaryPrices.totalInvestment > 0 && summaryPrices.avgMarkup > 0
                               ? `Méd. ${summaryPrices.avgMarkup.toFixed(0)}%`
                               : `Meta ${(markup || 100).toFixed(0)}%`}
                           </td>
                         )}
                         {strategy === "direct_price" && (
-                          <td className="py-3 px-3 text-right numeric font-black text-foreground">
+                          <td className="py-3 px-3 text-right numeric font-black text-neutral-900">
                             {summaryPrices.avgSuggested > 0 ? `Méd. ${brl(summaryPrices.avgSuggested)}` : "Média R$ 0,00"}
                           </td>
                         )}
                         {/* Coluna 6: Resumo Saída Principal */}
                         {(strategy === "margin" || strategy === "markup") && (
-                          <td className="py-3 px-3 text-right numeric text-foreground font-black">
+                          <td className="py-3 px-3 text-right numeric text-neutral-900 font-black">
                             {summaryPrices.avgSuggested > 0 ? `Méd. ${brl(summaryPrices.avgSuggested)}` : "Média R$ 0,00"}
                           </td>
                         )}
                         {strategy === "direct_price" && (
-                          <td className="py-3 px-3 text-center numeric text-foreground font-bold">
+                          <td className="py-3 px-3 text-center numeric text-neutral-800 font-bold">
                             {summaryPrices.avgMargin > 0 ? `${summaryPrices.avgMargin.toFixed(1).replace(".", ",")}%` : "0,0%"}
                           </td>
                         )}
                         {/* Coluna 7: Resumo Lucro Total do Lote */}
                         {strategy === "markup" && (
-                          <td className="py-3 px-3 text-center numeric text-foreground font-bold">
+                          <td className="py-3 px-3 text-center numeric text-neutral-800 font-bold">
                             {summaryPrices.avgMargin > 0 ? `${summaryPrices.avgMargin.toFixed(1).replace(".", ",")}%` : "0,0%"}
                           </td>
                         )}
