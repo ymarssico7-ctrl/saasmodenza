@@ -21,7 +21,9 @@ import {
   Info,
   Layers,
   LayoutGrid,
+  Link2,
   Minus,
+  MoreHorizontal,
   Package,
   PackagePlus,
   Palette,
@@ -6246,13 +6248,14 @@ function Precificacao() {
                           toast.info("Modo Isolado ativado: personalize custos e preços linha por linha.");
                         }}
                         className={cn(
-                          "rounded-full px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1",
+                          "rounded-full px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
                           gradePricingMode === "isolated"
                             ? "bg-card text-foreground shadow-xs font-bold"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        <span>🎛️ Isolado</span>
+                        <Layers className="size-3.5" />
+                        <span>Isolado</span>
                       </button>
                       <button
                         type="button"
@@ -6261,13 +6264,14 @@ function Precificacao() {
                           toast.info("Modo Preço Unificado ativado: toda a grade segue a mesma margem.");
                         }}
                         className={cn(
-                          "rounded-full px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1",
+                          "rounded-full px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
                           gradePricingMode === "unified"
                             ? "bg-card text-foreground shadow-xs font-bold"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        <span>🔗 Preço unificado</span>
+                        <Link2 className="size-3.5" />
+                        <span>Preço unificado</span>
                       </button>
                     </div>
 
@@ -6912,9 +6916,9 @@ function Precificacao() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs font-semibold rounded-lg border-border bg-background cursor-pointer shadow-2xs gap-1.5 hover:bg-secondary/60"
+                            className="h-8 text-xs font-medium rounded-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer shadow-2xs gap-1.5"
                           >
-                            <Zap className="size-3 text-amber-500 fill-amber-500" />
+                            <Wand2 className="size-3.5" />
                             <span>Preencher todas</span>
                           </Button>
                         </PopoverTrigger>
@@ -7075,50 +7079,50 @@ function Precificacao() {
 
                   </div>
                 ) : (
-                <div className="overflow-x-auto rounded-xl border border-border/80 bg-background shadow-xs">
+                <div className="overflow-x-auto rounded-xl border border-border/80 shadow-xs">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-border/70 bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none">
+                      <tr className="border-b border-border/70 bg-secondary/30 text-[11px] font-medium uppercase tracking-wider text-muted-foreground select-none">
                         <th className="py-3 pl-4 w-24">Tamanho</th>
                         <th className="py-3 px-3 text-center w-28">Qtd.</th>
                         <th className="py-3 px-3 text-right w-32">Custo Atacado</th>
                         <th className="py-3 px-3 text-right w-28">Custo Real</th>
                         {/* Coluna 5: Input Driver */}
                         {strategy === "margin" && (
-                          <th className="py-3 px-3 text-center w-28 text-primary font-black">
-                            Margem % ↓
+                          <th className="py-3 px-3 text-center w-28 text-foreground font-medium">
+                            Margem %
                           </th>
                         )}
                         {strategy === "markup" && (
-                          <th className="py-3 px-3 text-center w-32 text-primary font-black">
-                            Markup % ↓
+                          <th className="py-3 px-3 text-center w-32 text-foreground font-medium">
+                            Markup %
                           </th>
                         )}
                         {strategy === "direct_price" && (
-                          <th className="py-3 px-3 text-right w-32 text-primary font-black">
-                            Preço de Venda ↓
+                          <th className="py-3 px-3 text-right w-32 text-foreground font-medium">
+                            Preço de Venda
                           </th>
                         )}
                         {/* Coluna 6: Saída Principal */}
                         {(strategy === "margin" || strategy === "markup") && (
-                          <th className="py-3 px-3 text-right w-32 font-black text-foreground">
+                          <th className="py-3 px-3 text-right w-32 font-medium text-foreground">
                             Preço de Venda
                           </th>
                         )}
                         {strategy === "direct_price" && (
-                          <th className="py-3 px-3 text-center w-24 font-bold text-foreground">
-                            Margem ↑
+                          <th className="py-3 px-3 text-center w-24 font-medium text-foreground">
+                            Margem
                           </th>
                         )}
                         {/* Coluna 7: Feedback Secundário */}
                         {strategy === "margin" && (
-                          <th className="py-3 px-3 text-right w-28 font-bold text-foreground">Lucro Líquido</th>
+                          <th className="py-3 px-3 text-right w-28 font-medium text-foreground">Lucro Líquido</th>
                         )}
                         {strategy === "markup" && (
-                          <th className="py-3 px-3 text-center w-24 font-bold text-foreground">Margem Líquida</th>
+                          <th className="py-3 px-3 text-center w-24 font-medium text-foreground">Margem Líquida</th>
                         )}
                         {strategy === "direct_price" && (
-                          <th className="py-3 px-3 text-right w-28 font-bold text-foreground">Lucro Líquido</th>
+                          <th className="py-3 px-3 text-right w-28 font-medium text-foreground">Lucro Líquido</th>
                         )}
                         {/* Coluna 8: Ações */}
                         <th className="py-3 pr-4 text-center w-12"><span className="sr-only">Ações</span></th>
@@ -7134,8 +7138,8 @@ function Precificacao() {
                               <td colSpan={7} className="py-2.5 pl-4">
                                 <div className="flex items-center gap-2.5">
                                   <span className={cn("size-3 rounded-full shrink-0 ring-2 ring-background shadow-xs", getColorDot(group.color))} />
-                                  <span className="text-xs font-bold text-foreground tracking-tight">{group.color}</span>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-background text-muted-foreground border border-border/70 shadow-2xs">
+                                  <span className="text-sm font-semibold text-foreground tracking-tight">{group.color}</span>
+                                  <span className="text-xs text-muted-foreground tabular-nums">
                                     {group.totalUnits} {group.totalUnits === 1 ? "unidade" : "unidades"} no lote
                                   </span>
                                   {group.avgPrice > 0 && (
@@ -7149,11 +7153,11 @@ function Precificacao() {
                                 <button
                                   type="button"
                                   onClick={() => removeColorFromGrade(group.color)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer whitespace-nowrap"
+                                  className="size-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-surface-muted hover:text-destructive transition-colors cursor-pointer"
                                   title={`Excluir cor ${group.color} e suas variações`}
+                                  aria-label={`Remover cor ${group.color}`}
                                 >
-                                  <Trash2 className="size-3" />
-                                  <span>Remover cor</span>
+                                  <MoreHorizontal className="size-4" />
                                 </button>
                               </td>
                             </tr>
@@ -7183,7 +7187,7 @@ function Precificacao() {
                                 <tr key={v.id} className="hover:bg-secondary/15 transition-colors">
                                   {/* Tamanho */}
                                   <td className="py-2 pl-4">
-                                    <span className="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-md bg-secondary/80 border border-border/70 text-foreground font-black text-xs shadow-2xs tracking-wide">
+                                    <span className="pl-1 text-sm font-semibold text-foreground tracking-tight">
                                       {v.size}
                                     </span>
                                   </td>
@@ -7234,11 +7238,11 @@ function Precificacao() {
                                   </td>
 
                                   {/* Custo Real */}
-                                  <td className="py-2 px-3 text-right font-bold numeric text-xs">
+                                  <td className="py-2 px-3 text-right font-medium numeric text-xs">
                                     {hasCost && v.realCost > 0 ? (
-                                      <span className="text-foreground/90 font-bold">{brl(v.realCost)}</span>
+                                      <span className="text-foreground/90 font-semibold">{brl(v.realCost)}</span>
                                     ) : (
-                                      <span className="text-muted-foreground/60 font-semibold">R$ 0,00</span>
+                                      <span className="text-muted-foreground/50 tabular-nums">—</span>
                                     )}
                                   </td>
 
@@ -7332,9 +7336,7 @@ function Precificacao() {
                                           {brl(v.suggestedPrice)}
                                         </span>
                                       ) : (
-                                        <span className="text-xs font-bold text-muted-foreground/60 tabular-nums">
-                                          R$ 0,00
-                                        </span>
+                                        <span className="text-muted-foreground/50 tabular-nums">—</span>
                                       )}
                                     </td>
                                   )}
@@ -7398,26 +7400,19 @@ function Precificacao() {
                                   {/* strategy=margin | direct_price → Lucro Líquido Sincronizado */}
                                   {(strategy === "margin" || strategy === "direct_price") && (
                                     <td className="py-2 px-3 text-right">
-                                      {hasCost && v.suggestedPrice > 0 ? (
-                                        <span className={cn(
-                                          "inline-flex items-center gap-1.5 justify-end text-xs font-extrabold numeric",
-                                          marginHealthy && "text-emerald-600 dark:text-emerald-400",
-                                          marginModerate && "text-amber-500",
-                                          marginCritical && "text-destructive",
-                                        )}>
-                                          <span className={cn(
-                                            "size-1.5 rounded-full shrink-0 shadow-xs",
-                                            marginHealthy && "bg-emerald-500",
-                                            marginModerate && "bg-amber-500",
-                                            marginCritical && "bg-rose-500",
-                                          )} />
-                                          <span>{v.profit > 0 ? "+" : ""}{brl(v.profit)}</span>
+                                      {hasCost && v.suggestedPrice > 0 && v.profit !== 0 ? (
+                                        <span
+                                          className={cn(
+                                            "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums",
+                                            v.profit > 0
+                                              ? "bg-success-soft text-success"
+                                              : "bg-danger-soft text-destructive",
+                                          )}
+                                        >
+                                          {v.profit > 0 ? "+" : ""}{brl(v.profit)}
                                         </span>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1.5 justify-end text-xs font-semibold numeric text-muted-foreground/60">
-                                          <span className="size-1.5 rounded-full shrink-0 bg-muted-foreground/40 shadow-xs" />
-                                          <span>+R$ 0,00</span>
-                                        </span>
+                                        <span className="text-muted-foreground/50 tabular-nums">—</span>
                                       )}
                                     </td>
                                   )}
