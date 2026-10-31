@@ -295,9 +295,14 @@ const COLOR_PRESETS = [
 
 function getColorDot(col: string): string {
   const normalized = col.toLowerCase().trim();
-  if (normalized.includes("branco") || normalized.includes("white")) return "bg-[#F8F6F0] border border-border";
-  if (normalized.includes("preto") || normalized.includes("black")) return "bg-[#1A1A1A]";
-  if (normalized.includes("areia") || normalized.includes("bege") || normalized.includes("nude")) return "bg-[#D8C7B5]";
+  if (normalized.includes("off-white") || normalized.includes("off white") || normalized.includes("offwhite")) {
+    return "bg-[#FAF8F5] border border-neutral-300 dark:border-neutral-600 shadow-2xs";
+  }
+  if (normalized.includes("branco") || normalized.includes("white")) {
+    return "bg-[#FFFFFF] border border-neutral-300 dark:border-neutral-600 shadow-2xs";
+  }
+  if (normalized.includes("preto") || normalized.includes("black")) return "bg-[#18181B] border border-neutral-800/30";
+  if (normalized.includes("areia") || normalized.includes("bege") || normalized.includes("nude")) return "bg-[#D8C7B5] border border-stone-400/30";
   if (normalized.includes("terracota") || normalized.includes("caramelo") || normalized.includes("telha")) return "bg-[#C86D51]";
   if (normalized.includes("menta") || normalized.includes("sálvia") || normalized.includes("salvia")) return "bg-[#9DC183]";
   if (normalized.includes("militar") || normalized.includes("oliva") || normalized.includes("verde")) return "bg-[#556B2F]";
@@ -312,7 +317,7 @@ function getColorDot(col: string): string {
   if (normalized.includes("marrom") || normalized.includes("chocolate")) return "bg-[#5C4033]";
   if (normalized.includes("lilas") || normalized.includes("lilás") || normalized.includes("lavanda") || normalized.includes("roxo")) return "bg-[#8A6FDF]";
   if (normalized.includes("dourado") || normalized.includes("ouro")) return "bg-[#FFD700]";
-  if (normalized.includes("prata")) return "bg-[#C0C0C0]";
+  if (normalized.includes("prata")) return "bg-[#C0C0C0] border border-neutral-400/40";
   if (normalized.includes("estampa") || normalized.includes("floral") || normalized.includes("animal")) return "bg-gradient-to-tr from-amber-400 via-rose-400 to-indigo-500";
   return "bg-primary/40 border border-primary/20";
 }
@@ -2102,7 +2107,7 @@ function SmartTableNumericInput({
           "group relative inline-flex items-center rounded-lg border h-8 transition-all overflow-hidden",
           isCustom
             ? "border-primary/60 bg-primary/5 shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25"
-            : "border-border/90 bg-background hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs",
+            : "border-border/90 bg-card hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs",
         )}
       >
         {mode === "currency" && (
@@ -7075,10 +7080,10 @@ function Precificacao() {
 
                   </div>
                 ) : (
-                <div className="overflow-x-auto rounded-xl border border-border/80 bg-background shadow-xs">
+                <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-soft">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-border/70 bg-secondary/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none">
+                      <tr className="border-b border-border/60 bg-secondary/25 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 select-none">
                         <th className="py-3 pl-4 w-24">Tamanho</th>
                         <th className="py-3 px-3 text-center w-28">Qtd.</th>
                         <th className="py-3 px-3 text-right w-32">Custo Atacado</th>
@@ -7130,17 +7135,17 @@ function Precificacao() {
                         return (
                           <Fragment key={group.color}>
                             {/* Header do Grupo de Cor */}
-                            <tr className="bg-secondary/40 border-y border-border/60">
+                            <tr className="bg-secondary/25 hover:bg-secondary/35 border-y border-border/60 transition-colors">
                               <td colSpan={7} className="py-2.5 pl-4">
                                 <div className="flex items-center gap-2.5">
-                                  <span className={cn("size-3 rounded-full shrink-0 ring-2 ring-background shadow-xs", getColorDot(group.color))} />
+                                  <span className={cn("size-3.5 rounded-full shrink-0 ring-2 ring-card shadow-xs transition-transform", getColorDot(group.color))} />
                                   <span className="text-xs font-bold text-foreground tracking-tight">{group.color}</span>
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-background text-muted-foreground border border-border/70 shadow-2xs">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-card text-muted-foreground/90 border border-border/80 shadow-2xs">
                                     {group.totalUnits} {group.totalUnits === 1 ? "unidade" : "unidades"} no lote
                                   </span>
                                   {group.avgPrice > 0 && (
-                                    <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
-                                      · Preço médio: <strong className="text-foreground">{brl(group.avgPrice)}</strong>
+                                    <span className="text-[11px] text-muted-foreground/80 font-medium hidden sm:inline">
+                                      · Preço médio: <strong className="text-foreground font-bold">{brl(group.avgPrice)}</strong>
                                     </span>
                                   )}
                                 </div>
@@ -7149,7 +7154,7 @@ function Precificacao() {
                                 <button
                                   type="button"
                                   onClick={() => removeColorFromGrade(group.color)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer whitespace-nowrap"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-muted-foreground/80 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer whitespace-nowrap"
                                   title={`Excluir cor ${group.color} e suas variações`}
                                 >
                                   <Trash2 className="size-3" />
@@ -7180,7 +7185,7 @@ function Precificacao() {
                               const hasCustomWholesale = v.wholesaleCost !== "" && v.wholesaleCost !== baseWholesaleGrade;
 
                               return (
-                                <tr key={v.id} className="hover:bg-secondary/15 transition-colors">
+                                <tr key={v.id} className="hover:bg-secondary/20 transition-colors">
                                   {/* Tamanho */}
                                   <td className="py-2 pl-4">
                                     <span className="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-md bg-secondary/80 border border-border/70 text-foreground font-black text-xs shadow-2xs tracking-wide">
@@ -7190,7 +7195,7 @@ function Precificacao() {
 
                                   {/* Stepper QTD Refinado */}
                                   <td className="py-2 px-3 text-center">
-                                    <div className="inline-flex items-center h-8 rounded-lg border border-border/80 bg-background shadow-2xs hover:border-foreground/30 transition-colors">
+                                    <div className="inline-flex items-center h-8 rounded-lg border border-border/80 bg-card shadow-2xs hover:border-foreground/30 transition-colors">
                                       <button
                                         type="button"
                                         onClick={() => updateVariantQty(v.id, Math.max(1, (v.qty || 1) - 1))}
@@ -7442,7 +7447,7 @@ function Precificacao() {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t border-border/80 bg-secondary/35 text-xs font-semibold">
+                      <tr className="border-t-2 border-border/70 bg-secondary/25 text-xs font-semibold">
                         <td className="py-3 pl-4 text-xs font-bold text-foreground uppercase tracking-wider">
                           Total do Lote
                         </td>
