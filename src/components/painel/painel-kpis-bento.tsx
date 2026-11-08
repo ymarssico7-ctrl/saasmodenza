@@ -79,9 +79,9 @@ export function PainelKpisBento({
   const estoqueVal = stockPurchases ?? 0;
 
   return (
-    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 w-full min-w-0">
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px] col-span-2 lg:col-span-1 min-w-0">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Faturamento Total
@@ -121,7 +121,7 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 2: SAÍDAS DO MÊS ────────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px] col-span-1 min-w-0">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Saídas do Mês
@@ -141,16 +141,16 @@ export function PainelKpisBento({
             <span className="font-mono">••••••••</span>
           ) : (
             <>
-              <span className="shrink-0">Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong></span>
+              <span className="truncate">Contas: <strong className="font-semibold text-foreground">{mascaraSaldo(opexVal)}</strong></span>
               <span className="text-muted-foreground/30 select-none px-0.5">·</span>
-              <span className="shrink-0">Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong></span>
+              <span className="truncate">Estoque: <strong className="font-semibold text-foreground">{mascaraSaldo(estoqueVal)}</strong></span>
             </>
           )}
         </div>
       </div>
 
       {/* ── CARD 3: SOBRA NO CAIXA (LUCRO REAL) ─────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px] col-span-1 min-w-0">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Sobra no Caixa
@@ -170,7 +170,7 @@ export function PainelKpisBento({
             <span className="font-mono">••••••••</span>
           ) : (
             <>
-              <span className="shrink-0">Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong></span>
+              <span className="truncate">Margem: <strong className="font-semibold text-foreground">{marginPct.toFixed(0)}%</strong></span>
               <span className="text-muted-foreground/30 select-none px-0.5">·</span>
               <span className={cn(
                 "inline-flex items-center gap-1 font-medium",
@@ -184,7 +184,7 @@ export function PainelKpisBento({
       </div>
 
       {/* ── CARD 4: META DO MÊS ──────────────────────────────────────────── */}
-      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
+      <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px] col-span-2 lg:col-span-1 min-w-0">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
             Meta do Mês

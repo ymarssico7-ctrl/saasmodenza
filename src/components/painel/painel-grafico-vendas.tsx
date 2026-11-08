@@ -314,7 +314,7 @@ export function PainelGraficoVendas({
       </div>
 
       {/* ── O Gráfico Interativo com Recharts (Canvas Nobre de 230px) ── */}
-      <div className="mt-4 h-[230px] w-full">
+      <div className="mt-4 h-[230px] w-full min-w-0 overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
