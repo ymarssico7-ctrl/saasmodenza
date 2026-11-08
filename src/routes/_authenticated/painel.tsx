@@ -683,44 +683,49 @@ function Painel() {
           </span>
         }
         action={
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={togglePrivacidade}
-              title={
-                ocultarSaldos
-                  ? "Modo Balcão ativo: clique para exibir saldos"
-                  : "Ocultar saldos para privacidade no balcão"
-              }
-              className={cn(
-                "h-9 gap-1.5 rounded-xl border px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer",
-                ocultarSaldos
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-                  : "border-border/70 bg-card hover:bg-secondary/60 text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {ocultarSaldos ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-              <span>{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
-            </Button>
+          <div className="flex w-full sm:w-auto flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Secundários: Ocultar Saldos & Lançar Despesa */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={togglePrivacidade}
+                title={
+                  ocultarSaldos
+                    ? "Modo Balcão ativo: clique para exibir saldos"
+                    : "Ocultar saldos para privacidade no balcão"
+                }
+                className={cn(
+                  "h-9 gap-1.5 rounded-xl border px-2.5 sm:px-3 text-xs font-medium transition-all shadow-2xs cursor-pointer justify-center",
+                  ocultarSaldos
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+                    : "border-border/70 bg-card hover:bg-secondary/60 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {ocultarSaldos ? <EyeOff className="size-3.5 shrink-0" /> : <Eye className="size-3.5 shrink-0" />}
+                <span className="truncate">{ocultarSaldos ? "Saldos ocultos" : "Ocultar saldos"}</span>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 rounded-xl border border-border/70 bg-card hover:bg-secondary/60 px-2.5 sm:px-3.5 text-xs font-medium text-foreground/85 hover:text-foreground transition-all cursor-pointer shadow-2xs justify-center"
+              >
+                <Link to="/caixa">
+                  <Plus className="size-3.5 shrink-0" /> <span className="truncate">Lançar Despesa</span>
+                </Link>
+              </Button>
+            </div>
+
+            {/* Primário Destaque: + Nova Venda (Em cima no mobile com largura total, à direita no desktop) */}
             <Button
               asChild
-              variant="outline"
               size="sm"
-              className="h-9 gap-1.5 rounded-xl border border-border/70 bg-card hover:bg-secondary/60 px-3.5 text-xs font-medium text-foreground/85 hover:text-foreground transition-all cursor-pointer shadow-2xs"
+              className="gradient-primary h-9.5 sm:h-9 gap-1.5 rounded-xl px-4 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer justify-center w-full sm:w-auto"
             >
               <Link to="/caixa">
-                <Plus className="size-3.5" /> Lançar Despesa
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-              className="gradient-primary h-9 gap-1.5 rounded-xl px-4 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <Link to="/caixa">
-                <Store className="size-3.5 mr-0.5" /> + Nova Venda
+                <Store className="size-3.5 mr-0.5 shrink-0" /> <span>+ Nova Venda</span>
               </Link>
             </Button>
           </div>

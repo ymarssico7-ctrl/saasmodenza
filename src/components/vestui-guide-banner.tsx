@@ -195,12 +195,12 @@ export function VestuiGuideBanner({
       {/* Container fluido e pacificado */}
       <div
         className={cn(
-          "group relative flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-secondary/30 px-3.5 py-2 text-xs transition-all hover:border-border/80 hover:bg-secondary/40",
+          "group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 rounded-2xl border border-border/50 bg-secondary/30 p-3 sm:px-3.5 sm:py-2 text-xs transition-all hover:border-border/80 hover:bg-secondary/40 w-full overflow-hidden",
           className,
         )}
       >
-        {/* Bloco Esquerdo: Progresso + Próximo Passo */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        {/* Bloco Superior no Mobile / Esquerdo no Desktop */}
+        <div className="flex items-center justify-between sm:justify-start gap-2.5 min-w-0 flex-1">
           {/* Micro-ícone discreto */}
           <div className="grid size-6 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground shadow-2xs">
             <Sparkles className="size-3" />
@@ -239,8 +239,8 @@ export function VestuiGuideBanner({
           </div>
         </div>
 
-        {/* Bloco Direito: Ação Rápida + Sheet Drawer + Fechar */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Bloco Inferior no Mobile / Direito no Desktop */}
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-1.5 sm:pt-0 border-t border-border/40 sm:border-t-0">
           {/* Ação Primária sutil em linha */}
           {nextStep.action ? (
             <button

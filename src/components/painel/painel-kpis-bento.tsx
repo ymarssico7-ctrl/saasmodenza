@@ -79,7 +79,7 @@ export function PainelKpisBento({
   const estoqueVal = stockPurchases ?? 0;
 
   return (
-    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
       {/* ── CARD 1: FATURAMENTO TOTAL ────────────────────────────────────── */}
       <div className="panel p-4 sm:p-5 transition-colors duration-200 flex flex-col justify-between min-h-[135px]">
         <div className="flex items-center justify-between">
@@ -96,7 +96,7 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Balcão & Vitrine */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
+        <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
@@ -136,7 +136,7 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Contas e Compras de Estoque */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
+        <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (
@@ -165,7 +165,7 @@ export function PainelKpisBento({
         </div>
 
         {/* Rodapé: Margem e Status com pílula refinada */}
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground min-h-[26px]">
+        <div className="pt-2 border-t border-border/50 flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground min-h-[26px]">
           {ocultarSaldos ? (
             <span className="font-mono">••••••••</span>
           ) : (

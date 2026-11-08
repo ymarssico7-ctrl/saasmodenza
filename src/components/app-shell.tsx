@@ -857,7 +857,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background lg:bg-sidebar lg:fixed lg:inset-0 lg:overflow-hidden flex flex-col">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background lg:bg-sidebar lg:fixed lg:inset-0 lg:overflow-hidden flex flex-col">
       {/* ── Sidebar Desktop (Padrão Shopify Oficial + Ambient Glow) ───────────── */}
       <aside
         className={cn(
@@ -1295,7 +1295,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Main Content (Floating Panel Effect — Padrão Shopify Imagem 1, 3 e 4) ─ */}
       <main
         className={cn(
-          "flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pb-24 lg:pb-0 lg:h-full lg:max-h-full lg:overflow-hidden lg:py-2.5 lg:pr-2.5 lg:pl-0",
+          "flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-clip transition-[padding-left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pb-24 lg:pb-0 lg:h-full lg:max-h-full lg:overflow-hidden lg:py-2.5 lg:pr-2.5 lg:pl-0",
           isCollapsed ? "lg:pl-[60px]" : "lg:pl-[240px]",
         )}
       >
