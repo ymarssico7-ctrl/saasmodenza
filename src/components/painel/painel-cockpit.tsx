@@ -163,8 +163,8 @@ export function PainelRadarPedidosOnline({
         ) : (
           /* Estado vazio — link da vitrine discreto */
           <div className="mt-3 space-y-1.5">
-            <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
-              <span className="truncate text-[11px] font-mono text-muted-foreground">
+            <div className="flex w-full flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/60 bg-secondary/30 px-3 py-2 text-xs">
+              <span className="truncate text-[11px] font-mono text-muted-foreground min-w-0">
                 {vitrineDisplay || "vestui.com.br/vitrine/sualoja"}
               </span>
               <div className="flex shrink-0 items-center gap-1.5">
