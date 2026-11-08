@@ -2146,9 +2146,9 @@ function SmartTableNumericInput({
                 applyDelta(delta);
               }}
               title="Aumentar (Shift para +5)"
-              className="flex items-center justify-center w-4 h-1/2 hover:bg-secondary hover:text-foreground text-muted-foreground/70 active:bg-secondary/80 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer select-none"
+              className="flex items-center justify-center w-5 sm:w-4 h-1/2 min-h-[22px] hover:bg-secondary hover:text-foreground text-muted-foreground/70 active:bg-secondary/80 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer select-none"
             >
-              <ChevronUp className="size-2.5" />
+              <ChevronUp className="size-3 sm:size-2.5" />
             </button>
             <button
               type="button"
@@ -2161,9 +2161,9 @@ function SmartTableNumericInput({
                 applyDelta(-delta);
               }}
               title="Diminuir (Shift para -5)"
-              className="flex items-center justify-center w-4 h-1/2 hover:bg-secondary hover:text-foreground text-muted-foreground/70 active:bg-secondary/80 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer select-none"
+              className="flex items-center justify-center w-5 sm:w-4 h-1/2 min-h-[22px] hover:bg-secondary hover:text-foreground text-muted-foreground/70 active:bg-secondary/80 disabled:opacity-20 disabled:cursor-not-allowed transition-colors cursor-pointer select-none"
             >
-              <ChevronDown className="size-2.5" />
+              <ChevronDown className="size-3 sm:size-2.5" />
             </button>
           </div>
         )}
@@ -7079,11 +7079,11 @@ function Precificacao() {
 
                   </div>
                 ) : (
-                <div className="overflow-x-auto rounded-xl border border-border/80 shadow-xs">
+                <div className="overflow-x-auto rounded-xl border border-border/80 shadow-xs [mask-image:linear-gradient(to_right,black_90%,transparent_100%)] sm:[mask-image:none]">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-border/70 bg-secondary/30 text-[11px] font-medium uppercase tracking-wider text-muted-foreground select-none">
-                        <th className="py-3 pl-4 w-24">Tamanho</th>
+                        <th className="py-3 pl-4 w-24 sticky left-0 z-10 bg-card/95 backdrop-blur-sm">Tamanho</th>
                         <th className="py-3 px-3 text-center w-28">Qtd.</th>
                         <th className="py-3 px-3 text-right w-32">Custo Atacado</th>
                         <th className="py-3 px-3 text-right w-28">Custo Real</th>
@@ -7186,7 +7186,7 @@ function Precificacao() {
                               return (
                                 <tr key={v.id} className="hover:bg-secondary/15 transition-colors">
                                   {/* Tamanho */}
-                                  <td className="py-2 pl-4">
+                                  <td className="py-2 pl-4 sticky left-0 z-10 bg-card/95 backdrop-blur-sm">
                                     <span className="pl-1 text-sm font-semibold text-foreground tracking-tight">
                                       {v.size}
                                     </span>

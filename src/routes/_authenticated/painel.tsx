@@ -596,7 +596,7 @@ function Painel() {
         </div>
 
         {/* Topo: Faixa de 4 KPIs em largura total (Padrão Prodex) */}
-        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="panel p-4 sm:p-5 space-y-3 min-h-[135px] flex flex-col justify-between">
               <div className="flex items-center justify-between">

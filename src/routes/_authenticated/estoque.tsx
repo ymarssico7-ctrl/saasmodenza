@@ -751,7 +751,7 @@ function Estoque() {
         {/* ── Barra de Comando: Filtros Inteligentes & Busca Rápida ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-border/40 bg-card">
           {/* Segmented Filter Pills (Shopify Polaris style) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 [mask-image:linear-gradient(to_right,black_85%,transparent_100%)] sm:[mask-image:none]">
             {/* Todas */}
             <button
               type="button"

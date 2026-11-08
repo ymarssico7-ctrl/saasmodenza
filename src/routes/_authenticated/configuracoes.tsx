@@ -365,7 +365,7 @@ function Configuracoes() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* ── Navegador Mobile (visível apenas em telas menores onde a sidebar desktop está oculta) ── */}
-      <div className="lg:hidden overflow-x-auto pb-1 scrollbar-none">
+      <div className="lg:hidden overflow-x-auto pb-1 scrollbar-none [mask-image:linear-gradient(to_right,black_90%,transparent_100%)]">
         <div className="inline-flex gap-1.5 p-1 rounded-2xl bg-surface-muted border border-border/60">
           {[
             { tab: "geral", label: "Geral" },
@@ -404,7 +404,7 @@ function Configuracoes() {
       {activeTab === "geral" && (
         <div className="space-y-6">
           {/* Card: Informações da empresa */}
-          <section className="panel p-6 sm:p-7 space-y-5">
+          <section className="panel p-5 sm:p-7 space-y-5">
             <div>
               <h2 className="text-base font-semibold text-foreground">Informações da empresa</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -441,7 +441,7 @@ function Configuracoes() {
           </section>
 
           {/* Card: Contato da loja */}
-          <section className="panel p-6 sm:p-7 space-y-5">
+          <section className="panel p-5 sm:p-7 space-y-5">
             <div>
               <h2 className="text-base font-semibold text-foreground">Informações de contato da loja</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -462,7 +462,7 @@ function Configuracoes() {
           </section>
 
           {/* Card: Logotipo da loja */}
-          <section className="panel p-6 sm:p-7 space-y-5">
+          <section className="panel p-5 sm:p-7 space-y-5">
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               <div className="w-full sm:w-56 shrink-0 space-y-2">
                 <h2 className="text-base font-semibold text-foreground">Logotipo da loja</h2>
@@ -509,7 +509,7 @@ function Configuracoes() {
       {/* ════ ABA 2: Canais de Venda ════════════════════════════════════════ */}
       {activeTab === "canais" && (
         <div className="space-y-6">
-          <section className="panel p-6 sm:p-7 space-y-6">
+          <section className="panel p-5 sm:p-7 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-4 border-b border-border/60">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -688,7 +688,7 @@ function Configuracoes() {
       {/* ════ ABA 4: Usuários & Equipe ══════════════════════════════════════ */}
       {activeTab === "equipe" && (
         <div className="space-y-6">
-          <section className="panel p-6 sm:p-7 space-y-6">
+          <section className="panel p-5 sm:p-7 space-y-6">
             <div>
               <h2 className="text-base font-semibold text-foreground">Equipe da Boutique</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -803,7 +803,7 @@ function Configuracoes() {
       {activeTab === "plano" && (
         <div className="space-y-6">
           {/* Card: Assinatura */}
-          <section className="panel p-6 sm:p-7 space-y-5">
+          <section className="panel p-5 sm:p-7 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -843,7 +843,7 @@ function Configuracoes() {
           </section>
 
           {/* Card: Meta de Pró-labore Institucional */}
-          <section className="panel p-6 sm:p-7 space-y-5">
+          <section className="panel p-5 sm:p-7 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-border/60">
               <div>
                 <div className="flex items-center gap-2">
@@ -893,7 +893,7 @@ function Configuracoes() {
           </section>
 
           {/* Card: Segurança & Sessão */}
-          <section className="panel p-6 sm:p-7 space-y-4 border border-border/60">
+          <section className="panel p-5 sm:p-7 space-y-4 border border-border/60">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4.5 text-muted-foreground" />
               <h2 className="text-sm font-semibold text-foreground">Segurança & Sessão</h2>
@@ -1004,7 +1004,7 @@ function CashFlowCategoriesSection({ storeId }: { storeId: string }) {
   };
 
   return (
-    <section id="categorias-caixa" className="panel p-6 sm:p-7 space-y-6">
+    <section id="categorias-caixa" className="panel p-5 sm:p-7 space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border/60">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -1295,7 +1295,7 @@ function CoresETamanhosSection({ storeId }: { storeId: string }) {
   };
 
   return (
-    <section id="cores-tamanhos-catalogo" className="panel p-6 sm:p-7 space-y-6">
+    <section id="cores-tamanhos-catalogo" className="panel p-5 sm:p-7 space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border/60">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -1702,7 +1702,7 @@ function FiadoSettingsCard({ storeId }: { storeId: string }) {
   };
 
   return (
-    <section className="panel p-6 sm:p-7 space-y-6 border border-border/70 shadow-soft">
+    <section className="panel p-5 sm:p-7 space-y-6 border border-border/70 shadow-soft">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
         <div className="flex items-start gap-3.5">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -1842,7 +1842,7 @@ function TaxSettingsCard({ storeId }: { storeId: string }) {
   };
 
   return (
-    <section id="aliquota-fiscal" className="panel p-6 sm:p-7 space-y-6">
+    <section id="aliquota-fiscal" className="panel p-5 sm:p-7 space-y-6">
       <div className="flex items-start gap-3.5 border-b border-border/60 pb-5">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Receipt className="size-5" />
@@ -2095,7 +2095,7 @@ function PaymentMethodsSettingsCard({ storeId }: { storeId: string }) {
   };
 
   return (
-    <section id="meios-pagamento" className="panel p-6 sm:p-7 space-y-6">
+    <section id="meios-pagamento" className="panel p-5 sm:p-7 space-y-6">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-5">
         <div className="flex items-start gap-3.5">
@@ -2531,7 +2531,7 @@ function PricingGuidelinesCard({ storeId }: { storeId: string }) {
   };
 
   return (
-    <section id="diretrizes-precificacao" className="panel p-6 sm:p-7 space-y-6">
+    <section id="diretrizes-precificacao" className="panel p-5 sm:p-7 space-y-6">
       {/* Cabeçalho */}
       <div className="flex items-start gap-3.5 border-b border-border/60 pb-5">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">

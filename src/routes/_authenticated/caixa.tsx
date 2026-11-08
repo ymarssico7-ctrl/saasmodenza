@@ -614,7 +614,7 @@ function MiniDateRangePicker({
 
   return (
     <div
-      className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-border/70 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 p-5 w-[320px] sm:w-[580px] max-w-[calc(100vw-32px)]"
+      className="absolute left-0 top-full z-30 mt-1.5 rounded-2xl border border-border/70 bg-card shadow-xl animate-in fade-in-50 zoom-in-95 p-3.5 sm:p-5 w-[320px] sm:w-[580px] max-w-[calc(100vw-32px)]"
       onMouseLeave={() => phase === "selecting" && setHoverDay(null)}
     >
       {/* Cabeçalho Reativo Dinâmico */}
@@ -2016,7 +2016,7 @@ function Caixa() {
       />
 
       {/* ── KPIs — Cockpit Financeiro Premium ────────────────────────────────── */}
-      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Saldo de Hoje */}
         <div className="p-4 sm:p-5 rounded-2xl border border-border/50 bg-card shadow-2xs flex flex-col justify-between min-h-[135px] hover:border-border/80 transition-colors duration-200">
           <div className="flex items-center justify-between">

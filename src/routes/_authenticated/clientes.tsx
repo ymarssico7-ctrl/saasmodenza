@@ -490,7 +490,7 @@ function ClientesPage() {
                     <Plus className="size-4 mr-1.5" /> Novo cliente
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-3xl border-border bg-card sm:max-w-md">
+                <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Cadastrar cliente</DialogTitle>
                     <DialogDescription>
@@ -544,7 +544,7 @@ function ClientesPage() {
                     <Plus className="size-4 mr-1.5" /> Registrar fiado
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-3xl border-border bg-card sm:max-w-lg">
+                <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Registrar novo fiado</DialogTitle>
                     <DialogDescription>

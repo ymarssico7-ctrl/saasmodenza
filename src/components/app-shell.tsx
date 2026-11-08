@@ -790,7 +790,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       to: "/clientes",
-      label: fiadoAtivo ? "Clientes & Fiado" : "Clientes",
+      label: fiadoAtivo ? "Fiado" : "Clientes",
       icon: Users,
       isMatch: (p: string) => p.startsWith("/clientes") || p.startsWith("/fiado"),
     },
@@ -1263,8 +1263,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Mobile Overlay Menu ────────────────────────────────────────────────── */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-16 z-30 bg-sidebar px-4 py-4 lg:hidden overflow-y-auto">
-          <nav className="flex flex-col gap-1 pb-20">
+        <div
+          className="fixed inset-0 top-16 z-30 bg-sidebar/95 backdrop-blur-md px-4 py-4 lg:hidden overflow-y-auto"
+          onClick={(e) => { if (e.target === e.currentTarget) setMobileMenuOpen(false); }}
+        >
+          <nav className="flex flex-col gap-1 pb-20" onClick={(e) => e.stopPropagation()}>
             {renderNavItems(() => setMobileMenuOpen(false))}
 
             <div className="mt-4 border-t border-white/10 pt-3">
@@ -1329,7 +1332,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="flex w-16 flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-medium text-muted-foreground transition-colors cursor-pointer hover:text-foreground"
           aria-label="Abrir menu completo"
         >
-          <MoreHorizontal className="size-5" />
+          <MoreHorizontal className="size-6" />
           Mais
         </button>
       </nav>
