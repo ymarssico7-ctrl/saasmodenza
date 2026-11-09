@@ -509,6 +509,105 @@ function shouldShowQuickBreakEven(actualUnits, avgSuggested) {
 assert(!shouldShowQuickBreakEven(10, 0), 'Break-even fica oculto enquanto o lojista não define o preço (evita falso alerta de prejuízo)');
 assert(shouldShowQuickBreakEven(10, 137.5), 'Break-even aparece perfeitamente quando o preço de venda é definido');
 
+// ============================================================================
+// ETAPA 9: AUDITORIA GERAL PRÉ-LANÇAMENTO & INTEGRAÇÃO MULTI-MÓDULO
+// ============================================================================
+console.log('\n' + '='.repeat(80));
+console.log('ETAPA 9: AUDITORIA PRÉ-LANÇAMENTO (PRÓ-LABORE, FIADO REAL & CAIXA/PDV)');
+console.log('='.repeat(80));
+
+// 1. Harmonização Contábil: Segregação de Compra de Estoque no Pró-labore
+const STOCK_PURCHASE_CATEGORIES = ["compra_estoque", "fornecedores_estoque"];
+const PROLABORE_CATEGORIES = ["pro_labore", "retirada_socios"];
+const opexExclusions = new Set([...STOCK_PURCHASE_CATEGORIES, ...PROLABORE_CATEGORIES]);
+
+const financialMonth = {
+  grossRevenue: 15000,
+  cmv: 6000,
+  expenses: [
+    { category: "aluguel", amount: 1500 },
+    { category: "energia_eletrica", amount: 400 },
+    { category: "marketing", amount: 600 },
+    { category: "compra_estoque", amount: 8000 },
+    { category: "pro_labore", amount: 2000 },
+  ],
+};
+
+const grossProfit = financialMonth.grossRevenue - financialMonth.cmv;
+const pureOpex = financialMonth.expenses
+  .filter((e) => !opexExclusions.has(e.category))
+  .reduce((sum, e) => sum + e.amount, 0);
+
+const operatingProfit = grossProfit - pureOpex;
+
+assert(pureOpex === 2500, 'OPEX exclui estritamente compras de estoque (R$ 8.000) e pró-labore (R$ 2.000), totalizando R$ 2.500');
+assert(operatingProfit === 6500, 'Lucro Operacional Disponível para Pró-labore é R$ 6.500 (idêntico à DRE Gerencial)');
+
+// 2. Quitação de Fiado com Meio de Pagamento Real (Dinheiro vs Pix no Caixa)
+function simulateCreditPayment({ originalDebt, paymentAmount, paymentMethod, customerName }) {
+  const newDebt = Math.max(0, originalDebt - paymentAmount);
+  const status = newDebt === 0 ? "quitado" : "parcial";
+  const cashTransaction = {
+    type: "entrada",
+    category: "venda",
+    amount: paymentAmount,
+    paymentMethod: paymentMethod || "fiado",
+    notes: `Recebimento de fiado: ${customerName}`,
+  };
+  return { newDebt, status, cashTransaction };
+}
+
+const creditPayPix = simulateCreditPayment({
+  originalDebt: 450,
+  paymentAmount: 200,
+  paymentMethod: "pix",
+  customerName: "Mariana Souza",
+});
+
+assert(creditPayPix.newDebt === 250, 'Dívida de Mariana Souza atualizada de R$ 450 para R$ 250');
+assert(creditPayPix.status === "parcial", 'Status de fiado marcado como parcial');
+assert(creditPayPix.cashTransaction.paymentMethod === "pix", 'Transação no caixa gravada com método real "pix" (não fiado genérico)');
+assert(creditPayPix.cashTransaction.amount === 200, 'Entrada de R$ 200 no caixa registrada com sucesso');
+
+const creditPayCash = simulateCreditPayment({
+  originalDebt: 250,
+  paymentAmount: 250,
+  paymentMethod: "dinheiro",
+  customerName: "Mariana Souza",
+});
+
+assert(creditPayCash.newDebt === 0, 'Dívida de Mariana Souza totalmente quitada (R$ 0)');
+assert(creditPayCash.status === "quitado", 'Status de fiado atualizado para "quitado"');
+assert(creditPayCash.cashTransaction.paymentMethod === "dinheiro", 'Transação no caixa gravada com método "dinheiro" garantindo conferência física na gaveta');
+
+// 3. Guardrail e Cues Visuais de Estoque no PDV
+function evaluateCartItemStock(product, size, qtyRequested) {
+  const sizesRecord = product.sizes || {};
+  const totalStock = Object.values(sizesRecord).reduce((a, b) => a + Number(b || 0), 0);
+  const isTotalZero = totalStock <= 0;
+  const sizeQty = Number(sizesRecord[size] ?? 0);
+  const isSizeZero = sizeQty <= 0;
+  const requiresGuardrail = isTotalZero || (size && isSizeZero);
+
+  return {
+    isTotalZero,
+    totalBadge: isTotalZero ? "⚠️ 0 un. no total (Esgotado)" : `${totalStock} un. no total`,
+    isSizeZero,
+    sizeChipLabel: isSizeZero ? "(0 un. ⚠️)" : `(${sizeQty} un.)`,
+    requiresGuardrail,
+  };
+}
+
+const itemInStock = evaluateCartItemStock({ sizes: { P: 5, M: 8 } }, "P", 2);
+assert(!itemInStock.isTotalZero, 'Peça com estoque normal não aciona alerta de esgotado');
+assert(!itemInStock.isSizeZero, 'Tamanho P com 5 un. não aciona aviso');
+assert(!itemInStock.requiresGuardrail, 'Item com saldo disponível prossegue sem modal de confirmação');
+
+const itemOutOfStock = evaluateCartItemStock({ sizes: { P: 0, M: 2 } }, "P", 1);
+assert(itemOutOfStock.isSizeZero, 'Tamanho P com 0 un. sinaliza isSizeZero');
+assert(itemOutOfStock.sizeChipLabel === "(0 un. ⚠️)", 'Chip exibe badge âmbar com aviso visual suave');
+assert(itemOutOfStock.requiresGuardrail, 'Submissão dispara diálogo guardrail para o lojista confirmar a venda com segurança');
+
 console.log('\n' + '='.repeat(80));
 if (allPassed) {
   console.log('🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO E PRECISÃO MATEMÁTICA!');

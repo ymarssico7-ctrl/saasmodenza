@@ -177,6 +177,7 @@ function ClientesPage() {
   const [fiadoPurchase, setFiadoPurchase] = useState(today);
   const [fiadoDue, setFiadoDue] = useState(today);
   const [payments, setPayments] = useState<Record<string, string>>({});
+  const [payMethods, setPayMethods] = useState<Record<string, string>>({});
   const [buscaFiado, setBuscaFiado] = useState("");
 
   // Carrega pedidos da vitrine online para integrar LTV de forma reativa (0ms)
@@ -396,7 +397,7 @@ function ClientesPage() {
   });
 
   const payCreditMutation = useMutation({
-    mutationFn: async ({ credit, value }: { credit: CreditRow; value: number }) => {
+    mutationFn: async ({ credit, value, method }: { credit: CreditRow; value: number; method?: string }) => {
       if (value <= 0) throw new Error("Informe o valor recebido");
       const remaining = Number(credit.amount) - Number(credit.paid_amount);
       if (value > remaining + 0.005) throw new Error("Valor maior que o saldo devedor");
@@ -406,11 +407,13 @@ function ClientesPage() {
         amount: value,
         currentPaidAmount: Number(credit.paid_amount),
         customerName: credit.customers?.name,
+        paymentMethod: method || "dinheiro",
       });
     },
     onSuccess: () => {
       toast.success("Pagamento registrado e lançado no caixa!");
       setPayments({});
+      setPayMethods({});
       void queryClient.invalidateQueries({ queryKey: ["credits"] });
       void queryClient.invalidateQueries({ queryKey: ["credit_payments"] });
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -955,7 +958,7 @@ function ClientesPage() {
                       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
                         {/* Pagamento Parcial / Quitação */}
                         <div className="flex flex-wrap items-center gap-2">
-                          <div className="w-36">
+                          <div className="w-28 sm:w-32">
                             <Input
                               inputMode="decimal"
                               value={payments[c.id] ?? ""}
@@ -966,10 +969,24 @@ function ClientesPage() {
                               className="h-9 rounded-xl text-xs"
                             />
                           </div>
+                          <Select
+                            value={payMethods[c.id] ?? "dinheiro"}
+                            onValueChange={(val) => setPayMethods((p) => ({ ...p, [c.id]: val }))}
+                          >
+                            <SelectTrigger className="h-9 w-24 rounded-xl text-xs font-medium shrink-0">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="pix">Pix</SelectItem>
+                              <SelectItem value="debito">Débito</SelectItem>
+                              <SelectItem value="credito">Crédito</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <Button
                             variant="default"
                             size="sm"
-                            className="h-9 rounded-full text-xs font-semibold shadow-soft cursor-pointer"
+                            className="h-9 rounded-full text-xs font-semibold shadow-soft cursor-pointer whitespace-nowrap"
                             disabled={payCreditMutation.isPending}
                             onClick={() => {
                               const rawInput = (payments[c.id] ?? "").trim();
@@ -987,7 +1004,11 @@ function ClientesPage() {
                                   return;
                                 }
                               }
-                              payCreditMutation.mutate({ credit: c, value: valToPay });
+                              payCreditMutation.mutate({
+                                credit: c,
+                                value: valToPay,
+                                method: payMethods[c.id] ?? "dinheiro",
+                              });
                             }}
                           >
                             <CheckCircle2 className="size-3.5 mr-1" />

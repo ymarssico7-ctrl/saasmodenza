@@ -3778,9 +3778,15 @@ function Caixa() {
                     <span className="truncate text-xs font-semibold text-foreground">
                       {selectedProduct.name}
                     </span>
-                    <Badge variant="outline" className="rounded-full text-[10px]">
-                      {calcTotalStock(selectedProduct)} un. no total
-                    </Badge>
+                    {calcTotalStock(selectedProduct) <= 0 ? (
+                      <Badge variant="outline" className="rounded-full text-[10px] border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold">
+                        ⚠️ 0 un. no total (Esgotado)
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="rounded-full text-[10px]">
+                        {calcTotalStock(selectedProduct)} un. no total
+                      </Badge>
+                    )}
                   </div>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
                     Peça vinculada do Estoque • Categoria: {selectedProduct.category}
@@ -3858,19 +3864,27 @@ function Caixa() {
                           onClick={() => setSelectedProductSize(sz)}
                           className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                              ? isZero
+                                ? "bg-amber-600 dark:bg-amber-700 text-white shadow-sm font-semibold"
+                                : "bg-primary text-primary-foreground shadow-sm font-semibold"
                               : isZero
-                              ? "border border-border bg-card/60 text-muted-foreground/70 hover:border-primary/40"
+                              ? "border border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:border-amber-500/60"
                               : "border border-border bg-card text-foreground hover:border-primary/50 shadow-2xs"
                           }`}
                         >
                           <span>{sz}</span>
                           <span
                             className={`text-[10px] ${
-                              isSelected ? "text-primary-foreground/85 font-normal" : "text-muted-foreground"
+                              isSelected
+                                ? isZero
+                                  ? "text-white/90 font-medium"
+                                  : "text-primary-foreground/85 font-normal"
+                                : isZero
+                                ? "text-amber-700 dark:text-amber-400 font-medium"
+                                : "text-muted-foreground"
                             }`}
                           >
-                            ({qty} un.)
+                            {isZero ? "(0 un. ⚠️)" : `(${qty} un.)`}
                           </span>
                         </button>
                       );

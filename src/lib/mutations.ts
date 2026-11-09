@@ -642,6 +642,7 @@ export type CreditPaymentInput = {
   amount: number;
   currentPaidAmount: number;
   customerName?: string | undefined;
+  paymentMethod?: string | undefined;
 };
 
 /**
@@ -650,7 +651,8 @@ export type CreditPaymentInput = {
  * Em modo Real: insere em credit_payments e atualiza paid_amount em credits.
  */
 export async function recordCreditPayment(input: CreditPaymentInput) {
-  const { storeId, creditId, amount, currentPaidAmount, customerName } = input;
+  const { storeId, creditId, amount, currentPaidAmount, customerName, paymentMethod } = input;
+  const method = paymentMethod || "dinheiro";
 
   if (isDemoStore(storeId)) {
     localInsert("credit_payments", {
@@ -670,7 +672,7 @@ export async function recordCreditPayment(input: CreditPaymentInput) {
       description: `Recebimento fiado — ${customerName ?? "cliente"}`,
       amount,
       category: "venda_produto",
-      payment_method: "fiado",
+      payment_method: method,
       occurred_on: todayISO(),
     });
     return;
@@ -703,7 +705,7 @@ export async function recordCreditPayment(input: CreditPaymentInput) {
     description: `Recebimento fiado — ${customerName ?? "cliente"}`,
     amount,
     category: "venda_produto",
-    payment_method: "fiado",
+    payment_method: method,
     occurred_on: todayISO(),
   });
 }
