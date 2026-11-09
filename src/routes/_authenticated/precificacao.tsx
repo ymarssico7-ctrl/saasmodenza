@@ -7099,7 +7099,7 @@ function Precificacao() {
                       <tr className="border-b border-border/70 bg-secondary/30 text-[11px] font-medium uppercase tracking-wider text-muted-foreground select-none">
                         <th className="py-3 pl-4 w-24 sticky left-0 z-10 bg-card/95 backdrop-blur-sm">Tamanho</th>
                         <th className="py-3 px-3 text-center w-28">Qtd.</th>
-                        <th className="py-3 px-3 text-right w-36 min-w-[9rem]">Custo Atacado</th>
+                        <th className="py-3 px-3 text-right w-32 min-w-[8rem]">Custo Atacado</th>
                         <th className="py-3 px-3 text-right w-28">Custo Real</th>
                         {/* Coluna 5: Input Driver */}
                         {strategy === "margin" && (
@@ -7113,7 +7113,7 @@ function Precificacao() {
                           </th>
                         )}
                         {strategy === "direct_price" && (
-                          <th className="py-3 px-3 text-right w-36 min-w-[9rem] text-foreground font-medium">
+                          <th className="py-3 px-3 text-right w-32 min-w-[8rem] text-foreground font-medium">
                             Preço de Venda
                           </th>
                         )}
@@ -7230,8 +7230,8 @@ function Precificacao() {
                                   </td>
 
                                   {/* Custo de Atacado */}
-                                  <td className="py-2 px-3 text-right w-36 min-w-[9rem]">
-                                    <div className="inline-flex justify-end items-center w-full">
+                                  <td className="py-2 px-3 text-right w-32 min-w-[8rem]">
+                                    <div className="flex justify-end items-center w-full">
                                       <SmartTableNumericInput
                                         mode="currency"
                                         value={effectiveWholesale}
@@ -7318,8 +7318,8 @@ function Precificacao() {
 
                                   {/* strategy=direct_price → INPUT Preço de Venda Individual */}
                                   {strategy === "direct_price" && (
-                                    <td className="py-2 px-3 text-right w-36 min-w-[9rem]">
-                                      <div className="inline-flex justify-end items-center w-full">
+                                    <td className="py-2 px-3 text-right w-32 min-w-[8rem]">
+                                      <div className="flex justify-end items-center w-full">
                                         <SmartTableNumericInput
                                           mode="currency"
                                           value={effectivePriceStr}
@@ -7451,14 +7451,14 @@ function Precificacao() {
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t border-border/80 bg-secondary/35 text-xs font-semibold">
+                      <tr className="border-t border-border/80 bg-secondary/35 text-xs font-semibold whitespace-nowrap">
                         <td className="py-3 pl-4 text-xs font-bold text-foreground uppercase tracking-wider">
                           Total do Lote
                         </td>
                         <td className="py-3 px-3 text-center text-xs font-black text-primary numeric">
                           {actualLotUnits} un.
                         </td>
-                        <td className="py-3 px-3 text-right numeric font-bold text-foreground w-36 min-w-[9rem]">
+                        <td className="py-3 px-3 text-right numeric font-bold text-foreground w-32 min-w-[8rem]">
                           {summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"}
                         </td>
                         <td className="py-3 px-3 text-right numeric font-semibold text-muted-foreground">
@@ -7481,13 +7481,13 @@ function Precificacao() {
                         )}
                         {strategy === "direct_price" && (
                           <td className="py-3 px-3 text-right numeric font-black text-foreground">
-                            {summaryPrices.avgSuggested > 0 ? `Méd. ${brl(summaryPrices.avgSuggested)}` : "Média R$ 0,00"}
+                            {summaryPrices.avgSuggested > 0 ? `Méd. ${brl(summaryPrices.avgSuggested)}` : "Méd. R$ 0,00"}
                           </td>
                         )}
                         {/* Coluna 6: Resumo Saída Principal */}
                         {(strategy === "margin" || strategy === "markup") && (
                           <td className="py-3 px-3 text-right numeric text-foreground font-black">
-                            {summaryPrices.avgSuggested > 0 ? `Méd. ${brl(summaryPrices.avgSuggested)}` : "Média R$ 0,00"}
+                            {summaryPrices.avgSuggested > 0 ? `Méd. ${brl(summaryPrices.avgSuggested)}` : "Méd. R$ 0,00"}
                           </td>
                         )}
                         {strategy === "direct_price" && (
