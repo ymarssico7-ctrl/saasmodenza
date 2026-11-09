@@ -17,6 +17,8 @@ export type PricingResult = {
   minPrice: number;
   suggestedPrice: number;
   profit: number;
+  deductions: number;
+  netRevenue: number;
   /** Margem real sobre o preço de venda (Gross Margin %). Ex: 40% → R$0,40 de cada R$1,00 é lucro líquido. */
   marginOnPrice: number;
   /** Markup sobre o custo (%). Ex: 80% → preço é 80% maior que o custo total. */
@@ -96,12 +98,15 @@ export function computePricing(input: PricingInput): PricingResult {
   const suggestedPrice = (realCost * (1 + markup)) / divisor;
   const deductions = suggestedPrice * totalDeductionRate;
   const profit = suggestedPrice - realCost - deductions;
+  const netRevenue = suggestedPrice - deductions;
 
   return {
     realCost,
     minPrice,
     suggestedPrice,
     profit,
+    deductions,
+    netRevenue,
     marginOnPrice: suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0,
     markupOnCost: realCost > 0 ? (profit / realCost) * 100 : 0,
   };
@@ -283,6 +288,7 @@ export type LotBreakEven = {
   breakEvenPct: number;         // % do lote que precisa ser vendido
   profitOnRemainder: number;    // receita líquida pura gerada após quitar o lote
   totalLotProfit: number;       // lucro líquido final se vender 100% do lote
+  isReachable: boolean;         // false se a operação for deficitária (preço líquido <= custo real)
 };
 
 export function computeLotBreakEven(
@@ -296,24 +302,28 @@ export function computeLotBreakEven(
   const cardRate = Math.min(cardRatePct, 30) / 100;
   const totalLotCost = avgRealCost * totalUnits;
   const avgNetPricePerUnit = avgSalePrice * (1 - taxRate - cardRate);
-  const unitsToBreakEven = avgNetPricePerUnit > 0
+  const isProfitablePerUnit = avgNetPricePerUnit > avgRealCost;
+  const rawBreakEven = avgNetPricePerUnit > 0
     ? Math.ceil(totalLotCost / avgNetPricePerUnit)
-    : totalUnits;
+    : totalUnits + 1;
+  const isReachable = isProfitablePerUnit && rawBreakEven <= totalUnits && totalUnits > 0;
+  const unitsToBreakEven = isReachable ? rawBreakEven : totalUnits;
 
-  const remainingUnits = Math.max(totalUnits - unitsToBreakEven, 0);
+  const remainingUnits = isReachable ? Math.max(totalUnits - unitsToBreakEven, 0) : 0;
   const profitOnRemainder = remainingUnits * avgNetPricePerUnit;
   const totalNetRevenue = totalUnits * avgNetPricePerUnit;
   const totalLotProfit = totalNetRevenue - totalLotCost;
-  const breakEvenPct = totalUnits > 0 ? (unitsToBreakEven / totalUnits) * 100 : 100;
+  const breakEvenPct = totalUnits > 0 && isReachable ? (unitsToBreakEven / totalUnits) * 100 : 100;
 
   return {
     totalLotCost,
     totalUnits,
     avgNetPricePerUnit,
-    unitsToBreakEven: Math.min(unitsToBreakEven, totalUnits),
+    unitsToBreakEven,
     breakEvenPct,
     profitOnRemainder,
     totalLotProfit,
+    isReachable,
   };
 }
 

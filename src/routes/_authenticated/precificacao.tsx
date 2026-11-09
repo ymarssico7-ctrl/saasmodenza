@@ -2903,7 +2903,6 @@ function Precificacao() {
           tax_pct: tax,
           card_rate_pct: cardRate,
         });
-        const totalDeductions = res.suggestedPrice * ((tax + cardRate) / 100);
         return {
           ...v, qty, wholesaleNum,
           isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
@@ -2912,7 +2911,7 @@ function Precificacao() {
           profit: res.profit,
           marginOnPrice: res.marginOnPrice,
           markupOnCost: res.markupOnCost,
-          deductions: totalDeductions,
+          deductions: res.deductions,
           isCustomPrice: false,
           marginHealth: getMarginHealth(res.marginOnPrice),
         };
@@ -2954,15 +2953,24 @@ function Precificacao() {
   const summaryPrices = useMemo(() => {
     if (mode === "rapida") {
       const wholes = toNumber(wholesale);
-      const shared =
-        resolvePerUnit(freight, freightMode, 1) +
-        resolvePerUnit(packaging, packagingMode, 1) +
-        resolvePerUnit(other, otherMode, 1);
-      const deductions = singleResult.suggestedPrice > 0
-        ? Math.max(0, singleResult.suggestedPrice - singleResult.realCost - singleResult.profit)
-        : 0;
-      const netRev = singleResult.suggestedPrice - deductions;
-      const be = netRev > 0 && singleResult.realCost > 0 ? Math.ceil(singleResult.realCost / netRev) : 1;
+      const units = actualLotUnits > 0 ? actualLotUnits : 1;
+      const sharedPerUnit =
+        resolvePerUnit(freight, freightMode, units) +
+        resolvePerUnit(packaging, packagingMode, units) +
+        resolvePerUnit(other, otherMode, units);
+      const deductionsPerUnit = singleResult.deductions;
+      const netRevPerUnit = singleResult.netRevenue;
+      const be = netRevPerUnit > 0 && singleResult.realCost > 0
+        ? Math.ceil(singleResult.realCost / netRevPerUnit)
+        : 1;
+      const isBreakEvenReachable = singleResult.profit > 0 && be <= units;
+
+      const totalWholesale = wholes * units;
+      const totalSharedCosts = sharedPerUnit * units;
+      const totalInvestment = singleResult.realCost * units;
+      const totalRevenue = singleResult.suggestedPrice * units;
+      const totalProfit = singleResult.profit * units;
+      const totalDeductions = deductionsPerUnit * units;
 
       return {
         minSuggested: singleResult.suggestedPrice,
@@ -2972,18 +2980,19 @@ function Precificacao() {
         avgCost: singleResult.realCost,
         avgMargin: singleResult.marginOnPrice,
         avgMarkup: singleResult.markupOnCost,
-        totalRevenue: singleResult.suggestedPrice,
-        totalInvestment: singleResult.realCost,
-        totalProfit: singleResult.profit,
+        totalRevenue,
+        totalInvestment,
+        totalProfit,
         marginHealth: singleResult.marginHealth,
         hasMultiple: false,
-        totalWholesale: wholes,
-        totalSharedCosts: shared,
-        totalDeductions: deductions,
-        breakEvenUnits: be,
+        totalWholesale,
+        totalSharedCosts,
+        totalDeductions,
+        breakEvenUnits: isBreakEvenReachable ? Math.min(units, be) : 0,
+        isBreakEvenReachable,
         avgWholesale: wholes,
-        avgSharedCost: shared,
-        avgDeduction: deductions,
+        avgSharedCost: sharedPerUnit,
+        avgDeduction: deductionsPerUnit,
       };
     }
 
@@ -3070,7 +3079,8 @@ function Precificacao() {
         totalWholesale: 0,
         totalSharedCosts: 0,
         totalDeductions: 0,
-        breakEvenUnits: projBe,
+        breakEvenUnits: projProfit > 0 ? projBe : 0,
+        isBreakEvenReachable: projProfit > 0,
         avgWholesale: effectiveWholesale,
         avgSharedCost: sharedPerUnit,
         avgDeduction: projDeductions,
@@ -3086,7 +3096,7 @@ function Precificacao() {
     const totalProf = valid.reduce((a, b) => a + b.profit * b.qty, 0);
     const totalWholesale = valid.reduce((a, b) => a + b.wholesaleNum * b.qty, 0);
     const totalSharedCosts = Math.max(0, totalInv - totalWholesale);
-    const totalDeductions = Math.max(0, totalRev - totalInv - totalProf);
+    const totalDeductions = valid.reduce((a, b) => a + (b.deductions || 0) * b.qty, 0);
 
     const avgP = totalRev / totalQty;
     const avgProf = totalProf / totalQty;
@@ -3097,7 +3107,10 @@ function Precificacao() {
     const avgShared = totalSharedCosts / totalQty;
     const avgDeduction = totalDeductions / totalQty;
     const netRevenuePerUnit = avgP - avgDeduction;
-    const breakEvenUnits = netRevenuePerUnit > 0 && totalInv > 0 ? Math.min(totalQty, Math.ceil(totalInv / netRevenuePerUnit)) : 0;
+    const isProfitable = avgProf > 0;
+    const rawBe = netRevenuePerUnit > 0 && totalInv > 0 ? Math.ceil(totalInv / netRevenuePerUnit) : 0;
+    const isBreakEvenReachable = isProfitable && rawBe <= totalQty && totalQty > 0;
+    const breakEvenUnits = isBreakEvenReachable ? rawBe : 0;
 
     return {
       minSuggested: minP,
@@ -3116,6 +3129,7 @@ function Precificacao() {
       totalSharedCosts,
       totalDeductions,
       breakEvenUnits,
+      isBreakEvenReachable,
       avgWholesale,
       avgSharedCost: avgShared,
       avgDeduction,
@@ -4484,6 +4498,42 @@ function Precificacao() {
   // Promoção fluida de Rápida para Grade
   const promoteToGrade = () => {
     setBaseWholesaleGrade(wholesale);
+    const cleanColor = rapidaColor.trim();
+    const cleanSize = rapidaSize.trim();
+    const cleanQty = Math.max(1, Number(rapidaQty.replace(",", ".")) || 1);
+
+    if (cleanColor) {
+      if (!activeColors.some((c) => c.toLowerCase() === cleanColor.toLowerCase())) {
+        setActiveColors([cleanColor, ...activeColors]);
+      }
+    }
+    if (cleanSize) {
+      if (!matrixSizes.includes(cleanSize)) {
+        setMatrixSizes(sortCanonicalSizes([...matrixSizes, cleanSize]));
+      }
+      const targetColor = cleanColor || (activeColors[0] ?? "Off-White");
+      setVariants((prev) => {
+        const existingIdx = prev.findIndex(
+          (v) => v.size.toLowerCase() === cleanSize.toLowerCase() && v.color.toLowerCase() === targetColor.toLowerCase()
+        );
+        if (existingIdx !== -1) {
+          return prev.map((v, i) => (i === existingIdx ? { ...v, qty: cleanQty, wholesaleCost: wholesale } : v));
+        } else {
+          return [
+            ...prev,
+            {
+              id: `v-${cleanSize.toLowerCase()}-${targetColor.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`,
+              size: cleanSize,
+              color: targetColor,
+              wholesaleCost: wholesale,
+              customSalePrice: "",
+              qty: cleanQty,
+            },
+          ];
+        }
+      });
+    }
+
     setMode("grade");
     toast.success("Dados transferidos para a Grade Detalhada!", {
       description: "Agora você pode visualizar e personalizar cada variante por tamanho e cor.",
@@ -6221,13 +6271,22 @@ function Precificacao() {
                         </span>
                       </div>
 
-                      {summaryPrices.breakEvenUnits > 0 && actualLotUnits > 0 && (
-                        <div className="rounded-lg bg-background/70 border border-border/60 px-2.5 py-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                          <Target className="size-3 text-primary shrink-0" />
-                          <span>
-                            Ponto de equilíbrio: <strong className="text-foreground font-semibold">{summaryPrices.breakEvenUnits} {summaryPrices.breakEvenUnits === 1 ? "peça paga" : "peças pagam"}</strong> o lote todo
-                          </span>
-                        </div>
+                      {actualLotUnits > 0 && summaryPrices.totalInvestment > 0 && (
+                        summaryPrices.isBreakEvenReachable && summaryPrices.breakEvenUnits > 0 ? (
+                          <div className="rounded-lg bg-background/70 border border-border/60 px-2.5 py-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <Target className="size-3 text-primary shrink-0" />
+                            <span>
+                              Ponto de equilíbrio: <strong className="text-foreground font-semibold">{summaryPrices.breakEvenUnits} {summaryPrices.breakEvenUnits === 1 ? "peça paga" : "peças pagam"}</strong> o lote todo
+                            </span>
+                          </div>
+                        ) : summaryPrices.avgProfit <= 0 && summaryPrices.avgSuggested > 0 ? (
+                          <div className="rounded-lg bg-destructive/10 border border-destructive/25 px-2.5 py-1.5 flex items-center gap-1.5 text-[10px] text-destructive">
+                            <AlertTriangle className="size-3 text-destructive shrink-0" />
+                            <span>
+                              <strong>Operação em déficit:</strong> Preço abaixo do custo, sem ponto de equilíbrio.
+                            </span>
+                          </div>
+                        ) : null
                       )}
                     </div>
                   </div>
@@ -6870,6 +6929,15 @@ function Precificacao() {
                     {/* Controles da Estratégia inline com badges de resultado em tempo real */}
                     {gradePricingMode === "unified" ? (
                       <>
+                        {strategy === "margin" && (
+                          <>
+                            {(desiredMargin + (tax || 0) + (cardRate || 0)) >= 95 && (
+                              <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                ⚠️ <strong>Margem extrema:</strong> A soma da margem ({desiredMargin}%) com impostos e taxas ({((tax || 0) + (cardRate || 0)).toFixed(1)}%) atinge {((desiredMargin || 0) + (tax || 0) + (cardRate || 0)).toFixed(1)}% da venda.
+                              </div>
+                            )}
+                          </>
+                        )}
                         {strategy === "margin" && (
                           <div className="flex items-center gap-1.5">
                             <div className="flex items-center rounded-lg border border-border/80 bg-background shadow-2xs h-8 overflow-hidden">
@@ -7545,14 +7613,22 @@ function Precificacao() {
                         <td className="py-3 px-3 text-center text-xs font-black text-primary numeric w-28">
                           {actualLotUnits} un.
                         </td>
+                        {/* Coluna 3: Custo Atacado Puro do Lote */}
                         <td className="py-3 px-3 text-right numeric font-bold text-foreground w-32 min-w-[8rem] max-w-[8rem]">
-                          <span className="truncate block ml-auto" title={summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"}>
-                            {summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"}
+                          <span
+                            className="truncate block ml-auto"
+                            title={`Total Atacado: ${summaryPrices.totalWholesale > 0 ? brl(summaryPrices.totalWholesale) : "R$ 0,00"} (méd. ${brl(summaryPrices.avgWholesale)}/un.)`}
+                          >
+                            {summaryPrices.totalWholesale > 0 ? brl(summaryPrices.totalWholesale) : "R$ 0,00"}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-right numeric font-semibold text-muted-foreground w-28 min-w-[7rem] max-w-[7.5rem]">
-                          <span className="truncate block ml-auto" title={summaryPrices.avgCost > 0 ? `Méd. ${brl(summaryPrices.avgCost)}` : "R$ 0,00"}>
-                            {summaryPrices.avgCost > 0 ? `Méd. ${brl(summaryPrices.avgCost)}` : "R$ 0,00"}
+                        {/* Coluna 4: Custo Real Total (CMV Total com Rateios) */}
+                        <td className="py-3 px-3 text-right numeric font-semibold text-foreground w-28 min-w-[7rem] max-w-[7.5rem]">
+                          <span
+                            className="truncate block ml-auto"
+                            title={`Custo Real Total (CMV): ${summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"} · Média: ${summaryPrices.avgCost > 0 ? brl(summaryPrices.avgCost) : "R$ 0,00"}/un.`}
+                          >
+                            {summaryPrices.totalInvestment > 0 ? brl(summaryPrices.totalInvestment) : "R$ 0,00"}
                           </span>
                         </td>
                         {/* Coluna 5: Resumo Margem % */}
