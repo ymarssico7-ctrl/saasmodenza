@@ -193,6 +193,16 @@ export async function insertTransaction(input: TransactionInsert) {
       payment_method: input.payment_method,
       occurred_on: input.occurred_on,
     });
+    // Se a saída for pró-labore, sincroniza automaticamente com prolabore_withdrawals
+    if (input.kind === "saida" && (input.category === "prolabore" || input.category === "pro_labore")) {
+      const month = (input.occurred_on ?? todayISO()).slice(0, 7) + "-01";
+      localInsert("prolabore_withdrawals", {
+        store_id: input.storeId,
+        user_id: input.storeId,
+        month,
+        amount: input.amount,
+      });
+    }
     return;
   }
 
@@ -208,15 +218,53 @@ export async function insertTransaction(input: TransactionInsert) {
     occurred_on: input.occurred_on,
   });
   if (error) throw new Error(error.message);
+
+  // Sincronização em modo real para retiradas de pró-labore no Caixa
+  if (input.kind === "saida" && (input.category === "prolabore" || input.category === "pro_labore")) {
+    const month = (input.occurred_on ?? todayISO()).slice(0, 7) + "-01";
+    await supabase.from("prolabore_withdrawals").insert({
+      store_id: input.storeId,
+      user_id: userId,
+      month,
+      amount: input.amount,
+    });
+  }
 }
 
 export async function deleteTransaction(storeId: string, id: string) {
   if (isDemoStore(storeId)) {
+    const txs = localGet("transactions");
+    const tx = txs.find((t) => t["id"] === id);
     localDelete("transactions", id);
+    if (tx && tx["kind"] === "saida" && (tx["category"] === "prolabore" || tx["category"] === "pro_labore")) {
+      const withdrawals = localGet("prolabore_withdrawals");
+      const month = (((tx["occurred_on"] as string) ?? todayISO()).slice(0, 7)) + "-01";
+      const toRemove = withdrawals.find(
+        (w) => w["month"] === month && Number(w["amount"]) === Number(tx["amount"]),
+      );
+      if (toRemove) localDelete("prolabore_withdrawals", toRemove["id"] as string);
+    }
     return;
   }
+
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select("kind, category, amount, occurred_on")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw new Error(error.message);
+
+  if (tx && tx.kind === "saida" && (tx.category === "prolabore" || tx.category === "pro_labore")) {
+    const month = (tx.occurred_on ?? todayISO()).slice(0, 7) + "-01";
+    await supabase
+      .from("prolabore_withdrawals")
+      .delete()
+      .eq("store_id", storeId)
+      .eq("month", month)
+      .eq("amount", tx.amount);
+  }
 }
 
 // ============================================================

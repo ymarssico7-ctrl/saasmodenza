@@ -22,6 +22,7 @@ import {
   Layers,
   LayoutGrid,
   Link2,
+  Loader2,
   Minus,
   MoreHorizontal,
   Package,
@@ -2814,7 +2815,13 @@ function Precificacao() {
             deductions: 0,
             netRevenue: 0,
             isCustomPrice: hasCustomPrice,
-            marginHealth: "good" as MarginHealth,
+            marginHealth: {
+              status: "healthy",
+              label: "Aguardando Preço",
+              description: "Defina o preço de venda para calcular a margem.",
+              color: "text-muted-foreground",
+              emoji: "⏳",
+            },
           };
         }
         const res = computeReversePricing({
@@ -2986,7 +2993,13 @@ function Precificacao() {
             markupOnCost: 0,
             deductions: 0,
             isCustomPrice: hasExplicitManualPrice,
-            marginHealth: "good" as MarginHealth,
+            marginHealth: {
+              status: "healthy",
+              label: "Aguardando Preço",
+              description: "Defina o preço de venda para calcular a margem.",
+              color: "text-muted-foreground",
+              emoji: "⏳",
+            },
           };
         }
         const res = computeReversePricing({
@@ -7970,14 +7983,16 @@ function Precificacao() {
                   <tbody className="divide-y divide-border">
                     {saved.map((p) => {
                       const marginVal = Number(p.margin_pct);
-                      const r = marginVal < 85
+                      const taxVal = Number(p.tax_pct) || 0;
+                      const isMarginFeasible = marginVal > 0 && (marginVal + taxVal + cardRate) < 95;
+                      const r = isMarginFeasible
                         ? computePricingByMargin({
                             wholesale_cost: Number(p.wholesale_cost),
                             freight_cost: Number(p.freight_cost),
                             packaging_cost: Number(p.packaging_cost),
                             other_costs: Number(p.other_costs),
                             desired_margin_pct: marginVal,
-                            tax_pct: Number(p.tax_pct),
+                            tax_pct: taxVal,
                             card_rate_pct: cardRate,
                           })
                         : computePricing({
@@ -7985,8 +8000,8 @@ function Precificacao() {
                             freight_cost: Number(p.freight_cost),
                             packaging_cost: Number(p.packaging_cost),
                             other_costs: Number(p.other_costs),
-                            margin_pct: marginVal,
-                            tax_pct: Number(p.tax_pct),
+                            margin_pct: Math.max(marginVal, 0),
+                            tax_pct: taxVal,
                             card_rate_pct: cardRate,
                           });
                       return (
@@ -8271,14 +8286,23 @@ function Precificacao() {
           {/* Botão de Confirmação */}
           <Button
             type="button"
-            className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow cursor-pointer"
+            className="h-12 w-full rounded-xl gradient-primary font-semibold shadow-glow cursor-pointer disabled:opacity-50"
             disabled={confirmEntryMutation.isPending || entryTotalUnits <= 0}
             onClick={() => confirmEntryMutation.mutate()}
           >
-            <PackagePlus className="mr-2 size-4" />
-            {mode === "grade" && colorGroups.length > 1
-              ? `Confirmar Entrada (${colorGroups.length} cores · ${entryTotalUnits} un.)`
-              : "Confirmar Entrada no Estoque"}
+            {confirmEntryMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Registrando no estoque...
+              </>
+            ) : (
+              <>
+                <PackagePlus className="mr-2 size-4" />
+                {mode === "grade" && colorGroups.length > 1
+                  ? `Confirmar Entrada (${colorGroups.length} cores · ${entryTotalUnits} un.)`
+                  : "Confirmar Entrada no Estoque"}
+              </>
+            )}
           </Button>
         </SheetContent>
       </Sheet>

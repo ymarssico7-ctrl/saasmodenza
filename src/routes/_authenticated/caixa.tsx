@@ -1711,6 +1711,7 @@ function Caixa() {
       setFiadoDueDate(todayISO());
       setCashReceived("");
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["prolabore"] });
       if (isFiado) void queryClient.invalidateQueries({ queryKey: ["credits"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -1815,6 +1816,7 @@ function Caixa() {
         toast.success("Lançamento excluído");
       }
       void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["prolabore"] });
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
       void queryClient.invalidateQueries({ queryKey: ["credits"] });
     },
@@ -4141,13 +4143,14 @@ function Caixa() {
                 {selectedProductSize ? "Trocar tamanho" : "Cancelar"}
               </AlertDialogCancel>
               <AlertDialogAction
-                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                disabled={create.isPending}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer disabled:opacity-50"
                 onClick={() => {
                   setConfirmZeroStockOpen(false);
                   create.mutate();
                 }}
               >
-                Sim, confirmar venda
+                {create.isPending ? "Confirmando..." : "Sim, confirmar venda"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

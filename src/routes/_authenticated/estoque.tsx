@@ -1082,7 +1082,11 @@ function Estoque() {
                       </Button>
                       <ConfirmDelete
                         onConfirm={() => remove.mutate(i.id)}
-                        description={`"${i.name}" será removida do estoque.`}
+                        description={
+                          calcTotalStock(i) > 0
+                            ? `Atenção: "${i.name}" possui ${calcTotalStock(i)} ${calcTotalStock(i) === 1 ? "unidade física" : "unidades físicas"} registradas no estoque. A remoção excluirá o saldo do catálogo.`
+                            : `"${i.name}" será removida do catálogo.`
+                        }
                         trigger={
                           <Button
                             variant="ghost"

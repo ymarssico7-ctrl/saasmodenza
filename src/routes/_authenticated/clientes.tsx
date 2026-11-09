@@ -806,21 +806,39 @@ function ClientesPage() {
                         </Button>
                       )}
 
-                      <ConfirmDelete
-                        title="Excluir cliente?"
-                        description={`Deseja remover ${c.nome}? Todo o histórico de compras e fiado associados serão desvinculados.`}
-                        onConfirm={() => deleteCustomerMutation.mutate(c.id)}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-9 rounded-full text-muted-foreground hover:text-destructive"
-                            aria-label="Excluir cliente"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        }
-                      />
+                      {c.saldoDevedor > 0 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-9 rounded-full text-muted-foreground/40 hover:text-amber-600 hover:bg-amber-500/10 cursor-pointer"
+                          aria-label="Cliente com fiado pendente não pode ser excluída"
+                          onClick={() => {
+                            toast.warning(
+                              `Não é possível remover ${c.nome} porque ela possui ${brl(c.saldoDevedor)} em fiados pendentes. Quite os débitos no Caderninho de Fiado antes de excluir.`,
+                              { duration: 5000 },
+                            );
+                          }}
+                        >
+                          <Trash2 className="size-4 opacity-50" />
+                        </Button>
+                      ) : (
+                        <ConfirmDelete
+                          title="Excluir cliente?"
+                          description={`Deseja remover ${c.nome}? O histórico de compras desta cliente será desvinculado.`}
+                          onConfirm={() => deleteCustomerMutation.mutate(c.id)}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 rounded-full text-muted-foreground hover:text-destructive cursor-pointer"
+                              aria-label="Excluir cliente"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          }
+                        />
+                      )}
                     </div>
                   </li>
                 ))}

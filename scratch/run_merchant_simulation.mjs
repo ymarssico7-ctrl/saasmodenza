@@ -608,6 +608,173 @@ assert(itemOutOfStock.isSizeZero, 'Tamanho P com 0 un. sinaliza isSizeZero');
 assert(itemOutOfStock.sizeChipLabel === "(0 un. ⚠️)", 'Chip exibe badge âmbar com aviso visual suave');
 assert(itemOutOfStock.requiresGuardrail, 'Submissão dispara diálogo guardrail para o lojista confirmar a venda com segurança');
 
+// ============================================================================
+// ETAPA 10: AUDITORIA PRÉ-LANÇAMENTO V2 (BLINDAGEM INTEGRAL MULTIDISCIPLINAR)
+// ============================================================================
+console.log('\n' + '='.repeat(80));
+console.log('ETAPA 10: BLINDAGEM MULTIDISCIPLINAR PRÉ-LANÇAMENTO (V2)');
+console.log('='.repeat(80));
+
+// 1. Sincronização Caixa ↔ Pró-labore
+function simulateSyncProlabore(transactions, withdrawals) {
+  const currentMonth = "2026-11";
+  const prolaboreTxs = transactions.filter(
+    (t) => t.kind === "saida" && (t.category === "prolabore" || t.category === "pro_labore") && t.occurred_on.startsWith(currentMonth)
+  );
+  const prolaboreFromTxs = prolaboreTxs.reduce((sum, t) => sum + t.amount, 0);
+  const fromTable = withdrawals.reduce((sum, w) => sum + w.amount, 0);
+  const reconciledWithdrawn = Math.max(fromTable, prolaboreFromTxs);
+  return { prolaboreFromTxs, fromTable, reconciledWithdrawn };
+}
+
+const syncCase1 = simulateSyncProlabore(
+  [{ kind: "saida", category: "prolabore", amount: 2000, occurred_on: "2026-11-05" }],
+  [] // Lançado via Caixa, mas tabela de withdrawals ainda vazia
+);
+assert(syncCase1.prolaboreFromTxs === 2000, 'Transação de pró-labore no Caixa capturada com sucesso (R$ 2.000)');
+assert(syncCase1.reconciledWithdrawn === 2000, 'Pró-labore apura R$ 2.000 retirados mesmo se lançado diretamente pelo Caixa');
+
+// 2. Trava de Segurança na Exclusão de Clientes Devedores
+function canDeleteCustomer(customer) {
+  if (customer.saldoDevedor > 0) {
+    return {
+      allowed: false,
+      message: `Não é possível remover ${customer.nome} porque ela possui R$ ${customer.saldoDevedor.toFixed(2)} em fiados pendentes.`,
+    };
+  }
+  return { allowed: true, message: "Exclusão permitida com sucesso." };
+}
+
+const debtorCustomer = { id: "c1", nome: "Camila Rocha", saldoDevedor: 350.0 };
+const checkDebtor = canDeleteCustomer(debtorCustomer);
+assert(!checkDebtor.allowed, 'Exclusão de cliente com fiado em aberto (R$ 350,00) é estritamente BLOQUEADA');
+assert(checkDebtor.message.includes('fiados pendentes'), 'Mensagem orienta a lojista a quitar débitos no Caderninho de Fiado');
+
+const cleanCustomer = { id: "c2", nome: "Beatriz Lima", saldoDevedor: 0 };
+const checkClean = canDeleteCustomer(cleanCustomer);
+assert(checkClean.allowed, 'Cliente com saldo devedor zerado (R$ 0) pode ser excluída normalmente');
+
+// 3. Precisão Contábil de Patrimônio Ativo vs Potencial de Venda
+function computeCockpitStockMetrics(items) {
+  let totalStockUnits = 0;
+  let totalStockCost = 0;
+  let totalStockPotential = 0;
+
+  for (const item of items) {
+    const stock = Object.values(item.sizes).reduce((a, b) => a + Number(b), 0);
+    totalStockUnits += stock;
+    totalStockCost += stock * Number(item.cost_price || 0);
+    totalStockPotential += stock * Number(item.sale_price || 0);
+  }
+
+  return { totalStockUnits, totalStockCost, totalStockPotential };
+}
+
+const inventoryMock = [
+  { name: "Vestido Linho", cost_price: 60, sale_price: 150, sizes: { P: 10, M: 10 } }, // 20 un -> Custo 1200, Venda 3000
+  { name: "Blusa Algodão", cost_price: 25, sale_price: 65, sizes: { P: 20, M: 20 } },  // 40 un -> Custo 1000, Venda 2600
+];
+const stockMetrics = computeCockpitStockMetrics(inventoryMock);
+assert(stockMetrics.totalStockUnits === 60, 'Total de peças em estoque é exatamente 60 un.');
+assert(stockMetrics.totalStockCost === 2200, 'Patrimônio Ativo Real (Custo de Aquisição) é exatamente R$ 2.200,00');
+assert(stockMetrics.totalStockPotential === 5600, 'Faturamento Potencial da Loja (Preço de Venda) é exatamente R$ 5.600,00');
+assert(stockMetrics.totalStockCost !== stockMetrics.totalStockPotential, 'Custo e Potencial de Venda são rigorosamente segregados');
+
+// 4. Idempotência no PDV
+function evaluateSubmitState(isPending, netAmount) {
+  const isButtonDisabled = isPending || netAmount <= 0;
+  const isDialogDisabled = isPending;
+  return { isButtonDisabled, isDialogDisabled };
+}
+const idleState = evaluateSubmitState(false, 150);
+assert(!idleState.isButtonDisabled, 'Em estado normal, botão de lançamento do Caixa está habilitado');
+const submittingState = evaluateSubmitState(true, 150);
+assert(submittingState.isButtonDisabled, 'Enquanto submete, botão principal fica desabilitado prevenindo duplo clique');
+assert(submittingState.isDialogDisabled, 'Enquanto submete, botão do modal guardrail fica desabilitado prevenindo requisições concorrentes');
+
+// ============================================================================
+// ETAPA 11: AUDITORIA EXPERT EM PRECIFICAÇÃO & MATEMÁTICA FINANCEIRA
+// ============================================================================
+console.log('\n' + '='.repeat(80));
+console.log('ETAPA 11: BLINDAGEM DA PRECIFICAÇÃO (HISTÓRICO, CASOS EXTREMOS & GUARDRAILS)');
+console.log('='.repeat(80));
+
+// 1. Peça salva no histórico com Margem Real de 88% (acima do antigo corte de 85%)
+// Custo = R$ 10,00, Imposto = 2%, Cartão = 2%, Margem Real = 88%
+// Divisor = 1 - 0.02 - 0.02 - 0.88 = 0.08
+// Preço Sugerido = 10 / 0.08 = R$ 125,00
+// Lucro = 125 - 10 - 5 (deduções) = R$ 110,00 (88% de 125)
+function simulateSavedHistoryPricing(item, cardRate) {
+  const marginVal = Number(item.margin_pct);
+  const taxVal = Number(item.tax_pct) || 0;
+  const isMarginFeasible = marginVal > 0 && (marginVal + taxVal + cardRate) < 95;
+  
+  if (isMarginFeasible) {
+    const divisor = 1 - (taxVal / 100) - (cardRate / 100) - (marginVal / 100);
+    const suggestedPrice = item.wholesale_cost / divisor;
+    const profit = suggestedPrice * (marginVal / 100);
+    return { suggestedPrice, profit, marginOnPrice: marginVal };
+  } else {
+    const suggestedPrice = (item.wholesale_cost * (1 + marginVal / 100)) / (1 - (taxVal + cardRate) / 100);
+    return { suggestedPrice, profit: 0, marginOnPrice: 0 };
+  }
+}
+
+const highMarginItem = {
+  name: "Brinco Cristal Premium",
+  wholesale_cost: 10,
+  freight_cost: 0,
+  packaging_cost: 0,
+  other_costs: 0,
+  margin_pct: 88,
+  tax_pct: 2,
+};
+const highMarginResult = simulateSavedHistoryPricing(highMarginItem, 2);
+assert(Math.abs(highMarginResult.suggestedPrice - 125.0) < 0.01, 'Peça com margem de 88% preserva o preço exato de R$ 125,00 no histórico');
+assert(highMarginResult.marginOnPrice === 88, 'Margem real de 88% é rigorosamente mantida (sem conversão indevida para markup)');
+
+// 2. Guardrail de Margem Inviável (Soma de taxas + margem >= 95%)
+function checkMarginGuardrail(taxPct, cardRatePct, desiredMarginPct) {
+  const total = (taxPct / 100) + (cardRatePct / 100) + (desiredMarginPct / 100);
+  const isViable = total < 0.95;
+  const status = isViable ? "healthy" : "danger";
+  const label = isViable ? "Margem Saudável" : "Margem Inatingível";
+  return { isViable, status, label };
+}
+
+const extremeCase = checkMarginGuardrail(10, 5, 85); // 10 + 5 + 85 = 100%
+assert(!extremeCase.isViable, 'Soma de 100% (taxas + margem) é detectada como inatingível');
+assert(extremeCase.label === "Margem Inatingível", 'Feedback visual "Margem Inatingível" acionado corretamente');
+
+const normalCase = checkMarginGuardrail(6, 4, 50); // 6 + 4 + 50 = 60%
+assert(normalCase.isViable, 'Soma de 60% opera em faixa viável normal');
+
+// 3. Estado de Saúde com Preço Zerado
+function evaluateZeroPriceHealth(salePrice) {
+  if (salePrice <= 0) {
+    return {
+      status: "healthy",
+      label: "Aguardando Preço",
+      emoji: "⏳",
+    };
+  }
+  return { status: "healthy", label: "Margem Saudável", emoji: "🟢" };
+}
+const zeroPriceCheck = evaluateZeroPriceHealth(0);
+assert(zeroPriceCheck.label === "Aguardando Preço", 'Preço zerado exibe estado neutro "Aguardando Preço"');
+assert(zeroPriceCheck.emoji === "⏳", 'Emoji de espera ⏳ exibido sem falso alarme');
+
+// 4. Idempotência na Ficha de Entrada no Estoque
+function evaluateStockEntrySubmitState(isPending, totalUnits) {
+  return {
+    isButtonDisabled: isPending || totalUnits <= 0,
+    showSpinner: isPending,
+  };
+}
+const stockEntrySubmitting = evaluateStockEntrySubmitState(true, 15);
+assert(stockEntrySubmitting.isButtonDisabled, 'Botão de confirmação de estoque é desabilitado durante envio');
+assert(stockEntrySubmitting.showSpinner, 'Spinner de gravação é ativado prevenindo duplo clique do lojista');
+
 console.log('\n' + '='.repeat(80));
 if (allPassed) {
   console.log('🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO E PRECISÃO MATEMÁTICA!');

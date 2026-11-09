@@ -324,6 +324,8 @@ function Painel() {
     healthyStockCount,
     totalCatalogItems,
     totalStockUnits,
+    totalStockCost,
+    totalStockPotential,
     totalStockValue,
     outOfStockSampleName,
     catalogPreview,
@@ -357,7 +359,8 @@ function Painel() {
       > = {};
 
       let totalStockUnits = 0;
-      let totalStockValue = 0;
+      let totalStockCost = 0;
+      let totalStockPotential = 0;
 
       for (const item of invItems) {
         const sizes = (item.sizes ?? {}) as Record<string, number>;
@@ -375,7 +378,8 @@ function Painel() {
         }
 
         totalStockUnits += stock;
-        totalStockValue += stock * (Number(item.sale_price) || 0);
+        totalStockCost += stock * (Number(item.cost_price) || 0);
+        totalStockPotential += stock * (Number(item.sale_price) || 0);
 
         salesMap[item.id] = {
           item,
@@ -491,7 +495,9 @@ function Painel() {
         healthyStockCount: Math.max(0, invItems.length - outOfStock - lowStock),
         totalCatalogItems: invItems.length,
         totalStockUnits,
-        totalStockValue,
+        totalStockCost,
+        totalStockPotential,
+        totalStockValue: totalStockCost,
         outOfStockSampleName,
         catalogPreview,
       };
@@ -802,7 +808,8 @@ function Painel() {
             onCopiarLink={copiarLinkVitrine}
           />
           <PainelCapitalEstoque
-            totalStockValue={totalStockValue}
+            totalStockValue={totalStockCost}
+            totalStockPotential={totalStockPotential}
             totalStockUnits={totalStockUnits}
             totalCatalogItems={totalCatalogItems}
             outOfStockCount={outOfStockCount}

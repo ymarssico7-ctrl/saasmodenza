@@ -215,6 +215,7 @@ export function PainelRadarPedidosOnline({
  * ──────────────────────────────────────────────────────────────────────────── */
 export interface PainelCapitalEstoqueProps {
   totalStockValue: number;
+  totalStockPotential?: number | undefined;
   totalStockUnits: number;
   totalCatalogItems: number;
   outOfStockCount: number;
@@ -228,6 +229,7 @@ export interface PainelCapitalEstoqueProps {
 
 export function PainelCapitalEstoque({
   totalStockValue,
+  totalStockPotential,
   totalStockUnits,
   totalCatalogItems,
   outOfStockCount,
@@ -252,7 +254,11 @@ export function PainelCapitalEstoque({
                 Saúde do Estoque
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalStockValue)} em patrimônio ativo · {totalStockUnits} peças
+                {ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalStockValue)} em patrimônio ativo
+                {totalStockPotential !== undefined && totalStockPotential > 0 && (
+                  <> · <span className="text-foreground/85 font-medium">{ocultarSaldos ? "R$ ••••••" : mascaraSaldo(totalStockPotential)}</span> potencial</>
+                )}
+                {" · "}{totalStockUnits} peças
               </p>
             </div>
           </div>

@@ -57,12 +57,15 @@ function Prolabore() {
   const [amount, setAmount] = useState("");
   const [target, setTarget] = useState("");
 
+  const monthTxs = txs.filter((t) => t.occurred_on.slice(0, 7) === month.slice(0, 7));
   const monthWithdrawals = withdrawals.filter((w) => w.month.slice(0, 7) === month.slice(0, 7));
-  const withdrawn = monthWithdrawals.reduce((acc, w) => acc + Number(w.amount), 0);
+  const prolaboreFromTxs = sumByCategories(monthTxs, "saida", PROLABORE_CATEGORIES);
+  const withdrawn = Math.max(
+    monthWithdrawals.reduce((acc, w) => acc + Number(w.amount), 0),
+    prolaboreFromTxs,
+  );
   const goal = Number(profile?.prolabore_target ?? 0);
   const progress = goal > 0 ? Math.min((withdrawn / goal) * 100, 100) : 0;
-
-  const monthTxs = txs.filter((t) => t.occurred_on.slice(0, 7) === month.slice(0, 7));
   // Segregação contábil homogênea com relatorio.tsx e painel.tsx:
   // Excluímos estornos (dedução de receita), pró-labore (retirada) e compra de estoque (investimento em ativo)
   const opexExclusions = new Set([

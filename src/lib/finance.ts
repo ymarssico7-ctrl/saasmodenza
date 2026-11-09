@@ -139,6 +139,7 @@ export type FullPricingResult = PricingResult & {
   deductions: number;          // R$ de impostos + taxas
   netRevenue: number;          // receita líquida após deduções
   marginHealth: MarginHealth;  // diagnóstico de saúde
+  isViable?: boolean;          // viabilidade financeira (falso se taxas + margem >= 95%)
 };
 
 export function computePricingByMargin(input: MarginPricingInput): FullPricingResult {
@@ -152,8 +153,10 @@ export function computePricingByMargin(input: MarginPricingInput): FullPricingRe
   const cardRate = Math.min(Math.max(num(input.card_rate_pct ?? 0), 0), 30) / 100;
   const desiredMargin = Math.min(Math.max(num(input.desired_margin_pct), 0), 90) / 100;
 
-  // Divisor nunca pode ser ≤ 0
-  const divisor = Math.max(1 - taxRate - cardRate - desiredMargin, 0.01);
+  // Divisor nunca pode ser ≤ 0. Protege contra estouro quando soma >= 95%
+  const totalDeductionAndMargin = taxRate + cardRate + desiredMargin;
+  const isViable = totalDeductionAndMargin < 0.95;
+  const divisor = Math.max(1 - totalDeductionAndMargin, 0.05);
 
   const suggestedPrice = realCost / divisor;
   const deductions = suggestedPrice * (taxRate + cardRate);
@@ -162,6 +165,17 @@ export function computePricingByMargin(input: MarginPricingInput): FullPricingRe
   const minPrice = realCost / Math.max(1 - taxRate - cardRate, 0.01);
   const marginOnPrice = suggestedPrice > 0 ? (profit / suggestedPrice) * 100 : 0;
   const markupOnCost = realCost > 0 ? (profit / realCost) * 100 : 0;
+
+  const marginHealth: MarginHealth = !isViable
+    ? {
+        status: "danger",
+        label: "Margem Inatingível",
+        description:
+          "A soma de impostos, taxas e margem líquida atingiu 95%+ da venda. Reduza a margem desejada ou as taxas para equilibrar o preço.",
+        color: "text-destructive",
+        emoji: "⚠️",
+      }
+    : getMarginHealth(marginOnPrice);
 
   return {
     realCost,
@@ -172,7 +186,8 @@ export function computePricingByMargin(input: MarginPricingInput): FullPricingRe
     netRevenue,
     marginOnPrice,
     markupOnCost,
-    marginHealth: getMarginHealth(marginOnPrice),
+    marginHealth,
+    isViable,
   };
 }
 
