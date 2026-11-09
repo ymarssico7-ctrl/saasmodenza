@@ -1778,6 +1778,14 @@ function LivePricingSummaryPanel({
             <span>Custo real</span>
             <span className="num-display">{brl(totalUnitCost > 0 ? totalUnitCost : baseWholesaleCost + sharedCostsPerUnit)}</span>
           </div>
+          {suggestedPrice > 0 && (
+            <div className="flex items-center justify-between text-xs font-bold text-success pt-1 border-t border-border/40">
+              <span>Lucro líquido/un.</span>
+              <span className="num-display">
+                +{brl(profitPerUnit)} ({pct(effectiveMargin)})
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── CTA + Ações ── */}
@@ -2730,6 +2738,19 @@ function Precificacao() {
     return variants.reduce((acc, v) => acc + (v.qty || 1), 0);
   }, [mode, variants, rapidaQty]);
 
+  // Total consolidado de peças de TODOS os modelos do lote (Multi-Grade)
+  const totalLoteUnits = useMemo(() => {
+    if (mode !== "grade") return actualLotUnits;
+    return gradeModels.reduce((acc, m) => {
+      const modelUnits = (m.id === activeModelId ? variants : m.variants).reduce((sum, v) => sum + (v.qty || 1), 0);
+      return acc + modelUnits;
+    }, 0);
+  }, [gradeModels, mode, actualLotUnits, activeModelId, variants]);
+
+  const effectiveSharedUnits = useMemo(() => {
+    return totalLoteUnits > 0 ? totalLoteUnits : (actualLotUnits > 0 ? actualLotUnits : 1);
+  }, [totalLoteUnits, actualLotUnits]);
+
   // Lista única e estável de tamanhos para props do modal gerador
   const modalCurrentSizes = useMemo(
     () => Array.from(new Set(variants.map((v) => v.size))),
@@ -2745,9 +2766,9 @@ function Precificacao() {
 
   // ── Função Central de Cálculo de Item ──────────────────────────────
   const calculateItem = useMemo(() => {
-    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const freightNum = resolvePerUnit(freight, freightMode, effectiveSharedUnits);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, effectiveSharedUnits);
+    const otherNum = resolvePerUnit(other, otherMode, effectiveSharedUnits);
 
     return (
       wholesaleCost: number,
@@ -2836,7 +2857,7 @@ function Precificacao() {
         marginHealth: getMarginHealth(res.marginOnPrice),
       };
     };
-  }, [freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
+  }, [freight, packaging, other, freightMode, packagingMode, otherMode, effectiveSharedUnits, strategy, desiredMargin, markup, directSalePrice, tax, cardRate]);
 
   // ── Cálculo do Preço Único (Modo Rápido) ───────────────────────────
   const singleResult = useMemo(() => {
@@ -2846,9 +2867,9 @@ function Precificacao() {
   // ── Cálculo da Tabela Unificada de Variantes (Totalmente Reativo) ───
   const variantResults = useMemo(() => {
     const baseNum = toNumber(baseWholesaleGrade);
-    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const freightNum = resolvePerUnit(freight, freightMode, effectiveSharedUnits);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, effectiveSharedUnits);
+    const otherNum = resolvePerUnit(other, otherMode, effectiveSharedUnits);
 
     return variants.map((v) => {
       const hasCustomCost = v.wholesaleCost !== undefined && v.wholesaleCost !== "" && toNumber(v.wholesaleCost) > 0;
@@ -2947,7 +2968,7 @@ function Precificacao() {
       }
     });
   }, [variants, baseWholesaleGrade, gradePricingMode, strategy, desiredMargin, markup, directSalePrice,
-      freight, freightMode, packaging, packagingMode, other, otherMode, actualLotUnits, tax, cardRate]);
+      freight, freightMode, packaging, packagingMode, other, otherMode, effectiveSharedUnits, tax, cardRate]);
 
   // ── Resumo Geral de Preços (Faixas, Médias e Totais do Lote) ───────
   const summaryPrices = useMemo(() => {
@@ -3138,10 +3159,10 @@ function Precificacao() {
 
   // ── Detecção Adaptativa de Faixas de Custo Real ───────────────────
   const variantRealCosts = useMemo(() => {
-    const baseShared = actualLotUnits > 0
-      ? resolvePerUnit(freight, freightMode, actualLotUnits) +
-        resolvePerUnit(packaging, packagingMode, actualLotUnits) +
-        resolvePerUnit(other, otherMode, actualLotUnits)
+    const baseShared = effectiveSharedUnits > 0
+      ? resolvePerUnit(freight, freightMode, effectiveSharedUnits) +
+        resolvePerUnit(packaging, packagingMode, effectiveSharedUnits) +
+        resolvePerUnit(other, otherMode, effectiveSharedUnits)
       : 0;
     const baseTotalCost = toNumber(baseWholesaleGrade) + baseShared;
 
@@ -3165,7 +3186,7 @@ function Precificacao() {
       hasMultipleCosts: Math.abs(minC - maxC) > 0.05,
       baseShared,
     };
-  }, [mode, variantResults, baseWholesaleGrade, freight, packaging, other, freightMode, packagingMode, otherMode, actualLotUnits]);
+  }, [mode, variantResults, baseWholesaleGrade, freight, packaging, other, freightMode, packagingMode, otherMode, effectiveSharedUnits]);
 
   // ── Simulador de Meios de Pagamento & Perdas ───────────────────────
   const paymentScenarios = useMemo(() => {
@@ -3178,14 +3199,7 @@ function Precificacao() {
   }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax, cardRate]);
 
 
-  // Total consolidado de peças de TODOS os modelos do lote (v74)
-  const totalLoteUnits = useMemo(() => {
-    if (mode !== "grade") return actualLotUnits;
-    return gradeModels.reduce((acc, m) => {
-      const modelUnits = (m.id === activeModelId ? variants : m.variants).reduce((sum, v) => sum + (v.qty || 1), 0);
-      return acc + modelUnits;
-    }, 0);
-  }, [gradeModels, mode, actualLotUnits, activeModelId, variants]);
+
 
   // ── Ponto de Cobertura do Lote (Break-Even Dinâmico) ────────────────
   const lotBreakEven = useMemo(() => {
@@ -3436,7 +3450,7 @@ function Precificacao() {
       strategyMode: strategy,
       marginStr: desiredMargin.toString(),
       markupStr: markup.toString(),
-      directPrice: "",
+      directPrice: directSalePrice,
       variants,
       activeColors,
     };
@@ -3455,6 +3469,10 @@ function Precificacao() {
     setBaseWholesaleGrade("");
     setVariants([]);
     setActiveColors([]);
+    setStrategy(newModel.strategyMode);
+    setDesiredMargin(toNumber(newModel.marginStr) || 50);
+    setMarkup(toNumber(newModel.markupStr) || 100);
+    setDirectSalePrice(newModel.directPrice);
     setTimeout(() => {
       isSwitchingModelRef.current = false;
     }, 50);
@@ -3481,6 +3499,10 @@ function Precificacao() {
               baseWholesale: baseWholesaleGrade,
               variants,
               activeColors,
+              strategyMode: strategy,
+              marginStr: desiredMargin.toString(),
+              markupStr: markup.toString(),
+              directPrice: directSalePrice,
             }
           : m
       )
@@ -3493,6 +3515,10 @@ function Precificacao() {
     setBaseWholesaleGrade(target.baseWholesale);
     setVariants(target.variants);
     setActiveColors(target.activeColors);
+    if (target.strategyMode) setStrategy(target.strategyMode);
+    if (target.marginStr) setDesiredMargin(toNumber(target.marginStr) || 50);
+    if (target.markupStr) setMarkup(toNumber(target.markupStr) || 100);
+    if (target.directPrice !== undefined) setDirectSalePrice(target.directPrice);
 
     setTimeout(() => {
       isSwitchingModelRef.current = false;
@@ -3510,6 +3536,10 @@ function Precificacao() {
       setBaseWholesaleGrade("");
       setVariants([]);
       setActiveColors([]);
+      setStrategy(fresh.strategyMode);
+      setDesiredMargin(toNumber(fresh.marginStr) || 50);
+      setMarkup(toNumber(fresh.markupStr) || 100);
+      setDirectSalePrice(fresh.directPrice);
       setTimeout(() => {
         isSwitchingModelRef.current = false;
       }, 50);
@@ -3529,6 +3559,10 @@ function Precificacao() {
       setBaseWholesaleGrade(next.baseWholesale);
       setVariants(next.variants);
       setActiveColors(next.activeColors);
+      if (next.strategyMode) setStrategy(next.strategyMode);
+      if (next.marginStr) setDesiredMargin(toNumber(next.marginStr) || 50);
+      if (next.markupStr) setMarkup(toNumber(next.markupStr) || 100);
+      if (next.directPrice !== undefined) setDirectSalePrice(next.directPrice);
       setTimeout(() => {
         isSwitchingModelRef.current = false;
       }, 50);
@@ -3550,11 +3584,15 @@ function Precificacao() {
               baseWholesale: baseWholesaleGrade,
               variants,
               activeColors,
+              strategyMode: strategy,
+              marginStr: desiredMargin.toString(),
+              markupStr: markup.toString(),
+              directPrice: directSalePrice,
             }
           : m
       )
     );
-  }, [name, category, baseWholesaleGrade, variants, activeColors, mode, activeModelId]);
+  }, [name, category, baseWholesaleGrade, variants, activeColors, strategy, desiredMargin, markup, directSalePrice, mode, activeModelId]);
 
   const replicateGradeInColor = (newColor: string) => {
     const cleanColor = newColor.trim();
@@ -4012,9 +4050,9 @@ function Precificacao() {
   };
 
   const computePriceForVariantMargin = (wholesaleCost: number, targetMargin: number): number => {
-    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const freightNum = resolvePerUnit(freight, freightMode, effectiveSharedUnits);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, effectiveSharedUnits);
+    const otherNum = resolvePerUnit(other, otherMode, effectiveSharedUnits);
     const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
     const divisor = 1 - (targetMargin + tax + cardRate) / 100;
     if (divisor <= 0) return 0;
@@ -4022,9 +4060,9 @@ function Precificacao() {
   };
 
   const computePriceForVariantMarkup = (wholesaleCost: number, targetMarkup: number): number => {
-    const freightNum = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const packagingNum = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
-    const otherNum = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+    const freightNum = resolvePerUnit(freight, freightMode, effectiveSharedUnits);
+    const packagingNum = resolvePerUnit(packaging, packagingMode, effectiveSharedUnits);
+    const otherNum = resolvePerUnit(other, otherMode, effectiveSharedUnits);
     const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
     const totalDeductions = (tax + cardRate) / 100;
     const divisor = Math.max(1 - totalDeductions, 0.01);
@@ -4553,6 +4591,10 @@ function Precificacao() {
               category,
               baseWholesale: baseWholesaleGrade || m.baseWholesale,
               variants: variants.length > 0 ? variants : m.variants,
+              strategyMode: strategy,
+              marginStr: desiredMargin.toString(),
+              markupStr: markup.toString(),
+              directPrice: directSalePrice,
             };
           }
           return m;
@@ -4576,14 +4618,18 @@ function Precificacao() {
             }
           }
 
+          const modelStrategy = m.strategyMode || strategy;
+          const modelMargin = toNumber(m.marginStr) || desiredMargin;
+          const modelMarkup = toNumber(m.markupStr) || markup;
+
           await insertPricing({
             storeId,
             name: pieceName,
             wholesale_cost: wholesaleNum > 0 ? wholesaleNum : 1,
-            freight_cost: toNumber(freight),
-            packaging_cost: toNumber(packaging),
-            other_costs: toNumber(other),
-            margin_pct: strategy === "markup" ? markup : desiredMargin,
+            freight_cost: resolvePerUnit(freight, freightMode, effectiveSharedUnits),
+            packaging_cost: resolvePerUnit(packaging, packagingMode, effectiveSharedUnits),
+            other_costs: resolvePerUnit(other, otherMode, effectiveSharedUnits),
+            margin_pct: modelStrategy === "markup" ? modelMarkup : modelMargin,
             tax_pct: tax,
           });
         }
@@ -4603,9 +4649,9 @@ function Precificacao() {
         storeId,
         name: pieceName,
         wholesale_cost: wholesaleNum,
-        freight_cost: toNumber(freight),
-        packaging_cost: toNumber(packaging),
-        other_costs: toNumber(other),
+        freight_cost: resolvePerUnit(freight, freightMode, effectiveSharedUnits),
+        packaging_cost: resolvePerUnit(packaging, packagingMode, effectiveSharedUnits),
+        other_costs: resolvePerUnit(other, otherMode, effectiveSharedUnits),
         margin_pct: strategy === "markup" ? markup : desiredMargin,
         tax_pct: tax,
       });
@@ -5152,9 +5198,9 @@ function Precificacao() {
 
           {/* ── Linha 1: Frete | Embalagem & tags | Outros ── */}
           {(() => {
-            const freightVal = resolvePerUnit(freight, freightMode, actualLotUnits > 0 ? actualLotUnits : 1);
-            const packagingVal = resolvePerUnit(packaging, packagingMode, actualLotUnits > 0 ? actualLotUnits : 1);
-            const otherVal = resolvePerUnit(other, otherMode, actualLotUnits > 0 ? actualLotUnits : 1);
+            const freightVal = resolvePerUnit(freight, freightMode, effectiveSharedUnits);
+            const packagingVal = resolvePerUnit(packaging, packagingMode, effectiveSharedUnits);
+            const otherVal = resolvePerUnit(other, otherMode, effectiveSharedUnits);
             const totalSharedCost = freightVal + packagingVal + otherVal;
 
             return (
@@ -6064,7 +6110,7 @@ function Precificacao() {
                                   <span className="font-semibold text-foreground/80">{brl(variantRealCosts.baseShared)}</span> extras
                                   {totalNoteExtras > 0 && (
                                     <span className="text-muted-foreground/75 font-normal ml-1">
-                                      ({brl(totalNoteExtras)} ÷ {actualLotUnits} un.)
+                                      ({brl(totalNoteExtras)} ÷ {effectiveSharedUnits} un.)
                                     </span>
                                   )}
                                 </>
