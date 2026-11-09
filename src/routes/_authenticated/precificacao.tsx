@@ -2793,6 +2793,7 @@ function Precificacao() {
       marginOnPrice: number;
       markupOnCost: number;
       deductions: number;
+      netRevenue: number;
       isCustomPrice: boolean;
       marginHealth: MarginHealth;
     } => {
@@ -2811,6 +2812,7 @@ function Precificacao() {
             marginOnPrice: 0,
             markupOnCost: 0,
             deductions: 0,
+            netRevenue: 0,
             isCustomPrice: hasCustomPrice,
             marginHealth: "good" as MarginHealth,
           };
@@ -2831,6 +2833,7 @@ function Precificacao() {
           marginOnPrice: res.marginOnPrice,
           markupOnCost: res.markupOnCost,
           deductions: res.deductions,
+          netRevenue: res.netRevenue,
           isCustomPrice: hasCustomPrice,
           marginHealth: res.marginHealth,
         };
@@ -2854,6 +2857,7 @@ function Precificacao() {
           marginOnPrice: res.marginOnPrice,
           markupOnCost: res.markupOnCost,
           deductions: res.deductions,
+          netRevenue: res.netRevenue,
           isCustomPrice: false,
           marginHealth: res.marginHealth,
         };
@@ -2878,6 +2882,7 @@ function Precificacao() {
         marginOnPrice: res.marginOnPrice,
         markupOnCost: res.markupOnCost,
         deductions: totalDeductions,
+        netRevenue: res.suggestedPrice - totalDeductions,
         isCustomPrice: false,
         marginHealth: getMarginHealth(res.marginOnPrice),
       };
@@ -2969,12 +2974,27 @@ function Precificacao() {
           v.customSalePrice !== undefined && v.customSalePrice !== "" &&
           toNumber(v.customSalePrice) > 0;
         const targetPriceStr = hasExplicitManualPrice ? v.customSalePrice : directSalePrice;
+        const targetPriceNum = toNumber(targetPriceStr);
+        if (targetPriceNum <= 0) {
+          return {
+            ...v, qty, wholesaleNum,
+            isCustomCost: hasCustomCost && wholesaleNum !== baseNum,
+            realCost: wholesaleNum + freightNum + packagingNum + otherNum,
+            suggestedPrice: 0,
+            profit: 0,
+            marginOnPrice: 0,
+            markupOnCost: 0,
+            deductions: 0,
+            isCustomPrice: hasExplicitManualPrice,
+            marginHealth: "good" as MarginHealth,
+          };
+        }
         const res = computeReversePricing({
           wholesale_cost: wholesaleNum,
           freight_cost: freightNum,
           packaging_cost: packagingNum,
           other_costs: otherNum,
-          sale_price: toNumber(targetPriceStr),
+          sale_price: targetPriceNum,
           tax_pct: tax,
           card_rate_pct: cardRate,
         });
@@ -3044,7 +3064,7 @@ function Precificacao() {
 
     const valid = variantResults.filter((i) => i.wholesaleNum > 0);
     if (!valid.length) {
-      if (actualLotUnits === 0 && !toNumber(baseWholesaleGrade)) {
+      if (!toNumber(baseWholesaleGrade) && !variants.some((v) => toNumber(v.wholesaleCost) > 0)) {
         return {
           minSuggested: 0,
           maxSuggested: 0,
@@ -3056,12 +3076,19 @@ function Precificacao() {
           totalRevenue: 0,
           totalInvestment: 0,
           totalProfit: 0,
-          marginHealth: getMarginHealth(0),
+          marginHealth: {
+            status: "healthy",
+            label: "Aguardando Custo",
+            description: "Informe o custo no atacado para projetar o preço.",
+            color: "text-muted-foreground",
+            emoji: "⏳",
+          },
           hasMultiple: false,
           totalWholesale: 0,
           totalSharedCosts: 0,
           totalDeductions: 0,
           breakEvenUnits: 0,
+          isBreakEvenReachable: false,
           avgWholesale: 0,
           avgSharedCost: 0,
           avgDeduction: 0,
@@ -3169,7 +3196,15 @@ function Precificacao() {
       totalRevenue: totalRev,
       totalInvestment: totalInv,
       totalProfit: totalProf,
-      marginHealth: getMarginHealth(avgMarg),
+      marginHealth: avgP > 0
+        ? getMarginHealth(avgMarg)
+        : {
+            status: "healthy",
+            label: "Aguardando Preço",
+            description: "Defina o preço de venda para calcular a margem líquida.",
+            color: "text-muted-foreground",
+            emoji: "⏳",
+          },
       hasMultiple: valid.length > 1 && Math.abs(minP - maxP) > 0.05,
       totalWholesale,
       totalSharedCosts,
@@ -5910,7 +5945,7 @@ function Precificacao() {
                   })()}
 
                   {/* Ponto de Equilíbrio */}
-                  {actualLotUnits > 1 && (
+                  {actualLotUnits > 1 && summaryPrices.avgSuggested > 0 && (
                     <div className="rounded-xl bg-secondary/40 p-3.5 text-xs text-muted-foreground leading-relaxed border border-border/60">
                       Vendendo <strong className="text-foreground">{lotBreakEven.unitsToBreakEven} {lotBreakEven.unitsToBreakEven === 1 ? "peça" : "peças"}</strong> você quita todo o custo do lote ({brl(lotBreakEven.totalLotCost)}). {lotBreakEven.totalLotProfit >= 0 ? (
                         Math.max(actualLotUnits - lotBreakEven.unitsToBreakEven, 0) > 0 ? (

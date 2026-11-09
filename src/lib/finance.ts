@@ -195,6 +195,7 @@ export type ReversePricingResult = {
   realCost: number;
   salePrice: number;
   deductions: number;
+  netRevenue: number;
   profit: number;
   marginOnPrice: number;
   markupOnCost: number;
@@ -214,6 +215,7 @@ export function computeReversePricing(input: ReversePricingInput): ReversePricin
   const cardRate = Math.min(Math.max(num(input.card_rate_pct ?? 0), 0), 30) / 100;
 
   const deductions = salePrice * (taxRate + cardRate);
+  const netRevenue = salePrice - deductions;
   const profit = salePrice - realCost - deductions;
   const marginOnPrice = salePrice > 0 ? (profit / salePrice) * 100 : 0;
   const markupOnCost = realCost > 0 ? (profit / realCost) * 100 : 0;
@@ -222,6 +224,7 @@ export function computeReversePricing(input: ReversePricingInput): ReversePricin
     realCost,
     salePrice,
     deductions,
+    netRevenue,
     profit,
     marginOnPrice,
     markupOnCost,

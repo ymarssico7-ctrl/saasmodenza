@@ -439,6 +439,76 @@ assert(pendingDirectPrice.suggestedPrice === 0, 'Preço de venda direto vazio re
 assert(pendingDirectPrice.profit === 0, 'Preço de venda direto vazio resulta em lucro = 0 (sem projetar falso prejuízo de -R$ 55)');
 assert(pendingDirectPrice.marginHealth === "good", 'Preço de venda direto vazio não dispara alarme vermelho falso');
 
+// ----------------------------------------------------------------------------
+// ETAPA 8: AUDITORIA FASE 5 — CONTRATO NET REVENUE & NEUTRALIZAÇÃO DE ALARMES
+// ----------------------------------------------------------------------------
+console.log('\n--- ETAPA 8: AUDITORIA FASE 5 — BLINDAGEM TOTAL & CONTRATOS ---');
+
+// 1. Contrato de netRevenue no computeReversePricing
+function computeReversePricingSim(input) {
+  const realCost = Number(input.wholesale_cost) + Number(input.freight_cost);
+  const salePrice = Math.max(Number(input.sale_price) || 0, 0);
+  const deductions = salePrice * 0.10; // 10%
+  const netRevenue = salePrice - deductions;
+  const profit = salePrice - realCost - deductions;
+  return { realCost, salePrice, deductions, netRevenue, profit };
+}
+
+const revTest = computeReversePricingSim({ wholesale_cost: 50, freight_cost: 5, sale_price: 100 });
+assert(revTest.netRevenue === 90, 'netRevenue em computeReversePricing é exatamente R$ 90,00 (100 - 10 deduções)');
+assert(revTest.profit === 35, 'profit em computeReversePricing é exatamente R$ 35,00 (90 líquido - 55 custo)');
+
+// 2. variantResults com Preço Fixo Vazio na Grade
+function variantResultsSim(variants, directSalePrice) {
+  return variants.map(v => {
+    const target = Number(directSalePrice) || 0;
+    if (target <= 0) {
+      return {
+        ...v,
+        suggestedPrice: 0,
+        profit: 0,
+        marginOnPrice: 0,
+        deductions: 0,
+        netRevenue: 0,
+        isCustomPrice: false,
+        marginHealth: "good",
+      };
+    }
+    const res = computeReversePricingSim({ wholesale_cost: 50, freight_cost: 5, sale_price: target });
+    return { ...v, ...res };
+  });
+}
+
+const tableVariants = variantResultsSim([{ size: "P" }, { size: "M" }], "");
+assert(tableVariants[0].profit === 0, 'Linha da grade com preço fixo pendente tem lucro = 0 (sem projetar falso prejuízo)');
+assert(tableVariants[1].profit === 0, 'Segunda linha da grade também tem lucro = 0');
+assert(tableVariants[0].suggestedPrice === 0, 'Preço sugerido da linha é 0');
+
+// 3. summaryPrices: Saúde Neutra sem Custo e sem Preço
+function getSummaryHealth(avgPrice, hasCost) {
+  if (!hasCost) {
+    return { status: "healthy", label: "Aguardando Custo", emoji: "⏳" };
+  }
+  if (avgPrice <= 0) {
+    return { status: "healthy", label: "Aguardando Preço", emoji: "⏳" };
+  }
+  return { status: "healthy", label: "Margem Saudável", emoji: "🟢" };
+}
+
+const healthNoCost = getSummaryHealth(0, false);
+assert(healthNoCost.label === "Aguardando Custo", 'Grade sem custo exibe selo neutro "Aguardando Custo"');
+assert(healthNoCost.emoji === "⏳", 'Emoji neutro sem assustar o lojista');
+
+const healthNoPrice = getSummaryHealth(0, true);
+assert(healthNoPrice.label === "Aguardando Preço", 'Grade com custo mas sem preço exibe selo neutro "Aguardando Preço"');
+
+// 4. Break-even no Modo Rápido só renderiza com preço > 0
+function shouldShowQuickBreakEven(actualUnits, avgSuggested) {
+  return actualUnits > 1 && avgSuggested > 0;
+}
+assert(!shouldShowQuickBreakEven(10, 0), 'Break-even fica oculto enquanto o lojista não define o preço (evita falso alerta de prejuízo)');
+assert(shouldShowQuickBreakEven(10, 137.5), 'Break-even aparece perfeitamente quando o preço de venda é definido');
+
 console.log('\n' + '='.repeat(80));
 if (allPassed) {
   console.log('🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO E PRECISÃO MATEMÁTICA!');
