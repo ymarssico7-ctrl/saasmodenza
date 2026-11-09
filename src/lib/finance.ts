@@ -247,16 +247,28 @@ export function computePaymentScenarios(
   realCost: number,
   taxPct: number,
   cardRatePct = 3.5,
+  customRates?: {
+    pix?: number;
+    debito?: number;
+    credito1x?: number;
+    parcelado?: number;
+  },
 ): PaymentScenario[] {
   const taxRate = Math.min(taxPct, 50) / 100;
   const standardCardRate = Math.min(cardRatePct, 30);
 
+  const pixRate = customRates?.pix !== undefined ? Math.max(0, customRates.pix) : 0;
+  const debitoRate = customRates?.debito !== undefined ? Math.max(0, customRates.debito) : 1.5;
+  const creditoRate = customRates?.credito1x !== undefined ? Math.max(0, customRates.credito1x) : 3.3;
+  const parcelado3xRate = customRates?.parcelado !== undefined ? Math.max(0, customRates.parcelado) : 4.5;
+  const parcelado6xRate = customRates?.parcelado !== undefined ? Math.max(0, Number((customRates.parcelado * 1.5).toFixed(1))) : 6.9;
+
   const scenarios = [
-    { label: "Pix / Dinheiro", icon: "💸", rate: 0 },
-    { label: "Cartão Débito (1.5%)", icon: "💳", rate: 1.5 },
-    { label: "Cartão Crédito (3.3%)", icon: "💳", rate: 3.3 },
-    { label: "Parcelado 3x (4.5%)", icon: "📅", rate: 4.5 },
-    { label: "Parcelado 6x (6.9%)", icon: "📅", rate: 6.9 },
+    { label: pixRate > 0 ? `Pix (${pixRate.toFixed(1)}%)` : "Pix / Dinheiro", icon: "💸", rate: pixRate },
+    { label: `Cartão Débito (${debitoRate.toFixed(1)}%)`, icon: "💳", rate: debitoRate },
+    { label: `Cartão Crédito (${creditoRate.toFixed(1)}%)`, icon: "💳", rate: creditoRate },
+    { label: `Parcelado 3x (${parcelado3xRate.toFixed(1)}%)`, icon: "📅", rate: parcelado3xRate },
+    { label: `Parcelado 6x (${parcelado6xRate.toFixed(1)}%)`, icon: "📅", rate: parcelado6xRate },
     { label: "10% OFF + Cartão", icon: "🏷️", rate: standardCardRate, discountPct: 10 },
     { label: "20% OFF (Liquidação)", icon: "🔥", rate: standardCardRate, discountPct: 20 },
   ] as Array<{ label: string; icon: string; rate: number; discountPct?: number }>;

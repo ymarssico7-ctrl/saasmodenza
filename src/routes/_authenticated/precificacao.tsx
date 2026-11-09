@@ -2509,6 +2509,11 @@ function Precificacao() {
     return match ? match.shortLabel : "Manual";
   }, [cardPresets, cardRate]);
 
+  // Limite seguro dinâmico para margem sobre a venda (evita divisor <= 0)
+  const maxMarginSafe = useMemo(() => {
+    return Math.max(10, Math.floor(100 - (tax || 0) - (cardRate || 0) - 2));
+  }, [tax, cardRate]);
+
   // ── Rateio Operacional: Colapsável ───────────────────────────
   const [showOverhead, setShowOverhead] = useState(false);
   const [showColorInput, setShowColorInput] = useState(false);
@@ -2981,17 +2986,17 @@ function Precificacao() {
         resolvePerUnit(other, otherMode, units);
       const deductionsPerUnit = singleResult.deductions;
       const netRevPerUnit = singleResult.netRevenue;
-      const be = netRevPerUnit > 0 && singleResult.realCost > 0
-        ? Math.ceil(singleResult.realCost / netRevPerUnit)
-        : 1;
-      const isBreakEvenReachable = singleResult.profit > 0 && be <= units;
-
       const totalWholesale = wholes * units;
       const totalSharedCosts = sharedPerUnit * units;
       const totalInvestment = singleResult.realCost * units;
       const totalRevenue = singleResult.suggestedPrice * units;
       const totalProfit = singleResult.profit * units;
       const totalDeductions = deductionsPerUnit * units;
+
+      const be = netRevPerUnit > 0 && totalInvestment > 0
+        ? Math.ceil(totalInvestment / netRevPerUnit)
+        : 1;
+      const isBreakEvenReachable = singleResult.profit > 0 && be <= units;
 
       return {
         minSuggested: singleResult.suggestedPrice,
@@ -3195,8 +3200,9 @@ function Precificacao() {
       summaryPrices.avgCost,
       tax,
       cardRate,
+      pricingSettings.cardRates,
     );
-  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax, cardRate]);
+  }, [summaryPrices.avgSuggested, summaryPrices.avgCost, tax, cardRate, pricingSettings.cardRates]);
 
 
 
@@ -4022,7 +4028,7 @@ function Precificacao() {
   const openRateioAssistant = (target: "freight" | "packaging" | "other") => {
     setRateioTarget(target);
     setRateioTotal("");
-    setRateioPieces(actualLotUnits > 0 ? String(actualLotUnits) : "20");
+    setRateioPieces(effectiveSharedUnits > 0 ? String(effectiveSharedUnits) : (actualLotUnits > 0 ? String(actualLotUnits) : "20"));
   };
 
   const applyRateio = () => {
@@ -4038,23 +4044,27 @@ function Precificacao() {
 
     if (rateioTarget === "freight") {
       setFreight(formatted);
+      setFreightMode("per_unit");
       toast.success(`Frete rateado: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
     } else if (rateioTarget === "packaging") {
       setPackaging(formatted);
+      setPackagingMode("per_unit");
       toast.success(`Embalagem rateada: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
     } else if (rateioTarget === "other") {
       setOther(formatted);
+      setOtherMode("per_unit");
       toast.success(`Outros custos rateados: R$ ${formatted}/peça (R$ ${total.toFixed(2)} ÷ ${pieces} un.)`);
     }
     setRateioTarget(null);
   };
 
   const computePriceForVariantMargin = (wholesaleCost: number, targetMargin: number): number => {
+    const safeMargin = Math.min(targetMargin, maxMarginSafe);
     const freightNum = resolvePerUnit(freight, freightMode, effectiveSharedUnits);
     const packagingNum = resolvePerUnit(packaging, packagingMode, effectiveSharedUnits);
     const otherNum = resolvePerUnit(other, otherMode, effectiveSharedUnits);
     const realCost = wholesaleCost + freightNum + packagingNum + otherNum;
-    const divisor = 1 - (targetMargin + tax + cardRate) / 100;
+    const divisor = 1 - (safeMargin + tax + cardRate) / 100;
     if (divisor <= 0) return 0;
     return realCost / divisor;
   };
@@ -4780,7 +4790,33 @@ function Precificacao() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       setEntrySheetOpen(false);
-      resetPricingModel(true);
+
+      if (mode === "grade" && gradeModels.length > 1) {
+        // Remove apenas o modelo que acabou de ser cadastrado no estoque
+        const remainingModels = gradeModels.filter((m) => m.id !== activeModelId);
+        setGradeModels(remainingModels);
+        const nextModel = remainingModels[0]!;
+        isSwitchingModelRef.current = true;
+        setActiveModelId(nextModel.id);
+        setName(nextModel.name);
+        setCategory(nextModel.category);
+        setBaseWholesaleGrade(nextModel.baseWholesale);
+        setVariants(nextModel.variants);
+        setActiveColors(nextModel.activeColors);
+        if (nextModel.strategyMode) setStrategy(nextModel.strategyMode);
+        if (nextModel.marginStr) setDesiredMargin(toNumber(nextModel.marginStr) || 50);
+        if (nextModel.markupStr) setMarkup(toNumber(nextModel.markupStr) || 100);
+        if (nextModel.directPrice !== undefined) setDirectSalePrice(nextModel.directPrice);
+        setTimeout(() => {
+          isSwitchingModelRef.current = false;
+        }, 50);
+        toast.success(`Peça cadastrada no Estoque! 📦 Restam ${remainingModels.length} modelo(s) no lote.`, {
+          description: `Avançando para "${nextModel.name || "Próximo modelo"}".`,
+        });
+      } else {
+        // Se era peça única ou o último modelo do lote, limpa o modelo e o rascunho
+        resetPricingModel(true);
+      }
 
       // Auto-publicar na vitrine se a flag estiver ativa (sincronizado com estoque.tsx)
       if (res?.firstId && getAutoPublish()) {
@@ -4795,7 +4831,7 @@ function Precificacao() {
         toast.success(`Grade de ${res.count} cores cadastrada no Estoque! 📦`, {
           description: `${entryTotalUnits} unidades registradas individualmente por cor.`,
         });
-      } else {
+      } else if (mode !== "grade" || gradeModels.length <= 1) {
         toast.success("Peça cadastrada no Estoque com sucesso! 📦", {
           description: `${entryTotalUnits} unidades registradas na grade.`,
         });
@@ -5457,7 +5493,7 @@ function Precificacao() {
             MODO PEÇA ÚNICA — PASSO 3: PREÇO DE VENDA
         ══════════════════════════════════════════════════════════════════ */}
         {mode === "rapida" && (() => {
-          const maxMarginSafe = Math.max(10, Math.floor(100 - tax - cardRate - 2));
+          // maxMarginSafe gerenciado no escopo do componente
           const effectiveMarginVal = Math.min(desiredMargin, maxMarginSafe);
           const hasCost = toNumber(wholesale) > 0;
 
@@ -7002,7 +7038,7 @@ function Precificacao() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const next = Math.min(95, desiredMargin + 5);
+                                  const next = Math.min(maxMarginSafe, desiredMargin + 5);
                                   setDesiredMargin(next);
                                   setMatrixGlobalMarginStr(String(next));
                                 }}
@@ -7474,7 +7510,7 @@ function Precificacao() {
                                         } : undefined}
                                         resetTitle="Resetar para margem padrão"
                                         min={1}
-                                        max={99.9}
+                                        max={maxMarginSafe}
                                         step={1}
                                         shiftStep={5}
                                         altStep={0.5}
