@@ -72,10 +72,10 @@ export const Route = createFileRoute("/_authenticated/clientes")({
   }),
   head: () => ({
     meta: [
-      { title: "Clientes & Fiado — Vestui" },
+      { title: "Carteira de Clientes & Fiado — Vestui" },
       {
         name: "description",
-        content: "Gestão completa de clientes: histórico de compras, fiado pendente, VIPs e contato rápido no WhatsApp.",
+        content: "Gestão completa de clientes: histórico de compras, LTV, fiado pendente, VIPs e relacionamento no WhatsApp.",
       },
     ],
   }),
@@ -124,6 +124,14 @@ function maskPhone(val: string): string {
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+}
+
+function isRecentPurchase(isoDate: string | null): boolean {
+  if (!isoDate) return false;
+  const d = new Date(isoDate);
+  const now = new Date();
+  const diffDays = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
+  return diffDays <= 30;
 }
 
 function ClientesPage() {
@@ -180,6 +188,7 @@ function ClientesPage() {
 
   // Estados Clientes & Modal
   const [busca, setBusca] = useState("");
+  const [filtroCrm, setFiltroCrm] = useState<"todas" | "vip" | "recentes" | "fiado">("todas");
   const [modalCliente, setModalCliente] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<{ id: string; name: string; phone: string } | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -273,7 +282,6 @@ function ClientesPage() {
           return true;
         }
         try {
-          // Busca estrita por palavra inteira para evitar que "Ana" capture "Banana"
           const escaped = norm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           const regex = new RegExp(`\\b${escaped}\\b`, "i");
           return regex.test(desc);
@@ -317,24 +325,35 @@ function ClientesPage() {
     return list.sort((a, b) => b.totalGasto - a.totalGasto);
   }, [customersData, credits, txs, orders]);
 
-  // Filtro de busca clientes
+  // Filtro de busca e segmentação por chips da Carteira de Clientes
   const clientesFiltrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
-    if (!q) return clientes;
-    return clientes.filter(
-      (c) =>
+    return clientes.filter((c) => {
+      // Filtro de segmentação por chip
+      if (filtroCrm === "vip" && !c.vip) return false;
+      if (filtroCrm === "recentes" && !isRecentPurchase(c.ultimaCompra)) return false;
+      if (filtroCrm === "fiado" && c.saldoDevedor <= 0) return false;
+
+      // Filtro textual
+      if (!q) return true;
+      return (
         c.nome.toLowerCase().includes(q) ||
         c.telefone.includes(q) ||
-        c.cidade.toLowerCase().includes(q),
-    );
-  }, [clientes, busca]);
+        c.cidade.toLowerCase().includes(q)
+      );
+    });
+  }, [clientes, busca, filtroCrm]);
 
-  // Métricas do CRM com concordância gramatical blindada
+  // Métricas do CRM com cálculo de Ticket Médio e concordância gramatical
   const totalClientes = clientes.length;
   const clientesCompradores = clientes.filter((c) => c.totalPedidos > 0).length;
   const totalVIPs = clientes.filter((c) => c.vip).length;
   const totalFiadoPendente = clientes.reduce((acc, c) => acc + c.saldoDevedor, 0);
   const totalLTVCarteira = clientes.reduce((acc, c) => acc + c.totalGasto, 0);
+  const totalPedidosGeral = clientes.reduce((acc, c) => acc + c.totalPedidos, 0);
+  const ticketMedioGeral = totalPedidosGeral > 0 ? totalLTVCarteira / totalPedidosGeral : 0;
+  const clientesRecentesCount = clientes.filter((c) => isRecentPurchase(c.ultimaCompra)).length;
+  const clientesComFiadoCount = clientes.filter((c) => c.saldoDevedor > 0).length;
 
   // Cálculos do Fiado
   const fiadosComStatus = useMemo(() => {
@@ -398,7 +417,7 @@ function ClientesPage() {
     setCustomerPhone("");
   };
 
-  // Mutações Cliente (Salvar Novo / Atualizar Existente)
+  // Mutações Cliente
   const saveCustomerMutation = useMutation({
     mutationFn: async () => {
       if (!customerName.trim()) throw new Error("Informe o nome do cliente.");
@@ -538,19 +557,67 @@ function ClientesPage() {
     window.open(`https://wa.me/${telFormatado}?text=${msg}`, "_blank");
   };
 
+  // Metadados contextuais de acordo com a aba ativa
+  const isTabClientes = activeTab === "clientes";
+
   return (
     <div className="space-y-6">
+      {/* Page Header Dinâmico e Contextual */}
       <PageHeader
-        eyebrow="Vendas & Atendimento"
-        title={fiadoAtivo ? "Clientes & Fiado" : "Carteira de Clientes"}
+        eyebrow={isTabClientes ? "Vendas & Relacionamento" : "Controle de Recebimentos"}
+        title={isTabClientes ? "Carteira de Clientes" : "Caderninho de Fiado"}
         description={
-          fiadoAtivo
-            ? "Gestão unificada da carteira de clientes, histórico de compras, títulos a receber e cobrança com 1 clique no WhatsApp."
-            : "Gestão unificada da carteira de clientes, histórico de compras balcão e online e contato rápido via WhatsApp."
+          isTabClientes
+            ? "Acompanhe suas clientes fiéis, receita acumulada (LTV), melhores compradoras e relacionamento no WhatsApp."
+            : "Controle de vendas a prazo, títulos em aberto, vencimentos e cobrança suave no WhatsApp."
         }
         action={
           <div className="flex items-center gap-2">
-            {activeTab === "clientes" ? (
+            {/* Seletor Rápido de Contexto (Segmented Control Executivo) */}
+            {fiadoAtivo && (
+              <div className="flex items-center rounded-full border border-border bg-card p-1 shadow-2xs mr-1">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange("clientes")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                    isTabClientes
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Users className="size-3.5" />
+                  Clientes ({totalClientes})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange("fiado")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                    !isTabClientes
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <HandCoins className="size-3.5" />
+                  Fiado
+                  {fiadosAbertos.length > 0 && (
+                    <span
+                      className={cn(
+                        "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
+                        !isTabClientes
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold"
+                      )}
+                    >
+                      {fiadosAbertos.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {isTabClientes ? (
               <Button
                 className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
                 onClick={openNewCustomer}
@@ -569,30 +636,13 @@ function ClientesPage() {
         }
       />
 
-      {/* Alternador de Abas: Clientes & CRM vs. Caderninho de Fiado */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        {fiadoAtivo && (
-          <TabsList className="rounded-full bg-secondary/80 p-1 border border-border">
-            <TabsTrigger value="clientes" className="rounded-full px-5 text-xs font-semibold">
-              <Users className="size-3.5 mr-1.5" /> Clientes &amp; VIPs ({totalClientes})
-            </TabsTrigger>
-            <TabsTrigger value="fiado" className="rounded-full px-5 text-xs font-semibold">
-              <HandCoins className="size-3.5 mr-1.5" /> Caderninho de Fiado
-              {fiadosAbertos.length > 0 && (
-                <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                  {fiadosAbertos.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        )}
-
-        {/* ─── ABA 1: CLIENTES & CRM ────────────────────────────────────────────── */}
-        <TabsContent value="clientes" className="space-y-6 mt-0">
-          {/* Métricas do CRM com concordância gramatical */}
-          <div className="grid gap-4 sm:grid-cols-3">
+      {/* Conteúdo Contextual: CARTEIRA DE CLIENTES (CRM) */}
+      {isTabClientes ? (
+        <div className="space-y-6">
+          {/* StatCards Nobres de CRM (4 KPIs Executivos) */}
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             <StatCard
-              label="Total de clientes"
+              label="Base de Clientes"
               value={String(totalClientes)}
               hint={
                 clientesCompradores === 1
@@ -604,91 +654,131 @@ function ClientesPage() {
             <StatCard
               label="Clientes VIPs"
               value={String(totalVIPs)}
-              hint="Mais de R$ 500 em compras ou 3+ pedidos"
+              hint="Compras > R$ 500 ou 3+ pedidos"
               icon={<Star className="size-4 text-amber-500 fill-amber-500/30" />}
             />
-            {fiadoAtivo ? (
-              <StatCard
-                label="Fiado total pendente"
-                value={brl(totalFiadoPendente)}
-                tone={totalFiadoPendente > 0 ? "warning" : "default"}
-                hint={
-                  totalFiadoPendente > 0
-                    ? "Cobrança via WhatsApp no Caderninho"
-                    : "Tudo quitado e em dia"
-                }
-                icon={<HandCoins className="size-4" />}
-              />
-            ) : (
-              <StatCard
-                label="Total em Compras (LTV)"
-                value={brl(totalLTVCarteira)}
-                hint="Soma do histórico dos clientes cadastrados"
-                icon={<ShoppingBag className="size-4 text-primary" />}
-              />
-            )}
-          </div>
-
-          {/* Barra de Busca com botão de limpar */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, telefone ou cidade..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
+            <StatCard
+              label="Receita da Carteira (LTV)"
+              value={brl(totalLTVCarteira)}
+              hint="Total gerado pelas clientes cadastradas"
+              icon={<ShoppingBag className="size-4 text-emerald-600" />}
             />
-            {busca && (
-              <button
-                type="button"
-                onClick={() => setBusca("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
-                aria-label="Limpar busca"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
+            <StatCard
+              label="Ticket Médio / Compra"
+              value={brl(ticketMedioGeral)}
+              hint={
+                totalPedidosGeral > 0
+                  ? `Média calculada sobre ${totalPedidosGeral} pedidos`
+                  : "Sem histórico de pedidos"
+              }
+              icon={<Sparkles className="size-4 text-indigo-500" />}
+            />
           </div>
 
-          {/* Conteúdo: Tabela Executiva no Padrão Vestui Quiet Luxury */}
+          {/* Barra de Busca + Chips de Segmentação Inteligente */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente por nome, telefone ou cidade..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
+              />
+              {busca && (
+                <button
+                  type="button"
+                  onClick={() => setBusca("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
+                  aria-label="Limpar busca"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Chips de Segmentação Ativa do CRM */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
+              {[
+                { value: "todas", label: "Todas as clientes", count: totalClientes },
+                { value: "vip", label: "★ Melhores clientes (VIPs)", count: totalVIPs },
+                { value: "recentes", label: "Compras recentes (30d)", count: clientesRecentesCount },
+                ...(fiadoAtivo
+                  ? [{ value: "fiado", label: "Com fiado pendente", count: clientesComFiadoCount }]
+                  : []),
+              ].map((chip) => {
+                const isSelected = filtroCrm === chip.value;
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => setFiltroCrm(chip.value as any)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted"
+                    )}
+                  >
+                    <span>{chip.label}</span>
+                    <span
+                      className={cn(
+                        "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
+                        isSelected
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-surface-muted text-muted-foreground"
+                      )}
+                    >
+                      {chip.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tabela Executiva Proporcional de Clientes */}
           {totalClientes === 0 ? (
             <EmptyState
               icon={<UserRound className="size-8" />}
-              title="Nenhum cliente cadastrado"
-              description="Cadastre seus clientes para acompanhar o histórico de compras, faturamento e débitos de fiado."
+              title="Nenhuma cliente cadastrada"
+              description="Cadastre suas clientes para acompanhar histórico de compras, faturamento LTV e reativar contatos."
               action={
                 <Button onClick={openNewCustomer} className="rounded-full h-10 px-5 text-xs font-semibold shadow-glow cursor-pointer gap-1.5">
-                  <Plus className="size-4" /> Cadastrar primeiro cliente
+                  <Plus className="size-4" /> Cadastrar primeira cliente
                 </Button>
               }
             />
           ) : clientesFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-10 text-center shadow-soft">
               <Search className="size-8 text-muted-foreground/50 mb-3" />
-              <h3 className="text-sm font-semibold text-foreground">Nenhum cliente encontrado</h3>
+              <h3 className="text-sm font-semibold text-foreground">Nenhuma cliente encontrada</h3>
               <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-                Tente buscar por outro termo ou limpe o campo de busca.
+                Tente buscar por outro termo ou limpe os filtros ativos.
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setBusca("")}
+                onClick={() => {
+                  setBusca("");
+                  setFiltroCrm("todas");
+                }}
                 className="mt-4 rounded-full text-xs font-semibold"
               >
-                Limpar busca
+                Limpar filtros
               </Button>
             </div>
           ) : (
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs table-fixed">
                   <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border">
                     <tr>
-                      <th className="py-3.5 px-4">Cliente / Perfil</th>
-                      <th className="py-3.5 px-4">Contato &amp; WhatsApp</th>
-                      <th className="py-3.5 px-4">Histórico &amp; LTV</th>
-                      <th className="py-3.5 px-4">Situação do Fiado</th>
-                      <th className="py-3.5 px-4 text-right">Ações</th>
+                      <th className="py-3.5 px-4 w-[32%]">Cliente / Perfil</th>
+                      <th className="py-3.5 px-4 w-[22%]">Contato &amp; WhatsApp</th>
+                      <th className="py-3.5 px-4 w-[20%]">Histórico &amp; LTV</th>
+                      <th className="py-3.5 px-4 w-[14%]">Situação do Fiado</th>
+                      <th className="py-3.5 px-4 w-[12%] text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
@@ -699,7 +789,7 @@ function ClientesPage() {
                           <div className="flex items-center gap-3">
                             <div
                               className={cn(
-                                "flex size-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold border",
+                                "flex size-10 shrink-0 items-center justify-center rounded-2xl text-xs font-bold border shadow-2xs",
                                 c.vip
                                   ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
                                   : "bg-surface-muted text-foreground border-border",
@@ -718,9 +808,9 @@ function ClientesPage() {
                                   </span>
                                 )}
                               </div>
-                              {c.cidade && (
-                                <p className="text-[11px] text-muted-foreground truncate">{c.cidade}</p>
-                              )}
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {c.cidade ? c.cidade : "Cliente cadastrada"}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -745,10 +835,10 @@ function ClientesPage() {
                             <button
                               type="button"
                               onClick={() => openEditCustomer(c)}
-                              className="text-muted-foreground/60 hover:text-foreground text-[11px] italic underline cursor-pointer"
-                              title="Clique para adicionar telefone"
+                              className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors cursor-pointer"
+                              title="Clique para cadastrar o WhatsApp"
                             >
-                              + Adicionar WhatsApp
+                              + Cadastrar WhatsApp
                             </button>
                           )}
                         </td>
@@ -756,7 +846,7 @@ function ClientesPage() {
                         {/* Coluna 3: Histórico & LTV */}
                         <td className="py-3.5 px-4">
                           <div>
-                            <p className="font-semibold text-foreground text-xs numeric">
+                            <p className="font-semibold text-foreground text-sm numeric">
                               {brl(c.totalGasto)}
                             </p>
                             <p className="text-[11px] text-muted-foreground numeric">
@@ -776,14 +866,14 @@ function ClientesPage() {
                                   setBuscaFiado(c.nome);
                                   handleTabChange("fiado");
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full bg-destructive/10 border border-destructive/20 px-2.5 py-1 text-xs font-semibold text-destructive hover:bg-destructive/20 cursor-pointer transition-colors"
+                                className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 border border-rose-500/25 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors"
                                 title="Ver títulos de fiado desta cliente"
                               >
                                 <AlertCircle className="size-3" />
                                 Deve <span className="numeric font-bold">{brl(c.saldoDevedor)}</span> →
                               </button>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                                 <CheckCircle2 className="size-3" />
                                 Em dia
                               </span>
@@ -796,21 +886,6 @@ function ClientesPage() {
                         {/* Coluna 5: Ações */}
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {fiadoAtivo && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setFiadoCustomerId(c.id);
-                                  setModalNovoFiado(true);
-                                }}
-                                className="h-8 rounded-full px-2.5 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                                title="Registrar fiado para esta cliente"
-                              >
-                                <Plus className="size-3" /> Fiado
-                              </Button>
-                            )}
-
                             {c.telefone && (
                               <Button
                                 variant="ghost"
@@ -875,285 +950,283 @@ function ClientesPage() {
               </div>
             </div>
           )}
-        </TabsContent>
+        </div>
+      ) : (
+        /* Conteúdo Contextual: CADERNINHO DE FIADO */
+        <div className="space-y-6">
+          {/* Métricas do Fiado */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Saldo Total a Receber"
+              value={brl(fiadosAbertosTotal)}
+              tone="primary"
+              icon={<Users className="size-4" />}
+              hint={
+                fiadosAbertos.length > 0
+                  ? `${fiadosAbertos.length} ${fiadosAbertos.length === 1 ? "título ativo na praça" : "títulos ativos na praça"}`
+                  : "Nenhum fiado em aberto"
+              }
+            />
+            <StatCard
+              label="Vencidos em Atraso"
+              value={brl(fiadosVencidosTotal)}
+              tone={fiadosVencidosTotal > 0 ? "negative" : "default"}
+              icon={<AlertTriangle className="size-4 text-destructive" />}
+              hint={
+                fiadosAbertosTotal > 0
+                  ? `${pct((fiadosVencidosTotal / fiadosAbertosTotal) * 100)} do saldo pendente em atraso`
+                  : "Nenhum fiado em atraso"
+              }
+            />
+            <StatCard
+              label="Já Recebido / Quitado"
+              value={brl(fiadosRecebidosTotal)}
+              tone="positive"
+              icon={<CheckCircle2 className="size-4 text-emerald-600" />}
+              hint={(() => {
+                const paidCount = fiadosComStatus.filter((c) => c.status === "pago").length;
+                const totalCount = fiadosComStatus.length;
+                if (totalCount === 0) return "Nenhum título registrado";
+                return `${paidCount} de ${totalCount} título${totalCount !== 1 ? "s" : ""} quitado${paidCount !== 1 ? "s" : ""}`;
+              })()}
+            />
+          </div>
 
-        {/* ─── ABA 2: CADERNINHO DE FIADO ────────────────────────────────────────── */}
-        {fiadoAtivo && (
-          <TabsContent value="fiado" className="space-y-6 mt-0">
-            {/* Métricas do Fiado */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard
-                label="Total em aberto"
-                value={brl(fiadosAbertosTotal)}
-                tone="primary"
-                icon={<Users className="size-4" />}
-                hint={
-                  fiadosAbertos.length > 0
-                    ? `${fiadosAbertos.length} ${fiadosAbertos.length === 1 ? "título ativo" : "títulos ativos"}`
-                    : "Nenhum fiado em aberto"
-                }
+          {/* Barra de Busca de Fiados + Chips de Status */}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar fiado por cliente ou descrição das peças..."
+                value={buscaFiado}
+                onChange={(e) => setBuscaFiado(e.target.value)}
+                className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
               />
-              <StatCard
-                label="Vencido em atraso"
-                value={brl(fiadosVencidosTotal)}
-                tone={fiadosVencidosTotal > 0 ? "negative" : "default"}
-                icon={<AlertTriangle className="size-4 text-destructive" />}
-                hint={
-                  fiadosAbertosTotal > 0
-                    ? `${pct((fiadosVencidosTotal / fiadosAbertosTotal) * 100)} do saldo em atraso`
-                    : "Nenhum fiado em atraso"
-                }
-              />
-              <StatCard
-                label="Já recebido no caixa"
-                value={brl(fiadosRecebidosTotal)}
-                tone="positive"
-                icon={<CheckCircle2 className="size-4 text-emerald-600" />}
-                hint={(() => {
-                  const paidCount = fiadosComStatus.filter((c) => c.status === "pago").length;
-                  const totalCount = fiadosComStatus.length;
-                  if (totalCount === 0) return "Nenhum título registrado";
-                  return `${paidCount} de ${totalCount} título${totalCount !== 1 ? "s" : ""} quitado${paidCount !== 1 ? "s" : ""}`;
-                })()}
-              />
+              {buscaFiado && (
+                <button
+                  type="button"
+                  onClick={() => setBuscaFiado("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
+                  aria-label="Limpar busca"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* Barra de Busca de Fiados + Chips de Status */}
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar fiado por cliente ou descrição das peças..."
-                  value={buscaFiado}
-                  onChange={(e) => setBuscaFiado(e.target.value)}
-                  className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
-                />
-                {buscaFiado && (
+            {/* Chips Rápidos de Filtro por Status */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
+              {[
+                { value: "todos", label: "Todos os títulos", count: fiadosComStatus.length },
+                { value: "pendente", label: "Pendentes", count: fiadosAbertos.length },
+                {
+                  value: "vencido",
+                  label: "Vencidos em atraso",
+                  count: fiadosComStatus.filter((c) => c.status === "vencido").length,
+                },
+                {
+                  value: "pago",
+                  label: "Já quitados",
+                  count: fiadosComStatus.filter((c) => c.status === "pago").length,
+                },
+              ].map((chip) => {
+                const isSelected = filtroStatusFiado === chip.value;
+                return (
                   <button
+                    key={chip.value}
                     type="button"
-                    onClick={() => setBuscaFiado("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
-                    aria-label="Limpar busca"
+                    onClick={() => setFiltroStatusFiado(chip.value as any)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted",
+                    )}
                   >
-                    <X className="size-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Chips Rápidos de Filtro por Status */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
-                {[
-                  { value: "todos", label: "Todos os títulos", count: fiadosComStatus.length },
-                  { value: "pendente", label: "Pendentes", count: fiadosAbertos.length },
-                  {
-                    value: "vencido",
-                    label: "Vencidos",
-                    count: fiadosComStatus.filter((c) => c.status === "vencido").length,
-                  },
-                  {
-                    value: "pago",
-                    label: "Quitados",
-                    count: fiadosComStatus.filter((c) => c.status === "pago").length,
-                  },
-                ].map((chip) => {
-                  const isSelected = filtroStatusFiado === chip.value;
-                  return (
-                    <button
-                      key={chip.value}
-                      type="button"
-                      onClick={() => setFiltroStatusFiado(chip.value as any)}
+                    <span>{chip.label}</span>
+                    <span
                       className={cn(
-                        "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
+                        "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
                         isSelected
-                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                          : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted",
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-surface-muted text-muted-foreground",
                       )}
                     >
-                      <span>{chip.label}</span>
-                      <span
-                        className={cn(
-                          "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
-                          isSelected
-                            ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-surface-muted text-muted-foreground",
-                        )}
-                      >
-                        {chip.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {chip.count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Lista de Fiados no Formato Card Executivo */}
-            {fiadosFiltrados.length === 0 ? (
-              <EmptyState
-                icon={<HandCoins className="size-8" />}
-                title={buscaFiado || filtroStatusFiado !== "todos" ? "Nenhum fiado encontrado" : "Nenhum fiado registrado"}
-                description={
-                  buscaFiado || filtroStatusFiado !== "todos"
-                    ? "Tente alterar os filtros ou o termo de busca."
-                    : "Quando vender a prazo, registre aqui para ter controle dos pagamentos e lembretes de cobrança."
-                }
-              />
-            ) : (
-              <div className="space-y-3">
-                {fiadosFiltrados.map((c) => {
-                  const remaining = Number(c.amount) - Number(c.paid_amount);
-                  const customerPhone = c.customers?.phone;
-                  const customerName = c.customers?.name ?? "Cliente";
+          {/* Fichas Executivas de Fiado */}
+          {fiadosFiltrados.length === 0 ? (
+            <EmptyState
+              icon={<HandCoins className="size-8" />}
+              title={buscaFiado || filtroStatusFiado !== "todos" ? "Nenhum fiado encontrado" : "Nenhum fiado registrado"}
+              description={
+                buscaFiado || filtroStatusFiado !== "todos"
+                  ? "Tente alterar os filtros ou o termo de busca."
+                  : "Quando vender a prazo, registre aqui para ter controle dos pagamentos e lembretes de cobrança."
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {fiadosFiltrados.map((c) => {
+                const remaining = Number(c.amount) - Number(c.paid_amount);
+                const customerPhone = c.customers?.phone;
+                const customerName = c.customers?.name ?? "Cliente";
 
-                  return (
-                    <div
-                      key={c.id}
-                      className="overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-soft transition-all"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-base font-semibold text-foreground">{customerName}</p>
-                            <Badge
-                              className="rounded-full text-[10px] font-semibold"
-                              variant={
-                                c.status === "pago"
-                                  ? "secondary"
-                                  : c.status === "vencido"
-                                    ? "destructive"
-                                    : "outline"
-                              }
-                            >
-                              {CREDIT_STATUS_LABEL[c.status]}
-                            </Badge>
-                          </div>
-                          <p className="mt-1 text-sm text-foreground/80 font-medium">
-                            {c.description}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Compra em {formatDate(c.purchase_date)} ·{" "}
-                            <strong className={c.status === "vencido" ? "text-destructive font-semibold" : ""}>
-                              Vence em {formatDate(c.due_date)}
-                            </strong>
-                          </p>
+                return (
+                  <div
+                    key={c.id}
+                    className="overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-soft transition-all"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-base font-semibold text-foreground">{customerName}</p>
+                          <Badge
+                            className="rounded-full text-[10px] font-semibold"
+                            variant={
+                              c.status === "pago"
+                                ? "secondary"
+                                : c.status === "vencido"
+                                  ? "destructive"
+                                  : "outline"
+                            }
+                          >
+                            {CREDIT_STATUS_LABEL[c.status]}
+                          </Badge>
                         </div>
-
-                        <div className="text-right">
-                          <p className="numeric text-lg font-bold text-foreground">
-                            {brl(remaining)}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            Total da compra: {brl(Number(c.amount))}
-                          </p>
-                        </div>
+                        <p className="mt-1 text-sm text-foreground/80 font-medium">
+                          {c.description}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Compra em {formatDate(c.purchase_date)} ·{" "}
+                          <strong className={c.status === "vencido" ? "text-destructive font-semibold" : ""}>
+                            Vence em {formatDate(c.due_date)}
+                          </strong>
+                        </p>
                       </div>
 
-                      {c.status !== "pago" && (
-                        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
-                          {/* Pagamento Parcial / Quitação */}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="w-28 sm:w-32">
-                              <Input
-                                inputMode="decimal"
-                                value={payments[c.id] ?? ""}
-                                onChange={(e) =>
-                                  setPayments((p) => ({ ...p, [c.id]: e.target.value }))
-                                }
-                                placeholder={brl(remaining)}
-                                className="h-9.5 rounded-xl text-xs font-mono"
-                              />
-                            </div>
-                            <Select
-                              value={payMethods[c.id] ?? "dinheiro"}
-                              onValueChange={(val) => setPayMethods((p) => ({ ...p, [c.id]: val }))}
-                            >
-                              <SelectTrigger className="h-9.5 w-26 rounded-xl text-xs font-medium shrink-0">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                                <SelectItem value="pix">Pix</SelectItem>
-                                <SelectItem value="debito">Débito</SelectItem>
-                                <SelectItem value="credito">Crédito</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              className="h-9.5 rounded-full text-xs font-semibold shadow-soft cursor-pointer whitespace-nowrap"
-                              disabled={payCreditMutation.isPending}
-                              onClick={() => {
-                                const rawInput = (payments[c.id] ?? "").trim();
-                                let valToPay = remaining;
-                                if (rawInput !== "") {
-                                  valToPay = toNumber(rawInput);
-                                  if (isNaN(valToPay) || valToPay <= 0) {
-                                    toast.error("Informe um valor de pagamento válido maior que zero.");
-                                    return;
-                                  }
-                                  if (valToPay > remaining + 0.005) {
-                                    toast.error(
-                                      `O valor (${brl(valToPay)}) é maior que o saldo devedor (${brl(remaining)}).`,
-                                    );
-                                    return;
-                                  }
-                                }
-                                payCreditMutation.mutate({
-                                  credit: c,
-                                  value: valToPay,
-                                  method: payMethods[c.id] ?? "dinheiro",
-                                });
-                              }}
-                            >
-                              <CheckCircle2 className="size-3.5 mr-1" />
-                              {payments[c.id]?.trim() ? "Receber parcial" : "Quitar total"}
-                            </Button>
-                          </div>
+                      <div className="text-right">
+                        <p className="numeric text-lg font-bold text-foreground">
+                          {brl(remaining)}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Total da compra: {brl(Number(c.amount))}
+                        </p>
+                      </div>
+                    </div>
 
-                          {/* Botão de Cobrança amigável no WhatsApp + Exclusão */}
-                          <div className="flex items-center gap-2">
-                            {customerPhone && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  cobrarFiadoWhatsApp(
-                                    customerPhone,
-                                    customerName,
-                                    remaining,
-                                    c.due_date,
-                                  )
-                                }
-                                className="h-9.5 rounded-full gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
-                              >
-                                <MessageCircle className="size-3.5" /> Cobrar via WhatsApp
-                              </Button>
-                            )}
-
-                            <ConfirmDelete
-                              onConfirm={() => deleteCreditMutation.mutate(c.id)}
-                              description="O fiado e os pagamentos lançados no caixa serão removidos permanentemente."
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-9 rounded-full text-muted-foreground hover:text-destructive cursor-pointer"
-                                  aria-label="Excluir fiado"
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
+                    {c.status !== "pago" && (
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+                        {/* Pagamento Parcial / Quitação */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="w-28 sm:w-32">
+                            <Input
+                              inputMode="decimal"
+                              value={payments[c.id] ?? ""}
+                              onChange={(e) =>
+                                setPayments((p) => ({ ...p, [c.id]: e.target.value }))
                               }
+                              placeholder={brl(remaining)}
+                              className="h-9.5 rounded-xl text-xs font-mono"
                             />
                           </div>
+                          <Select
+                            value={payMethods[c.id] ?? "dinheiro"}
+                            onValueChange={(val) => setPayMethods((p) => ({ ...p, [c.id]: val }))}
+                          >
+                            <SelectTrigger className="h-9.5 w-26 rounded-xl text-xs font-medium shrink-0">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="pix">Pix</SelectItem>
+                              <SelectItem value="debito">Débito</SelectItem>
+                              <SelectItem value="credito">Crédito</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="h-9.5 rounded-full text-xs font-semibold shadow-soft cursor-pointer whitespace-nowrap"
+                            disabled={payCreditMutation.isPending}
+                            onClick={() => {
+                              const rawInput = (payments[c.id] ?? "").trim();
+                              let valToPay = remaining;
+                              if (rawInput !== "") {
+                                valToPay = toNumber(rawInput);
+                                if (isNaN(valToPay) || valToPay <= 0) {
+                                  toast.error("Informe um valor de pagamento válido maior que zero.");
+                                  return;
+                                }
+                                if (valToPay > remaining + 0.005) {
+                                  toast.error(
+                                    `O valor (${brl(valToPay)}) é maior que o saldo devedor (${brl(remaining)}).`,
+                                  );
+                                  return;
+                                }
+                              }
+                              payCreditMutation.mutate({
+                                credit: c,
+                                value: valToPay,
+                                method: payMethods[c.id] ?? "dinheiro",
+                              });
+                            }}
+                          >
+                            <CheckCircle2 className="size-3.5 mr-1" />
+                            {payments[c.id]?.trim() ? "Receber parcial" : "Quitar total"}
+                          </Button>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        )}
-      </Tabs>
+
+                        {/* Botão de Cobrança amigável no WhatsApp + Exclusão */}
+                        <div className="flex items-center gap-2">
+                          {customerPhone && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                cobrarFiadoWhatsApp(
+                                  customerPhone,
+                                  customerName,
+                                  remaining,
+                                  c.due_date,
+                                )
+                              }
+                              className="h-9.5 rounded-full gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                            >
+                              <MessageCircle className="size-3.5" /> Cobrar via WhatsApp
+                            </Button>
+                          )}
+
+                          <ConfirmDelete
+                            onConfirm={() => deleteCreditMutation.mutate(c.id)}
+                            description="O fiado e os pagamentos lançados no caixa serão removidos permanentemente."
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-9 rounded-full text-muted-foreground hover:text-destructive cursor-pointer"
+                                aria-label="Excluir fiado"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── MODAL UNIFICADO: CADASTRAR & EDITAR CLIENTE (ZERO-SCROLL) ──────── */}
       <Dialog open={modalCliente} onOpenChange={(v) => !v && closeCustomerModal()}>
@@ -1165,7 +1238,7 @@ function ClientesPage() {
             <DialogDescription className="text-xs text-muted-foreground">
               {editingCustomer
                 ? "Atualize o nome e WhatsApp para histórico de compras e contato rápido."
-                : "Adicione os dados para registrar vendas, fiado e fidelizar no WhatsApp."}
+                : "Adicione os dados para registrar compras, fiado e fidelizar no WhatsApp."}
             </DialogDescription>
           </DialogHeader>
 
