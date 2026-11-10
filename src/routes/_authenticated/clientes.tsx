@@ -12,11 +12,8 @@ import {
   Pencil,
   Plus,
   Search,
-  ShoppingBag,
-  Sparkles,
   Star,
   Trash2,
-  UserCheck,
   UserRound,
   Users,
   X,
@@ -29,7 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -72,10 +68,10 @@ export const Route = createFileRoute("/_authenticated/clientes")({
   }),
   head: () => ({
     meta: [
-      { title: "Carteira de Clientes & Fiado — Vestui" },
+      { title: "Carteira de Clientes — Vestui" },
       {
         name: "description",
-        content: "Gestão completa de clientes: histórico de compras, LTV, fiado pendente, VIPs e relacionamento no WhatsApp.",
+        content: "Gestão completa de clientes: histórico de compras, LTV e contato rápido no WhatsApp.",
       },
     ],
   }),
@@ -126,14 +122,6 @@ function maskPhone(val: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
 }
 
-function isRecentPurchase(isoDate: string | null): boolean {
-  if (!isoDate) return false;
-  const d = new Date(isoDate);
-  const now = new Date();
-  const diffDays = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
-  return diffDays <= 30;
-}
-
 function ClientesPage() {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -141,18 +129,18 @@ function ClientesPage() {
   const navigate = useNavigate({ from: Route.fullPath });
 
   const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
-  const [activeTab, setActiveTab] = useState<"clientes" | "fiado">(() => {
-    if (!isFiadoAtivo(storeId)) return "clientes";
-    return search.tab || "clientes";
-  });
+  const activeTab: "clientes" | "fiado" = useMemo(() => {
+    if (!fiadoAtivo) return "clientes";
+    return search.tab === "fiado" ? "fiado" : "clientes";
+  }, [fiadoAtivo, search.tab]);
 
   useEffect(() => {
     setFiadoAtivo(isFiadoAtivo(storeId));
     const handleFiadoChanged = () => {
       const ativo = isFiadoAtivo(storeId);
       setFiadoAtivo(ativo);
-      if (!ativo && activeTab === "fiado") {
-        setActiveTab("clientes");
+      if (!ativo && search.tab === "fiado") {
+        void navigate({ search: { tab: "clientes" } });
       }
     };
     window.addEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
@@ -161,22 +149,10 @@ function ClientesPage() {
       window.removeEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
       window.removeEventListener("storage", handleFiadoChanged);
     };
-  }, [storeId, activeTab]);
+  }, [storeId, search.tab, navigate]);
 
-  useEffect(() => {
-    if (search.tab && search.tab !== activeTab) {
-      if (search.tab === "fiado" && !fiadoAtivo) {
-        setActiveTab("clientes");
-      } else {
-        setActiveTab(search.tab);
-      }
-    }
-  }, [search.tab, activeTab, fiadoAtivo]);
-
-  const handleTabChange = (t: string) => {
-    const newTab = t as "clientes" | "fiado";
-    setActiveTab(newTab);
-    void navigate({ search: { tab: newTab } });
+  const handleTabChange = (t: "clientes" | "fiado") => {
+    void navigate({ search: { tab: t } });
   };
 
   // Queries
@@ -188,7 +164,7 @@ function ClientesPage() {
 
   // Estados Clientes & Modal
   const [busca, setBusca] = useState("");
-  const [filtroCrm, setFiltroCrm] = useState<"todas" | "vip" | "recentes" | "fiado">("todas");
+  const [apenasVips, setApenasVips] = useState(false);
   const [modalCliente, setModalCliente] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<{ id: string; name: string; phone: string } | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -234,7 +210,7 @@ function ClientesPage() {
     };
   }, [storeId]);
 
-  // Deriva o perfil completo unificado de cada cliente (com QA regex blindada)
+  // Deriva o perfil completo unificado de cada cliente
   const clientes = useMemo<ClienteCompleto[]>(() => {
     const list: ClienteCompleto[] = [];
 
@@ -267,7 +243,7 @@ function ClientesPage() {
       );
       const fiadoCount = fiados.filter((c) => Number(c.paid_amount) > 0).length;
 
-      // 3. Vendas diretas no caixa (físico) - Blindado contra colisões de substring
+      // 3. Vendas diretas no caixa (físico) - Blindagem estrita contra colisões de substring
       const directTxs = txs.filter((t) => {
         if (t.kind !== "entrada" || t.category !== "venda_produto") return false;
         if (
@@ -318,23 +294,18 @@ function ClientesPage() {
         totalPedidos,
         saldoDevedor,
         ultimaCompra,
-        vip: totalGasto >= 500 || totalPedidos >= 3,
+        vip: totalGasto >= 500, // Critério consistente de VIP pelo LTV de compras
       });
     }
 
     return list.sort((a, b) => b.totalGasto - a.totalGasto);
   }, [customersData, credits, txs, orders]);
 
-  // Filtro de busca e segmentação por chips da Carteira de Clientes
+  // Filtro de busca e VIP da Carteira de Clientes
   const clientesFiltrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
     return clientes.filter((c) => {
-      // Filtro de segmentação por chip
-      if (filtroCrm === "vip" && !c.vip) return false;
-      if (filtroCrm === "recentes" && !isRecentPurchase(c.ultimaCompra)) return false;
-      if (filtroCrm === "fiado" && c.saldoDevedor <= 0) return false;
-
-      // Filtro textual
+      if (apenasVips && !c.vip) return false;
       if (!q) return true;
       return (
         c.nome.toLowerCase().includes(q) ||
@@ -342,18 +313,9 @@ function ClientesPage() {
         c.cidade.toLowerCase().includes(q)
       );
     });
-  }, [clientes, busca, filtroCrm]);
+  }, [clientes, busca, apenasVips]);
 
-  // Métricas do CRM com cálculo de Ticket Médio e concordância gramatical
   const totalClientes = clientes.length;
-  const clientesCompradores = clientes.filter((c) => c.totalPedidos > 0).length;
-  const totalVIPs = clientes.filter((c) => c.vip).length;
-  const totalFiadoPendente = clientes.reduce((acc, c) => acc + c.saldoDevedor, 0);
-  const totalLTVCarteira = clientes.reduce((acc, c) => acc + c.totalGasto, 0);
-  const totalPedidosGeral = clientes.reduce((acc, c) => acc + c.totalPedidos, 0);
-  const ticketMedioGeral = totalPedidosGeral > 0 ? totalLTVCarteira / totalPedidosGeral : 0;
-  const clientesRecentesCount = clientes.filter((c) => isRecentPurchase(c.ultimaCompra)).length;
-  const clientesComFiadoCount = clientes.filter((c) => c.saldoDevedor > 0).length;
 
   // Cálculos do Fiado
   const fiadosComStatus = useMemo(() => {
@@ -376,16 +338,14 @@ function ClientesPage() {
     .reduce((acc, c) => acc + (Number(c.amount) - Number(c.paid_amount)), 0);
   const fiadosRecebidosTotal = fiadosComStatus.reduce((acc, c) => acc + Number(c.paid_amount), 0);
 
-  // Filtro avançado de Fiados por Status e Busca
+  // Filtro de Fiados por Status e Busca
   const fiadosFiltrados = useMemo(() => {
     const q = buscaFiado.toLowerCase().trim();
     return fiadosComStatus.filter((c) => {
-      // Filtro por status
       if (filtroStatusFiado === "pendente" && c.status === "pago") return false;
       if (filtroStatusFiado === "vencido" && c.status !== "vencido") return false;
       if (filtroStatusFiado === "pago" && c.status !== "pago") return false;
 
-      // Filtro por busca textual
       if (!q) return true;
       return (
         (c.customers?.name ?? "").toLowerCase().includes(q) ||
@@ -557,127 +517,48 @@ function ClientesPage() {
     window.open(`https://wa.me/${telFormatado}?text=${msg}`, "_blank");
   };
 
-  // Metadados contextuais de acordo com a aba ativa
   const isTabClientes = activeTab === "clientes";
 
   return (
     <div className="space-y-6">
-      {/* Page Header Dinâmico e Contextual */}
+      {/* Page Header Minimalista & Contextual (Zero Alternadores Duplicados) */}
       <PageHeader
-        eyebrow={isTabClientes ? "Vendas & Relacionamento" : "Controle de Recebimentos"}
-        title={isTabClientes ? "Carteira de Clientes" : "Caderninho de Fiado"}
+        eyebrow={isTabClientes ? "Vendas & Relacionamento" : "Controle Financeiro"}
+        title={
+          isTabClientes
+            ? `Carteira de Clientes ${totalClientes > 0 ? `(${totalClientes})` : ""}`
+            : `Caderninho de Fiado ${fiadosAbertos.length > 0 ? `(${fiadosAbertos.length})` : ""}`
+        }
         description={
           isTabClientes
-            ? "Acompanhe suas clientes fiéis, receita acumulada (LTV), melhores compradoras e relacionamento no WhatsApp."
-            : "Controle de vendas a prazo, títulos em aberto, vencimentos e cobrança suave no WhatsApp."
+            ? "Histórico de compras, valor acumulado (LTV) e contato direto via WhatsApp."
+            : "Controle de vendas a prazo, títulos em aberto, vencimentos e cobrança via WhatsApp."
         }
         action={
-          <div className="flex items-center gap-2">
-            {/* Seletor Rápido de Contexto (Segmented Control Executivo) */}
-            {fiadoAtivo && (
-              <div className="flex items-center rounded-full border border-border bg-card p-1 shadow-2xs mr-1">
-                <button
-                  type="button"
-                  onClick={() => handleTabChange("clientes")}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                    isTabClientes
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Users className="size-3.5" />
-                  Clientes ({totalClientes})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTabChange("fiado")}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                    !isTabClientes
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <HandCoins className="size-3.5" />
-                  Fiado
-                  {fiadosAbertos.length > 0 && (
-                    <span
-                      className={cn(
-                        "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
-                        !isTabClientes
-                          ? "bg-primary-foreground/20 text-primary-foreground"
-                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold"
-                      )}
-                    >
-                      {fiadosAbertos.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {isTabClientes ? (
-              <Button
-                className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
-                onClick={openNewCustomer}
-              >
-                <Plus className="size-4" /> Novo cliente
-              </Button>
-            ) : (
-              <Button
-                className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
-                onClick={() => setModalNovoFiado(true)}
-              >
-                <Plus className="size-4" /> Registrar fiado
-              </Button>
-            )}
-          </div>
+          isTabClientes ? (
+            <Button
+              className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
+              onClick={openNewCustomer}
+            >
+              <Plus className="size-4" /> Novo cliente
+            </Button>
+          ) : (
+            <Button
+              className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
+              onClick={() => setModalNovoFiado(true)}
+            >
+              <Plus className="size-4" /> Registrar fiado
+            </Button>
+          )
         }
       />
 
-      {/* Conteúdo Contextual: CARTEIRA DE CLIENTES (CRM) */}
+      {/* ─── VISÃO 1: CARTEIRA DE CLIENTES (QUIET LUXURY / SEM DASHBOARD INFLADO) ─── */}
       {isTabClientes ? (
-        <div className="space-y-6">
-          {/* StatCards Nobres de CRM (4 KPIs Executivos) */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Base de Clientes"
-              value={String(totalClientes)}
-              hint={
-                clientesCompradores === 1
-                  ? "1 cliente já comprou na loja"
-                  : `${clientesCompradores} clientes já compraram`
-              }
-              icon={<Users className="size-4 text-primary" />}
-            />
-            <StatCard
-              label="Clientes VIPs"
-              value={String(totalVIPs)}
-              hint="Compras > R$ 500 ou 3+ pedidos"
-              icon={<Star className="size-4 text-amber-500 fill-amber-500/30" />}
-            />
-            <StatCard
-              label="Receita da Carteira (LTV)"
-              value={brl(totalLTVCarteira)}
-              hint="Total gerado pelas clientes cadastradas"
-              icon={<ShoppingBag className="size-4 text-emerald-600" />}
-            />
-            <StatCard
-              label="Ticket Médio / Compra"
-              value={brl(ticketMedioGeral)}
-              hint={
-                totalPedidosGeral > 0
-                  ? `Média calculada sobre ${totalPedidosGeral} pedidos`
-                  : "Sem histórico de pedidos"
-              }
-              icon={<Sparkles className="size-4 text-indigo-500" />}
-            />
-          </div>
-
-          {/* Barra de Busca + Chips de Segmentação Inteligente */}
-          <div className="space-y-3">
-            <div className="relative">
+        <div className="space-y-4">
+          {/* Barra de Busca Limpa com Filtro VIP Discreto */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar cliente por nome, telefone ou cidade..."
@@ -697,52 +578,28 @@ function ClientesPage() {
               )}
             </div>
 
-            {/* Chips de Segmentação Ativa do CRM */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
-              {[
-                { value: "todas", label: "Todas as clientes", count: totalClientes },
-                { value: "vip", label: "★ Melhores clientes (VIPs)", count: totalVIPs },
-                { value: "recentes", label: "Compras recentes (30d)", count: clientesRecentesCount },
-                ...(fiadoAtivo
-                  ? [{ value: "fiado", label: "Com fiado pendente", count: clientesComFiadoCount }]
-                  : []),
-              ].map((chip) => {
-                const isSelected = filtroCrm === chip.value;
-                return (
-                  <button
-                    key={chip.value}
-                    type="button"
-                    onClick={() => setFiltroCrm(chip.value as any)}
-                    className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted"
-                    )}
-                  >
-                    <span>{chip.label}</span>
-                    <span
-                      className={cn(
-                        "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
-                        isSelected
-                          ? "bg-primary-foreground/20 text-primary-foreground"
-                          : "bg-surface-muted text-muted-foreground"
-                      )}
-                    >
-                      {chip.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <Button
+              variant={apenasVips ? "default" : "outline"}
+              size="sm"
+              onClick={() => setApenasVips(!apenasVips)}
+              className={cn(
+                "rounded-full h-11 px-4 text-xs font-semibold gap-1.5 shrink-0 transition-all cursor-pointer",
+                apenasVips
+                  ? "bg-amber-500 text-amber-950 border-amber-500/30 shadow-xs hover:bg-amber-400"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Star className={cn("size-3.5", apenasVips ? "fill-amber-950" : "text-amber-500")} />
+              {apenasVips ? "Mostrando apenas VIPs" : "Filtrar VIPs"}
+            </Button>
           </div>
 
-          {/* Tabela Executiva Proporcional de Clientes */}
+          {/* Conteúdo: Tabela Executiva Proporcional */}
           {totalClientes === 0 ? (
             <EmptyState
               icon={<UserRound className="size-8" />}
               title="Nenhuma cliente cadastrada"
-              description="Cadastre suas clientes para acompanhar histórico de compras, faturamento LTV e reativar contatos."
+              description="Cadastre suas clientes para acompanhar histórico de compras, faturamento e reativar contatos."
               action={
                 <Button onClick={openNewCustomer} className="rounded-full h-10 px-5 text-xs font-semibold shadow-glow cursor-pointer gap-1.5">
                   <Plus className="size-4" /> Cadastrar primeira cliente
@@ -754,14 +611,14 @@ function ClientesPage() {
               <Search className="size-8 text-muted-foreground/50 mb-3" />
               <h3 className="text-sm font-semibold text-foreground">Nenhuma cliente encontrada</h3>
               <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-                Tente buscar por outro termo ou limpe os filtros ativos.
+                Tente buscar por outro termo ou remova os filtros ativos.
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setBusca("");
-                  setFiltroCrm("todas");
+                  setApenasVips(false);
                 }}
                 className="mt-4 rounded-full text-xs font-semibold"
               >
@@ -774,22 +631,22 @@ function ClientesPage() {
                 <table className="w-full text-left text-xs table-fixed">
                   <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border">
                     <tr>
-                      <th className="py-3.5 px-4 w-[32%]">Cliente / Perfil</th>
-                      <th className="py-3.5 px-4 w-[22%]">Contato &amp; WhatsApp</th>
-                      <th className="py-3.5 px-4 w-[20%]">Histórico &amp; LTV</th>
-                      <th className="py-3.5 px-4 w-[14%]">Situação do Fiado</th>
-                      <th className="py-3.5 px-4 w-[12%] text-right">Ações</th>
+                      <th className="py-3 px-4 w-[34%]">Cliente / Perfil</th>
+                      <th className="py-3 px-4 w-[24%]">Contato &amp; WhatsApp</th>
+                      <th className="py-3 px-4 w-[20%]">Histórico &amp; LTV</th>
+                      <th className="py-3 px-4 w-[12%]">Situação</th>
+                      <th className="py-3 px-4 w-[10%] text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {clientesFiltrados.map((c) => (
                       <tr key={c.id} className="hover:bg-surface-muted/40 transition-colors">
                         {/* Coluna 1: Cliente / Perfil */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <div
                               className={cn(
-                                "flex size-10 shrink-0 items-center justify-center rounded-2xl text-xs font-bold border shadow-2xs",
+                                "flex size-9 shrink-0 items-center justify-center rounded-2xl text-xs font-bold border",
                                 c.vip
                                   ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
                                   : "bg-surface-muted text-foreground border-border",
@@ -816,9 +673,9 @@ function ClientesPage() {
                         </td>
 
                         {/* Coluna 2: Contato & WhatsApp */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-4">
                           {c.telefone ? (
-                            <div className="space-y-1">
+                            <div className="space-y-0.5">
                               <p className="font-medium text-foreground text-xs font-mono">
                                 {maskPhone(c.telefone)}
                               </p>
@@ -835,8 +692,8 @@ function ClientesPage() {
                             <button
                               type="button"
                               onClick={() => openEditCustomer(c)}
-                              className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors cursor-pointer"
-                              title="Clique para cadastrar o WhatsApp"
+                              className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors cursor-pointer"
+                              title="Cadastrar telefone"
                             >
                               + Cadastrar WhatsApp
                             </button>
@@ -844,9 +701,9 @@ function ClientesPage() {
                         </td>
 
                         {/* Coluna 3: Histórico & LTV */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-4">
                           <div>
-                            <p className="font-semibold text-foreground text-sm numeric">
+                            <p className="font-semibold text-foreground text-xs numeric">
                               {brl(c.totalGasto)}
                             </p>
                             <p className="text-[11px] text-muted-foreground numeric">
@@ -857,7 +714,7 @@ function ClientesPage() {
                         </td>
 
                         {/* Coluna 4: Situação do Fiado */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3 px-4">
                           {fiadoAtivo ? (
                             c.saldoDevedor > 0 ? (
                               <button
@@ -866,14 +723,14 @@ function ClientesPage() {
                                   setBuscaFiado(c.nome);
                                   handleTabChange("fiado");
                                 }}
-                                className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 border border-rose-500/25 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors"
-                                title="Ver títulos de fiado desta cliente"
+                                className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 border border-rose-500/25 px-2 py-0.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors"
+                                title="Ver títulos de fiado"
                               >
-                                <AlertCircle className="size-3" />
+                                <AlertCircle className="size-2.5" />
                                 Deve <span className="numeric font-bold">{brl(c.saldoDevedor)}</span> →
                               </button>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                                 <CheckCircle2 className="size-3" />
                                 Em dia
                               </span>
@@ -884,7 +741,7 @@ function ClientesPage() {
                         </td>
 
                         {/* Coluna 5: Ações */}
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {c.telefone && (
                               <Button
@@ -952,52 +809,47 @@ function ClientesPage() {
           )}
         </div>
       ) : (
-        /* Conteúdo Contextual: CADERNINHO DE FIADO */
-        <div className="space-y-6">
-          {/* Métricas do Fiado */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <StatCard
-              label="Saldo Total a Receber"
-              value={brl(fiadosAbertosTotal)}
-              tone="primary"
-              icon={<Users className="size-4" />}
-              hint={
-                fiadosAbertos.length > 0
-                  ? `${fiadosAbertos.length} ${fiadosAbertos.length === 1 ? "título ativo na praça" : "títulos ativos na praça"}`
-                  : "Nenhum fiado em aberto"
-              }
-            />
-            <StatCard
-              label="Vencidos em Atraso"
-              value={brl(fiadosVencidosTotal)}
-              tone={fiadosVencidosTotal > 0 ? "negative" : "default"}
-              icon={<AlertTriangle className="size-4 text-destructive" />}
-              hint={
-                fiadosAbertosTotal > 0
-                  ? `${pct((fiadosVencidosTotal / fiadosAbertosTotal) * 100)} do saldo pendente em atraso`
-                  : "Nenhum fiado em atraso"
-              }
-            />
-            <StatCard
-              label="Já Recebido / Quitado"
-              value={brl(fiadosRecebidosTotal)}
-              tone="positive"
-              icon={<CheckCircle2 className="size-4 text-emerald-600" />}
-              hint={(() => {
-                const paidCount = fiadosComStatus.filter((c) => c.status === "pago").length;
-                const totalCount = fiadosComStatus.length;
-                if (totalCount === 0) return "Nenhum título registrado";
-                return `${paidCount} de ${totalCount} título${totalCount !== 1 ? "s" : ""} quitado${paidCount !== 1 ? "s" : ""}`;
-              })()}
-            />
+        /* ─── VISÃO 2: CADERNINHO DE FIADO (CONTROLE DE RECEBIMENTOS) ─── */
+        <div className="space-y-4">
+          {/* Métricas Essenciais de Cobrança (Apenas 2 Indicadores Compactos) */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Saldo Total a Receber</p>
+                <p className="mt-1 text-xl font-bold text-foreground numeric">{brl(fiadosAbertosTotal)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {fiadosAbertos.length} {fiadosAbertos.length === 1 ? "título em aberto" : "títulos em aberto"}
+                </p>
+              </div>
+              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <HandCoins className="size-5" />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vencidos em Atraso</p>
+                <p className={cn("mt-1 text-xl font-bold numeric", fiadosVencidosTotal > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground")}>
+                  {brl(fiadosVencidosTotal)}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {fiadosAbertosTotal > 0
+                    ? `${pct((fiadosVencidosTotal / fiadosAbertosTotal) * 100)} do saldo pendente`
+                    : "Nenhum fiado em atraso"}
+                </p>
+              </div>
+              <div className={cn("size-10 rounded-xl flex items-center justify-center", fiadosVencidosTotal > 0 ? "bg-rose-500/10 text-rose-600" : "bg-surface-muted text-muted-foreground")}>
+                <AlertTriangle className="size-5" />
+              </div>
+            </div>
           </div>
 
-          {/* Barra de Busca de Fiados + Chips de Status */}
-          <div className="space-y-3">
+          {/* Barra de Busca + Chips de Status do Fiado */}
+          <div className="space-y-2.5">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar fiado por cliente ou descrição das peças..."
+                placeholder="Buscar fiado por cliente ou descrição..."
                 value={buscaFiado}
                 onChange={(e) => setBuscaFiado(e.target.value)}
                 className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
@@ -1014,19 +866,18 @@ function ClientesPage() {
               )}
             </div>
 
-            {/* Chips Rápidos de Filtro por Status */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none">
               {[
-                { value: "todos", label: "Todos os títulos", count: fiadosComStatus.length },
+                { value: "todos", label: "Todos", count: fiadosComStatus.length },
                 { value: "pendente", label: "Pendentes", count: fiadosAbertos.length },
                 {
                   value: "vencido",
-                  label: "Vencidos em atraso",
+                  label: "Em atraso",
                   count: fiadosComStatus.filter((c) => c.status === "vencido").length,
                 },
                 {
                   value: "pago",
-                  label: "Já quitados",
+                  label: "Quitados",
                   count: fiadosComStatus.filter((c) => c.status === "pago").length,
                 },
               ].map((chip) => {
@@ -1037,7 +888,7 @@ function ClientesPage() {
                     type="button"
                     onClick={() => setFiltroStatusFiado(chip.value as any)}
                     className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
+                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 font-semibold transition-all cursor-pointer text-xs",
                       isSelected
                         ? "border-primary bg-primary text-primary-foreground shadow-xs"
                         : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted",
@@ -1081,7 +932,7 @@ function ClientesPage() {
                 return (
                   <div
                     key={c.id}
-                    className="overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-soft transition-all"
+                    className="overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-soft transition-all"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -1116,13 +967,13 @@ function ClientesPage() {
                           {brl(remaining)}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          Total da compra: {brl(Number(c.amount))}
+                          Total: {brl(Number(c.amount))}
                         </p>
                       </div>
                     </div>
 
                     {c.status !== "pago" && (
-                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3.5">
                         {/* Pagamento Parcial / Quitação */}
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="w-28 sm:w-32">
@@ -1133,14 +984,14 @@ function ClientesPage() {
                                 setPayments((p) => ({ ...p, [c.id]: e.target.value }))
                               }
                               placeholder={brl(remaining)}
-                              className="h-9.5 rounded-xl text-xs font-mono"
+                              className="h-9 rounded-xl text-xs font-mono"
                             />
                           </div>
                           <Select
                             value={payMethods[c.id] ?? "dinheiro"}
                             onValueChange={(val) => setPayMethods((p) => ({ ...p, [c.id]: val }))}
                           >
-                            <SelectTrigger className="h-9.5 w-26 rounded-xl text-xs font-medium shrink-0">
+                            <SelectTrigger className="h-9 w-26 rounded-xl text-xs font-medium shrink-0">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -1153,7 +1004,7 @@ function ClientesPage() {
                           <Button
                             variant="default"
                             size="sm"
-                            className="h-9.5 rounded-full text-xs font-semibold shadow-soft cursor-pointer whitespace-nowrap"
+                            className="h-9 rounded-full text-xs font-semibold shadow-soft cursor-pointer whitespace-nowrap"
                             disabled={payCreditMutation.isPending}
                             onClick={() => {
                               const rawInput = (payments[c.id] ?? "").trim();
@@ -1183,7 +1034,7 @@ function ClientesPage() {
                           </Button>
                         </div>
 
-                        {/* Botão de Cobrança amigável no WhatsApp + Exclusão */}
+                        {/* Cobrança WhatsApp + Exclusão */}
                         <div className="flex items-center gap-2">
                           {customerPhone && (
                             <Button
@@ -1197,7 +1048,7 @@ function ClientesPage() {
                                   c.due_date,
                                 )
                               }
-                              className="h-9.5 rounded-full gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                              className="h-9 rounded-full gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
                             >
                               <MessageCircle className="size-3.5" /> Cobrar via WhatsApp
                             </Button>
@@ -1210,10 +1061,10 @@ function ClientesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-9 rounded-full text-muted-foreground hover:text-destructive cursor-pointer"
+                                className="size-8 rounded-full text-muted-foreground hover:text-destructive cursor-pointer"
                                 aria-label="Excluir fiado"
                               >
-                                <Trash2 className="size-4" />
+                                <Trash2 className="size-3.5" />
                               </Button>
                             }
                           />
@@ -1238,7 +1089,7 @@ function ClientesPage() {
             <DialogDescription className="text-xs text-muted-foreground">
               {editingCustomer
                 ? "Atualize o nome e WhatsApp para histórico de compras e contato rápido."
-                : "Adicione os dados para registrar compras, fiado e fidelizar no WhatsApp."}
+                : "Adicione os dados para registrar vendas e fidelizar no WhatsApp."}
             </DialogDescription>
           </DialogHeader>
 
