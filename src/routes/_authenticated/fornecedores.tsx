@@ -1,27 +1,28 @@
-import { useState, useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Building2,
+  Calendar,
+  Check,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  FileText,
+  LayoutGrid,
+  List,
   Pencil,
   Phone,
   Plus,
+  Receipt,
   Search,
   ShoppingCart,
+  Tag,
   Trash2,
-  Truck,
   TrendingDown,
-  Receipt,
-  Calendar,
-  Copy,
-  Check,
-  LayoutGrid,
-  List,
-  Sparkles,
+  Truck,
   X,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -55,12 +56,17 @@ import {
   updateSupplier,
   deleteSupplier,
 } from "@/lib/mutations";
+import {
+  getCustomOptions,
+  getSupplierCategories,
+  type CustomOption,
+} from "@/lib/custom-options";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/fornecedores")({
   head: () => ({
     meta: [
-      { title: "Fornecedores & Confecções - Vestui" },
+      { title: "Fornecedores de Mercadoria - Vestui" },
       {
         name: "description",
         content:
@@ -71,80 +77,7 @@ export const Route = createFileRoute("/_authenticated/fornecedores")({
   component: Fornecedores,
 });
 
-// Categorias voltadas especificamente para o ecossistema de moda
-const SUPPLIER_CATEGORIES = [
-  {
-    value: "compra_estoque",
-    label: "Confecção / Roupas",
-    shortLabel: "Confecção",
-    icon: "👗",
-    badgeClass: "bg-primary/10 text-primary border-primary/20",
-    avatarClass: "bg-primary/15 text-primary border-primary/30",
-  },
-  {
-    value: "calcado_fornecedor",
-    label: "Calçados & Bolsas",
-    shortLabel: "Calçados",
-    icon: "👠",
-    badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
-    avatarClass: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
-  },
-  {
-    value: "acessorio_fornecedor",
-    label: "Acessórios & Bijuterias",
-    shortLabel: "Acessórios",
-    icon: "💍",
-    badgeClass: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
-    avatarClass: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
-  },
-  {
-    value: "embalagem",
-    label: "Embalagens & Sacolas",
-    shortLabel: "Embalagens",
-    icon: "🛍️",
-    badgeClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-    avatarClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-  },
-  {
-    value: "tecido_aviamento",
-    label: "Tecidos & Aviamentos",
-    shortLabel: "Tecidos",
-    icon: "🧵",
-    badgeClass: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
-    avatarClass: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
-  },
-  {
-    value: "frete",
-    label: "Frete & Logística",
-    shortLabel: "Frete",
-    icon: "🚚",
-    badgeClass: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20",
-    avatarClass: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
-  },
-  {
-    value: "outro_fornecedor",
-    label: "Outros Parceiros",
-    shortLabel: "Outros",
-    icon: "🏭",
-    badgeClass: "bg-muted text-muted-foreground border-border",
-    avatarClass: "bg-muted text-foreground border-border",
-  },
-] as const;
-
 type PixType = "cnpj" | "telefone" | "email" | "aleatoria";
-
-function getCategoryInfo(value: string | null) {
-  return (
-    SUPPLIER_CATEGORIES.find((c) => c.value === value) ?? {
-      value: "outro_fornecedor",
-      label: value || "Parceiro Geral",
-      shortLabel: value || "Geral",
-      icon: "🏭",
-      badgeClass: "bg-muted text-muted-foreground border-border",
-      avatarClass: "bg-muted text-foreground border-border",
-    }
-  );
-}
 
 function dataBR(iso: string) {
   if (!iso) return "-";
@@ -181,7 +114,7 @@ function initials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-// Máscaras automáticas
+// Máscaras automáticas limpas
 function maskPhone(val: string): string {
   const d = val.replace(/\D/g, "").slice(0, 11);
   if (!d) return "";
@@ -204,7 +137,7 @@ function maskCnpjCpf(val: string): string {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
 }
 
-// Parser e formatador para Chave Pix persistida em notes (compatibilidade total e retroativa)
+// Parser e formatador para Chave Pix em notes (retrocompatível, seguro e sem migração rígida)
 function parseSupplierNotes(rawNotes: string | null | undefined): {
   pixKey: string;
   pixType: PixType;
@@ -244,7 +177,8 @@ type SupplierStats = SupplierRow & {
 
 const BLANK_FORM = {
   name: "",
-  category: "" as string,
+  category: "",
+  customCategory: "",
   phone: "",
   cnpj: "",
   pixType: "cnpj" as PixType,
@@ -258,6 +192,33 @@ function Fornecedores() {
 
   const { data: suppliers = [] } = useQuery(suppliersQuery());
   const { data: rawTxs = [] } = useQuery(transactionsQuery());
+
+  // Categorias dinâmicas da loja (sincronizadas com Configurações)
+  const [storeCategories, setStoreCategories] = useState<CustomOption[]>(() =>
+    getSupplierCategories(storeId)
+  );
+
+  const refreshCategories = useCallback(() => {
+    setStoreCategories(getSupplierCategories(storeId));
+  }, [storeId]);
+
+  useEffect(() => {
+    window.addEventListener("custom-options-changed", refreshCategories);
+    return () => window.removeEventListener("custom-options-changed", refreshCategories);
+  }, [refreshCategories]);
+
+  // Helper para obter o label amigável de uma categoria
+  const getCategoryLabel = useCallback(
+    (catValue: string | null | undefined) => {
+      if (!catValue) return "Geral";
+      const found = storeCategories.find(
+        (c) => c.value === catValue || c.label.toLowerCase() === catValue.toLowerCase()
+      );
+      if (found) return found.label;
+      return catValue;
+    },
+    [storeCategories]
+  );
 
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todos");
@@ -307,17 +268,29 @@ function Fornecedores() {
     });
   }, [suppliers, rawTxs, mes]);
 
-  // Contagem por categoria para os chips de filtro rápido
-  const countsPorCategoria = useMemo(() => {
-    const counts: Record<string, number> = {};
-    fornecedores.forEach((f) => {
-      const cat = f.category || "outro_fornecedor";
-      counts[cat] = (counts[cat] ?? 0) + 1;
-    });
-    return counts;
-  }, [fornecedores]);
+  // Lista dinâmica de categorias que REALMENTE POSSUEM fornecedores cadastrados
+  const activeCategoriesWithCount = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
 
-  // Métricas de topo com rótulos e matemática precisos
+    fornecedores.forEach((f) => {
+      const rawCat = f.category || "geral";
+      const label = getCategoryLabel(f.category);
+      const existing = map.get(rawCat);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(rawCat, { label, count: 1 });
+      }
+    });
+
+    return Array.from(map.entries()).map(([value, info]) => ({
+      value,
+      label: info.label,
+      count: info.count,
+    }));
+  }, [fornecedores, getCategoryLabel]);
+
+  // Métricas do topo
   const totalFornecedores = fornecedores.length;
   const fornecedoresAtivosMes = fornecedores.filter((f) => f.gastoMes > 0).length;
   const gastoTotalMes = fornecedores.reduce((acc, f) => acc + f.gastoMes, 0);
@@ -332,54 +305,53 @@ function Fornecedores() {
       acc[t.category] = (acc[t.category] ?? 0) + Number(t.amount);
     });
     const sorted = Object.entries(acc).sort((a, b) => b[1] - a[1]);
-    return sorted[0] ? getCategoryInfo(sorted[0][0]).label : "-";
-  }, [rawTxs, mes]);
+    return sorted[0] ? getCategoryLabel(sorted[0][0]) : "-";
+  }, [rawTxs, mes, getCategoryLabel]);
 
-  // Filtro composto: busca por texto + chip de categoria
+  // Filtro de busca
   const filtrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
     return fornecedores
       .filter((f) => {
-        // Filtro por segmento
+        // Filtro por segmento ativo
         if (categoriaFiltro !== "todos") {
-          const matchCat = f.category === categoriaFiltro;
+          const matchCat = (f.category || "geral") === categoriaFiltro;
           if (!matchCat) return false;
         }
 
         // Filtro textual
         if (!q) return true;
-        const catInfo = getCategoryInfo(f.category);
+        const catLabel = getCategoryLabel(f.category).toLowerCase();
         return (
           f.name.toLowerCase().includes(q) ||
           (f.phone ?? "").includes(q) ||
           (f.cnpj ?? "").includes(q) ||
           f.pixKey.toLowerCase().includes(q) ||
-          catInfo.label.toLowerCase().includes(q) ||
+          catLabel.includes(q) ||
           f.cleanNotes.toLowerCase().includes(q)
         );
       })
       .sort((a, b) => {
-        // Ordena primeiro por quem teve compras no mês, depois por total geral
         if (b.gastoMes !== a.gastoMes) return b.gastoMes - a.gastoMes;
         return b.totalGasto - a.totalGasto;
       });
-  }, [fornecedores, busca, categoriaFiltro]);
+  }, [fornecedores, busca, categoriaFiltro, getCategoryLabel]);
 
   // Ações de diálogo
-  function openNew(prefillCategory?: string) {
+  function openNew() {
     setEditTarget(null);
-    setForm({
-      ...BLANK_FORM,
-      category: prefillCategory ?? "",
-    });
+    setForm(BLANK_FORM);
     setDialogOpen(true);
   }
 
   function openEdit(s: SupplierStats) {
     setEditTarget(s);
+    // Verifica se a categoria é uma das existentes ou se é customizada
+    const isKnown = storeCategories.some((c) => c.value === s.category || c.label === s.category);
     setForm({
       name: s.name,
-      category: s.category ?? "",
+      category: isKnown ? (s.category ?? "") : s.category ? "custom" : "",
+      customCategory: isKnown ? "" : (s.category ?? ""),
       phone: s.phone ?? "",
       cnpj: s.cnpj ?? "",
       pixType: s.pixType,
@@ -401,7 +373,7 @@ function Fornecedores() {
     navigator.clipboard.writeText(key).then(
       () => {
         setCopiedPixId(id);
-        toast.success("Chave Pix copiada para a área de transferência!");
+        toast.success("Chave Pix copiada!");
         setTimeout(() => setCopiedPixId(null), 2500);
       },
       () => {
@@ -414,15 +386,23 @@ function Fornecedores() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Informe o nome do fornecedor ou fábrica.");
-      
+
       const packedNotes = formatSupplierNotes(form.pixType, form.pixKey, form.notes);
+
+      // Resolve a categoria final (se selecionou "custom", usa o texto digitado)
+      let finalCategory: string | null = null;
+      if (form.category === "custom") {
+        finalCategory = form.customCategory.trim() || null;
+      } else if (form.category.trim()) {
+        finalCategory = form.category.trim();
+      }
 
       if (editTarget) {
         await updateSupplier({
           storeId,
           id: editTarget.id,
           name: form.name.trim(),
-          category: form.category || null,
+          category: finalCategory,
           phone: form.phone.trim() || null,
           cnpj: form.cnpj.trim() || null,
           notes: packedNotes || null,
@@ -431,7 +411,7 @@ function Fornecedores() {
         await insertSupplier({
           storeId,
           name: form.name.trim(),
-          category: form.category || null,
+          category: finalCategory,
           phone: form.phone.trim() || null,
           cnpj: form.cnpj.trim() || null,
           notes: packedNotes || null,
@@ -442,9 +422,7 @@ function Fornecedores() {
       void queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       closeDialog();
       toast.success(
-        editTarget
-          ? "Fornecedor atualizado com sucesso!"
-          : "Fornecedor cadastrado com sucesso!"
+        editTarget ? "Fornecedor atualizado com sucesso!" : "Fornecedor cadastrado com sucesso!"
       );
     },
     onError: (e: Error) => toast.error(e.message),
@@ -467,29 +445,29 @@ function Fornecedores() {
     }
     const tel = digits.length <= 11 ? `55${digits}` : digits;
     const msg = encodeURIComponent(
-      `Olá ${nome}! Estou entrando em contato da loja para verificar disponibilidade de pedidos e reposição.`,
+      `Olá ${nome}! Estou entrando em contato da loja para verificar disponibilidade de pedidos e reposição.`
     );
     window.open(`https://wa.me/${tel}?text=${msg}`, "_blank");
   };
 
   return (
     <div className="space-y-6">
-      {/* Header com estilo executivo */}
+      {/* Page Header padrão Vestui */}
       <PageHeader
         eyebrow="Catálogo & Compras"
         title="Fornecedores de Mercadoria"
-        description="Gerencie suas confecções parceiras, chaves Pix para pagamento ágil e acompanhe os custos de reposição da sua loja."
+        description="Gerencie suas confecções parceiras, chaves Pix e acompanhe o histórico de reposições da sua loja."
         action={
           <Button
             className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
-            onClick={() => openNew()}
+            onClick={openNew}
           >
             <Plus className="size-4" /> Novo fornecedor
           </Button>
         }
       />
 
-      {/* Bento Grid de Métricas Principais */}
+      {/* Métricas Principais (StatCards no padrão discreto e elegante) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total de Parceiros"
@@ -507,7 +485,7 @@ function Fornecedores() {
           label="Compras no Mês"
           value={brl(gastoTotalMes)}
           tone={gastoTotalMes > 0 ? "warning" : "default"}
-          hint={`Total pago a fornecedores em ${getMonthNameBR()}`}
+          hint={`Saídas registradas em ${getMonthNameBR()}`}
           icon={<TrendingDown className="size-4" />}
         />
         <StatCard
@@ -515,7 +493,7 @@ function Fornecedores() {
           value={topFornecedor && topFornecedor.gastoMes > 0 ? brl(topFornecedor.gastoMes) : "R$ 0,00"}
           hint={
             topFornecedor && topFornecedor.gastoMes > 0
-              ? `${topFornecedor.name}`
+              ? topFornecedor.name
               : "Sem compras no mês atual"
           }
           icon={<Receipt className="size-4" />}
@@ -523,207 +501,157 @@ function Fornecedores() {
         <StatCard
           label="Principal Custo de Estoque"
           value={categoriaTop}
-          hint="Categoria de compra com maior volume no mês"
+          hint="Categoria de maior volume no mês"
           icon={<ShoppingCart className="size-4" />}
         />
       </div>
 
-      {/* Barra de Filtros, Chips de Categoria & Alternador de Visão */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Busca */}
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por confecção, telefone, CNPJ, chave Pix..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
-            />
-            {busca && (
+      {/* Toolbar: Busca + Alternador de Visualização (e Chips apenas se houver fornecedores) */}
+      {totalFornecedores > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Campo de Busca */}
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, telefone, CNPJ, Pix ou segmento..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm"
+              />
+              {busca && (
+                <button
+                  type="button"
+                  onClick={() => setBusca("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
+                  aria-label="Limpar busca"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Alternador de Visualização (Cards vs Tabela) */}
+            <div className="flex items-center self-end sm:self-auto rounded-full border border-border bg-card p-1 shadow-2xs">
               <button
                 type="button"
-                onClick={() => setBusca("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
-                aria-label="Limpar busca"
+                onClick={() => setViewMode("grid")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                <X className="size-3.5" />
+                <LayoutGrid className="size-3.5" />
+                Cards
               </button>
-            )}
-          </div>
-
-          {/* Alternador de Visualização (Grade / Lista) */}
-          <div className="flex items-center self-end sm:self-auto rounded-full border border-border bg-card p-1 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                viewMode === "grid"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="size-3.5" />
-              Cards
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                viewMode === "table"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <List className="size-3.5" />
-              Tabela
-            </button>
-          </div>
-        </div>
-
-        {/* Chips de Categorias de Moda (scroll horizontal elegante) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setCategoriaFiltro("todos")}
-            className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
-              categoriaFiltro === "todos"
-                ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted"
-            )}
-          >
-            <span>Todos</span>
-            <span
-              className={cn(
-                "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
-                categoriaFiltro === "todos"
-                  ? "bg-primary-foreground/20 text-primary-foreground"
-                  : "bg-surface-muted text-muted-foreground"
-              )}
-            >
-              {totalFornecedores}
-            </span>
-          </button>
-
-          {SUPPLIER_CATEGORIES.map((cat) => {
-            const count = countsPorCategoria[cat.value] ?? 0;
-            const isSelected = categoriaFiltro === cat.value;
-            return (
               <button
-                key={cat.value}
                 type="button"
-                onClick={() => setCategoriaFiltro(cat.value)}
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  viewMode === "table"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <List className="size-3.5" />
+                Tabela
+              </button>
+            </div>
+          </div>
+
+          {/* Chips Dinâmicos: Exibidos APENAS para categorias com fornecedores cadastrados */}
+          {activeCategoriesWithCount.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setCategoriaFiltro("todos")}
                 className={cn(
                   "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
-                  isSelected
+                  categoriaFiltro === "todos"
                     ? "border-primary bg-primary text-primary-foreground shadow-xs"
                     : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted"
                 )}
               >
-                <span>{cat.icon}</span>
-                <span>{cat.shortLabel}</span>
+                <span>Todos</span>
                 <span
                   className={cn(
                     "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
-                    isSelected
+                    categoriaFiltro === "todos"
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-surface-muted text-muted-foreground"
                   )}
                 >
-                  {count}
+                  {totalFornecedores}
                 </span>
               </button>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Conteúdo Principal: Empty State vs Cards Bento vs Tabela */}
-      {fornecedores.length === 0 ? (
-        /* Empty State acolhedor para lojistas de moda */
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-card/60 p-8 sm:p-12 text-center shadow-soft">
-          <div className="relative mb-5 flex size-16 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-soft">
-            <Building2 className="size-8" />
-            <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Sparkles className="size-3" />
-            </span>
+              {activeCategoriesWithCount.map((cat) => {
+                const isSelected = categoriaFiltro === cat.value;
+                return (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setCategoriaFiltro(cat.value)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-semibold transition-all cursor-pointer",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted"
+                    )}
+                  >
+                    <span>{cat.label}</span>
+                    <span
+                      className={cn(
+                        "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
+                        isSelected
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-surface-muted text-muted-foreground"
+                      )}
+                    >
+                      {cat.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Conteúdo: Empty State Executivo vs Bento Grid vs Tabela */}
+      {totalFornecedores === 0 ? (
+        /* Empty State Executivo e Minimalista no Padrão Vestui */
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-border/80 bg-card p-12 text-center shadow-soft">
+          <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-surface-muted text-muted-foreground border border-border">
+            <Building2 className="size-6" />
           </div>
 
-          <h3 className="text-lg font-bold text-foreground">
-            Nenhuma confecção ou parceiro cadastrado
+          <h3 className="text-base font-semibold text-foreground">
+            Nenhum fornecedor cadastrado
           </h3>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground leading-relaxed">
-            Cadastre suas fábricas parceiras, chaves Pix para pagamento imediato e acompanhe todo o histórico de compras e reposições de estoque em um único lugar.
+          <p className="mt-1.5 max-w-sm text-xs text-muted-foreground leading-relaxed">
+            Cadastre suas confecções e parceiros para acompanhar compras, registrar chaves Pix e manter contato rápido pelo WhatsApp.
           </p>
 
           <Button
-            size="lg"
-            onClick={() => openNew()}
-            className="mt-6 h-11 rounded-full px-6 font-semibold shadow-glow cursor-pointer gap-2"
+            onClick={openNew}
+            className="mt-5 h-10 rounded-full px-5 text-xs font-semibold shadow-glow cursor-pointer gap-1.5"
           >
             <Plus className="size-4" /> Cadastrar primeiro fornecedor
           </Button>
-
-          {/* Atalhos Rápidos para Categorias Comuns de Moda */}
-          <div className="mt-8 pt-6 border-t border-border/60 w-full max-w-lg">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Sugestões de início rápido:
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() => openNew("compra_estoque")}
-                className="flex flex-col items-center justify-center p-3 rounded-2xl border border-border bg-card hover:bg-surface-muted transition-all cursor-pointer text-center group"
-              >
-                <span className="text-xl mb-1 group-hover:scale-110 transition-transform">👗</span>
-                <span className="text-xs font-semibold text-foreground">Confecção</span>
-                <span className="text-[10px] text-muted-foreground">Roupas</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openNew("calcado_fornecedor")}
-                className="flex flex-col items-center justify-center p-3 rounded-2xl border border-border bg-card hover:bg-surface-muted transition-all cursor-pointer text-center group"
-              >
-                <span className="text-xl mb-1 group-hover:scale-110 transition-transform">👠</span>
-                <span className="text-xs font-semibold text-foreground">Calçados</span>
-                <span className="text-[10px] text-muted-foreground">Fábricas</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openNew("embalagem")}
-                className="flex flex-col items-center justify-center p-3 rounded-2xl border border-border bg-card hover:bg-surface-muted transition-all cursor-pointer text-center group"
-              >
-                <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🛍️</span>
-                <span className="text-xs font-semibold text-foreground">Embalagens</span>
-                <span className="text-[10px] text-muted-foreground">Sacolas/Tags</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openNew("frete")}
-                className="flex flex-col items-center justify-center p-3 rounded-2xl border border-border bg-card hover:bg-surface-muted transition-all cursor-pointer text-center group"
-              >
-                <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🚚</span>
-                <span className="text-xs font-semibold text-foreground">Frete</span>
-                <span className="text-[10px] text-muted-foreground">Logística</span>
-              </button>
-            </div>
-          </div>
         </div>
       ) : filtrados.length === 0 ? (
-        /* Empty State para busca sem resultados */
+        /* Estado de busca sem resultados */
         <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-10 text-center shadow-soft">
-          <Search className="size-8 text-muted-foreground/60 mb-3" />
-          <h3 className="text-base font-semibold text-foreground">
+          <Search className="size-8 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-semibold text-foreground">
             Nenhum fornecedor encontrado
           </h3>
           <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-            Nenhum parceiro corresponde à sua busca ou filtro de segmento atual.
+            Tente buscar por outro termo ou limpe o campo de busca.
           </p>
           <Button
             variant="outline"
@@ -738,47 +666,40 @@ function Fornecedores() {
           </Button>
         </div>
       ) : viewMode === "grid" ? (
-        /* VISUALIZAÇÃO EM BENTO GRID DE CARDS */
+        /* VISUALIZAÇÃO EM CARDS EXECUTIVOS (QUIET LUXURY) */
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtrados.map((f) => {
-            const cat = getCategoryInfo(f.category);
+            const catLabel = getCategoryLabel(f.category);
             const isPixCopied = copiedPixId === f.id;
 
             return (
               <div
                 key={f.id}
-                className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-5 shadow-soft transition-all duration-200 hover:border-primary/40 hover:shadow-md"
+                className="group relative flex flex-col justify-between rounded-3xl border border-border/70 bg-card p-5 shadow-soft transition-all duration-200 hover:border-primary/40 hover:shadow-md"
               >
-                {/* Topo do Card: Avatar, Nome, Categoria e Ações */}
                 <div>
+                  {/* Topo do Card: Avatar, Nome, Segmento e Ações */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={cn(
-                          "flex size-11 shrink-0 items-center justify-center rounded-2xl text-sm font-bold border shadow-2xs",
-                          cat.avatarClass,
-                        )}
-                      >
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-xs font-bold border border-border bg-surface-muted text-foreground">
                         {initials(f.name)}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-semibold text-foreground text-sm tracking-tight truncate" title={f.name}>
+                        <h4
+                          className="font-semibold text-foreground text-sm tracking-tight truncate"
+                          title={f.name}
+                        >
                           {f.name}
                         </h4>
                         <Badge
                           variant="outline"
-                          className={cn(
-                            "mt-1 text-[10px] font-semibold rounded-full border px-2 py-0.2 gap-1",
-                            cat.badgeClass,
-                          )}
+                          className="mt-1 text-[10px] font-medium rounded-full border border-border bg-surface-muted/60 text-muted-foreground px-2 py-0.5"
                         >
-                          <span>{cat.icon}</span>
-                          <span>{cat.shortLabel}</span>
+                          {catLabel}
                         </Badge>
                       </div>
                     </div>
 
-                    {/* Botões de Ação do Card (Editar e Excluir) */}
                     <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
@@ -808,8 +729,8 @@ function Fornecedores() {
                     </div>
                   </div>
 
-                  {/* Informações de Contato e Fiscais */}
-                  <div className="mt-4 space-y-1.5 text-xs text-muted-foreground">
+                  {/* Informações de Contato e CNPJ */}
+                  <div className="mt-4 space-y-1 text-xs text-muted-foreground">
                     {f.phone ? (
                       <p className="flex items-center gap-1.5 font-medium text-foreground/80">
                         <Phone className="size-3 text-muted-foreground shrink-0" />
@@ -818,7 +739,7 @@ function Fornecedores() {
                     ) : (
                       <p className="flex items-center gap-1.5 text-muted-foreground/60 italic">
                         <Phone className="size-3 shrink-0" />
-                        <span>Sem telefone cadastrado</span>
+                        <span>Sem telefone</span>
                       </p>
                     )}
 
@@ -830,14 +751,11 @@ function Fornecedores() {
                     )}
                   </div>
 
-                  {/* Chave Pix em Destaque com Cópia Rápida */}
-                  {f.pixKey ? (
-                    <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-surface-muted/60 border border-border/60 px-3 py-2 text-xs">
+                  {/* Chave Pix com Cópia Rápida */}
+                  {f.pixKey && (
+                    <div className="mt-3 flex items-center justify-between gap-2 rounded-2xl bg-surface-muted/50 border border-border/60 px-3 py-2 text-xs">
                       <div className="min-w-0 flex items-center gap-1.5">
-                        <span className="font-semibold text-foreground flex items-center gap-1">
-                          <CreditCard className="size-3 text-primary shrink-0" />
-                          Pix:
-                        </span>
+                        <CreditCard className="size-3 text-muted-foreground shrink-0" />
                         <span className="font-mono text-xs text-muted-foreground truncate" title={f.pixKey}>
                           {f.pixKey}
                         </span>
@@ -856,7 +774,7 @@ function Fornecedores() {
                         {isPixCopied ? (
                           <>
                             <Check className="size-3 text-emerald-600" />
-                            Copiado!
+                            Copiado
                           </>
                         ) : (
                           <>
@@ -866,9 +784,9 @@ function Fornecedores() {
                         )}
                       </Button>
                     </div>
-                  ) : null}
+                  )}
 
-                  {/* Observações / Notas do Fornecedor */}
+                  {/* Observações / Notas */}
                   {f.cleanNotes && (
                     <p className="mt-2.5 text-xs text-muted-foreground/80 italic line-clamp-2 bg-surface-muted/30 rounded-xl p-2 border border-border/40">
                       "{f.cleanNotes}"
@@ -876,10 +794,10 @@ function Fornecedores() {
                   )}
                 </div>
 
-                {/* Rodapé do Card: Métricas Financeiras & Botão WhatsApp */}
+                {/* Rodapé: Métricas Financeiras & Contato */}
                 <div className="mt-5 pt-4 border-t border-border/60">
                   <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div className="rounded-xl bg-surface-muted/40 p-2">
+                    <div className="rounded-xl bg-surface-muted/30 p-2">
                       <p className="text-[10px] text-muted-foreground uppercase font-semibold">
                         Gasto Total
                       </p>
@@ -891,7 +809,7 @@ function Fornecedores() {
                       </p>
                     </div>
 
-                    <div className="rounded-xl bg-surface-muted/40 p-2">
+                    <div className="rounded-xl bg-surface-muted/30 p-2">
                       <p className="text-[10px] text-muted-foreground uppercase font-semibold">
                         Neste Mês
                       </p>
@@ -904,12 +822,11 @@ function Fornecedores() {
                         {brl(f.gastoMes)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {f.ultimoGasto ? `Última: ${dataBR(f.ultimoGasto)}` : "Sem reposição"}
+                        {f.ultimoGasto ? `Última: ${dataBR(f.ultimoGasto)}` : "Sem compras"}
                       </p>
                     </div>
                   </div>
 
-                  {/* Botão de WhatsApp */}
                   {f.phone ? (
                     <Button
                       variant="outline"
@@ -925,7 +842,7 @@ function Fornecedores() {
                       variant="ghost"
                       size="sm"
                       disabled
-                      className="w-full h-9 rounded-full text-xs text-muted-foreground/60"
+                      className="w-full h-9 rounded-full text-xs text-muted-foreground/50"
                     >
                       Sem telefone para contato
                     </Button>
@@ -940,11 +857,11 @@ function Fornecedores() {
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-surface-muted/70 text-muted-foreground font-semibold border-b border-border">
+              <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border">
                 <tr>
                   <th className="py-3 px-4">Fornecedor / Razão</th>
                   <th className="py-3 px-4">Segmento</th>
-                  <th className="py-3 px-4">Contato & Pix</th>
+                  <th className="py-3 px-4">Contato &amp; Pix</th>
                   <th className="py-3 px-4 text-right">No Mês</th>
                   <th className="py-3 px-4 text-right">Gasto Histórico</th>
                   <th className="py-3 px-4 text-right">Ações</th>
@@ -952,29 +869,18 @@ function Fornecedores() {
               </thead>
               <tbody className="divide-y divide-border/60">
                 {filtrados.map((f) => {
-                  const cat = getCategoryInfo(f.category);
+                  const catLabel = getCategoryLabel(f.category);
                   const isPixCopied = copiedPixId === f.id;
 
                   return (
-                    <tr
-                      key={f.id}
-                      className="hover:bg-surface-muted/40 transition-colors"
-                    >
-                      {/* Nome e Avatar */}
+                    <tr key={f.id} className="hover:bg-surface-muted/40 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div
-                            className={cn(
-                              "flex size-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold border",
-                              cat.avatarClass,
-                            )}
-                          >
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold border border-border bg-surface-muted text-foreground">
                             {initials(f.name)}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground text-sm">
-                              {f.name}
-                            </p>
+                            <p className="font-semibold text-foreground text-sm">{f.name}</p>
                             {f.cnpj && (
                               <p className="text-[11px] text-muted-foreground font-mono">
                                 {f.cnpj}
@@ -984,26 +890,18 @@ function Fornecedores() {
                         </div>
                       </td>
 
-                      {/* Segmento */}
                       <td className="py-3.5 px-4">
                         <Badge
                           variant="outline"
-                          className={cn(
-                            "text-[10px] font-semibold rounded-full border px-2 py-0.5 gap-1",
-                            cat.badgeClass,
-                          )}
+                          className="text-[10px] font-medium rounded-full border border-border bg-surface-muted/60 text-muted-foreground px-2 py-0.5"
                         >
-                          <span>{cat.icon}</span>
-                          <span>{cat.shortLabel}</span>
+                          {catLabel}
                         </Badge>
                       </td>
 
-                      {/* Contato & Pix */}
                       <td className="py-3.5 px-4">
                         <div className="space-y-1">
-                          <p className="text-foreground font-medium">
-                            {f.phone || "Sem telefone"}
-                          </p>
+                          <p className="text-foreground font-medium">{f.phone || "Sem telefone"}</p>
                           {f.pixKey && (
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono text-[10px] text-muted-foreground bg-surface-muted px-1.5 py-0.5 rounded-md truncate max-w-[140px]">
@@ -1026,7 +924,6 @@ function Fornecedores() {
                         </div>
                       </td>
 
-                      {/* No Mês */}
                       <td className="py-3.5 px-4 text-right">
                         <span
                           className={cn(
@@ -1038,7 +935,6 @@ function Fornecedores() {
                         </span>
                       </td>
 
-                      {/* Gasto Total */}
                       <td className="py-3.5 px-4 text-right">
                         <p className="font-semibold text-foreground numeric">
                           {brl(f.totalGasto)}
@@ -1048,7 +944,6 @@ function Fornecedores() {
                         </p>
                       </td>
 
-                      {/* Ações */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {f.phone && (
@@ -1108,16 +1003,16 @@ function Fornecedores() {
             </DialogTitle>
             <DialogDescription className="text-xs">
               {editTarget
-                ? "Atualize os dados comerciais, chaves de pagamento e contatos da sua fábrica parceira."
-                : "Cadastre confecções, calçados e embalagens para ter controle de reposições e pagamentos."}
+                ? "Atualize os dados comerciais, chaves de pagamento e contatos do parceiro."
+                : "Cadastre fábricas, confecções e parceiros para controle de compras e pagamentos."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
-            {/* Seção 1: Identificação & Segmento */}
+            {/* Seção 1: Identificação & Contato */}
             <div className="rounded-2xl border border-border/60 bg-surface-muted/20 p-3.5 space-y-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                1. Identificação & Contato
+                1. Identificação &amp; Segmento
               </p>
 
               {/* Nome */}
@@ -1135,30 +1030,42 @@ function Fornecedores() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Categoria */}
+                {/* Segmento / Categoria */}
                 <div className="space-y-1">
-                  <Label htmlFor="s-category" className="text-xs font-medium">
-                    Segmento / Categoria
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="s-category" className="text-xs font-medium">
+                      Segmento da loja
+                    </Label>
+                    <Link
+                      to="/configuracoes"
+                      search={{ tab: "catalogo" }}
+                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5"
+                    >
+                      <span>Gerenciar</span>
+                      <ExternalLink className="size-2.5" />
+                    </Link>
+                  </div>
                   <Select
                     value={form.category}
                     onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
                   >
                     <SelectTrigger id="s-category" className="rounded-xl h-10 text-xs">
-                      <SelectValue placeholder="Selecione o segmento..." />
+                      <SelectValue placeholder="Selecione ou crie..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {SUPPLIER_CATEGORIES.map((c) => (
+                      {storeCategories.map((c) => (
                         <SelectItem key={c.value} value={c.value} className="text-xs">
-                          <span className="mr-1.5">{c.icon}</span>
                           {c.label}
                         </SelectItem>
                       ))}
+                      <SelectItem value="custom" className="text-xs font-semibold text-primary">
+                        + Digitar outro segmento...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Telefone / WhatsApp com Máscara */}
+                {/* Telefone com Máscara */}
                 <div className="space-y-1">
                   <Label htmlFor="s-phone" className="text-xs font-medium">
                     WhatsApp / Telefone
@@ -1175,10 +1082,27 @@ function Fornecedores() {
                 </div>
               </div>
 
+              {/* Campo para Categoria Customizada se selecionou "+ Digitar outro segmento..." */}
+              {form.category === "custom" && (
+                <div className="space-y-1">
+                  <Label htmlFor="s-customcat" className="text-xs font-medium text-primary">
+                    Nome do segmento personalizado
+                  </Label>
+                  <Input
+                    id="s-customcat"
+                    placeholder="Ex: Moda Praia, Jeans Atacado, Sacolas..."
+                    value={form.customCategory}
+                    onChange={(e) => setForm((f) => ({ ...f, customCategory: e.target.value }))}
+                    className="rounded-xl h-10 text-xs"
+                    autoFocus
+                  />
+                </div>
+              )}
+
               {/* CNPJ / CPF com Máscara */}
               <div className="space-y-1">
                 <Label htmlFor="s-cnpj" className="text-xs font-medium">
-                  CNPJ ou CPF da empresa
+                  CNPJ ou CPF (opcional)
                 </Label>
                 <Input
                   id="s-cnpj"
@@ -1196,7 +1120,7 @@ function Fornecedores() {
             <div className="rounded-2xl border border-border/60 bg-surface-muted/20 p-3.5 space-y-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <CreditCard className="size-3.5 text-primary" />
-                2. Pagamento & Chave Pix
+                2. Pagamento &amp; Chave Pix
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -1257,11 +1181,11 @@ function Fornecedores() {
               {/* Observações Comerciais */}
               <div className="space-y-1">
                 <Label htmlFor="s-notes" className="text-xs font-medium">
-                  Condições comerciais & Observações
+                  Condições comerciais &amp; Observações
                 </Label>
                 <Textarea
                   id="s-notes"
-                  placeholder="Prazo médio de produção/entrega, valor de pedido mínimo no atacado, forma de envio..."
+                  placeholder="Prazo médio de entrega, pedido mínimo, contato preferencial..."
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   className="rounded-xl resize-none text-xs"

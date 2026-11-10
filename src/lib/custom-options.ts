@@ -27,12 +27,22 @@ export type CustomSizeOption = {
   custom: true;
 };
 
+export const DEFAULT_SUPPLIER_CATEGORIES: CustomOption[] = [
+  { value: "confeccao", label: "Confecção & Roupas", custom: true },
+  { value: "calcados", label: "Calçados & Bolsas", custom: true },
+  { value: "acessorios", label: "Acessórios", custom: true },
+  { value: "embalagens", label: "Embalagens & Sacolas", custom: true },
+  { value: "tecidos", label: "Tecidos & Aviamentos", custom: true },
+  { value: "frete", label: "Frete & Logística", custom: true },
+];
+
 type CustomOptionsStore = {
   entryCategories: CustomOption[];
   exitCategories: CustomOption[];
   paymentMethods: CustomOption[];
   customColors: CustomColorOption[];
   customSizes: CustomSizeOption[];
+  supplierCategories: CustomOption[];
 };
 
 const DEFAULT: CustomOptionsStore = {
@@ -41,6 +51,7 @@ const DEFAULT: CustomOptionsStore = {
   paymentMethods: [],
   customColors: [],
   customSizes: [],
+  supplierCategories: DEFAULT_SUPPLIER_CATEGORIES,
 };
 
 function key(storeId: string) {
@@ -72,6 +83,7 @@ export function getCustomOptions(storeId: string): CustomOptionsStore {
       paymentMethods: parsed.paymentMethods ?? [],
       customColors: parsed.customColors ?? [],
       customSizes: parsed.customSizes ?? [],
+      supplierCategories: parsed.supplierCategories ?? DEFAULT_SUPPLIER_CATEGORIES,
     } as CustomOptionsStore;
   } catch {
     return DEFAULT;
@@ -87,9 +99,6 @@ function saveCustomOptions(storeId: string, data: CustomOptionsStore) {
     // Notifica componentes na mesma aba (CustomEvent)
     window.dispatchEvent(new CustomEvent("custom-options-changed", { detail: { storeId } }));
     // Notifica outras abas abertas no navegador (storage event nativo)
-    // O navegador só dispara "storage" em outras abas automaticamente.
-    // Para forçar o mesmo comportamento na aba atual de forma consistente,
-    // usamos o CustomEvent acima. Outras abas recebem o evento nativo.
   } catch { /* SSR/Node: ignore */ }
 }
 
@@ -126,7 +135,7 @@ export function removeCustomOption(
   value: string,
 ) {
   const opts = getCustomOptions(storeId);
-  opts[kind] = opts[kind].filter((o) => o.value !== value);
+  opts[kind] = (opts[kind] as any[]).filter((o) => o.value !== value);
   saveCustomOptions(storeId, opts);
 }
 
@@ -216,6 +225,48 @@ export function updateCustomSize(
     return { ...o, label: newLabel.trim().toUpperCase() };
   });
   saveCustomOptions(storeId, opts);
+}
+
+// ============================================================
+// SUPPLIER CATEGORIES (Categorias/Segmentos de Fornecedor)
+// ============================================================
+
+export function addCustomSupplierCategory(storeId: string, label: string): CustomOption {
+  const opts = getCustomOptions(storeId);
+  const value = `custom_supcat_${Date.now()}`;
+  const option: CustomOption = { value, label: label.trim(), custom: true };
+  opts.supplierCategories = [...(opts.supplierCategories ?? []), option];
+  saveCustomOptions(storeId, opts);
+  return option;
+}
+
+export function removeCustomSupplierCategory(storeId: string, value: string) {
+  const opts = getCustomOptions(storeId);
+  opts.supplierCategories = (opts.supplierCategories ?? []).filter((o) => o.value !== value);
+  saveCustomOptions(storeId, opts);
+}
+
+export function updateCustomSupplierCategory(storeId: string, value: string, newLabel: string) {
+  const opts = getCustomOptions(storeId);
+  opts.supplierCategories = (opts.supplierCategories ?? []).map((o) => {
+    if (o.value !== value) return o;
+    return { ...o, label: newLabel.trim() };
+  });
+  saveCustomOptions(storeId, opts);
+}
+
+export function resetSupplierCategories(storeId: string) {
+  const opts = getCustomOptions(storeId);
+  opts.supplierCategories = [...DEFAULT_SUPPLIER_CATEGORIES];
+  saveCustomOptions(storeId, opts);
+}
+
+export function getSupplierCategories(storeId: string): CustomOption[] {
+  const opts = getCustomOptions(storeId);
+  if (opts.supplierCategories && opts.supplierCategories.length > 0) {
+    return opts.supplierCategories;
+  }
+  return DEFAULT_SUPPLIER_CATEGORIES;
 }
 
 export type { CustomOptionsStore };

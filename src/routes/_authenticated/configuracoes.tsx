@@ -22,6 +22,8 @@ import {
   Sparkles,
   Store,
   Trash2,
+  Truck,
+  Tag,
   Users,
   Wallet,
   Zap,
@@ -83,6 +85,11 @@ import {
   removeCustomSize,
   updateCustomColor,
   updateCustomSize,
+  addCustomSupplierCategory,
+  removeCustomSupplierCategory,
+  updateCustomSupplierCategory,
+  resetSupplierCategories,
+  DEFAULT_SUPPLIER_CATEGORIES,
   type CustomOptionsStore,
   type CustomColorOption,
   type CustomSizeOption,
@@ -499,9 +506,10 @@ function Configuracoes() {
         </div>
       )}
 
-      {/* ════ ABA: Catálogo (Cores & Tamanhos da Grade) ══════════════════════ */}
+      {/* ════ ABA: Catálogo (Segmentos de Fornecedores, Cores & Tamanhos da Grade) ══════════════════════ */}
       {activeTab === "catalogo" && (
         <div className="space-y-6">
+          <SupplierCategoriesSection storeId={storeId} />
           <CoresETamanhosSection storeId={storeId} />
         </div>
       )}
@@ -2710,4 +2718,206 @@ function PricingGuidelinesCard({ storeId }: { storeId: string }) {
     </section>
   );
 }
+
+function SupplierCategoriesSection({ storeId }: { storeId: string }) {
+  const [customOpts, setCustomOpts] = useState(() => getCustomOptions(storeId));
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  const refresh = useCallback(() => {
+    setCustomOpts(getCustomOptions(storeId));
+  }, [storeId]);
+
+  useEffect(() => {
+    window.addEventListener("custom-options-changed", refresh);
+    return () => window.removeEventListener("custom-options-changed", refresh);
+  }, [refresh]);
+
+  const categories = customOpts.supplierCategories ?? DEFAULT_SUPPLIER_CATEGORIES;
+
+  const handleAdd = () => {
+    const trimmed = newLabel.trim();
+    if (!trimmed) {
+      toast.error("Informe o nome do segmento.");
+      return;
+    }
+    const lower = trimmed.toLowerCase();
+    if (categories.some((c) => c.label.toLowerCase() === lower)) {
+      toast.error("Já existe um segmento com este nome.");
+      return;
+    }
+    addCustomSupplierCategory(storeId, trimmed);
+    setNewLabel("");
+    toast.success("Segmento de fornecedor cadastrado!");
+  };
+
+  const handleSaveEdit = (value: string) => {
+    const trimmed = editLabel.trim();
+    if (!trimmed) return;
+    const lower = trimmed.toLowerCase();
+    if (categories.some((c) => c.value !== value && c.label.toLowerCase() === lower)) {
+      toast.error("Já existe um segmento com este nome.");
+      return;
+    }
+    updateCustomSupplierCategory(storeId, value, trimmed);
+    setEditingValue(null);
+    setEditLabel("");
+    toast.success("Segmento atualizado!");
+  };
+
+  const handleDelete = (value: string) => {
+    removeCustomSupplierCategory(storeId, value);
+    toast.success("Segmento removido.");
+  };
+
+  const handleReset = () => {
+    resetSupplierCategories(storeId);
+    toast.success("Segmentos restaurados para os padrões recomendados.");
+  };
+
+  return (
+    <section className="panel p-5 sm:p-7 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-4 border-b border-border/60">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Truck className="size-4" />
+            </span>
+            <h2 className="text-base font-semibold text-foreground">
+              Segmentos &amp; Categorias de Fornecedores
+            </h2>
+            <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">
+              {categories.length} {categories.length === 1 ? "segmento" : "segmentos"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Defina livremente as categorias dos seus parceiros comerciais (confecções, calçados, embalagens, fretes, tecidos etc.).
+          </p>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReset}
+          className="rounded-full text-xs font-medium cursor-pointer self-start sm:self-auto"
+        >
+          Restaurar padrões
+        </Button>
+      </div>
+
+      {/* Formulário de Adicionar Novo */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 max-w-lg">
+        <div className="space-y-1.5 flex-1">
+          <Label htmlFor="new-supcat" className="text-xs font-medium text-foreground">
+            Novo Segmento
+          </Label>
+          <Input
+            id="new-supcat"
+            placeholder="Ex: Moda Praia, Jeans Atacado, Sacolas..."
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAdd();
+              }
+            }}
+            className="rounded-xl h-10 text-xs"
+          />
+        </div>
+        <Button
+          onClick={handleAdd}
+          className="rounded-xl h-10 px-5 text-xs font-semibold shadow-glow cursor-pointer gap-1.5 shrink-0"
+        >
+          <Plus className="size-3.5" /> Adicionar
+        </Button>
+      </div>
+
+      {/* Lista de Segmentos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2">
+        {categories.map((c) => {
+          const isEditing = editingValue === c.value;
+
+          return (
+            <div
+              key={c.value}
+              className="flex items-center justify-between gap-2 rounded-2xl border border-border/70 bg-card p-3 shadow-2xs transition-colors hover:border-primary/30"
+            >
+              {isEditing ? (
+                <div className="flex items-center gap-1.5 flex-1">
+                  <Input
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveEdit(c.value);
+                      if (e.key === "Escape") setEditingValue(null);
+                    }}
+                    autoFocus
+                    className="h-8 rounded-lg text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveEdit(c.value)}
+                    className="h-8 rounded-lg px-2 text-xs"
+                  >
+                    Salvar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingValue(null)}
+                    className="h-8 rounded-lg px-2 text-xs text-muted-foreground"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="size-2 rounded-full bg-primary/70 shrink-0" />
+                    <span className="text-xs font-semibold text-foreground truncate">
+                      {c.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingValue(c.value);
+                        setEditLabel(c.label);
+                      }}
+                      className="size-7 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
+                      title="Editar nome"
+                    >
+                      <Pencil className="size-3" />
+                    </Button>
+                    <ConfirmDelete
+                      title="Remover segmento?"
+                      description={`Deseja remover "${c.label}" das opções de fornecedores? Os fornecedores já cadastrados não serão excluídos.`}
+                      onConfirm={() => handleDelete(c.value)}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 rounded-full text-muted-foreground hover:text-destructive cursor-pointer"
+                          title="Remover segmento"
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      }
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 
