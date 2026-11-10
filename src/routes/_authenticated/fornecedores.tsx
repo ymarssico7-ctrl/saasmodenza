@@ -655,95 +655,90 @@ function Fornecedores() {
         </div>
       )}
 
-      {/* Dialog de Cadastro & Edição de Fornecedor — Padrão Vestui / Quiet Luxury */}
+      {/* Dialog de Cadastro & Edição de Fornecedor — Padrão Vestui / Quiet Luxury (Zero-Scroll) */}
       <Dialog open={dialogOpen} onOpenChange={(v) => !v && closeDialog()}>
-        <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-xl max-h-[92vh] overflow-y-auto p-6">
+          <DialogHeader className="pb-1">
             <DialogTitle className="text-base font-bold text-foreground">
               {editTarget ? "Editar fornecedor" : "Cadastrar novo fornecedor"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               {editTarget
-                ? "Atualize nome, contato, dados fiscais e chave de pagamento."
+                ? "Atualize os dados comerciais, contatos e chave Pix para pedidos."
                 : "Preencha os dados do parceiro para organizar contatos e reposições."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-1">
-            {/* ── BLOCO 1: Identidade ──────────────────────────────── */}
-            <div className="space-y-4">
-              {/* Nome */}
-              <div className="space-y-1.5">
-                <Label htmlFor="s-name" className="text-sm font-semibold text-foreground">
-                  Nome da confecção ou fornecedor <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="s-name"
-                  placeholder="Ex: Confecções Moda Sul, Fábrica Bella..."
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="rounded-xl h-10 text-sm"
-                />
-              </div>
-
-              {/* Segmento + Telefone em 2 colunas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="s-category" className="text-sm font-semibold text-foreground">
-                    Segmento
-                  </Label>
-                  <Select
-                    value={form.category}
-                    onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
-                  >
-                    <SelectTrigger id="s-category" className="rounded-xl h-10 text-sm">
-                      <SelectValue placeholder="Selecionar..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-border bg-card">
-                      {storeCategories.map((c) => (
-                        <SelectItem key={c.value} value={c.value} className="text-sm">
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                      <div className="border-t border-border/60 p-1 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            closeDialog();
-                            void navigate({ to: "/configuracoes", search: { tab: "catalogo" } });
-                          }}
-                          className="w-full flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-surface-muted rounded-lg transition-colors cursor-pointer font-medium"
-                        >
-                          <span>Gerenciar segmentos</span>
-                          <ExternalLink className="size-3" />
-                        </button>
-                      </div>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="s-phone" className="text-sm font-semibold text-foreground">
-                    WhatsApp / Telefone
-                  </Label>
-                  <Input
-                    id="s-phone"
-                    placeholder="(00) 00000-0000"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))
-                    }
-                    className="rounded-xl h-10 text-sm"
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 py-1">
+            {/* Linha 1: Nome da Confecção / Fornecedor */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-name" className="text-xs font-semibold text-foreground">
+                Nome da confecção ou fornecedor <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="s-name"
+                placeholder="Ex: Confecções Bella, Fábrica Sul..."
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                className="rounded-xl h-9.5 text-sm"
+              />
             </div>
 
-            {/* ── BLOCO 2: Dados Fiscais ───────────────────────────── */}
-            <div className="border-t border-border/40 pt-4 space-y-1.5">
-              <Label htmlFor="s-cnpj" className="text-sm font-semibold text-foreground">
-                CNPJ ou CPF
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">(opcional)</span>
+            {/* Linha 1: Segmento da Loja */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-category" className="text-xs font-semibold text-foreground">
+                Segmento
+              </Label>
+              <Select
+                value={form.category}
+                onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
+              >
+                <SelectTrigger id="s-category" className="rounded-xl h-9.5 text-sm">
+                  <SelectValue placeholder="Selecione o segmento..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-border bg-card">
+                  {storeCategories.map((c) => (
+                    <SelectItem key={c.value} value={c.value} className="text-sm">
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                  <div className="border-t border-border/60 p-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeDialog();
+                        void navigate({ to: "/configuracoes", search: { tab: "catalogo" } });
+                      }}
+                      className="w-full flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-surface-muted rounded-lg transition-colors cursor-pointer font-medium"
+                    >
+                      <span>Gerenciar segmentos</span>
+                      <ExternalLink className="size-3" />
+                    </button>
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Linha 2: WhatsApp / Telefone */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-phone" className="text-xs font-semibold text-foreground">
+                WhatsApp / Telefone
+              </Label>
+              <Input
+                id="s-phone"
+                placeholder="(00) 00000-0000"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))
+                }
+                className="rounded-xl h-9.5 text-sm font-medium"
+              />
+            </div>
+
+            {/* Linha 2: CNPJ ou CPF */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-cnpj" className="text-xs font-semibold text-foreground">
+                CNPJ ou CPF <span className="font-normal text-muted-foreground">(opcional)</span>
               </Label>
               <Input
                 id="s-cnpj"
@@ -752,118 +747,105 @@ function Fornecedores() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, cnpj: maskCnpjCpf(e.target.value) }))
                 }
-                className="rounded-xl h-10 text-sm font-mono"
+                className="rounded-xl h-9.5 text-sm font-mono"
               />
             </div>
 
-            {/* ── BLOCO 3: Pagamento via Pix ───────────────────────── */}
-            <div className="border-t border-border/40 pt-4">
-              <div className="flex items-center gap-1.5 mb-3">
-                <CreditCard className="size-3.5 text-muted-foreground" />
-                <span className="text-sm font-semibold text-foreground">Pagamento via Pix</span>
-                <span className="text-xs text-muted-foreground font-normal ml-0.5">— para transferências de pedidos</span>
-              </div>
+            {/* Linha 3: Tipo de Chave Pix */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-pixtype" className="text-xs font-semibold text-foreground">
+                Tipo de Chave Pix
+              </Label>
+              <Select
+                value={form.pixType}
+                onValueChange={(v: PixType) => setForm((f) => ({ ...f, pixType: v }))}
+              >
+                <SelectTrigger id="s-pixtype" className="rounded-xl h-9.5 text-sm">
+                  <SelectValue placeholder="Tipo de chave..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-border bg-card">
+                  <SelectItem value="cnpj" className="text-sm">CNPJ / CPF</SelectItem>
+                  <SelectItem value="telefone" className="text-sm">Celular</SelectItem>
+                  <SelectItem value="email" className="text-sm">E-mail</SelectItem>
+                  <SelectItem value="aleatoria" className="text-sm">Chave Aleatória</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="rounded-2xl bg-surface-muted/40 border border-border/50 p-3 space-y-3">
-                {/* Tipo de Chave + Chave Pix */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="s-pixtype" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Tipo de chave
-                    </Label>
-                    <Select
-                      value={form.pixType}
-                      onValueChange={(v: PixType) => setForm((f) => ({ ...f, pixType: v }))}
-                    >
-                      <SelectTrigger id="s-pixtype" className="rounded-xl h-9 text-sm bg-card border-border">
-                        <SelectValue placeholder="Tipo..." />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-border bg-card">
-                        <SelectItem value="cnpj" className="text-sm">CNPJ / CPF</SelectItem>
-                        <SelectItem value="telefone" className="text-sm">Celular</SelectItem>
-                        <SelectItem value="email" className="text-sm">E-mail</SelectItem>
-                        <SelectItem value="aleatoria" className="text-sm">Aleatória</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="s-pixkey" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Chave Pix
-                    </Label>
-                    <Input
-                      id="s-pixkey"
-                      placeholder={
-                        form.pixType === "cnpj"
-                          ? "00.000.000/0001-00"
-                          : form.pixType === "telefone"
-                            ? "(00) 00000-0000"
-                            : form.pixType === "email"
-                              ? "financeiro@fornecedor.com.br"
-                              : "Chave aleatória EVP"
-                      }
-                      value={form.pixKey}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          pixKey:
-                            form.pixType === "telefone"
-                              ? maskPhone(e.target.value)
-                              : form.pixType === "cnpj" && e.target.value.replace(/\D/g, "").length <= 14
-                                ? maskCnpjCpf(e.target.value)
-                                : e.target.value,
-                        }))
-                      }
-                      className="rounded-xl h-9 text-sm font-mono bg-card border-border"
-                    />
-                  </div>
-                </div>
-
-                {/* Auto-sugestão: herdar CNPJ como chave Pix */}
+            {/* Linha 3: Chave Pix para Pagamento */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="s-pixkey" className="text-xs font-semibold text-foreground">
+                  Chave Pix para Pagamento
+                </Label>
                 {form.pixType === "cnpj" &&
                   form.cnpj.trim() !== "" &&
                   form.pixKey.trim() !== form.cnpj.trim() && (
                     <button
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, pixKey: f.cnpj }))}
-                      className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-semibold transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                      title="Copiar CNPJ cadastrado para este campo"
                     >
-                      <CopyCheck className="size-3.5" />
-                      Usar o CNPJ/CPF cadastrado acima como chave Pix
+                      <CopyCheck className="size-3" />
+                      Usar CNPJ acima
                     </button>
                   )}
               </div>
+              <Input
+                id="s-pixkey"
+                placeholder={
+                  form.pixType === "cnpj"
+                    ? "00.000.000/0001-00"
+                    : form.pixType === "telefone"
+                      ? "(00) 00000-0000"
+                      : form.pixType === "email"
+                        ? "financeiro@fornecedor.com.br"
+                        : "Chave aleatória EVP"
+                }
+                value={form.pixKey}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    pixKey:
+                      form.pixType === "telefone"
+                        ? maskPhone(e.target.value)
+                        : form.pixType === "cnpj" && e.target.value.replace(/\D/g, "").length <= 14
+                          ? maskCnpjCpf(e.target.value)
+                          : e.target.value,
+                  }))
+                }
+                className="rounded-xl h-9.5 text-sm font-mono"
+              />
             </div>
 
-            {/* ── BLOCO 4: Observações ─────────────────────────────── */}
-            <div className="border-t border-border/40 pt-4 space-y-1.5">
-              <Label htmlFor="s-notes" className="text-sm font-semibold text-foreground">
-                Condições comerciais
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">— pedido mínimo, prazo, contato preferencial</span>
+            {/* Linha 4: Condições Comerciais e Observações (Largura Total) */}
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label htmlFor="s-notes" className="text-xs font-semibold text-foreground">
+                Condições comerciais &amp; Observações <span className="font-normal text-muted-foreground">(opcional)</span>
               </Label>
-              <Textarea
+              <Input
                 id="s-notes"
-                placeholder="Ex: Pedido mínimo de 6 peças por modelo, prazo de 15 dias para entrega, contatar Fernanda no WhatsApp."
+                placeholder="Ex: Pedido mínimo de 6 peças, entrega em 15 dias, falar com Fernanda..."
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="rounded-xl resize-none text-sm"
-                rows={2}
+                className="rounded-xl h-9.5 text-sm"
               />
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-1">
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
             <Button
               variant="outline"
               onClick={closeDialog}
-              className="rounded-full h-10 px-5 text-sm font-semibold cursor-pointer"
+              className="rounded-full h-9.5 px-5 text-xs font-semibold cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
-              className="rounded-full h-10 px-6 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
+              className="rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow cursor-pointer gap-1.5"
             >
               {saveMutation.isPending
                 ? "Salvando..."
