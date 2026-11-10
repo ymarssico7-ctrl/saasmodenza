@@ -289,6 +289,21 @@ export async function insertCustomer(storeId: string, name: string, phone?: stri
   return data;
 }
 
+export async function updateCustomer(storeId: string, id: string, name: string, phone?: string | null) {
+  if (isDemoStore(storeId)) {
+    return localUpdate("customers", id, {
+      name,
+      phone: phone ?? null,
+      updated_at: new Date().toISOString(),
+    });
+  }
+  const { error } = await supabase
+    .from("customers")
+    .update({ name, phone: phone ?? null, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteCustomer(storeId: string, id: string) {
   if (isDemoStore(storeId)) {
     const credits = localGet("credits").filter((c) => c["customer_id"] === id);
