@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Building2,
-  Calendar,
   Check,
   Copy,
   CreditCard,
@@ -12,20 +11,15 @@ import {
   FileText,
   LayoutGrid,
   List,
+  Package,
   Pencil,
   Phone,
   Plus,
-  Receipt,
   Search,
-  ShoppingCart,
-  Tag,
   Trash2,
-  TrendingDown,
-  Truck,
   X,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { StatCard } from "@/components/stat-card";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,9 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { suppliersQuery, type SupplierRow } from "@/lib/db";
-import { transactionsQuery } from "@/lib/db";
-import { brl } from "@/lib/format";
+import { suppliersQuery, inventoryQuery, type SupplierRow } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import {
   insertSupplier,
@@ -69,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/fornecedores")({
       {
         name: "description",
         content:
-          "Cadastre suas confecções e parceiros, gerencie chaves Pix e acompanhe o histórico de reposições em um só lugar.",
+          "Gerencie suas confecções parceiras, chaves Pix e contatos rápidos para reposição de estoque.",
       },
     ],
   }),
@@ -78,39 +70,15 @@ export const Route = createFileRoute("/_authenticated/fornecedores")({
 
 type PixType = "cnpj" | "telefone" | "email" | "aleatoria";
 
-function dataBR(iso: string) {
-  if (!iso) return "-";
-  const [y, m, d] = iso.slice(0, 10).split("-");
-  return `${d}/${m}/${y}`;
-}
-
-function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getMonthNameBR() {
-  const months = [
-    "janeiro",
-    "fevereiro",
-    "março",
-    "abril",
-    "maio",
-    "junho",
-    "julho",
-    "agosto",
-    "setembro",
-    "outubro",
-    "novembro",
-    "dezembro",
-  ];
-  return months[new Date().getMonth()];
-}
-
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+function calcTotalStock(item: { sizes?: unknown }): number {
+  const s = (typeof item.sizes === "object" && item.sizes !== null ? item.sizes : {}) as Record<string, number>;
+  return Object.values(s).reduce((acc, q) => acc + (Math.round(Number(q)) || 0), 0);
 }
 
 // Máscaras automáticas limpas
@@ -165,10 +133,8 @@ function formatSupplierNotes(pixType: PixType, pixKey: string, cleanNotes: strin
 }
 
 type SupplierStats = SupplierRow & {
-  totalGasto: number;
-  gastoMes: number;
-  ultimoGasto: string | null;
-  countTxs: number;
+  totalModelos: number;
+  totalPecas: number;
   pixKey: string;
   pixType: PixType;
   cleanNotes: string;
@@ -190,7 +156,7 @@ function Fornecedores() {
   const { storeId } = useStore();
 
   const { data: suppliers = [] } = useQuery(suppliersQuery());
-  const { data: rawTxs = [] } = useQuery(transactionsQuery());
+  const { data: inventoryItems = [] } = useQuery(inventoryQuery());
 
   // Categorias dinâmicas da loja (sincronizadas com Configurações)
   const [storeCategories, setStoreCategories] = useState<CustomOption[]>(() =>
@@ -227,45 +193,30 @@ function Fornecedores() {
   const [form, setForm] = useState(BLANK_FORM);
   const [copiedPixId, setCopiedPixId] = useState<string | null>(null);
 
-  // Cruza fornecedores com transações de saída
-  const mes = currentMonth();
+  // Cruza fornecedores com peças do estoque de forma leve e direta
   const fornecedores = useMemo<SupplierStats[]>(() => {
     return suppliers.map((s) => {
-      const nameLower = s.name.toLowerCase();
-      const txs = (rawTxs as any[]).filter((t) => {
-        if (t.kind !== "saida") return false;
-        const desc: string = (t.description ?? "").toLowerCase();
-        return (
-          desc.includes(`[favorecido: ${nameLower}]`) ||
-          desc.includes(`[fornecedor: ${nameLower}]`)
-        );
+      const nameLower = s.name.toLowerCase().trim();
+      const matched = inventoryItems.filter((i) => {
+        if (!i.supplier) return false;
+        const sup = i.supplier.toLowerCase().trim();
+        return sup === nameLower || sup === s.id;
       });
 
-      const totalGasto = txs.reduce((acc, t) => acc + Number(t.amount), 0);
-      const gastoMes = txs
-        .filter((t) => (t.occurred_on ?? "").startsWith(mes))
-        .reduce((acc, t) => acc + Number(t.amount), 0);
-
-      let ultimoGasto: string | null = null;
-      for (const t of txs) {
-        if (!ultimoGasto || t.occurred_on > ultimoGasto)
-          ultimoGasto = t.occurred_on;
-      }
-
+      const totalModelos = matched.length;
+      const totalPecas = matched.reduce((acc, item) => acc + calcTotalStock(item), 0);
       const { pixKey, pixType, cleanNotes } = parseSupplierNotes(s.notes);
 
       return {
         ...s,
-        totalGasto,
-        gastoMes,
-        ultimoGasto,
-        countTxs: txs.length,
+        totalModelos,
+        totalPecas,
         pixKey,
         pixType,
         cleanNotes,
       };
     });
-  }, [suppliers, rawTxs, mes]);
+  }, [suppliers, inventoryItems]);
 
   // Lista dinâmica de categorias que REALMENTE POSSUEM fornecedores cadastrados
   const activeCategoriesWithCount = useMemo(() => {
@@ -289,23 +240,7 @@ function Fornecedores() {
     }));
   }, [fornecedores, getCategoryLabel]);
 
-  // Métricas do topo
   const totalFornecedores = fornecedores.length;
-  const fornecedoresAtivosMes = fornecedores.filter((f) => f.gastoMes > 0).length;
-  const gastoTotalMes = fornecedores.reduce((acc, f) => acc + f.gastoMes, 0);
-  const topFornecedor = useMemo(() => {
-    return [...fornecedores].sort((a, b) => b.gastoMes - a.gastoMes)[0] ?? null;
-  }, [fornecedores]);
-
-  const categoriaTop = useMemo(() => {
-    const acc: Record<string, number> = {};
-    (rawTxs as any[]).forEach((t) => {
-      if (t.kind !== "saida" || !(t.occurred_on ?? "").startsWith(mes)) return;
-      acc[t.category] = (acc[t.category] ?? 0) + Number(t.amount);
-    });
-    const sorted = Object.entries(acc).sort((a, b) => b[1] - a[1]);
-    return sorted[0] ? getCategoryLabel(sorted[0][0]) : "-";
-  }, [rawTxs, mes, getCategoryLabel]);
 
   // Filtro de busca
   const filtrados = useMemo(() => {
@@ -331,8 +266,9 @@ function Fornecedores() {
         );
       })
       .sort((a, b) => {
-        if (b.gastoMes !== a.gastoMes) return b.gastoMes - a.gastoMes;
-        return b.totalGasto - a.totalGasto;
+        // Ordena primeiro quem tem mais peças vinculadas no estoque, depois por nome
+        if (b.totalPecas !== a.totalPecas) return b.totalPecas - a.totalPecas;
+        return a.name.localeCompare(b.name);
       });
   }, [fornecedores, busca, categoriaFiltro, getCategoryLabel]);
 
@@ -445,7 +381,7 @@ function Fornecedores() {
       <PageHeader
         eyebrow="Catálogo & Compras"
         title="Fornecedores de Mercadoria"
-        description="Gerencie suas confecções parceiras, chaves Pix e acompanhe o histórico de reposições da sua loja."
+        description="Gerencie suas confecções parceiras, chaves Pix e contatos rápidos para reposição de estoque."
         action={
           <Button
             className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5"
@@ -456,46 +392,7 @@ function Fornecedores() {
         }
       />
 
-      {/* Métricas Principais (StatCards no padrão discreto e elegante) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Total de Parceiros"
-          value={String(totalFornecedores)}
-          hint={
-            totalFornecedores === 0
-              ? "Nenhum parceiro cadastrado"
-              : fornecedoresAtivosMes > 0
-                ? `${fornecedoresAtivosMes} ativo${fornecedoresAtivosMes > 1 ? "s" : ""} com compras em ${getMonthNameBR()}`
-                : `${totalFornecedores} parceiro${totalFornecedores !== 1 ? "s" : ""} cadastrado${totalFornecedores !== 1 ? "s" : ""}`
-          }
-          icon={<Building2 className="size-4" />}
-        />
-        <StatCard
-          label="Compras no Mês"
-          value={brl(gastoTotalMes)}
-          tone={gastoTotalMes > 0 ? "warning" : "default"}
-          hint={`Saídas registradas em ${getMonthNameBR()}`}
-          icon={<TrendingDown className="size-4" />}
-        />
-        <StatCard
-          label="Maior Compra do Mês"
-          value={topFornecedor && topFornecedor.gastoMes > 0 ? brl(topFornecedor.gastoMes) : "R$ 0,00"}
-          hint={
-            topFornecedor && topFornecedor.gastoMes > 0
-              ? topFornecedor.name
-              : "Sem compras no mês atual"
-          }
-          icon={<Receipt className="size-4" />}
-        />
-        <StatCard
-          label="Principal Custo de Estoque"
-          value={categoriaTop}
-          hint="Categoria de maior volume no mês"
-          icon={<ShoppingCart className="size-4" />}
-        />
-      </div>
-
-      {/* Toolbar: Busca + Alternador de Visualização (e Chips apenas se houver fornecedores) */}
+      {/* Toolbar: Busca + Alternador de Visualização (Exibidos apenas quando houver fornecedores) */}
       {totalFornecedores > 0 && (
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -506,7 +403,7 @@ function Fornecedores() {
                 placeholder="Buscar por nome, telefone, CNPJ, Pix ou segmento..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm"
+                className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
               />
               {busca && (
                 <button
@@ -551,7 +448,7 @@ function Fornecedores() {
             </div>
           </div>
 
-          {/* Chips Dinâmicos: Exibidos APENAS para categorias com fornecedores cadastrados */}
+          {/* Chips Dinâmicos: Exibidos APENAS para categorias que realmente possuem fornecedores */}
           {activeCategoriesWithCount.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
               <button
@@ -622,7 +519,7 @@ function Fornecedores() {
             Nenhum fornecedor cadastrado
           </h3>
           <p className="mt-1.5 max-w-sm text-xs text-muted-foreground leading-relaxed">
-            Cadastre suas confecções e parceiros para acompanhar compras, registrar chaves Pix e manter contato rápido pelo WhatsApp.
+            Cadastre suas confecções e parceiros para organizar contatos no WhatsApp, chaves Pix e vincular às peças do seu estoque.
           </p>
 
           <Button
@@ -702,7 +599,7 @@ function Fornecedores() {
 
                       <ConfirmDelete
                         title="Excluir fornecedor?"
-                        description={`Deseja remover "${f.name}"? Os registros financeiros históricos permanecerão salvos no caixa.`}
+                        description={`Deseja remover "${f.name}"? As peças de estoque e registros de compras anteriores serão preservados.`}
                         onConfirm={() => deleteMutation.mutate(f.id)}
                         trigger={
                           <Button
@@ -783,37 +680,22 @@ function Fornecedores() {
                   )}
                 </div>
 
-                {/* Rodapé: Métricas Financeiras & Contato */}
-                <div className="mt-5 pt-4 border-t border-border/60">
-                  <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div className="rounded-xl bg-surface-muted/30 p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-semibold">
-                        Gasto Total
-                      </p>
-                      <p className="font-bold text-foreground numeric text-sm">
-                        {brl(f.totalGasto)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {f.countTxs} {f.countTxs === 1 ? "compra" : "compras"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-surface-muted/30 p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-semibold">
-                        Neste Mês
-                      </p>
-                      <p
-                        className={cn(
-                          "font-bold numeric text-sm",
-                          f.gastoMes > 0 ? "text-warning-foreground font-extrabold" : "text-muted-foreground"
-                        )}
-                      >
-                        {brl(f.gastoMes)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {f.ultimoGasto ? `Última: ${dataBR(f.ultimoGasto)}` : "Sem compras"}
-                      </p>
-                    </div>
+                {/* Rodapé: Vínculo com Estoque & Ação WhatsApp */}
+                <div className="mt-5 pt-4 border-t border-border/60 space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                    <span className="flex items-center gap-1.5 font-medium text-foreground">
+                      <Package className="size-3.5 text-primary" />
+                      {f.totalModelos > 0 ? (
+                        <>
+                          <strong className="numeric">{f.totalModelos}</strong>{" "}
+                          {f.totalModelos === 1 ? "modelo" : "modelos"} (
+                          <strong className="numeric">{f.totalPecas}</strong>{" "}
+                          {f.totalPecas === 1 ? "peça" : "peças"})
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground/70">Nenhum produto cadastrado</span>
+                      )}
+                    </span>
                   </div>
 
                   {f.phone ? (
@@ -851,8 +733,7 @@ function Fornecedores() {
                   <th className="py-3 px-4">Fornecedor / Razão</th>
                   <th className="py-3 px-4">Segmento</th>
                   <th className="py-3 px-4">Contato &amp; Pix</th>
-                  <th className="py-3 px-4 text-right">No Mês</th>
-                  <th className="py-3 px-4 text-right">Gasto Histórico</th>
+                  <th className="py-3 px-4 text-right">Produtos no Estoque</th>
                   <th className="py-3 px-4 text-right">Ações</th>
                 </tr>
               </thead>
@@ -914,23 +795,18 @@ function Fornecedores() {
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <span
-                          className={cn(
-                            "font-bold numeric",
-                            f.gastoMes > 0 ? "text-warning-foreground" : "text-muted-foreground"
-                          )}
-                        >
-                          {brl(f.gastoMes)}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <p className="font-semibold text-foreground numeric">
-                          {brl(f.totalGasto)}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {f.countTxs} {f.countTxs === 1 ? "pedido" : "pedidos"}
-                        </p>
+                        {f.totalModelos > 0 ? (
+                          <div>
+                            <p className="font-semibold text-foreground numeric">
+                              {f.totalModelos} {f.totalModelos === 1 ? "modelo" : "modelos"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground numeric">
+                              {f.totalPecas} {f.totalPecas === 1 ? "peça" : "peças"}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/60 text-[11px]">Nenhum produto</span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
@@ -959,7 +835,7 @@ function Fornecedores() {
 
                           <ConfirmDelete
                             title="Excluir fornecedor?"
-                            description={`Deseja remover "${f.name}"? Os registros financeiros históricos permanecerão salvos no caixa.`}
+                            description={`Deseja remover "${f.name}"? As peças do estoque permanecerão salvas.`}
                             onConfirm={() => deleteMutation.mutate(f.id)}
                             trigger={
                               <Button
