@@ -101,8 +101,7 @@ function FretePage() {
     try {
       const raw =
         localStorage.getItem(freteKey(storeId)) ||
-        localStorage.getItem(legacyFreteKey(storeId)) ||
-        localStorage.getItem(GLOBAL_FRETE_KEY);
+        localStorage.getItem(legacyFreteKey(storeId));
       if (!raw) return;
       const saved = JSON.parse(raw) as Partial<FreteConfig>;
       if (saved.cep) setCep(saved.cep);
@@ -138,12 +137,12 @@ function FretePage() {
         freteGratisMinimo: freteGratisMinimo.trim(),
       };
       localStorage.setItem(freteKey(storeId), JSON.stringify(config));
+      toast.success("Configurações de frete salvas!", {
+        description: "As opções de entrega já estão visíveis na vitrine.",
+      });
     } catch {
-      // ignore
+      toast.error("Falha ao salvar frete. Verifique o espaço do navegador.");
     }
-    toast.success("Configurações de frete salvas!", {
-      description: "As opções de entrega já estão visíveis na vitrine.",
-    });
   }
 
   return (

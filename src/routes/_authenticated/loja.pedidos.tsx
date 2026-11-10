@@ -613,28 +613,43 @@ function PedidosPage() {
       }
 
       if (pedido.itens?.length) {
-        const deducoes = pedido.itens.map((item) =>
-          adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
-        );
-        void Promise.all(deducoes).then(() => {
+        try {
+          const deducoes = pedido.itens.map((item) =>
+            adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
+          );
+          await Promise.all(deducoes);
           void queryClient.invalidateQueries({ queryKey: ["inventory"] });
-        });
+        } catch (err) {
+          toast.error("Erro ao baixar estoque. Verifique e tente novamente.", {
+            description: String(err),
+          });
+          return;
+        }
       }
 
       const bruto = totalPedido(pedido);
-      const { net: valorLiquido } = calculateOrderNet(bruto, pedido.pagamento);
+      const { net: valorLiquido } = calculateOrderNet(
+        bruto,
+        mapPedidoPaymentMethod(pedido.pagamento),
+        pedido.taxaOperadora,
+      );
 
-      void insertTransaction({
-        storeId,
-        kind: "entrada",
-        description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
-        amount: valorLiquido,
-        category: "venda_online",
-        payment_method: mapPedidoPaymentMethod(pedido.pagamento),
-        occurred_on: new Date().toISOString().slice(0, 10),
-      }).then(() => {
+      try {
+        await insertTransaction({
+          storeId,
+          kind: "entrada",
+          description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
+          amount: valorLiquido,
+          category: "venda_online",
+          payment_method: mapPedidoPaymentMethod(pedido.pagamento),
+          occurred_on: new Date().toISOString().slice(0, 10),
+        });
         void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      });
+      } catch (err) {
+        toast.error("Estoque baixado, mas falha ao lançar no Caixa. Registre manualmente.", {
+          description: String(err),
+        });
+      }
 
       toast.success("Pedido confirmado! ✅", {
         description: `Estoque baixado e R$ ${valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa (líquido).`,
@@ -716,24 +731,38 @@ function PedidosPage() {
 
     if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
       if (pedido.itens?.length) {
-        void restoreOrderStock(storeId, pedido.itens).then(() => {
+        try {
+          await restoreOrderStock(storeId, pedido.itens);
           void queryClient.invalidateQueries({ queryKey: ["inventory"] });
-        });
+        } catch (err) {
+          toast.error("Erro ao devolver estoque. Verifique manualmente.", {
+            description: String(err),
+          });
+        }
       }
       const bruto = totalPedido(pedido);
-      const { net: valorLiquido } = calculateOrderNet(bruto, pedido.pagamento);
+      const { net: valorLiquido } = calculateOrderNet(
+        bruto,
+        mapPedidoPaymentMethod(pedido.pagamento),
+        pedido.taxaOperadora,
+      );
       if (valorLiquido > 0) {
-        void insertTransaction({
-          storeId,
-          kind: "saida",
-          description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
-          amount: valorLiquido,
-          category: "estorno_devolucao",
-          payment_method: mapPedidoPaymentMethod(pedido.pagamento),
-          occurred_on: new Date().toISOString().slice(0, 10),
-        }).then(() => {
+        try {
+          await insertTransaction({
+            storeId,
+            kind: "saida",
+            description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
+            amount: valorLiquido,
+            category: "estorno_devolucao",
+            payment_method: mapPedidoPaymentMethod(pedido.pagamento),
+            occurred_on: new Date().toISOString().slice(0, 10),
+          });
           void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-        });
+        } catch (err) {
+          toast.error("Erro ao lançar estorno no Caixa. Registre manualmente.", {
+            description: String(err),
+          });
+        }
       }
       toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorLiquido)} lançado no Caixa.`);
     } else {

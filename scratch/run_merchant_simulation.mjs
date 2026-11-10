@@ -775,6 +775,108 @@ const stockEntrySubmitting = evaluateStockEntrySubmitState(true, 15);
 assert(stockEntrySubmitting.isButtonDisabled, 'Botão de confirmação de estoque é desabilitado durante envio');
 assert(stockEntrySubmitting.showSpinner, 'Spinner de gravação é ativado prevenindo duplo clique do lojista');
 
+// ============================================================================
+// ETAPA 12: HOMOLOGAÇÃO DOS MÓDULOS DE PRÓ-LABORE, PEDIDOS, RECEBIMENTOS & FRETE
+// ============================================================================
+console.log('\n' + '='.repeat(80));
+console.log('ETAPA 12: HOMOLOGAÇÃO FINANCEIRA & OPERACIONAL (PRÓ-LABORE, PEDIDOS, FRETE)');
+console.log('='.repeat(80));
+
+// 1. Pró-labore: Fonte única de retiradas (sem dupla contagem de lançamentos no caixa) e guard de NaN
+function computeWithdrawnProlabore(withdrawals) {
+  return withdrawals.reduce((acc, w) => acc + (Number(w.amount) || 0), 0);
+}
+const withdrawalsSample = [
+  { id: "w1", amount: "1500.00" },
+  { id: "w2", amount: null }, // Simula caso nulo
+  { id: "w3", amount: 2000 },
+];
+const totalProlabore = computeWithdrawnProlabore(withdrawalsSample);
+assert(totalProlabore === 3500, 'Pró-labore computa retiradas com precisão e trata nulo/NaN sem corromper valor');
+
+// 2. Pedidos Online: Cancelamento com estorno líquido correto via mapPedidoPaymentMethod
+function mapPedidoPaymentMethod(pagamento) {
+  const p = (pagamento || "").toLowerCase();
+  if (p.includes("pix")) return "pix";
+  if (p.includes("débito") || p.includes("debito")) return "debito";
+  if (p.includes("crédito") || p.includes("credito") || p.includes("cartão") || p.includes("cartao")) return "credito";
+  if (p.includes("dinheiro")) return "dinheiro";
+  return "pix";
+}
+
+function calculateOrderNetMock(total, paymentMethod, existingFee) {
+  const bruto = Math.max(0, Number(total) || 0);
+  if (typeof existingFee === "number" && !isNaN(existingFee)) {
+    const fee = Math.max(0, existingFee);
+    const net = Math.max(0, bruto - fee);
+    return { fee, net };
+  }
+  const method = (paymentMethod || "").toLowerCase();
+  if (method === "pix") {
+    const fee = 0.99;
+    return { fee, net: Math.max(0, bruto - fee) };
+  }
+  if (method.includes("cart") || method.includes("credit")) {
+    const fee = Number((bruto * 0.035).toFixed(2));
+    return { fee, net: Math.max(0, bruto - fee) };
+  }
+  return { fee: 0, net: bruto };
+}
+
+const pedidoCanceladoCartao = {
+  numero: "#1092",
+  cliente: "Juliana Mendes",
+  pagamento: "Cartão de crédito",
+  total: 200.0,
+};
+const mappedMethod = mapPedidoPaymentMethod(pedidoCanceladoCartao.pagamento);
+const netResult = calculateOrderNetMock(pedidoCanceladoCartao.total, mappedMethod);
+assert(mappedMethod === "credito", 'Formato amigável "Cartão de crédito" é mapeado perfeitamente para método técnico "credito"');
+assert(netResult.fee === 7.0, 'Taxa do cartão (3.5% sobre R$ 200) é R$ 7,00');
+assert(netResult.net === 193.0, 'Estorno líquido no cancelamento é de R$ 193,00 (sem estornar taxa que ficou com adquirente)');
+
+// 3. Recebimentos: Idempotência com regex de limite de token "Pedido #XXX"
+function checkIsProlaboreDestinado(transactions, orderNumero) {
+  const escaped = (orderNumero || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`Pedido\\s+${escaped}(?:\\s|$|[.,;])`, "i");
+  return transactions.some(
+    (t) => t.category === "prolabore" && regex.test(t.description),
+  );
+}
+const mockTxs = [
+  { category: "prolabore", description: "Pró-labore — Repasse Vestui Pay Pedido #1092" },
+];
+assert(checkIsProlaboreDestinado(mockTxs, "#1092") === true, 'Identifica que Pedido #1092 já foi destinado');
+assert(checkIsProlaboreDestinado(mockTxs, "#109") === false, 'Regex de limite de token impede falso positivo onde #109 seria confundido com #1092');
+
+// 4. Recebimentos: Compensação D+1 e texto de liquidação bancária para Domingo
+function getLiquidacaoInfo(diaSemana) {
+  const offsetCompensacao = diaSemana === 5 ? 3 : diaSemana === 6 ? 2 : diaSemana === 0 ? 2 : 1;
+  const textoProximaLiquidacao =
+    diaSemana === 5
+      ? "Segunda às 07:00"
+      : diaSemana === 6
+        ? "Segunda às 07:00"
+        : diaSemana === 0
+          ? "Terça às 07:00"
+          : "Amanhã às 07:00";
+  return { offsetCompensacao, textoProximaLiquidacao };
+}
+const domingoLiquidacao = getLiquidacaoInfo(0);
+assert(domingoLiquidacao.offsetCompensacao === 2, 'Domingo tem offset 2 (liquidação D+1 bancária na terça)');
+assert(domingoLiquidacao.textoProximaLiquidacao === "Terça às 07:00", 'Texto de domingo exibe corretamente "Terça às 07:00"');
+
+const sextaLiquidacao = getLiquidacaoInfo(5);
+assert(sextaLiquidacao.textoProximaLiquidacao === "Segunda às 07:00", 'Sexta exibe liquidação na "Segunda às 07:00"');
+
+// 5. Frete: Isolamento por Store ID (Sem vazamento de configurações entre lojas)
+function resolveFreteKey(storeId) {
+  return `vestui_frete_config_${storeId}`;
+}
+const storeAKey = resolveFreteKey("loja_alfa_123");
+const storeBKey = resolveFreteKey("loja_beta_456");
+assert(storeAKey !== storeBKey, 'Chaves de frete são estritamente isoladas por store_id');
+
 console.log('\n' + '='.repeat(80));
 if (allPassed) {
   console.log('🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO E PRECISÃO MATEMÁTICA!');

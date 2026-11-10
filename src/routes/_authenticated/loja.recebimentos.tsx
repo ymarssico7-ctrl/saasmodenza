@@ -91,8 +91,10 @@ function RecebimentosPage() {
   const txsList = allTxs as Array<{ category: string; description: string }>;
 
   const isProlaboreDestinado = (orderNumero: string) => {
+    const escaped = (orderNumero || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`Pedido\\s+${escaped}(?:\\s|$|[.,;])`, "i");
     return txsList.some(
-      (t) => t.category === "prolabore" && t.description.includes(orderNumero),
+      (t) => t.category === "prolabore" && regex.test(t.description),
     );
   };
 
@@ -314,7 +316,14 @@ function RecebimentosPage() {
   const diaSemanaHoje = agora.getDay(); // 0=Dom, 5=Sex, 6=Sáb
   // Compensação D+1 bancária BACEN ocorre no próximo dia útil
   const offsetCompensacao = diaSemanaHoje === 5 ? 3 : diaSemanaHoje === 6 ? 2 : diaSemanaHoje === 0 ? 2 : 1;
-  const textoProximaLiquidacao = diaSemanaHoje === 5 ? "Segunda às 07:00" : diaSemanaHoje === 6 ? "Segunda às 07:00" : "Amanhã às 07:00";
+  const textoProximaLiquidacao =
+    diaSemanaHoje === 5
+      ? "Segunda às 07:00"
+      : diaSemanaHoje === 6
+        ? "Segunda às 07:00"
+        : diaSemanaHoje === 0
+          ? "Terça às 07:00"
+          : "Amanhã às 07:00";
 
   const calendarioProjecao = Array.from({ length: 6 }).map((_, i) => {
     const d = new Date();
@@ -774,11 +783,12 @@ function RecebimentosPage() {
                             ) : (
                               <button
                                 type="button"
+                                disabled={prolaboreMutation.isPending}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setProlaboreOrder(order);
                                 }}
-                                className="rounded-lg p-1 text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                                className="rounded-lg p-1 text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors disabled:opacity-50"
                                 title="Destinar este repasse ao Pró-labore pessoal"
                               >
                                 <HandCoins className="h-4 w-4" />

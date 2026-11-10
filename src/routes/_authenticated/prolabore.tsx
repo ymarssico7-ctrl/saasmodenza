@@ -59,11 +59,7 @@ function Prolabore() {
 
   const monthTxs = txs.filter((t) => t.occurred_on.slice(0, 7) === month.slice(0, 7));
   const monthWithdrawals = withdrawals.filter((w) => w.month.slice(0, 7) === month.slice(0, 7));
-  const prolaboreFromTxs = sumByCategories(monthTxs, "saida", PROLABORE_CATEGORIES);
-  const withdrawn = Math.max(
-    monthWithdrawals.reduce((acc, w) => acc + Number(w.amount), 0),
-    prolaboreFromTxs,
-  );
+  const withdrawn = monthWithdrawals.reduce((acc, w) => acc + (Number(w.amount) || 0), 0);
   const goal = Number(profile?.prolabore_target ?? 0);
   const progress = goal > 0 ? Math.min((withdrawn / goal) * 100, 100) : 0;
   // Segregação contábil homogênea com relatorio.tsx e painel.tsx:
@@ -233,7 +229,7 @@ function Prolabore() {
                   <p className="mt-0.5 text-xs text-muted-foreground">Retirada de pró-labore</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="numeric text-sm font-semibold">{brl(Number(w.amount))}</span>
+                  <span className="numeric text-sm font-semibold">{brl(Number(w.amount) || 0)}</span>
                   <ConfirmDelete
                     onConfirm={() => remove.mutate(w.id)}
                     description="A retirada e o lançamento no caixa serão removidos permanentemente."
