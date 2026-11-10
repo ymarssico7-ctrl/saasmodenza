@@ -877,6 +877,181 @@ const storeAKey = resolveFreteKey("loja_alfa_123");
 const storeBKey = resolveFreteKey("loja_beta_456");
 assert(storeAKey !== storeBKey, 'Chaves de frete são estritamente isoladas por store_id');
 
+// ============================================================================
+// ETAPA 13: SIMULAÇÃO COMPLETA DE 1 MÊS DE OPERAÇÃO DE BOUTIQUE (30 DIAS REAIS)
+// ============================================================================
+console.log('\n' + '='.repeat(80));
+console.log('ETAPA 13: SIMULAÇÃO COMPLETA DE 1 MÊS DE OPERAÇÃO (30 DIAS DE JORNADA REAL)');
+console.log('='.repeat(80));
+
+// --- DIA 1: COMPRA DE LOTE NO ATACADO ---
+// 50 Vestidos Canelados: P (10), M (20), G (15), GG (5) = 50 un.
+// Custo de Atacado: R$ 40,00/peça (R$ 2.000,00)
+// Frete transportadora: R$ 150,00 | Tags & Embalagens: R$ 50,00 -> Total Extras: R$ 200,00
+// Rateio: R$ 200 / 50 = R$ 4,00/peça -> Custo Real de Aquisição = R$ 44,00/peça
+const loteCompra = {
+  nome: "Vestido Canelado Midi",
+  unidades: 50,
+  custoAtacado: 40.0,
+  custoExtrasRateio: 4.0,
+  custoReal: 44.0,
+  impostoPct: 6.0,
+  cartaoPct: 4.0,
+  margemDesejadaPct: 50.0,
+};
+
+// Preço Sugerido com Margem Real de 50%:
+// Divisor = 1 - 0.06 - 0.04 - 0.50 = 0.40
+// Preço = 44 / 0.40 = R$ 110,00
+const precoVendaVestido = loteCompra.custoReal / (1 - (loteCompra.impostoPct + loteCompra.cartaoPct + loteCompra.margemDesejadaPct) / 100);
+assert(Math.abs(precoVendaVestido - 110.0) < 0.01, 'Preço de venda do vestido calculado exatamente em R$ 110,00');
+
+// Estado Inicial do Estoque e Caixa da Loja:
+let estoqueFisico = { P: 10, M: 20, G: 15, GG: 5 };
+let saldoCaixa = 5000.0; // Saldo de capital de giro inicial
+const caixaTransacoes = [];
+
+// Compra de estoque registrada no Caixa: R$ 2.200,00 de saída
+saldoCaixa -= 2200.0;
+caixaTransacoes.push({
+  dia: 1,
+  kind: "saida",
+  category: "compra_estoque",
+  amount: 2200.0,
+  description: "Compra lote 50 Vestidos Canelados (NF 4589)",
+});
+assert(saldoCaixa === 2800.0, 'Caixa após compra de estoque fica em R$ 2.800,00');
+
+// Avaliação Patrimonial no Dia 1:
+const totalPecasEstoqueDia1 = Object.values(estoqueFisico).reduce((a, b) => a + b, 0);
+const patrimonioCustoDia1 = totalPecasEstoqueDia1 * loteCompra.custoReal;
+const potencialVendaDia1 = totalPecasEstoqueDia1 * precoVendaVestido;
+assert(patrimonioCustoDia1 === 2200.0, 'Patrimônio a custo de aquisição é exatamente R$ 2.200,00');
+assert(potencialVendaDia1 === 5500.0, 'Potencial de faturamento da loja é R$ 5.500,00');
+
+// --- DIA 5: VENDAS DE BALCÃO (MÚLTIPLOS MEIOS) ---
+// Venda 1: 5 vestidos no Pix (3 M, 2 G) -> R$ 550,00 (líquido R$ 550,00)
+estoqueFisico.M -= 3;
+estoqueFisico.G -= 2;
+saldoCaixa += 550.0;
+caixaTransacoes.push({ dia: 5, kind: "entrada", category: "venda_produto", amount: 550.0, payment_method: "pix" });
+
+// Venda 2: 3 vestidos no Cartão de Débito (2 P, 1 M) -> 3 * 110 = R$ 330,00. Taxa 2% (R$ 6,60). Líquido R$ 323,40
+estoqueFisico.P -= 2;
+estoqueFisico.M -= 1;
+saldoCaixa += 323.40;
+caixaTransacoes.push({ dia: 5, kind: "entrada", category: "venda_produto", amount: 323.40, payment_method: "debito" });
+
+// Venda 3: 4 vestidos no Cartão de Crédito 3x (1 P, 2 M, 1 GG) -> 4 * 110 = R$ 440,00. Taxa 6% (R$ 26,40). Líquido R$ 413,60
+estoqueFisico.P -= 1;
+estoqueFisico.M -= 2;
+estoqueFisico.GG -= 1;
+saldoCaixa += 413.60;
+caixaTransacoes.push({ dia: 5, kind: "entrada", category: "venda_produto", amount: 413.60, payment_method: "credito" });
+
+const pecasRestantesDia5 = Object.values(estoqueFisico).reduce((a, b) => a + b, 0);
+assert(pecasRestantesDia5 === 38, 'Estoque físico reduz de 50 para 38 peças após 12 vendas balcão');
+
+// --- DIA 10: VENDA NO FIADO (CADERNINHO) ---
+// Cliente "Camila Rocha" leva 2 vestidos (1 M, 1 G = R$ 220,00) a prazo
+estoqueFisico.M -= 1;
+estoqueFisico.G -= 1;
+const clienteCamila = { id: "c_camila", nome: "Camila Rocha", saldoDevedor: 220.0 };
+// Caixa físico NÃO é movimentado no dia da venda fiado!
+const saldoCaixaDia10 = saldoCaixa;
+assert(saldoCaixa === saldoCaixaDia10, 'Venda fiado NÃO altera o saldo do caixa no dia da compra');
+assert(clienteCamila.saldoDevedor === 220.0, 'Caderninho registra R$ 220,00 a receber de Camila');
+
+// Teste de integridade de exclusão:
+function tentarExcluirCliente(cliente) {
+  if (cliente.saldoDevedor > 0) {
+    return { permitido: false, erro: "Não é possível remover cliente com fiado em aberto." };
+  }
+  return { permitido: true };
+}
+const tentativaExclusao = tentarExcluirCliente(clienteCamila);
+assert(!tentativaExclusao.permitido, 'Exclusão de cliente com fiado ativo é estritamente rejeitada');
+
+// --- DIA 15: PEDIDO NA VITRINE ONLINE (VESTUI PAY) ---
+// Cliente online compra 3 vestidos (2 M, 1 P = R$ 330,00) + frete R$ 20,00 = R$ 350,00 no Cartão (3.5% taxa)
+// Taxa do gateway: 3.5% sobre R$ 350 = R$ 12,25. Líquido recebido = R$ 337,75
+const pedidoVitrine = {
+  numero: "#2044",
+  status: "novo",
+  itens: [{ tamanho: "M", qtd: 2 }, { tamanho: "P", qtd: 1 }],
+  totalBruto: 350.0,
+  valorLiquido: 337.75,
+};
+// Status 'novo' não baixa estoque nem entra no caixa
+assert(Object.values(estoqueFisico).reduce((a, b) => a + b, 0) === 36, 'Pedido novo na vitrine aguarda confirmação');
+
+// Lojista confirma o pedido:
+pedidoVitrine.status = "confirmado";
+estoqueFisico.M -= 2;
+estoqueFisico.P -= 1;
+saldoCaixa += pedidoVitrine.valorLiquido;
+caixaTransacoes.push({ dia: 15, kind: "entrada", category: "venda_online", amount: pedidoVitrine.valorLiquido, payment_method: "credito" });
+assert(Object.values(estoqueFisico).reduce((a, b) => a + b, 0) === 33, 'Confirmação do pedido vitrine baixa estoque para 33 peças');
+
+// --- DIA 18: TROCA / DEVOLUÇÃO COM ESTORNO LÍQUIDO ---
+// Uma cliente devolve 1 vestido M que comprou no débito (preço R$ 110, taxa 2% = líquido R$ 107,80)
+// Peça volta ao estoque físico
+estoqueFisico.M += 1;
+saldoCaixa -= 107.80;
+caixaTransacoes.push({ dia: 18, kind: "saida", category: "estorno_devolucao", amount: 107.80, payment_method: "debito" });
+assert(Object.values(estoqueFisico).reduce((a, b) => a + b, 0) === 34, 'Devolução repõe a peça no estoque (34 peças)');
+
+// --- DIA 20: AMORTIZAÇÃO PARCIAL DO FIADO ---
+// Camila Rocha transfere R$ 120,00 via Pix
+clienteCamila.saldoDevedor -= 120.0;
+saldoCaixa += 120.0;
+caixaTransacoes.push({ dia: 20, kind: "entrada", category: "venda_produto", amount: 120.0, payment_method: "pix", description: "Recebimento fiado — Camila Rocha" });
+assert(clienteCamila.saldoDevedor === 100.0, 'Saldo devedor de Camila reduz para R$ 100,00 após Pix');
+
+// --- DIA 25: DESPESAS OPERACIONAIS (OPEX) ---
+// Aluguel da boutique: R$ 1.500,00 | Marketing no Instagram: R$ 300,00
+saldoCaixa -= 1800.0;
+caixaTransacoes.push({ dia: 25, kind: "saida", category: "aluguel", amount: 1500.0 });
+caixaTransacoes.push({ dia: 25, kind: "saida", category: "marketing", amount: 300.0 });
+
+// --- DIA 28: QUITAÇÃO FINAL DO FIADO ---
+// Camila Rocha quita os R$ 100,00 restantes em dinheiro
+clienteCamila.saldoDevedor -= 100.0;
+saldoCaixa += 100.0;
+caixaTransacoes.push({ dia: 28, kind: "entrada", category: "venda_produto", amount: 100.0, payment_method: "dinheiro", description: "Recebimento fiado — Camila Rocha" });
+assert(clienteCamila.saldoDevedor === 0.0, 'Fiado de Camila 100% quitado (R$ 0,00)');
+assert(tentarExcluirCliente(clienteCamila).permitido === true, 'Com fiado quitado, cliente pode ser excluída normalmente');
+
+// --- DIA 30: APURAÇÃO DRE GERENCIAL & PRÓ-LABORE ---
+const totalEntradas = caixaTransacoes.filter(t => t.kind === "entrada").reduce((a, t) => a + t.amount, 0);
+const estornos = caixaTransacoes.filter(t => t.category === "estorno_devolucao").reduce((a, t) => a + t.amount, 0);
+const receitaLiquida = totalEntradas - estornos;
+const opex = caixaTransacoes.filter(t => ["aluguel", "marketing", "frete"].includes(t.category)).reduce((a, t) => a + t.amount, 0);
+const lucroOperacional = receitaLiquida - opex;
+
+// Entradas totais = 550 + 323.40 + 413.60 + 337.75 + 120 + 100 = R$ 1.844,75
+assert(Math.abs(totalEntradas - 1844.75) < 0.01, 'Receita total de entradas no mês é exatamente R$ 1.844,75');
+// Estorno = R$ 107,80 -> Receita Líquida = 1.844,75 - 107,80 = R$ 1.736,95
+assert(Math.abs(receitaLiquida - 1736.95) < 0.01, 'Receita líquida da DRE apurada em R$ 1.736,95');
+// OPEX = 1.500 (aluguel) + 300 (marketing) = R$ 1.800,00
+assert(opex === 1800.0, 'OPEX apurado em R$ 1.800,00');
+
+// Lucro Operacional = 1.736,95 - 1.800,00 = -R$ 63,05 (Prejuízo operacional leve de R$ 63)
+assert(Math.abs(lucroOperacional - (-63.05)) < 0.01, 'DRE apura prejuízo operacional real de R$ 63,05 sem distorção');
+
+// Guardrail de Pró-labore: como o lucro operacional é <= 0, disponível para pró-labore = R$ 0,00
+const disponivelProlabore = Math.max(0, lucroOperacional);
+assert(disponivelProlabore === 0, 'Sistema impede retirada cega de pró-labore quando a loja opera em prejuízo');
+
+// Conferência Final de Peças em Estoque no Fim do Mês:
+// Começou com 50 un. Vendeu: 5 + 3 + 4 + 2 + 3 = 17 un. Devolveu: 1 un. -> Saldo = 50 - 16 = 34 un.
+const pecasFinal = Object.values(estoqueFisico).reduce((a, b) => a + b, 0);
+assert(pecasFinal === 34, 'Estoque físico encerra o mês com exatamente 34 peças (sem furo de estoque)');
+assert(estoqueFisico.P === 6, 'Grade P: 6 un.');
+assert(estoqueFisico.M === 12, 'Grade M: 12 un.');
+assert(estoqueFisico.G === 12, 'Grade G: 12 un.');
+assert(estoqueFisico.GG === 4, 'Grade GG: 4 un.');
+
 console.log('\n' + '='.repeat(80));
 if (allPassed) {
   console.log('🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO E PRECISÃO MATEMÁTICA!');

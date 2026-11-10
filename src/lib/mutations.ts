@@ -291,14 +291,32 @@ export async function insertCustomer(storeId: string, name: string, phone?: stri
 
 export async function deleteCustomer(storeId: string, id: string) {
   if (isDemoStore(storeId)) {
-    // Remove fiados associados (cascade local)
-    const credits = localGet("credits");
-    localSet("credits", credits.filter((c) => c["customer_id"] !== id));
+    const credits = localGet("credits").filter((c) => c["customer_id"] === id);
+    const hasUnpaid = credits.some(
+      (c) => (Number(c["amount"]) - Number(c["paid_amount"])) > 0,
+    );
+    if (hasUnpaid) {
+      throw new Error(
+        "Não é possível remover cliente com fiado em aberto. Quite os débitos no Caderninho de Fiado antes de excluir.",
+      );
+    }
+    // Remove fiados já quitados associados (cascade local)
+    localSet("credits", localGet("credits").filter((c) => c["customer_id"] !== id));
     localDelete("customers", id);
     return;
   }
-  // Em modo real: a tabela credits tem ON DELETE CASCADE via FK customer_id,
-  // mas removemos explicitamente para garantir compatibilidade.
+  // Em modo real: verifica se tem créditos com saldo pendente antes de deletar
+  const { data: credits } = await supabase
+    .from("credits")
+    .select("amount, paid_amount")
+    .eq("customer_id", id);
+
+  if (credits && credits.some((c) => (Number(c.amount) - Number(c.paid_amount)) > 0)) {
+    throw new Error(
+      "Não é possível remover cliente com fiado em aberto. Quite os débitos no Caderninho de Fiado antes de excluir.",
+    );
+  }
+
   await supabase.from("credits").delete().eq("customer_id", id);
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) throw new Error(error.message);

@@ -389,7 +389,7 @@ export const STOCK_PURCHASE_CATEGORIES = new Set(["compra_estoque"]);
 /**
  * Categorias de saída que são RETIRADA DE PRÓ-LABORE (remuneração da sócia/dona).
  */
-export const PROLABORE_CATEGORIES = new Set(["prolabore"]);
+export const PROLABORE_CATEGORIES = new Set(["prolabore", "pro_labore"]);
 
 /**
  * Categorias que compõem o OPEX PURO (Despesas Operacionais Correntes da Loja).
