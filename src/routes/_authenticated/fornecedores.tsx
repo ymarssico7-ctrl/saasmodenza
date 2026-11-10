@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -57,7 +57,6 @@ import {
   deleteSupplier,
 } from "@/lib/mutations";
 import {
-  getCustomOptions,
   getSupplierCategories,
   type CustomOption,
 } from "@/lib/custom-options";
@@ -178,7 +177,6 @@ type SupplierStats = SupplierRow & {
 const BLANK_FORM = {
   name: "",
   category: "",
-  customCategory: "",
   phone: "",
   cnpj: "",
   pixType: "cnpj" as PixType,
@@ -188,6 +186,7 @@ const BLANK_FORM = {
 
 function Fornecedores() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { storeId } = useStore();
 
   const { data: suppliers = [] } = useQuery(suppliersQuery());
@@ -346,12 +345,9 @@ function Fornecedores() {
 
   function openEdit(s: SupplierStats) {
     setEditTarget(s);
-    // Verifica se a categoria é uma das existentes ou se é customizada
-    const isKnown = storeCategories.some((c) => c.value === s.category || c.label === s.category);
     setForm({
       name: s.name,
-      category: isKnown ? (s.category ?? "") : s.category ? "custom" : "",
-      customCategory: isKnown ? "" : (s.category ?? ""),
+      category: s.category ?? "",
       phone: s.phone ?? "",
       cnpj: s.cnpj ?? "",
       pixType: s.pixType,
@@ -388,14 +384,7 @@ function Fornecedores() {
       if (!form.name.trim()) throw new Error("Informe o nome do fornecedor ou fábrica.");
 
       const packedNotes = formatSupplierNotes(form.pixType, form.pixKey, form.notes);
-
-      // Resolve a categoria final (se selecionou "custom", usa o texto digitado)
-      let finalCategory: string | null = null;
-      if (form.category === "custom") {
-        finalCategory = form.customCategory.trim() || null;
-      } else if (form.category.trim()) {
-        finalCategory = form.category.trim();
-      }
+      const finalCategory = form.category.trim() || null;
 
       if (editTarget) {
         await updateSupplier({
@@ -994,208 +983,174 @@ function Fornecedores() {
         </div>
       )}
 
-      {/* Dialog Modernizado de Cadastro & Edição de Fornecedor */}
+      {/* Dialog Modernizado de Cadastro & Edição de Fornecedor (Padrão Vestui / Quiet Luxury) */}
       <Dialog open={dialogOpen} onOpenChange={(v) => !v && closeDialog()}>
-        <DialogContent className="rounded-3xl border-border bg-card sm:max-w-lg">
+        <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">
+            <DialogTitle className="text-base font-bold text-foreground">
               {editTarget ? "Editar fornecedor" : "Cadastrar novo fornecedor"}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-xs text-muted-foreground">
               {editTarget
                 ? "Atualize os dados comerciais, chaves de pagamento e contatos do parceiro."
-                : "Cadastre fábricas, confecções e parceiros para controle de compras e pagamentos."}
+                : "Cadastre parceiros e confecções para controle de compras e reposições."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
-            {/* Seção 1: Identificação & Contato */}
-            <div className="rounded-2xl border border-border/60 bg-surface-muted/20 p-3.5 space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                1. Identificação &amp; Segmento
-              </p>
+          <div className="space-y-3.5 py-2 text-xs">
+            {/* Nome do Fornecedor */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-name" className="text-xs font-medium text-foreground">
+                Nome da confecção ou fornecedor <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="s-name"
+                placeholder="Ex: Confecções Moda Sul, Fábrica Bella..."
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                className="rounded-xl h-10 text-xs"
+              />
+            </div>
 
-              {/* Nome */}
-              <div className="space-y-1">
-                <Label htmlFor="s-name" className="text-xs font-medium">
-                  Nome da confecção ou fornecedor <span className="text-destructive">*</span>
+            {/* Linha 2: Segmento da Loja e Telefone */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="s-category" className="text-xs font-medium text-foreground">
+                  Segmento da loja
+                </Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                >
+                  <SelectTrigger id="s-category" className="rounded-xl h-10 text-xs">
+                    <SelectValue placeholder="Selecione o segmento..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-border bg-card">
+                    {storeCategories.map((c) => (
+                      <SelectItem key={c.value} value={c.value} className="text-xs">
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                    <div className="border-t border-border/60 p-1 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeDialog();
+                          void navigate({ to: "/configuracoes", search: { tab: "catalogo" } });
+                        }}
+                        className="w-full flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-surface-muted rounded-lg transition-colors cursor-pointer font-medium"
+                      >
+                        <span>Gerenciar segmentos</span>
+                        <ExternalLink className="size-3" />
+                      </button>
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="s-phone" className="text-xs font-medium text-foreground">
+                  WhatsApp / Telefone
                 </Label>
                 <Input
-                  id="s-name"
-                  placeholder="Ex: Confecções Moda Sul, Fábrica Bella..."
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="rounded-xl h-10 text-xs"
+                  id="s-phone"
+                  placeholder="(00) 00000-0000"
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))
+                  }
+                  className="rounded-xl h-10 text-xs font-medium"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Segmento / Categoria */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="s-category" className="text-xs font-medium">
-                      Segmento da loja
-                    </Label>
-                    <Link
-                      to="/configuracoes"
-                      search={{ tab: "catalogo" }}
-                      className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5"
-                    >
-                      <span>Gerenciar</span>
-                      <ExternalLink className="size-2.5" />
-                    </Link>
-                  </div>
-                  <Select
-                    value={form.category}
-                    onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}
-                  >
-                    <SelectTrigger id="s-category" className="rounded-xl h-10 text-xs">
-                      <SelectValue placeholder="Selecione ou crie..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {storeCategories.map((c) => (
-                        <SelectItem key={c.value} value={c.value} className="text-xs">
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="custom" className="text-xs font-semibold text-primary">
-                        + Digitar outro segmento...
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* CNPJ ou CPF */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-cnpj" className="text-xs font-medium text-foreground">
+                CNPJ ou CPF (opcional)
+              </Label>
+              <Input
+                id="s-cnpj"
+                placeholder="00.000.000/0001-00"
+                value={form.cnpj}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, cnpj: maskCnpjCpf(e.target.value) }))
+                }
+                className="rounded-xl h-10 text-xs font-mono"
+              />
+            </div>
 
-                {/* Telefone com Máscara */}
-                <div className="space-y-1">
-                  <Label htmlFor="s-phone" className="text-xs font-medium">
-                    WhatsApp / Telefone
-                  </Label>
-                  <Input
-                    id="s-phone"
-                    placeholder="(00) 00000-0000"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))
-                    }
-                    className="rounded-xl h-10 text-xs font-medium"
-                  />
-                </div>
+            {/* Linha Pix: Tipo e Chave */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="s-pixtype" className="text-xs font-medium text-foreground">
+                  Tipo de Chave
+                </Label>
+                <Select
+                  value={form.pixType}
+                  onValueChange={(v: PixType) => setForm((f) => ({ ...f, pixType: v }))}
+                >
+                  <SelectTrigger id="s-pixtype" className="rounded-xl h-10 text-xs">
+                    <SelectValue placeholder="Tipo..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-border bg-card">
+                    <SelectItem value="cnpj" className="text-xs">CNPJ / CPF</SelectItem>
+                    <SelectItem value="telefone" className="text-xs">Celular</SelectItem>
+                    <SelectItem value="email" className="text-xs">E-mail</SelectItem>
+                    <SelectItem value="aleatoria" className="text-xs">Chave Aleatória</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Campo para Categoria Customizada se selecionou "+ Digitar outro segmento..." */}
-              {form.category === "custom" && (
-                <div className="space-y-1">
-                  <Label htmlFor="s-customcat" className="text-xs font-medium text-primary">
-                    Nome do segmento personalizado
-                  </Label>
-                  <Input
-                    id="s-customcat"
-                    placeholder="Ex: Moda Praia, Jeans Atacado, Sacolas..."
-                    value={form.customCategory}
-                    onChange={(e) => setForm((f) => ({ ...f, customCategory: e.target.value }))}
-                    className="rounded-xl h-10 text-xs"
-                    autoFocus
-                  />
-                </div>
-              )}
-
-              {/* CNPJ / CPF com Máscara */}
-              <div className="space-y-1">
-                <Label htmlFor="s-cnpj" className="text-xs font-medium">
-                  CNPJ ou CPF (opcional)
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="s-pixkey" className="text-xs font-medium text-foreground">
+                  Chave Pix para Pagamento
                 </Label>
                 <Input
-                  id="s-cnpj"
-                  placeholder="00.000.000/0001-00"
-                  value={form.cnpj}
+                  id="s-pixkey"
+                  placeholder={
+                    form.pixType === "cnpj"
+                      ? "00.000.000/0001-00"
+                      : form.pixType === "telefone"
+                        ? "(00) 00000-0000"
+                        : form.pixType === "email"
+                          ? "financeiro@fornecedor.com.br"
+                          : "Chave aleatória EVP"
+                  }
+                  value={form.pixKey}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, cnpj: maskCnpjCpf(e.target.value) }))
+                    setForm((f) => ({
+                      ...f,
+                      pixKey:
+                        form.pixType === "telefone"
+                          ? maskPhone(e.target.value)
+                          : form.pixType === "cnpj" && e.target.value.replace(/\D/g, "").length <= 14
+                            ? maskCnpjCpf(e.target.value)
+                            : e.target.value,
+                    }))
                   }
                   className="rounded-xl h-10 text-xs font-mono"
                 />
               </div>
             </div>
 
-            {/* Seção 2: Pagamentos & Chave Pix */}
-            <div className="rounded-2xl border border-border/60 bg-surface-muted/20 p-3.5 space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <CreditCard className="size-3.5 text-primary" />
-                2. Pagamento &amp; Chave Pix
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {/* Tipo de Chave Pix */}
-                <div className="space-y-1">
-                  <Label htmlFor="s-pixtype" className="text-xs font-medium">
-                    Tipo de Chave
-                  </Label>
-                  <Select
-                    value={form.pixType}
-                    onValueChange={(v: PixType) => setForm((f) => ({ ...f, pixType: v }))}
-                  >
-                    <SelectTrigger id="s-pixtype" className="rounded-xl h-10 text-xs">
-                      <SelectValue placeholder="Tipo..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cnpj" className="text-xs">CNPJ / CPF</SelectItem>
-                      <SelectItem value="telefone" className="text-xs">Celular</SelectItem>
-                      <SelectItem value="email" className="text-xs">E-mail</SelectItem>
-                      <SelectItem value="aleatoria" className="text-xs">Chave Aleatória</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Chave Pix */}
-                <div className="sm:col-span-2 space-y-1">
-                  <Label htmlFor="s-pixkey" className="text-xs font-medium">
-                    Chave Pix para Pagamento
-                  </Label>
-                  <Input
-                    id="s-pixkey"
-                    placeholder={
-                      form.pixType === "cnpj"
-                        ? "00.000.000/0001-00"
-                        : form.pixType === "telefone"
-                          ? "(00) 00000-0000"
-                          : form.pixType === "email"
-                            ? "financeiro@fornecedor.com.br"
-                            : "Chave aleatória EVP"
-                    }
-                    value={form.pixKey}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        pixKey:
-                          form.pixType === "telefone"
-                            ? maskPhone(e.target.value)
-                            : form.pixType === "cnpj" && e.target.value.replace(/\D/g, "").length <= 14
-                              ? maskCnpjCpf(e.target.value)
-                              : e.target.value,
-                      }))
-                    }
-                    className="rounded-xl h-10 text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Observações Comerciais */}
-              <div className="space-y-1">
-                <Label htmlFor="s-notes" className="text-xs font-medium">
-                  Condições comerciais &amp; Observações
-                </Label>
-                <Textarea
-                  id="s-notes"
-                  placeholder="Prazo médio de entrega, pedido mínimo, contato preferencial..."
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                  className="rounded-xl resize-none text-xs"
-                  rows={2}
-                />
-              </div>
+            {/* Observações */}
+            <div className="space-y-1.5">
+              <Label htmlFor="s-notes" className="text-xs font-medium text-foreground">
+                Condições comerciais &amp; Observações
+              </Label>
+              <Textarea
+                id="s-notes"
+                placeholder="Prazo médio de entrega, pedido mínimo, contato preferencial..."
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                className="rounded-xl resize-none text-xs"
+                rows={2}
+              />
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
             <Button
               variant="outline"
               onClick={closeDialog}
