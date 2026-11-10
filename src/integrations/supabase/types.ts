@@ -387,6 +387,7 @@ export type Database = {
           created_at: string;
           id: string;
           month: string;
+          store_id?: string;
           user_id: string;
         };
         Insert: {

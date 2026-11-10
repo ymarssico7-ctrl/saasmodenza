@@ -1681,6 +1681,7 @@ function LivePricingSummaryPanel({
   totalVariants,
   hasData,
   mode,
+  strategy,
   onEntry,
   onSave,
   onReset,
@@ -1703,6 +1704,7 @@ function LivePricingSummaryPanel({
   totalVariants: number;
   hasData: boolean;
   mode: PricingMode;
+  strategy?: PricingStrategy | "direct_price" | string;
   onEntry: () => void;
   onSave: () => void;
   onReset?: () => void;
@@ -2697,7 +2699,7 @@ function Precificacao() {
   }, [
     DRAFT_KEY,
     mode,
-    strategy,
+          strategy,
     name,
     category,
     wholesale,
@@ -8074,6 +8076,7 @@ function Precificacao() {
               totalVariants={1}
               hasData={toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0}
               mode={mode}
+              strategy={strategy}
               onEntry={openEntryForCurrent}
               onSave={() => save.mutate()}
               onReset={resetPricingModel}

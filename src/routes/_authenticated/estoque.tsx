@@ -86,6 +86,11 @@ export const Route = createFileRoute("/_authenticated/estoque")({
 
 type Sizes = Record<string, number>;
 
+function calcTotalStock(item: { sizes?: unknown }): number {
+  const s = (typeof item.sizes === "object" && item.sizes !== null ? item.sizes : {}) as Record<string, number>;
+  return Object.values(s).reduce((acc, q) => acc + (Math.round(Number(q)) || 0), 0);
+}
+
 function Estoque() {
   const queryClient = useQueryClient();
   const { store, storeId } = useStore();
