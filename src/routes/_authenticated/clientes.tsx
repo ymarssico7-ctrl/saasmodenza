@@ -161,7 +161,7 @@ function ClientesPage() {
 
   // Estados Clientes & Modal
   const [busca, setBusca] = useState("");
-  const [apenasVips, setApenasVips] = useState(false);
+  const [filtroClientes, setFiltroClientes] = useState<"todos" | "vips" | "devedores">("todos");
   const [modalCliente, setModalCliente] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<{ id: string; name: string; phone: string } | null>(null);
   const [customerName, setCustomerName] = useState("");
@@ -301,11 +301,12 @@ function ClientesPage() {
     return list.sort((a, b) => b.totalGasto - a.totalGasto);
   }, [customersData, credits, txs, orders]);
 
-  // Filtro de busca e VIP da Carteira de Clientes
+  // Filtro de busca e segmentos da Carteira de Clientes
   const clientesFiltrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
     return clientes.filter((c) => {
-      if (apenasVips && !c.vip) return false;
+      if (filtroClientes === "vips" && !c.vip) return false;
+      if (filtroClientes === "devedores" && c.saldoDevedor <= 0) return false;
       if (!q) return true;
       return (
         c.nome.toLowerCase().includes(q) ||
@@ -313,7 +314,7 @@ function ClientesPage() {
         c.cidade.toLowerCase().includes(q)
       );
     });
-  }, [clientes, busca, apenasVips]);
+  }, [clientes, busca, filtroClientes]);
 
   const totalClientes = clientes.length;
 
@@ -539,14 +540,14 @@ function ClientesPage() {
         action={
           isTabClientes ? (
             <Button
-              className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+              className="gradient-primary h-10 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
               onClick={openNewCustomer}
             >
               <Plus className="size-4" /> Novo cliente
             </Button>
           ) : (
             <Button
-              className="h-10 rounded-full px-5 text-sm font-semibold shadow-glow cursor-pointer gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+              className="gradient-primary h-10 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
               onClick={() => setModalNovoFiado(true)}
             >
               <Plus className="size-4" /> Registrar fiado
@@ -555,83 +556,125 @@ function ClientesPage() {
         }
       />
 
-      {/* ─── VISÃO 1: CARTEIRA DE CLIENTES (QUIET LUXURY / SEM DASHBOARD INFLADO) ─── */}
+      {/* ─── VISÃO 1: CARTEIRA DE CLIENTES (CONTAINER UNIFICADO DE GESTÃO) ─── */}
       {isTabClientes ? (
         <div className="space-y-4">
-          {/* Barra de Busca Limpa com Filtro VIP Discreto */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente por nome, telefone ou cidade..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="h-11 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
-              />
-              {busca && (
-                <button
-                  type="button"
-                  onClick={() => setBusca("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
-                  aria-label="Limpar busca"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            <Button
-              variant={apenasVips ? "default" : "outline"}
-              size="sm"
-              onClick={() => setApenasVips(!apenasVips)}
-              className={cn(
-                "rounded-full h-11 px-4 text-xs font-semibold gap-1.5 shrink-0 transition-all cursor-pointer",
-                apenasVips
-                  ? "bg-amber-500 text-amber-950 border-amber-500/30 shadow-xs hover:bg-amber-400"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Star className={cn("size-3.5", apenasVips ? "fill-amber-950" : "text-amber-500")} />
-              {apenasVips ? "Mostrando apenas VIPs" : "Filtrar VIPs"}
-            </Button>
-          </div>
-
-          {/* Conteúdo: Tabela Executiva Proporcional */}
           {totalClientes === 0 ? (
             <EmptyState
               icon={<UserRound className="size-8" />}
               title="Nenhuma cliente cadastrada"
               description="Cadastre suas clientes para acompanhar histórico de compras, faturamento e reativar contatos."
               action={
-                <Button onClick={openNewCustomer} className="rounded-full h-10 px-5 text-xs font-semibold shadow-glow cursor-pointer gap-1.5">
+                <Button
+                  onClick={openNewCustomer}
+                  className="gradient-primary rounded-full h-10 px-5 text-xs font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
+                >
                   <Plus className="size-4" /> Cadastrar primeira cliente
                 </Button>
               }
             />
-          ) : clientesFiltrados.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-10 text-center shadow-soft">
-              <Search className="size-8 text-muted-foreground/50 mb-3" />
-              <h3 className="text-sm font-semibold text-foreground">Nenhuma cliente encontrada</h3>
-              <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-                Tente buscar por outro termo ou remova os filtros ativos.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBusca("");
-                  setApenasVips(false);
-                }}
-                className="mt-4 rounded-full text-xs font-semibold"
-              >
-                Limpar filtros
-              </Button>
-            </div>
           ) : (
-            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs table-fixed">
-                  <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border">
+            <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
+              {/* Abas Superiores Integradas (Padrão Apple / Linear de loja.pedidos.tsx) */}
+              <div className="flex items-center gap-1 overflow-x-auto p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
+                {[
+                  { valor: "todos", label: "Todas as clientes", count: totalClientes },
+                  { valor: "vips", label: "VIPs", count: clientes.filter((c) => c.vip).length, isVip: true },
+                  ...(fiadoAtivo
+                    ? [{ valor: "devedores", label: "Com Débito no Fiado", count: clientes.filter((c) => c.saldoDevedor > 0).length, isWarning: true }]
+                    : []),
+                ].map((tab) => {
+                  const active = filtroClientes === tab.valor;
+                  return (
+                    <button
+                      key={tab.valor}
+                      type="button"
+                      onClick={() => setFiltroClientes(tab.valor as any)}
+                      className={cn(
+                        "flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap",
+                        active
+                          ? "bg-background text-foreground font-semibold shadow-xs border border-border/60"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                      )}
+                    >
+                      <span>{tab.label}</span>
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded-full text-[10.5px] num-display transition-colors",
+                          active
+                            ? "bg-primary/10 text-primary font-bold"
+                            : tab.isVip && tab.count > 0
+                              ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold"
+                              : tab.isWarning && tab.count > 0
+                                ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold"
+                                : "bg-secondary/70 text-muted-foreground/60 font-medium"
+                        )}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Barra de Filtros Embutida (Linha Única Conectada) */}
+              <div className="p-3 sm:p-3.5 border-b border-border/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-card">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
+                  <Input
+                    placeholder="Buscar cliente por nome, WhatsApp ou cidade..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="h-9 sm:h-9.5 pl-9 pr-8 text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border focus:bg-background transition-all w-full"
+                  />
+                  {busca && (
+                    <button
+                      type="button"
+                      onClick={() => setBusca("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                      title="Limpar busca"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {filtroClientes !== "todos" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFiltroClientes("todos")}
+                    className="h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                  >
+                    Limpar filtro
+                  </Button>
+                )}
+              </div>
+
+              {/* Conteúdo da Tabela ou Estado Vazio Filtrado */}
+              {clientesFiltrados.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <Search className="size-8 text-muted-foreground/50 mb-3" />
+                  <h3 className="text-sm font-semibold text-foreground">Nenhuma cliente encontrada</h3>
+                  <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                    Tente buscar por outro termo ou limpe os filtros ativos.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBusca("");
+                      setFiltroClientes("todos");
+                    }}
+                    className="mt-4 rounded-xl text-xs font-semibold"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs table-fixed">
+                    <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border select-none">
                     <tr>
                       <th className="py-3 px-4 w-[34%]">Cliente / Perfil</th>
                       <th className="py-3 px-4 w-[24%]">Contato &amp; WhatsApp</th>
@@ -807,145 +850,144 @@ function ClientesPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* ─── VISÃO 2: CADERNINHO DE FIADO — LIVRO-RAZÃO EXECUTIVO ─── */
-        <div className="space-y-4">
-
-          {/* Barra de Resumo Financeiro Integrada (Inline — Sem Caixotes Pesados) */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border bg-card px-5 py-3.5 shadow-soft">
-            <div className="flex items-center gap-2.5">
-              <div className="size-7 rounded-lg bg-surface-muted flex items-center justify-center shrink-0">
-                <HandCoins className="size-3.5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">A Receber</p>
-                <p className="text-sm font-bold text-foreground numeric">{brl(fiadosAbertosTotal)}</p>
-              </div>
-            </div>
-
-            <div className="h-8 w-px bg-border/60 hidden sm:block" />
-
-            <div className="flex items-center gap-2.5">
-              <div className={cn("size-7 rounded-lg flex items-center justify-center shrink-0", fiadosVencidosTotal > 0 ? "bg-rose-500/10" : "bg-surface-muted")}>
-                <AlertTriangle className={cn("size-3.5", fiadosVencidosTotal > 0 ? "text-rose-500" : "text-muted-foreground")} />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Em Atraso</p>
-                <p className={cn("text-sm font-bold numeric", fiadosVencidosTotal > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground")}>
-                  {brl(fiadosVencidosTotal)}
-                </p>
-              </div>
-            </div>
-
-            <div className="h-8 w-px bg-border/60 hidden sm:block" />
-
-            <div className="flex items-center gap-2.5">
-              <div className="size-7 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="size-3.5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Liquidado</p>
-                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 numeric">{brl(fiadosRecebidosTotal)}</p>
-              </div>
-            </div>
-
-            {fiadosComStatus.length > 0 && (
-              <>
-                <div className="h-8 w-px bg-border/60 hidden sm:block" />
-                <div className="ml-auto text-right hidden sm:block">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Taxa de Quitação</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {fiadosComStatus.length > 0
-                      ? pct((fiadosComStatus.filter(c => c.status === "pago").length / fiadosComStatus.length) * 100)
-                      : "0%"}
-                  </p>
-                </div>
-              </>
             )}
           </div>
-
-          {/* Controles: Busca + Segmented Filter */}
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por cliente, peças ou telefone..."
-                value={buscaFiado}
-                onChange={(e) => setBuscaFiado(e.target.value)}
-                className="h-10 rounded-full border-border bg-card pl-10 pr-9 text-sm shadow-2xs"
-              />
-              {buscaFiado && (
-                <button
-                  type="button"
-                  onClick={() => setBuscaFiado("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
-                  aria-label="Limpar busca"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Segmented Control de Status — Sem Contadores Poluídos */}
-            <div className="flex items-center gap-1 p-1 rounded-full border border-border bg-surface-muted/60 shrink-0">
-              {([
-                { value: "todos", label: "Todos" },
-                { value: "pendente", label: "Pendentes" },
-                { value: "vencido", label: "Em Atraso" },
-                { value: "pago", label: "Quitados" },
-              ] as const).map((seg) => (
-                <button
-                  key={seg.value}
-                  type="button"
-                  onClick={() => setFiltroStatusFiado(seg.value)}
-                  className={cn(
-                    "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap",
-                    filtroStatusFiado === seg.value
-                      ? seg.value === "vencido"
-                        ? "bg-rose-500 text-white shadow-xs"
-                        : seg.value === "pago"
-                          ? "bg-emerald-600 text-white shadow-xs"
-                          : "bg-foreground text-background shadow-xs"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {seg.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tabela Executiva: Livro-Razão de Fiados */}
-          {fiadosFiltrados.length === 0 ? (
+        )}
+      </div>
+      ) : (
+        /* ─── VISÃO 2: CADERNINHO DE FIADO (CONTAINER UNIFICADO DE GESTÃO) ─── */
+        <div className="space-y-4">
+          {fiadosComStatus.length === 0 ? (
             <EmptyState
               icon={<HandCoins className="size-8" />}
-              title={buscaFiado || filtroStatusFiado !== "todos" ? "Nenhum fiado encontrado" : "Nenhum fiado registrado"}
-              description={
-                buscaFiado || filtroStatusFiado !== "todos"
-                  ? "Tente alterar o filtro ou limpar a busca."
-                  : "Quando vender a prazo, registre aqui para controle de pagamentos e cobrança via WhatsApp."
-              }
+              title="Nenhum fiado registrado"
+              description="Quando vender a prazo no balcão, registre aqui para ter controle dos pagamentos, datas e cobrança via WhatsApp."
               action={
-                filtroStatusFiado !== "todos" || buscaFiado ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setBuscaFiado(""); setFiltroStatusFiado("todos"); }}
-                    className="rounded-full text-xs font-semibold mt-2"
-                  >
-                    Limpar filtros
-                  </Button>
-                ) : undefined
+                <Button
+                  onClick={() => setModalNovoFiado(true)}
+                  className="gradient-primary rounded-full h-10 px-5 text-xs font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
+                >
+                  <Plus className="size-4" /> Registrar primeiro fiado
+                </Button>
               }
             />
           ) : (
-            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs table-fixed">
-                  <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border">
+            <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
+              {/* Abas Superiores Integradas com Resumo Financeiro Discreto */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {[
+                    { valor: "todos", label: "Todos os fiados", count: fiadosComStatus.length },
+                    { valor: "pendente", label: "Pendentes", count: fiadosAbertos.length },
+                    { valor: "vencido", label: "Em Atraso", count: fiadosComStatus.filter((c) => c.status === "vencido").length, isDanger: true },
+                    { valor: "pago", label: "Quitados", count: fiadosComStatus.filter((c) => c.status === "pago").length, isSuccess: true },
+                  ].map((tab) => {
+                    const active = filtroStatusFiado === tab.valor;
+                    return (
+                      <button
+                        key={tab.valor}
+                        type="button"
+                        onClick={() => setFiltroStatusFiado(tab.valor as any)}
+                        className={cn(
+                          "flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-xl transition-all cursor-pointer whitespace-nowrap",
+                          active
+                            ? "bg-background text-foreground font-semibold shadow-xs border border-border/60"
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                        )}
+                      >
+                        <span>{tab.label}</span>
+                        <span
+                          className={cn(
+                            "px-1.5 py-0.2 rounded-full text-[10.5px] num-display transition-colors",
+                            active
+                              ? "bg-primary/10 text-primary font-bold"
+                              : tab.isDanger && tab.count > 0
+                                ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold"
+                                : tab.isSuccess && tab.count > 0
+                                  ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
+                                  : "bg-secondary/70 text-muted-foreground/60 font-medium"
+                          )}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Resumo Financeiro no Canto da Linha de Abas */}
+                <div className="flex items-center gap-3 px-2 text-xs shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground font-medium">A Receber:</span>
+                    <span className="font-bold text-foreground numeric">{brl(fiadosAbertosTotal)}</span>
+                  </div>
+                  {fiadosVencidosTotal > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">Atrasado:</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-400 numeric">{brl(fiadosVencidosTotal)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Barra de Filtros Embutida */}
+              <div className="p-3 sm:p-3.5 border-b border-border/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-card">
+                <div className="relative flex-1 min-w-0">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60" />
+                  <Input
+                    placeholder="Buscar fiado por cliente, peças levadas ou telefone..."
+                    value={buscaFiado}
+                    onChange={(e) => setBuscaFiado(e.target.value)}
+                    className="h-9 sm:h-9.5 pl-9 pr-8 text-xs rounded-xl bg-secondary/30 border-border/70 hover:border-border focus:bg-background transition-all w-full"
+                  />
+                  {buscaFiado && (
+                    <button
+                      type="button"
+                      onClick={() => setBuscaFiado("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
+                      title="Limpar busca"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {filtroStatusFiado !== "todos" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFiltroStatusFiado("todos")}
+                    className="h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                  >
+                    Mostrar todos
+                  </Button>
+                )}
+              </div>
+
+              {/* Tabela Executiva: Livro-Razão de Fiados */}
+              {fiadosFiltrados.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <Search className="size-8 text-muted-foreground/50 mb-3" />
+                  <h3 className="text-sm font-semibold text-foreground">Nenhum fiado encontrado</h3>
+                  <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                    Tente alterar os termos da busca ou mudar o filtro selecionado.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBuscaFiado("");
+                      setFiltroStatusFiado("todos");
+                    }}
+                    className="mt-4 rounded-xl text-xs font-semibold"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs table-fixed">
+                    <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border select-none">
                     <tr>
                       <th className="py-3 px-4 w-[22%]">Cliente</th>
                       <th className="py-3 px-4 w-[26%]">Peças / Descrição</th>
@@ -1112,9 +1154,10 @@ function ClientesPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+      </div>
       )}
 
       {/* ─── MODAL: BAIXA RÁPIDA DE FIADO (QUICK PAY ZERO-SCROLL) ─── */}
@@ -1156,7 +1199,7 @@ function ClientesPage() {
                   className={cn(
                     "w-full flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-all cursor-pointer",
                     quickPayValue.trim() === ""
-                      ? "border-foreground bg-foreground text-background"
+                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
                       : "border-border bg-card text-foreground hover:bg-surface-muted"
                   )}
                 >
@@ -1200,7 +1243,7 @@ function ClientesPage() {
                           className={cn(
                             "rounded-xl border py-2 text-xs font-semibold transition-all cursor-pointer",
                             quickPayMethod === method
-                              ? "border-foreground bg-foreground text-background"
+                              ? "border-primary bg-primary text-primary-foreground font-semibold shadow-xs"
                               : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface-muted"
                           )}
                         >
@@ -1242,7 +1285,7 @@ function ClientesPage() {
                 }
                 payCreditMutation.mutate({ credit: quickPayCredit, value: valToPay, method: quickPayMethod });
               }}
-              className="rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow cursor-pointer gap-1.5"
+              className="gradient-primary text-primary-foreground rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow hover:opacity-95 cursor-pointer gap-1.5"
             >
               {payCreditMutation.isPending
                 ? "Registrando..."
@@ -1307,7 +1350,7 @@ function ClientesPage() {
             <Button
               onClick={() => saveCustomerMutation.mutate()}
               disabled={saveCustomerMutation.isPending}
-              className="rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow cursor-pointer gap-1.5"
+              className="gradient-primary text-primary-foreground rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow hover:opacity-95 cursor-pointer gap-1.5"
             >
               {saveCustomerMutation.isPending
                 ? "Salvando..."
@@ -1401,7 +1444,7 @@ function ClientesPage() {
             <Button
               onClick={() => createCreditMutation.mutate()}
               disabled={createCreditMutation.isPending}
-              className="rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow cursor-pointer gap-1.5"
+              className="gradient-primary text-primary-foreground rounded-full h-9.5 px-6 text-xs font-semibold shadow-glow hover:opacity-95 cursor-pointer gap-1.5"
             >
               {createCreditMutation.isPending ? "Salvando..." : "Salvar fiado"}
             </Button>
