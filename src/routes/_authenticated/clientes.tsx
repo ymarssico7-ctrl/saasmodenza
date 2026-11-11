@@ -241,7 +241,12 @@ function ClientesPage() {
         (acc, c) => acc + (Number(c.amount) - Number(c.paid_amount)),
         0,
       );
-      const fiadoCount = fiados.filter((c) => Number(c.paid_amount) > 0).length;
+      const fiadoCount = fiados.length;
+      let lastFiadoDate: string | null = null;
+      for (const c of fiados) {
+        const d = (c.purchase_date || "").slice(0, 10);
+        if (d && (!lastFiadoDate || d > lastFiadoDate)) lastFiadoDate = d;
+      }
 
       // 3. Vendas diretas no caixa (físico) - Blindagem estrita contra colisões de substring
       const directTxs = txs.filter((t) => {
@@ -275,12 +280,9 @@ function ClientesPage() {
         if (!lastTxDate || t.occurred_on > lastTxDate) lastTxDate = t.occurred_on;
       }
 
-      const ultimaCompra =
-        lastOnlineDate && lastTxDate
-          ? lastOnlineDate > lastTxDate
-            ? lastOnlineDate
-            : lastTxDate
-          : lastOnlineDate || lastTxDate || null;
+      const allDates = [lastOnlineDate, lastTxDate, lastFiadoDate].filter(Boolean) as string[];
+      allDates.sort();
+      const ultimaCompra: string | null = allDates.length > 0 ? (allDates[allDates.length - 1] ?? null) : null;
 
       const totalGasto = Math.max(onlineTotal + directTotal + fiadoPaid, 0);
       const totalPedidos = onlineCount + directCount + fiadoCount;
@@ -369,6 +371,18 @@ function ClientesPage() {
     setCustomerName(c.nome);
     setCustomerPhone(maskPhone(c.telefone));
     setModalCliente(true);
+  };
+
+  const openEditCustomerById = (customerId: string, fallbackName?: string) => {
+    const found = clientes.find((item) => item.id === customerId);
+    if (found) {
+      openEditCustomer(found);
+    } else {
+      setEditingCustomer({ id: customerId, name: fallbackName ?? "", phone: "" });
+      setCustomerName(fallbackName ?? "");
+      setCustomerPhone("");
+      setModalCliente(true);
+    }
   };
 
   const closeCustomerModal = () => {
@@ -1002,6 +1016,8 @@ function ClientesPage() {
                       const remaining = Math.max(Number(c.amount) - Number(c.paid_amount), 0);
                       const customerPhone = c.customers?.phone;
                       const customerName = c.customers?.name ?? "Cliente";
+                      const cleanDescription =
+                        c.description.replace(/\[Cliente:\s*[^\]]+\]/gi, "").trim() || c.description;
                       const isOverdue = c.status === "vencido";
                       const isPaid = c.status === "pago";
 
@@ -1040,7 +1056,15 @@ function ClientesPage() {
                                     {maskPhone(customerPhone)}
                                   </button>
                                 ) : (
-                                  <span className="text-[11px] text-muted-foreground/60">Sem WhatsApp</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditCustomerById(c.customer_id, customerName)}
+                                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-primary transition-colors cursor-pointer group"
+                                    title="Cadastrar WhatsApp da cliente"
+                                  >
+                                    <span className="underline decoration-dotted underline-offset-2">Sem WhatsApp</span>
+                                    <span className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">+ Cadastrar</span>
+                                  </button>
                                 )}
                               </div>
                             </div>
@@ -1048,8 +1072,8 @@ function ClientesPage() {
 
                           {/* Coluna 2: Peças */}
                           <td className="py-3.5 px-4">
-                            <p className="text-xs text-foreground font-medium leading-relaxed line-clamp-2" title={c.description}>
-                              {c.description}
+                            <p className="text-xs text-foreground font-medium leading-relaxed line-clamp-2" title={cleanDescription}>
+                              {cleanDescription}
                             </p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">
                               Compra: {dataBR(c.purchase_date)}
@@ -1169,7 +1193,7 @@ function ClientesPage() {
               Registrar Pagamento
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              {quickPayCredit?.customers?.name ?? "Cliente"} · {quickPayCredit?.description}
+              {quickPayCredit?.customers?.name ?? "Cliente"} · {quickPayCredit?.description ? (quickPayCredit.description.replace(/\[Cliente:\s*[^\]]+\]/gi, "").trim() || quickPayCredit.description) : ""}
             </DialogDescription>
           </DialogHeader>
 
