@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Plus,
   Trash2,
@@ -15,6 +16,8 @@ import {
   Ticket,
   Infinity as InfinityIcon,
   TrendingUp,
+  ShoppingBag,
+  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +40,7 @@ import {
 import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { dateBR, type Cupom } from "@/data/loja";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/loja/cupons")({
@@ -45,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/loja/cupons")({
       { title: "Cupons de desconto — Vestui" },
       {
         name: "description",
-        content: "Crie cupons em percentual ou valor fixo, com validade e limite de uso.",
+        content: "Crie cupons em percentual ou valor fixo, com validade, limite de uso e proteção de ticket médio.",
       },
     ],
   }),
@@ -144,22 +148,107 @@ function CuponsPage() {
   const [novoTipoValidade, setNovoTipoValidade] = useState<"sem_expiracao" | "fim_de_semana" | "7_dias" | "fim_do_mes" | "personalizado">("sem_expiracao");
   const [novaValidade, setNovaValidade] = useState("");
 
-  // Carrega cupons isolados por loja
+  // ── Consulta dos pedidos reais com cupom da tabela orders (Métricas de ROI) ──
+  const { data: pedidosComCupom = [] } = useQuery({
+    queryKey: ["cupons-pedidos-stats", storeId],
+    queryFn: async () => {
+      if (!storeId) return [];
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, numero, total, subtotal, desconto, cupom, created_at, status")
+        .eq("store_id", storeId)
+        .not("cupom", "is", null);
+      if (error) {
+        console.error("Erro ao carregar métricas de pedidos para cupons:", error);
+        return [];
+      }
+      return data ?? [];
+    },
+    enabled: Boolean(storeId),
+  });
+
+  // Estatísticas comerciais agregadas
+  const estatisticasVendas = useMemo(() => {
+    const validos = pedidosComCupom.filter((p) => p.status !== "cancelado");
+    const totalFaturamento = validos.reduce((acc, p) => acc + Number(p.total || 0), 0);
+    const totalDesconto = validos.reduce((acc, p) => acc + Number(p.desconto || 0), 0);
+    const totalPedidos = validos.length;
+    const ticketMedio = totalPedidos > 0 ? totalFaturamento / totalPedidos : 0;
+
+    const statsPorCodigo: Record<string, { usos: number; faturamento: number; desconto: number }> = {};
+    for (const p of validos) {
+      if (!p.cupom) continue;
+      const cod = p.cupom.toUpperCase();
+      if (!statsPorCodigo[cod]) {
+        statsPorCodigo[cod] = { usos: 0, faturamento: 0, desconto: 0 };
+      }
+      statsPorCodigo[cod].usos += 1;
+      statsPorCodigo[cod].faturamento += Number(p.total || 0);
+      statsPorCodigo[cod].desconto += Number(p.desconto || 0);
+    }
+
+    return {
+      totalFaturamento,
+      totalDesconto,
+      totalPedidos,
+      ticketMedio,
+      statsPorCodigo,
+    };
+  }, [pedidosComCupom]);
+
+  // Sincronização com o Supabase (Nuvem)
+  const sincronizarNuvem = async (novaLista: Cupom[]) => {
+    if (!storeId) return;
+    try {
+      const currentMeta =
+        typeof store?.metadata === "object" && store?.metadata ? store.metadata : {};
+      await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...(currentMeta as Record<string, unknown>),
+            cupons: novaLista,
+          },
+        })
+        .eq("id", storeId);
+    } catch (err) {
+      console.error("Falha ao sincronizar cupons no Supabase:", err);
+    }
+  };
+
+  // Carrega cupons da nuvem (Supabase) com fallback para localStorage
   useEffect(() => {
     if (!storeId) return;
     try {
+      const metaCupons = (store?.metadata as Record<string, unknown> | null)?.["cupons"];
+      if (Array.isArray(metaCupons) && metaCupons.length > 0) {
+        setLista(metaCupons as Cupom[]);
+        localStorage.setItem(cuponsKey(storeId), JSON.stringify(metaCupons));
+        return;
+      }
       const stored =
         localStorage.getItem(cuponsKey(storeId)) ||
         localStorage.getItem(legacyCuponsKey(storeId));
-      setLista(stored ? (JSON.parse(stored) as Cupom[]) : []);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Cupom[];
+        setLista(parsed);
+        if (parsed.length > 0 && store?.metadata !== undefined) {
+          void sincronizarNuvem(parsed);
+        }
+      } else {
+        setLista([]);
+      }
     } catch {
       setLista([]);
     }
-  }, [storeId]);
+  }, [storeId, store?.metadata]);
 
   const persistir = (novaLista: Cupom[]) => {
     setLista(novaLista);
-    localStorage.setItem(cuponsKey(storeId), JSON.stringify(novaLista));
+    if (storeId) {
+      localStorage.setItem(cuponsKey(storeId), JSON.stringify(novaLista));
+      void sincronizarNuvem(novaLista);
+    }
   };
 
   const excluirCupom = (id: string, codigo: string) => {
@@ -217,14 +306,12 @@ function CuponsPage() {
       toast.error("Informe um código para o cupom.");
       return;
     }
-    // Impede códigos duplicados
     if (lista.some((c) => c.codigo === codigoFormatado)) {
       toast.error("Já existe um cupom com este código.", {
         description: "Escolha um código diferente.",
       });
       return;
     }
-    // Validação de data expirada: não permite criar cupom com validade no passado
     if (novaValidade) {
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
@@ -251,7 +338,6 @@ function CuponsPage() {
     const minNum = novoValorMinimo ? toNumber(novoValorMinimo) : 0;
     const limiteNum = novoTipoLimite === "definir" ? Math.round(toNumber(novoLimite)) : undefined;
 
-    // Proteção de margem: Se cupom for fixo e tiver valor mínimo, o desconto não pode ser maior ou igual ao mínimo
     if (novoTipo === "fixo" && minNum > 0 && valNum >= minNum) {
       toast.error("O desconto fixo não pode ser maior ou igual ao pedido mínimo.", {
         description: "O valor mínimo deve ser superior ao valor do cupom para proteger o caixa.",
@@ -283,26 +369,28 @@ function CuponsPage() {
     let usosTotal = 0;
 
     for (const c of lista) {
-      usosTotal += c.usos || 0;
+      const usosDoCupom = estatisticasVendas.statsPorCodigo[c.codigo.toUpperCase()]?.usos ?? c.usos ?? 0;
+      usosTotal += usosDoCupom;
       const expirado = c.validade
         ? new Date(`${c.validade.slice(0, 10)}T23:59:59.999`).getTime() < Date.now()
         : false;
-      const esgotado = Boolean(c.limite && c.usos >= c.limite);
+      const esgotado = Boolean(c.limite && usosDoCupom >= c.limite);
       if (c.ativo && !expirado && !esgotado) {
         ativos++;
       }
     }
 
     return { total, ativos, usosTotal };
-  }, [lista]);
+  }, [lista, estatisticasVendas]);
 
   // ── Filtragem de Cupons ──────────────────────────────────────────────────
   const cuponsFiltrados = useMemo(() => {
     return lista.filter((c) => {
+      const usosDoCupom = estatisticasVendas.statsPorCodigo[c.codigo.toUpperCase()]?.usos ?? c.usos ?? 0;
       const expirado = c.validade
         ? new Date(`${c.validade.slice(0, 10)}T23:59:59.999`).getTime() < Date.now()
         : false;
-      const esgotado = Boolean(c.limite && c.usos >= c.limite);
+      const esgotado = Boolean(c.limite && usosDoCupom >= c.limite);
 
       // Filtro de status por aba
       if (filtroStatus === "ativos" && (!c.ativo || expirado || esgotado)) return false;
@@ -318,7 +406,7 @@ function CuponsPage() {
         (c.tipo === "percentual" ? `${c.valor}%` : `r$ ${c.valor}`).includes(q)
       );
     });
-  }, [lista, filtroStatus, busca]);
+  }, [lista, filtroStatus, busca, estatisticasVendas]);
 
   return (
     <div className="space-y-6">
@@ -336,6 +424,56 @@ function CuponsPage() {
           </Button>
         }
       />
+
+      {/* ─── CARDS DE INTELIGÊNCIA COMERCIAL (ROI DE CAMPANHAS) ─── */}
+      {lista.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between text-muted-foreground text-xs mb-1.5">
+              <span>Faturamento com Cupons</span>
+              <div className="size-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <TrendingUp className="size-3.5" />
+              </div>
+            </div>
+            <p className="num-display text-xl font-bold text-foreground">
+              {brl(estatisticasVendas.totalFaturamento)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {estatisticasVendas.totalPedidos} {estatisticasVendas.totalPedidos === 1 ? "venda gerada" : "vendas geradas"} via cupons
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between text-muted-foreground text-xs mb-1.5">
+              <span>Desconto Oferecido</span>
+              <div className="size-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Percent className="size-3.5" />
+              </div>
+            </div>
+            <p className="num-display text-xl font-bold text-emerald-600 dark:text-emerald-400">
+              {brl(estatisticasVendas.totalDesconto)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Incentivo comercial revertido em conversão
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between text-muted-foreground text-xs mb-1.5">
+              <span>Ticket Médio da Campanha</span>
+              <div className="size-7 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <ShoppingBag className="size-3.5" />
+              </div>
+            </div>
+            <p className="num-display text-xl font-bold text-foreground">
+              {brl(estatisticasVendas.ticketMedio)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Garantido pelo Pedido Mínimo configurado
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ─── CONTAINER UNIFICADO MONOLÍTICO DE GESTÃO (PADRÃO VESTUI) ─── */}
       <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
@@ -401,10 +539,11 @@ function CuponsPage() {
                     valor: "expirados",
                     label: "Expirados / Esgotados",
                     count: lista.filter((c) => {
+                      const usosDoCupom = estatisticasVendas.statsPorCodigo[c.codigo.toUpperCase()]?.usos ?? c.usos ?? 0;
                       const exp = c.validade
                         ? new Date(`${c.validade.slice(0, 10)}T23:59:59.999`).getTime() < Date.now()
                         : false;
-                      const esg = Boolean(c.limite && c.usos >= c.limite);
+                      const esg = Boolean(c.limite && usosDoCupom >= c.limite);
                       return exp || esg;
                     }).length,
                     isDanger: true,
@@ -445,8 +584,8 @@ function CuponsPage() {
 
               {/* Métrica de Resumos no Topo */}
               <div className="flex items-center gap-3 px-2 text-xs shrink-0">
-                <span className="text-[11px] text-muted-foreground">Total de Resgates:</span>
-                <span className="font-bold text-foreground numeric">{métricas.usosTotal} vendas</span>
+                <span className="text-[11px] text-muted-foreground">Total de Vendas via Cupons:</span>
+                <span className="font-bold text-foreground numeric">{estatisticasVendas.totalPedidos} pedidos</span>
               </div>
             </div>
 
@@ -484,21 +623,25 @@ function CuponsPage() {
                 <table className="w-full text-left text-xs table-fixed">
                   <thead className="bg-surface-muted/60 text-muted-foreground font-semibold border-b border-border select-none">
                     <tr>
-                      <th className="py-3 px-4 w-[24%]">Código Promocional</th>
-                      <th className="py-3 px-4 w-[18%]">Desconto</th>
+                      <th className="py-3 px-4 w-[22%]">Código Promocional</th>
+                      <th className="py-3 px-4 w-[16%]">Desconto</th>
                       <th className="py-3 px-4 w-[22%]">Regras & Pedido Mínimo</th>
-                      <th className="py-3 px-4 w-[16%]">Uso da Campanha</th>
+                      <th className="py-3 px-4 w-[18%]">Uso da Campanha</th>
                       <th className="py-3 px-4 w-[10%]">Status</th>
-                      <th className="py-3 px-4 w-[10%] text-right">Ações</th>
+                      <th className="py-3 px-4 w-[12%] text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {cuponsFiltrados.map((c) => {
-                      const uso = c.limite ? Math.min(Math.round((c.usos / c.limite) * 100), 100) : 0;
+                      const stats = estatisticasVendas.statsPorCodigo[c.codigo.toUpperCase()];
+                      const usosReais = stats?.usos ?? c.usos ?? 0;
+                      const faturamentoReal = stats?.faturamento ?? 0;
+
+                      const uso = c.limite ? Math.min(Math.round((usosReais / c.limite) * 100), 100) : 0;
                       const expirado = c.validade
                         ? new Date(`${c.validade.slice(0, 10)}T23:59:59.999`).getTime() < Date.now()
                         : false;
-                      const limiteAtingido = Boolean(c.limite && c.usos >= c.limite);
+                      const limiteAtingido = Boolean(c.limite && usosReais >= c.limite);
                       const isCopied = copiedCode === c.codigo;
 
                       return (
@@ -559,7 +702,7 @@ function CuponsPage() {
                               <div>
                                 <div className="flex items-center justify-between text-xs mb-1">
                                   <span className="num-display font-semibold text-foreground">
-                                    {c.usos} / {c.limite}
+                                    {usosReais} / {c.limite}
                                   </span>
                                   <span className="text-[10px] text-muted-foreground">{uso}%</span>
                                 </div>
@@ -567,19 +710,30 @@ function CuponsPage() {
                                   value={uso}
                                   className={cn("h-1.5", uso >= 90 ? "[&>div]:bg-rose-500" : "[&>div]:bg-primary")}
                                 />
+                                {faturamentoReal > 0 && (
+                                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                                    {brl(faturamentoReal)} gerados
+                                  </p>
+                                )}
                               </div>
                             ) : (
                               <div>
                                 <div className="flex items-center gap-1.5 text-xs">
                                   <span className="num-display font-bold text-foreground">
-                                    {c.usos} {c.usos === 1 ? "venda" : "vendas"}
+                                    {usosReais} {usosReais === 1 ? "venda" : "vendas"}
                                   </span>
                                   <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                                     <InfinityIcon className="size-2.5" />
                                     Livre
                                   </span>
                                 </div>
-                                <p className="text-[10.5px] text-muted-foreground/70 mt-0.5">Uso ilimitado</p>
+                                {faturamentoReal > 0 ? (
+                                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                                    {brl(faturamentoReal)} gerados
+                                  </p>
+                                ) : (
+                                  <p className="text-[10.5px] text-muted-foreground/70 mt-0.5">Uso ilimitado</p>
+                                )}
                               </div>
                             )}
                           </td>
@@ -651,7 +805,7 @@ function CuponsPage() {
         <div className="border-t border-border/40 bg-secondary/15 px-5 py-3 flex items-center gap-2.5 text-xs text-muted-foreground">
           <ShieldCheck className="size-4 text-primary shrink-0" />
           <p className="text-[11px] leading-relaxed">
-            <span className="font-semibold text-foreground">Transparência Contábil:</span> Os descontos são lançados como abatimento na entrada do Caixa, preservando o custo de aquisição e a margem real de cada peça no estoque.
+            <span className="font-semibold text-foreground">Sincronização em Nuvem:</span> Os cupons ficam salvos de forma centralizada e funcionam em qualquer celular ou navegador de clientes, preservando a margem da sua loja.
           </p>
         </div>
       </div>

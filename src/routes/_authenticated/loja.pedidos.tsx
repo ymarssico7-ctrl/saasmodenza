@@ -29,6 +29,7 @@ import {
   Phone,
   MapPin,
   Receipt,
+  Ticket,
   Layers,
   ShoppingBag,
   Globe,
@@ -323,6 +324,7 @@ function PedidosPage() {
   const [filtroPagamento, setFiltroPagamento] = useState("todos");
   const [filtroPeriodo, setFiltroPeriodo] = useState<"todos" | "hoje" | "7dias" | "mes" | "data_custom">("todos");
   const [filtroData, setFiltroData] = useState("");
+  const [filtroCupom, setFiltroCupom] = useState(false);
 
   const [aberto, setAberto] = useState<string | null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
@@ -552,6 +554,9 @@ function PedidosPage() {
         if (p.criadoEm.slice(0, 10) !== filtroData) return false;
       }
 
+      // 3.1 Filtro por cupom promocional
+      if (filtroCupom && !p.cupom) return false;
+
       // 4. Busca textual universal (nome, telefone, número do pedido ou item)
       if (busca.trim()) {
         const termo = busca.toLowerCase();
@@ -564,12 +569,12 @@ function PedidosPage() {
 
       return true;
     });
-  }, [lista, filtroStatus, filtroPagamento, filtroPeriodo, filtroData, busca]);
+  }, [lista, filtroStatus, filtroPagamento, filtroPeriodo, filtroData, filtroCupom, busca]);
 
   // Paginação: voltar para página 1 ao alterar qualquer filtro
   useEffect(() => {
     setPaginaAtual(1);
-  }, [filtroStatus, filtroPagamento, filtroPeriodo, filtroData, busca]);
+  }, [filtroStatus, filtroPagamento, filtroPeriodo, filtroData, filtroCupom, busca]);
 
   const totalPaginas = Math.max(1, Math.ceil(visiveis.length / POR_PAGINA));
   const paginaFinal = Math.min(paginaAtual, totalPaginas);
@@ -638,7 +643,11 @@ function PedidosPage() {
         await insertTransaction({
           storeId,
           kind: "entrada",
-          description: `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
+          description: [
+            `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
+            pedido.cupom ? `[Cupom: ${pedido.cupom}]` : null,
+            pedido.desconto > 0 ? `[Desconto: ${brl(pedido.desconto)}]` : null,
+          ].filter(Boolean).join(" "),
           amount: valorLiquido,
           category: "venda_online",
           payment_method: mapPedidoPaymentMethod(pedido.pagamento),
@@ -1052,6 +1061,23 @@ function PedidosPage() {
               </SelectContent>
             </Select>
 
+            {/* Botão Atalho: Com cupom */}
+            <button
+              type="button"
+              onClick={() => setFiltroCupom((v) => !v)}
+              className={cn(
+                "h-9 sm:h-9.5 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border shrink-0",
+                filtroCupom
+                  ? "bg-primary/10 border-primary text-primary shadow-2xs"
+                  : "bg-secondary/30 border-border/70 text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              )}
+              title="Filtrar apenas pedidos realizados com cupom promocional"
+            >
+              <Ticket className="size-3.5" />
+              <span>Com cupom</span>
+              {filtroCupom && <span className="size-1.5 rounded-full bg-primary" />}
+            </button>
+
             {/* Filtro de Período */}
             <Select
               value={filtroPeriodo}
@@ -1164,6 +1190,7 @@ function PedidosPage() {
                     setFiltroPeriodo("todos");
                     setFiltroData("");
                     setFiltroStatus("todos");
+                    setFiltroCupom(false);
                   }}
                   className="rounded-full text-xs h-8"
                 >
@@ -1290,6 +1317,14 @@ function PedidosPage() {
                       <p className="text-[10px] text-muted-foreground">
                         {p.frete > 0 ? `+ ${brl(p.frete)} frete` : "Frete grátis"}
                       </p>
+                      {p.cupom && (
+                        <div className="mt-1 flex items-center md:justify-end">
+                          <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                            <Ticket className="size-2.5" />
+                            {p.cupom} {p.desconto > 0 ? `(-${brl(p.desconto)})` : ""}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Col 6: Ações Rápidas (WhatsApp + Chevron isolados de Total) */}

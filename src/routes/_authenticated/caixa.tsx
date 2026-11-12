@@ -33,6 +33,7 @@ import {
   Wallet,
   X,
   Zap,
+  Ticket,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
@@ -840,7 +841,7 @@ const basePaymentMethods = PAYMENT_METHODS as readonly { value: string; label: s
 function Caixa() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { storeId } = useStore();
+  const { storeId, store } = useStore();
   const pendingOrdersCount = useMemo(() => {
     if (!storeId) return 0;
     try {
@@ -945,6 +946,60 @@ function Caixa() {
   const [showDiscount, setShowDiscount] = useState(false);
   const [discountType, setDiscountType] = useState<"flat" | "pct">("flat");
   const [discountValue, setDiscountValue] = useState("");
+  const [cupomAplicadoBalcao, setCupomAplicadoBalcao] = useState<string | null>(null);
+  const [modalCupomBalcao, setModalCupomBalcao] = useState(false);
+  const [codigoDigitadoBalcao, setCodigoDigitadoBalcao] = useState("");
+
+  const cuponsLojaBalcao = useMemo((): Array<{
+    id: string; codigo: string; tipo: "percentual" | "fixo"; valor: number;
+    ativo: boolean; validade?: string; valor_minimo?: number; limite?: number; usos?: number;
+  }> => {
+    const metaCupons = (store?.metadata as Record<string, unknown> | null)?.["cupons"];
+    if (Array.isArray(metaCupons) && metaCupons.length > 0) {
+      return metaCupons as any;
+    }
+    try {
+      const raw = localStorage.getItem(`vestui_cupons_${storeId}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }, [store?.metadata, storeId]);
+
+  const aplicarCupomNoBalcao = (cupomAlvo: {
+    codigo: string; tipo: "percentual" | "fixo"; valor: number;
+    ativo: boolean; validade?: string; valor_minimo?: number; limite?: number; usos?: number;
+  }) => {
+    if (!cupomAlvo.ativo) {
+      toast.error("Este cupom está pausado no momento.");
+      return;
+    }
+    if (cupomAlvo.validade) {
+      const datePart = cupomAlvo.validade.slice(0, 10);
+      if (new Date(`${datePart}T23:59:59.999`).getTime() < Date.now()) {
+        toast.error("Este cupom expirou.");
+        return;
+      }
+    }
+    if (cupomAlvo.limite && (cupomAlvo.usos ?? 0) >= cupomAlvo.limite) {
+      toast.error("Limite de usos deste cupom atingido.");
+      return;
+    }
+    if (cupomAlvo.valor_minimo && grossAmount < cupomAlvo.valor_minimo) {
+      toast.error(`Válido apenas para compras a partir de ${brl(cupomAlvo.valor_minimo)}.`, {
+        description: `Subtotal atual da venda: ${brl(grossAmount)}`,
+      });
+      return;
+    }
+
+    setDiscountType(cupomAlvo.tipo === "percentual" ? "pct" : "flat");
+    setDiscountValue(String(cupomAlvo.valor));
+    setCupomAplicadoBalcao(cupomAlvo.codigo);
+    setModalCupomBalcao(false);
+    setCodigoDigitadoBalcao("");
+    setShowDiscount(false);
+    toast.success(`Cupom ${cupomAlvo.codigo} aplicado no balcão!`);
+  };
   // Desconto por peça no multi-itens: guarda o item.id do popover aberto
   const [basketDiscountPopover, setBasketDiscountPopover] = useState<string | null>(null);
   const [basketDiscountType, setBasketDiscountType] = useState<"flat" | "pct">("pct");
@@ -1618,7 +1673,8 @@ function Caixa() {
 
       if (calculatedDiscount > 0) {
         const discLabel = isEntrada ? (hasItemDiscounts ? "Desconto por peça" : "Desconto") : "Abatimento";
-        finalDescription += ` [${discLabel}: ${brl(calculatedDiscount)}]`;
+        const cupomTag = cupomAplicadoBalcao ? ` [Cupom: ${cupomAplicadoBalcao}]` : "";
+        finalDescription += ` [${discLabel}: ${brl(calculatedDiscount)}${cupomTag}]`;
       }
 
       // Baixa/Acréscimo automático de estoque de cada item
@@ -2460,6 +2516,9 @@ function Caixa() {
                   >
                     <Percent className="size-3.5 shrink-0" />
                     <span>
+                      {cupomAplicadoBalcao ? (
+                        <span className="font-bold mr-1">[Cupom ${cupomAplicadoBalcao}]</span>
+                      ) : null}
                       {(() => {
                         const pct = grossAmount > 0 ? (calculatedDiscount / grossAmount) * 100 : 0;
                         const pctStr = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
@@ -2578,13 +2637,27 @@ function Caixa() {
                     {discountValue && (
                       <button
                         type="button"
-                        onClick={() => setDiscountValue("")}
+                        onClick={() => {
+                          setDiscountValue("");
+                          setCupomAplicadoBalcao(null);
+                        }}
                         className="px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer shrink-0"
                         title="Limpar desconto"
                       >
                         Limpar
                       </button>
                     )}
+
+                    {/* Botão Usar Cupom da Loja */}
+                    <button
+                      type="button"
+                      onClick={() => setModalCupomBalcao(true)}
+                      className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                      title="Escolher ou digitar cupom promocional da loja"
+                    >
+                      <Ticket className="size-3" />
+                      <span>{cupomAplicadoBalcao ? `Cupom: ${cupomAplicadoBalcao}` : "Usar cupom"}</span>
+                    </button>
                   </div>{/* fim grupo esquerdo */}
 
                   {/* ── GRUPO DIREITO: pill de economia bimodal + Concluído ── */}

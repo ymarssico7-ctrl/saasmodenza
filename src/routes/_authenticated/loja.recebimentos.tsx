@@ -76,6 +76,8 @@ type OrderRecord = {
   created_at: string;
   gateway_charge_id?: string | null;
   metadata?: Record<string, unknown>;
+  cupom?: string | null;
+  desconto?: number | string | null;
 };
 
 function RecebimentosPage() {
@@ -947,6 +949,18 @@ function RecebimentosPage() {
                       <span>{taxaPedido > 0 ? "Tarifa Pix Asaas / Gateway:" : "Pix Direto Lojista (Sem Tarifa):"}</span>
                       <span className="font-mono text-zinc-500">{taxaPedido > 0 ? `- ${brl(taxaPedido)}` : "R$ 0,00"}</span>
                     </div>
+                    {pedidoSelecionado.cupom && (
+                      <div className="flex justify-between text-violet-600">
+                        <span className="flex items-center gap-1">
+                          🎟️ Cupom aplicado ({pedidoSelecionado.cupom}):
+                        </span>
+                        <span className="font-mono font-semibold text-violet-700">
+                          {pedidoSelecionado.desconto
+                            ? `- ${brl(Number(pedidoSelecionado.desconto))}`
+                            : "Desconto aplicado"}
+                        </span>
+                      </div>
+                    )}
                     <div className="h-px bg-zinc-200/80 my-1" />
                     <div className="flex justify-between font-bold text-zinc-900">
                       <span>Total Líquido da Lojista:</span>

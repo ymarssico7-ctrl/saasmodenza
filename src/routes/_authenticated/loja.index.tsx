@@ -26,6 +26,7 @@ import {
   Plus,
   Share2,
   ShoppingBag,
+  Ticket,
   Truck,
   Wallet,
   X,
@@ -90,6 +91,8 @@ interface OrderRecord {
   frete_tipo?: string | null;
   origem?: string | null;
   gateway_charge_id?: string | null;
+  cupom?: string | null;
+  desconto?: number | string | null;
 }
 
 function normalizeStatus(s?: string): StatusPedido {
@@ -405,6 +408,18 @@ function VisaoGeral() {
 
   const ultimosPedidos = useMemo(() => orders.slice(0, 5), [orders]);
 
+  // ── 7. Métricas de Cupons do Mês ──────────────────────────────────────────
+  const cuponsUsadosMes = useMemo(
+    () => pedidosMes.filter((p) => p.cupom),
+    [pedidosMes],
+  );
+
+  const totalDescontoMes = useMemo(
+    () =>
+      cuponsUsadosMes.reduce((acc, p) => acc + (Number(p.desconto) || 0), 0),
+    [cuponsUsadosMes],
+  );
+
   return (
     <div className="space-y-6 pb-12">
       {/* ── 1. Header Padrão Apple HIG & Identidade Visual Vestui ── */}
@@ -566,6 +581,27 @@ function VisaoGeral() {
           icon={<ShoppingBag className="h-4 w-4" />}
         />
       </div>
+
+      {/* ── KPI Cupons do Mês (exibido apenas quando há uso) ─────────────────── */}
+      {cuponsUsadosMes.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="sm:col-span-2 xl:col-span-2">
+            <KpiCard
+              label="Cupons usados no mês"
+              value={cuponsUsadosMes.length}
+              format={(n) => Math.round(n).toString()}
+              hint={
+                ocultarSaldos
+                  ? "Desconto: ••••••"
+                  : totalDescontoMes > 0
+                    ? `Total abatido: ${brl(totalDescontoMes)}`
+                    : "Cupons aplicados neste ciclo"
+              }
+              icon={<Ticket className="h-4 w-4 text-violet-500" />}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── 3. Bento Grid 2x2 Perfeitamente Simétrico (60% / 40%) ──────────────── */}
       <div className="grid gap-4 lg:grid-cols-12">

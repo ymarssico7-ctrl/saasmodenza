@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -153,6 +153,17 @@ function VitrineLayout() {
       if (found) setSelectedProduct(found);
     }
   }, [allProducts]);
+
+  // Deep link: auto-aplica cupom da URL (?cupom=CODE ou ?c=CODE)
+  const [urlCupomParam, setUrlCupomParam] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const cod = params.get("cupom") || params.get("c");
+    if (cod) {
+      setUrlCupomParam(cod.toUpperCase().trim());
+    }
+  }, []);
 
   // ── Categorias Dinâmicas da Loja ──────────────────────────────
   const storeCategories = useMemo(() => {
@@ -619,6 +630,8 @@ function VitrineLayout() {
         storeId={storeId}
         allProducts={allProducts}
         vitrineSettings={vitrineSettings}
+        storeMetadata={store?.metadata}
+        urlCupomParam={urlCupomParam}
       />
     </div>
   );
@@ -857,6 +870,8 @@ function CartDrawer({
   storeId,
   allProducts = [],
   vitrineSettings: vs,
+  storeMetadata,
+  urlCupomParam,
 }: {
   open: boolean;
   onClose: () => void;
@@ -867,6 +882,8 @@ function CartDrawer({
   allProducts?: ShowcaseProduct[];
   /** Configurações da loja vindas do Supabase (inclui dadosPix). Nunca leia localStorage da cliente aqui! */
   vitrineSettings?: VitrineSettings;
+  storeMetadata?: Record<string, unknown> | null | undefined;
+  urlCupomParam?: string | null;
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
   const [codigoCupom, setCodigoCupom] = useState("");
@@ -974,19 +991,29 @@ function CartDrawer({
 
   const totalFinal = Math.max(totalPrice - valorDesconto + valorFrete, 0);
 
-  const aplicarCupom = () => {
-    const codigo = codigoCupom.trim().toUpperCase();
+  const aplicarCupom = (codigoOverride?: string | unknown) => {
+    const codigo = (typeof codigoOverride === "string" ? codigoOverride : codigoCupom).trim().toUpperCase();
     if (!codigo) return;
     try {
-      const raw =
-        localStorage.getItem(`vestui_cupons_${storeId}`) ||
-        localStorage.getItem(`vestui_cupons_${storeId}`) ||
-        localStorage.getItem(`vestuli_cupons_${storeId}`);
-      const lista = raw ? (JSON.parse(raw) as Array<{
+      // 1. Busca primeiro nos cupons centralizados na nuvem (Supabase store.metadata)
+      const nuvemCupons = (storeMetadata as Record<string, unknown> | null)?.["cupons"];
+      let lista: Array<{
         id: string; codigo: string; tipo: "percentual" | "fixo"; valor: number;
-        usos: number; ativo: boolean; limite?: number; validade?: string;
-      }>) : [];
-      const cupom = lista.find((c) => c.codigo === codigo);
+        usos: number; ativo: boolean; limite?: number; validade?: string; valor_minimo?: number;
+      }> = [];
+
+      if (Array.isArray(nuvemCupons) && nuvemCupons.length > 0) {
+        lista = nuvemCupons as typeof lista;
+      } else {
+        // Fallback local caso o navegador tenha cache offline
+        const raw =
+          localStorage.getItem(`vestui_cupons_${storeId}`) ||
+          localStorage.getItem(`vestuli_cupons_${storeId}`);
+        if (raw) {
+          try { lista = JSON.parse(raw); } catch { lista = []; }
+        }
+      }
+      const cupom = lista.find((c) => c.codigo.toUpperCase() === codigo);
       if (!cupom) { setCupomErro("Cupom não encontrado."); return; }
       if (!cupom.ativo) { setCupomErro("Este cupom está inativo."); return; }
       if (cupom.validade) {
@@ -1003,11 +1030,22 @@ function CartDrawer({
       }
       // Salva as regras — o desconto será calculado dinamicamente
       setCupomAplicado({ codigo: cupom.codigo, tipo: cupom.tipo, valor: cupom.valor, valor_minimo: (cupom as any).valor_minimo });
+      setCodigoCupom(cupom.codigo);
       setCupomErro("");
+      toast.success(`Cupom ${cupom.codigo} aplicado! 🎉`);
     } catch {
       setCupomErro("Erro ao validar cupom.");
     }
   };
+
+  // Auto-aplica cupom vindo via link promocional (?c=CODE ou ?cupom=CODE)
+  useEffect(() => {
+    if (!urlCupomParam || cupomAplicado) return;
+    setCodigoCupom(urlCupomParam);
+    if (totalPrice > 0) {
+      aplicarCupom(urlCupomParam);
+    }
+  }, [urlCupomParam, totalPrice, cupomAplicado]);
 
   const removerCupom = () => {
     setCupomAplicado(null);
@@ -1459,7 +1497,7 @@ function CartDrawer({
                     style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties}
                   />
                   <button
-                    onClick={aplicarCupom}
+                    onClick={() => aplicarCupom()}
                     className="h-9 rounded-xl px-3 text-xs font-semibold text-white transition-all hover:opacity-90"
                     style={{ backgroundColor: cor }}
                   >
