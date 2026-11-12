@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Template01Store — Vitrine "Atelier Nove"
  *
  * FONTE DA VERDADE: c:\Users\yande\Downloads\Vestui 2.0\template 01\
@@ -141,15 +141,17 @@ const NAV = [
 function ProductCard({
   product,
   onQuickAdd,
+  onClickProduct,
 }: {
   product: Product;
   onQuickAdd: (p: Product) => void;
+  onClickProduct?: () => void;
 }) {
   const [corAtiva, setCorAtiva] = useState(0);
   const [favorito, setFavorito] = useState(false);
 
   return (
-    <article className="group relative">
+    <article className="group relative cursor-pointer" onClick={() => onClickProduct?.()}>
       <div className="relative overflow-hidden bg-muted">
         <img
           src={product.imagem}
@@ -178,7 +180,10 @@ function ProductCard({
           type="button"
           aria-label={favorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
           aria-pressed={favorito}
-          onClick={() => setFavorito((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFavorito((v) => !v);
+          }}
           className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/70 text-foreground opacity-0 backdrop-blur-sm transition-all duration-300 hover:bg-background group-hover:opacity-100 focus-visible:opacity-100"
         >
           <svg
@@ -195,7 +200,10 @@ function ProductCard({
         <div className="absolute inset-x-3 bottom-3 translate-y-4 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100">
           <button
             type="button"
-            onClick={() => onQuickAdd(product)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickAdd(product);
+            }}
             className="w-full bg-foreground/95 py-3 text-[11px] uppercase tracking-[0.24em] text-background backdrop-blur-sm transition-colors duration-300 hover:bg-foreground"
           >
             Adição rápida
@@ -210,6 +218,10 @@ function ProductCard({
         <h3 className="mt-2 font-serif text-lg leading-snug text-foreground">
           <a
             href="#produto"
+            onClick={(e) => {
+              e.preventDefault();
+              onClickProduct?.();
+            }}
             className="transition-colors duration-300 hover:text-accent-foreground"
           >
             {product.nome}
@@ -232,7 +244,10 @@ function ProductCard({
               type="button"
               aria-label={`Cor ${cor.nome}`}
               aria-pressed={corAtiva === i}
-              onClick={() => setCorAtiva(i)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCorAtiva(i);
+              }}
               className={`h-4 w-4 rounded-full border transition-all duration-300 ${
                 corAtiva === i
                   ? "border-foreground ring-1 ring-foreground/30 ring-offset-2 ring-offset-background"
@@ -260,6 +275,12 @@ interface Template01StoreProps {
   onSectionClick?: (id: string) => void;
   onToggleSection?: (id: string) => void;
   onDeleteSection?: (id: string) => void;
+  showcaseProducts?: ShowcaseProduct[];
+  storeName?: string;
+  storePhone?: string;
+  onOpenCart?: () => void;
+  onSelectProduct?: (product: ShowcaseProduct) => void;
+  cartCount?: number;
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -269,16 +290,21 @@ export function Template01Store({
   onSectionClick,
   onToggleSection,
   onDeleteSection,
+  showcaseProducts,
+  storeName: propsStoreName,
+  storePhone: propsStorePhone,
+  onOpenCart,
+  onSelectProduct,
+  cartCount,
 }: Template01StoreProps = {}) {
   const settings = theme?.settings;
 
   // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
-  const allShowcaseProducts = useMemo(
-    () =>
-      mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
-    [rawInventory],
-  );
+  const allShowcaseProducts = useMemo(() => {
+    if (showcaseProducts && showcaseProducts.length > 0) return showcaseProducts;
+    return mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]);
+  }, [showcaseProducts, rawInventory]);
   /** Apenas produtos ativos na vitrine */
   const PRODUCTS = useMemo(
     () => allShowcaseProducts.filter((p) => p.showcase.ativo).map(adaptShowcaseProduct),
@@ -399,14 +425,15 @@ export function Template01Store({
     trilha.current?.scrollBy({ left: dir * 360, behavior: "smooth" });
   };
 
-  // Nome da loja: 1) definido pelo usuário no builder, 2) nome real do banco de dados
+  // Nome da loja: 1) prop externa (vitrine pública), 2) definido pelo usuário no builder, 3) nome real do banco de dados
   const { store: activeStore, isLoading: isStoreLoading } = useStore();
   const storeName =
-    (settings?.storeName && settings.storeName.trim())
+    propsStoreName ||
+    ((settings?.storeName && settings.storeName.trim())
       ? settings.storeName
       : isStoreLoading
         ? ""
-        : (activeStore.name || "");
+        : (activeStore?.name || ""));
   const logoUrl = settings?.logoUrl;
   const freeShippingText =
     settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";
@@ -595,9 +622,23 @@ export function Template01Store({
               <div
                 className={`grid grid-cols-2 gap-x-6 gap-y-14 lg:grid-cols-${Math.min(s.settings.columns, 4)}`}
               >
-                {products.map((p) => (
-                  <ProductCard key={p.id} product={p} onQuickAdd={abrirQuickAdd} />
-                ))}
+                {products.map((p) => {
+                  const originalShowcase = allShowcaseProducts.find((sp) => sp.id === p.id);
+                  return (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onQuickAdd={abrirQuickAdd}
+                      onClickProduct={() => {
+                        if (onSelectProduct && originalShowcase) {
+                          onSelectProduct(originalShowcase);
+                        } else {
+                          abrirQuickAdd(p);
+                        }
+                      }}
+                    />
+                  );
+                })}
               </div>
             </section>
           </SectionWrap>
@@ -800,10 +841,10 @@ export function Template01Store({
             </a>
             <button
               type="button"
-              onClick={() => setSacolaAberta(true)}
+              onClick={onOpenCart ?? (() => setSacolaAberta(true))}
               className="text-[11px] uppercase tracking-[0.2em] text-foreground/75 transition-colors duration-300 hover:text-foreground"
             >
-              Sacola ({totalItens})
+              Sacola ({cartCount ?? totalItens})
             </button>
           </div>
         </div>
@@ -846,11 +887,24 @@ export function Template01Store({
             ref={trilha}
             className="no-scrollbar flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
           >
-            {[...PRODUCTS].reverse().map((p) => (
-              <div key={p.id} className="w-[280px] shrink-0 snap-start sm:w-[320px]">
-                <ProductCard product={p} onQuickAdd={abrirQuickAdd} />
-              </div>
-            ))}
+            {[...PRODUCTS].reverse().map((p) => {
+              const originalShowcase = allShowcaseProducts.find((sp) => sp.id === p.id);
+              return (
+                <div key={p.id} className="w-[280px] shrink-0 snap-start sm:w-[320px]">
+                  <ProductCard
+                    product={p}
+                    onQuickAdd={abrirQuickAdd}
+                    onClickProduct={() => {
+                      if (onSelectProduct && originalShowcase) {
+                        onSelectProduct(originalShowcase);
+                      } else {
+                        abrirQuickAdd(p);
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         </section>
 

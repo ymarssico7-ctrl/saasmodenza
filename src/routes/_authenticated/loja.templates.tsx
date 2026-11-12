@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
+import { supabase } from "@/integrations/supabase/client";
 import {
   TEMPLATES_REGISTRY,
   CATEGORY_LABELS,
@@ -73,6 +74,21 @@ function GaleriaTemplatesPage() {
     };
     saveTheme(updated);
     setActiveTemplateId(entry.id);
+
+    // Persiste no Supabase para que a vitrine pública reflita o tema escolhido pela lojista
+    if (store?.id) {
+      void supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...((store.metadata as Record<string, unknown> | null) || {}),
+            theme: updated,
+            templateId: entry.id,
+          } as never,
+        })
+        .eq("id", store.id);
+    }
+
     toast.success(`Tema "${entry.name}" aplicado com sucesso!`, {
       description: "Abra o Preview para ver ao vivo ou personalize as cores.",
     });

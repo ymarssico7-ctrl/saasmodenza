@@ -38,6 +38,9 @@ import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings
 import { parseStoreCategories, getCategoryLabel, type StoreCategory } from "@/lib/categories";
 import { generatePixPayload, generatePixQrCodeUrl } from "@/lib/pix";
 import { calculateOrderNet } from "@/lib/fees";
+import { ThemeRenderer } from "@/components/theme/theme-renderer";
+import { loadTheme } from "@/lib/theme-engine/defaults";
+import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
 // ─── Route ───────────────────────────────────────────────────────
 export const Route = createFileRoute("/vitrine/$storeSlug")({
@@ -261,8 +264,132 @@ function VitrineLayout() {
     );
   }
 
+  // ── Tema Ativo da Loja (Boutique de Luxo por Padrão) ───────────
+  const storeMetadata = store.metadata as Record<string, unknown> | null;
+  const activeTemplateId: string =
+    (storeMetadata?.["templateId"] as string) ||
+    ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
+    "template-02";
+
+  const activeTheme: ThemeConfig = useMemo(() => {
+    const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;
+    if (rawTheme) return rawTheme;
+    const base = loadTheme();
+    return {
+      ...base,
+      settings: {
+        ...base.settings,
+        templateId: (activeTemplateId as "template-01" | "template-02" | "catalogo-express"),
+        storeName: storeName || base.settings.storeName,
+        ...(storeWhatsapp || base.settings.storeWhatsApp
+          ? { storeWhatsApp: storeWhatsapp || base.settings.storeWhatsApp }
+          : {}),
+      },
+    };
+  }, [storeMetadata, activeTemplateId, storeName, storeWhatsapp]);
+
   return (
     <div className="min-h-screen bg-[#FAFAF8] font-sans antialiased">
+      {activeTemplateId === "catalogo-express" ? (
+        <VitrineCatalogExpress
+          cor={cor}
+          storeName={storeName}
+          storeCity={storeCity}
+          storeWhatsapp={storeWhatsapp}
+          vitrineSettings={vitrineSettings}
+          categorias={categorias}
+          categoria={categoria}
+          setCategoria={setCategoria}
+          busca={busca}
+          setBusca={setBusca}
+          destaques={destaques}
+          produtos={produtos}
+          cartCount={cart.totalItems}
+          onOpenCart={() => setCartOpen(true)}
+          onSelectProduct={(p) => setSelectedProduct(p)}
+          storeCategories={storeCategories}
+        />
+      ) : (
+        <ThemeRenderer
+          theme={activeTheme}
+          showcaseProducts={allProducts}
+          storeName={storeName}
+          storePhone={storeWhatsapp}
+          onOpenCart={() => setCartOpen(true)}
+          onSelectProduct={(p) => setSelectedProduct(p)}
+          cartCount={cart.totalItems}
+        />
+      )}
+
+      {/* ── MODAL PRODUTO ─────────────────────────────────── */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          cor={cor}
+          storeName={storeName}
+          storeCategories={storeCategories}
+          onClose={() => setSelectedProduct(null)}
+          onCartOpen={() => setCartOpen(true)}
+        />
+      )}
+
+      {/* ── DRAWER CARRINHO ───────────────────────────────── */}
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cor={cor}
+        storeName={storeName}
+        whatsapp={storeWhatsapp}
+        storeId={storeId}
+        allProducts={allProducts}
+        vitrineSettings={vitrineSettings}
+        storeMetadata={store?.metadata}
+        urlCupomParam={urlCupomParam}
+      />
+    </div>
+  );
+}
+
+// ─── Product Modal ────────────────────────────────────────────────
+
+// ─── Vitrine Catálogo Express (Layout Direto / Minimalista) ───────
+function VitrineCatalogExpress({
+  cor,
+  storeName,
+  storeCity,
+  storeWhatsapp,
+  vitrineSettings,
+  categorias,
+  categoria,
+  setCategoria,
+  busca,
+  setBusca,
+  destaques,
+  produtos,
+  cartCount,
+  onOpenCart,
+  onSelectProduct,
+  storeCategories,
+}: {
+  cor: string;
+  storeName: string;
+  storeCity: string;
+  storeWhatsapp: string;
+  vitrineSettings: VitrineSettings;
+  categorias: Array<{ value: string; label: string }>;
+  categoria: string;
+  setCategoria: (c: string) => void;
+  busca: string;
+  setBusca: (b: string) => void;
+  destaques: ShowcaseProduct[];
+  produtos: ShowcaseProduct[];
+  cartCount: number;
+  onOpenCart: () => void;
+  onSelectProduct: (p: ShowcaseProduct) => void;
+  storeCategories: StoreCategory[];
+}) {
+  return (
+    <>
       {/* ── HEADER ─────────────────────────────────────────── */}
       <header
         className="sticky top-0 z-40 w-full border-b border-black/5 backdrop-blur-xl"
@@ -316,17 +443,17 @@ function VitrineLayout() {
 
             <button
               id="cart-open-btn"
-              onClick={() => setCartOpen(true)}
+              onClick={onOpenCart}
               className="relative flex h-10 w-10 items-center justify-center rounded-2xl text-gray-700 transition-colors hover:bg-black/5"
               aria-label="Carrinho"
             >
               <ShoppingBag className="h-5 w-5" />
-              {cart.totalItems > 0 && (
+              {cartCount > 0 && (
                 <span
                   className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
                   style={{ backgroundColor: cor }}
                 >
-                  {cart.totalItems}
+                  {cartCount}
                 </span>
               )}
             </button>
@@ -403,7 +530,7 @@ function VitrineLayout() {
               return (
                 <button
                   key={p.id}
-                  onClick={() => setSelectedProduct(p)}
+                  onClick={() => onSelectProduct(p)}
                   className={`group relative flex-shrink-0 w-52 overflow-hidden rounded-3xl border border-white bg-white shadow-sm transition-all ${
                     semEstoque
                       ? "cursor-not-allowed opacity-60"
@@ -506,7 +633,7 @@ function VitrineLayout() {
               return (
                 <button
                   key={p.id}
-                  onClick={() => !semEstoque && setSelectedProduct(p)}
+                  onClick={() => !semEstoque && onSelectProduct(p)}
                   className={`group relative overflow-hidden rounded-3xl border border-white bg-white shadow-sm text-left transition-all ${
                     semEstoque
                       ? "cursor-not-allowed opacity-60"
@@ -608,36 +735,10 @@ function VitrineLayout() {
         </div>
       </section>
 
-      {/* ── MODAL PRODUTO ─────────────────────────────────── */}
-      {selectedProduct && (
-        <ProductModal
-          product={selectedProduct}
-          cor={cor}
-          storeName={storeName}
-          storeCategories={storeCategories}
-          onClose={() => setSelectedProduct(null)}
-          onCartOpen={() => setCartOpen(true)}
-        />
-      )}
-
-      {/* ── DRAWER CARRINHO ───────────────────────────────── */}
-      <CartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        cor={cor}
-        storeName={storeName}
-        whatsapp={storeWhatsapp}
-        storeId={storeId}
-        allProducts={allProducts}
-        vitrineSettings={vitrineSettings}
-        storeMetadata={store?.metadata}
-        urlCupomParam={urlCupomParam}
-      />
-    </div>
+    </>
   );
 }
 
-// ─── Product Modal ────────────────────────────────────────────────
 function ProductModal({
   product,
   cor,

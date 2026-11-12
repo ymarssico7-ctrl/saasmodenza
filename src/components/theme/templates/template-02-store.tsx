@@ -283,10 +283,14 @@ function Navbar({
   storeName,
   logoUrl,
   isStoreLoading,
+  onOpenCart,
+  cartCount,
 }: {
   storeName: string;
   logoUrl?: string;
   isStoreLoading?: boolean;
+  onOpenCart?: () => void;
+  cartCount?: number;
 }) {
   const { count, open } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -353,14 +357,14 @@ function Navbar({
           </button>
           <button
             type="button"
-            onClick={open}
-            aria-label={`Sacola com ${count} itens`}
+            onClick={onOpenCart ?? open}
+            aria-label={`Sacola com ${cartCount ?? count} itens`}
             className="relative text-foreground transition-opacity hover:opacity-70"
           >
             <BagIcon className="h-[18px] w-[18px]" />
-            {count > 0 && (
+            {(cartCount ?? count) > 0 && (
               <span className="absolute -right-2 -top-2 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 font-display text-[10px] leading-none text-primary-foreground">
-                {count}
+                {cartCount ?? count}
               </span>
             )}
           </button>
@@ -392,13 +396,15 @@ function Navbar({
 function ProductCard({
   product,
   onQuickAdd,
+  onClickProduct,
 }: {
   product: Product;
   onQuickAdd?: (p: Product) => void;
+  onClickProduct?: () => void;
 }) {
   const soldOut = product.tag === "Esgotado";
   return (
-    <article className="group">
+    <article className="group cursor-pointer" onClick={() => onClickProduct?.()}>
       <div className="relative overflow-hidden bg-secondary">
         <img
           src={product.image}
@@ -417,7 +423,10 @@ function ProductCard({
           <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
             <button
               type="button"
-              onClick={() => onQuickAdd(product)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickAdd(product);
+              }}
               className="w-full bg-foreground/92 py-2.5 font-display text-[10px] uppercase tracking-[0.22em] text-background backdrop-blur-sm"
             >
               Adição rápida
@@ -797,6 +806,12 @@ interface Template02StoreProps {
   onSectionClick?: (id: string) => void;
   onToggleSection?: (id: string) => void;
   onDeleteSection?: (id: string) => void;
+  showcaseProducts?: ShowcaseProduct[];
+  storeName?: string;
+  storePhone?: string;
+  onOpenCart?: () => void;
+  onSelectProduct?: (product: ShowcaseProduct) => void;
+  cartCount?: number;
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -806,26 +821,32 @@ export function Template02Store({
   onSectionClick,
   onToggleSection,
   onDeleteSection,
+  showcaseProducts,
+  storeName: propsStoreName,
+  storePhone: propsStorePhone,
+  onOpenCart,
+  onSelectProduct,
+  cartCount,
 }: Template02StoreProps = {}) {
   const settings = theme?.settings;
 
   // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
-  const allShowcaseProducts = useMemo(
-    () =>
-      mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]),
-    [rawInventory],
-  );
+  const allShowcaseProducts = useMemo(() => {
+    if (showcaseProducts && showcaseProducts.length > 0) return showcaseProducts;
+    return mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]);
+  }, [showcaseProducts, rawInventory]);
+
   /** Apenas produtos ativos na vitrine */
   const PRODUCTS = useMemo(
-    () => allShowcaseProducts.filter((p) => p.showcase.ativo).map(adaptShowcaseProduct),
+    () => allShowcaseProducts.filter((p) => p.showcase.ativo !== false).map(adaptShowcaseProduct),
     [allShowcaseProducts],
   );
   /** Categorias únicas derivadas dos produtos ativos */
   const PRODUCT_CATEGORIES = useMemo(
     () =>
       Array.from(
-        new Set(allShowcaseProducts.filter((p) => p.showcase.ativo).map((p) => p.category)),
+        new Set(allShowcaseProducts.filter((p) => p.showcase.ativo !== false).map((p) => p.category)),
       ),
     [allShowcaseProducts],
   );
@@ -890,7 +911,11 @@ export function Template02Store({
   // Nome da loja: 1) definido pelo usuário no builder, 2) nome real do banco de dados
   const { store: activeStore, isLoading: isStoreLoading } = useStore();
   const storeName =
-    (settings?.storeName && settings.storeName.trim()) ? settings.storeName : (activeStore.name || "");
+    propsStoreName ||
+    ((settings?.storeName && settings.storeName.trim()) ? settings.storeName : (activeStore?.name || "Boutique"));
+  const storePhone =
+    propsStorePhone ||
+    ((settings?.storeWhatsApp && settings.storeWhatsApp.trim()) ? settings.storeWhatsApp : (activeStore?.phone || ""));
   const logoUrl = settings?.logoUrl;
   const bannerText =
     settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · Trocas em 30 dias";
@@ -1078,9 +1103,23 @@ export function Template02Store({
               <div
                 className={`mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-${Math.min(s.settings.columns, 4)} lg:gap-x-6`}
               >
-                {products.slice(0, s.settings.count).map((p) => (
-                  <ProductCard key={p.slug} product={p} onQuickAdd={setQuickAdd} />
-                ))}
+                {products.slice(0, s.settings.count).map((p) => {
+                  const originalShowcase = allShowcaseProducts.find((item) => item.id === p.slug);
+                  return (
+                    <ProductCard
+                      key={p.slug}
+                      product={p}
+                      onQuickAdd={setQuickAdd}
+                      onClickProduct={() => {
+                        if (onSelectProduct && originalShowcase) {
+                          onSelectProduct(originalShowcase);
+                        } else {
+                          setQuickAdd(p);
+                        }
+                      }}
+                    />
+                  );
+                })}
               </div>
             </section>
           </SectionWrap>
@@ -1308,9 +1347,23 @@ export function Template02Store({
                   </p>
                 ) : (
                   <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-3 lg:gap-x-6">
-                    {filteredProducts.map((p) => (
-                      <ProductCard key={p.slug} product={p} onQuickAdd={setQuickAdd} />
-                    ))}
+                    {filteredProducts.map((p) => {
+                      const originalShowcase = allShowcaseProducts.find((item) => item.id === p.slug);
+                      return (
+                        <ProductCard
+                          key={p.slug}
+                          product={p}
+                          onQuickAdd={setQuickAdd}
+                          onClickProduct={() => {
+                            if (onSelectProduct && originalShowcase) {
+                              onSelectProduct(originalShowcase);
+                            } else {
+                              setQuickAdd(p);
+                            }
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>

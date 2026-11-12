@@ -13,7 +13,7 @@ export type TemplateCategory =
 
 export interface TemplateEntry {
   /** Deve ser idêntico ao `settings.templateId` no ThemeConfig */
-  id: "template-01" | "template-02";
+  id: "template-01" | "template-02" | "catalogo-express";
   /** Nome de marketing do template */
   name: string;
   /** Tagline curta (até 5 palavras) */
@@ -136,6 +136,41 @@ export const TEMPLATES_REGISTRY: TemplateEntry[] = [
     previewHeroSub: "Nova Coleção",
     isPremium: true,
     order: 2,
+  },
+  {
+    id: "catalogo-express",
+    name: "Catálogo Express",
+    tagline: "Vendas Rápidas & WhatsApp",
+    description:
+      "Layout enxuto em formato de catálogo direto, com busca ágil, filtros por categoria e foco em fechamento de pedidos no balcão e WhatsApp.",
+    categories: ["minimalista", "boutique"],
+    tags: ["Direto", "WhatsApp", "Ágil"],
+    palette: {
+      background: "#FAFAF8",
+      foreground: "#18181b",
+      primary: "#2563eb",
+      canvas: "#f4f4f5",
+      border: "#e4e4e7",
+    },
+    typography: {
+      display: "Inter",
+      body: "Inter",
+    },
+    defaults: {
+      storeName: "",
+      freeShippingBanner: "Compre pelo site ou peça direto no WhatsApp",
+      colorBackground: "#FAFAF8",
+      colorForeground: "#18181b",
+      colorPrimary: "#2563eb",
+      colorCanvas: "#f4f4f5",
+      colorBorder: "#e4e4e7",
+      fontDisplay: "Inter",
+      fontBody: "Inter",
+      borderRadius: "md",
+    },
+    previewHeroText: "Catálogo\nCompleto\nOnline",
+    previewHeroSub: "Peças Disponíveis",
+    order: 3,
   },
 ];
 

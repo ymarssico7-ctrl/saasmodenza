@@ -19,7 +19,7 @@ export type BackgroundVariant = "background" | "canvas" | "foreground";
 // ── Global Settings ───────────────────────────────────────────────────────────
 export interface ThemeSettings {
   /** Qual template de loja renderizar. Padrão: "template-02" */
-  templateId?: "template-01" | "template-02";
+  templateId?: "template-01" | "template-02" | "catalogo-express";
   storeName: string;
   tagline: string;
   /** URL do logotipo da loja. Se vazio, exibe storeName como texto. */

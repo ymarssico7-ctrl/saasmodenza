@@ -1,4 +1,5 @@
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
+import type { ShowcaseProduct } from "@/lib/showcase-store";
 import { Template01Store } from "./templates/template-01-store";
 import { Template02Store } from "./templates/template-02-store";
 
@@ -8,6 +9,12 @@ interface Props {
   onSectionClick?: (id: string) => void;
   onToggleSection?: (id: string) => void;
   onDeleteSection?: (id: string) => void;
+  showcaseProducts?: ShowcaseProduct[];
+  storeName?: string;
+  storePhone?: string;
+  onOpenCart?: () => void;
+  onSelectProduct?: (product: ShowcaseProduct) => void;
+  cartCount?: number;
 }
 
 /**
@@ -24,20 +31,32 @@ export function ThemeRenderer({
   onSectionClick,
   onToggleSection,
   onDeleteSection,
+  showcaseProducts,
+  storeName,
+  storePhone,
+  onOpenCart,
+  onSelectProduct,
+  cartCount,
 }: Props) {
   const templateId = theme.settings.templateId ?? "template-02";
 
-  const interactiveProps = {
+  const forwardedProps = {
     ...(onSectionClick ? { onSectionClick } : {}),
     ...(onToggleSection ? { onToggleSection } : {}),
     ...(onDeleteSection ? { onDeleteSection } : {}),
+    ...(showcaseProducts ? { showcaseProducts } : {}),
+    ...(storeName !== undefined ? { storeName } : {}),
+    ...(storePhone !== undefined ? { storePhone } : {}),
+    ...(onOpenCart ? { onOpenCart } : {}),
+    ...(onSelectProduct ? { onSelectProduct } : {}),
+    ...(cartCount !== undefined ? { cartCount } : {}),
   };
 
   if (templateId === "template-01") {
     return (
-      <Template01Store theme={theme} highlightId={highlightId ?? null} {...interactiveProps} />
+      <Template01Store theme={theme} highlightId={highlightId ?? null} {...forwardedProps} />
     );
   }
 
-  return <Template02Store theme={theme} highlightId={highlightId ?? null} {...interactiveProps} />;
+  return <Template02Store theme={theme} highlightId={highlightId ?? null} {...forwardedProps} />;
 }
