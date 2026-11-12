@@ -430,7 +430,7 @@ function ClientesPage() {
   // Mutações Fiado
   const createCreditMutation = useMutation({
     mutationFn: async () => {
-      const value = toNumber(fiadoAmount);
+      const value = Math.round(toNumber(fiadoAmount) * 100) / 100;
       if (!fiadoCustomerId) throw new Error("Escolha um cliente");
       if (!fiadoDescription.trim()) throw new Error("Descreva as peças do fiado");
       if (value <= 0) throw new Error("Informe um valor maior que zero");
@@ -457,13 +457,14 @@ function ClientesPage() {
 
   const payCreditMutation = useMutation({
     mutationFn: async ({ credit, value, method }: { credit: CreditRow; value: number; method?: string }) => {
-      if (value <= 0) throw new Error("Informe o valor recebido");
-      const remaining = Number(credit.amount) - Number(credit.paid_amount);
-      if (value > remaining + 0.005) throw new Error("Valor maior que o saldo devedor");
+      const sanitizedAmount = Math.round(value * 100) / 100;
+      if (sanitizedAmount <= 0) throw new Error("Informe o valor recebido");
+      const remaining = Math.round((Number(credit.amount) - Number(credit.paid_amount)) * 100) / 100;
+      if (sanitizedAmount > remaining + 0.005) throw new Error("Valor maior que o saldo devedor");
       return recordCreditPayment({
         storeId,
         creditId: credit.id,
-        amount: value,
+        amount: sanitizedAmount,
         currentPaidAmount: Number(credit.paid_amount),
         customerName: credit.customers?.name,
         paymentMethod: method || "dinheiro",
@@ -487,6 +488,7 @@ function ClientesPage() {
     onSuccess: () => {
       toast.success("Fiado excluído.");
       void queryClient.invalidateQueries({ queryKey: ["credits"] });
+      void queryClient.invalidateQueries({ queryKey: ["credit_payments"] });
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -1157,8 +1159,13 @@ function ClientesPage() {
                                 </Button>
                               )}
                               <ConfirmDelete
+                                title="Excluir fiado?"
+                                description={
+                                  Number(c.paid_amount) > 0
+                                    ? `Deseja remover este fiado de ${customerName}? O título será excluído do Caderninho. Os ${brl(Number(c.paid_amount))} já recebidos e lançados no Caixa permanecerão preservados para garantir a exatidão do seu fechamento contábil.`
+                                    : `Deseja remover este fiado de ${customerName} no valor de ${brl(Number(c.amount))}? O histórico deste título será desvinculado permanentemente.`
+                                }
                                 onConfirm={() => deleteCreditMutation.mutate(c.id)}
-                                description="O fiado e os pagamentos lançados no caixa serão removidos permanentemente."
                                 trigger={
                                   <Button
                                     variant="ghost"
