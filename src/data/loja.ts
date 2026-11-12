@@ -92,6 +92,7 @@ export type Cupom = {
   usos: number;
   limite?: number;
   validade?: string;
+  valor_minimo?: number;
   ativo: boolean;
 };
 

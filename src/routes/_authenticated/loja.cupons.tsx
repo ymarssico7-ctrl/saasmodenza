@@ -13,6 +13,8 @@ import {
   Search,
   Clock,
   Ticket,
+  Infinity as InfinityIcon,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,35 +60,67 @@ function legacyCuponsKey(storeId: string) {
   return `vestuli_cupons_${storeId}`;
 }
 
-// Modelos prontos de cupons (sugestões discretas em linha única para boutiques)
+// ─── Atalhos de Cálculo de Período Comercial ─────────────────────────────────
+function calcularDataValidade(tipo: "sem_expiracao" | "fim_de_semana" | "7_dias" | "fim_do_mes"): string {
+  if (tipo === "sem_expiracao") return "";
+  const d = new Date();
+  if (tipo === "fim_de_semana") {
+    const diaSemana = d.getDay(); // 0 domingo, 5 sexta, 6 sabado
+    const diasAteDomingo = diaSemana === 0 ? 0 : 7 - diaSemana;
+    d.setDate(d.getDate() + diasAteDomingo);
+  } else if (tipo === "7_dias") {
+    d.setDate(d.getDate() + 7);
+  } else if (tipo === "fim_do_mes") {
+    const ultimoDia = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    d.setDate(ultimoDia.getDate());
+  }
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// ─── Modelos Comerciais Estratégicos de Boutique ──────────────────────────────
 const TEMPLATES_CUPOM = [
   {
     codigo: "PRIMEIRACOMPRA",
     tipo: "percentual" as const,
     valor: "10",
-    limite: "100",
-    label: "+ Boas-Vindas · 10% OFF",
+    valorMinimo: "120",
+    tipoLimite: "ilimitado" as const,
+    limite: "",
+    tipoValidade: "sem_expiracao" as const,
+    label: "+ Boas-Vindas · 10% OFF acima de R$ 120",
   },
   {
     codigo: "FRETEGRATIS",
     tipo: "fixo" as const,
-    valor: "20",
-    limite: "50",
-    label: "+ Frete Cortesia · R$ 20 OFF",
+    valor: "25",
+    valorMinimo: "200",
+    tipoLimite: "ilimitado" as const,
+    limite: "",
+    tipoValidade: "fim_de_semana" as const,
+    label: "+ Frete Cortesia · R$ 25 OFF acima de R$ 200",
   },
   {
     codigo: "CLIENTEVIP",
     tipo: "percentual" as const,
     valor: "15",
-    limite: "30",
-    label: "+ Cliente VIP · 15% OFF",
+    valorMinimo: "250",
+    tipoLimite: "ilimitado" as const,
+    limite: "",
+    tipoValidade: "sem_expiracao" as const,
+    label: "+ Cliente VIP · 15% OFF acima de R$ 250",
   },
   {
-    codigo: "LIQUIDA20",
-    tipo: "percentual" as const,
-    valor: "20",
-    limite: "50",
-    label: "+ Giro de Estoque · 20% OFF",
+    codigo: "FLASH50",
+    tipo: "fixo" as const,
+    valor: "50",
+    valorMinimo: "300",
+    tipoLimite: "definir" as const,
+    limite: "30",
+    tipoValidade: "fim_de_semana" as const,
+    label: "+ Campanha Relâmpago · R$ 50 OFF (30 usos)",
   },
 ];
 
@@ -100,12 +134,15 @@ function CuponsPage() {
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "pausados" | "expirados">("todos");
   const [busca, setBusca] = useState("");
 
-  // Form state
+  // Form state com inteligência comercial completa
   const [novoCodigo, setNovoCodigo] = useState("");
   const [novoTipo, setNovoTipo] = useState<"percentual" | "fixo">("percentual");
   const [novoValor, setNovoValor] = useState("10");
-  const [novaValidade, setNovaValidade] = useState("");
+  const [novoValorMinimo, setNovoValorMinimo] = useState("");
+  const [novoTipoLimite, setNovoTipoLimite] = useState<"ilimitado" | "definir">("ilimitado");
   const [novoLimite, setNovoLimite] = useState("50");
+  const [novoTipoValidade, setNovoTipoValidade] = useState<"sem_expiracao" | "fim_de_semana" | "7_dias" | "fim_do_mes" | "personalizado">("sem_expiracao");
+  const [novaValidade, setNovaValidade] = useState("");
 
   // Carrega cupons isolados por loja
   useEffect(() => {
@@ -134,8 +171,11 @@ function CuponsPage() {
     setNovoCodigo("");
     setNovoTipo("percentual");
     setNovoValor("10");
-    setNovaValidade("");
+    setNovoValorMinimo("");
+    setNovoTipoLimite("ilimitado");
     setNovoLimite("50");
+    setNovoTipoValidade("sem_expiracao");
+    setNovaValidade("");
     setModalAberto(true);
   };
 
@@ -143,8 +183,11 @@ function CuponsPage() {
     setNovoCodigo(tpl.codigo);
     setNovoTipo(tpl.tipo);
     setNovoValor(tpl.valor);
-    setNovoLimite(tpl.limite);
-    setNovaValidade("");
+    setNovoValorMinimo(tpl.valorMinimo || "");
+    setNovoTipoLimite(tpl.tipoLimite);
+    setNovoLimite(tpl.limite || "50");
+    setNovoTipoValidade(tpl.tipoValidade);
+    setNovaValidade(calcularDataValidade(tpl.tipoValidade as any));
     setModalAberto(true);
   };
 
@@ -160,8 +203,10 @@ function CuponsPage() {
   const compartilharWhatsApp = (c: Cupom) => {
     const lojaNome = store?.name || "nossa loja";
     const desc = c.tipo === "percentual" ? `${c.valor}% de desconto` : `${brl(c.valor)} de desconto`;
+    const condMinimo = c.valor_minimo ? ` em compras a partir de ${brl(c.valor_minimo)}` : "";
+    const condValidade = c.validade ? `\n⏳ Válido até ${dateBR(c.validade)}.` : "";
     const linkVitrine = store?.slug ? `https://${store.slug}.vestui.com.br` : "";
-    const texto = `🛍️ *Presente especial da ${lojaNome}!* \n\nUse o cupom *${c.codigo}* e garanta *${desc}* no seu pedido!${linkVitrine ? `\n\nAcesse nossa vitrine e aproveite: ${linkVitrine}` : ""}`;
+    const texto = `🛍️ *Presente especial da ${lojaNome}!* \n\nUse o cupom *${c.codigo}* e garanta *${desc}*${condMinimo}!${condValidade}${linkVitrine ? `\n\nAcesse nossa vitrine e aproveite: ${linkVitrine}` : ""}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, "_blank");
   };
 
@@ -202,7 +247,18 @@ function CuponsPage() {
       });
       return;
     }
-    const limiteNum = Math.round(toNumber(novoLimite));
+
+    const minNum = novoValorMinimo ? toNumber(novoValorMinimo) : 0;
+    const limiteNum = novoTipoLimite === "definir" ? Math.round(toNumber(novoLimite)) : undefined;
+
+    // Proteção de margem: Se cupom for fixo e tiver valor mínimo, o desconto não pode ser maior ou igual ao mínimo
+    if (novoTipo === "fixo" && minNum > 0 && valNum >= minNum) {
+      toast.error("O desconto fixo não pode ser maior ou igual ao pedido mínimo.", {
+        description: "O valor mínimo deve ser superior ao valor do cupom para proteger o caixa.",
+      });
+      return;
+    }
+
     const cupom: Cupom = {
       id: crypto.randomUUID(),
       codigo: codigoFormatado,
@@ -210,12 +266,14 @@ function CuponsPage() {
       valor: Math.round(valNum * 100) / 100,
       usos: 0,
       ativo: true,
-      ...(limiteNum > 0 ? { limite: limiteNum } : {}),
+      ...(limiteNum && limiteNum > 0 ? { limite: limiteNum } : {}),
       ...(novaValidade ? { validade: novaValidade } : {}),
+      ...(minNum > 0 ? { valor_minimo: Math.round(minNum * 100) / 100 } : {}),
     };
+
     persistir([cupom, ...lista]);
     setModalAberto(false);
-    toast.success("Cupom criado e pronto para usar!", { description: cupom.codigo });
+    toast.success("Cupom promocional criado com sucesso!", { description: cupom.codigo });
   };
 
   // ── Métricas Executivas ──────────────────────────────────────────────────
@@ -268,7 +326,7 @@ function CuponsPage() {
       <PageHeader
         eyebrow="Crescimento & Vendas"
         title="Cupons de Desconto"
-        description="Ative campanhas promocionais com cupons fixos ou percentuais para impulsionar suas vendas."
+        description="Ative campanhas promocionais com cupons fixos ou percentuais, limites inteligentes e proteção de margem para impulsionar suas vendas."
         actions={
           <Button
             onClick={abrirModalNovo}
@@ -293,7 +351,7 @@ function CuponsPage() {
 
             <h3 className="text-base font-bold text-foreground">Nenhum cupom ativo no momento</h3>
             <p className="mt-1.5 max-w-sm mx-auto text-xs text-muted-foreground leading-relaxed">
-              Crie campanhas exclusivas para aumentar as vendas, encantar suas clientes e recuperar carrinhos na vitrine.
+              Crie campanhas exclusivas para aumentar as vendas, encantar suas clientes e elevar o ticket médio na vitrine.
             </p>
 
             <div className="mt-5 flex justify-center">
@@ -428,8 +486,8 @@ function CuponsPage() {
                     <tr>
                       <th className="py-3 px-4 w-[24%]">Código Promocional</th>
                       <th className="py-3 px-4 w-[18%]">Desconto</th>
-                      <th className="py-3 px-4 w-[20%]">Validade & Regras</th>
-                      <th className="py-3 px-4 w-[18%]">Uso da Campanha</th>
+                      <th className="py-3 px-4 w-[22%]">Regras & Pedido Mínimo</th>
+                      <th className="py-3 px-4 w-[16%]">Uso da Campanha</th>
                       <th className="py-3 px-4 w-[10%]">Status</th>
                       <th className="py-3 px-4 w-[10%] text-right">Ações</th>
                     </tr>
@@ -473,35 +531,57 @@ function CuponsPage() {
                               {c.tipo === "percentual" ? `${c.valor}% OFF` : `${brl(c.valor)} OFF`}
                             </p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {c.tipo === "percentual" ? "Percentual na peça" : "Valor fixo no pedido"}
+                              {c.tipo === "percentual" ? "Percentual no pedido" : "Valor fixo no pedido"}
                             </p>
                           </td>
 
-                          {/* Coluna 3: Validade */}
+                          {/* Coluna 3: Regras & Pedido Mínimo */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
-                              <Clock className="size-3 text-muted-foreground" />
+                              <Clock className="size-3 text-muted-foreground shrink-0" />
                               <span>{c.validade ? dateBR(c.validade) : "Sem expiração"}</span>
                             </div>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {c.limite ? `Limite de ${c.limite} usos` : "Usos ilimitados"}
-                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              {c.valor_minimo ? (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                  <TrendingUp className="size-2.5" />
+                                  Mín. {brl(c.valor_minimo)}
+                                </span>
+                              ) : (
+                                <span className="text-[10.5px] text-muted-foreground/70">Sem pedido mínimo</span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Coluna 4: Resgates */}
                           <td className="py-3.5 px-4">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="num-display font-semibold text-foreground">
-                                {c.usos} {c.limite ? `/ ${c.limite}` : "usos"}
-                              </span>
-                              {c.limite ? (
-                                <span className="text-[10px] text-muted-foreground">{uso}%</span>
-                              ) : null}
-                            </div>
-                            <Progress
-                              value={c.limite ? uso : 0}
-                              className={cn("h-1.5", uso >= 90 ? "[&>div]:bg-rose-500" : "[&>div]:bg-primary")}
-                            />
+                            {c.limite ? (
+                              <div>
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                  <span className="num-display font-semibold text-foreground">
+                                    {c.usos} / {c.limite}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">{uso}%</span>
+                                </div>
+                                <Progress
+                                  value={uso}
+                                  className={cn("h-1.5", uso >= 90 ? "[&>div]:bg-rose-500" : "[&>div]:bg-primary")}
+                                />
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="num-display font-bold text-foreground">
+                                    {c.usos} {c.usos === 1 ? "venda" : "vendas"}
+                                  </span>
+                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                                    <InfinityIcon className="size-2.5" />
+                                    Livre
+                                  </span>
+                                </div>
+                                <p className="text-[10.5px] text-muted-foreground/70 mt-0.5">Uso ilimitado</p>
+                              </div>
+                            )}
                           </td>
 
                           {/* Coluna 5: Status */}
@@ -576,18 +656,54 @@ function CuponsPage() {
         </div>
       </div>
 
-      {/* ─── MODAL CENTRALIZADO ZERO-SCROLL: NOVO CUPOM ─── */}
+      {/* ─── MODAL CENTRALIZADO ZERO-SCROLL: NOVO CUPOM COM ESTRATÉGIA COMERCIAL ─── */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-        <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-md p-6">
+        <DialogContent className="rounded-3xl border-border bg-card mx-4 sm:mx-auto sm:max-w-lg p-6 max-h-[92vh] overflow-y-auto">
           <DialogHeader className="pb-1">
-            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <Ticket className="size-4 text-primary" />
-              Novo Cupom de Desconto
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex size-7 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Ticket className="size-4" />
+              </span>
+              <DialogTitle className="text-base font-bold text-foreground">
+                Novo Cupom de Desconto
+              </DialogTitle>
+            </div>
             <DialogDescription className="text-xs text-muted-foreground">
-              Defina o código, o valor promocional e as regras de limite.
+              Defina o código, benefício promocional, limites e proteção de ticket médio para sua vitrine.
             </DialogDescription>
           </DialogHeader>
+
+          {/* ── LIVE PREVIEW: MINI VOUCHER SOFISTICADO DE BOUTIQUE ── */}
+          <div className="relative overflow-hidden rounded-2xl border border-dashed border-primary/30 bg-primary/[0.04] p-3.5 my-1">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-black tracking-wider text-primary">
+                    {novoCodigo.trim() ? novoCodigo.toUpperCase() : "SEU-CODIGO"}
+                  </span>
+                  <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {novoTipo === "percentual"
+                      ? `${novoValor || 0}% OFF`
+                      : `${brl(toNumber(novoValor) || 0)} OFF`}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1 truncate">
+                  {novoValorMinimo && toNumber(novoValorMinimo) > 0
+                    ? `Compras a partir de ${brl(toNumber(novoValorMinimo))}`
+                    : "Válido para qualquer valor de compra"}
+                </p>
+              </div>
+
+              <div className="text-right text-[11px] text-muted-foreground shrink-0 border-l border-primary/20 pl-3">
+                <p className="font-semibold text-foreground text-[10.5px]">
+                  {novaValidade ? `Até ${dateBR(novaValidade)}` : "Sem expiração"}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {novoTipoLimite === "ilimitado" ? "(∞) Ilimitado" : `Máx. ${novoLimite || 0} usos`}
+                </p>
+              </div>
+            </div>
+          </div>
 
           <form onSubmit={criarCupom} className="space-y-4 py-2">
             {/* Campo 1: Código do Cupom */}
@@ -617,8 +733,8 @@ function CuponsPage() {
               </div>
             </div>
 
-            {/* Campo 2: Seletor Segmentado de Tipo & Valor */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Campo 2: Tipo de Desconto & Valor */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-foreground">Tipo de Desconto</Label>
                 <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-secondary/30 p-1">
@@ -626,27 +742,27 @@ function CuponsPage() {
                     type="button"
                     onClick={() => setNovoTipo("percentual")}
                     className={cn(
-                      "flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all cursor-pointer",
                       novoTipo === "percentual"
                         ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                     )}
                   >
-                    <Percent className="size-3" />
-                    %
+                    <Percent className="size-3.5" />
+                    Percentual
                   </button>
                   <button
                     type="button"
                     onClick={() => setNovoTipo("fixo")}
                     className={cn(
-                      "flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                      "flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all cursor-pointer",
                       novoTipo === "fixo"
                         ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                     )}
                   >
-                    <DollarSign className="size-3" />
-                    R$
+                    <DollarSign className="size-3.5" />
+                    Valor fixo
                   </button>
                 </div>
               </div>
@@ -667,29 +783,141 @@ function CuponsPage() {
               </div>
             </div>
 
-            {/* Campo 3: Validade & Limite de Uso */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Validade (Opcional)</Label>
+            {/* Campo 3: Proteção de Margem (Ticket Mínimo em R$) */}
+            <div className="space-y-1.5 rounded-2xl border border-border/70 bg-secondary/20 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <TrendingUp className="size-3.5 text-primary" />
+                  Pedido Mínimo na Vitrine (Opcional)
+                </Label>
+                <span className="text-[10.5px] font-medium text-emerald-600 dark:text-emerald-400">
+                  Protege o lucro
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">R$</span>
                 <Input
-                  type="date"
-                  value={novaValidade}
-                  onChange={(e) => setNovaValidade(e.target.value)}
-                  className="h-10 rounded-xl text-xs"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00 (Sem pedido mínimo)"
+                  value={novoValorMinimo}
+                  onChange={(e) => setNovoValorMinimo(e.target.value)}
+                  className="h-10 rounded-xl pl-9 text-xs font-semibold font-mono bg-background"
                 />
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                💡 Garante que o desconto só seja aplicado em compras acima deste valor, aumentando o Ticket Médio da loja.
+              </p>
+            </div>
+
+            {/* Campo 4: Duração da Campanha (Validade com Atalhos de Varejo) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Clock className="size-3.5 text-muted-foreground" />
+                Duração da Campanha (Validade)
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "sem_expiracao", label: "Sem expiração" },
+                  { id: "fim_de_semana", label: "Fim de semana" },
+                  { id: "7_dias", label: "7 dias" },
+                  { id: "fim_do_mes", label: "Fim do mês" },
+                  { id: "personalizado", label: "Data específica" },
+                ].map((op) => (
+                  <button
+                    key={op.id}
+                    type="button"
+                    onClick={() => {
+                      setNovoTipoValidade(op.id as any);
+                      if (op.id !== "personalizado") {
+                        setNovaValidade(calcularDataValidade(op.id as any));
+                      }
+                    }}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer border",
+                      novoTipoValidade === op.id
+                        ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                        : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                    )}
+                  >
+                    {op.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">Limite de Usos</Label>
-                <Input
-                  value={novoLimite}
-                  onChange={(e) => setNovoLimite(e.target.value)}
-                  className="h-10 rounded-xl text-xs font-mono"
-                  type="number"
-                  min="1"
-                  placeholder="Ex: 50"
-                />
+              {novoTipoValidade === "personalizado" && (
+                <div className="pt-1">
+                  <Input
+                    type="date"
+                    value={novaValidade}
+                    onChange={(e) => setNovaValidade(e.target.value)}
+                    className="h-9.5 rounded-xl text-xs"
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Campo 5: Limite de Resgates (Com Opção Expressa Sem Limite) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <InfinityIcon className="size-3.5 text-muted-foreground" />
+                Limite de Usos da Campanha
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNovoTipoLimite("ilimitado");
+                    setNovoLimite("");
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-medium transition-all cursor-pointer",
+                    novoTipoLimite === "ilimitado"
+                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                      : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  )}
+                >
+                  <InfinityIcon className="size-3.5" />
+                  <span>(∞) Sem limite (Livre)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNovoTipoLimite("definir");
+                    if (!novoLimite) setNovoLimite("50");
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-medium transition-all cursor-pointer",
+                    novoTipoLimite === "definir"
+                      ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
+                      : "border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  )}
+                >
+                  <span>Limitar quantidade</span>
+                </button>
               </div>
+
+              {novoTipoLimite === "definir" && (
+                <div className="pt-1 space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">
+                    Quantidade máxima de resgates no total:
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Ex: 50"
+                    value={novoLimite}
+                    onChange={(e) => setNovoLimite(e.target.value)}
+                    className="h-9.5 rounded-xl text-xs font-mono"
+                  />
+                  <p className="text-[10.5px] text-muted-foreground/70">
+                    💡 O cupom deixará de funcionar na vitrine automaticamente após atingir este número.
+                  </p>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t border-border/40">
@@ -705,7 +933,7 @@ function CuponsPage() {
                 type="submit"
                 className="gradient-primary rounded-full h-9.5 px-6 text-xs font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer"
               >
-                Criar cupom
+                Criar cupom 🚀
               </Button>
             </DialogFooter>
           </form>

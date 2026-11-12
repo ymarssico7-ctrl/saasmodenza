@@ -875,6 +875,7 @@ function CartDrawer({
     codigo: string;
     tipo: "percentual" | "fixo";
     valor: number;
+    valor_minimo?: number;
   } | null>(null);
   const [cupomErro, setCupomErro] = useState("");
 
@@ -930,6 +931,7 @@ function CartDrawer({
   // Recalcula o desconto dinamicamente sempre que o carrinho ou o cupom muda
   const valorDesconto = useMemo(() => {
     if (!cupomAplicado || totalPrice <= 0) return 0;
+    if (cupomAplicado.valor_minimo && totalPrice < cupomAplicado.valor_minimo) return 0;
     if (cupomAplicado.tipo === "percentual") {
       return (totalPrice * cupomAplicado.valor) / 100;
     }
@@ -996,8 +998,11 @@ function CartDrawer({
       if (cupom.limite && cupom.usos >= cupom.limite) {
         setCupomErro("Limite de uso deste cupom atingido."); return;
       }
+      if ((cupom as any).valor_minimo && totalPrice < (cupom as any).valor_minimo) {
+        setCupomErro(`Este cupom é válido apenas para compras a partir de ${brl((cupom as any).valor_minimo)}.`); return;
+      }
       // Salva as regras — o desconto será calculado dinamicamente
-      setCupomAplicado({ codigo: cupom.codigo, tipo: cupom.tipo, valor: cupom.valor });
+      setCupomAplicado({ codigo: cupom.codigo, tipo: cupom.tipo, valor: cupom.valor, valor_minimo: (cupom as any).valor_minimo });
       setCupomErro("");
     } catch {
       setCupomErro("Erro ao validar cupom.");
