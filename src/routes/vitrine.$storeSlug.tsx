@@ -238,6 +238,30 @@ function VitrineLayout() {
   const storeCity = store?.city ?? "";
   const storeWhatsapp = store?.phone ?? "";
 
+  // ── Tema Ativo da Loja (Top-Level Hook — chamado incondicionalmente em todos os renders) ──
+  const storeMetadata = store?.metadata as Record<string, unknown> | null;
+  const activeTemplateId: string =
+    (storeMetadata?.["templateId"] as string) ||
+    ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
+    "template-02";
+
+  const activeTheme: ThemeConfig = useMemo(() => {
+    const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;
+    if (rawTheme) return rawTheme;
+    const base = loadTheme();
+    return {
+      ...base,
+      settings: {
+        ...base.settings,
+        templateId: (activeTemplateId as "template-01" | "template-02" | "catalogo-express"),
+        storeName: storeName || base.settings.storeName,
+        ...(storeWhatsapp || base.settings.storeWhatsApp
+          ? { storeWhatsApp: storeWhatsapp || base.settings.storeWhatsApp }
+          : {}),
+      },
+    };
+  }, [storeMetadata, activeTemplateId, storeName, storeWhatsapp]);
+
   const isLoading = storeLoading || inventoryLoading;
 
   if (isLoading) {
@@ -263,30 +287,6 @@ function VitrineLayout() {
       </div>
     );
   }
-
-  // ── Tema Ativo da Loja (Boutique de Luxo por Padrão) ───────────
-  const storeMetadata = store.metadata as Record<string, unknown> | null;
-  const activeTemplateId: string =
-    (storeMetadata?.["templateId"] as string) ||
-    ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
-    "template-02";
-
-  const activeTheme: ThemeConfig = useMemo(() => {
-    const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;
-    if (rawTheme) return rawTheme;
-    const base = loadTheme();
-    return {
-      ...base,
-      settings: {
-        ...base.settings,
-        templateId: (activeTemplateId as "template-01" | "template-02" | "catalogo-express"),
-        storeName: storeName || base.settings.storeName,
-        ...(storeWhatsapp || base.settings.storeWhatsApp
-          ? { storeWhatsApp: storeWhatsapp || base.settings.storeWhatsApp }
-          : {}),
-      },
-    };
-  }, [storeMetadata, activeTemplateId, storeName, storeWhatsapp]);
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] font-sans antialiased">
