@@ -64,6 +64,7 @@ import {
   updateDemoProfile,
   currentUserId,
 } from "@/lib/db";
+import { useAccess } from "@/lib/useAccess";
 import { brl, toNumber } from "@/lib/format";
 import {
   ENTRY_CATEGORIES,
@@ -141,6 +142,59 @@ function Configuracoes() {
   const { store, storeId } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const { data: members = [] } = useQuery(membersQuery());
+  const access = useAccess(profile, store);
+
+  const handleSwitchTestTier = async (targetTier: "free" | "lote" | "store") => {
+    const isStore = targetTier === "store";
+    const planSelected = targetTier === "free" ? "free" : targetTier === "lote" ? "lote" : "gestao_anual";
+
+    const uid = await currentUserId();
+    const isAuth = await isAuthenticated();
+
+    if (isAuth) {
+      await supabase
+        .from("profiles")
+        .update({
+          plan: planSelected,
+          store_subscription_active: isStore,
+        })
+        .eq("id", uid);
+      await supabase
+        .from("stores")
+        .update({
+          plan: planSelected,
+          store_subscription_active: isStore,
+        })
+        .eq("owner_id", uid);
+    } else {
+      updateDemoProfile({
+        plan: planSelected,
+        store_subscription_active: isStore,
+      });
+    }
+
+    queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({
+      ...(old ?? {}),
+      plan: planSelected,
+      store_subscription_active: isStore,
+    }));
+    queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) => ({
+      ...(old ?? {}),
+      plan: planSelected,
+      store_subscription_active: isStore,
+    }));
+
+    const label =
+      targetTier === "free"
+        ? "Plano Gratuito"
+        : targetTier === "lote"
+        ? "Vestui Lote (R$ 19,90)"
+        : "Vestui Store (R$ 97)";
+
+    toast.success(`Ambiente alternado para: ${label}!`, {
+      description: "Toda a interface e permissões foram atualizadas instantaneamente.",
+    });
+  };
 
   const activeTab: ConfiguracoesTab = search.tab ?? "geral";
   const [subModalOpen, setSubModalOpen] = useState(false);
@@ -835,17 +889,95 @@ function Configuracoes() {
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">Plano atual da loja:</span>
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary capitalize">
-                    {profile?.plan ?? "Essencial"}
-                  </span>
+            <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">Plano ativo:</span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
+                        access.isStore
+                          ? "bg-primary/10 text-primary border border-primary/20"
+                          : access.isLote
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+                      )}
+                    >
+                      <span className="size-1.5 rounded-full bg-current" />
+                      {access.isStore
+                        ? "Vestui Store (Completo)"
+                        : access.isLote
+                        ? "Vestui Lote (R$ 19,90/mês)"
+                        : "Plano Gratuito"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {access.isStore
+                      ? "Acesso completo a todas as ferramentas: Vitrine Online, Estoque Unificado, PDV de Balcão, Condicional, Precificação e Etiquetas."
+                      : access.isLote
+                      ? "Acesso focado: Precificação ilimitada, gerador de etiquetas de código de barras para folha A4 e bobina térmica e histórico na nuvem."
+                      : "Calculadora de precificação inteligente com cota de até 3 lotes por mês."}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Acesso completo a gestão de estoque por grade, caixa com PDV, cobrança amigável de fiado e relatórios DRE.
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl text-xs font-semibold shrink-0 cursor-pointer"
+                  onClick={() => setSubModalOpen(true)}
+                >
+                  <Sparkles className="size-3.5 mr-1.5 text-primary" />
+                  Mudar Plano / Assinar
+                </Button>
+              </div>
+
+              {/* SELETOR RÁPIDO DE TESTE (Para validação dos 3 planos em 1 clique) */}
+              <div className="mt-2 pt-3 border-t border-border/60">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  ✦ Alternar Ambiente de Demonstração (Teste dos 3 Planos):
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchTestTier("free")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                      access.isFree
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs"
+                        : "border-border/70 hover:bg-secondary/40 text-muted-foreground",
+                    )}
+                  >
+                    <span>1. Modo Gratuito</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchTestTier("lote")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                      access.isLote
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs"
+                        : "border-border/70 hover:bg-secondary/40 text-muted-foreground",
+                    )}
+                  >
+                    <span>2. Vestui Lote (R$ 19,90)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchTestTier("store")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                      access.isStore
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "border-border/70 hover:bg-secondary/40 text-muted-foreground",
+                    )}
+                  >
+                    <span>3. Vestui Store (R$ 97)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </section>
