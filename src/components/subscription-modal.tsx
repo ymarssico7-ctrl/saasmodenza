@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -8,6 +8,8 @@ import {
   QrCode,
   ShieldCheck,
   Sparkles,
+  Store,
+  Tag,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,29 +32,48 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultPlan?: "mensal" | "anual";
+  initialTier?: "lote" | "store";
 };
 
-export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }: Props) {
+export function SubscriptionModal({
+  open,
+  onOpenChange,
+  defaultPlan = "mensal",
+  initialTier = "store",
+}: Props) {
+  const [tier, setTier] = useState<"lote" | "store">(initialTier);
   const [cycle, setCycle] = useState<"mensal" | "anual">(defaultPlan);
   const [copiedPix, setCopiedPix] = useState(false);
   const queryClient = useQueryClient();
 
   const isAnual = cycle === "anual";
-  // Pricing: R$57/mês ou R$497/ano (R$41.41/mês)
-  const valorTexto = isAnual ? "R$ 497 / ano (R$ 41/mês)" : "R$ 57 / mês";
+
+  // Valores dinâmicos por plano e ciclo
+  const valorTexto =
+    tier === "lote"
+      ? "R$ 19,90 / mês"
+      : isAnual
+      ? "R$ 797 / ano (R$ 67/mês)"
+      : "R$ 97 / mês";
 
   const activateSub = useMutation({
     mutationFn: async () => {
       const uid = await currentUserId();
       const isAuth = await isAuthenticated();
       const expires = new Date();
-      if (isAnual) {
+      if (isAnual && tier === "store") {
         expires.setFullYear(expires.getFullYear() + 1);
       } else {
         expires.setMonth(expires.getMonth() + 1);
       }
 
-      const planSelected = isAnual ? "gestao_anual" : "digital";
+      const planSelected =
+        tier === "lote"
+          ? "lote"
+          : isAnual
+          ? "gestao_anual"
+          : "store";
+
       const expiresIso = expires.toISOString();
       const renewalDate = expiresIso.slice(0, 10);
 
@@ -98,138 +119,188 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
         plan: planSelected,
         store_subscription_active: true,
         store_subscription_expires_at: expiresIso,
-        plan_expires_at: renewalDate,
-        plan_renewal_date: renewalDate,
       }));
+
+      return planSelected;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
-      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
-      toast.success("Assinatura Vestui ativada! Bem-vinda ao sistema completo. 🎉");
+    onSuccess: (planSelected) => {
+      const planName = planSelected === "lote" ? "Vestui Lote" : "Vestui Store";
+      toast.success("Assinatura ativada com sucesso!", {
+        description: `Seu plano ${planName} já está liberado.`,
+      });
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (err: Error) => {
+      toast.error("Erro ao ativar", { description: err.message });
+    },
   });
 
-  const handleCopyPix = () => {
-    void navigator.clipboard.writeText(CHAVE_PIX_VESTUI);
+  const copyPix = () => {
+    navigator.clipboard.writeText(CHAVE_PIX_VESTUI);
     setCopiedPix(true);
-    toast.success("Chave Pix copiada!", {
-      description: `${CHAVE_PIX_VESTUI}`,
-    });
-    setTimeout(() => setCopiedPix(false), 3000);
+    toast.success("Chave Pix copiada!");
+    setTimeout(() => setCopiedPix(false), 2000);
   };
 
-  const handleOpenWhatsApp = () => {
-    const planoNome = isAnual ? "Anual (R$ 497/ano)" : "Mensal (R$ 57/mês)";
-    const text = encodeURIComponent(
-      `Olá! Quero assinar o Vestui no Plano ${planoNome} para a minha loja. Como faço para pagar e ativar agora?`,
-    );
-    window.open(`https://wa.me/${WHATSAPP_SUPORTE}?text=${text}`, "_blank");
-  };
+  const openWhatsApp = () => {
+    const planoEscolhido =
+      tier === "lote"
+        ? "Vestui Lote (R$ 19,90/mês)"
+        : isAnual
+        ? "Vestui Store Anual (R$ 797/ano)"
+        : "Vestui Store Mensal (R$ 97/mês)";
 
-  const handleSendComprovante = () => {
-    const planoNome = isAnual ? "Anual (R$ 497)" : "Mensal (R$ 57)";
-    const text = encodeURIComponent(
-      `Olá! Acabei de fazer o Pix de ${planoNome} para assinar o Vestui. Segue meu comprovante para ativação!`,
+    const msg = encodeURIComponent(
+      `Olá! Gostaria de ativar meu plano *${planoEscolhido}* no Vestui. Segue meu comprovante de pagamento Pix.`
     );
-    window.open(`https://wa.me/${WHATSAPP_SUPORTE}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${WHATSAPP_SUPORTE}?text=${msg}`, "_blank");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden border-border bg-card rounded-3xl shadow-lift sm:max-w-2xl">
-        {/* Banner Superior */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-6 pt-8 pb-6 border-b border-border/60 text-center sm:px-10">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow mb-4">
-            <Sparkles className="size-6" />
-          </div>
-
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Zap className="size-3.5 fill-primary" /> Vestui Completo
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto p-0 gap-0 rounded-3xl border-border/80">
+        {/* Cabeçalho */}
+        <div className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-background to-background p-6 pb-4 sm:p-8 sm:pb-4 text-center border-b border-border/60">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+            <Sparkles className="size-3.5" />
+            Planos Estratégicos Vestui
           </span>
 
-          <DialogTitle className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
-            Tudo o que sua loja precisa para crescer
+          <DialogTitle className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl font-display">
+            Escolha o Plano Ideal para Sua Loja
           </DialogTitle>
 
-          <DialogDescription className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            Gestão financeira, controle de estoque, vitrine online no Instagram e pedidos no WhatsApp — em um único sistema.
+          <DialogDescription className="mt-2 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+            Desde a precificação inteligente de lotes com etiquetas até a gestão completa de vendas físicas e online.
           </DialogDescription>
 
-          {/* Toggle Mensal vs Anual */}
-          <div className="mt-6 inline-flex items-center rounded-full bg-secondary/80 p-1 border border-border/80">
+          {/* Seletor de Plano (Lote vs Store) */}
+          <div className="mt-5 grid grid-cols-2 gap-2 max-w-md mx-auto p-1 bg-secondary/80 rounded-2xl border border-border/80">
             <button
               type="button"
-              onClick={() => setCycle("mensal")}
+              onClick={() => setTier("lote")}
               className={cn(
-                "rounded-full px-5 py-2 text-xs font-semibold transition-all cursor-pointer",
-                !isAnual
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                "flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                tier === "lote"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Mensal
+              <Tag className="size-3.5 text-primary" />
+              <span>Vestui Lote</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">
+                R$ 19,90
+              </span>
             </button>
             <button
               type="button"
-              onClick={() => setCycle("anual")}
+              onClick={() => setTier("store")}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-semibold transition-all cursor-pointer",
-                isAnual
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                "flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                tier === "store"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Anual
-              <span className="rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-bold text-warning-foreground">
-                28% OFF
+              <Store className="size-3.5" />
+              <span>Vestui Store</span>
+              <span className="text-[10px] bg-background text-foreground px-1.5 py-0.5 rounded-md">
+                Completo
               </span>
             </button>
           </div>
+
+          {/* Toggle Mensal vs Anual (Apenas no plano Store) */}
+          {tier === "store" && (
+            <div className="mt-3 inline-flex items-center rounded-full bg-background/80 p-1 border border-border/80 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setCycle("mensal")}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  !isAnual
+                    ? "bg-card text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Mensal (R$ 97)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCycle("anual")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  isAnual
+                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span>Anual (R$ 67/mês)</span>
+                <span className="rounded-full bg-emerald-500 text-white px-1.5 py-0.2 text-[9px] font-extrabold uppercase">
+                  30% OFF
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="p-6 sm:p-8 space-y-6">
-          {/* Card do Preço */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary-soft/50 p-5">
+        <div className="p-6 sm:p-7 space-y-5">
+          {/* Card do Preço Selecionado */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Plano selecionado
               </p>
               <h3 className="text-lg font-bold text-foreground">
-                Vestui {isAnual ? "Anual ✦" : "Mensal"}
+                {tier === "lote"
+                  ? "Vestui Lote & Etiquetas"
+                  : isAnual
+                  ? "Vestui Store Anual ✦"
+                  : "Vestui Store Mensal"}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isAnual
-                  ? "Faturado anualmente em parcela única (economize R$ 187)"
-                  : "Assinatura mensal recorrente, cancele quando desejar"}
+                {tier === "lote"
+                  ? "Precificação ilimitada, etiquetas com código de barras e simulador de margens"
+                  : isAnual
+                  ? "Faturado anualmente em parcela única (economize mais de R$ 360 no ano)"
+                  : "Loja física e online integradas, PDV e estoque unificado"}
               </p>
             </div>
             <div className="text-center sm:text-right">
-              <span className="text-3xl font-extrabold text-primary font-display">
-                {isAnual ? "R$ 41" : "R$ 57"}
+              <span className="text-3xl font-extrabold text-foreground font-display">
+                {tier === "lote" ? "R$ 19,90" : isAnual ? "R$ 67" : "R$ 97"}
               </span>
               <span className="text-xs text-muted-foreground">/mês</span>
-              {isAnual && (
-                <p className="text-[11px] font-medium text-muted-foreground">
-                  (R$ 497 faturado ao ano)
+              {tier === "store" && isAnual && (
+                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                  (R$ 797 faturado ao ano)
                 </p>
               )}
             </div>
           </div>
 
-          {/* Benefícios */}
-          <div className="grid sm:grid-cols-2 gap-3 text-xs">
-            {[
-              "Vitrine Online com seu subdomínio e link de bio",
-              "Pedidos direto no WhatsApp com checkout integrado",
-              "Gestão de estoque por grade (tamanhos, cores e fotos)",
-              "DRE em tempo real e controle de pró-labore",
-              "Precificador com cálculo de margem e markup real",
-              "Suporte individual e onboarding no WhatsApp",
-            ].map((beneficio, i) => (
-              <div key={i} className="flex items-center gap-2 text-foreground/90">
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success-soft text-success">
+          {/* Benefícios Dinâmicos */}
+          <div className="grid sm:grid-cols-2 gap-2.5 text-xs">
+            {(tier === "lote"
+              ? [
+                  "Lotes e precificações ilimitadas todo mês",
+                  "Gerador de etiquetas em folha A4 comum (Pimaco 6180)",
+                  "Impressão em bobina térmica (50x30mm) com código de barras",
+                  "Histórico completo das coleções salvo na nuvem",
+                  "Simulador de desconto comercial máximo seguro",
+                  "Cancele quando quiser sem fidelidade",
+                ]
+              : [
+                  "Vitrine Online com sacola de pedidos no WhatsApp",
+                  "PDV de Balcão ágil com baixa automática no estoque",
+                  "Estoque 100% unificado (físico + online sem furo)",
+                  "Gestão de Condicional / Malinha com comprovante",
+                  "DRE em tempo real, fluxo de caixa e pró-labore",
+                  "Tudo do Vestui Lote incluso (etiquetas e precificação)",
+                ]
+            ).map((beneficio, i) => (
+              <div key={i} className="flex items-center gap-2 text-foreground/90 font-medium">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
                   <Check className="size-3 stroke-[2.5]" />
                 </div>
                 <span>{beneficio}</span>
@@ -237,69 +308,66 @@ export function SubscriptionModal({ open, onOpenChange, defaultPlan = "anual" }:
             ))}
           </div>
 
-          {/* Pagamento */}
-          <div className="rounded-2xl border border-border bg-secondary/30 p-5 space-y-4">
+          {/* Pagamento via Pix */}
+          <div className="rounded-2xl border border-border bg-secondary/30 p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <QrCode className="size-5 text-primary" />
-                <p className="text-sm font-semibold">Pagar via Pix (Liberação rápida)</p>
+                <QrCode className="size-4 text-primary" />
+                <p className="text-xs sm:text-sm font-bold">Pagar via Pix (Liberação rápida)</p>
               </div>
-              <span className="text-xs font-semibold text-primary">{valorTexto}</span>
+              <span className="text-xs font-bold text-primary">{valorTexto}</span>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <div className="flex-1 truncate rounded-xl border border-input bg-card px-3.5 py-2.5 text-xs font-mono text-muted-foreground">
+              <div className="flex-1 rounded-xl bg-card border border-border/80 px-3 py-2 text-xs font-mono text-muted-foreground truncate select-all">
                 {CHAVE_PIX_VESTUI}
               </div>
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-xl text-xs font-semibold gap-1.5 shrink-0"
-                onClick={handleCopyPix}
+                size="sm"
+                onClick={copyPix}
+                className="shrink-0 rounded-xl text-xs font-semibold cursor-pointer h-9"
               >
-                <Copy className="size-3.5" />
-                {copiedPix ? "Copiado!" : "Copiar chave"}
+                <Copy className="size-3.5 mr-1.5" />
+                {copiedPix ? "Copiado!" : "Copiar Chave"}
               </Button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
               <Button
                 type="button"
-                variant="default"
-                className="flex-1 h-11 rounded-full text-xs font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
-                onClick={handleSendComprovante}
+                variant="outline"
+                size="sm"
+                onClick={openWhatsApp}
+                className="w-full sm:w-auto rounded-xl text-xs font-semibold cursor-pointer text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 h-9"
               >
-                <MessageCircle className="size-4" />
-                Enviar comprovante no WhatsApp
+                <MessageCircle className="size-3.5 mr-1.5" />
+                Enviar Comprovante no WhatsApp
               </Button>
 
               <Button
                 type="button"
-                variant="outline"
-                className="flex-1 h-11 rounded-full text-xs font-semibold gap-2 cursor-pointer"
-                onClick={handleOpenWhatsApp}
+                size="sm"
+                onClick={() => activateSub.mutate()}
+                disabled={activateSub.isPending}
+                className="w-full sm:w-auto rounded-xl text-xs font-bold gradient-primary shadow-glow cursor-pointer h-9 px-5"
               >
-                <CreditCard className="size-4" />
-                Pagar com Cartão (Até 12x)
+                <Zap className="size-3.5 mr-1.5" />
+                {activateSub.isPending ? "Ativando..." : "Confirmar Pagamento"}
               </Button>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="size-4 text-emerald-500" />
-              <span>Garantia de 7 dias ou seu dinheiro de volta.</span>
-            </div>
-
-            <button
-              type="button"
-              disabled={activateSub.isPending}
-              onClick={() => activateSub.mutate()}
-              className="text-primary hover:underline font-medium cursor-pointer"
-            >
-              {activateSub.isPending ? "Ativando..." : "Já pagou? Ativar agora"}
-            </button>
+          <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground pt-1">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="size-3.5 text-emerald-500" />
+              Garantia de 7 dias
+            </span>
+            <span>•</span>
+            <span>Suporte humanizado no WhatsApp</span>
+            <span>•</span>
+            <span>Cancele a qualquer momento</span>
           </div>
         </div>
       </DialogContent>

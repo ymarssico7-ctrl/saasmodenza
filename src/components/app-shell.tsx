@@ -87,13 +87,14 @@ type NavGroupItem = {
   section?: string;
   dividerBefore?: boolean;
   badgeKey?: "pedidos";
+  tierBadge?: string;
   externalPreview?: boolean;
   children?: NavSubItem[];
   isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
 // ─── Árvore de Navegação — Padrão Shopify Adaptado com Distribuição Inteligente ───
-function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGroupItem[] {
+function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStoreTier: boolean = true): NavGroupItem[] {
   const items: NavGroupItem[] = [
     // ── Acesso Operacional Rápido (Alta Frequência Diária) ───────────────────
     {
@@ -104,10 +105,18 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGr
       isMatch: (p) => p === "/painel",
     },
     {
+      id: "precificacao_top",
+      label: "Lotes & Precificação",
+      icon: Calculator,
+      to: "/precificacao",
+      isMatch: (p) => p.startsWith("/precificacao"),
+    },
+    {
       id: "caixa",
       label: "Caixa & PDV",
       icon: Wallet,
       to: "/caixa",
+      tierBadge: !isStoreTier ? "Store" : undefined,
       isMatch: (p) => p === "/caixa",
     },
     {
@@ -116,6 +125,7 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGr
       icon: ShoppingBag,
       to: "/loja/pedidos",
       badgeKey: "pedidos",
+      tierBadge: !isStoreTier ? "Store" : undefined,
       isMatch: (p) => p.startsWith("/loja/pedidos"),
     },
 
@@ -250,6 +260,7 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGr
       icon: Store,
       to: "/loja/produtos",
       section: "Canais de vendas",
+      tierBadge: !isStoreTier ? "Store" : undefined,
       externalPreview: true,
       isMatch: (p) =>
         p.startsWith("/loja") &&
@@ -469,7 +480,14 @@ const NavGroupRow = memo(function NavGroupRow({
                 onClick={onItemClick}
                 className="flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold text-white/95 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               >
-                <span>{item.label}</span>
+                <div className="flex items-center gap-1.5">
+                  <span>{item.label}</span>
+                  {item.tierBadge && (
+                    <span className="flex items-center gap-0.5 rounded-full bg-primary/20 border border-primary/30 px-1.5 py-0.2 text-[8px] font-extrabold text-primary-foreground uppercase tracking-wider">
+                      ✦ {item.tierBadge}
+                    </span>
+                  )}
+                </div>
                 {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
                   <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-2xs">
                     {badgeCount}
@@ -540,9 +558,14 @@ const NavGroupRow = memo(function NavGroupRow({
             side="right"
             align="center"
             sideOffset={12}
-            className="z-50 w-auto px-2.5 py-1 text-xs font-medium bg-[#18181B] border border-white/10 shadow-xl rounded-lg text-white whitespace-nowrap select-none"
+            className="z-50 w-auto px-2.5 py-1 text-xs font-medium bg-[#18181B] border border-white/10 shadow-xl rounded-lg text-white whitespace-nowrap select-none flex items-center gap-1.5"
           >
-            {item.label}
+            <span>{item.label}</span>
+            {item.tierBadge && (
+              <span className="rounded-full bg-primary/20 border border-primary/30 px-1 py-0.2 text-[8px] font-extrabold text-primary-foreground uppercase">
+                ✦ {item.tierBadge}
+              </span>
+            )}
           </HoverCardContent>
         </HoverCard>
       </div>
@@ -576,6 +599,12 @@ const NavGroupRow = memo(function NavGroupRow({
             )}
           />
           <span className="truncate">{item.label}</span>
+
+          {item.tierBadge && (
+            <span className="ml-auto flex items-center gap-0.5 rounded-full bg-primary/20 border border-primary/30 px-1.5 py-0.5 text-[9px] font-extrabold text-primary-foreground uppercase tracking-wider">
+              ✦ {item.tierBadge}
+            </span>
+          )}
 
           {item.badgeKey === "pedidos" && badgeCount !== undefined && badgeCount > 0 && (
             <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white shadow-2xs animate-pulse">
@@ -666,7 +695,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isConfiguracoes = pathname.startsWith("/configuracoes");
   const currentSettingsTab = (typeof search?.["tab"] === "string" ? search["tab"] : "geral") || "geral";
   const { data: members = [] } = useQuery(membersQuery());
-  const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = useAccess(profile, store);
+  const access = useAccess(profile, store);
+  const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = access;
 
   // ── Ativação da Vitrine Online & Modo Fiado ──────────────────────────────
   const [vitrineAtiva, setVitrineAtiva] = useState(() => isVitrineAtiva(storeId, store?.metadata));
@@ -691,7 +721,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [storeId, store?.metadata]);
 
-  const navItems = useMemo(() => getShopifyNav(vitrineAtiva, fiadoAtivo), [vitrineAtiva, fiadoAtivo]);
+  const navItems = useMemo(
+    () => getShopifyNav(vitrineAtiva, fiadoAtivo, access.isStore),
+    [vitrineAtiva, fiadoAtivo, access.isStore],
+  );
 
   // ── Modelo de Accordion Estrito (Apenas 1 grupo aberto por vez) ───────────
   const currentRouteGroupId = useMemo(() => {
@@ -772,10 +805,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const ownerName = profile?.owner_name?.trim() || "Bem-vinda";
 
   const planLabel = (() => {
-    if (!isActive) return "Sem plano";
-    const p = profile?.plan;
-    if (p === "gestao_anual" || p === "anual") return "Anual";
-    return "Vestui";
+    if (access.isStore) {
+      const p = profile?.plan;
+      if (p === "gestao_anual" || p === "anual") return "Store Anual";
+      return "Vestui Store";
+    }
+    if (access.isLote) return "Vestui Lote";
+    if (access.isFree) return "Gratuito";
+    if (!isActive) return "Gratuito";
+    return "Vestui Store";
   })();
 
   // ── Abas Principais Mobile ────────────────────────────────────────────────
@@ -1222,6 +1260,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   Assinar →
                 </span>
               </Link>
+            )
+          ) : access.isFree ? (
+            !isCollapsed && (
+              <div className="flex items-center justify-between px-2.5 py-1 text-[11px] text-sidebar-foreground/60 select-none bg-white/5 rounded-xl border border-white/10 mx-1">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="size-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <span>Plano Gratuito</span>
+                </span>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "plano" }}
+                  className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                >
+                  Upgrade →
+                </Link>
+              </div>
+            )
+          ) : access.isLote ? (
+            !isCollapsed && (
+              <div className="flex items-center justify-between px-2.5 py-1 text-[11px] text-sidebar-foreground/60 select-none bg-white/5 rounded-xl border border-white/10 mx-1">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>Vestui Lote</span>
+                </span>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "plano" }}
+                  className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                >
+                  ✦ Store
+                </Link>
+              </div>
             )
           ) : isActive ? (
             !isCollapsed && (

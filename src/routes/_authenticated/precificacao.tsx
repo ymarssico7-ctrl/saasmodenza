@@ -50,6 +50,7 @@ import {
   Wand2,
   X,
   Zap,
+  Printer,
 } from "lucide-react";
 import {
   getPricingSettings,
@@ -95,7 +96,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { pricingsQuery } from "@/lib/db";
+import { pricingsQuery, profileQuery } from "@/lib/db";
 import { brl, pct, toNumber } from "@/lib/format";
 import {
   computePaymentScenarios,
@@ -113,6 +114,10 @@ import { getCustomOptions, type CustomColorOption, type CustomSizeOption } from 
 import { insertPricing, deletePricing, insertInventoryItem } from "@/lib/mutations";
 import { getAutoPublish, patchShowcaseConfig } from "@/lib/showcase-store";
 import { cn } from "@/lib/utils";
+import { useAccess } from "@/lib/useAccess";
+import { useBatchQuota } from "@/lib/useBatchQuota";
+import { LabelPrintModal, type LabelItem } from "@/components/label-print-modal";
+import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
   head: () => ({
@@ -1686,6 +1691,7 @@ function LivePricingSummaryPanel({
   onSave,
   onReset,
   onPromoteToGrade,
+  onPrintLabels,
   saveDisabled,
   entryDisabled,
 }: {
@@ -1709,6 +1715,7 @@ function LivePricingSummaryPanel({
   onSave: () => void;
   onReset?: () => void;
   onPromoteToGrade?: () => void;
+  onPrintLabels?: () => void;
   saveDisabled: boolean;
   entryDisabled: boolean;
 }) {
@@ -1842,6 +1849,19 @@ function LivePricingSummaryPanel({
               </Button>
             )}
           </div>
+
+          {onPrintLabels && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onPrintLabels}
+              disabled={entryDisabled}
+              className="w-full h-8.5 rounded-xl border-border/80 bg-background hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Printer className="size-3.5 text-primary" />
+              <span>Imprimir Etiquetas</span>
+            </Button>
+          )}
 
           {onPromoteToGrade && (
             <button
@@ -2025,6 +2045,19 @@ function LivePricingSummaryPanel({
             </Button>
           )}
         </div>
+
+        {onPrintLabels && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onPrintLabels}
+            disabled={entryDisabled}
+            className="w-full h-9 rounded-xl border-border/80 bg-background hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Printer className="size-3.5 text-primary" />
+            <span>Imprimir Etiquetas</span>
+          </Button>
+        )}
 
         {totalUnits > 0 && (
           <p className="text-center text-[11px] text-muted-foreground">
@@ -2257,7 +2290,17 @@ function SmartTableNumericInput({
 function Precificacao() {
 
   const queryClient = useQueryClient();
-  const { storeId } = useStore();
+  const { storeId, store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+  const quota = useBatchQuota();
+
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
+  const [labelItems, setLabelItems] = useState<LabelItem[]>([]);
+  const [labelBatchName, setLabelBatchName] = useState("");
+  const [upgradeLoteModalOpen, setUpgradeLoteModalOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<"quota_reached" | "labels_locked" | "general">("general");
+
   const { categories: storeCategories, saveCategories } = useStoreCategories();
   const { data: saved = [] } = useQuery(pricingsQuery());
 
@@ -4813,6 +4856,115 @@ function Precificacao() {
     setEntrySheetOpen(true);
   };
 
+  // ── Integração de Etiquetas & Limite de Lotes ──────────────────────
+  const handlePrintLabels = (items: LabelItem[], batchName: string) => {
+    if (!access.canPrintLabels) {
+      setUpgradeReason("labels_locked");
+      setUpgradeLoteModalOpen(true);
+      return;
+    }
+    setLabelItems(items);
+    setLabelBatchName(batchName);
+    setLabelModalOpen(true);
+  };
+
+  const handlePrintLabelsRapida = () => {
+    const qty = Math.max(1, parseInt(rapidaQty, 10) || 1);
+    const pieceName = name.trim() || "Peça Avulsa";
+    const color = rapidaColor.trim() || "Padrão";
+    const size = rapidaSize.trim() || "U";
+    const price = summaryPrices.avgSuggested || 0;
+    const cleanName = pieceName.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "") || "MOD";
+    const cleanColor = color.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "") || "COR";
+    const sku = `${cleanName}-${cleanColor}-${size}`;
+    handlePrintLabels(
+      [
+        {
+          id: "rapida-1",
+          name: pieceName,
+          color,
+          size,
+          price,
+          qty,
+          sku,
+        },
+      ],
+      pieceName,
+    );
+  };
+
+  const handlePrintLabelsGrade = () => {
+    const pieceName = name.trim() || "Coleção Lote";
+    const items: LabelItem[] = [];
+    if (variants.length > 0) {
+      variants.forEach((v) => {
+        const qty = v.qty && v.qty > 0 ? v.qty : 1;
+        const vCost = toNumber(v.wholesaleCost) > 0 ? toNumber(v.wholesaleCost) : toNumber(baseWholesaleGrade);
+        const pricing = calculateItem(vCost);
+        const price = pricing.salePrice || summaryPrices.avgSuggested || 0;
+        const cleanName = pieceName.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "") || "MOD";
+        const cleanColor = v.color.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "") || "COR";
+        const sku = `${cleanName}-${cleanColor}-${v.size}`;
+        items.push({
+          id: v.id,
+          name: pieceName,
+          color: v.color,
+          size: v.size,
+          price,
+          qty,
+          sku,
+        });
+      });
+    } else {
+      items.push({
+        id: "grade-1",
+        name: pieceName,
+        color: "Padrão",
+        size: "U",
+        price: summaryPrices.avgSuggested || 0,
+        qty: actualLotUnits > 0 ? actualLotUnits : 1,
+        sku: `${pieceName.slice(0, 4).toUpperCase()}-U`,
+      });
+    }
+    handlePrintLabels(items, pieceName);
+  };
+
+  const handlePrintLabelsSaved = (p: { id?: string; name: string }, price: number) => {
+    const cleanName = p.name.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "") || "PEC";
+    handlePrintLabels(
+      [
+        {
+          id: p.id || `saved-${Date.now()}`,
+          name: p.name,
+          color: "Padrão",
+          size: "U",
+          price: price || 0,
+          qty: 1,
+          sku: `${cleanName}-001`,
+        },
+      ],
+      p.name,
+    );
+  };
+
+  const handleSaveWithQuotaCheck = () => {
+    if (quota.isFree && quota.isQuotaReached) {
+      setUpgradeReason("quota_reached");
+      setUpgradeLoteModalOpen(true);
+      return;
+    }
+    save.mutate();
+  };
+
+  const handleEntryWithQuotaCheck = () => {
+    if (quota.isFree && quota.isQuotaReached) {
+      setUpgradeReason("quota_reached");
+      setUpgradeLoteModalOpen(true);
+      return;
+    }
+    openEntryForCurrent();
+  };
+
   const entryTotalUnits = useMemo(() => {
     return Object.values(entrySizes).reduce((acc, qty) => acc + (Number(qty) || 0), 0);
   }, [entrySizes]);
@@ -4988,6 +5140,45 @@ function Precificacao() {
           </button>
         </div>
       </div>
+
+      {/* ── BANNER DE COTA DO PLANO GRATUITO ── */}
+      {quota.isFree && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="size-4 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-foreground">
+                  {quota.isQuotaReached
+                    ? "Você atingiu o limite de 3 lotes gratuitos deste mês"
+                    : `Você usou ${quota.batchesThisMonth} de ${quota.limit} lotes gratuitos este mês`}
+                </p>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary font-bold uppercase">
+                  Plano Gratuito
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {quota.isQuotaReached
+                  ? "Para continuar precificando novas coleções e imprimir etiquetas com código de barras, ative o Vestui Lote."
+                  : `Restam ${quota.remaining} lote(s) gratuito(s). Ative o Vestui Lote por R$ 19,90/mês para lotes ilimitados e etiquetas prontas.`}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setUpgradeReason(quota.isQuotaReached ? "quota_reached" : "general");
+              setUpgradeLoteModalOpen(true);
+            }}
+            className="shrink-0 h-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-glow cursor-pointer gap-1.5"
+          >
+            <Zap className="size-3.5" />
+            Desbloquear Ilimitado (R$ 19,90)
+          </Button>
+        </div>
+      )}
 
       {/* ── CANVAS UNIFICADO & MINIMALISTA (PADRÃO APPLE STUDIO - FLUXO SEQUENCIAL NATURAL) ──── */}
       <div className="mx-auto w-full max-w-[1440px]">
@@ -6477,7 +6668,7 @@ function Precificacao() {
                 <div className="space-y-1.5">
                   <Button
                     type="button"
-                    onClick={openEntryForCurrent}
+                    onClick={handleEntryWithQuotaCheck}
                     disabled={!canSubmitGrade}
                     className="w-full h-11 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
                   >
@@ -6487,6 +6678,17 @@ function Precificacao() {
                         ? `Dar entrada no estoque (${actualLotUnits} un.)`
                         : "Dar entrada no estoque"}
                     </span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrintLabelsGrade}
+                    disabled={!canSubmitGrade && variants.length === 0}
+                    className="w-full h-9 rounded-xl border-border/80 bg-background hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Printer className="size-3.5 text-primary" />
+                    <span>Imprimir Etiquetas do Lote</span>
                   </Button>
 
                   <div className="min-h-[1rem] flex items-center justify-center text-center">
@@ -6504,7 +6706,7 @@ function Precificacao() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => save.mutate()}
+                    onClick={handleSaveWithQuotaCheck}
                     disabled={save.isPending || !name.trim()}
                     className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
                   >
@@ -7918,7 +8120,18 @@ function Precificacao() {
 
                 <Button
                   type="button"
-                  onClick={openEntryForCurrent}
+                  variant="outline"
+                  onClick={handlePrintLabelsGrade}
+                  disabled={!canSubmitGrade && variants.length === 0}
+                  className="h-11 px-4 rounded-xl border-border/80 bg-background hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer shrink-0 flex items-center gap-1.5"
+                >
+                  <Printer className="size-4 text-primary" />
+                  <span>Etiquetas</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleEntryWithQuotaCheck}
                   disabled={!canSubmitGrade}
                   className="h-11 px-5 rounded-xl gradient-primary text-primary-foreground text-xs font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer shrink-0 disabled:opacity-40"
                 >
@@ -8021,6 +8234,15 @@ function Precificacao() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                title="Imprimir etiquetas de código de barras desta peça"
+                                className="h-8 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                                onClick={() => handlePrintLabelsSaved(p, r.suggestedPrice)}
+                              >
+                                <Printer className="mr-1.5 size-3.5 text-primary" /> Etiquetas
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 title="Dar entrada no Estoque com fotos e quantidades"
                                 className="h-8 rounded-lg text-xs font-semibold text-primary hover:bg-primary-soft"
                                 onClick={() => openEntryForSaved(p, r.realCost, r.suggestedPrice)}
@@ -8077,10 +8299,11 @@ function Precificacao() {
               hasData={toNumber(wholesale) > 0 && summaryPrices.avgSuggested > 0}
               mode={mode}
               strategy={strategy}
-              onEntry={openEntryForCurrent}
-              onSave={() => save.mutate()}
+              onEntry={handleEntryWithQuotaCheck}
+              onSave={handleSaveWithQuotaCheck}
               onReset={resetPricingModel}
               onPromoteToGrade={promoteToGrade}
+              onPrintLabels={handlePrintLabelsRapida}
               saveDisabled={save.isPending || !name.trim() || toNumber(wholesale) <= 0}
               entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0 || summaryPrices.avgCost <= 0 || !name.trim()}
             />
@@ -8309,6 +8532,19 @@ function Precificacao() {
           </Button>
         </SheetContent>
       </Sheet>
+
+      <LabelPrintModal
+        open={labelModalOpen}
+        onOpenChange={setLabelModalOpen}
+        storeName={profile?.store_name || "MINHA LOJA"}
+        batchName={labelBatchName}
+        items={labelItems}
+      />
+      <UpgradeLoteModal
+        open={upgradeLoteModalOpen}
+        onOpenChange={setUpgradeLoteModalOpen}
+        reason={upgradeReason}
+      />
     </div>
   );
 }

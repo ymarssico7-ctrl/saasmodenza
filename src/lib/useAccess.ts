@@ -1,8 +1,11 @@
-﻿// ─── Hook Central de Acesso (Modelo Unificado) ─────────────────────────────
-// O Vestui é um produto único. Um plano libera 100% do sistema.
-// hasGestao e hasLoja são aliases retrocompatíveis de isActive.
+// ─── Hook Central de Acesso (Modelo Multi-Planos: Free, Lote e Store) ──────
+// Free: Precificação até 3 lotes/mês (sem etiquetas, sem histórico persistido)
+// Lote (R$ 19,90): Lotes ilimitados + Etiquetas PDF + Histórico + Simulador
+// Store (R$ 97,00): Tudo acima + Vitrine Online + Estoque Unificado + PDV Balcão
 
 import type { Store } from "@/lib/store-context";
+
+export type PlanTier = "free" | "lote" | "store";
 
 export type Profile = {
   id: string;
@@ -13,6 +16,7 @@ export type Profile = {
   logo_url?: string | null;
   prolabore_target?: number | null;
   plan?: string | null;
+  plan_tier?: string | null;
   plan_expires_at?: string | null;
   onboarding_done?: boolean | null;
   store_trial_offered_at?: string | null;
@@ -30,12 +34,30 @@ export type TrialStatus =
   | "subscribed";
 
 export type AccessInfo = {
-  /** Verdade única: true se o sistema está liberado por qualquer mecanismo */
+  /** Nível do plano ativo: 'free', 'lote' (R$ 19,90) ou 'store' (R$ 97) */
+  tier: PlanTier;
+  isFree: boolean;
+  isLote: boolean;
+  isStore: boolean;
+
+  /** Permissões Granulares */
+  canUsePricing: boolean;
+  canPrintLabels: boolean;
+  canUnlimitedBatches: boolean;
+  canSaveHistory: boolean;
+  canSimulateDiscounts: boolean;
+  canAccessStorefront: boolean;
+  canAccessPOS: boolean;
+  canAccessConditional: boolean;
+  freeBatchesLimit: number;
+
+  /** Verdade única retrocompatível: true se tem qualquer plano pago ou trial */
   isActive: boolean;
   /** Alias retrocompatível de isActive */
   hasGestao: boolean;
   /** Alias retrocompatível de isActive */
   hasLoja: boolean;
+
   trialStatus: TrialStatus;
   daysLeftInTrial: number | null;
   isTrialUrgent: boolean;
@@ -48,25 +70,41 @@ export function useAccess(
 ): AccessInfo {
   const now = new Date();
 
+  const emptyAccess: AccessInfo = {
+    tier: "free",
+    isFree: true,
+    isLote: false,
+    isStore: false,
+    canUsePricing: true,
+    canPrintLabels: false,
+    canUnlimitedBatches: false,
+    canSaveHistory: false,
+    canSimulateDiscounts: false,
+    canAccessStorefront: false,
+    canAccessPOS: false,
+    canAccessConditional: false,
+    freeBatchesLimit: 3,
+    isActive: false,
+    hasGestao: false,
+    hasLoja: false,
+    trialStatus: "not_offered",
+    daysLeftInTrial: null,
+    isTrialUrgent: false,
+    isShouldShowTrialModal: false,
+  };
+
   if (!profile && !store) {
-    return {
-      isActive: false,
-      hasGestao: false,
-      hasLoja: false,
-      trialStatus: "not_offered",
-      daysLeftInTrial: null,
-      isTrialUrgent: false,
-      isShouldShowTrialModal: false,
-    };
+    return emptyAccess;
   }
 
-  // ── Plano ─────────────────────────────────────────────────────────────────
-  const rawPlan = store?.plan || profile?.plan;
+  // ── Identificação do Plano ────────────────────────────────────────────────
+  const rawPlan = (store?.plan || profile?.plan || "").toLowerCase();
+  const rawTier = (profile?.plan_tier || "").toLowerCase();
   const rawPlanExpires = store?.plan_expires_at || profile?.plan_expires_at;
   const planExpiresAt = rawPlanExpires ? new Date(rawPlanExpires) : null;
   const planAtivo = !!rawPlan && (planExpiresAt ? planExpiresAt > now : true);
 
-  // ── Trial ──────────────────────────────────────────────────────────────────
+  // ── Trial da Loja Online ───────────────────────────────────────────────────
   const storeTrialAccepted = store?.store_trial_accepted ?? profile?.store_trial_accepted;
   const storeTrialExpires = store?.store_trial_expires_at ?? profile?.store_trial_expires_at;
   const trialExpiresAt = storeTrialExpires ? new Date(storeTrialExpires) : null;
@@ -86,12 +124,36 @@ export function useAccess(
   const assinanteAtivo =
     storeSubActive === true && (subExpiresAt !== null ? subExpiresAt > now : true);
 
-  // ── Acesso Unificado — Um plano cobre TUDO ────────────────────────────────
-  const isActive = planAtivo || trialAtivo || assinanteAtivo;
+  // ── Resolução do Tier (Free, Lote ou Store) ────────────────────────────────
+  let tier: PlanTier = "free";
+
+  if (
+    trialAtivo ||
+    assinanteAtivo ||
+    rawTier === "store" ||
+    rawPlan === "store" ||
+    rawPlan === "gestao_anual" ||
+    rawPlan === "completo" ||
+    rawPlan === "pro"
+  ) {
+    tier = "store";
+  } else if (
+    (planAtivo && (rawTier === "lote" || rawPlan === "lote" || rawPlan === "vestui_lote" || rawPlan === "starter"))
+  ) {
+    tier = "lote";
+  } else {
+    tier = "free";
+  }
+
+  const isFree = tier === "free";
+  const isLote = tier === "lote";
+  const isStore = tier === "store";
+
+  const isActive = isStore || isLote;
 
   // ── Estado do Trial ───────────────────────────────────────────────────────
   let trialStatus: TrialStatus;
-  if (assinanteAtivo || planAtivo) {
+  if (assinanteAtivo || (isStore && planAtivo)) {
     trialStatus = "subscribed";
   } else if (storeTrialAccepted === null || storeTrialAccepted === undefined) {
     trialStatus = "not_offered";
@@ -103,13 +165,31 @@ export function useAccess(
     trialStatus = "expired";
   }
 
-  // Modal de trial: mostra para qualquer novo usuário sem plano ainda
-  const isShouldShowTrialModal = trialStatus === "not_offered";
+  // Modal de trial: mostra para usuário Free sem plano definido
+  const isShouldShowTrialModal = isFree && trialStatus === "not_offered";
 
   return {
+    tier,
+    isFree,
+    isLote,
+    isStore,
+
+    // Permissões
+    canUsePricing: true,
+    canPrintLabels: isLote || isStore,
+    canUnlimitedBatches: isLote || isStore,
+    canSaveHistory: isLote || isStore,
+    canSimulateDiscounts: isLote || isStore,
+    canAccessStorefront: isStore,
+    canAccessPOS: isStore,
+    canAccessConditional: isStore,
+    freeBatchesLimit: 3,
+
+    // Compatibilidade retroativa
     isActive,
-    hasGestao: isActive,
-    hasLoja: isActive,
+    hasGestao: true, // Precificação sempre liberada
+    hasLoja: isStore,
+
     trialStatus,
     daysLeftInTrial,
     isTrialUrgent: daysLeftInTrial !== null && daysLeftInTrial <= 7,
