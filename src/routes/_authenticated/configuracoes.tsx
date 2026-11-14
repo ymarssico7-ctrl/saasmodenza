@@ -156,7 +156,9 @@ function Configuracoes() {
         .from("profiles")
         .update({
           plan: planSelected,
+          plan_tier: targetTier,
           store_subscription_active: isStore,
+          store_trial_accepted: false,
         })
         .eq("id", uid);
       await supabase
@@ -164,25 +166,35 @@ function Configuracoes() {
         .update({
           plan: planSelected,
           store_subscription_active: isStore,
+          store_trial_accepted: false,
+          store_subscription_expires_at: isStore ? new Date(Date.now() + 30 * 86400000).toISOString() : null,
+          plan_expires_at: isStore ? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10) : null,
         })
         .eq("owner_id", uid);
     } else {
       updateDemoProfile({
         plan: planSelected,
+        plan_tier: targetTier,
         store_subscription_active: isStore,
+        store_trial_accepted: false,
       });
     }
 
     queryClient.setQueryData(["profile"], (old: Record<string, unknown> | undefined) => ({
       ...(old ?? {}),
       plan: planSelected,
+      plan_tier: targetTier,
       store_subscription_active: isStore,
+      store_trial_accepted: false,
     }));
     queryClient.setQueryData(["active_store"], (old: Record<string, unknown> | undefined) => ({
       ...(old ?? {}),
       plan: planSelected,
       store_subscription_active: isStore,
+      store_trial_accepted: false,
     }));
+    await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    await queryClient.invalidateQueries({ queryKey: ["active_store"] });
 
     const label =
       targetTier === "free"
@@ -191,8 +203,8 @@ function Configuracoes() {
         ? "Vestui Lote (R$ 19,90)"
         : "Vestui Store (R$ 97)";
 
-    toast.success(`Ambiente alternado para: ${label}!`, {
-      description: "Toda a interface e permissões foram atualizadas instantaneamente.",
+    toast.success(`Plano atualizado para: ${label}!`, {
+      description: "A interface e as permissões de acesso foram atualizadas imediatamente.",
     });
   };
 
@@ -889,94 +901,262 @@ function Configuracoes() {
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-muted-foreground">Plano ativo:</span>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
-                        access.isStore
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : access.isLote
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-                      )}
-                    >
-                      <span className="size-1.5 rounded-full bg-current" />
-                      {access.isStore
-                        ? "Vestui Store (Completo)"
+            {/* ── CARD RESUMO DO PLANO ATUAL ── */}
+            <div className="rounded-2xl border border-border/70 bg-surface-muted/30 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">Plano atual desta loja:</span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
+                      access.isStore
+                        ? "bg-primary/10 text-primary border border-primary/20"
                         : access.isLote
-                        ? "Vestui Lote (R$ 19,90/mês)"
-                        : "Plano Gratuito"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+                    )}
+                  >
+                    <span className="size-1.5 rounded-full bg-current" />
                     {access.isStore
-                      ? "Acesso completo a todas as ferramentas: Vitrine Online, Estoque Unificado, PDV de Balcão, Condicional, Precificação e Etiquetas."
+                      ? "Vestui Store (Completo)"
                       : access.isLote
-                      ? "Acesso focado: Precificação ilimitada, gerador de etiquetas de código de barras para folha A4 e bobina térmica e histórico na nuvem."
-                      : "Calculadora de precificação inteligente com cota de até 3 lotes por mês."}
-                  </p>
+                      ? "Vestui Lote (R$ 19,90/mês)"
+                      : "Plano Gratuito (3 lotes/mês)"}
+                  </span>
                 </div>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="rounded-xl text-xs font-semibold shrink-0 cursor-pointer"
-                  onClick={() => setSubModalOpen(true)}
-                >
-                  <Sparkles className="size-3.5 mr-1.5 text-primary" />
-                  Mudar Plano / Assinar
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {access.isStore
+                    ? "Tudo liberado: Vitrine Online com WhatsApp, Estoque Unificado, PDV de Balcão, Condicional, Precificação e Etiquetas."
+                    : access.isLote
+                    ? "Acesso focado: Precificação ilimitada, gerador de etiquetas com código de barras (A4 Pimaco e térmica) e histórico em nuvem."
+                    : "Calculadora de precificação inteligente com cota de até 3 lotes por mês. Sem impressão de etiquetas."}
+                </p>
               </div>
 
-              {/* SELETOR RÁPIDO DE TESTE (Para validação dos 3 planos em 1 clique) */}
-              <div className="mt-2 pt-3 border-t border-border/60">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  ✦ Alternar Ambiente de Demonstração (Teste dos 3 Planos):
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchTestTier("free")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                      access.isFree
-                        ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-xs"
-                        : "border-border/70 hover:bg-secondary/40 text-muted-foreground",
-                    )}
-                  >
-                    <span>1. Modo Gratuito</span>
-                  </button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-xl text-xs font-semibold shrink-0 cursor-pointer"
+                onClick={() => setSubModalOpen(true)}
+              >
+                <Sparkles className="size-3.5 mr-1.5 text-primary" />
+                Modal de Assinatura
+              </Button>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchTestTier("lote")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                      access.isLote
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs"
-                        : "border-border/70 hover:bg-secondary/40 text-muted-foreground",
-                    )}
-                  >
-                    <span>2. Vestui Lote (R$ 19,90)</span>
-                  </button>
+            {/* ── TABELA VISUAL DOS 3 PLANOS VESTUI (PRICING TABLE COMPLETA) ── */}
+            <div className="space-y-3 pt-1">
+              <div>
+                <h3 className="text-sm font-bold text-foreground tracking-tight">Planos Oficiais da Plataforma</h3>
+                <p className="text-xs text-muted-foreground">Selecione o plano desejado para sua loja ou alterne o ambiente para testar a experiência de cada cliente:</p>
+              </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchTestTier("store")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                      access.isStore
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "border-border/70 hover:bg-secondary/40 text-muted-foreground",
-                    )}
-                  >
-                    <span>3. Vestui Store (R$ 97)</span>
-                  </button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. PLANO GRATUITO */}
+                <div className={cn(
+                  "rounded-2xl border p-5 flex flex-col justify-between transition-all relative bg-card shadow-soft",
+                  access.isFree
+                    ? "border-amber-500/50 ring-2 ring-amber-500/20 bg-amber-500/[0.02]"
+                    : "border-border/80 hover:border-border"
+                )}>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        🎁 Essencial
+                      </span>
+                      {access.isFree && (
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                          <Check className="size-3 stroke-[3]" /> Ativo
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-base font-bold text-foreground font-display">Plano Gratuito</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Calculadora básica para começar</p>
+
+                    <div className="my-4 flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-foreground font-display">R$ 0</span>
+                      <span className="text-xs text-muted-foreground">/mês</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span>Precificação com margem real e markup</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span>Simulador de desconto seguro</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span><strong>Até 3 lotes</strong> cadastrados por mês</span>
+                      </div>
+                      <div className="flex items-start gap-2 opacity-60">
+                        <span className="size-3.5 text-center text-xs shrink-0 mt-0.5">✕</span>
+                        <span>Sem impressão de etiquetas</span>
+                      </div>
+                      <div className="flex items-start gap-2 opacity-60">
+                        <span className="size-3.5 text-center text-xs shrink-0 mt-0.5">✕</span>
+                        <span>Sem loja online ou PDV</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-border/40">
+                    <Button
+                      type="button"
+                      disabled={access.isFree}
+                      onClick={() => handleSwitchTestTier("free")}
+                      className={cn(
+                        "w-full h-10 rounded-xl text-xs font-bold cursor-pointer transition-all",
+                        access.isFree
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 opacity-90 cursor-default"
+                          : "border border-border/80 bg-background hover:bg-secondary text-foreground"
+                      )}
+                    >
+                      {access.isFree ? "✓ Seu Plano Atual" : "Ativar Plano Gratuito"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 2. VESTUI LOTE */}
+                <div className={cn(
+                  "rounded-2xl border p-5 flex flex-col justify-between transition-all relative bg-card shadow-soft",
+                  access.isLote
+                    ? "border-emerald-500/50 ring-2 ring-emerald-500/20 bg-emerald-500/[0.02]"
+                    : "border-border/80 hover:border-emerald-500/30"
+                )}>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        🏷️ Mais Escolhido
+                      </span>
+                      {access.isLote && (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Check className="size-3 stroke-[3]" /> Ativo
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-base font-bold text-foreground font-display">Vestui Lote</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Etiquetas e lotes ilimitados</p>
+
+                    <div className="my-4 flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-foreground font-display">R$ 19,90</span>
+                      <span className="text-xs text-muted-foreground">/mês</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Lotes e precificação ilimitados</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Etiquetas em folha A4 (Pimaco 6180)</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Etiquetas em bobina térmica (50x30)</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Histórico completo salvo na nuvem</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>Simulador de desconto comercial seguro</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-border/40">
+                    <Button
+                      type="button"
+                      disabled={access.isLote}
+                      onClick={() => handleSwitchTestTier("lote")}
+                      className={cn(
+                        "w-full h-10 rounded-xl text-xs font-bold cursor-pointer transition-all",
+                        access.isLote
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 opacity-90 cursor-default"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                      )}
+                    >
+                      {access.isLote ? "✓ Seu Plano Atual" : "Ativar Vestui Lote (R$ 19,90)"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 3. VESTUI STORE */}
+                <div className={cn(
+                  "rounded-2xl border p-5 flex flex-col justify-between transition-all relative bg-card shadow-soft",
+                  access.isStore
+                    ? "border-primary/50 ring-2 ring-primary/20 bg-primary/[0.02]"
+                    : "border-border/80 hover:border-primary/30"
+                )}>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        ✦ Sistema Completo
+                      </span>
+                      {access.isStore && (
+                        <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                          <Check className="size-3 stroke-[3]" /> Ativo
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-base font-bold text-foreground font-display">Vestui Store</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Loja física e online integradas</p>
+
+                    <div className="my-4 flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-foreground font-display">R$ 97</span>
+                      <span className="text-xs text-muted-foreground">/mês</span>
+                      <span className="text-[11px] text-muted-foreground ml-1">(ou R$ 67 no anual)</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Tudo do Vestui Lote incluso</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Loja & Vitrine Online com WhatsApp</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>PDV de Balcão e leitor de código</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Estoque 100% Unificado sem furos</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
+                        <span>Gestão de Condicional / Malinha</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
+                        <span>DRE em tempo real e pró-labore</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-border/40">
+                    <Button
+                      type="button"
+                      disabled={access.isStore}
+                      onClick={() => handleSwitchTestTier("store")}
+                      className={cn(
+                        "w-full h-10 rounded-xl text-xs font-bold cursor-pointer transition-all",
+                        access.isStore
+                          ? "bg-primary/15 text-primary border border-primary/30 opacity-90 cursor-default"
+                          : "gradient-primary text-primary-foreground shadow-glow hover:opacity-95"
+                      )}
+                    >
+                      {access.isStore ? "✓ Seu Plano Atual" : "Ativar Vestui Store (R$ 97)"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

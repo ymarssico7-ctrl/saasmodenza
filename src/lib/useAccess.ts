@@ -125,22 +125,24 @@ export function useAccess(
     storeSubActive === true && (subExpiresAt !== null ? subExpiresAt > now : true);
 
   // ── Resolução do Tier (Free, Lote ou Store) ────────────────────────────────
+  // PRECEDÊNCIA EXPLÍCITA: Se o plano for explicitamente "free", é Gratuito sem exceção!
   let tier: PlanTier = "free";
 
-  if (
+  if (rawPlan === "free" || rawPlan === "gratuito" || rawTier === "free") {
+    tier = "free";
+  } else if (rawPlan === "lote" || rawPlan === "vestui_lote" || rawTier === "lote") {
+    tier = "lote";
+  } else if (
     trialAtivo ||
     assinanteAtivo ||
     rawTier === "store" ||
     rawPlan === "store" ||
     rawPlan === "gestao_anual" ||
+    rawPlan === "digital" ||
     rawPlan === "completo" ||
     rawPlan === "pro"
   ) {
     tier = "store";
-  } else if (
-    (planAtivo && (rawTier === "lote" || rawPlan === "lote" || rawPlan === "vestui_lote" || rawPlan === "starter"))
-  ) {
-    tier = "lote";
   } else {
     tier = "free";
   }
@@ -153,8 +155,10 @@ export function useAccess(
 
   // ── Estado do Trial ───────────────────────────────────────────────────────
   let trialStatus: TrialStatus;
-  if (assinanteAtivo || (isStore && planAtivo)) {
+  if (isStore && (assinanteAtivo || planAtivo)) {
     trialStatus = "subscribed";
+  } else if (isFree) {
+    trialStatus = "not_offered";
   } else if (storeTrialAccepted === null || storeTrialAccepted === undefined) {
     trialStatus = "not_offered";
   } else if (storeTrialAccepted === false) {
@@ -165,8 +169,8 @@ export function useAccess(
     trialStatus = "expired";
   }
 
-  // Modal de trial: mostra para usuário Free sem plano definido
-  const isShouldShowTrialModal = isFree && trialStatus === "not_offered";
+  // Desativado modal legado intrusivo de trial para priorizar os 3 planos oficiais
+  const isShouldShowTrialModal = false;
 
   return {
     tier,
