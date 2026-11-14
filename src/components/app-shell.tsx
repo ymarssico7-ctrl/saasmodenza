@@ -62,7 +62,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery, membersQuery, goalsQuery, transactionsQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
-import { useAccess } from "@/lib/useAccess";
+import { type PlanTier, useAccess } from "@/lib/useAccess";
+import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
 import { brlCompact, monthStart } from "@/lib/format";
@@ -92,6 +93,36 @@ type NavGroupItem = {
   children?: NavSubItem[];
   isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
+
+// ─── Navegação Micro-SaaS (Exclusiva para os Planos Gratuito e Vestui Lote) ───
+function getMicroSaasNav(tier: PlanTier): NavGroupItem[] {
+  return [
+    {
+      id: "precificacao",
+      label: "Lotes & Precificação",
+      icon: Calculator,
+      to: "/precificacao",
+      isMatch: (p) => p.startsWith("/precificacao"),
+    },
+    {
+      id: "plano",
+      label: "Meu Plano & Assinatura",
+      icon: Sparkles,
+      to: "/configuracoes",
+      search: { tab: "plano" },
+      dividerBefore: true,
+      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] === "plano",
+    },
+    {
+      id: "configuracoes",
+      label: "Configurações da Loja",
+      icon: Settings,
+      to: "/configuracoes",
+      search: { tab: "geral" },
+      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] !== "plano",
+    },
+  ];
+}
 
 // ─── Árvore de Navegação — Padrão Shopify Adaptado com Distribuição Inteligente ───
 function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStoreTier: boolean = true): NavGroupItem[] {
@@ -721,9 +752,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [storeId, store?.metadata]);
 
+  const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
+
   const navItems = useMemo(
-    () => getShopifyNav(vitrineAtiva, fiadoAtivo, access.isStore),
-    [vitrineAtiva, fiadoAtivo, access.isStore],
+    () =>
+      access.isStore
+        ? getShopifyNav(vitrineAtiva, fiadoAtivo, true)
+        : getMicroSaasNav(access.tier),
+    [access.isStore, access.tier, vitrineAtiva, fiadoAtivo],
   );
 
   // ── Modelo de Accordion Estrito (Apenas 1 grupo aberto por vez) ───────────
@@ -817,22 +853,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   })();
 
   // ── Abas Principais Mobile ────────────────────────────────────────────────
-  const mobilePrimary = [
-    { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p: string) => p === "/painel" },
-    { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p: string) => p === "/caixa" },
-    {
-      to: "/estoque",
-      label: "Estoque",
-      icon: Boxes,
-      isMatch: (p: string) => p.startsWith("/estoque") || p.startsWith("/precificacao") || p.startsWith("/fornecedores"),
-    },
-    {
-      to: "/clientes",
-      label: fiadoAtivo ? "Fiado" : "Clientes",
-      icon: Users,
-      isMatch: (p: string) => p.startsWith("/clientes") || p.startsWith("/fiado"),
-    },
-  ];
+  const mobilePrimary = useMemo(() => {
+    return access.isStore
+      ? [
+          { to: "/painel", label: "Início", icon: LayoutDashboard, isMatch: (p: string) => p === "/painel" },
+          { to: "/caixa", label: "Caixa", icon: Wallet, isMatch: (p: string) => p === "/caixa" },
+          {
+            to: "/estoque",
+            label: "Estoque",
+            icon: Boxes,
+            isMatch: (p: string) => p.startsWith("/estoque") || p.startsWith("/precificacao") || p.startsWith("/fornecedores"),
+          },
+          {
+            to: "/clientes",
+            label: fiadoAtivo ? "Fiado" : "Clientes",
+            icon: Users,
+            isMatch: (p: string) => p.startsWith("/clientes") || p.startsWith("/fiado"),
+          },
+        ]
+      : [
+          { to: "/precificacao", label: "Lotes", icon: Calculator, isMatch: (p: string) => p.startsWith("/precificacao") },
+          {
+            to: "/configuracoes",
+            search: { tab: "plano" },
+            label: "Meu Plano",
+            icon: Sparkles,
+            isMatch: (p: string, s?: Record<string, unknown>) => p.startsWith("/configuracoes") && s?.["tab"] === "plano",
+          },
+          {
+            to: "/configuracoes",
+            search: { tab: "geral" },
+            label: "Ajustes",
+            icon: Settings,
+            isMatch: (p: string, s?: Record<string, unknown>) => p.startsWith("/configuracoes") && s?.["tab"] !== "plano",
+          },
+        ];
+  }, [access.isStore, fiadoAtivo]);
 
   // ── Controle de Sidebar Recolhível (Padrão Shopify Imagens 4 e 5) ───────────
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -918,8 +974,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
 
               <Link
-                to="/painel"
-                title="Voltar ao Início"
+                to={access.isStore ? "/painel" : "/precificacao"}
+                title={access.isStore ? "Voltar ao Início" : "Voltar aos Lotes"}
                 className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer mb-2"
               >
                 <ArrowLeft className="size-4" />
@@ -928,15 +984,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
 
               <nav className="flex flex-col gap-1.5 items-center">
-                {[
-                  { tab: "geral", label: "Geral", icon: Store },
-                  { tab: "catalogo", label: "Cores & Tamanhos", icon: Palette },
-                  { tab: "canais", label: "Canais de Venda", icon: Globe },
-                  { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
-                  { tab: "precificacao", label: "Precificação & Margens", icon: Calculator },
-                  { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
-                  { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
-                ].map((item) => {
+                {(access.isStore
+                  ? [
+                      { tab: "geral" as const, label: "Geral", icon: Store },
+                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
+                      { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
+                      { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
+                      { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
+                      { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: members.length },
+                      { tab: "plano" as const, label: "Plano & Assinatura", icon: Sparkles },
+                    ]
+                  : [
+                      { tab: "geral" as const, label: "Dados da Loja", icon: Store },
+                      { tab: "precificacao" as const, label: "Taxas & Margens Padrão", icon: Calculator },
+                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
+                      { tab: "plano" as const, label: "Meu Plano & Assinatura", icon: Sparkles },
+                    ]
+                ).map((item) => {
                   const active = currentSettingsTab === item.tab;
                   return (
                     <Link
@@ -952,7 +1016,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       )}
                     >
                       <item.icon className="size-4 shrink-0" />
-                      {item.badge !== undefined && item.badge > 0 && (
+                      {"badge" in item && item.badge !== undefined && item.badge > 0 && (
                         <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
                       )}
                     </Link>
@@ -964,11 +1028,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
               <div className="flex items-center justify-between mb-2 shrink-0">
                 <Link
-                  to="/painel"
+                  to={access.isStore ? "/painel" : "/precificacao"}
                   className="group flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-normal text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5 opacity-60 group-hover:opacity-90" />
-                  <span>Voltar ao Início</span>
+                  <span>{access.isStore ? "Voltar ao Início" : "Voltar aos Lotes"}</span>
                 </Link>
                 <button
                   type="button"
@@ -997,15 +1061,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <nav className="flex flex-col gap-1">
-                {[
-                  { tab: "geral", label: "Geral", icon: Store },
-                  { tab: "catalogo", label: "Cores & Tamanhos", icon: Palette },
-                  { tab: "canais", label: "Canais de Venda", icon: Globe },
-                  { tab: "caixa", label: "Caixa & Pagamentos", icon: CreditCard },
-                  { tab: "precificacao", label: "Precificação & Margens", icon: Calculator },
-                  { tab: "equipe", label: "Usuários & Equipe", icon: Users, badge: members.length },
-                  { tab: "plano", label: "Plano & Assinatura", icon: Sparkles },
-                ].map((item) => {
+                {(access.isStore
+                  ? [
+                      { tab: "geral" as const, label: "Geral", icon: Store },
+                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
+                      { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
+                      { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
+                      { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
+                      { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: members.length },
+                      { tab: "plano" as const, label: "Plano & Assinatura", icon: Sparkles },
+                    ]
+                  : [
+                      { tab: "geral" as const, label: "Dados da Loja", icon: Store },
+                      { tab: "precificacao" as const, label: "Taxas & Margens Padrão", icon: Calculator },
+                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
+                      { tab: "plano" as const, label: "Meu Plano & Assinatura", icon: Sparkles },
+                    ]
+                ).map((item) => {
                   const active = currentSettingsTab === item.tab;
                   return (
                     <Link
@@ -1026,7 +1098,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         )}
                       />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {item.badge !== undefined && item.badge > 0 && (
+                      {"badge" in item && item.badge !== undefined && item.badge > 0 && (
                         <span
                           className={cn(
                             "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
@@ -1057,7 +1129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <PanelLeftOpen className="size-4 transition-transform group-hover:scale-105" />
                 </button>
-                <Link to="/painel" title="Início — Vestui" className="flex items-center justify-center mt-1">
+                <Link to={access.isStore ? "/painel" : "/precificacao"} title={access.isStore ? "Início — Vestui" : "Lotes — Vestui"} className="flex items-center justify-center mt-1">
                   <Logo compact />
                 </Link>
               </div>
@@ -1078,12 +1150,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 w-full items-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, true)}
               </nav>
+
+              {!access.isStore && (
+                <button
+                  type="button"
+                  onClick={() => setUpgradeStoreModalOpen(true)}
+                  title="Conhecer o Vestui Store"
+                  className="flex size-9 items-center justify-center rounded-lg text-primary hover:bg-primary/10 transition-colors cursor-pointer my-1.5 mx-auto shrink-0"
+                >
+                  <Sparkles className="size-4 animate-pulse" />
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0">
               {/* Header com Logo e Botão de Recolher (Padrão Shopify) */}
               <div className="flex items-center justify-between px-2 pt-1.5 pb-3 shrink-0">
-                <Link to="/painel" className="flex items-center">
+                <Link to={access.isStore ? "/painel" : "/precificacao"} className="flex items-center">
                   <Logo />
                 </Link>
                 <button
@@ -1113,9 +1196,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               {/* Navegação Limpa e Organizada */}
-              <nav className="flex flex-col gap-1.5 overflow-y-auto min-h-0 pr-1 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <nav className="flex flex-col gap-1.5 overflow-y-auto min-h-0 pr-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, false)}
               </nav>
+
+              {/* Card Aspiracional do Vestui Store (Micro-SaaS) */}
+              {!access.isStore && (
+                <div className="mx-1 mt-auto mb-2 rounded-2xl border border-primary/25 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent p-3 select-none shrink-0">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles className="size-3.5 text-primary shrink-0" />
+                    <span className="text-xs font-bold text-foreground">Vestui Store</span>
+                    <span className="ml-auto rounded-full bg-primary/20 text-primary px-1.5 py-0.5 text-[9px] font-bold">
+                      ✦ R$ 97
+                    </span>
+                  </div>
+                  <p className="text-[10.5px] text-muted-foreground leading-relaxed mb-2.5">
+                    Vitrine online no WhatsApp, controle de estoque unificado e PDV balcão.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setUpgradeStoreModalOpen(true)}
+                    className="w-full h-7 rounded-xl text-[11px] font-bold bg-primary text-white hover:bg-primary/90 transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    Conhecer o Store →
+                  </button>
+                </div>
+              )}
             </div>
           )
         )}
@@ -1306,7 +1412,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Topbar Mobile ─────────────────────────────────────────────────────── */}
       <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between px-4 lg:hidden">
-        <Link to="/painel">
+        <Link to={access.isStore ? "/painel" : "/precificacao"}>
           <Logo />
         </Link>
         <div className="flex items-center gap-1">
@@ -1422,9 +1528,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="flex flex-col gap-1 px-4 py-3">
             {renderNavItems(() => setMoreSheetOpen(false))}
 
-            <div className="mt-2">
-              <SidebarGoalCard />
-            </div>
+            {access.isStore ? (
+              <div className="mt-2">
+                <SidebarGoalCard />
+              </div>
+            ) : (
+              <div className="mx-1 my-3 rounded-2xl border border-primary/25 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent p-3.5 select-none">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Sparkles className="size-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-bold text-foreground">Vestui Store</span>
+                  <span className="ml-auto rounded-full bg-primary/20 text-primary px-2 py-0.5 text-[9px] font-bold">
+                    ✦ R$ 97
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+                  Vitrine online no WhatsApp, controle de estoque e vendas no balcão.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setMoreSheetOpen(false);
+                    setUpgradeStoreModalOpen(true);
+                  }}
+                  className="w-full h-8 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 shadow-2xs cursor-pointer"
+                >
+                  Conhecer o Store →
+                </Button>
+              </div>
+            )}
 
             <div className="mt-4 border-t border-border/40 pt-3">
               <Link
@@ -1455,6 +1586,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Modal Spotlight / Motor de Busca Global (Padrão Shopify / Apple) */}
       <GlobalSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
+
+      {/* Modal de Apresentação / Upgrade para o Vestui Store */}
+      <UpgradeStoreModal
+        open={upgradeStoreModalOpen}
+        onOpenChange={setUpgradeStoreModalOpen}
+        reason="general"
+      />
     </div>
   );
 }

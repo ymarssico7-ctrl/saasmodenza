@@ -440,15 +440,23 @@ function Configuracoes() {
       {/* ── Navegador Mobile (visível apenas em telas menores onde a sidebar desktop está oculta) ── */}
       <div className="lg:hidden overflow-x-auto pb-1 scrollbar-none [mask-image:linear-gradient(to_right,black_90%,transparent_100%)]">
         <div className="inline-flex gap-1.5 p-1 rounded-2xl bg-surface-muted border border-border/60">
-          {[
-            { tab: "geral", label: "Geral" },
-            { tab: "catalogo", label: "Cores & Tamanhos" },
-            { tab: "canais", label: "Canais" },
-            { tab: "caixa", label: "Caixa" },
-            { tab: "precificacao", label: "Precificação" },
-            { tab: "equipe", label: `Equipe${members.length > 0 ? ` (${members.length})` : ""}` },
-            { tab: "plano", label: "Plano" },
-          ].map((item) => (
+          {(access.isStore
+            ? [
+                { tab: "geral", label: "Geral" },
+                { tab: "catalogo", label: "Cores & Tamanhos" },
+                { tab: "canais", label: "Canais" },
+                { tab: "caixa", label: "Caixa" },
+                { tab: "precificacao", label: "Precificação" },
+                { tab: "equipe", label: `Equipe${members.length > 0 ? ` (${members.length})` : ""}` },
+                { tab: "plano", label: "Plano" },
+              ]
+            : [
+                { tab: "geral", label: "Dados da Loja" },
+                { tab: "precificacao", label: "Precificação" },
+                { tab: "catalogo", label: "Cores & Tamanhos" },
+                { tab: "plano", label: "Meu Plano" },
+              ]
+          ).map((item) => (
             <button
               key={item.tab}
               type="button"
