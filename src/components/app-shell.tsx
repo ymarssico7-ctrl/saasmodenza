@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  ArrowRight,
   BadgePercent,
   BarChart3,
   Bell,
@@ -23,6 +24,7 @@ import {
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
+  Percent,
   Search,
   Settings,
   Share2,
@@ -63,6 +65,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { profileQuery, membersQuery, goalsQuery, transactionsQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { type PlanTier, useAccess } from "@/lib/useAccess";
+import { useBatchQuota } from "@/lib/useBatchQuota";
 import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
@@ -98,28 +101,45 @@ type NavGroupItem = {
 function getMicroSaasNav(tier: PlanTier): NavGroupItem[] {
   return [
     {
-      id: "precificacao",
-      label: "Lotes & Precificação",
+      id: "precificacao_nova",
+      label: "Calculadora de Lotes",
       icon: Calculator,
       to: "/precificacao",
-      isMatch: (p) => p.startsWith("/precificacao"),
+      isMatch: (p, s) => p.startsWith("/precificacao") && s?.["mode"] !== "historico" && s?.["action"] !== "etiquetas",
+    },
+    {
+      id: "precificacao_historico",
+      label: "Histórico de Lotes",
+      icon: Boxes,
+      to: "/precificacao",
+      search: { mode: "historico" },
+      isMatch: (p, s) => p.startsWith("/precificacao") && s?.["mode"] === "historico",
+    },
+    {
+      id: "precificacao_etiquetas",
+      label: "Assistente de Etiquetas",
+      icon: Tag,
+      to: "/precificacao",
+      search: { action: "etiquetas" },
+      tierBadge: tier === "free" ? "✦ Lote" : undefined,
+      isMatch: (p, s) => p.startsWith("/precificacao") && s?.["action"] === "etiquetas",
+    },
+    {
+      id: "precificacao_taxas",
+      label: "Taxas & Margens Padrão",
+      icon: Percent,
+      to: "/configuracoes",
+      search: { tab: "precificacao" },
+      dividerBefore: true,
+      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] === "precificacao",
     },
     {
       id: "plano",
-      label: "Meu Plano & Assinatura",
+      label: "Meu Plano & Benefícios",
       icon: Sparkles,
       to: "/configuracoes",
       search: { tab: "plano" },
-      dividerBefore: true,
       isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] === "plano",
-    },
-    {
-      id: "configuracoes",
-      label: "Configurações da Loja",
-      icon: Settings,
-      to: "/configuracoes",
-      search: { tab: "geral" },
-      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] !== "plano",
     },
   ];
 }
@@ -727,6 +747,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const currentSettingsTab = (typeof search?.["tab"] === "string" ? search["tab"] : "geral") || "geral";
   const { data: members = [] } = useQuery(membersQuery());
   const access = useAccess(profile, store);
+  const quota = useBatchQuota();
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = access;
 
   // ── Ativação da Vitrine Online & Modo Fiado ──────────────────────────────
@@ -1200,25 +1221,80 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {renderNavItems(undefined, false)}
               </nav>
 
-              {/* Card Aspiracional do Vestui Store (Micro-SaaS) */}
-              {!access.isStore && (
-                <div className="mx-1 mt-auto mb-2 rounded-2xl border border-primary/25 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent p-3 select-none shrink-0">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Sparkles className="size-3.5 text-primary shrink-0" />
-                    <span className="text-xs font-bold text-foreground">Vestui Store</span>
-                    <span className="ml-auto rounded-full bg-primary/20 text-primary px-1.5 py-0.5 text-[9px] font-bold">
-                      ✦ R$ 97
+              {/* ── Widget Interativo de Cota Mensal (Plano Gratuito) ── */}
+              {access.isFree && (
+                <div className="mx-1 my-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-xs select-none shrink-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-white/90 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="size-3 text-amber-400" />
+                      Cota Mensal
+                    </span>
+                    <span className="rounded-full bg-amber-400/15 border border-amber-400/25 text-amber-300 px-2 py-0.5 text-[9px] font-extrabold uppercase">
+                      {quota.batchesThisMonth}/{quota.limit} Lotes
                     </span>
                   </div>
-                  <p className="text-[10.5px] text-muted-foreground leading-relaxed mb-2.5">
-                    Vitrine online no WhatsApp, controle de estoque unificado e PDV balcão.
+
+                  {/* Slots Visuais Interativos dos 3 Lotes */}
+                  <div className="grid grid-cols-3 gap-1.5 my-2">
+                    {[1, 2, 3].map((slot) => {
+                      const isUsed = slot <= quota.batchesThisMonth;
+                      return (
+                        <div
+                          key={slot}
+                          className={cn(
+                            "h-7 rounded-xl border flex items-center justify-center text-[10.5px] font-bold transition-all",
+                            isUsed
+                              ? "bg-amber-400/20 border-amber-400/40 text-amber-300"
+                              : "bg-white/[0.03] border-white/10 text-white/30"
+                          )}
+                          title={isUsed ? `Lote ${slot} utilizado` : `Lote ${slot} disponível`}
+                        >
+                          {isUsed ? "✓" : slot}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-[10.5px] text-slate-300 leading-relaxed mb-2">
+                    {quota.isQuotaReached
+                      ? "Limite de 3 lotes gratuitos atingido."
+                      : `Restam ${quota.remaining} lote(s) gratuito(s) este mês.`}
+                  </p>
+
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "plano" }}
+                    className="inline-flex items-center gap-1 text-[10.5px] font-bold text-amber-400 hover:text-amber-300 hover:underline transition-colors cursor-pointer"
+                  >
+                    Liberar Ilimitado (R$ 19,90) →
+                  </Link>
+                </div>
+              )}
+
+              {/* ── Card Aspiracional do Vestui Store (Dark Glass Premium) ── */}
+              {!access.isStore && (
+                <div className="mx-1 mt-auto mb-2 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-3.5 shadow-lift backdrop-blur-md select-none shrink-0 group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-400/30">
+                        <Store className="size-3.5" />
+                      </div>
+                      <span className="text-xs font-bold text-white tracking-tight">Vestui Store</span>
+                    </div>
+                    <span className="rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 px-2 py-0.5 text-[9px] font-bold">
+                      R$ 97/mês
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
+                    Vitrine no WhatsApp, PDV de balcão e estoque unificado.
                   </p>
                   <button
                     type="button"
                     onClick={() => setUpgradeStoreModalOpen(true)}
-                    className="w-full h-7 rounded-xl text-[11px] font-bold bg-primary text-white hover:bg-primary/90 transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                    className="w-full h-8 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
                   >
-                    Conhecer o Store →
+                    <span>Conhecer o Store</span>
+                    <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 </div>
               )}
@@ -1226,187 +1302,206 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )
         )}
 
-        {/* ── Rodapé Fixo da Sidebar (Padrão Oficial Shopify Polaris: 3 Linhas) ── */}
+        {/* ── Rodapé Fixo da Sidebar ── */}
         <div className="mt-auto pt-2.5 border-t border-white/10 flex flex-col gap-1 shrink-0">
-          {/* Linha 1: Configurações */}
-          {!isConfiguracoes && (
-            isCollapsed ? (
-              <Link
-                to="/configuracoes"
-                search={{ tab: "geral" }}
-                title="Configurações"
-                className={cn(
-                  "flex size-9 items-center justify-center rounded-lg mx-auto transition-colors cursor-pointer",
-                  isConfiguracoes
-                    ? "bg-white/12 text-white"
-                    : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                )}
-              >
-                <Settings className="size-4 shrink-0 transition-transform hover:rotate-45 text-sidebar-foreground" />
-              </Link>
-            ) : (
-              <Link
-                to="/configuracoes"
-                search={{ tab: "geral" }}
-                className={cn(
-                  "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
-                  isConfiguracoes
-                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/95",
-                )}
-              >
-                <Settings className="size-4 shrink-0 opacity-55 group-hover:opacity-85 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
-                <span>Configurações</span>
-              </Link>
-            )
-          )}
-
-          {/* Linha 2: Perfil da Boutique com Dropdown (Squircle com Iniciais + Sino) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              {isCollapsed ? (
-                <button
-                  type="button"
-                  title={storeName}
-                  className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none border border-white/10"
-                >
-                  {storeName.slice(0, 2).toUpperCase()}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    {isProfileLoading ? (
-                      <Skeleton className="size-7 rounded-lg" />
-                    ) : (
-                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0 border border-white/10">
-                        {storeName.slice(0, 2).toUpperCase()}
-                      </div>
+          {access.isStore ? (
+            <>
+              {/* Linha 1: Configurações */}
+              {!isConfiguracoes && (
+                isCollapsed ? (
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "geral" }}
+                    title="Configurações"
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-lg mx-auto transition-colors cursor-pointer",
+                      isConfiguracoes
+                        ? "bg-white/12 text-white"
+                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                     )}
-                    <span className="truncate text-[13px] font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">
-                      {storeName}
+                  >
+                    <Settings className="size-4 shrink-0 transition-transform hover:rotate-45 text-sidebar-foreground" />
+                  </Link>
+                ) : (
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "geral" }}
+                    className={cn(
+                      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
+                      isConfiguracoes
+                        ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/95",
+                    )}
+                  >
+                    <Settings className="size-4 shrink-0 opacity-55 group-hover:opacity-85 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
+                    <span>Configurações</span>
+                  </Link>
+                )
+              )}
+
+              {/* Linha 2: Perfil Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  {isCollapsed ? (
+                    <button
+                      type="button"
+                      title={storeName}
+                      className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none border border-white/10"
+                    >
+                      {storeName.slice(0, 2).toUpperCase()}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {isProfileLoading ? (
+                          <Skeleton className="size-7 rounded-lg" />
+                        ) : (
+                          <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0 border border-white/10">
+                            {storeName.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="truncate text-[13px] font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">
+                          {storeName}
+                        </span>
+                      </div>
+                      <div className="relative flex items-center justify-center p-1 rounded-md text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80 hover:bg-white/10 transition-colors">
+                        <Bell className="size-3.5 shrink-0" />
+                        {pendingOrderCount > 0 && (
+                          <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-red-500 animate-pulse" />
+                        )}
+                      </div>
+                    </button>
+                  )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
+                  <div className="px-2.5 py-2">
+                    <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
+                    <span className="mt-1.5 inline-block rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">
+                      {planLabel}
                     </span>
                   </div>
-                  <div className="relative flex items-center justify-center p-1 rounded-md text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80 hover:bg-white/10 transition-colors">
-                    <Bell className="size-3.5 shrink-0" />
-                    {pendingOrderCount > 0 && (
-                      <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-red-500 animate-pulse" />
-                    )}
-                  </div>
-                </button>
-              )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
-              <div className="px-2.5 py-2">
-                <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
-                <span className="mt-1.5 inline-block rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">
-                  {planLabel}
-                </span>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/configuracoes"
-                  search={{ tab: "geral" }}
-                  className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
-                >
-                  <Settings className="size-3.5 text-muted-foreground" />
-                  <span>Configurações da Loja</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  to="/configuracoes"
-                  search={{ tab: "plano" }}
-                  className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
-                >
-                  <Sparkles className="size-3.5 text-amber-500" />
-                  <span>Plano & Assinatura</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => void signOut()}
-                className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
-              >
-                <LogOut className="size-3.5" />
-                <span>Sair da conta</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/configuracoes"
+                      search={{ tab: "geral" }}
+                      className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                    >
+                      <Settings className="size-3.5 text-muted-foreground" />
+                      <span>Configurações da Loja</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/configuracoes"
+                      search={{ tab: "plano" }}
+                      className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                    >
+                      <Sparkles className="size-3.5 text-amber-500" />
+                      <span>Plano & Assinatura</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => void signOut()}
+                    className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
+                  >
+                    <LogOut className="size-3.5" />
+                    <span>Sair da conta</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          {/* Linha 3: Status do Trial / Plano (Padrão Shopify Oficial) */}
-          {trialStatus === "active" && daysLeftInTrial !== null ? (
-            isCollapsed ? (
-              <div
-                title={`${daysLeftInTrial} dias restantes no teste`}
-                className="size-2 rounded-full bg-amber-400 mx-auto my-1 animate-pulse"
-              />
-            ) : (
-              <Link
-                to="/configuracoes"
-                search={{ tab: "plano" }}
-                className="group flex items-center justify-between px-2.5 py-1 text-[11.5px] text-sidebar-foreground/50 hover:text-sidebar-foreground/85 transition-colors cursor-pointer select-none"
-              >
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className={cn(
-                      "size-1.5 rounded-full shrink-0",
-                      isTrialUrgent ? "bg-red-400 animate-pulse" : "bg-emerald-400",
-                    )}
-                  />
-                  <span className="font-medium text-sidebar-foreground/75">Teste</span>
-                  <span className="opacity-40">•</span>
-                  <span>{daysLeftInTrial === 1 ? "Falta 1 dia" : `Faltam ${daysLeftInTrial} dias`}</span>
-                </span>
-                <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                  Assinar →
-                </span>
-              </Link>
-            )
-          ) : access.isFree ? (
-            !isCollapsed && (
-              <div className="flex items-center justify-between px-2.5 py-1 text-[11px] text-sidebar-foreground/60 select-none bg-white/5 rounded-xl border border-white/10 mx-1">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <span className="size-1.5 rounded-full bg-amber-400 shrink-0" />
-                  <span>Plano Gratuito</span>
-                </span>
-                <Link
-                  to="/configuracoes"
-                  search={{ tab: "plano" }}
-                  className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
-                >
-                  Upgrade →
-                </Link>
-              </div>
-            )
-          ) : access.isLote ? (
-            !isCollapsed && (
-              <div className="flex items-center justify-between px-2.5 py-1 text-[11px] text-sidebar-foreground/60 select-none bg-white/5 rounded-xl border border-white/10 mx-1">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <span>Vestui Lote</span>
-                </span>
-                <Link
-                  to="/configuracoes"
-                  search={{ tab: "plano" }}
-                  className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
-                >
-                  ✦ Store
-                </Link>
-              </div>
-            )
-          ) : isActive ? (
-            !isCollapsed && (
+              {/* Linha 3: Status da Assinatura Store */}
               <div className="flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] text-sidebar-foreground/40 select-none">
                 <span className="size-1.5 rounded-full bg-emerald-400 shrink-0" />
                 <span>Plano {planLabel}</span>
               </div>
-            )
-          ) : null}
+            </>
+          ) : (
+            /* ── Rodapé Micro-SaaS (Clean, Unificado, Sem Redundâncias) ── */
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                {isCollapsed ? (
+                  <button
+                    type="button"
+                    title={storeName}
+                    className="flex size-8 items-center justify-center rounded-lg bg-primary/20 text-primary font-bold text-xs mx-auto hover:bg-primary/30 transition-colors cursor-pointer outline-none border border-primary/30"
+                  >
+                    {storeName.slice(0, 2).toUpperCase()}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 hover:bg-white/[0.08] transition-colors cursor-pointer group text-left outline-none border border-transparent hover:border-white/10"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex size-7 items-center justify-center rounded-lg bg-primary/20 text-primary font-bold text-xs shrink-0 border border-primary/30">
+                        {storeName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-white group-hover:text-white transition-colors">
+                          {storeName}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={cn(
+                            "size-1.5 rounded-full shrink-0",
+                            access.isFree ? "bg-amber-400" : "bg-emerald-400"
+                          )} />
+                          <span className="text-[10px] font-semibold text-slate-300 truncate">
+                            {access.isFree ? "Plano Gratuito" : "Vestui Lote"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <MoreHorizontal className="size-4 text-slate-400 group-hover:text-white transition-colors shrink-0" />
+                  </button>
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
+                <div className="px-2.5 py-2">
+                  <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
+                  <span className="mt-1.5 inline-block rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold text-amber-500 uppercase tracking-wider">
+                    {access.isFree ? "Plano Gratuito (3 lotes/mês)" : "Vestui Lote (Ilimitado)"}
+                  </span>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "geral" }}
+                    className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                  >
+                    <Settings className="size-3.5 text-muted-foreground" />
+                    <span>Configurações da Loja</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "plano" }}
+                    className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                  >
+                    <Sparkles className="size-3.5 text-amber-500" />
+                    <span>Meu Plano & Assinatura</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => void signOut()}
+                  className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
+                >
+                  <LogOut className="size-3.5" />
+                  <span>Sair da conta</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </aside>
 
