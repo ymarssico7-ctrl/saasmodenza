@@ -56,23 +56,13 @@ function AuthenticatedLayout() {
   // Na tela de onboarding não renderizamos o AppShell
   if (pathname === "/onboarding") return <Outlet />;
 
-  // ── Redirecionamento Inteligente Micro-SaaS (Planos Free & Lote) ────────────
-  // Se o usuário não for do plano Store e tentar acessar /painel ou raiz autenticada:
-  if (!access.isStore && (pathname === "/painel" || pathname === "/")) {
-    return <Navigate to="/precificacao" replace />;
+  // ── Redirecionamento Inicial Unificado (Todos os planos entram no /painel) ──
+  if (pathname === "/") {
+    return <Navigate to="/painel" replace />;
   }
 
-  // ── Proteção das Rotas Exclusivas do Vestui Store (ERP) ────────────────────
-  const isStoreOnlyRoute =
-    pathname.startsWith("/caixa") ||
-    pathname.startsWith("/estoque") ||
-    pathname.startsWith("/clientes") ||
-    pathname.startsWith("/fiado") ||
-    pathname.startsWith("/fornecedores") ||
-    pathname.startsWith("/metas") ||
-    pathname.startsWith("/relatorio") ||
-    pathname.startsWith("/prolabore") ||
-    pathname.startsWith("/loja");
+  // ── Rotas Exclusivas do Vestui Store (DRE Contábil e Pró-Labore Avançado) ──
+  const isStoreOnlyRoute = pathname.startsWith("/prolabore");
 
   if (!access.isStore && isStoreOnlyRoute) {
     return (
@@ -86,10 +76,10 @@ function AuthenticatedLayout() {
               ✦ Vestui Store
             </span>
             <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-3">
-              Recurso Exclusivo do Vestui Store
+              Recurso do Vestui Store
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-              O controle de Caixa & PDV, Gestão Unificada de Estoque, Clientes e Vitrine Online no WhatsApp fazem parte do plano completo Vestui Store.
+              O módulo avançado de Pró-Labore da Lojista e DRE Contábil faz parte do plano completo Vestui Store.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
               <Button asChild size="lg" className="w-full sm:flex-1 font-bold rounded-2xl shadow-lift">
@@ -98,8 +88,8 @@ function AuthenticatedLayout() {
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="w-full sm:flex-1 font-medium rounded-2xl">
-                <Link to="/precificacao">
-                  Voltar para Lotes & Precificação
+                <Link to="/painel">
+                  Voltar para o Início
                 </Link>
               </Button>
             </div>

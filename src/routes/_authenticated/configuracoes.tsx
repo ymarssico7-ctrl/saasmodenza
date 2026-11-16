@@ -919,7 +919,7 @@ function Configuracoes() {
                       "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider",
                       access.isStore
                         ? "bg-primary/10 text-primary border border-primary/20"
-                        : access.isLote
+                        : access.isPro
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                         : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
                     )}
@@ -927,17 +927,17 @@ function Configuracoes() {
                     <span className="size-1.5 rounded-full bg-current" />
                     {access.isStore
                       ? "Vestui Store (Completo)"
-                      : access.isLote
-                      ? "Vestui Lote (R$ 19,90/mês)"
-                      : "Plano Gratuito (3 lotes/mês)"}
+                      : access.isPro
+                      ? "Vestui Pro (R$ 19,90/mês)"
+                      : "Plano Gratuito (Até 15 peças)"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {access.isStore
-                    ? "Tudo liberado: Vitrine Online com WhatsApp, Estoque Unificado, PDV de Balcão, Condicional, Precificação e Etiquetas."
-                    : access.isLote
-                    ? "Acesso focado: Precificação ilimitada, gerador de etiquetas com código de barras (A4 Pimaco e térmica) e histórico em nuvem."
-                    : "Calculadora de precificação inteligente com cota de até 3 lotes por mês. Sem impressão de etiquetas."}
+                    ? "Tudo liberado: Produtos Ilimitados, Vitrine VIP, PDV Multi-vendedor, Venda Condicional, Sincronia de Estoque e DRE."
+                    : access.isPro
+                    ? "Até 60 produtos ativos, PDV balcão, vitrine com sacola no WhatsApp, precificação ilimitada e gerador de etiquetas térmicas e A4."
+                    : "Até 15 produtos cadastrados, PDV balcão essencial, vitrine express no WhatsApp e até 3 lotes de precificação por mês."}
                 </p>
               </div>
 
@@ -980,7 +980,7 @@ function Configuracoes() {
                       )}
                     </div>
                     <h4 className="text-base font-bold text-foreground font-display">Plano Gratuito</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">Calculadora básica para começar</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Sua loja organizada desde o 1º dia</p>
 
                     <div className="my-4 flex items-baseline gap-1">
                       <span className="text-3xl font-black text-foreground font-display">R$ 0</span>
@@ -990,23 +990,23 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>Precificação com margem real e markup</span>
+                        <span><strong>Até 15 produtos</strong> ativos no catálogo</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>Simulador de desconto seguro</span>
+                        <span>PDV Balcão para registrar vendas</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span><strong>Até 3 lotes</strong> cadastrados por mês</span>
+                        <span>Vitrine Catálogo no WhatsApp (Template Express)</span>
                       </div>
-                      <div className="flex items-start gap-2 opacity-60">
-                        <span className="size-3.5 text-center text-xs shrink-0 mt-0.5">✕</span>
-                        <span>Sem impressão de etiquetas</span>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span>Precificação com margem real (até 3 lotes/mês)</span>
                       </div>
-                      <div className="flex items-start gap-2 opacity-60">
-                        <span className="size-3.5 text-center text-xs shrink-0 mt-0.5">✕</span>
-                        <span>Sem loja online ou PDV</span>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span>Painel diário com faturamento e ritmo</span>
                       </div>
                     </div>
                   </div>
@@ -1028,10 +1028,10 @@ function Configuracoes() {
                   </div>
                 </div>
 
-                {/* 2. VESTUI LOTE */}
+                {/* 2. VESTUI PRO */}
                 <div className={cn(
                   "rounded-2xl border p-5 flex flex-col justify-between transition-all relative bg-card shadow-soft",
-                  access.isLote
+                  access.isPro
                     ? "border-emerald-500/50 ring-2 ring-emerald-500/20 bg-emerald-500/[0.02]"
                     : "border-border/80 hover:border-emerald-500/30"
                 )}>
@@ -1040,14 +1040,14 @@ function Configuracoes() {
                       <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         🏷️ Mais Escolhido
                       </span>
-                      {access.isLote && (
+                      {access.isPro && (
                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                           <Check className="size-3 stroke-[3]" /> Ativo
                         </span>
                       )}
                     </div>
-                    <h4 className="text-base font-bold text-foreground font-display">Vestui Lote</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">Etiquetas e lotes ilimitados</p>
+                    <h4 className="text-base font-bold text-foreground font-display">Vestui Pro</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">O plano mais amado de confecções</p>
 
                     <div className="my-4 flex items-baseline gap-1">
                       <span className="text-3xl font-black text-foreground font-display">R$ 19,90</span>
@@ -1057,23 +1057,27 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Até 60 produtos ativos</strong> no catálogo (4x mais)</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
                         <span><strong>Lotes e precificação ilimitados</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Etiquetas em folha A4 (Pimaco 6180)</strong></span>
+                        <span><strong>Etiquetas em folha A4 e bobina térmica</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Etiquetas em bobina térmica (50x30)</strong></span>
+                        <span><strong>Vitrine com Sacola Multipeças no WhatsApp</strong></span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Histórico completo salvo na nuvem</span>
+                        <span>2 Templates liberados com cores da sua marca</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Simulador de desconto comercial seguro</span>
+                        <span>Caderninho de fiado e histórico na nuvem</span>
                       </div>
                     </div>
                   </div>
@@ -1081,16 +1085,16 @@ function Configuracoes() {
                   <div className="mt-5 pt-3 border-t border-border/40">
                     <Button
                       type="button"
-                      disabled={access.isLote}
+                      disabled={access.isPro}
                       onClick={() => handleSwitchTestTier("lote")}
                       className={cn(
                         "w-full h-10 rounded-xl text-xs font-bold cursor-pointer transition-all",
-                        access.isLote
+                        access.isPro
                           ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 opacity-90 cursor-default"
                           : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                       )}
                     >
-                      {access.isLote ? "✓ Seu Plano Atual" : "Ativar Vestui Lote (R$ 19,90)"}
+                      {access.isPro ? "✓ Seu Plano Atual" : "Ativar Vestui Pro (R$ 19,90)"}
                     </Button>
                   </div>
                 </div>
@@ -1114,7 +1118,7 @@ function Configuracoes() {
                       )}
                     </div>
                     <h4 className="text-base font-bold text-foreground font-display">Vestui Store</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">Loja física e online integradas</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">O sistema operacional definitivo</p>
 
                     <div className="my-4 flex items-baseline gap-1">
                       <span className="text-3xl font-black text-foreground font-display">R$ 97</span>
@@ -1125,27 +1129,31 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Tudo do Vestui Lote incluso</strong></span>
+                        <span><strong>Produtos e lotes ILIMITADOS</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Loja & Vitrine Online com WhatsApp</strong></span>
+                        <span><strong>Venda Condicional (Mala em domicílio)</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>PDV de Balcão e leitor de código</strong></span>
+                        <span><strong>Multi-vendedores com controle de comissão</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Estoque 100% Unificado sem furos</strong></span>
+                        <span><strong>Todos os Templates VIP de Alta Moda</strong></span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Gestão de Condicional / Malinha</span>
+                        <span>Sincronização em tempo real de estoque</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>DRE em tempo real e pró-labore</span>
+                        <span>100% White-Label (sem nenhuma marca d'água)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
+                        <span>DRE Contábil, CMV e fluxo de caixa completo</span>
                       </div>
                     </div>
                   </div>

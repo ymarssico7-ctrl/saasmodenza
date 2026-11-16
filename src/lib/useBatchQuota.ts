@@ -5,12 +5,19 @@ import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
 
 export interface BatchQuotaInfo {
-  tier: "free" | "lote" | "store";
+  /** Tier canônico do plano corrente */
+  tier: "free" | "pro" | "store";
+  /** true apenas se for plano gratuito */
   isFree: boolean;
+  /** Quantos lotes foram criados no mês corrente */
   batchesThisMonth: number;
+  /** Limite mensal de lotes conforme o plano (Infinity para Pro/Store) */
   limit: number;
+  /** Lotes restantes disponíveis (Infinity para Pro/Store) */
   remaining: number;
+  /** true quando batchesThisMonth >= limit */
   isQuotaReached: boolean;
+  /** true quando pode criar mais lotes */
   canCreateBatch: boolean;
 }
 
@@ -21,9 +28,10 @@ export function useBatchQuota(): BatchQuotaInfo {
   const { data: pricings = [] } = useQuery(pricingsQuery());
 
   return useMemo(() => {
+    // Pro e Store: cotas ilimitadas — não precisa contar
     if (!access.isFree) {
       return {
-        tier: access.tier,
+        tier: access.tier === "store" ? "store" : "pro",
         isFree: false,
         batchesThisMonth: pricings.length,
         limit: Infinity,
@@ -33,6 +41,7 @@ export function useBatchQuota(): BatchQuotaInfo {
       };
     }
 
+    // Plano Free: conta apenas os lotes do mês corrente
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -46,7 +55,8 @@ export function useBatchQuota(): BatchQuotaInfo {
       );
     }).length;
 
-    const limit = access.freeBatchesLimit || 3;
+    // Usa PLAN_LIMITS como fonte da verdade (via access.limits)
+    const limit = access.limits.maxMonthlyBatches;
     const remaining = Math.max(0, limit - batchesThisMonth);
     const isQuotaReached = batchesThisMonth >= limit;
 

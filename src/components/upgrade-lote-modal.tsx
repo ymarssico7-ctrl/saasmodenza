@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 interface UpgradeLoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reason?: "quota_reached" | "labels_locked" | "general";
+  reason?: "quota_reached" | "labels_locked" | "products_limit" | "general";
 }
 
 export function UpgradeLoteModal({
@@ -18,15 +18,19 @@ export function UpgradeLoteModal({
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const title =
-    reason === "quota_reached"
+    reason === "products_limit"
+      ? "🎉 Sua loja está crescendo!"
+      : reason === "quota_reached"
       ? "Você atingiu o limite gratuito de 3 lotes este mês"
       : reason === "labels_locked"
       ? "Desbloqueie o Gerador de Etiquetas em 1 Clique"
-      : "Desbloqueie o Vestui Lote & Etiquetas";
+      : "Desbloqueie o Vestui Pro (R$ 19,90)";
 
   const description =
-    reason === "quota_reached"
-      ? "Para cadastrar novos lotes e continuar precificando suas coleções sem limites, ative o Vestui Lote."
+    reason === "products_limit"
+      ? "Você atingiu o limite de 15 peças do Plano Gratuito. Ative o Vestui Pro para cadastrar até 60 peças, imprimir etiquetas e liberar sacola no WhatsApp."
+      : reason === "quota_reached"
+      ? "Para cadastrar novos lotes e continuar precificando suas coleções sem limites, ative o Vestui Pro."
       : "Imprima etiquetas com código de barras prontas para folha A4 e controle todos os seus lotes de atacado.";
 
   const handleCheckout = () => {
@@ -58,6 +62,13 @@ export function UpgradeLoteModal({
             <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
               <Check className="size-3 stroke-[3]" />
             </div>
+            <span><strong>Até 60 Peças no Catálogo:</strong> 4x mais capacidade para cadastrar suas coleções e vender na vitrine.</span>
+          </div>
+
+          <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">
+            <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+              <Check className="size-3 stroke-[3]" />
+            </div>
             <span><strong>Lotes e Precificação Ilimitados:</strong> cadastre quantas peças e coleções quiser no mês.</span>
           </div>
 
@@ -72,14 +83,7 @@ export function UpgradeLoteModal({
             <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
               <Check className="size-3 stroke-[3]" />
             </div>
-            <span><strong>Histórico Completo na Nuvem:</strong> compare fornecedores e nunca perca o custo das suas coleções.</span>
-          </div>
-
-          <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">
-            <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-              <Check className="size-3 stroke-[3]" />
-            </div>
-            <span><strong>Simulador de Desconto Seguro:</strong> saiba exatamente quanto pode dar de desconto sem ter prejuízo.</span>
+            <span><strong>Vitrine Online com Sacola:</strong> pedidos multi-peças direto no WhatsApp com frete/motoboy.</span>
           </div>
         </div>
 
@@ -99,7 +103,7 @@ export function UpgradeLoteModal({
             className="w-full mt-4 h-12 rounded-full font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow cursor-pointer gap-2"
           >
             <Zap className="size-4" />
-            Desbloquear Vestui Lote Agora
+            Desbloquear Vestui Pro Agora
           </Button>
 
           <p className="text-[10px] text-muted-foreground mt-3 flex items-center justify-center gap-1">

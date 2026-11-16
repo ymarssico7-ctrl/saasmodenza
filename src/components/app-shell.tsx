@@ -60,7 +60,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { profileQuery, membersQuery, goalsQuery, transactionsQuery } from "@/lib/db";
+import { profileQuery, membersQuery, goalsQuery, transactionsQuery, inventoryQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { type PlanTier, useAccess } from "@/lib/useAccess";
 import { useBatchQuota } from "@/lib/useBatchQuota";
@@ -95,37 +95,7 @@ type NavGroupItem = {
   isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-// ─── Navegação Micro-SaaS (Exclusiva para os Planos Gratuito e Vestui Lote) ───
-function getMicroSaasNav(tier: PlanTier): NavGroupItem[] {
-  return [
-    {
-      id: "precificacao",
-      label: "Precificação de Lote",
-      icon: Calculator,
-      to: "/precificacao",
-      isMatch: (p, s) => p.startsWith("/precificacao") && (!s?.["mode"] || s?.["mode"] !== "historico"),
-    },
-    {
-      id: "historico",
-      label: "Histórico de Lotes",
-      icon: Tag,
-      to: "/precificacao",
-      search: { mode: "historico" },
-      isMatch: (p, s) => p.startsWith("/precificacao") && s?.["mode"] === "historico",
-    },
-    {
-      id: "taxas",
-      label: "Taxas & Margens Padrão",
-      icon: BadgePercent,
-      to: "/configuracoes",
-      search: { tab: "precificacao" },
-      dividerBefore: true,
-      isMatch: (p, s) => p.startsWith("/configuracoes") && s?.["tab"] === "precificacao",
-    },
-  ];
-}
-
-// ─── Árvore de Navegação — Padrão Shopify Adaptado com Distribuição Inteligente ───
+// ─── Árvore de Navegação Universal (Plataforma Completa para Todos os Planos) ───
 function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStoreTier: boolean = true): NavGroupItem[] {
   const items: NavGroupItem[] = [
     // ── Acesso Operacional Rápido (Alta Frequência Diária) ───────────────────
@@ -148,7 +118,6 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStor
       label: "Caixa & PDV",
       icon: Wallet,
       to: "/caixa",
-      tierBadge: !isStoreTier ? "Store" : undefined,
       isMatch: (p) => p === "/caixa",
     },
     {
@@ -157,7 +126,6 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStor
       icon: ShoppingBag,
       to: "/loja/pedidos",
       badgeKey: "pedidos",
-      tierBadge: !isStoreTier ? "Store" : undefined,
       isMatch: (p) => p.startsWith("/loja/pedidos"),
     },
 
@@ -292,7 +260,6 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStor
       icon: Store,
       to: "/loja/produtos",
       section: "Canais de vendas",
-      tierBadge: !isStoreTier ? "Store" : undefined,
       externalPreview: true,
       isMatch: (p) =>
         p.startsWith("/loja") &&
@@ -729,6 +696,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: members = [] } = useQuery(membersQuery());
   const access = useAccess(profile, store);
   const quota = useBatchQuota();
+  const { data: inventory = [] } = useQuery(inventoryQuery());
+  const productCount = inventory.length;
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = access;
 
   // ── Ativação da Vitrine Online & Modo Fiado ──────────────────────────────
@@ -757,11 +726,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
 
   const navItems = useMemo(
-    () =>
-      access.isStore
-        ? getShopifyNav(vitrineAtiva, fiadoAtivo, true)
-        : getMicroSaasNav(access.tier),
-    [access.isStore, access.tier, vitrineAtiva, fiadoAtivo],
+    () => getShopifyNav(vitrineAtiva, fiadoAtivo, access.isStore),
+    [access.isStore, vitrineAtiva, fiadoAtivo],
   );
 
   // ── Modelo de Accordion Estrito (Apenas 1 grupo aberto por vez) ───────────
@@ -1131,7 +1097,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <PanelLeftOpen className="size-4 transition-transform group-hover:scale-105" />
                 </button>
-                <Link to={access.isStore ? "/painel" : "/precificacao"} title={access.isStore ? "Início — Vestui" : "Lotes — Vestui"} className="flex items-center justify-center mt-1">
+                <Link to="/painel" title="Início — Vestui" className="flex items-center justify-center mt-1">
                   <Logo compact />
                 </Link>
               </div>
@@ -1156,19 +1122,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
 
               {/* Indicador de Cota compacto no modo recolhido */}
-              {!access.isStore && quota.isFree && (
+              {!access.isStore && (
                 <div
-                  title={`Cota: ${quota.batchesThisMonth} de ${quota.limit} lotes usados`}
+                  title={`Produtos: ${productCount}/${access.limits.maxProducts} peças | Lotes: ${quota.batchesThisMonth}/${access.limits.maxMonthlyBatches === Infinity ? "∞" : quota.limit}`}
                   className="mt-auto mb-2 flex flex-col items-center gap-1 py-1 shrink-0"
                 >
                   <span
                     className={cn(
                       "size-2 rounded-full",
-                      quota.isQuotaReached ? "bg-amber-400" : "bg-emerald-400"
+                      productCount >= access.limits.maxProducts || quota.isQuotaReached
+                        ? "bg-amber-400"
+                        : "bg-emerald-400"
                     )}
                   />
                   <span className="text-[9px] font-mono text-sidebar-foreground/40 font-medium">
-                    {quota.batchesThisMonth}/{quota.limit}
+                    {productCount}/{access.limits.maxProducts}
                   </span>
                 </div>
               )}
@@ -1177,13 +1145,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex flex-col flex-1 min-h-0">
               {/* Header com Logo, Badge Free e Botão de Recolher */}
               <div className="flex items-center justify-between px-2 pt-1.5 pb-3 shrink-0">
-                <Link to={access.isStore ? "/painel" : "/precificacao"} className="flex items-center gap-2">
+                <Link to="/painel" className="flex items-center gap-2">
                   <Logo />
-                  {!access.isStore && (
-                    <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
-                      {access.isFree ? "Free" : "Lote"}
-                    </span>
-                  )}
+                  <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
+                    {access.isFree ? "Free" : access.isPro ? "Pro" : "Store"}
+                  </span>
                 </Link>
                 <button
                   type="button"
@@ -1218,299 +1184,185 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {renderNavItems(undefined, false)}
               </nav>
 
-              {/* ── Widget de Cota & Produtividade no Espaço Central (Preenche o vazio com alto padrão) ── */}
-              {!access.isStore && (
-                <div className="mt-auto pt-3 pb-1 px-1 shrink-0">
-                  {access.isFree ? (
-                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-sidebar-foreground transition-all hover:bg-white/[0.05]">
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-sidebar-foreground/80 mb-2">
-                        <span className="flex items-center gap-1.5">
-                          <span
-                            className={cn(
-                              "size-1.5 rounded-full",
-                              quota.isQuotaReached ? "bg-amber-400" : "bg-emerald-400"
-                            )}
-                          />
-                          Cota do Mês
-                        </span>
-                        <span className="text-[10px] font-mono text-sidebar-foreground/50 font-bold">
-                          {quota.batchesThisMonth} / {quota.limit} lotes
-                        </span>
-                      </div>
-
-                      {/* Barra de Progresso Fina */}
-                      <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mb-2">
-                        <div
+              {/* ── Widget de Capacidade da Loja no Espaço Central ── */}
+              <div className="mt-auto pt-3 pb-1 px-1 shrink-0">
+                {access.isStore ? (
+                  /* Store: Metas da Boutique e Ritmo de Vendas */
+                  <SidebarGoalCard />
+                ) : (
+                  /* Free e Pro: Medidor de Capacidade da Loja */
+                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-sidebar-foreground transition-all hover:bg-white/[0.05]">
+                    {/* Header da Cota */}
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-sidebar-foreground/80 mb-2">
+                      <span className="flex items-center gap-1.5">
+                        <span
                           className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            quota.isQuotaReached ? "bg-amber-400" : "bg-emerald-400"
+                            "size-1.5 rounded-full",
+                            productCount >= access.limits.maxProducts ? "bg-amber-400" : "bg-emerald-400"
                           )}
-                          style={{
-                            width: `${Math.min(100, Math.max(8, (quota.batchesThisMonth / quota.limit) * 100))}%`,
-                          }}
                         />
-                      </div>
-
-                      <p className="text-[10.5px] text-sidebar-foreground/60 leading-relaxed mb-2.5">
-                        {quota.isQuotaReached
-                          ? "Limite gratuito de 3 lotes atingido este mês."
-                          : `Você usou ${quota.batchesThisMonth} de ${quota.limit} lotes gratuitos.`}
-                      </p>
-
-                      <Link
-                        to="/configuracoes"
-                        search={{ tab: "plano" }}
-                        className="group/link flex items-center justify-between text-[10.5px] font-semibold text-primary hover:text-primary/90 transition-colors pt-2 border-t border-white/5"
-                      >
-                        <span>Lotes ilimitados (R$ 19,90)</span>
-                        <span className="transition-transform group-hover/link:translate-x-0.5">→</span>
-                      </Link>
+                        {access.isFree ? "Capacidade Free" : "Capacidade Pro"}
+                      </span>
+                      <span className="text-[10px] font-mono text-sidebar-foreground/50 font-bold">
+                        {productCount} / {access.limits.maxProducts} peças
+                      </span>
                     </div>
-                  ) : (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3 text-sidebar-foreground">
-                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 mb-1">
-                        <Sparkles className="size-3" />
-                        Vestui Lote Ativo
-                      </div>
-                      <p className="text-[10px] text-sidebar-foreground/60 leading-relaxed">
-                        Lotes e etiquetas térmicas ilimitadas liberados.
-                      </p>
+
+                    {/* Barra de Progresso de Produtos */}
+                    <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mb-2">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-300",
+                          productCount >= access.limits.maxProducts ? "bg-amber-400" : "bg-emerald-400"
+                        )}
+                        style={{
+                          width: `${Math.min(100, Math.max(6, (productCount / access.limits.maxProducts) * 100))}%`,
+                        }}
+                      />
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Status de Lotes */}
+                    <div className="flex items-center justify-between text-[10px] text-sidebar-foreground/55 mb-2">
+                      <span>Lotes de precificação:</span>
+                      <span className="font-mono font-medium text-sidebar-foreground/80">
+                        {access.isFree
+                          ? `${quota.batchesThisMonth} / ${quota.limit} no mês`
+                          : "Ilimitados ✓"}
+                      </span>
+                    </div>
+
+                    <Link
+                      to="/configuracoes"
+                      search={{ tab: "plano" }}
+                      className="group/link flex items-center justify-between text-[10.5px] font-semibold text-primary hover:text-primary/90 transition-colors pt-2 border-t border-white/5"
+                    >
+                      <span>
+                        {access.isFree
+                          ? "Liberar até 60 peças (R$ 19,90)"
+                          : "Vestui Store (Produtos ilimitados)"}
+                      </span>
+                      <span className="transition-transform group-hover/link:translate-x-0.5">→</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           )
         )}
 
-        {/* ── Rodapé Fixo da Sidebar ── */}
+        {/* ── Rodapé Fixo da Sidebar Universal ── */}
         <div className="mt-auto pt-2.5 border-t border-white/10 flex flex-col gap-1 shrink-0">
-          {!access.isStore ? (
-            /* Perfil Minimalista Unificado para Micro-SaaS (Zero Poluição e Zero Cards Empilhados) */
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                {isCollapsed ? (
-                  <button
-                    type="button"
-                    title={storeName}
-                    className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none border border-white/10"
-                  >
-                    {storeName.slice(0, 2).toUpperCase()}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none border border-transparent hover:border-white/5"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {isProfileLoading ? (
-                        <Skeleton className="size-7 rounded-lg" />
-                      ) : (
-                        <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0 border border-white/10">
-                          {storeName.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-sidebar-foreground/90 group-hover:text-sidebar-foreground transition-colors">
-                          {storeName}
-                        </p>
-                        <p className="text-[10px] text-sidebar-foreground/45 flex items-center gap-1 font-medium">
-                          <span className="size-1.5 rounded-full bg-emerald-500/80" />
-                          <span>{access.isFree ? "Plano Gratuito" : "Vestui Lote"}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <MoreHorizontal className="size-3.5 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80 transition-colors shrink-0" />
-                  </button>
-                )}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
-                <div className="px-2.5 py-2">
-                  <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
-                  <span className="mt-1.5 inline-block rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">
-                    {access.isFree ? "Plano Gratuito" : "Vestui Lote"}
-                  </span>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link
-                    to="/configuracoes"
-                    search={{ tab: "geral" }}
-                    className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
-                  >
-                    <Settings className="size-3.5 text-muted-foreground" />
-                    <span>Configurações da Loja</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    to="/configuracoes"
-                    search={{ tab: "plano" }}
-                    className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
-                  >
-                    <Sparkles className="size-3.5 text-amber-500" />
-                    <span>Meu Plano & Benefícios</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => void signOut()}
-                  className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  title={storeName}
+                  className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none border border-white/10"
                 >
-                  <LogOut className="size-3.5" />
-                  <span>Sair da conta</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <>
-              {/* Linha 1: Configurações */}
-              {!isConfiguracoes && (
-                isCollapsed ? (
-                  <Link
-                    to="/configuracoes"
-                    search={{ tab: "geral" }}
-                    title="Configurações"
-                    className={cn(
-                      "flex size-9 items-center justify-center rounded-lg mx-auto transition-colors cursor-pointer",
-                      isConfiguracoes
-                        ? "bg-white/12 text-white"
-                        : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <Settings className="size-4 shrink-0 transition-transform hover:rotate-45 text-sidebar-foreground" />
-                  </Link>
-                ) : (
-                  <Link
-                    to="/configuracoes"
-                    search={{ tab: "geral" }}
-                    className={cn(
-                      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-normal transition-colors duration-150 cursor-pointer",
-                      isConfiguracoes
-                        ? "bg-sidebar-accent text-sidebar-foreground font-medium"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/95",
-                    )}
-                  >
-                    <Settings className="size-4 shrink-0 opacity-55 group-hover:opacity-85 transition-all duration-150 group-hover:rotate-45 text-sidebar-foreground" />
-                    <span>Configurações</span>
-                  </Link>
-                )
-              )}
-
-              {/* Linha 2: Perfil da Boutique com Dropdown (Squircle com Iniciais + Sino) */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  {isCollapsed ? (
-                    <button
-                      type="button"
-                      title={storeName}
-                      className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-xs mx-auto hover:bg-white/20 transition-colors cursor-pointer outline-none border border-white/10"
-                    >
-                      {storeName.slice(0, 2).toUpperCase()}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {isProfileLoading ? (
-                          <Skeleton className="size-7 rounded-lg" />
-                        ) : (
-                          <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0 border border-white/10">
-                            {storeName.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <span className="truncate text-[13px] font-medium text-sidebar-foreground/80 group-hover:text-sidebar-foreground transition-colors">
-                          {storeName}
-                        </span>
+                  {storeName.slice(0, 2).toUpperCase()}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 hover:bg-sidebar-accent transition-colors cursor-pointer group text-left outline-none border border-transparent hover:border-white/5"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isProfileLoading ? (
+                      <Skeleton className="size-7 rounded-lg" />
+                    ) : (
+                      <div className="flex size-7 items-center justify-center rounded-lg bg-white/10 text-sidebar-foreground font-bold text-[11px] shrink-0 border border-white/10">
+                        {storeName.slice(0, 2).toUpperCase()}
                       </div>
-                      <div className="relative flex items-center justify-center p-1 rounded-md text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80 hover:bg-white/10 transition-colors">
-                        <Bell className="size-3.5 shrink-0" />
-                        {pendingOrderCount > 0 && (
-                          <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-red-500 animate-pulse" />
-                        )}
-                      </div>
-                    </button>
-                  )}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
-                  <div className="px-2.5 py-2">
-                    <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
-                    <span className="mt-1.5 inline-block rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">
-                      {planLabel}
-                    </span>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link
-                      to="/configuracoes"
-                      search={{ tab: "geral" }}
-                      className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
-                    >
-                      <Settings className="size-3.5 text-muted-foreground" />
-                      <span>Configurações da Loja</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      to="/configuracoes"
-                      search={{ tab: "plano" }}
-                      className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
-                    >
-                      <Sparkles className="size-3.5 text-amber-500" />
-                      <span>Plano & Assinatura</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => void signOut()}
-                    className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
-                  >
-                    <LogOut className="size-3.5" />
-                    <span>Sair da conta</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Linha 3: Status do Trial / Plano (Padrão Shopify Oficial) */}
-              {trialStatus === "active" && daysLeftInTrial !== null ? (
-                isCollapsed ? (
-                  <div
-                    title={`${daysLeftInTrial} dias restantes no teste`}
-                    className="size-2 rounded-full bg-amber-400 mx-auto my-1 animate-pulse"
-                  />
-                ) : (
-                  <Link
-                    to="/configuracoes"
-                    search={{ tab: "plano" }}
-                    className={cn(
-                      "group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors cursor-pointer",
-                      isTrialUrgent
-                        ? "bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/95",
                     )}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className={cn("size-1.5 rounded-full", isTrialUrgent ? "bg-amber-400 animate-pulse" : "bg-emerald-400")} />
-                      <span className="truncate text-[11px] font-medium">{daysLeftInTrial} dias restantes</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-sidebar-foreground/90 group-hover:text-sidebar-foreground transition-colors">
+                        {storeName}
+                      </p>
+                      <p className="text-[10px] text-sidebar-foreground/45 flex items-center gap-1 font-medium">
+                        <span className="size-1.5 rounded-full bg-emerald-500/80" />
+                        <span>{access.isFree ? "Plano Gratuito" : access.isPro ? "Vestui Pro" : "Vestui Store"}</span>
+                      </p>
                     </div>
-                    <span className="text-[10px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      Assinar →
-                    </span>
-                  </Link>
-                )
-              ) : null}
-            </>
-          )}
+                  </div>
+                  <MoreHorizontal className="size-3.5 text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80 transition-colors shrink-0" />
+                </button>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-56 mb-1 rounded-2xl p-1.5 shadow-lift">
+              <div className="px-2.5 py-2">
+                <p className="text-xs font-bold text-foreground truncate">{storeName}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{ownerName}</p>
+                <span className="mt-1.5 inline-block rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider">
+                  {access.isFree ? "Plano Gratuito" : access.isPro ? "Vestui Pro" : "Vestui Store"}
+                </span>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "geral" }}
+                  className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                >
+                  <Settings className="size-3.5 text-muted-foreground" />
+                  <span>Configurações da Loja</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "plano" }}
+                  className="cursor-pointer text-xs flex items-center gap-2 rounded-xl py-2 px-2.5"
+                >
+                  <Sparkles className="size-3.5 text-amber-500" />
+                  <span>Meu Plano & Benefícios</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => void signOut()}
+                className="text-xs text-destructive focus:text-destructive cursor-pointer flex items-center gap-2 rounded-xl py-2 px-2.5"
+              >
+                <LogOut className="size-3.5" />
+                <span>Sair da conta</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Status do Trial se estiver ativo */}
+          {trialStatus === "active" && daysLeftInTrial !== null ? (
+            isCollapsed ? (
+              <div
+                title={`${daysLeftInTrial} dias restantes no teste`}
+                className="size-2 rounded-full bg-amber-400 mx-auto my-1 animate-pulse"
+              />
+            ) : (
+              <Link
+                to="/configuracoes"
+                search={{ tab: "plano" }}
+                className={cn(
+                  "group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors cursor-pointer",
+                  isTrialUrgent
+                    ? "bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground/95",
+                )}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={cn("size-1.5 rounded-full", isTrialUrgent ? "bg-amber-400 animate-pulse" : "bg-emerald-400")} />
+                  <span className="truncate text-[11px] font-medium">{daysLeftInTrial} dias restantes</span>
+                </div>
+                <span className="text-[10px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                  Assinar →
+                </span>
+              </Link>
+            )
+          ) : null}
         </div>
       </aside>
 
       {/* ── Topbar Mobile ─────────────────────────────────────────────────────── */}
       <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between px-4 lg:hidden">
-        <Link to={access.isStore ? "/painel" : "/precificacao"}>
+        <Link to="/painel">
           <Logo />
         </Link>
         <div className="flex items-center gap-1">

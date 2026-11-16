@@ -1,11 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
+import { profileQuery } from "@/lib/db";
+import { useAccess, isTemplateAllowed } from "@/lib/useAccess";
+import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
+import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { supabase } from "@/integrations/supabase/client";
 import {
   TEMPLATES_REGISTRY,
@@ -33,6 +38,11 @@ const CATEGORIES: TemplateCategory[] = ["todos", "minimalista", "editorial", "lu
 
 function GaleriaTemplatesPage() {
   const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+  const [upgradeProModalOpen, setUpgradeProModalOpen] = useState(false);
+  const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
+
   // Estado reativo do tema ativo com sincronização de eventos
   const [activeTemplateId, setActiveTemplateId] = useState<string>(
     () => loadTheme().settings.templateId ?? "template-02"
@@ -185,18 +195,39 @@ function GaleriaTemplatesPage() {
 
       {/* ── Grid de Templates ─────────────────────────────────────────────── */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-        {templates.map((entry) => (
-          <TemplateCard
-            key={entry.id}
-            entry={entry}
-            isActive={entry.id === activeTemplateId}
-            onApply={() => applyTemplate(entry)}
-          />
-        ))}
+        {templates.map((entry) => {
+          const isAllowed = isTemplateAllowed(entry.id, access.limits);
+          return (
+            <TemplateCard
+              key={entry.id}
+              entry={entry}
+              isActive={entry.id === activeTemplateId}
+              isAllowed={isAllowed}
+              onApply={() => applyTemplate(entry)}
+              onUnlock={() => {
+                if (access.isFree && entry.id === "template-01") {
+                  setUpgradeProModalOpen(true);
+                } else {
+                  setUpgradeStoreModalOpen(true);
+                }
+              }}
+            />
+          );
+        })}
 
         {/* Card "Em breve" para futuros templates */}
         <ComingSoonCard />
       </div>
+
+      <UpgradeLoteModal
+        open={upgradeProModalOpen}
+        onOpenChange={setUpgradeProModalOpen}
+        reason="general"
+      />
+      <UpgradeStoreModal
+        open={upgradeStoreModalOpen}
+        onOpenChange={setUpgradeStoreModalOpen}
+      />
     </div>
   );
 }
@@ -206,11 +237,15 @@ function GaleriaTemplatesPage() {
 function TemplateCard({
   entry,
   isActive,
+  isAllowed,
   onApply,
+  onUnlock,
 }: {
   entry: TemplateEntry;
   isActive: boolean;
+  isAllowed: boolean;
   onApply: () => void;
+  onUnlock: () => void;
 }) {
   const { store } = useStore();
   const { palette, typography } = entry;
@@ -229,16 +264,16 @@ function TemplateCard({
             Ativo
           </span>
         )}
-        {entry.isNew && !isActive && (
+        {!isAllowed && (
+          <span className="flex items-center gap-1 rounded-full bg-amber-500/95 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
+            <Crown className="h-3 w-3" />
+            {entry.id === "template-01" ? "Vestui Pro" : "Vestui Store"}
+          </span>
+        )}
+        {entry.isNew && !isActive && isAllowed && (
           <span className="flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
             <Sparkles className="h-3 w-3" />
             Novo
-          </span>
-        )}
-        {entry.isPremium && !isActive && (
-          <span className="flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
-            <Crown className="h-3 w-3" />
-            Premium
           </span>
         )}
       </div>
@@ -445,14 +480,26 @@ function TemplateCard({
                   Preview
                 </a>
               </Button>
-              <Button
-                size="sm"
-                className="h-9 flex-1 gap-1.5 rounded-xl text-xs font-semibold"
-                onClick={onApply}
-              >
-                <Palette className="h-3.5 w-3.5" />
-                Aplicar Tema
-              </Button>
+              {isAllowed ? (
+                <Button
+                  size="sm"
+                  className="h-9 flex-1 gap-1.5 rounded-xl text-xs font-semibold cursor-pointer"
+                  onClick={onApply}
+                >
+                  <Palette className="h-3.5 w-3.5" />
+                  Aplicar Tema
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onUnlock}
+                  className="h-9 flex-1 gap-1.5 rounded-xl text-xs font-semibold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 cursor-pointer"
+                >
+                  <Crown className="size-3.5 text-amber-500" />
+                  Desbloquear
+                </Button>
+              )}
             </>
           )}
         </div>

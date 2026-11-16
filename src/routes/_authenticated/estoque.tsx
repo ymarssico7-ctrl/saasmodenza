@@ -46,7 +46,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { inventoryQuery, pricingsQuery } from "@/lib/db";
+import { inventoryQuery, pricingsQuery, profileQuery } from "@/lib/db";
+import { useAccess } from "@/lib/useAccess";
+import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
+import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { brl, toNumber } from "@/lib/format";
 import { SIZE_GRID, computePricing } from "@/lib/finance";
 import { useStoreCategories, getCategoryLabel, createCategorySlug, DEFAULT_STORE_CATEGORIES } from "@/lib/categories";
@@ -95,8 +98,34 @@ function Estoque() {
   const queryClient = useQueryClient();
   const { store, storeId } = useStore();
   const vitrineAtiva = isVitrineAtiva(storeId, store?.metadata);
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
   const { data: items = [], isLoading } = useQuery(inventoryQuery());
   const { data: pricings = [] } = useQuery(pricingsQuery());
+  const isQuotaReached = items.length >= access.limits.maxProducts;
+
+  const [upgradeProModalOpen, setUpgradeProModalOpen] = useState(false);
+  const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
+
+  const handleOpenNewPiece = () => {
+    if (isQuotaReached) {
+      if (access.isFree) {
+        setUpgradeProModalOpen(true);
+      } else {
+        setUpgradeStoreModalOpen(true);
+      }
+      return;
+    }
+    setName("");
+    setColor("");
+    setCost("");
+    setPrice("");
+    setPhotoUrl("");
+    setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
+    setSingleSizeQty("");
+    setGradeMode("grade");
+    setNewPieceOpen(true);
+  };
 
   // ── Categorias Dinâmicas da Loja (Nível Shopify) ──────────────────────────
   const { categories: storeCategories, saveCategories, isSaving: isSavingCats } = useStoreCategories();
@@ -627,17 +656,7 @@ function Estoque() {
                 )}
                 <Button
                   type="button"
-                  onClick={() => {
-                    setName("");
-                    setColor("");
-                    setCost("");
-                    setPrice("");
-                    setPhotoUrl("");
-                    setSizes({ PP: 0, P: 0, M: 0, G: 0, GG: 0 });
-                    setSingleSizeQty("");
-                    setGradeMode("grade");
-                    setNewPieceOpen(true);
-                  }}
+                  onClick={handleOpenNewPiece}
                   className="h-10 rounded-xl bg-primary text-primary-foreground font-semibold px-4 text-xs shadow-soft hover:bg-primary/90 transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Plus className="size-4" />
@@ -653,6 +672,34 @@ function Estoque() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         {/* ══ ABA: Peças em Estoque ══════════════════════════════════════════ */}
         <TabsContent value="pecas" className="mt-0 space-y-4">
+
+          {/* ── Indicador de Capacidade do Catálogo ── */}
+          {!access.isStore && (
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-card/60 p-3.5 px-4 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className={cn(
+                  "size-2 rounded-full shrink-0",
+                  isQuotaReached ? "bg-amber-400 animate-pulse" : "bg-emerald-400"
+                )} />
+                <span className="font-medium text-foreground">
+                  {isQuotaReached
+                    ? `Limite de ${access.limits.maxProducts} peças atingido no seu plano.`
+                    : `Capacidade da Loja: ${items.length} de ${access.limits.maxProducts} peças cadastradas.`}
+                </span>
+              </div>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  if (access.isFree) setUpgradeProModalOpen(true);
+                  else setUpgradeStoreModalOpen(true);
+                }}
+                className="text-xs font-semibold text-primary hover:underline whitespace-nowrap p-0 h-auto cursor-pointer"
+              >
+                {access.isFree ? "Liberar até 60 peças (R$ 19,90) →" : "Vestui Store (Ilimitado) →"}
+              </Button>
+            </div>
+          )}
 
           {/* ── 1. Barra Executiva Unificada (Apple Bento Strip — Superfície Contínua de Alto Padrão) ── */}
           <div className="rounded-2xl border border-border/70 bg-card shadow-2xs overflow-hidden">
@@ -2293,6 +2340,17 @@ function Estoque() {
           setCategory(slug);
           setEditCategory(slug);
         }}
+      />
+
+      {/* ── Modais de Crescimento e Upgrade ── */}
+      <UpgradeLoteModal
+        open={upgradeProModalOpen}
+        onOpenChange={setUpgradeProModalOpen}
+        reason="products_limit"
+      />
+      <UpgradeStoreModal
+        open={upgradeStoreModalOpen}
+        onOpenChange={setUpgradeStoreModalOpen}
       />
     </div>
   );

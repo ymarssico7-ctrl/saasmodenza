@@ -1,11 +1,26 @@
-// ─── Hook Central de Acesso (Modelo Multi-Planos: Free, Lote e Store) ──────
-// Free: Precificação até 3 lotes/mês (sem etiquetas, sem histórico persistido)
-// Lote (R$ 19,90): Lotes ilimitados + Etiquetas PDF + Histórico + Simulador
-// Store (R$ 97,00): Tudo acima + Vitrine Online + Estoque Unificado + PDV Balcão
+// ─── Hook Central de Acesso — Plataforma Modular Vestui OS ──────────────────
+//
+// ARQUITETURA: "Entitlement-Driven Platform" (Plataforma de Habilitação Progressiva)
+//
+// TIER DEFINITIONS:
+//  free  (R$ 0):      Catálogo Gratuito — até 15 produtos, PDV básico, 3 lotes/mês, vitrine catálogo
+//  pro   (R$ 19,90):  Vestui Pro        — até 60 produtos, PDV completo, lotes ilimitados, vitrine com sacola
+//  store (R$ 97,00):  Vestui Store      — produtos ilimitados, tudo do Pro + condicional, multi-vendedor, DRE, white-label
+//
+// PRINCÍPIO: Uma única base de código para todos os planos.
+//            O que varia é a capacidade operacional (cotas) e módulos de alta complexidade.
+//
+// LEGADO: "lote" é alias de "pro" para manter retrocompatibilidade com clientes existentes.
+//
+// REGRA DE SEGURANÇA: Nunca confie apenas no frontend!
+//   As cotas (maxProducts, maxMonthlyBatches) são reforçadas também no banco de dados
+//   via triggers PostgreSQL/RLS em supabase/migrations.
 
 import type { Store } from "@/lib/store-context";
 
-export type PlanTier = "free" | "lote" | "store";
+// ── Tipos de Plano ────────────────────────────────────────────────────────────
+/** "lote" é alias retrocompatível de "pro" */
+export type PlanTier = "free" | "lote" | "pro" | "store";
 
 export type Profile = {
   id: string;
@@ -33,37 +48,130 @@ export type TrialStatus =
   | "expired"
   | "subscribed";
 
+// ── Limites de Capacidade por Plano (PLAN_LIMITS) ─────────────────────────────
+// Esta é a FONTE DA VERDADE para todos os limites.
+// Sempre consumir esta constante — nunca hardcodar valores no código das rotas/componentes.
+export interface PlanLimits {
+  /** Número máximo de produtos ativos no catálogo */
+  maxProducts: number;
+  /** Número máximo de lotes de precificação por mês */
+  maxMonthlyBatches: number;
+  /** Número máximo de membros na equipe (vendedoras) */
+  maxTeamMembers: number;
+  /** Permite sacola multi-itens na vitrine online */
+  hasMultiItemCart: boolean;
+  /** Permite impressão de etiquetas térmicas PDF */
+  hasThermalLabels: boolean;
+  /** Permite Venda Condicional / Malinha em Domicílio */
+  hasConditionalSale: boolean;
+  /** Permite DRE, CMV e Fluxo de Caixa Avançado */
+  hasAdvancedDRE: boolean;
+  /** Sincronização de estoque entre PDV e Vitrine em tempo real */
+  hasRealtimeInventorySync: boolean;
+  /** Remove a marca Vestui do rodapé da vitrine (White-label) */
+  hasWhiteLabel: boolean;
+  /** Permite configurar entrega/frete personalizado na vitrine */
+  hasDeliveryConfig: boolean;
+  /** Lista de IDs de templates liberados na galeria */
+  allowedTemplates: Array<"template-01" | "template-02" | "catalogo-express">;
+}
+
+export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
+  free: {
+    maxProducts: 15,
+    maxMonthlyBatches: 3,
+    maxTeamMembers: 1,
+    hasMultiItemCart: false,
+    hasThermalLabels: false,
+    hasConditionalSale: false,
+    hasAdvancedDRE: false,
+    hasRealtimeInventorySync: false,
+    hasWhiteLabel: false,
+    hasDeliveryConfig: false,
+    allowedTemplates: ["catalogo-express"],
+  },
+  pro: {
+    maxProducts: 60,
+    maxMonthlyBatches: Infinity,
+    maxTeamMembers: 1,
+    hasMultiItemCart: true,
+    hasThermalLabels: true,
+    hasConditionalSale: false,
+    hasAdvancedDRE: false,
+    hasRealtimeInventorySync: false,
+    hasWhiteLabel: false,
+    hasDeliveryConfig: true,
+    allowedTemplates: ["catalogo-express", "template-01"],
+  },
+  store: {
+    maxProducts: Infinity,
+    maxMonthlyBatches: Infinity,
+    maxTeamMembers: Infinity,
+    hasMultiItemCart: true,
+    hasThermalLabels: true,
+    hasConditionalSale: true,
+    hasAdvancedDRE: true,
+    hasRealtimeInventorySync: true,
+    hasWhiteLabel: true,
+    hasDeliveryConfig: true,
+    allowedTemplates: ["catalogo-express", "template-01", "template-02"],
+  },
+};
+
+// ── Tipo de Acesso Retornado pelo Hook ────────────────────────────────────────
 export type AccessInfo = {
-  /** Nível do plano ativo: 'free', 'lote' (R$ 19,90) ou 'store' (R$ 97) */
-  tier: PlanTier;
+  /** Nível canônico do plano: 'free', 'pro' ou 'store' */
+  tier: "free" | "pro" | "store";
+
+  // Verificações de tier (use sempre estes booleanos, nunca compare tier diretamente)
   isFree: boolean;
-  isLote: boolean;
+  isPro: boolean;
   isStore: boolean;
 
-  /** Permissões Granulares */
+  /**
+   * @deprecated use `isPro` em vez de `isLote`
+   * Mantido para retrocompatibilidade com componentes existentes
+   */
+  isLote: boolean;
+
+  /** Limites de capacidade do plano corrente — consume PLAN_LIMITS diretamente */
+  limits: PlanLimits;
+
+  // ── Permissões Legadas (retrocompatibilidade) ─────────────────────────────
+  /** @deprecated use `limits.maxMonthlyBatches` */
   canUsePricing: boolean;
+  /** @deprecated use `limits.hasThermalLabels` */
   canPrintLabels: boolean;
+  /** @deprecated use `limits.maxMonthlyBatches === Infinity` */
   canUnlimitedBatches: boolean;
+  /** @deprecated use `isPro || isStore` */
   canSaveHistory: boolean;
+  /** @deprecated use `isPro || isStore` */
   canSimulateDiscounts: boolean;
+  /** @deprecated use `limits.maxProducts` */
   canAccessStorefront: boolean;
+  /** @deprecated use `isPro || isStore` */
   canAccessPOS: boolean;
+  /** @deprecated use `limits.hasConditionalSale` */
   canAccessConditional: boolean;
+  /** @deprecated use `limits.maxMonthlyBatches` */
   freeBatchesLimit: number;
 
-  /** Verdade única retrocompatível: true se tem qualquer plano pago ou trial */
+  /** true se tem qualquer plano pago (pro ou store) ou trial ativo */
   isActive: boolean;
-  /** Alias retrocompatível de isActive */
+  /** @deprecated alias de isActive */
   hasGestao: boolean;
-  /** Alias retrocompatível de isActive */
+  /** @deprecated alias de isStore */
   hasLoja: boolean;
 
+  // ── Estado do Trial ───────────────────────────────────────────────────────
   trialStatus: TrialStatus;
   daysLeftInTrial: number | null;
   isTrialUrgent: boolean;
   isShouldShowTrialModal: boolean;
 };
 
+// ── Hook Principal ────────────────────────────────────────────────────────────
 export function useAccess(
   profile: Profile | null | undefined,
   store?: Store | null | undefined,
@@ -73,8 +181,10 @@ export function useAccess(
   const emptyAccess: AccessInfo = {
     tier: "free",
     isFree: true,
-    isLote: false,
+    isPro: false,
     isStore: false,
+    isLote: false,
+    limits: PLAN_LIMITS.free,
     canUsePricing: true,
     canPrintLabels: false,
     canUnlimitedBatches: false,
@@ -83,7 +193,7 @@ export function useAccess(
     canAccessStorefront: false,
     canAccessPOS: false,
     canAccessConditional: false,
-    freeBatchesLimit: 3,
+    freeBatchesLimit: PLAN_LIMITS.free.maxMonthlyBatches,
     isActive: false,
     hasGestao: false,
     hasLoja: false,
@@ -124,14 +234,22 @@ export function useAccess(
   const assinanteAtivo =
     storeSubActive === true && (subExpiresAt !== null ? subExpiresAt > now : true);
 
-  // ── Resolução do Tier (Free, Lote ou Store) ────────────────────────────────
-  // PRECEDÊNCIA EXPLÍCITA: Se o plano for explicitamente "free", é Gratuito sem exceção!
-  let tier: PlanTier = "free";
+  // ── Resolução do Tier Canônico ────────────────────────────────────────────
+  // PRECEDÊNCIA EXPLÍCITA: free > pro/lote > store
+  // "lote" é alias retrocompatível de "pro"
+  let tier: "free" | "pro" | "store" = "free";
 
   if (rawPlan === "free" || rawPlan === "gratuito" || rawTier === "free") {
     tier = "free";
-  } else if (rawPlan === "lote" || rawPlan === "vestui_lote" || rawTier === "lote") {
-    tier = "lote";
+  } else if (
+    rawPlan === "pro" ||
+    rawPlan === "lote" ||
+    rawPlan === "vestui_lote" ||
+    rawPlan === "vestui_pro" ||
+    rawTier === "lote" ||
+    rawTier === "pro"
+  ) {
+    tier = "pro";
   } else if (
     trialAtivo ||
     assinanteAtivo ||
@@ -139,8 +257,7 @@ export function useAccess(
     rawPlan === "store" ||
     rawPlan === "gestao_anual" ||
     rawPlan === "digital" ||
-    rawPlan === "completo" ||
-    rawPlan === "pro"
+    rawPlan === "completo"
   ) {
     tier = "store";
   } else {
@@ -148,10 +265,12 @@ export function useAccess(
   }
 
   const isFree = tier === "free";
-  const isLote = tier === "lote";
+  const isPro = tier === "pro";
   const isStore = tier === "store";
+  const isLote = isPro; // alias retrocompatível
 
-  const isActive = isStore || isLote;
+  const isActive = isPro || isStore;
+  const limits = PLAN_LIMITS[tier];
 
   // ── Estado do Trial ───────────────────────────────────────────────────────
   let trialStatus: TrialStatus;
@@ -169,29 +288,32 @@ export function useAccess(
     trialStatus = "expired";
   }
 
-  // Desativado modal legado intrusivo de trial para priorizar os 3 planos oficiais
+  // Modal legado de trial desativado — sistema usa modais de crescimento (upsell positivo)
   const isShouldShowTrialModal = false;
 
   return {
     tier,
     isFree,
-    isLote,
+    isPro,
     isStore,
+    isLote, // retrocompatível
 
-    // Permissões
+    limits,
+
+    // ── Permissões Legadas (retrocompatibilidade com componentes existentes) ──
     canUsePricing: true,
-    canPrintLabels: isLote || isStore,
-    canUnlimitedBatches: isLote || isStore,
-    canSaveHistory: isLote || isStore,
-    canSimulateDiscounts: isLote || isStore,
-    canAccessStorefront: isStore,
-    canAccessPOS: isStore,
-    canAccessConditional: isStore,
-    freeBatchesLimit: 3,
+    canPrintLabels: limits.hasThermalLabels,
+    canUnlimitedBatches: limits.maxMonthlyBatches === Infinity,
+    canSaveHistory: isPro || isStore,
+    canSimulateDiscounts: isPro || isStore,
+    canAccessStorefront: isPro || isStore,
+    canAccessPOS: isPro || isStore,
+    canAccessConditional: limits.hasConditionalSale,
+    freeBatchesLimit: isFree ? limits.maxMonthlyBatches : Infinity,
 
     // Compatibilidade retroativa
     isActive,
-    hasGestao: true, // Precificação sempre liberada
+    hasGestao: true, // Precificação sempre liberada em todos os planos
     hasLoja: isStore,
 
     trialStatus,
@@ -199,4 +321,40 @@ export function useAccess(
     isTrialUrgent: daysLeftInTrial !== null && daysLeftInTrial <= 7,
     isShouldShowTrialModal,
   };
+}
+
+// ── Helpers Utilitários (uso em componentes e guards) ─────────────────────────
+
+/**
+ * Verifica se um template está liberado para o tier corrente.
+ * Use nos componentes da galeria de templates.
+ */
+export function isTemplateAllowed(
+  templateId: string,
+  limits: PlanLimits,
+): boolean {
+  return (limits.allowedTemplates as string[]).includes(templateId);
+}
+
+/**
+ * Verifica se o usuário atingiu ou ultrapassou a cota de produtos.
+ */
+export function isProductQuotaReached(
+  currentCount: number,
+  limits: PlanLimits,
+): boolean {
+  if (limits.maxProducts === Infinity) return false;
+  return currentCount >= limits.maxProducts;
+}
+
+/**
+ * Retorna a porcentagem de uso da cota de produtos (0–100).
+ * Retorna 0 quando o plano é ilimitado.
+ */
+export function productQuotaPercent(
+  currentCount: number,
+  limits: PlanLimits,
+): number {
+  if (limits.maxProducts === Infinity) return 0;
+  return Math.min(100, Math.round((currentCount / limits.maxProducts) * 100));
 }
