@@ -21,14 +21,14 @@ export function UpgradeLoteModal({
     reason === "products_limit"
       ? "🎉 Sua loja está crescendo!"
       : reason === "quota_reached"
-      ? "Você atingiu o limite gratuito de 3 lotes este mês"
+      ? "Você atingiu o limite gratuito de 1 lote este mês"
       : reason === "labels_locked"
       ? "Desbloqueie o Gerador de Etiquetas em 1 Clique"
       : "Desbloqueie o Vestui Pro (R$ 19,90)";
 
   const description =
     reason === "products_limit"
-      ? "Você atingiu o limite de 15 peças do Plano Gratuito. Ative o Vestui Pro para cadastrar até 60 peças, imprimir etiquetas e liberar sacola no WhatsApp."
+      ? "Você atingiu o limite de 10 peças do Plano Gratuito. Ative o Vestui Pro para cadastrar até 60 peças, imprimir etiquetas com código de barras e liberar sacola no WhatsApp."
       : reason === "quota_reached"
       ? "Para cadastrar novos lotes e continuar precificando suas coleções sem limites, ative o Vestui Pro."
       : "Imprima etiquetas com código de barras prontas para folha A4 e controle todos os seus lotes de atacado.";
@@ -46,7 +46,7 @@ export function UpgradeLoteModal({
             <Sparkles className="size-6 text-primary animate-pulse" />
           </div>
           <Badge variant="outline" className="mx-auto mb-2 border-primary/30 text-primary font-bold text-xs uppercase">
-            ✦ Plano Vestui Lote
+            ✦ Plano Vestui Pro
           </Badge>
           <DialogTitle className="text-xl font-display font-bold leading-tight">
             {title}
@@ -62,7 +62,7 @@ export function UpgradeLoteModal({
             <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
               <Check className="size-3 stroke-[3]" />
             </div>
-            <span><strong>Até 60 Peças no Catálogo:</strong> 4x mais capacidade para cadastrar suas coleções e vender na vitrine.</span>
+            <span><strong>Até 60 Peças no Catálogo:</strong> 6x mais capacidade (de 10 para 60 peças) para cadastrar coleções e vender na vitrine.</span>
           </div>
 
           <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">

@@ -60,7 +60,7 @@ export function PlanGuard({
         {featureDescription ??
           (isLoteTarget
             ? "Cadastre lotes ilimitados e imprima etiquetas térmicas ou em folha A4 com código de barras."
-            : "Tenha acesso à Loja Online, Estoque Unificado, PDV de Balcão e Gestão de Condicional.")}
+            : "Tenha acesso ao Caderninho de Fiado com WhatsApp, Produtos Ilimitados, PDV de Balcão e Pró-labore da Dona.")}
       </p>
 
       <div className="mt-6 flex flex-col items-center gap-2">

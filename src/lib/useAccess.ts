@@ -62,8 +62,10 @@ export interface PlanLimits {
   hasMultiItemCart: boolean;
   /** Permite impressão de etiquetas térmicas PDF */
   hasThermalLabels: boolean;
-  /** Permite Venda Condicional / Malinha em Domicílio */
-  hasConditionalSale: boolean;
+  /** Permite Caderninho de Fiado Digital com Cobrança WhatsApp */
+  hasFiado: boolean;
+  /** @deprecated use hasFiado */
+  hasConditionalSale?: boolean;
   /** Permite DRE, CMV e Fluxo de Caixa Avançado */
   hasAdvancedDRE: boolean;
   /** Sincronização de estoque entre PDV e Vitrine em tempo real */
@@ -78,11 +80,12 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
   free: {
-    maxProducts: 15,
-    maxMonthlyBatches: 3,
+    maxProducts: 10,
+    maxMonthlyBatches: 1,
     maxTeamMembers: 1,
     hasMultiItemCart: false,
     hasThermalLabels: false,
+    hasFiado: false,
     hasConditionalSale: false,
     hasAdvancedDRE: false,
     hasRealtimeInventorySync: false,
@@ -96,6 +99,7 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     maxTeamMembers: 1,
     hasMultiItemCart: true,
     hasThermalLabels: true,
+    hasFiado: false,
     hasConditionalSale: false,
     hasAdvancedDRE: false,
     hasRealtimeInventorySync: false,
@@ -109,6 +113,7 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     maxTeamMembers: Infinity,
     hasMultiItemCart: true,
     hasThermalLabels: true,
+    hasFiado: true,
     hasConditionalSale: true,
     hasAdvancedDRE: true,
     hasRealtimeInventorySync: true,
@@ -152,7 +157,9 @@ export type AccessInfo = {
   canAccessStorefront: boolean;
   /** @deprecated use `isPro || isStore` */
   canAccessPOS: boolean;
-  /** @deprecated use `limits.hasConditionalSale` */
+  /** Permite acesso ao Caderninho de Fiado Digital com Cobrança WhatsApp */
+  canAccessFiado: boolean;
+  /** @deprecated use `canAccessFiado` */
   canAccessConditional: boolean;
   /** @deprecated use `limits.maxMonthlyBatches` */
   freeBatchesLimit: number;
@@ -308,7 +315,8 @@ export function useAccess(
     canSimulateDiscounts: isPro || isStore,
     canAccessStorefront: isPro || isStore,
     canAccessPOS: isPro || isStore,
-    canAccessConditional: limits.hasConditionalSale,
+    canAccessFiado: limits.hasFiado,
+    canAccessConditional: limits.hasFiado,
     freeBatchesLimit: isFree ? limits.maxMonthlyBatches : Infinity,
 
     // Compatibilidade retroativa

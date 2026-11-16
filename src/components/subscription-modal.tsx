@@ -343,7 +343,7 @@ export function SubscriptionModal({
                   "Vitrine Online com sacola de pedidos no WhatsApp",
                   "PDV de Balcão ágil com baixa automática no estoque",
                   "Estoque 100% unificado (físico + online sem furo)",
-                  "Gestão de Condicional / Malinha com comprovante",
+                  "Caderninho de Fiado Digital com cobrança no WhatsApp",
                   "DRE em tempo real, fluxo de caixa e pró-labore",
                   "Tudo do Vestui Lote incluso (etiquetas e precificação)",
                 ]

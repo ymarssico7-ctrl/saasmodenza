@@ -10,7 +10,7 @@
 --   ✓ Idempotente: pode ser rodado múltiplas vezes sem erro
 --
 -- TIERS:
---   free  → Plano Gratuito (R$ 0):    max 15 produtos, max 3 lotes/mês
+--   free  → Plano Gratuito (R$ 0):    max 10 produtos, max 1 lote/mês
 --   pro   → Vestui Pro (R$ 19,90):    max 60 produtos, lotes ilimitados
 --   store → Vestui Store (R$ 97,00):  produtos e lotes ilimitados
 --
@@ -115,7 +115,7 @@ BEGIN
 
   -- Define o limite conforme o tier
   IF v_tier = 'free' THEN
-    v_limit := 15;
+    v_limit := 10;
   ELSIF v_tier = 'pro' THEN
     v_limit := 60;
   ELSE
@@ -163,7 +163,7 @@ AS $$
 DECLARE
   v_tier  TEXT;
   v_count INT;
-  v_limit INT := 3; -- limite do plano free
+  v_limit INT := 1; -- limite do plano free
 BEGIN
   -- Resolve o tier da loja
   v_tier := public.get_store_plan_tier(NEW.store_id);

@@ -929,15 +929,15 @@ function Configuracoes() {
                       ? "Vestui Store (Completo)"
                       : access.isPro
                       ? "Vestui Pro (R$ 19,90/mês)"
-                      : "Plano Gratuito (Até 15 peças)"}
+                      : "Plano Gratuito (Até 10 peças)"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {access.isStore
-                    ? "Tudo liberado: Produtos Ilimitados, Vitrine VIP, PDV Multi-vendedor, Venda Condicional, Sincronia de Estoque e DRE."
+                    ? "Tudo liberado: Produtos Ilimitados, Caderninho de Fiado com WhatsApp, Pró-labore da Dona, PDV Multi-vendedora, Sincronia de Estoque e DRE."
                     : access.isPro
                     ? "Até 60 produtos ativos, PDV balcão, vitrine com sacola no WhatsApp, precificação ilimitada e gerador de etiquetas térmicas e A4."
-                    : "Até 15 produtos cadastrados, PDV balcão essencial, vitrine express no WhatsApp e até 3 lotes de precificação por mês."}
+                    : "Até 10 produtos cadastrados, PDV balcão essencial, vitrine express no WhatsApp e 1 lote de precificação por mês."}
                 </p>
               </div>
 
@@ -990,7 +990,7 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span><strong>Até 15 produtos</strong> ativos no catálogo</span>
+                        <span><strong>Até 10 produtos</strong> ativos no catálogo</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
@@ -1002,7 +1002,7 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>Precificação com margem real (até 3 lotes/mês)</span>
+                        <span>Precificação com margem real (1 lote por mês)</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
@@ -1077,7 +1077,7 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Caderninho de fiado e histórico na nuvem</span>
+                        <span>Histórico completo das coleções salvo na nuvem</span>
                       </div>
                     </div>
                   </div>
@@ -1133,23 +1133,23 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Venda Condicional (Mala em domicílio)</strong></span>
+                        <span><strong>Caderninho de Fiado Digital com WhatsApp</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Multi-vendedores com controle de comissão</strong></span>
+                        <span><strong>Pró-labore da Dona e Metas Financeiras</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Todos os Templates VIP de Alta Moda</strong></span>
+                        <span><strong>Multi-vendedoras com controle de acesso</strong></span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Sincronização em tempo real de estoque</span>
+                        <span>Todos os Templates VIP de Alta Moda</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>100% White-Label (sem nenhuma marca d'água)</span>
+                        <span>100% White-Label (sua marca própria)</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />

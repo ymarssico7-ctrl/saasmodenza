@@ -38,10 +38,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { creditsQuery, customersQuery, transactionsQuery } from "@/lib/db";
+import { creditsQuery, customersQuery, transactionsQuery, profileQuery } from "@/lib/db";
 import { brl, formatDate, pct, todayISO, toNumber } from "@/lib/format";
 import { CREDIT_STATUS_LABEL, creditStatus, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
+import { useAccess } from "@/lib/useAccess";
+import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import {
   insertCustomer,
   updateCustomer,
@@ -121,9 +123,12 @@ function maskPhone(val: string): string {
 
 function ClientesPage() {
   const queryClient = useQueryClient();
-  const { storeId } = useStore();
+  const { store, storeId } = useStore();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
 
   const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
   const activeTab: "clientes" | "fiado" = useMemo(() => {
@@ -564,7 +569,13 @@ function ClientesPage() {
           ) : (
             <Button
               className="gradient-primary h-10 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
-              onClick={() => setModalNovoFiado(true)}
+              onClick={() => {
+                if (!access.isStore) {
+                  setStoreModalOpen(true);
+                  return;
+                }
+                setModalNovoFiado(true);
+              }}
             >
               <Plus className="size-4" /> Registrar fiado
             </Button>
@@ -873,6 +884,37 @@ function ClientesPage() {
       ) : (
         /* ─── VISÃO 2: CADERNINHO DE FIADO (CONTAINER UNIFICADO DE GESTÃO) ─── */
         <div className="space-y-4">
+          {!access.isStore && (
+            <div className="rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-soft">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <HandCoins className="size-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
+                      ✦ Vestui Store
+                    </span>
+                    <p className="text-xs font-bold text-foreground">
+                      Caderninho de Fiado Digital com Cobrança WhatsApp
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Monitore títulos em aberto, vencimentos e envie cobranças carinhosas com chave Pix no WhatsApp em 1 clique para não levar calote.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setStoreModalOpen(true)}
+                className="font-bold text-xs rounded-xl shadow-lift shrink-0 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Sparkles className="size-3.5" />
+                Desbloquear no Vestui Store
+              </Button>
+            </div>
+          )}
+
           {fiadosComStatus.length === 0 ? (
             <EmptyState
               icon={<HandCoins className="size-8" />}
@@ -880,7 +922,13 @@ function ClientesPage() {
               description="Quando vender a prazo no balcão, registre aqui para ter controle dos pagamentos, datas e cobrança via WhatsApp."
               action={
                 <Button
-                  onClick={() => setModalNovoFiado(true)}
+                  onClick={() => {
+                    if (!access.isStore) {
+                      setStoreModalOpen(true);
+                      return;
+                    }
+                    setModalNovoFiado(true);
+                  }}
                   className="gradient-primary rounded-full h-10 px-5 text-xs font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
                 >
                   <Plus className="size-4" /> Registrar primeiro fiado
@@ -1482,6 +1530,13 @@ function ClientesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Upgrade para Vestui Store */}
+      <UpgradeStoreModal
+        open={storeModalOpen}
+        onOpenChange={setStoreModalOpen}
+        reason="fiado"
+      />
     </div>
   );
 }

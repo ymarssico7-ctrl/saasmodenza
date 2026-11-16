@@ -186,6 +186,7 @@ function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStor
                 to: "/clientes",
                 search: { tab: "fiado" },
                 label: "Caderninho de Fiado",
+                tierBadge: !isStoreTier ? "Store" : undefined,
                 isMatch: (p, s) =>
                   (p.startsWith("/clientes") && s?.["tab"] === "fiado") ||
                   p.startsWith("/fiado"),

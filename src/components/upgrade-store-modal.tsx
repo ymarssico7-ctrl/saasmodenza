@@ -26,7 +26,7 @@ import { WHATSAPP_SUPORTE } from "@/lib/constants";
 interface UpgradeStoreModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reason?: "storefront" | "pos" | "inventory" | "conditional" | "general";
+  reason?: "storefront" | "pos" | "inventory" | "fiado" | "prolabore" | "products_limit" | "conditional" | "general";
 }
 
 export function UpgradeStoreModal({
@@ -37,14 +37,23 @@ export function UpgradeStoreModal({
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
 
   const titles: Record<string, string> = {
+    fiado: "Acabe com o Calote: Caderninho de Fiado no WhatsApp",
+    prolabore: "Separe o Dinheiro da Loja do seu Bolso Pessoal",
+    products_limit: "🎉 Sua Loja Cresceu! Desbloqueie Produtos Ilimitados",
     storefront: "Transforme sua Loja em uma Máquina de Vendas Online",
     pos: "Desbloqueie o PDV de Balcão e Feche Vendas em Segundos",
     inventory: "Controle seu Estoque Físico e Online sem Furo de Peças",
-    conditional: "Gerencie o Condicional e a Malinha sem Perder Peças",
+    conditional: "Acabe com o Calote: Caderninho de Fiado no WhatsApp",
     general: "Evolua para o Vestui Store Completo",
   };
 
   const descriptions: Record<string, string> = {
+    fiado:
+      "Monitore títulos a prazo, vencimentos e envie cobranças amigáveis no WhatsApp com chave Pix em 1 clique para não levar calote.",
+    prolabore:
+      "Calcule suas retiradas mensais sem descapitalizar a loja, com metas de faturamento e controle de retiradas da sócia.",
+    products_limit:
+      "Você atingiu o limite de 60 peças do Vestui Pro. Assine o Vestui Store para ter catálogo e estoque 100% ilimitados.",
     storefront:
       "Crie sua vitrine online personalizada, envie sacola pelo WhatsApp e venda 24 horas por dia.",
     pos:
@@ -52,7 +61,7 @@ export function UpgradeStoreModal({
     inventory:
       "Saiba exatamente quantas peças tem em estoque, grade por tamanho e cor, com alertas de reposição.",
     conditional:
-      "Envie malinhas para suas clientes provarem em casa com comprovante e data de devolução programada.",
+      "Monitore títulos a prazo, vencimentos e envie cobranças amigáveis no WhatsApp com chave Pix em 1 clique.",
     general:
       "Tudo o que sua loja física e online precisa para faturar alto e operar sem planilhas confusas.",
   };
@@ -124,7 +133,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>Loja & Vitrine Online com WhatsApp:</strong> Seu catálogo digital 24h sem comissão sobre as vendas.
+              <strong>Produtos e Lotes Ilimitados:</strong> Sem teto de 60 peças. Cadastre centenas ou milhares de roupas no estoque.
             </span>
           </div>
 
@@ -133,7 +142,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>PDV Balcão Ágil:</strong> Feche vendas em 3 segundos com leitor de código de barras ou busca rápida.
+              <strong>Caderninho de Fiado Digital com WhatsApp:</strong> Acompanhe títulos em aberto, vencimentos e envie cobranças carinhosas com Pix em 1 clique.
             </span>
           </div>
 
@@ -142,7 +151,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>Estoque 100% Unificado:</strong> Vendeu na loja física ou na internet, a baixa é automática e instantânea.
+              <strong>Pró-labore da Dona & Metas Financeiras:</strong> Saiba quanto pode transferir para seu bolso no mês e separe as finanças da loja.
             </span>
           </div>
 
@@ -151,7 +160,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>Gestão de Condicional / Malinha:</strong> Rastreie peças que saíram para provador em casa e reduza perdas a zero.
+              <strong>Multi-vendedoras / Equipe:</strong> Dê acesso ao caixa para suas funcionárias sem expor seus custos de fábrica ou lucros.
             </span>
           </div>
 
@@ -160,7 +169,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>Tudo do Vestui Lote Incluso:</strong> Precificação ilimitada, simulador de desconto e impressão de etiquetas térmicas/A4.
+              <strong>Tudo do Vestui Pro Incluso:</strong> Etiquetas com código de barras, vitrine com sacola Whats e precificação ilimitada.
             </span>
           </div>
         </div>
