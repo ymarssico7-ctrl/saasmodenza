@@ -2030,8 +2030,12 @@ function LivePricingSummaryPanel({
           disabled={entryDisabled}
           className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
         >
-          <PackagePlus className="size-4" />
-          <span>Dar entrada no estoque ({totalUnits} un.)</span>
+          {isStore ? (
+            <PackagePlus className="size-4" />
+          ) : (
+            <Check className="size-4" />
+          )}
+          <span>{isStore ? `Dar entrada no estoque (${totalUnits} un.)` : `Salvar Lote de Peças (${totalUnits} un.)`}</span>
         </Button>
 
         <div className="flex items-center gap-2">
@@ -5109,10 +5113,10 @@ function Precificacao() {
       <div className="flex flex-wrap items-center justify-between gap-4 pb-2">
         <div>
           <p className="text-xs font-medium text-muted-foreground">
-            {access.isStore ? "Produtos > Precificação" : "Vestui > Precificação"}
+            {access.isStore ? "Produtos > Precificação" : "Vestui > Precificação de Lote"}
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
-            {access.isStore ? "Precificação" : "Precificação de Lotes"}
+            {access.isStore ? "Precificação" : "Precificação de Lote"}
           </h1>
         </div>
 
@@ -5152,7 +5156,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <span>{access.isStore ? "Peças precificadas" : "Histórico"}</span>
+            <span>{access.isStore ? "Peças precificadas" : "Histórico de Lotes"}</span>
             {saved.length > 0 && (
               <span className="rounded-full bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0.5">
                 {saved.length}

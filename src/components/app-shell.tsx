@@ -63,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { profileQuery, membersQuery, goalsQuery, transactionsQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { type PlanTier, useAccess } from "@/lib/useAccess";
+import { useBatchQuota } from "@/lib/useBatchQuota";
 import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
@@ -99,14 +100,14 @@ function getMicroSaasNav(tier: PlanTier): NavGroupItem[] {
   return [
     {
       id: "precificacao",
-      label: "Precificação de Lotes",
+      label: "Precificação de Lote",
       icon: Calculator,
       to: "/precificacao",
       isMatch: (p, s) => p.startsWith("/precificacao") && (!s?.["mode"] || s?.["mode"] !== "historico"),
     },
     {
       id: "historico",
-      label: "Histórico de Peças",
+      label: "Histórico de Lotes",
       icon: Tag,
       to: "/precificacao",
       search: { mode: "historico" },
@@ -727,6 +728,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const currentSettingsTab = (typeof search?.["tab"] === "string" ? search["tab"] : "geral") || "geral";
   const { data: members = [] } = useQuery(membersQuery());
   const access = useAccess(profile, store);
+  const quota = useBatchQuota();
   const { isActive, trialStatus, daysLeftInTrial, isTrialUrgent } = access;
 
   // ── Ativação da Vitrine Online & Modo Fiado ──────────────────────────────
@@ -1134,29 +1136,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               </div>
 
-              {/* Botão de Pesquisa compacto */}
-              <div className="flex justify-center pb-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsSearchOpen(true)}
-                  title="Pesquisar (Ctrl+K)"
-                  className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
-                >
-                  <Search className="size-4" />
-                </button>
-              </div>
+              {/* Botão de Pesquisa compacto (Apenas no Plano Store) */}
+              {access.isStore && (
+                <div className="flex justify-center pb-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchOpen(true)}
+                    title="Pesquisar (Ctrl+K)"
+                    className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                  >
+                    <Search className="size-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Navegação de ícones compacta */}
               <nav className="flex flex-col gap-1 overflow-y-auto min-h-0 w-full items-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, true)}
               </nav>
+
+              {/* Indicador de Cota compacto no modo recolhido */}
+              {!access.isStore && quota.isFree && (
+                <div
+                  title={`Cota: ${quota.batchesThisMonth} de ${quota.limit} lotes usados`}
+                  className="mt-auto mb-2 flex flex-col items-center gap-1 py-1 shrink-0"
+                >
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      quota.isQuotaReached ? "bg-amber-400" : "bg-emerald-400"
+                    )}
+                  />
+                  <span className="text-[9px] font-mono text-sidebar-foreground/40 font-medium">
+                    {quota.batchesThisMonth}/{quota.limit}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0">
-              {/* Header com Logo e Botão de Recolher (Padrão Shopify) */}
+              {/* Header com Logo, Badge Free e Botão de Recolher */}
               <div className="flex items-center justify-between px-2 pt-1.5 pb-3 shrink-0">
-                <Link to={access.isStore ? "/painel" : "/precificacao"} className="flex items-center">
+                <Link to={access.isStore ? "/painel" : "/precificacao"} className="flex items-center gap-2">
                   <Logo />
+                  {!access.isStore && (
+                    <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
+                      {access.isFree ? "Free" : "Lote"}
+                    </span>
+                  )}
                 </Link>
                 <button
                   type="button"
@@ -1169,25 +1196,89 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {/* Barra de Pesquisa elegante (Padrão Shopify Polaris) */}
-              <div className="px-1 pb-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsSearchOpen(true)}
-                  className="flex h-8 w-full items-center gap-2 rounded-lg bg-white/[0.05] border border-white/[0.07] px-2.5 text-xs text-sidebar-foreground/50 hover:bg-white/[0.09] hover:text-sidebar-foreground/85 transition-all cursor-pointer text-left group shadow-2xs"
-                >
-                  <Search className="size-3.5 opacity-50 shrink-0 group-hover:opacity-85 transition-opacity" />
-                  <span className="flex-1 text-[12.5px]">Pesquisar...</span>
-                  <kbd className="hidden sm:inline-flex h-4 items-center gap-0.5 rounded border border-white/15 bg-white/5 px-1 font-mono text-[9px] text-sidebar-foreground/40 font-normal">
-                    Ctrl K
-                  </kbd>
-                </button>
-              </div>
+              {/* Barra de Pesquisa elegante (Padrão Shopify Polaris - Apenas no Plano Store) */}
+              {access.isStore && (
+                <div className="px-1 pb-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchOpen(true)}
+                    className="flex h-8 w-full items-center gap-2 rounded-lg bg-white/[0.05] border border-white/[0.07] px-2.5 text-xs text-sidebar-foreground/50 hover:bg-white/[0.09] hover:text-sidebar-foreground/85 transition-all cursor-pointer text-left group shadow-2xs"
+                  >
+                    <Search className="size-3.5 opacity-50 shrink-0 group-hover:opacity-85 transition-opacity" />
+                    <span className="flex-1 text-[12.5px]">Pesquisar...</span>
+                    <kbd className="hidden sm:inline-flex h-4 items-center gap-0.5 rounded border border-white/15 bg-white/5 px-1 font-mono text-[9px] text-sidebar-foreground/40 font-normal">
+                      Ctrl K
+                    </kbd>
+                  </button>
+                </div>
+              )}
 
               {/* Navegação Limpa e Organizada */}
               <nav className="flex flex-col gap-1.5 overflow-y-auto min-h-0 pr-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {renderNavItems(undefined, false)}
               </nav>
+
+              {/* ── Widget de Cota & Produtividade no Espaço Central (Preenche o vazio com alto padrão) ── */}
+              {!access.isStore && (
+                <div className="mt-auto pt-3 pb-1 px-1 shrink-0">
+                  {access.isFree ? (
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-sidebar-foreground transition-all hover:bg-white/[0.05]">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-sidebar-foreground/80 mb-2">
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "size-1.5 rounded-full",
+                              quota.isQuotaReached ? "bg-amber-400" : "bg-emerald-400"
+                            )}
+                          />
+                          Cota do Mês
+                        </span>
+                        <span className="text-[10px] font-mono text-sidebar-foreground/50 font-bold">
+                          {quota.batchesThisMonth} / {quota.limit} lotes
+                        </span>
+                      </div>
+
+                      {/* Barra de Progresso Fina */}
+                      <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mb-2">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            quota.isQuotaReached ? "bg-amber-400" : "bg-emerald-400"
+                          )}
+                          style={{
+                            width: `${Math.min(100, Math.max(8, (quota.batchesThisMonth / quota.limit) * 100))}%`,
+                          }}
+                        />
+                      </div>
+
+                      <p className="text-[10.5px] text-sidebar-foreground/60 leading-relaxed mb-2.5">
+                        {quota.isQuotaReached
+                          ? "Limite gratuito de 3 lotes atingido este mês."
+                          : `Você usou ${quota.batchesThisMonth} de ${quota.limit} lotes gratuitos.`}
+                      </p>
+
+                      <Link
+                        to="/configuracoes"
+                        search={{ tab: "plano" }}
+                        className="group/link flex items-center justify-between text-[10.5px] font-semibold text-primary hover:text-primary/90 transition-colors pt-2 border-t border-white/5"
+                      >
+                        <span>Lotes ilimitados (R$ 19,90)</span>
+                        <span className="transition-transform group-hover/link:translate-x-0.5">→</span>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3 text-sidebar-foreground">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 mb-1">
+                        <Sparkles className="size-3" />
+                        Vestui Lote Ativo
+                      </div>
+                      <p className="text-[10px] text-sidebar-foreground/60 leading-relaxed">
+                        Lotes e etiquetas térmicas ilimitadas liberados.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )
         )}
