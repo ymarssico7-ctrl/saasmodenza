@@ -25,7 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface VestuiGuideBannerProps {
-  mode: "gestao" | "loja";
+  mode: "gestao" | "loja" | "free";
   storeId?: string | null;
   storeSlug?: string | null;
   inventoryCount?: number;
@@ -76,7 +76,50 @@ export function VestuiGuideBanner({
 
   // ── Etapas baseadas no Modo (Irmãos com papéis complementares) ──────────────
   const steps =
-    mode === "gestao"
+    mode === "free"
+      ? [
+          {
+            id: "inventory",
+            title: "Cadastre suas primeiras peças",
+            description: "Adicione até 10 peças no catálogo com fotos, tamanhos e preços de venda.",
+            isDone: inventoryCount > 0,
+            to: "/estoque",
+            cta: "Cadastrar peça",
+            badgeText: inventoryCount > 0 ? `${inventoryCount}/10 peça(s)` : undefined,
+            icon: <Boxes className="size-4" />,
+          },
+          {
+            id: "storefront",
+            title: "Divulgue sua Vitrine na Bio",
+            description: "Copie o link da vitrine express e cole no Instagram para receber pedidos.",
+            isDone: hasStorefront,
+            action: onCopyLink,
+            to: onCopyLink ? undefined : (storeSlug ? `/vitrine/${storeSlug}` : "/configuracoes"),
+            cta: "Copiar link",
+            badgeText: storeSlug ? `vestui.com.br/vitrine/${storeSlug}` : undefined,
+            icon: <ShoppingBag className="size-4" />,
+          },
+          {
+            id: "pricing",
+            title: "Precifique seu 1º lote de atacado",
+            description: "Calcule a margem real de lucro e markup seguro do seu lote de compras.",
+            isDone: false,
+            to: "/precificacao",
+            cta: "Precificar lote",
+            icon: <Target className="size-4" />,
+          },
+          {
+            id: "pro_preview",
+            title: "Conheça o Frente de Caixa (PDV)",
+            description: "Ative o Vestui Pro por R$ 19,90 para cadastrar 60 peças e vender no balcão em 3s.",
+            isDone: false,
+            to: "/caixa",
+            cta: "Ver PDV Ágil",
+            badgeText: "R$ 19,90",
+            icon: <Sparkles className="size-4" />,
+          },
+        ]
+      : mode === "gestao"
       ? [
           {
             id: "inventory",
@@ -161,7 +204,7 @@ export function VestuiGuideBanner({
   const nextStep = steps.find((s) => !s.isDone) ?? steps[0]!;
   const nextStepIndex = steps.findIndex((s) => s.id === nextStep.id);
 
-  const guideTitle = mode === "gestao" ? "Guia Financeiro" : "Aceleração da Vitrine";
+  const guideTitle = mode === "free" ? "Primeiros Passos" : mode === "gestao" ? "Guia Financeiro" : "Aceleração da Vitrine";
 
   // ── Se concluído e dispensado ───────────────────────────────────────────────
   if (isAllDone && dismissed) return null;

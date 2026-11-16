@@ -62,7 +62,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { profileQuery, membersQuery, goalsQuery, transactionsQuery, inventoryQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
-import { type PlanTier, useAccess } from "@/lib/useAccess";
+import { type PlanTier, type AccessInfo, useAccess } from "@/lib/useAccess";
 import { useBatchQuota } from "@/lib/useBatchQuota";
 import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
@@ -95,8 +95,250 @@ type NavGroupItem = {
   isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 
-// ─── Árvore de Navegação Universal (Plataforma Completa para Todos os Planos) ───
-function getShopifyNav(vitrineAtiva: boolean, fiadoAtivo: boolean = true, isStoreTier: boolean = true): NavGroupItem[] {
+// ─── Árvore de Navegação Escalar (Padrão Shopify — Maturidade da Loja) ───────
+function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: boolean = true): NavGroupItem[] {
+  // ── 1. PLANO FREE: Foco em Ativação Diária (Simplicidade & Zero Poluição) ──
+  if (access.isFree) {
+    return [
+      {
+        id: "painel",
+        label: "Início",
+        icon: Home,
+        to: "/painel",
+        isMatch: (p) => p === "/painel",
+      },
+      {
+        id: "precificacao_top",
+        label: "Lotes & Precificação",
+        icon: Calculator,
+        to: "/precificacao",
+        isMatch: (p) => p.startsWith("/precificacao"),
+      },
+      {
+        id: "produtos",
+        label: "Produtos",
+        icon: Boxes,
+        to: "/estoque",
+        search: { tab: "pecas" },
+        isMatch: (p) => p.startsWith("/estoque"),
+      },
+      {
+        id: "pedidos",
+        label: "Pedidos",
+        icon: ShoppingBag,
+        to: "/loja/pedidos",
+        badgeKey: "pedidos",
+        isMatch: (p) => p.startsWith("/loja/pedidos"),
+      },
+      {
+        id: "clientes",
+        label: "Clientes",
+        icon: Users,
+        to: "/clientes",
+        search: { tab: "clientes" },
+        isMatch: (p) => p.startsWith("/clientes") && !p.startsWith("/clientes?tab=fiado"),
+      },
+
+      // ── Módulos de Expansão (Iscas de Upgrade Nível Shopify) ─────────────────
+      {
+        id: "caixa",
+        label: "Frente de Caixa (PDV)",
+        icon: Wallet,
+        to: "/caixa",
+        dividerBefore: true,
+        tierBadge: "Pro",
+        isMatch: (p) => p === "/caixa",
+      },
+      {
+        id: "fiado",
+        label: "Caderninho de Fiado",
+        icon: HandCoins,
+        to: "/clientes",
+        search: { tab: "fiado" },
+        tierBadge: "Store",
+        isMatch: (p, s) =>
+          (p.startsWith("/clientes") && s?.["tab"] === "fiado") ||
+          p.startsWith("/fiado"),
+      },
+      {
+        id: "financas",
+        label: "Cockpit Financeiro",
+        icon: BarChart3,
+        to: "/relatorio",
+        tierBadge: "Store",
+        isMatch: (p) =>
+          p.startsWith("/relatorio") ||
+          p.startsWith("/metas") ||
+          p.startsWith("/prolabore"),
+      },
+    ];
+  }
+
+  // ── 2. PLANO PRO: Máquina de Vendas Balcão + Online ─────────────────────────
+  if (access.isPro) {
+    const proItems: NavGroupItem[] = [
+      {
+        id: "painel",
+        label: "Início",
+        icon: Home,
+        to: "/painel",
+        isMatch: (p) => p === "/painel",
+      },
+      {
+        id: "precificacao_top",
+        label: "Lotes & Precificação",
+        icon: Calculator,
+        to: "/precificacao",
+        isMatch: (p) => p.startsWith("/precificacao"),
+      },
+      {
+        id: "caixa",
+        label: "Caixa & PDV",
+        icon: Wallet,
+        to: "/caixa",
+        isMatch: (p) => p === "/caixa",
+      },
+      {
+        id: "pedidos",
+        label: "Pedidos",
+        icon: ShoppingBag,
+        to: "/loja/pedidos",
+        badgeKey: "pedidos",
+        isMatch: (p) => p.startsWith("/loja/pedidos"),
+      },
+      {
+        id: "produtos",
+        label: "Produtos",
+        icon: Boxes,
+        to: "/estoque",
+        search: { tab: "pecas" },
+        dividerBefore: true,
+        isMatch: (p) =>
+          p.startsWith("/estoque") ||
+          p.startsWith("/precificacao") ||
+          p.startsWith("/fornecedores"),
+        children: [
+          {
+            to: "/estoque",
+            search: { tab: "pecas" },
+            label: "Peças em Estoque",
+            isMatch: (p, s) => p.startsWith("/estoque") && s?.["tab"] !== "categorias",
+          },
+          {
+            to: "/estoque",
+            search: { tab: "categorias" },
+            label: "Coleções & Categorias",
+            isMatch: (p, s) => p.startsWith("/estoque") && s?.["tab"] === "categorias",
+          },
+          {
+            to: "/fornecedores",
+            label: "Fornecedores",
+            isMatch: (p) => p.startsWith("/fornecedores"),
+          },
+        ],
+      },
+      {
+        id: "clientes",
+        label: "Clientes",
+        icon: Users,
+        to: "/clientes",
+        search: { tab: "clientes" },
+        isMatch: (p) => p.startsWith("/clientes") && !p.startsWith("/clientes?tab=fiado"),
+      },
+      {
+        id: "marketing",
+        label: "Marketing",
+        icon: BadgePercent,
+        to: "/loja/cupons",
+        dividerBefore: true,
+        isMatch: (p) =>
+          p.startsWith("/loja/cupons") ||
+          p.startsWith("/loja/compartilhar"),
+        children: [
+          {
+            to: "/loja/cupons",
+            label: "Cupons & Descontos",
+            isMatch: (p) => p.startsWith("/loja/cupons"),
+          },
+          {
+            to: "/loja/compartilhar",
+            label: "Divulgação & Redes",
+            isMatch: (p) => p.startsWith("/loja/compartilhar"),
+          },
+        ],
+      },
+
+      // Iscas Store
+      {
+        id: "fiado",
+        label: "Caderninho de Fiado",
+        icon: HandCoins,
+        to: "/clientes",
+        search: { tab: "fiado" },
+        tierBadge: "Store",
+        dividerBefore: true,
+        isMatch: (p, s) =>
+          (p.startsWith("/clientes") && s?.["tab"] === "fiado") ||
+          p.startsWith("/fiado"),
+      },
+      {
+        id: "financas",
+        label: "Cockpit Financeiro",
+        icon: BarChart3,
+        to: "/relatorio",
+        tierBadge: "Store",
+        isMatch: (p) =>
+          p.startsWith("/relatorio") ||
+          p.startsWith("/metas") ||
+          p.startsWith("/prolabore"),
+      },
+    ];
+
+    if (vitrineAtiva) {
+      proItems.push({
+        id: "vitrine",
+        label: "Vitrine Online",
+        icon: Store,
+        to: "/loja/produtos",
+        section: "Canais de vendas",
+        externalPreview: true,
+        isMatch: (p) =>
+          p.startsWith("/loja") &&
+          !p.startsWith("/loja/pedidos") &&
+          !p.startsWith("/loja/cupons") &&
+          !p.startsWith("/loja/compartilhar"),
+        children: [
+          {
+            to: "/loja/produtos",
+            label: "Produtos na Vitrine",
+            isMatch: (p) => p.startsWith("/loja/produtos"),
+          },
+          {
+            to: "/loja/templates",
+            label: "Personalizar Loja & Temas",
+            isMatch: (p) => p.startsWith("/loja/templates"),
+          },
+          {
+            to: "/loja/configuracao",
+            label: "Configurações da Vitrine",
+            isMatch: (p) =>
+              p.startsWith("/loja/configuracao") ||
+              p.startsWith("/loja/personalizar"),
+          },
+          {
+            to: "/loja/frete",
+            label: "Frete & Entregas",
+            isMatch: (p) => p.startsWith("/loja/frete"),
+          },
+        ],
+      });
+    }
+
+    return proItems;
+  }
+
+  // ── 3. PLANO STORE: ERP Completo Unificado ──────────────────────────────────
+  const isStoreTier = access.isStore;
   const items: NavGroupItem[] = [
     // ── Acesso Operacional Rápido (Alta Frequência Diária) ───────────────────
     {
@@ -483,7 +725,14 @@ const NavGroupRow = memo(function NavGroupRow({
                 <div className="flex items-center gap-1.5">
                   <span>{item.label}</span>
                   {item.tierBadge && (
-                    <span className="flex items-center gap-0.5 rounded-full bg-primary/20 border border-primary/30 px-1.5 py-0.2 text-[8px] font-extrabold text-primary-foreground uppercase tracking-wider">
+                    <span
+                      className={cn(
+                        "flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[8px] font-extrabold uppercase tracking-wider",
+                        item.tierBadge === "Pro"
+                          ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                          : "bg-amber-500/20 border border-amber-500/30 text-amber-400",
+                      )}
+                    >
                       ✦ {item.tierBadge}
                     </span>
                   )}
@@ -562,7 +811,14 @@ const NavGroupRow = memo(function NavGroupRow({
           >
             <span>{item.label}</span>
             {item.tierBadge && (
-              <span className="rounded-full bg-primary/20 border border-primary/30 px-1 py-0.2 text-[8px] font-extrabold text-primary-foreground uppercase">
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.2 text-[8px] font-extrabold uppercase",
+                  item.tierBadge === "Pro"
+                    ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                    : "bg-amber-500/20 border border-amber-500/30 text-amber-400",
+                )}
+              >
                 ✦ {item.tierBadge}
               </span>
             )}
@@ -601,7 +857,14 @@ const NavGroupRow = memo(function NavGroupRow({
           <span className="truncate">{item.label}</span>
 
           {item.tierBadge && (
-            <span className="ml-auto flex items-center gap-0.5 rounded-full bg-primary/20 border border-primary/30 px-1.5 py-0.5 text-[9px] font-extrabold text-primary-foreground uppercase tracking-wider">
+            <span
+              className={cn(
+                "ml-auto flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
+                item.tierBadge === "Pro"
+                  ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                  : "bg-amber-500/20 border border-amber-500/30 text-amber-400",
+              )}
+            >
               ✦ {item.tierBadge}
             </span>
           )}
@@ -727,8 +990,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
 
   const navItems = useMemo(
-    () => getShopifyNav(vitrineAtiva, fiadoAtivo, access.isStore),
-    [access.isStore, vitrineAtiva, fiadoAtivo],
+    () => getShopifyNav(access, vitrineAtiva, fiadoAtivo),
+    [access, vitrineAtiva, fiadoAtivo],
   );
 
   // ── Modelo de Accordion Estrito (Apenas 1 grupo aberto por vez) ───────────
