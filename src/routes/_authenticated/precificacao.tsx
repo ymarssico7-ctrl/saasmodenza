@@ -119,7 +119,14 @@ import { useBatchQuota } from "@/lib/useBatchQuota";
 import { LabelPrintModal, type LabelItem } from "@/components/label-print-modal";
 import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
 
+type PrecificacaoSearch = {
+  mode?: "rapida" | "grade" | "historico";
+};
+
 export const Route = createFileRoute("/_authenticated/precificacao")({
+  validateSearch: (search: Record<string, unknown>): PrecificacaoSearch => ({
+    mode: (search.mode as "rapida" | "grade" | "historico") || undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Precificação Estratégica & Inteligência de Margem — Vestui" },
@@ -1694,6 +1701,7 @@ function LivePricingSummaryPanel({
   onPrintLabels,
   saveDisabled,
   entryDisabled,
+  isStore = true,
 }: {
   name: string;
   category: string;
@@ -1718,6 +1726,7 @@ function LivePricingSummaryPanel({
   onPrintLabels?: () => void;
   saveDisabled: boolean;
   entryDisabled: boolean;
+  isStore?: boolean;
 }) {
   const marginHealth = getMarginHealth(effectiveMargin);
 
@@ -1815,8 +1824,12 @@ function LivePricingSummaryPanel({
               disabled={entryDisabled}
               className="w-full h-10 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-glow text-sm cursor-pointer flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              <PackagePlus className="size-4" />
-              <span>Dar entrada no estoque</span>
+              {isStore ? (
+                <PackagePlus className="size-4" />
+              ) : (
+                <Check className="size-4" />
+              )}
+              <span>{isStore ? "Dar entrada no estoque" : "Salvar Lote de Peças"}</span>
             </Button>
             {missingMsg && (
               <p className="text-center text-[11px] text-muted-foreground/70">
@@ -2294,6 +2307,7 @@ function Precificacao() {
   const { data: profile } = useQuery(profileQuery());
   const access = useAccess(profile, store);
   const quota = useBatchQuota();
+  const searchParams = Route.useSearch();
 
   const [labelModalOpen, setLabelModalOpen] = useState(false);
   const [labelItems, setLabelItems] = useState<LabelItem[]>([]);
@@ -2366,6 +2380,11 @@ function Precificacao() {
 
   // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
   const [mode, setMode] = useState<PricingMode>(() => loadDraft("mode", "rapida"));
+
+  // Sincroniza modo via search param (ex: sidebar link "Histórico de Peças")
+  useEffect(() => {
+    if (searchParams.mode) setMode(searchParams.mode);
+  }, [searchParams.mode]);
 
   // ── Estratégia de Precificação ────────────────────────────────────
   const [strategy, setStrategy] = useState<PricingStrategy>(() => loadDraft("strategy", "margin"));
@@ -5089,9 +5108,11 @@ function Precificacao() {
       {/* ── Header Unificado no Estilo Apple: Breadcrumbs + Título + Segmented Pills na Mesma Faixa ── */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-2">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Produtos &gt; Precificação</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            {access.isStore ? "Produtos > Precificação" : "Vestui > Precificação"}
+          </p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
-            Precificação
+            {access.isStore ? "Precificação" : "Precificação de Lotes"}
           </h1>
         </div>
 
@@ -5119,7 +5140,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Grade &amp; estoque
+            {access.isStore ? "Grade & estoque" : "Grade de Tamanhos"}
           </button>
           <button
             type="button"
@@ -5131,7 +5152,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <span>Peças precificadas</span>
+            <span>{access.isStore ? "Peças precificadas" : "Histórico"}</span>
             {saved.length > 0 && (
               <span className="rounded-full bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0.5">
                 {saved.length}
@@ -5141,42 +5162,30 @@ function Precificacao() {
         </div>
       </div>
 
-      {/* ── BANNER DE COTA DO PLANO GRATUITO ── */}
+      {/* ── INDICADOR DE COTA DO PLANO GRATUITO (minimalista, não invasivo) ── */}
       {quota.isFree && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-start gap-3">
-            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-              <Sparkles className="size-4 text-primary" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-bold text-foreground">
-                  {quota.isQuotaReached
-                    ? "Você atingiu o limite de 3 lotes gratuitos deste mês"
-                    : `Você usou ${quota.batchesThisMonth} de ${quota.limit} lotes gratuitos este mês`}
-                </p>
-                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary font-bold uppercase">
-                  Plano Gratuito
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {quota.isQuotaReached
-                  ? "Para continuar precificando novas coleções e imprimir etiquetas com código de barras, ative o Vestui Lote."
-                  : `Restam ${quota.remaining} lote(s) gratuito(s). Ative o Vestui Lote por R$ 19,90/mês para lotes ilimitados e etiquetas prontas.`}
-              </p>
-            </div>
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className={cn(
+              "size-1.5 rounded-full",
+              quota.isQuotaReached ? "bg-red-400" : "bg-emerald-400"
+            )} />
+            <span>
+              {quota.isQuotaReached
+                ? "Limite de 3 lotes atingido este mês"
+                : `Lotes este mês: ${quota.batchesThisMonth} de ${quota.limit}`}
+            </span>
           </div>
-          <Button
-            size="sm"
+          <button
+            type="button"
             onClick={() => {
               setUpgradeReason(quota.isQuotaReached ? "quota_reached" : "general");
               setUpgradeLoteModalOpen(true);
             }}
-            className="shrink-0 h-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-glow cursor-pointer gap-1.5"
+            className="text-[11px] font-semibold text-primary hover:underline cursor-pointer transition-colors whitespace-nowrap"
           >
-            <Zap className="size-3.5" />
-            Desbloquear Ilimitado (R$ 19,90)
-          </Button>
+            {quota.isQuotaReached ? "Desbloquear →" : "Lotes ilimitados por R$ 19,90 →"}
+          </button>
         </div>
       )}
 
@@ -6672,11 +6681,19 @@ function Precificacao() {
                     disabled={!canSubmitGrade}
                     className="w-full h-11 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
                   >
-                    <PackagePlus className="size-4 mr-2" />
+                    {access.isStore ? (
+                      <PackagePlus className="size-4 mr-2" />
+                    ) : (
+                      <Check className="size-4 mr-2" />
+                    )}
                     <span>
-                      {actualLotUnits > 0
-                        ? `Dar entrada no estoque (${actualLotUnits} un.)`
-                        : "Dar entrada no estoque"}
+                      {access.isStore
+                        ? actualLotUnits > 0
+                          ? `Dar entrada no estoque (${actualLotUnits} un.)`
+                          : "Dar entrada no estoque"
+                        : actualLotUnits > 0
+                          ? `Salvar Lote de Peças (${actualLotUnits} un.)`
+                          : "Salvar Lote de Peças"}
                     </span>
                   </Button>
 
@@ -8135,8 +8152,16 @@ function Precificacao() {
                   disabled={!canSubmitGrade}
                   className="h-11 px-5 rounded-xl gradient-primary text-primary-foreground text-xs font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer shrink-0 disabled:opacity-40"
                 >
-                  <PackagePlus className="size-4 mr-1.5" />
-                  <span>Dar entrada ({actualLotUnits} un.)</span>
+                  {access.isStore ? (
+                    <PackagePlus className="size-4 mr-1.5" />
+                  ) : (
+                    <Check className="size-4 mr-1.5" />
+                  )}
+                  <span>
+                    {access.isStore
+                      ? `Dar entrada (${actualLotUnits} un.)`
+                      : `Salvar Lote (${actualLotUnits} un.)`}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -8306,6 +8331,7 @@ function Precificacao() {
               onPrintLabels={handlePrintLabelsRapida}
               saveDisabled={save.isPending || !name.trim() || toNumber(wholesale) <= 0}
               entryDisabled={actualLotUnits === 0 || summaryPrices.avgSuggested <= 0 || summaryPrices.avgCost <= 0 || !name.trim()}
+              isStore={access.isStore}
             />
           </div>
         )}
