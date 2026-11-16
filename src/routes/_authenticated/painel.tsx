@@ -3,10 +3,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  ArrowRight,
   Eye,
   EyeOff,
+  Link2,
+  Package,
   Plus,
+  ShoppingBag,
+  Sparkles,
   Store,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -29,6 +36,7 @@ import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
 import { cn } from "@/lib/utils";
+import { useAccess } from "@/lib/useAccess";
 import {
   creditsQuery,
   goalsQuery,
@@ -90,6 +98,7 @@ function Painel() {
   const { data: credits = [] } = useQuery(creditsQuery());
   const { data: goals = [] } = useQuery(goalsQuery());
   const { data: rawOrders = [] } = useQuery(ordersQuery(storeId));
+  const access = useAccess(profile, store);
 
   const today = todayISO();
   const thisMonth = monthStart(0);
@@ -750,78 +759,221 @@ function Painel() {
         hasStorefront={Boolean(store?.slug)}
       />
 
-      {/* ── 1. FAIXA DE KPIS MACRO FULL-WIDTH (4 CARDS — PADRÃO PRODEX) ── */}
-      <PainelKpisBento
-        revenue={revenue}
-        netRevenue={netRevenue}
-        prevRevenue={prevRevenue}
-        refunds={refunds}
-        totalExpenses={totalExpenses}
-        expenses={expenses}
-        stockPurchases={stockPurchases}
-        profit={profit}
-        operatingProfit={operatingProfit}
-        marginPct={marginPct}
-        fisicaRevenue={fisicaRevenue}
-        onlineRevenue={onlineRevenue}
-        vitrineAtiva={vitrineAtiva}
-        totalPecasVendidas={totalPecasVendidas}
-        ticketMedio={ticketMedio}
-        pedidosNovosCount={pedidosNovosCount}
-        pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
-        goalTarget={goalTarget}
-        goalProgress={goalProgress}
-        dailyTarget={dailyTarget}
-        ocultarSaldos={ocultarSaldos}
-        mascaraSaldo={mascaraSaldo}
-      />
+      {/* ── COCKPIT MODULADO POR PLANO ─────────────────────────────────────── */}
 
-      {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}
-      <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 items-stretch">
-        {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo de Vendas + Histórico Recente ── */}
-        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7">
-          <PainelGraficoVendas
-            transactions={txs}
-            orders={orders}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-          />
-          <PainelUltimasVendas
-            transactions={txs}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-            className="flex-1"
-          />
+      {/* ── PLANO FREE: Cockpit de Ativação (sem financeiro) ─────────────── */}
+      {access.isFree && (
+        <div className="space-y-4">
+          {/* Grid 2 colunas: progresso de estoque + vitrine */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Card 1 — Progresso do Estoque */}
+            <div className="panel p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="size-4 text-primary/70" />
+                  <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Estoque</span>
+                </div>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  {totalCatalogItems} / {access.limits.maxProducts} peças
+                </span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${Math.min(100, (totalCatalogItems / access.limits.maxProducts) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {totalCatalogItems === 0
+                  ? "Cadastre suas primeiras peças para começar a vender."
+                  : totalCatalogItems >= access.limits.maxProducts
+                  ? "Limite atingido. Faça upgrade para cadastrar mais peças."
+                  : `Você ainda pode cadastrar ${access.limits.maxProducts - totalCatalogItems} peças no plano gratuito.`}
+              </p>
+              <Link
+                to="/estoque"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+              >
+                <Package className="size-3.5" />
+                Cadastrar Peças
+                <ArrowRight className="size-3" />
+              </Link>
+            </div>
+
+            {/* Card 2 — Vitrine Catálogo */}
+            <div className="panel p-5 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="size-4 text-primary/70" />
+                <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Vitrine Catálogo</span>
+              </div>
+              {vitrineUrl ? (
+                <>
+                  <p className="text-[11px] text-muted-foreground break-all leading-relaxed">{vitrineDisplay}</p>
+                  <button
+                    type="button"
+                    onClick={copiarLinkVitrine}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline text-left"
+                  >
+                    <Link2 className="size-3.5" />
+                    Copiar link para Instagram
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Configure o link da sua loja para compartilhar o catálogo.
+                  </p>
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "canais" }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                  >
+                    Configurar Vitrine
+                    <ArrowRight className="size-3" />
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* CTAs primários */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              to="/precificacao"
+              className="panel p-4 flex items-center gap-3 hover:bg-secondary/40 transition-colors group cursor-pointer"
+            >
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors shrink-0">
+                <TrendingUp className="size-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Precificar Lote de Compras</p>
+                <p className="text-[11px] text-muted-foreground">Calcule margem e preço de venda ideal</p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground/50 group-hover:text-primary transition-colors ml-auto shrink-0" />
+            </Link>
+
+            <Link
+              to="/estoque"
+              className="panel p-4 flex items-center gap-3 hover:bg-secondary/40 transition-colors group cursor-pointer"
+            >
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors shrink-0">
+                <Package className="size-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Cadastrar Peças</p>
+                <p className="text-[11px] text-muted-foreground">Adicione produtos ao seu catálogo</p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground/50 group-hover:text-primary transition-colors ml-auto shrink-0" />
+            </Link>
+          </div>
+
+          {/* Banner de prévia financeira — upgrade Store */}
+          <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-primary/5 p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/15 shrink-0 mt-0.5">
+                <Sparkles className="size-5 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">
+                  Acompanhe seu Faturamento Real no Vestui Store
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                  Veja DRE, Saídas, Lucro Líquido, Pró-labore e Ritmo de Vendas — tudo em tempo real.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <Link
+                to="/configuracoes"
+                search={{ tab: "plano" }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white transition-colors"
+              >
+                <Zap className="size-3.5" />
+                Ver Vestui Store — R$ 97/mês
+              </Link>
+              <span className="text-[10px] text-muted-foreground">Acesso completo ao ERP</span>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* ── Coluna Direita (~42% = 5 colunas): Radar Online (Topo) + Saúde do Estoque ── */}
-        <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5">
-          <PainelRadarPedidosOnline
-            pedidosPendentes={pedidosPendentes}
-            totalPedidosNovos={pedidosNovosCount}
-            valorTotalNovos={pedidosNovosValor}
+      {/* ── PLANO PRO + STORE: Cockpit Financeiro Completo ───────────────── */}
+      {!access.isFree && (
+        <>
+          {/* ── 1. FAIXA DE KPIS MACRO FULL-WIDTH (4 CARDS — PADRÃO PRODEX) ── */}
+          <PainelKpisBento
+            revenue={revenue}
+            netRevenue={netRevenue}
+            prevRevenue={prevRevenue}
+            refunds={refunds}
+            totalExpenses={totalExpenses}
+            expenses={expenses}
+            stockPurchases={stockPurchases}
+            profit={profit}
+            operatingProfit={operatingProfit}
+            marginPct={marginPct}
+            fisicaRevenue={fisicaRevenue}
+            onlineRevenue={onlineRevenue}
             vitrineAtiva={vitrineAtiva}
-            vitrineUrl={vitrineUrl}
-            vitrineDisplay={vitrineDisplay}
+            totalPecasVendidas={totalPecasVendidas}
+            ticketMedio={ticketMedio}
+            pedidosNovosCount={pedidosNovosCount}
+            pedidosEmSeparacaoCount={pedidosEmSeparacaoCount}
+            goalTarget={goalTarget}
+            goalProgress={goalProgress}
+            dailyTarget={dailyTarget}
             ocultarSaldos={ocultarSaldos}
             mascaraSaldo={mascaraSaldo}
-            onCopiarLink={copiarLinkVitrine}
           />
-          <PainelCapitalEstoque
-            totalStockValue={totalStockCost}
-            totalStockPotential={totalStockPotential}
-            totalStockUnits={totalStockUnits}
-            totalCatalogItems={totalCatalogItems}
-            outOfStockCount={outOfStockCount}
-            lowStockCount={lowStockCount}
-            healthyStockCount={healthyStockCount}
-            outOfStockSampleName={outOfStockSampleName}
-            ocultarSaldos={ocultarSaldos}
-            mascaraSaldo={mascaraSaldo}
-            className="flex-1"
-          />
-        </div>
-      </div>
+
+          {/* ── GRID CONTÍNUO EQUILIBRADO 7/5 (SEM BURACOS BRANCOS) ── */}
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 items-stretch">
+            {/* ── Coluna Esquerda (~58% = 7 colunas): Ritmo de Vendas + Histórico Recente ── */}
+            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7">
+              <PainelGraficoVendas
+                transactions={txs}
+                orders={orders}
+                ocultarSaldos={ocultarSaldos}
+                mascaraSaldo={mascaraSaldo}
+              />
+              <PainelUltimasVendas
+                transactions={txs}
+                ocultarSaldos={ocultarSaldos}
+                mascaraSaldo={mascaraSaldo}
+                className="flex-1"
+              />
+            </div>
+
+            {/* ── Coluna Direita (~42% = 5 colunas): Radar Online (Topo) + Saúde do Estoque ── */}
+            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5">
+              <PainelRadarPedidosOnline
+                pedidosPendentes={pedidosPendentes}
+                totalPedidosNovos={pedidosNovosCount}
+                valorTotalNovos={pedidosNovosValor}
+                vitrineAtiva={vitrineAtiva}
+                vitrineUrl={vitrineUrl}
+                vitrineDisplay={vitrineDisplay}
+                ocultarSaldos={ocultarSaldos}
+                mascaraSaldo={mascaraSaldo}
+                onCopiarLink={copiarLinkVitrine}
+              />
+              <PainelCapitalEstoque
+                totalStockValue={totalStockCost}
+                totalStockPotential={totalStockPotential}
+                totalStockUnits={totalStockUnits}
+                totalCatalogItems={totalCatalogItems}
+                outOfStockCount={outOfStockCount}
+                lowStockCount={lowStockCount}
+                healthyStockCount={healthyStockCount}
+                outOfStockSampleName={outOfStockSampleName}
+                ocultarSaldos={ocultarSaldos}
+                mascaraSaldo={mascaraSaldo}
+                className="flex-1"
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

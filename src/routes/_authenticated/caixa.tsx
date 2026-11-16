@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -27,6 +27,7 @@ import {
   RotateCcw,
   Settings,
   ShoppingBag,
+  Sparkles,
   TrendingUp,
   Trash2,
   User,
@@ -67,7 +68,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { transactionsQuery, customersQuery, inventoryQuery, suppliersQuery, creditsQuery } from "@/lib/db";
+import { transactionsQuery, customersQuery, inventoryQuery, suppliersQuery, creditsQuery, profileQuery } from "@/lib/db";
 import { isFiadoAtivo, FIADO_SETTINGS_EVENT } from "@/lib/fiado-settings";
 import { brl, formatDate, monthLabel, monthStart, todayISO, toNumber } from "@/lib/format";
 import {
@@ -90,6 +91,8 @@ import {
   type CustomOptionsStore,
 } from "@/lib/custom-options";
 import { useStore } from "@/lib/store-context";
+import { useAccess } from "@/lib/useAccess";
+import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
 import {
   insertTransaction,
   deleteTransaction,
@@ -113,8 +116,224 @@ export const Route = createFileRoute("/_authenticated/caixa")({
       { property: "og:description", content: "Entradas, saídas e saldo sempre atualizados." },
     ],
   }),
-  component: Caixa,
+  component: CaixaRouteWrapper,
 });
+
+// ── Wrapper com Proteção Modular de Plano (Arquitetura Híbrida) ───────────────
+function CaixaRouteWrapper() {
+  const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
+  if (!access.limits.hasPOS) {
+    return (
+      <CaixaGatePresentation
+        onOpenUpgrade={() => setUpgradeModalOpen(true)}
+        upgradeModalOpen={upgradeModalOpen}
+        setUpgradeModalOpen={setUpgradeModalOpen}
+      />
+    );
+  }
+
+  return <Caixa />;
+}
+
+// ── Tela de Apresentação do PDV Ágil para Usuários do Plano Gratuito ───────────
+function CaixaGatePresentation({
+  onOpenUpgrade,
+  upgradeModalOpen,
+  setUpgradeModalOpen,
+}: {
+  onOpenUpgrade: () => void;
+  upgradeModalOpen: boolean;
+  setUpgradeModalOpen: (open: boolean) => void;
+}) {
+  return (
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        title="Frente de Caixa (PDV de Balcão)"
+        description="Registre vendas no balcão físico em 3 segundos com baixa de estoque e comprovante WhatsApp."
+      />
+
+      {/* Hero Visual do PDV Ágil */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
+        <div className="max-w-2xl space-y-4">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+            ✦ Disponível no Vestui Pro
+          </Badge>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+            Registre Vendas no Balcão em 3 Segundos com o PDV Ágil
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Feito para a velocidade do varejo de moda: bipe o código de barras ou busque a peça pelo nome,
+            selecione o tamanho e finalize com baixa imediata de estoque e comprovante direto no WhatsApp da cliente.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              onClick={onOpenUpgrade}
+              size="lg"
+              className="gradient-primary h-12 rounded-2xl px-6 text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 cursor-pointer gap-2"
+            >
+              <Zap className="size-4" />
+              Ativar Frente de Caixa por R$ 19,90/mês
+            </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                Comparar Todos os Planos
+              </Link>
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground/80 flex items-center gap-1.5 pt-1">
+            <Check className="size-3.5 text-emerald-500" />
+            <span>Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+          </p>
+        </div>
+
+        {/* ── Mockup Ilustrativo da Tela de Caixa (Padrão Shopify/Linear) ── */}
+        <div className="mt-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xs p-4 sm:p-6 shadow-md">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-rose-500/80" />
+              <div className="size-3 rounded-full bg-amber-500/80" />
+              <div className="size-3 rounded-full bg-emerald-500/80" />
+              <span className="text-xs font-mono text-muted-foreground ml-2">PDV Balcão · Operação Rápida</span>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+              ● Caixa Aberto
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-12">
+            {/* Lado esquerdo: Busca + Lista de Itens */}
+            <div className="md:col-span-7 space-y-3">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                <Search className="size-3.5" />
+                <span>Bipar código de barras ou buscar peça...</span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between rounded-xl border border-border/40 bg-secondary/30 p-2.5 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Package className="size-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground truncate">Vestido Midi Canelado</p>
+                      <p className="text-[10px] text-muted-foreground">Tam: M · 1x R$ 149,90</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground">R$ 149,90</span>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-border/40 bg-secondary/30 p-2.5 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Package className="size-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground truncate">Cropped Linho Premium</p>
+                      <p className="text-[10px] text-muted-foreground">Tam: G · 1x R$ 89,90</p>
+                    </div>
+                  </div>
+                  <span className="font-bold text-foreground">R$ 89,90</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Lado direito: Totais + Pagamento */}
+            <div className="md:col-span-5 rounded-xl border border-border/60 bg-background/50 p-3.5 space-y-3 flex flex-col justify-between">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Subtotal (2 peças)</span>
+                  <span>R$ 239,80</span>
+                </div>
+                <div className="flex justify-between text-xs text-emerald-600 font-medium">
+                  <span>Desconto Balcão</span>
+                  <span>− R$ 20,00</span>
+                </div>
+                <div className="border-t border-border/40 pt-1.5 flex justify-between text-sm font-bold text-foreground">
+                  <span>Total a Pagar</span>
+                  <span className="text-primary font-display text-base">R$ 219,80</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-1 text-[11px] font-semibold text-center">
+                  <div className="rounded-lg bg-primary/15 text-primary py-1.5 border border-primary/30">Pix</div>
+                  <div className="rounded-lg bg-muted/60 py-1.5 text-muted-foreground">Cartão</div>
+                  <div className="rounded-lg bg-muted/60 py-1.5 text-muted-foreground">Dinheiro</div>
+                </div>
+                <div className="rounded-xl bg-primary/20 text-primary py-2 text-center text-xs font-bold">
+                  ✓ Finalizar Venda & Emitir Recibo
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de Benefícios do PDV Ágil */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <Zap className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Venda em 3 Segundos</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Busca instantânea ou leitor de código de barras para você não perder tempo com fila no caixa.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+            <Package className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Baixa por Tamanho</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            O estoque físico é debitado automaticamente na grade certa (P, M, G, GG) no momento do pagamento.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+            <Receipt className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Comprovante WhatsApp</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Envie com um clique o cupom detalhado no WhatsApp da cliente com os itens e o total pago.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+            <CreditCard className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Formas de Pagamento</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Aceite Pix, Cartão de Crédito/Débito e Dinheiro com cálculo automático de troco e descontos.
+          </p>
+        </div>
+      </div>
+
+      <UpgradeLoteModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        reason="pos_locked"
+      />
+    </div>
+  );
+}
 
 // ── Helpers de data ─────────────────────────────────────────────────────────
 function yesterdayISO() {

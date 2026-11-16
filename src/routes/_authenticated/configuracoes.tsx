@@ -770,6 +770,39 @@ function Configuracoes() {
       {/* ════ ABA 4: Usuários & Equipe ══════════════════════════════════════ */}
       {activeTab === "equipe" && (
         <div className="space-y-6">
+          {!access.isStore && (
+            <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-primary/5 p-5 sm:p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/15 shrink-0 mt-0.5">
+                  <Users className="size-5 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                      Exclusivo Vestui Store
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-foreground">
+                    Gestão de Equipe & Multi-Vendedoras
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Cadastre múltiplos acessos para sua equipe de balcão e gerentes, com controle de responsabilidade por venda e permissões personalizadas.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      onClick={() => setSubModalOpen(true)}
+                      size="sm"
+                      className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <Sparkles className="size-3.5" />
+                      Fazer Upgrade para o Vestui Store (R$ 97/mês)
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <section className="panel p-5 sm:p-7 space-y-6">
             <div>
               <h2 className="text-base font-semibold text-foreground">Equipe da Boutique</h2>
@@ -786,6 +819,7 @@ function Configuracoes() {
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Nome do colaborador">
                   <Input
+                    disabled={!access.isStore}
                     value={memberName}
                     onChange={(e) => setMemberName(e.target.value)}
                     placeholder="Ex: Júlia Santos"
@@ -794,6 +828,7 @@ function Configuracoes() {
                 </Field>
                 <Field label="E-mail (opcional)">
                   <Input
+                    disabled={!access.isStore}
                     value={memberEmail}
                     onChange={(e) => setMemberEmail(e.target.value)}
                     placeholder="julia@loja.com"
@@ -801,7 +836,7 @@ function Configuracoes() {
                   />
                 </Field>
                 <Field label="Função / Cargo">
-                  <Select value={memberRole} onValueChange={setMemberRole}>
+                  <Select disabled={!access.isStore} value={memberRole} onValueChange={setMemberRole}>
                     <SelectTrigger className="h-10 rounded-xl bg-card border-border">
                       <SelectValue />
                     </SelectTrigger>
@@ -816,7 +851,7 @@ function Configuracoes() {
               <div className="flex justify-end pt-1">
                 <Button
                   className="h-10 rounded-xl px-5 text-xs font-semibold gap-1.5 cursor-pointer"
-                  disabled={addMember.isPending || !memberName.trim()}
+                  disabled={!access.isStore || addMember.isPending || !memberName.trim()}
                   onClick={() => addMember.mutate()}
                 >
                   <Plus className="size-3.5" /> Adicionar membro
@@ -934,10 +969,10 @@ function Configuracoes() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {access.isStore
-                    ? "Tudo liberado: Produtos Ilimitados, Caderninho de Fiado com WhatsApp, Pró-labore da Dona, PDV Multi-vendedora, Sincronia de Estoque e DRE."
+                    ? "Tudo liberado: Produtos Ilimitados, Cockpit Financeiro com DRE, Caderninho de Fiado com WhatsApp, Pró-labore da Dona, Multi-vendedoras e White-label."
                     : access.isPro
-                    ? "Até 60 produtos ativos, PDV balcão, vitrine com sacola no WhatsApp, precificação ilimitada e gerador de etiquetas térmicas e A4."
-                    : "Até 10 produtos cadastrados, PDV balcão essencial, vitrine express no WhatsApp e 1 lote de precificação por mês."}
+                    ? "Até 60 produtos ativos, Frente de Caixa (PDV de Balcão), vitrine com sacola multi-peças, precificação ilimitada e gerador de etiquetas A4 e térmicas."
+                    : "Até 10 peças no catálogo, Vitrine Catálogo Express (1 peça/pedido), Calculadora de Margem Real (1 lote/mês) e Cockpit de Ativação."}
                 </p>
               </div>
 
@@ -990,11 +1025,7 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span><strong>Até 10 produtos</strong> ativos no catálogo</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>PDV Balcão para registrar vendas</span>
+                        <span><strong>Até 10 peças</strong> ativas no catálogo</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
@@ -1002,11 +1033,11 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>Precificação com margem real (1 lote por mês)</span>
+                        <span>Calculadora de Margem Real (1 lote por mês)</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>Painel diário com faturamento e ritmo</span>
+                        <span>Cockpit de Ativação e gestão de peças</span>
                       </div>
                     </div>
                   </div>
@@ -1057,7 +1088,11 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Até 60 produtos ativos</strong> no catálogo (4x mais)</span>
+                        <span><strong>Até 60 peças ativas</strong> no catálogo (6x mais)</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Frente de Caixa Ágil (PDV de Balcão)</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />

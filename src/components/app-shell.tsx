@@ -943,8 +943,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
 
               <Link
-                to={access.isStore ? "/painel" : "/precificacao"}
-                title={access.isStore ? "Voltar ao Início" : "Voltar aos Lotes"}
+                to="/painel"
+                title="Voltar ao Início"
                 className="flex size-9 items-center justify-center rounded-lg text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer mb-2"
               >
                 <ArrowLeft className="size-4" />
@@ -953,23 +953,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="my-2 h-px w-6 bg-white/10 mx-auto" />
 
               <nav className="flex flex-col gap-1.5 items-center">
-                {(access.isStore
-                  ? [
-                      { tab: "geral" as const, label: "Geral", icon: Store },
-                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
-                      { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
-                      { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
-                      { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
-                      { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: members.length },
-                      { tab: "plano" as const, label: "Plano & Assinatura", icon: Sparkles },
-                    ]
-                  : [
-                      { tab: "geral" as const, label: "Dados da Loja", icon: Store },
-                      { tab: "precificacao" as const, label: "Taxas & Margens Padrão", icon: Calculator },
-                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
-                      { tab: "plano" as const, label: "Meu Plano & Assinatura", icon: Sparkles },
-                    ]
-                ).map((item) => {
+                {[
+                    { tab: "geral" as const, label: "Dados da Loja", icon: Store },
+                    { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
+                    { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
+                    { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
+                    { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
+                    { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: members.length, storeOnly: true },
+                    { tab: "plano" as const, label: "Meu Plano & Benefícios", icon: Sparkles },
+                  ].map((item) => {
                   const active = currentSettingsTab === item.tab;
                   return (
                     <Link
@@ -985,8 +977,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       )}
                     >
                       <item.icon className="size-4 shrink-0" />
-                      {"badge" in item && item.badge !== undefined && item.badge > 0 && (
+                      {"badge" in item && item.badge !== undefined && item.badge > 0 && access.isStore && (
                         <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+                      )}
+                      {"storeOnly" in item && item.storeOnly && !access.isStore && (
+                        <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-amber-400/80 border border-sidebar" />
                       )}
                     </Link>
                   );
@@ -997,11 +992,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex flex-1 flex-col overflow-y-auto pr-1 scrollbar-none min-h-0">
               <div className="flex items-center justify-between mb-2 shrink-0">
                 <Link
-                  to={access.isStore ? "/painel" : "/precificacao"}
+                  to="/painel"
                   className="group flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-normal text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground/90 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5 opacity-60 group-hover:opacity-90" />
-                  <span>{access.isStore ? "Voltar ao Início" : "Voltar aos Lotes"}</span>
+                  <span>Voltar ao Início</span>
                 </Link>
                 <button
                   type="button"
@@ -1030,23 +1025,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <nav className="flex flex-col gap-1">
-                {(access.isStore
-                  ? [
-                      { tab: "geral" as const, label: "Geral", icon: Store },
-                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
-                      { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
-                      { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
-                      { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
-                      { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: members.length },
-                      { tab: "plano" as const, label: "Plano & Assinatura", icon: Sparkles },
-                    ]
-                  : [
-                      { tab: "geral" as const, label: "Dados da Loja", icon: Store },
-                      { tab: "precificacao" as const, label: "Taxas & Margens Padrão", icon: Calculator },
-                      { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
-                      { tab: "plano" as const, label: "Meu Plano & Assinatura", icon: Sparkles },
-                    ]
-                ).map((item) => {
+                {[
+                    { tab: "geral" as const, label: "Dados da Loja", icon: Store },
+                    { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
+                    { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
+                    { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
+                    { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
+                    { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: access.isStore ? members.length : null, storeBadge: !access.isStore },
+                    { tab: "plano" as const, label: "Meu Plano & Benefícios", icon: Sparkles },
+                  ].map((item) => {
                   const active = currentSettingsTab === item.tab;
                   return (
                     <Link
@@ -1067,7 +1054,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         )}
                       />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {"badge" in item && item.badge !== undefined && item.badge > 0 && (
+                      {"storeBadge" in item && item.storeBadge && (
+                        <span className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-400",
+                        )}>
+                          Store
+                        </span>
+                      )}
+                      {"badge" in item && item.badge !== null && item.badge !== undefined && item.badge > 0 && (
                         <span
                           className={cn(
                             "rounded-full px-1.5 py-0.5 text-[10px] font-bold",

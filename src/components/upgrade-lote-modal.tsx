@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 interface UpgradeLoteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reason?: "quota_reached" | "labels_locked" | "products_limit" | "general";
+  reason?: "quota_reached" | "labels_locked" | "products_limit" | "pos_locked" | "general";
 }
 
 export function UpgradeLoteModal({
@@ -24,6 +24,8 @@ export function UpgradeLoteModal({
       ? "Você atingiu o limite gratuito de 1 lote este mês"
       : reason === "labels_locked"
       ? "Desbloqueie o Gerador de Etiquetas em 1 Clique"
+      : reason === "pos_locked"
+      ? "Frente de Caixa Ágil (PDV de Balcão)"
       : "Desbloqueie o Vestui Pro (R$ 19,90)";
 
   const description =
@@ -31,6 +33,8 @@ export function UpgradeLoteModal({
       ? "Você atingiu o limite de 10 peças do Plano Gratuito. Ative o Vestui Pro para cadastrar até 60 peças, imprimir etiquetas com código de barras e liberar sacola no WhatsApp."
       : reason === "quota_reached"
       ? "Para cadastrar novos lotes e continuar precificando suas coleções sem limites, ative o Vestui Pro."
+      : reason === "pos_locked"
+      ? "Registre vendas no balcão em 3 segundos com leitor de código de barras, baixa automática de estoque e comprovante no WhatsApp com o Vestui Pro."
       : "Imprima etiquetas com código de barras prontas para folha A4 e controle todos os seus lotes de atacado.";
 
   const handleCheckout = () => {
@@ -63,6 +67,13 @@ export function UpgradeLoteModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span><strong>Até 60 Peças no Catálogo:</strong> 6x mais capacidade (de 10 para 60 peças) para cadastrar coleções e vender na vitrine.</span>
+          </div>
+
+          <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">
+            <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+              <Check className="size-3 stroke-[3]" />
+            </div>
+            <span><strong>Frente de Caixa (PDV Ágil):</strong> vendas rápidas no balcão com leitor de código de barras e baixa de estoque.</span>
           </div>
 
           <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">

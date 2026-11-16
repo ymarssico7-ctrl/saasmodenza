@@ -66,6 +66,12 @@ export interface PlanLimits {
   hasFiado: boolean;
   /** @deprecated use hasFiado */
   hasConditionalSale?: boolean;
+  /** Permite acesso à Frente de Caixa (PDV de Balcão) */
+  hasPOS: boolean;
+  /** Permite Dashboard Financeiro completo (DRE, Faturamento, Saídas, Pró-labore) */
+  hasFinancialDashboard: boolean;
+  /** Permite configuração e visualização de Pró-labore da Dona */
+  hasProlabore: boolean;
   /** Permite DRE, CMV e Fluxo de Caixa Avançado */
   hasAdvancedDRE: boolean;
   /** Sincronização de estoque entre PDV e Vitrine em tempo real */
@@ -87,6 +93,9 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasThermalLabels: false,
     hasFiado: false,
     hasConditionalSale: false,
+    hasPOS: false,
+    hasFinancialDashboard: false,
+    hasProlabore: false,
     hasAdvancedDRE: false,
     hasRealtimeInventorySync: false,
     hasWhiteLabel: false,
@@ -101,6 +110,9 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasThermalLabels: true,
     hasFiado: false,
     hasConditionalSale: false,
+    hasPOS: true,
+    hasFinancialDashboard: false,
+    hasProlabore: false,
     hasAdvancedDRE: false,
     hasRealtimeInventorySync: false,
     hasWhiteLabel: false,
@@ -115,6 +127,9 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasThermalLabels: true,
     hasFiado: true,
     hasConditionalSale: true,
+    hasPOS: true,
+    hasFinancialDashboard: true,
+    hasProlabore: true,
     hasAdvancedDRE: true,
     hasRealtimeInventorySync: true,
     hasWhiteLabel: true,
@@ -161,6 +176,12 @@ export type AccessInfo = {
   canAccessFiado: boolean;
   /** @deprecated use `canAccessFiado` */
   canAccessConditional: boolean;
+  /** Permite acesso à Frente de Caixa (PDV de Balcão) */
+  canUsePOS: boolean;
+  /** Permite visualização do Dashboard Financeiro (DRE, Faturamento, Pró-labore) */
+  canSeeFinancialDashboard: boolean;
+  /** Permite configuração e visualização de Pró-labore da Dona */
+  canUseProlabore: boolean;
   /** @deprecated use `limits.maxMonthlyBatches` */
   freeBatchesLimit: number;
 
@@ -201,6 +222,9 @@ export function useAccess(
     canAccessPOS: false,
     canAccessConditional: false,
     freeBatchesLimit: PLAN_LIMITS.free.maxMonthlyBatches,
+    canUsePOS: false,
+    canSeeFinancialDashboard: false,
+    canUseProlabore: false,
     isActive: false,
     hasGestao: false,
     hasLoja: false,
@@ -318,6 +342,11 @@ export function useAccess(
     canAccessFiado: limits.hasFiado,
     canAccessConditional: limits.hasFiado,
     freeBatchesLimit: isFree ? limits.maxMonthlyBatches : Infinity,
+
+    // ── Novas permissões modulares (Arquitetura Híbrida de Valor) ──────────
+    canUsePOS: limits.hasPOS,
+    canSeeFinancialDashboard: limits.hasFinancialDashboard,
+    canUseProlabore: limits.hasProlabore,
 
     // Compatibilidade retroativa
     isActive,

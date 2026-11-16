@@ -136,12 +136,12 @@ export function SubscriptionModal({
         planSelected === "free"
           ? "Plano Gratuito"
           : planSelected === "lote"
-          ? "Vestui Lote"
+          ? "Vestui Pro"
           : "Vestui Store";
       toast.success(`Plano atualizado para ${planName}!`, {
         description:
           planSelected === "free"
-            ? "Você agora tem acesso à precificação básica com cota de até 3 lotes/mês."
+            ? "Você agora tem acesso à precificação básica (1 lote/mês) e até 10 peças."
             : `Seu plano ${planName} já está liberado.`,
       });
       onOpenChange(false);
@@ -163,7 +163,7 @@ export function SubscriptionModal({
       tier === "free"
         ? "Plano Gratuito"
         : tier === "lote"
-        ? "Vestui Lote (R$ 19,90/mês)"
+        ? "Vestui Pro (R$ 19,90/mês)"
         : isAnual
         ? "Vestui Store Anual (R$ 797/ano)"
         : "Vestui Store Mensal (R$ 97/mês)";
@@ -222,7 +222,7 @@ export function SubscriptionModal({
               )}
             >
               <Tag className="size-3.5 text-emerald-600 shrink-0" />
-              <span>Vestui Lote</span>
+              <span>Vestui Pro</span>
               <span className="text-[10px] bg-background/80 px-1 py-0.2 rounded-md font-semibold">
                 R$ 19,90
               </span>
@@ -291,16 +291,16 @@ export function SubscriptionModal({
                 {tier === "free"
                   ? "Plano Gratuito • Precificação Inteligente"
                   : tier === "lote"
-                  ? "Vestui Lote & Etiquetas • R$ 19,90"
+                  ? "Vestui Pro • R$ 19,90"
                   : isAnual
                   ? "Vestui Store Anual ✦"
                   : "Vestui Store Mensal"}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {tier === "free"
-                  ? "Cálculo de margem real, markup e desconto seguro para até 3 lotes por mês"
+                  ? "Cálculo de margem real, markup seguro, vitrine catálogo e até 10 peças"
                   : tier === "lote"
-                  ? "Precificação ilimitada, etiquetas com código de barras e simulador de margens"
+                  ? "Até 60 peças, Frente de Caixa (PDV), etiquetas térmicas e sacola WhatsApp"
                   : isAnual
                   ? "Faturado anualmente em parcela única (economize mais de R$ 360 no ano)"
                   : "Loja física e online integradas, PDV e estoque unificado"}
@@ -323,29 +323,29 @@ export function SubscriptionModal({
           <div className="grid sm:grid-cols-2 gap-2.5 text-xs">
             {(tier === "free"
               ? [
+                  "Até 10 peças ativas no catálogo",
                   "Calculadora com margem real e markup seguro",
-                  "Simulador de desconto comercial máximo",
-                  "Até 3 lotes de precificação por mês",
-                  "100% gratuito, sem cartão de crédito",
-                  "Impressão de etiquetas: requer Vestui Lote",
-                  "Loja online e PDV: requer Vestui Store",
+                  "1 lote de precificação por mês",
+                  "Vitrine Catálogo no WhatsApp (Template Express)",
+                  "Frente de Caixa e Etiquetas: requer Vestui Pro",
+                  "DRE, Fiado e Equipe: requer Vestui Store",
                 ]
               : tier === "lote"
               ? [
+                  "Até 60 peças ativas no catálogo (6x mais)",
+                  "Frente de Caixa Ágil (PDV de Balcão)",
                   "Lotes e precificações ilimitadas todo mês",
-                  "Gerador de etiquetas em folha A4 comum (Pimaco 6180)",
-                  "Impressão em bobina térmica (50x30mm) com código de barras",
-                  "Histórico completo das coleções salvo na nuvem",
-                  "Simulador de desconto comercial máximo seguro",
+                  "Etiquetas em folha A4 e bobina térmica",
+                  "Vitrine com sacola multipeças no WhatsApp",
                   "Cancele quando quiser sem fidelidade",
                 ]
               : [
-                  "Vitrine Online com sacola de pedidos no WhatsApp",
-                  "PDV de Balcão ágil com baixa automática no estoque",
-                  "Estoque 100% unificado (físico + online sem furo)",
-                  "Caderninho de Fiado Digital com cobrança no WhatsApp",
-                  "DRE em tempo real, fluxo de caixa e pró-labore",
-                  "Tudo do Vestui Lote incluso (etiquetas e precificação)",
+                  "Produtos e lotes ILIMITADOS",
+                  "Cockpit Financeiro com DRE em tempo real",
+                  "Caderninho de Fiado Digital com cobrança WhatsApp",
+                  "Pró-labore da Dona e metas de faturamento",
+                  "Multi-vendedoras com gestão de equipe",
+                  "Tudo do Vestui Pro incluso (PDV e etiquetas)",
                 ]
             ).map((beneficio, i) => (
               <div key={i} className="flex items-center gap-2 text-foreground/90 font-medium">
@@ -374,7 +374,7 @@ export function SubscriptionModal({
                 <p className="text-sm font-bold text-foreground">Plano Gratuito Disponível</p>
               </div>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Deseja usar ou testar o Plano Gratuito? Você poderá precificar até 3 lotes por mês sem nenhum custo.
+                Deseja usar ou testar o Plano Gratuito? Você poderá cadastrar até 10 peças e precificar 1 lote por mês sem nenhum custo.
               </p>
               <Button
                 type="button"
