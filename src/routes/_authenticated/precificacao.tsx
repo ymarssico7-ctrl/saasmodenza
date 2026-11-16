@@ -135,10 +135,6 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
       },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    mode: typeof search.mode === "string" ? search.mode : undefined,
-    action: typeof search.action === "string" ? search.action : undefined,
-  }),
   component: Precificacao,
 });
 
@@ -2368,25 +2364,8 @@ function Precificacao() {
     }
   };
 
-  const search = Route.useSearch();
-
   // ── Modo Principal (Rápida | Grade | Histórico) ───────────────────
-  const [mode, setMode] = useState<PricingMode>(() => {
-    if (search.mode === "historico" || search.mode === "grade" || search.mode === "rapida") {
-      return search.mode;
-    }
-    return loadDraft("mode", "rapida");
-  });
-
-  useEffect(() => {
-    if (search.mode === "historico") {
-      setMode("historico");
-    } else if (search.mode === "grade") {
-      setMode("grade");
-    } else if (search.mode === "rapida") {
-      setMode("rapida");
-    }
-  }, [search.mode]);
+  const [mode, setMode] = useState<PricingMode>(() => loadDraft("mode", "rapida"));
 
   // ── Estratégia de Precificação ────────────────────────────────────
   const [strategy, setStrategy] = useState<PricingStrategy>(() => loadDraft("strategy", "margin"));
@@ -5110,9 +5089,7 @@ function Precificacao() {
       {/* ── Header Unificado no Estilo Apple: Breadcrumbs + Título + Segmented Pills na Mesma Faixa ── */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-2">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">
-            {access.isStore ? "Produtos > Precificação" : "Vestui > Lotes & Precificação"}
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Produtos &gt; Precificação</p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
             Precificação
           </h1>
@@ -5130,7 +5107,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Peça Única
+            Peça única
           </button>
           <button
             type="button"
@@ -5142,7 +5119,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {access.isStore ? "Grade & Estoque" : "Lote por Grade"}
+            Grade &amp; estoque
           </button>
           <button
             type="button"
@@ -5154,7 +5131,7 @@ function Precificacao() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <span>{access.isStore ? "Peças Precificadas" : "Histórico de Lotes"}</span>
+            <span>Peças precificadas</span>
             {saved.length > 0 && (
               <span className="rounded-full bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0.5">
                 {saved.length}
@@ -5164,27 +5141,27 @@ function Precificacao() {
         </div>
       </div>
 
-      {/* ── BANNER DE COTA DO PLANO GRATUITO (DESIGN CLEAN & ACOLHEDOR) ── */}
+      {/* ── BANNER DE COTA DO PLANO GRATUITO ── */}
       {quota.isFree && (
-        <div className="rounded-2xl border border-amber-400/25 bg-amber-400/[0.04] p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs backdrop-blur-xs">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-start gap-3">
-            <div className="size-8 rounded-xl bg-amber-400/15 text-amber-500 flex items-center justify-center shrink-0 mt-0.5 border border-amber-400/25">
-              <Sparkles className="size-4" />
+            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="size-4 text-primary" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <p className="text-xs font-bold text-foreground">
                   {quota.isQuotaReached
-                    ? "Limite de 3 lotes gratuitos atingido este mês"
+                    ? "Você atingiu o limite de 3 lotes gratuitos deste mês"
                     : `Você usou ${quota.batchesThisMonth} de ${quota.limit} lotes gratuitos este mês`}
                 </p>
-                <Badge variant="outline" className="text-[10px] border-amber-400/40 text-amber-500 font-bold uppercase bg-amber-400/10">
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary font-bold uppercase">
                   Plano Gratuito
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {quota.isQuotaReached
-                  ? "Ative o Vestui Lote para continuar calculando lotes ilimitados e imprimir etiquetas prontas."
+                  ? "Para continuar precificando novas coleções e imprimir etiquetas com código de barras, ative o Vestui Lote."
                   : `Restam ${quota.remaining} lote(s) gratuito(s). Ative o Vestui Lote por R$ 19,90/mês para lotes ilimitados e etiquetas prontas.`}
               </p>
             </div>
@@ -5195,7 +5172,7 @@ function Precificacao() {
               setUpgradeReason(quota.isQuotaReached ? "quota_reached" : "general");
               setUpgradeLoteModalOpen(true);
             }}
-            className="shrink-0 h-8 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm cursor-pointer gap-1.5"
+            className="shrink-0 h-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-glow cursor-pointer gap-1.5"
           >
             <Zap className="size-3.5" />
             Desbloquear Ilimitado (R$ 19,90)
@@ -6691,29 +6668,16 @@ function Precificacao() {
                 <div className="space-y-1.5">
                   <Button
                     type="button"
-                    onClick={access.isStore ? handleEntryWithQuotaCheck : handleSaveWithQuotaCheck}
+                    onClick={handleEntryWithQuotaCheck}
                     disabled={!canSubmitGrade}
                     className="w-full h-11 rounded-xl gradient-primary text-primary-foreground text-sm font-bold shadow-glow disabled:opacity-40 hover:opacity-95 transition-all active:scale-[0.99] cursor-pointer"
                   >
-                    {access.isStore ? (
-                      <>
-                        <PackagePlus className="size-4 mr-2" />
-                        <span>
-                          {actualLotUnits > 0
-                            ? `Dar entrada no estoque (${actualLotUnits} un.)`
-                            : "Dar entrada no estoque"}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Check className="size-4 mr-2 stroke-[2.5]" />
-                        <span>
-                          {actualLotUnits > 0
-                            ? `Salvar e Concluir Lote (${actualLotUnits} un.)`
-                            : "Salvar e Concluir Lote"}
-                        </span>
-                      </>
-                    )}
+                    <PackagePlus className="size-4 mr-2" />
+                    <span>
+                      {actualLotUnits > 0
+                        ? `Dar entrada no estoque (${actualLotUnits} un.)`
+                        : "Dar entrada no estoque"}
+                    </span>
                   </Button>
 
                   <Button
@@ -8167,21 +8131,12 @@ function Precificacao() {
 
                 <Button
                   type="button"
-                  onClick={access.isStore ? handleEntryWithQuotaCheck : handleSaveWithQuotaCheck}
+                  onClick={handleEntryWithQuotaCheck}
                   disabled={!canSubmitGrade}
                   className="h-11 px-5 rounded-xl gradient-primary text-primary-foreground text-xs font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer shrink-0 disabled:opacity-40"
                 >
-                  {access.isStore ? (
-                    <>
-                      <PackagePlus className="size-4 mr-1.5" />
-                      <span>Dar entrada ({actualLotUnits} un.)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="size-4 mr-1.5 stroke-[2.5]" />
-                      <span>Salvar Lote ({actualLotUnits} un.)</span>
-                    </>
-                  )}
+                  <PackagePlus className="size-4 mr-1.5" />
+                  <span>Dar entrada ({actualLotUnits} un.)</span>
                 </Button>
               </div>
             </div>
