@@ -1,20 +1,17 @@
 import { useState } from "react";
 import {
   createFileRoute,
-  Link,
   Navigate,
   Outlet,
   redirect,
   useRouterState,
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { BoutiqueMentor } from "@/components/boutique-mentor";
 import { GuideProvider } from "@/lib/guide-context";
 import { TrialOfferModal } from "@/components/trial-offer-modal";
-import { Button } from "@/components/ui/button";
 import { profileQuery } from "@/lib/db";
 import { useStore } from "@/lib/store-context";
 import { useAccess } from "@/lib/useAccess";
@@ -59,44 +56,6 @@ function AuthenticatedLayout() {
   // ── Redirecionamento Inicial Unificado (Todos os planos entram no /painel) ──
   if (pathname === "/") {
     return <Navigate to="/painel" replace />;
-  }
-
-  // ── Rotas Exclusivas do Vestui Store (DRE Contábil e Pró-Labore Avançado) ──
-  const isStoreOnlyRoute = pathname.startsWith("/prolabore");
-
-  if (!access.isStore && isStoreOnlyRoute) {
-    return (
-      <GuideProvider>
-        <AppShell>
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 py-12 max-w-lg mx-auto">
-            <div className="size-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center mb-5 shadow-lift">
-              <Store className="size-8 text-primary" />
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase tracking-wider mb-3">
-              ✦ Vestui Store
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-3">
-              Recurso do Vestui Store
-            </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-              O módulo avançado de Pró-Labore da Lojista e DRE Contábil faz parte do plano completo Vestui Store.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-              <Button asChild size="lg" className="w-full sm:flex-1 font-bold rounded-2xl shadow-lift">
-                <Link to="/configuracoes" search={{ tab: "plano" }}>
-                  Ver Planos & Upgrade
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="w-full sm:flex-1 font-medium rounded-2xl">
-                <Link to="/painel">
-                  Voltar para o Início
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </AppShell>
-      </GuideProvider>
-    );
   }
 
   return (
