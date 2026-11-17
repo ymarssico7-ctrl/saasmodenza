@@ -1244,7 +1244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
                       )}
                       {"storeOnly" in item && item.storeOnly && !access.isStore && (
-                        <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-amber-400/80 border border-sidebar" />
+                        <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary/80 border border-sidebar" />
                       )}
                     </Link>
                   );
@@ -1319,7 +1319,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <span className="flex-1 truncate">{item.label}</span>
                       {"storeBadge" in item && item.storeBadge && (
                         <span className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-400",
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-primary/20 text-primary-200 border border-primary/30",
                         )}>
                           Store
                         </span>
