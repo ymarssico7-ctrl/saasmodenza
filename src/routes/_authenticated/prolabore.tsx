@@ -2,13 +2,14 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { HandCoins, Plus, Trash2 } from "lucide-react";
+import { Check, HandCoins, Plus, Sparkles, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +26,7 @@ import {
 } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { insertProlabore, deleteProlabore, updateProlaboreTarget } from "@/lib/mutations";
+import { useAccess } from "@/lib/useAccess";
 
 export const Route = createFileRoute("/_authenticated/prolabore")({
   head: () => ({
@@ -42,8 +44,106 @@ export const Route = createFileRoute("/_authenticated/prolabore")({
       },
     ],
   }),
-  component: Prolabore,
+  component: ProlaboreRouteWrapper,
 });
+
+// ── Wrapper com Proteção de Plano (Store only) ────────────────────────────────
+function ProlaboreRouteWrapper() {
+  const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  if (!access.limits.hasProlabore) {
+    return <ProlaboreGatePresentation />;
+  }
+  return <Prolabore />;
+}
+
+// ── Gate de Apresentação do Pró-labore para usuários Free/Pro ────────────────
+function ProlaboreGatePresentation() {
+  return (
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        eyebrow="Finanças da Loja"
+        title="Pró-labore da Lojista"
+        description="O dinheiro da loja não é o seu salário. Defina sua retirada e respeite o limite."
+      />
+      <FinanceiroTabs />
+
+      {/* Hero Gate */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
+        <div className="max-w-2xl space-y-4">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+            ✦ Disponível no Vestui Store
+          </Badge>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+            O Dinheiro da Loja Não É o Seu Salário
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Defina sua retirada mensal (pró-labore), acompanhe o quanto já retirou e separe as finanças
+            da loja das suas. Uma das regras de ouro da gestão financeira do varejo.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="h-12 rounded-2xl gradient-primary text-primary-foreground px-7 text-sm font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <a href="/configuracoes?tab=plano">
+                <Sparkles className="size-4 mr-2" />
+                Desbloquear Pró-labore →
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+            >
+              <a href="/configuracoes?tab=plano">Ver Todos os Planos</a>
+            </Button>
+          </div>
+          <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
+            <Check className="size-3.5 text-emerald-500" />
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+          </p>
+        </div>
+
+        {/* Orbs decorativos */}
+        <div className="pointer-events-none absolute -right-24 -top-24 size-64 rounded-full bg-primary/8 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 right-16 size-48 rounded-full bg-primary/5 blur-2xl" />
+      </div>
+
+      {/* Mockup de cards blurred */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { label: "Retirado no mês", icon: <HandCoins className="size-4" /> },
+          { label: "Meta de retirada", hint: "Defina abaixo" },
+          { label: "Disponível para retirar", hint: "Lucro operacional" },
+        ].map((c) => (
+          <div
+            key={c.label}
+            className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-2xs overflow-hidden"
+          >
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{c.label}</p>
+            <div className="select-none blur-sm">
+              <p className="text-2xl font-black text-foreground numeric">R$ 1.500,00</p>
+              {c.hint && <p className="text-xs text-muted-foreground mt-1">{c.hint}</p>}
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold text-primary uppercase tracking-wider">
+                Store
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Prolabore() {
   const queryClient = useQueryClient();

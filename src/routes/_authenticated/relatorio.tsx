@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useAccess } from "@/lib/useAccess";
 import {
   Bar,
   BarChart,
@@ -17,6 +18,7 @@ import {
   BadgeDollarSign,
   BadgePercent,
   BarChart3,
+  Check,
   ExternalLink,
   PackageSearch,
   Receipt,
@@ -29,8 +31,9 @@ import { PageHeader } from "@/components/page-header";
 import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { transactionsQuery, inventoryQuery } from "@/lib/db";
+import { transactionsQuery, inventoryQuery, profileQuery } from "@/lib/db";
 import { brl, brlCompact, monthLabel, monthLabelShort, monthStart, pct } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
 import { isVitrineAtiva } from "@/lib/vitrine-settings";
@@ -58,8 +61,130 @@ export const Route = createFileRoute("/_authenticated/relatorio")({
       },
     ],
   }),
-  component: Relatorio,
+  component: RelatorioRouteWrapper,
 });
+
+// ── Wrapper com Proteção de Plano (Store only) ────────────────────────────────
+function RelatorioRouteWrapper() {
+  const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  if (!access.limits.hasFinancialDashboard) {
+    return <RelatorioGatePresentation />;
+  }
+  return <Relatorio />;
+}
+
+// ── Gate de Apresentação do DRE para usuários Free/Pro ───────────────────────
+function RelatorioGatePresentation() {
+  return (
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        eyebrow="Finanças da Loja"
+        title="Lucro Real & DRE"
+        description="Acompanhe o faturamento líquido, custos e exatamente quanto sobrou no seu bolso."
+      />
+      <FinanceiroTabs />
+
+      {/* Hero Gate */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
+        <div className="max-w-2xl space-y-4">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+            ✦ Disponível no Vestui Store
+          </Badge>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+            Entenda Exatamente Quanto a Sua Loja Lucra de Verdade
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            DRE Gerencial completo com Receita Bruta, CMV, Lucro Operacional, Pró-labore e Margem Real —
+            tudo atualizado em tempo real com os dados do seu caixa e vitrine online.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="h-12 rounded-2xl gradient-primary text-primary-foreground px-7 text-sm font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <a href="/configuracoes?tab=plano">
+                <Sparkles className="size-4 mr-2" />
+                Desbloquear Relatórios Completos →
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+            >
+              <a href="/configuracoes?tab=plano">Ver Todos os Planos</a>
+            </Button>
+          </div>
+          <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
+            <Check className="size-3.5 text-emerald-500" />
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+          </p>
+        </div>
+
+        {/* Orbs decorativos */}
+        <div className="pointer-events-none absolute -right-24 -top-24 size-64 rounded-full bg-primary/8 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 right-16 size-48 rounded-full bg-primary/5 blur-2xl" />
+      </div>
+
+      {/* Mockup de cards blurred — DRE em 4 camadas */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Receita Bruta", icon: <TrendingUp className="size-4" />, tone: "primary" },
+          { label: "Lucro Operacional", icon: <BadgeDollarSign className="size-4" />, tone: "positive" },
+          { label: "CMV (Custo da Mercadoria)", icon: <Wallet className="size-4" />, tone: "neutral" },
+          { label: "Margem Real (%)", icon: <BadgePercent className="size-4" />, tone: "neutral" },
+        ].map((c) => (
+          <div
+            key={c.label}
+            className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-2xs overflow-hidden"
+          >
+            <div className="flex items-center gap-2 text-muted-foreground mb-3">
+              {c.icon}
+              <span className="text-xs font-semibold uppercase tracking-wider">{c.label}</span>
+            </div>
+            <div className="select-none blur-sm space-y-1">
+              <p className="text-2xl font-black text-foreground numeric">R$ 4.280,00</p>
+              <p className="text-xs text-muted-foreground">▲ 12% vs mês anterior</p>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold text-primary uppercase tracking-wider">
+                Store
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Benefícios */}
+      <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+        <h3 className="text-sm font-bold text-foreground mb-4">O que você desbloqueia no Vestui Store</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            { icon: <BarChart3 className="size-4 text-primary" />, text: "DRE Gerencial em 7 camadas (Receita → Lucro Líquido)" },
+            { icon: <Receipt className="size-4 text-primary" />, text: "CMV automático integrado ao estoque e precificação" },
+            { icon: <ShoppingBag className="size-4 text-primary" />, text: "Peças mais vendidas e análise de canais (balcão vs vitrine)" },
+            { icon: <TrendingUp className="size-4 text-primary" />, text: "Comparativo mês a mês com variação % automática" },
+            { icon: <Wallet className="size-4 text-primary" />, text: "Pró-labore, margem e lucro real atualizados em tempo real" },
+            { icon: <PackageSearch className="size-4 text-primary" />, text: "Vendas online (Vestui Pay) integradas ao DRE" },
+          ].map((b) => (
+            <div key={b.text} className="flex items-start gap-3">
+              <div className="mt-0.5 shrink-0 flex size-6 items-center justify-center rounded-lg bg-primary/10">{b.icon}</div>
+              <p className="text-xs text-foreground/80 leading-relaxed">{b.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const COLORS = [
   "var(--color-primary)",

@@ -133,9 +133,9 @@ function ClientesPage() {
 
   const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
   const activeTab: "clientes" | "fiado" = useMemo(() => {
-    if (!fiadoAtivo) return "clientes";
+    if (!fiadoAtivo || !access.canAccessFiado) return "clientes";
     return search.tab === "fiado" ? "fiado" : "clientes";
-  }, [fiadoAtivo, search.tab]);
+  }, [fiadoAtivo, access.canAccessFiado, search.tab]);
 
   useEffect(() => {
     setFiadoAtivo(isFiadoAtivo(storeId));
