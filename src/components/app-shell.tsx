@@ -142,7 +142,7 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
       // ── Módulos de Expansão (Iscas de Upgrade Nível Shopify) ─────────────────
       {
         id: "caixa",
-        label: "Frente de Caixa (PDV)",
+        label: "Frente de Caixa",
         icon: Wallet,
         to: "/caixa",
         dividerBefore: true,
@@ -151,7 +151,7 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
       },
       {
         id: "fiado",
-        label: "Caderninho de Fiado",
+        label: "Fiado Digital",
         icon: HandCoins,
         to: "/clientes",
         search: { tab: "fiado" },
@@ -162,7 +162,7 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
       },
       {
         id: "financas",
-        label: "Cockpit Financeiro",
+        label: "Finanças & DRE",
         icon: BarChart3,
         to: "/relatorio",
         tierBadge: "Store",
@@ -271,7 +271,7 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
       // Iscas Store
       {
         id: "fiado",
-        label: "Caderninho de Fiado",
+        label: "Fiado Digital",
         icon: HandCoins,
         to: "/clientes",
         search: { tab: "fiado" },
@@ -283,7 +283,7 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
       },
       {
         id: "financas",
-        label: "Cockpit Financeiro",
+        label: "Finanças & DRE",
         icon: BarChart3,
         to: "/relatorio",
         tierBadge: "Store",
@@ -859,7 +859,7 @@ const NavGroupRow = memo(function NavGroupRow({
           {item.tierBadge && (
             <span
               className={cn(
-                "ml-auto flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
+                "ml-auto shrink-0 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
                 item.tierBadge === "Pro"
                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
                   : "bg-amber-500/20 border border-amber-500/30 text-amber-400",

@@ -812,138 +812,216 @@ function Painel() {
 
       {/* ── COCKPIT MODULADO POR PLANO ─────────────────────────────────────── */}
 
-      {/* ── PLANO FREE: Cockpit de Ativação (sem financeiro) ─────────────── */}
+      {/* ── PLANO FREE: Cockpit de Ativação & Vitrine em Destaque ─────────────── */}
       {access.isFree && (
-        <div className="space-y-4">
-          {/* Grid 2 colunas: progresso de estoque + vitrine */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Card 1 — Progresso do Estoque */}
-            <div className="panel p-5 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Package className="size-4 text-primary/70" />
-                  <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Estoque</span>
-                </div>
-                <span className="text-[11px] text-muted-foreground font-medium">
-                  {totalCatalogItems} / {access.limits.maxProducts} peças
-                </span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-500"
-                  style={{ width: `${Math.min(100, (totalCatalogItems / access.limits.maxProducts) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                {totalCatalogItems === 0
-                  ? "Cadastre suas primeiras peças para começar a vender."
-                  : totalCatalogItems >= access.limits.maxProducts
-                  ? "Limite atingido. Faça upgrade para cadastrar mais peças."
-                  : `Você ainda pode cadastrar ${access.limits.maxProducts - totalCatalogItems} peças no plano gratuito.`}
-              </p>
-              <Link
-                to="/estoque"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-              >
-                <Package className="size-3.5" />
-                Cadastrar Peças
-                <ArrowRight className="size-3" />
-              </Link>
-            </div>
+        <div className="space-y-4 sm:space-y-5">
+          {/* Grid Contínuo Equilibrado 7/5 (Padrão Shopify Polaris — Sem Vazio Inferior) */}
+          <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 items-start">
+            
+            {/* ── Coluna Esquerda (~58% = 7 colunas): Vitrine em Destaque (Peças da Loja) ── */}
+            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7">
+              {/* Card de Gestão de Estoque & Peças Vivas */}
+              <div className="panel p-5 space-y-4">
+                <div className="flex items-center justify-between pb-1 border-b border-border/50">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Package className="size-4 text-primary" />
+                      <h3 className="text-sm font-bold text-foreground">Peças no Catálogo</h3>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {totalCatalogItems === 0
+                        ? "Nenhuma peça cadastrada ainda"
+                        : `${totalCatalogItems} de ${access.limits.maxProducts} peças utilizadas no plano gratuito`}
+                    </p>
+                  </div>
 
-            {/* Card 2 — Vitrine Catálogo */}
-            <div className="panel p-5 flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="size-4 text-primary/70" />
-                <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">Vitrine Catálogo</span>
-              </div>
-              {vitrineUrl ? (
-                <>
-                  <p className="text-[11px] text-muted-foreground break-all leading-relaxed">{vitrineDisplay}</p>
-                  <button
-                    type="button"
-                    onClick={copiarLinkVitrine}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline text-left"
-                  >
-                    <Link2 className="size-3.5" />
-                    Copiar link para Instagram
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Configure o link da sua loja para compartilhar o catálogo.
-                  </p>
                   <Link
-                    to="/configuracoes"
-                    search={{ tab: "canais" }}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    to="/estoque"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
-                    Configurar Vitrine
+                    <span>Ver Estoque</span>
                     <ArrowRight className="size-3" />
                   </Link>
-                </>
-              )}
-            </div>
-          </div>
+                </div>
 
-          {/* CTAs primários */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Link
-              to="/precificacao"
-              className="panel p-4 flex items-center gap-3 hover:bg-secondary/40 transition-colors group cursor-pointer"
-            >
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors shrink-0">
-                <TrendingUp className="size-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">Precificar Lote de Compras</p>
-                <p className="text-[11px] text-muted-foreground">Calcule margem e preço de venda ideal</p>
-              </div>
-              <ArrowRight className="size-4 text-muted-foreground/50 group-hover:text-primary transition-colors ml-auto shrink-0" />
-            </Link>
+                {/* Barra de Progresso de Capacidade */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <span>Capacidade do Catálogo</span>
+                    <span className="font-semibold text-foreground">
+                      {totalCatalogItems} / {access.limits.maxProducts} peças
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-secondary/80 overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        totalCatalogItems >= access.limits.maxProducts
+                          ? "bg-amber-500"
+                          : "bg-primary"
+                      )}
+                      style={{ width: `${Math.min(100, (totalCatalogItems / access.limits.maxProducts) * 100)}%` }}
+                    />
+                  </div>
+                </div>
 
-            <Link
-              to="/estoque"
-              className="panel p-4 flex items-center gap-3 hover:bg-secondary/40 transition-colors group cursor-pointer"
-            >
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors shrink-0">
-                <Package className="size-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">Cadastrar Peças</p>
-                <p className="text-[11px] text-muted-foreground">Adicione produtos ao seu catálogo</p>
-              </div>
-              <ArrowRight className="size-4 text-muted-foreground/50 group-hover:text-primary transition-colors ml-auto shrink-0" />
-            </Link>
-          </div>
+                {/* Lista Visual das Peças da Loja (ou Estado Vazio Acolhedor) */}
+                {totalCatalogItems === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-3 bg-secondary/20">
+                    <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                      <Package className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">Cadastre suas primeiras peças</p>
+                      <p className="text-[11px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                        Coloque fotos, tamanhos e valores para suas clientes verem na vitrine online.
+                      </p>
+                    </div>
+                    <Button asChild size="sm" className="rounded-xl font-bold text-xs">
+                      <Link to="/estoque">
+                        <Plus className="size-3.5 mr-1" /> Cadastrar Primeira Peça
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Prévia dos Looks na Vitrine
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {inventory.slice(0, 4).map((item: any) => {
+                        const sizesObj = item.sizes ?? {};
+                        const sizesList = Object.keys(sizesObj).filter((k) => (Number(sizesObj[k]) || 0) > 0);
+                        const photo = item.photo_url || item.image_url;
+                        const price = Number(item.selling_price ?? item.sale_price ?? 0);
 
-          {/* Banner de prévia financeira — upgrade Store */}
-          <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-primary/5 p-5">
-            <div className="flex items-start gap-4">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/15 shrink-0 mt-0.5">
-                <Sparkles className="size-5 text-amber-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  Acompanhe seu Faturamento Real no Vestui Store
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                  Veja DRE, Saídas, Lucro Líquido, Pró-labore e Ritmo de Vendas — tudo em tempo real.
-                </p>
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-xl border border-border/60 bg-secondary/20 p-2.5 flex items-center gap-3 transition-colors hover:bg-secondary/40"
+                          >
+                            <div className="size-12 rounded-lg bg-card border border-border/70 overflow-hidden flex items-center justify-center shrink-0">
+                              {photo ? (
+                                <img
+                                  src={photo}
+                                  alt={item.name}
+                                  className="size-full object-cover"
+                                />
+                              ) : (
+                                <Package className="size-5 text-muted-foreground/40" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
+                              <p className="text-xs font-bold text-primary">{brl(price)}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {sizesList.length > 0 ? `Tam: ${sizesList.join(", ")}` : "Tamanho único"}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {totalCatalogItems < access.limits.maxProducts && (
+                      <Link
+                        to="/estoque"
+                        className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border/80 py-2.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground transition-all cursor-pointer"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>Adicionar mais peças ({access.limits.maxProducts - totalCatalogItems} restantes)</span>
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-3">
-              <Link
-                to="/configuracoes"
-                search={{ tab: "plano" }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white transition-colors"
-              >
-                <Zap className="size-3.5" />
-                Ver Vestui Store — R$ 97/mês
-              </Link>
-              <span className="text-[10px] text-muted-foreground">Acesso completo ao ERP</span>
+
+            {/* ── Coluna Direita (~42% = 5 colunas): Vitrine na Bio & Banner Store ── */}
+            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5">
+              {/* Card 1: Vitrine Online no Instagram */}
+              <div className="panel p-5 space-y-3.5">
+                <div className="flex items-center justify-between pb-1 border-b border-border/50">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="size-4 text-primary" />
+                    <h3 className="text-sm font-bold text-foreground">Sua Vitrine na Bio</h3>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    No Ar
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-mono text-foreground font-medium truncate bg-secondary/50 rounded-lg p-2 border border-border/60">
+                    {vitrineDisplay}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                    Cole este link no perfil do Instagram para suas clientes navegarem pelas peças e enviarem pedidos.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    onClick={copiarLinkVitrine}
+                    className="flex-1 h-9 rounded-xl text-xs font-semibold gap-1.5 gradient-primary text-primary-foreground shadow-sm cursor-pointer"
+                  >
+                    <Link2 className="size-3.5" />
+                    Copiar Link da Bio
+                  </Button>
+                  {vitrineUrl && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-xl text-xs font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+                    >
+                      <a href={vitrineUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5">
+                        <span>Ver Loja</span>
+                        <ArrowRight className="size-3" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 2: Teaser do Cockpit Financeiro (Vestui Store) com Design de Luxo */}
+              <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-background p-5 space-y-3.5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="size-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                    <Sparkles className="size-4.5" />
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <span className="inline-block rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.2 text-[9px] font-bold text-amber-500 uppercase tracking-wider">
+                      ✦ Gestão Completa
+                    </span>
+                    <h4 className="text-sm font-bold text-foreground">
+                      Cockpit Financeiro & DRE Real
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Tenha controle absoluto das finanças da sua loja: DRE contábil, margem real, caderninho de fiado e pró-labore da dona.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-1 border-t border-amber-500/20 flex items-center justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-black text-foreground font-display">R$ 97</span>
+                    <span className="text-[11px] text-muted-foreground">/mês</span>
+                  </div>
+                  <Link
+                    to="/configuracoes"
+                    search={{ tab: "plano" }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+                  >
+                    <span>Conhecer Vestui Store</span>
+                    <ArrowRight className="size-3" />
+                  </Link>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       )}
