@@ -340,7 +340,7 @@ export function LabelPrintModal({
                   dangerouslySetInnerHTML={{ __html: barcodeSvg }}
                 />
 
-                <div className="flex justify-between items-end pt-1 border-t border-hairline">
+                <div className="flex justify-between items-end pt-1 border-t border-border">
                   <span className="text-xs font-black text-foreground">{brl(item.price)}</span>
                   {includeInstallments && (
                     <span className="text-[8px] text-muted-foreground">

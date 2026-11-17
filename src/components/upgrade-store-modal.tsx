@@ -97,7 +97,7 @@ export function UpgradeStoreModal({
 
         {/* SELETOR DE CICLO */}
         <div className="flex items-center justify-center gap-2 my-2">
-          <div className="flex p-1 bg-muted/60 rounded-full border border-hairline text-xs font-semibold">
+          <div className="flex p-1 bg-muted/60 rounded-full border border-border text-xs font-semibold">
             <button
               type="button"
               onClick={() => setBillingCycle("monthly")}
@@ -127,7 +127,7 @@ export function UpgradeStoreModal({
         </div>
 
         {/* BENEFÍCIOS DO PLANO */}
-        <div className="space-y-2.5 my-3 bg-muted/30 p-4 rounded-2xl border border-hairline text-left">
+        <div className="space-y-2.5 my-3 bg-muted/30 p-4 rounded-2xl border border-border text-left">
           <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">
             <div className="size-5 rounded-full bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
               <Check className="size-3 stroke-[3]" />
