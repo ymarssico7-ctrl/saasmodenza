@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock,
   Copy,
+  CreditCard,
   Download,
   ExternalLink,
   Eye,
@@ -33,14 +34,17 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
+import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useStore } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
 import { insertProlabore } from "@/lib/mutations";
 import { monthStart } from "@/lib/format";
-import { transactionsQuery } from "@/lib/db";
+import { transactionsQuery, profileQuery } from "@/lib/db";
 import { calculateOrderNet } from "@/lib/fees";
+import { useAccess } from "@/lib/useAccess";
 
 export const Route = createFileRoute("/_authenticated/loja/recebimentos")({
   head: () => ({
@@ -53,8 +57,208 @@ export const Route = createFileRoute("/_authenticated/loja/recebimentos")({
       },
     ],
   }),
-  component: RecebimentosPage,
+  component: RecebimentosRouteWrapper,
 });
+
+// ── Wrapper com Proteção de Plano (Pro/Store only) ───────────────────────────
+function RecebimentosRouteWrapper() {
+  const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  if (access.isFree) {
+    return <RecebimentosGatePresentation />;
+  }
+  return <RecebimentosPage />;
+}
+
+// ── Gate de Apresentação de Vestui Pay para usuários Free (Padrão Benchmark) ──
+function RecebimentosGatePresentation() {
+  return (
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        eyebrow="Finanças da Loja"
+        title="Vestui Pay (Online)"
+        description="Centro financeiro da sua loja: acompanhe saldo em tempo real, liquidações D+1 e extrato com conciliação automática."
+      />
+      <FinanceiroTabs />
+
+      {/* Hero Gate com Mockup Integrado */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
+        <div className="max-w-2xl space-y-4">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+            ✦ Disponível no Vestui Pro e Store
+          </Badge>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+            Receba Vendas Online com Pix e Cartão em D+1
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            O centro de liquidações da sua vitrine online: acompanhe saldo a receber, antecipação automática
+            sem taxas abusivas e comprovantes oficiais com conciliação instantânea no financeiro da loja.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="gradient-primary h-12 rounded-2xl px-6 text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 cursor-pointer gap-2"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                <Zap className="size-4" />
+                Ativar Vestui Pay para Vendas Online →
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                Comparar Todos os Planos
+              </Link>
+            </Button>
+          </div>
+
+          <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
+            <Check className="size-3.5 text-emerald-500" />
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+          </p>
+        </div>
+
+        {/* ── Mockup Ilustrativo da Tela de Recebimentos (Padrão Shopify/Linear com Janela macOS) ── */}
+        <div className="mt-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xs p-4 sm:p-6 shadow-md">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-rose-500/80" />
+              <div className="size-3 rounded-full bg-amber-500/80" />
+              <div className="size-3 rounded-full bg-emerald-500/80" />
+              <span className="text-xs font-mono text-muted-foreground ml-2">Vestui Pay · Liquidação Automática D+1</span>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+              ● Gateway Ativo
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-12">
+            {/* Lado esquerdo: Saldo em Conta & Liquidações */}
+            <div className="md:col-span-5 space-y-3">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Saldo Disponível para Saque
+                </span>
+                <p className="text-2xl font-black text-foreground numeric">R$ 1.840,50</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Pronto para transferência Pix</p>
+              </div>
+
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3 space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">A Liberar Amanhã (D+1):</span>
+                  <strong className="text-foreground numeric">R$ 620,00</strong>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Taxa Média Aplicada:</span>
+                  <strong className="text-emerald-600 dark:text-emerald-400 numeric">1,99% (Menor do mercado)</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Lado direito: Lista de Vendas Recentes */}
+            <div className="md:col-span-7 rounded-xl border border-border/60 bg-background/50 p-3.5 space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Últimas Vendas da Vitrine Conciliadas
+              </span>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-2.5 border border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-md bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-[10px]">
+                      CARD
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Pedido #1042 · Mariana Costa</p>
+                      <p className="text-[10px] text-muted-foreground">Cartão Visa · 2x de R$ 89,90</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-foreground numeric">R$ 171,16 líq.</p>
+                    <Badge variant="outline" className="text-[9px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20 py-0">
+                      Compensado
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-2.5 border border-border/30">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-[10px]">
+                      PIX
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Pedido #1043 · Larissa Dias</p>
+                      <p className="text-[10px] text-muted-foreground">Pix Instantâneo Automático</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-foreground numeric">R$ 149,90 líq.</p>
+                    <Badge variant="outline" className="text-[9px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20 py-0">
+                      Compensado
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de 4 Benefícios do Vestui Pay */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <Zap className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Liquidação D+1 no Pix</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Receba o valor das vendas online na sua conta corrente no dia útil seguinte sem enrolação.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+            <CreditCard className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Checkout Transparente</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            A cliente compra e paga direto na sacola da vitrine online com Pix ou Cartão sem redirecionamento.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+            <ShieldCheck className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Antifraude Integrado</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Blindagem automatizada contra contestações e tentativas de fraude nas compras online.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+            <Banknote className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Conciliação no DRE</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Cada venda na vitrine baixa estoque na hora e lança o valor líquido automaticamente no DRE.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function brl(val: number) {
   return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   AlertCircle,
   AlertTriangle,
+  Check,
   CheckCircle2,
+  Clock,
   HandCoins,
   MessageCircle,
   Pencil,
@@ -133,16 +135,15 @@ function ClientesPage() {
 
   const [fiadoAtivo, setFiadoAtivo] = useState(() => isFiadoAtivo(storeId));
   const activeTab: "clientes" | "fiado" = useMemo(() => {
-    if (!fiadoAtivo || !access.canAccessFiado) return "clientes";
     return search.tab === "fiado" ? "fiado" : "clientes";
-  }, [fiadoAtivo, access.canAccessFiado, search.tab]);
+  }, [search.tab]);
 
   useEffect(() => {
     setFiadoAtivo(isFiadoAtivo(storeId));
     const handleFiadoChanged = () => {
       const ativo = isFiadoAtivo(storeId);
       setFiadoAtivo(ativo);
-      if (!ativo && search.tab === "fiado") {
+      if (access.isStore && !ativo && search.tab === "fiado") {
         void navigate({ search: { tab: "clientes" } });
       }
     };
@@ -152,7 +153,7 @@ function ClientesPage() {
       window.removeEventListener(FIADO_SETTINGS_EVENT, handleFiadoChanged);
       window.removeEventListener("storage", handleFiadoChanged);
     };
-  }, [storeId, search.tab, navigate]);
+  }, [storeId, search.tab, access.isStore, navigate]);
 
   const handleTabChange = (t: "clientes" | "fiado") => {
     void navigate({ search: { tab: t } });
@@ -567,20 +568,14 @@ function ClientesPage() {
             >
               <Plus className="size-4" /> Novo cliente
             </Button>
-          ) : (
+          ) : access.isStore ? (
             <Button
               className="gradient-primary h-10 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-1.5"
-              onClick={() => {
-                if (!access.isStore) {
-                  setStoreModalOpen(true);
-                  return;
-                }
-                setModalNovoFiado(true);
-              }}
+              onClick={() => setModalNovoFiado(true)}
             >
               <Plus className="size-4" /> Registrar fiado
             </Button>
-          )
+          ) : null
         }
       />
 
@@ -882,40 +877,11 @@ function ClientesPage() {
           </div>
         )}
       </div>
+      ) : !access.isStore ? (
+        <FiadoGatePresentation />
       ) : (
         /* ─── VISÃO 2: CADERNINHO DE FIADO (CONTAINER UNIFICADO DE GESTÃO) ─── */
         <div className="space-y-4">
-          {!access.isStore && (
-            <div className="rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-soft">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                  <HandCoins className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/20">
-                      ✦ Vestui Store
-                    </span>
-                    <p className="text-xs font-bold text-foreground">
-                      Caderninho de Fiado Digital com Cobrança WhatsApp
-                    </p>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Monitore títulos em aberto, vencimentos e envie cobranças carinhosas com chave Pix no WhatsApp em 1 clique para não levar calote.
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => setStoreModalOpen(true)}
-                className="font-bold text-xs rounded-xl shadow-lift shrink-0 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Sparkles className="size-3.5" />
-                Desbloquear no Vestui Store
-              </Button>
-            </div>
-          )}
-
           {fiadosComStatus.length === 0 ? (
             <EmptyState
               icon={<HandCoins className="size-8" />}
@@ -1538,6 +1504,183 @@ function ClientesPage() {
         onOpenChange={setStoreModalOpen}
         reason="fiado"
       />
+    </div>
+  );
+}
+
+// ── Gate de Apresentação do Caderninho de Fiado (Padrão Benchmark) ───────────
+function FiadoGatePresentation() {
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Hero Gate com Mockup Integrado */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
+        <div className="max-w-2xl space-y-4">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+            ✦ Disponível no Vestui Store
+          </Badge>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+            Controle Vendas a Prazo e Acabe com o Calote no Caderninho
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Gerencie títulos em aberto, datas de vencimento e envie lembretes carinhosos de cobrança com chave Pix direto no WhatsApp da cliente com 1 clique para não levar calote.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="gradient-primary h-12 rounded-2xl px-6 text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 cursor-pointer gap-2"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                <Sparkles className="size-4" />
+                Desbloquear Caderninho de Fiado Digital →
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                Comparar Todos os Planos
+              </Link>
+            </Button>
+          </div>
+
+          <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
+            <Check className="size-3.5 text-emerald-500" />
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+          </p>
+        </div>
+
+        {/* ── Mockup Ilustrativo da Tela de Fiado (Padrão Shopify/Linear com Janela macOS) ── */}
+        <div className="mt-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xs p-4 sm:p-6 shadow-md">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-rose-500/80" />
+              <div className="size-3 rounded-full bg-amber-500/80" />
+              <div className="size-3 rounded-full bg-emerald-500/80" />
+              <span className="text-xs font-mono text-muted-foreground ml-2">Caderninho de Fiado · Cobrança WhatsApp</span>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+              ● Cobrança Ativa
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-12">
+            {/* Lado esquerdo: Total e Lista de Devedores */}
+            <div className="md:col-span-7 space-y-3">
+              <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <span className="text-xs font-semibold text-foreground">Total em Aberto a Receber</span>
+                <span className="text-lg font-bold text-primary numeric">R$ 1.450,00</span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-8 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center text-xs">
+                      MC
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Mariana Costa</p>
+                      <p className="text-[10px] text-muted-foreground">Vencimento: Hoje · 2 peças</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground numeric">R$ 180,00</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                      Vence Hoje
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/5 p-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-8 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold flex items-center justify-center text-xs">
+                      CS
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Camila Silveira</p>
+                      <p className="text-[10px] text-muted-foreground">Vencimento: 10/11 · 3 peças</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-rose-600 dark:text-rose-400 numeric">R$ 320,00</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                      7 dias de atraso
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lado direito: Prévia da Mensagem de WhatsApp com Pix */}
+            <div className="md:col-span-5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 space-y-2.5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-1">
+                  <MessageCircle className="size-3.5" />
+                  <span>Cobrança Carinhosa no WhatsApp</span>
+                </div>
+                <div className="rounded-lg bg-background/80 p-2.5 border border-border/50 text-[11px] text-foreground/80 leading-relaxed space-y-1">
+                  <p>&ldquo;Oi Mariana! Passando para te lembrar do seu saldo de <strong>R$ 180,00</strong> no caderninho da loja. ✨&rdquo;</p>
+                  <p className="text-[10px] text-muted-foreground">Chave Pix: <strong>pix@suaboutique.com.br</strong></p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-emerald-600 text-white py-2 text-center text-xs font-bold shadow-xs">
+                💬 Enviar Cobrança WhatsApp em 1 Clique
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de 4 Benefícios do Caderninho de Fiado */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <MessageCircle className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Cobrança no WhatsApp</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Mensagem carinhosa e educada com valor, peças e chave Pix sem constrangimento para a cliente.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+            <Clock className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Controle de Vencimentos</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Alertas visuais claros de quem está em dia, quem vence hoje e quem já está em atraso.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+            <UserRound className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Histórico por Cliente</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Saiba quanto cada cliente já comprou e consulte a pontualidade antes de liberar novo fiado.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+            <CheckCircle2 className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Quitação Parcial ou Total</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Dê baixa rápida quando a cliente abater parte da dívida com cálculo automático do saldo restante.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -76,7 +76,7 @@ function RelatorioRouteWrapper() {
   return <Relatorio />;
 }
 
-// ── Gate de Apresentação do DRE para usuários Free/Pro ───────────────────────
+// ── Gate de Apresentação do DRE para usuários Free/Pro (Padrão Benchmark) ────
 function RelatorioGatePresentation() {
   return (
     <div className="space-y-6 pb-12">
@@ -87,7 +87,7 @@ function RelatorioGatePresentation() {
       />
       <FinanceiroTabs />
 
-      {/* Hero Gate */}
+      {/* Hero Gate com Mockup Integrado (Padrão Apple / Shopify) */}
       <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
         <div className="max-w-2xl space-y-4">
           <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
@@ -99,87 +99,150 @@ function RelatorioGatePresentation() {
           </h2>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            DRE Gerencial completo com Receita Bruta, CMV, Lucro Operacional, Pró-labore e Margem Real —
-            tudo atualizado em tempo real com os dados do seu caixa e vitrine online.
+            DRE Gerencial em 7 camadas: Receita Bruta, Deduções, CMV (Custo da Mercadoria), Despesas Fixas (OPEX) e Lucro Operacional real calculado automaticamente com base no seu estoque e vendas.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <Button
               asChild
               size="lg"
-              className="h-12 rounded-2xl gradient-primary text-primary-foreground px-7 text-sm font-bold shadow-glow hover:opacity-95 transition-all active:scale-[0.98] cursor-pointer"
+              className="gradient-primary h-12 rounded-2xl px-6 text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 cursor-pointer gap-2"
             >
-              <a href="/configuracoes?tab=plano">
-                <Sparkles className="size-4 mr-2" />
-                Desbloquear Relatórios Completos →
-              </a>
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                <Sparkles className="size-4" />
+                Desbloquear Relatórios & DRE Completo →
+              </Link>
             </Button>
+
             <Button
               asChild
               variant="outline"
               size="lg"
               className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
             >
-              <a href="/configuracoes?tab=plano">Ver Todos os Planos</a>
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                Comparar Todos os Planos
+              </Link>
             </Button>
           </div>
+
           <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
             <Check className="size-3.5 text-emerald-500" />
             <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
           </p>
         </div>
 
-        {/* Orbs decorativos */}
-        <div className="pointer-events-none absolute -right-24 -top-24 size-64 rounded-full bg-primary/8 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 right-16 size-48 rounded-full bg-primary/5 blur-2xl" />
-      </div>
+        {/* ── Mockup Ilustrativo da Tela de DRE (Padrão Shopify/Linear com Janela macOS) ── */}
+        <div className="mt-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xs p-4 sm:p-6 shadow-md">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-rose-500/80" />
+              <div className="size-3 rounded-full bg-amber-500/80" />
+              <div className="size-3 rounded-full bg-emerald-500/80" />
+              <span className="text-xs font-mono text-muted-foreground ml-2">DRE Gerencial · Competência & Caixa</span>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+              ● Mês Vigente
+            </Badge>
+          </div>
 
-      {/* Mockup de cards blurred — DRE em 4 camadas */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Receita Bruta", icon: <TrendingUp className="size-4" />, tone: "primary" },
-          { label: "Lucro Operacional", icon: <BadgeDollarSign className="size-4" />, tone: "positive" },
-          { label: "CMV (Custo da Mercadoria)", icon: <Wallet className="size-4" />, tone: "neutral" },
-          { label: "Margem Real (%)", icon: <BadgePercent className="size-4" />, tone: "neutral" },
-        ].map((c) => (
-          <div
-            key={c.label}
-            className="relative rounded-2xl border border-border/60 bg-card p-5 shadow-2xs overflow-hidden"
-          >
-            <div className="flex items-center gap-2 text-muted-foreground mb-3">
-              {c.icon}
-              <span className="text-xs font-semibold uppercase tracking-wider">{c.label}</span>
+          <div className="grid gap-4 md:grid-cols-12">
+            {/* Lado esquerdo: Cascata DRE em 5 Linhas */}
+            <div className="md:col-span-7 space-y-2">
+              <div className="flex items-center justify-between rounded-xl border border-border/40 bg-secondary/30 p-2.5 text-xs">
+                <span className="font-semibold text-foreground">Receita Bruta Total</span>
+                <span className="font-bold text-foreground numeric">R$ 31.250,00</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border/40 bg-secondary/20 p-2.5 text-xs text-muted-foreground">
+                <span>(−) Devoluções & Estornos</span>
+                <span className="font-medium text-rose-500 numeric">− R$ 850,00</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-2.5 text-xs font-bold text-foreground">
+                <span>(=) Receita Líquida</span>
+                <span className="text-primary numeric">R$ 30.400,00</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border/40 bg-secondary/20 p-2.5 text-xs text-muted-foreground">
+                <span>(−) CMV (Custo das Peças Vendidas)</span>
+                <span className="font-medium text-amber-600 dark:text-amber-400 numeric">− R$ 12.160,00</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border/40 bg-secondary/20 p-2.5 text-xs text-muted-foreground">
+                <span>(−) Despesas Operacionais (OPEX)</span>
+                <span className="font-medium text-rose-500 numeric">− R$ 6.800,00</span>
+              </div>
             </div>
-            <div className="select-none blur-sm space-y-1">
-              <p className="text-2xl font-black text-foreground numeric">R$ 4.280,00</p>
-              <p className="text-xs text-muted-foreground">▲ 12% vs mês anterior</p>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold text-primary uppercase tracking-wider">
-                Store
+
+            {/* Lado direito: KPI Card de Lucro Real e Margem */}
+            <div className="md:col-span-5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col justify-between space-y-3">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  Lucro Operacional Líquido
+                </span>
+                <p className="text-2xl sm:text-3xl font-display font-black text-emerald-700 dark:text-emerald-400 numeric mt-1">
+                  R$ 11.440,00
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                    37,6% margem líquida
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">▲ +4,2% vs mês anterior</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 border-t border-emerald-500/20 pt-2.5 text-[11px] text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Pró-labore retirado:</span>
+                  <strong className="text-foreground numeric">R$ 3.500,00</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Saldo livre no caixa:</span>
+                  <strong className="text-emerald-600 dark:text-emerald-400 numeric">R$ 7.940,00</strong>
+                </div>
               </div>
             </div>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Benefícios */}
-      <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
-        <h3 className="text-sm font-bold text-foreground mb-4">O que você desbloqueia no Vestui Store</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            { icon: <BarChart3 className="size-4 text-primary" />, text: "DRE Gerencial em 7 camadas (Receita → Lucro Líquido)" },
-            { icon: <Receipt className="size-4 text-primary" />, text: "CMV automático integrado ao estoque e precificação" },
-            { icon: <ShoppingBag className="size-4 text-primary" />, text: "Peças mais vendidas e análise de canais (balcão vs vitrine)" },
-            { icon: <TrendingUp className="size-4 text-primary" />, text: "Comparativo mês a mês com variação % automática" },
-            { icon: <Wallet className="size-4 text-primary" />, text: "Pró-labore, margem e lucro real atualizados em tempo real" },
-            { icon: <PackageSearch className="size-4 text-primary" />, text: "Vendas online (Vestui Pay) integradas ao DRE" },
-          ].map((b) => (
-            <div key={b.text} className="flex items-start gap-3">
-              <div className="mt-0.5 shrink-0 flex size-6 items-center justify-center rounded-lg bg-primary/10">{b.icon}</div>
-              <p className="text-xs text-foreground/80 leading-relaxed">{b.text}</p>
-            </div>
-          ))}
+      {/* Grid de 4 Benefícios do DRE Gerencial */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+            <BarChart3 className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">DRE em 7 Camadas</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Visão contábil executiva sem planilhas: Receita, CMV, Despesas e Lucro Líquido automático.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <Receipt className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">CMV em Tempo Real</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Custo real da mercadoria vendida sincronizado com as entradas de estoque e lotes.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+            <ShoppingBag className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Peças Mais Lucrativas</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Identifique quais modelos e categorias deixam a maior margem líquida no seu bolso.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+            <TrendingUp className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Comparativo Mensal</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Gráficos comparativos com evolução de faturamento e margem mês a mês.
+          </p>
         </div>
       </div>
     </div>

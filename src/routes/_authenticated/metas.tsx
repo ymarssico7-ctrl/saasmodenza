@@ -1,22 +1,24 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Target, Trash2 } from "lucide-react";
+import { Check, Sparkles, Store, Target, Trash2, TrendingUp, Zap } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { FinanceiroTabs } from "@/components/financeiro-tabs";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { goalsQuery, transactionsQuery } from "@/lib/db";
+import { goalsQuery, profileQuery, transactionsQuery } from "@/lib/db";
 import { brl, monthLabel, monthStart, pct, toNumber } from "@/lib/format";
 import { REFUND_CATEGORIES, projectMonth, sumBy, sumByCategories, type Transaction } from "@/lib/finance";
 import { useStore } from "@/lib/store-context";
 import { upsertGoal, deleteGoal } from "@/lib/mutations";
 import { cn } from "@/lib/utils";
+import { useAccess } from "@/lib/useAccess";
 
 export const Route = createFileRoute("/_authenticated/metas")({
   head: () => ({
@@ -30,8 +32,181 @@ export const Route = createFileRoute("/_authenticated/metas")({
       { property: "og:description", content: "Meta, progresso e projeção de fechamento do mês." },
     ],
   }),
-  component: Metas,
+  component: MetasRouteWrapper,
 });
+
+// ── Wrapper com Proteção de Plano (Store only) ────────────────────────────────
+function MetasRouteWrapper() {
+  const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  if (!access.limits.hasFinancialDashboard) {
+    return <MetasGatePresentation />;
+  }
+  return <Metas />;
+}
+
+// ── Gate de Apresentação de Metas para usuários Free/Pro (Padrão Benchmark) ──
+function MetasGatePresentation() {
+  return (
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        eyebrow="Finanças da Loja"
+        title="Metas de Vendas"
+        description="Uma meta clara muda o ritmo da sua loja. Acompanhe o progresso dia a dia."
+      />
+      <FinanceiroTabs />
+
+      {/* Hero Gate com Mockup Integrado */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
+        <div className="max-w-2xl space-y-4">
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+            ✦ Disponível no Vestui Store
+          </Badge>
+
+          <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
+            Defina Metas e Acompanhe o Ritmo de Vendas da Sua Loja
+          </h2>
+
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Uma meta clara muda o ritmo da sua equipe e do seu caixa. Acompanhe o faturamento diário,
+            projeção de fechamento do mês e alertas inteligentes de velocidade de vendas.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="gradient-primary h-12 rounded-2xl px-6 text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 cursor-pointer gap-2"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                <Sparkles className="size-4" />
+                Desbloquear Metas de Vendas →
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-12 rounded-2xl px-6 text-sm font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
+            >
+              <Link to="/configuracoes" search={{ tab: "plano" }}>
+                Comparar Todos os Planos
+              </Link>
+            </Button>
+          </div>
+
+          <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
+            <Check className="size-3.5 text-emerald-500" />
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+          </p>
+        </div>
+
+        {/* ── Mockup Ilustrativo da Tela de Metas (Padrão Shopify/Linear com Janela macOS) ── */}
+        <div className="mt-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xs p-4 sm:p-6 shadow-md">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-rose-500/80" />
+              <div className="size-3 rounded-full bg-amber-500/80" />
+              <div className="size-3 rounded-full bg-emerald-500/80" />
+              <span className="text-xs font-mono text-muted-foreground ml-2">Metas de Vendas · Acompanhamento de Ritmo</span>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
+              ● Meta Ativa
+            </Badge>
+          </div>
+
+          <div className="space-y-4">
+            {/* Barra de Progresso Ilustrada */}
+            <div className="rounded-xl border border-border/60 bg-background/60 p-4 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground">Progresso da Meta de Novembro</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 numeric">
+                  R$ 22.450,00 / R$ 35.000,00 (64%)
+                </span>
+              </div>
+              <div className="h-3 w-full rounded-full bg-secondary overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full w-[64%]" />
+              </div>
+            </div>
+
+            {/* 3 KPIs de Ritmo e Previsão */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Ritmo Diário Necessário
+                </span>
+                <p className="text-lg font-bold text-foreground numeric">R$ 1.568,75 / dia</p>
+                <p className="text-[10px] text-muted-foreground">Para 8 dias úteis restantes</p>
+              </div>
+
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Projeção de Fechamento
+                </span>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 numeric">R$ 38.200,00</p>
+                <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400 font-medium">▲ +9,1% acima da meta</p>
+              </div>
+
+              <div className="rounded-xl border border-border/40 bg-secondary/30 p-3 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Divisão de Canais
+                </span>
+                <p className="text-lg font-bold text-foreground numeric">72% balcão · 28% online</p>
+                <p className="text-[10px] text-muted-foreground">Conciliação multimétodo</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de 4 Benefícios de Metas de Vendas */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <Zap className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Ritmo Diário Automático</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Calcula exatamente quanto a sua loja precisa faturar por dia útil para atingir o objetivo planejado.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+            <TrendingUp className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Projeção Inteligente</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Inteligência preditiva que calcula onde você vai chegar com base na velocidade de vendas atual.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+            <Store className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Balcão vs Vitrine</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Separe e monitore a contribuição de cada canal físico e online para o faturamento da marca.
+          </p>
+        </div>
+
+        <div className="panel p-5 space-y-2">
+          <div className="size-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
+            <Target className="size-4.5" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground">Alertas de Aceleração</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Identifique dias abaixo do ritmo a tempo de lançar campanhas e queimar peças paradas.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Metas() {
   const queryClient = useQueryClient();
