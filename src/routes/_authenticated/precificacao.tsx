@@ -6252,7 +6252,7 @@ function Precificacao() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Ex: Vestido Midi Linho com Fenda"
-                        className="h-10 rounded-xl font-semibold text-sm bg-background shadow-2xs"
+                        className="h-10 rounded-xl font-semibold text-sm bg-card border-border hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs"
                       />
                     </div>
 
@@ -6262,7 +6262,7 @@ function Precificacao() {
                         Categoria
                       </Label>
                       <Select value={category} onValueChange={handleCategorySelectChange}>
-                        <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-background shadow-2xs border-border">
+                        <SelectTrigger className="h-10 rounded-xl font-medium text-xs bg-card border-border hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent className="max-h-72 rounded-xl border border-border/80 bg-card shadow-xl">
@@ -6321,7 +6321,7 @@ function Precificacao() {
                           </PopoverContent>
                         </Popover>
                       </div>
-                      <div className="relative flex h-10 items-center rounded-xl border border-border/80 bg-background shadow-2xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                      <div className="relative flex h-10 items-center rounded-xl border border-border bg-card shadow-2xs hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                         <span className="pl-3 text-xs font-bold text-muted-foreground select-none">R$</span>
                         <input
                           inputMode="decimal"
@@ -6366,7 +6366,7 @@ function Precificacao() {
                     <div className="grid gap-3 sm:grid-cols-3">
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Frete</span>
-                        <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
+                        <div className="relative flex h-9 items-center rounded-lg border border-border bg-card hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs transition-all">
                           <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
                             inputMode="decimal"
@@ -6380,7 +6380,7 @@ function Precificacao() {
 
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Embalagem</span>
-                        <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
+                        <div className="relative flex h-9 items-center rounded-lg border border-border bg-card hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs transition-all">
                           <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
                             inputMode="decimal"
@@ -6394,7 +6394,7 @@ function Precificacao() {
 
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Outros extras</span>
-                        <div className="relative flex h-9 items-center rounded-lg border border-border/70 bg-background focus-within:border-primary transition-all">
+                        <div className="relative flex h-9 items-center rounded-lg border border-border bg-card hover:border-foreground/30 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs transition-all">
                           <span className="pl-2.5 text-xs font-bold text-muted-foreground select-none">R$</span>
                           <input
                             inputMode="decimal"
@@ -6415,7 +6415,7 @@ function Precificacao() {
                       const isZeroCost = variantRealCosts.minCost === 0;
 
                       return (
-                        <div className="flex items-center justify-between rounded-xl bg-secondary/35 border border-border/60 px-3.5 py-2.5 gap-4 transition-all">
+                        <div className="flex items-center justify-between rounded-xl bg-secondary/60 border border-border px-3.5 py-2.5 gap-4 shadow-2xs transition-all">
                           <div className="space-y-0.5 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
@@ -6489,7 +6489,7 @@ function Precificacao() {
               </div>
 
               {/* ── CARD RESUMO & CTA DO TOPO (DESKTOP) ── */}
-              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-soft h-full gap-3">
+              <aside className="hidden lg:flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm h-full gap-3">
                 {/* 1. Cabeçalho Estável: Preço Sugerido */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
@@ -6540,7 +6540,7 @@ function Precificacao() {
                 </div>
 
                 {/* 2. Ilha Financeira do Lote (Padrão Apple Wallet) */}
-                <div className="rounded-2xl bg-secondary/35 border border-border/50 p-3.5 space-y-2.5">
+                <div className="rounded-2xl bg-secondary/60 border border-border p-3.5 space-y-2.5 shadow-2xs">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Faturamento</p>
@@ -7611,7 +7611,7 @@ function Precificacao() {
               {/* ── CORPO DA PLANILHA DE VARIAÇÕES ── */}
               <div className="pt-1">
                 {variants.length === 0 ? (
-                  <div className="rounded-2xl border-2 border-dashed border-border/80 bg-secondary/15 py-6 px-4 sm:py-7 sm:px-6 text-center space-y-3.5">
+                  <div className="rounded-2xl border-2 border-dashed border-border bg-secondary/40 py-7 px-5 text-center space-y-3.5 shadow-2xs">
                     <div className="flex size-11 mx-auto items-center justify-center rounded-xl bg-primary/10 text-primary shadow-glow">
                       <Boxes className="size-5" />
                     </div>

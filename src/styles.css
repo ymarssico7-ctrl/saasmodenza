@@ -73,8 +73,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --shadow-soft: 0 1px 2px oklch(0.2 0.01 260 / 0.05), 0 1px 3px oklch(0.2 0.01 260 / 0.03);
-  --shadow-lift: 0 2px 6px oklch(0.2 0.01 260 / 0.06), 0 12px 28px -8px oklch(0.2 0.01 260 / 0.12);
+  --shadow-soft: 0 1px 3px oklch(0.2 0.01 260 / 0.06), 0 1px 2px oklch(0.2 0.01 260 / 0.04);
+  --shadow-lift: 0 3px 8px oklch(0.2 0.01 260 / 0.08), 0 14px 32px -8px oklch(0.2 0.01 260 / 0.12);
   --shadow-lifted:
     0 2px 4px -2px oklch(0.22 0.01 285 / 0.1), 0 24px 48px -24px oklch(0.22 0.01 285 / 0.22);
   --shadow-glow: 0 18px 48px -18px var(--primary-glow);
@@ -83,11 +83,11 @@
 :root {
   --radius: 1rem;
 
-  /* ── Canvas: Cashmere Studio Paper — separação de 4.5% para o card branco (#FFFFFF) ── */
-  --background: oklch(0.963 0.003 85);
+  /* ── Canvas: Slate Mist Studio — separação de 9% para o card branco (#FFFFFF) para eliminar ofuscamento ── */
+  --background: oklch(0.948 0.005 85);
   --foreground: oklch(0.185 0.006 280);
   --surface: oklch(1 0 0);
-  --surface-muted: oklch(0.948 0.004 85);
+  --surface-muted: oklch(0.932 0.005 85);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.185 0.006 280);
   --popover: oklch(1 0 0);
@@ -99,11 +99,11 @@
   --primary-soft: oklch(0.950 0.025 258);
   --primary-glow: oklch(0.54 0.215 258 / 0.35);
 
-  /* ── Secundária: Tom neutro quente (hue 80°, harmônico com Cashmere Paper) ── */
-  --secondary: oklch(0.948 0.004 80);
-  --secondary-foreground: oklch(0.24 0.008 280);
-  --muted: oklch(0.948 0.004 80);
-  --muted-foreground: oklch(0.48 0.010 280);
+  /* ── Secundária: Tom neutro aveludado e com contraste ── */
+  --secondary: oklch(0.932 0.005 80);
+  --secondary-foreground: oklch(0.20 0.008 280);
+  --muted: oklch(0.932 0.005 80);
+  --muted-foreground: oklch(0.38 0.012 280);
   --accent: oklch(0.950 0.025 258);
   --accent-foreground: oklch(0.40 0.18 258);
 
@@ -125,9 +125,9 @@
   --info-foreground: oklch(0.99 0.002 258);
   --info-soft: oklch(0.950 0.025 258);
 
-  /* ── Bordas: neutro quente refinado (hue 80°, recorte nítido e sutil) ── */
-  --border: oklch(0.908 0.003 80);
-  --input: oklch(0.908 0.003 80);
+  /* ── Bordas: recorte nítido e perceptível (elimina a fusão de elementos e a sensação de tela desbotada) ── */
+  --border: oklch(0.868 0.005 80);
+  --input: oklch(0.850 0.006 80);
   --ring: oklch(0.54 0.215 258);
 
   /* ── Gráficos: Curva de Vendas em Azul Cobalto Elétrico ── */
