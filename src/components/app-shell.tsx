@@ -1220,7 +1220,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     { tab: "geral" as const, label: "Dados da Loja", icon: Store },
                     { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
                     { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
-                    { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
+                    ...(!access.isFree
+                      ? [{ tab: "canais" as const, label: "Canais de Venda", icon: Globe }]
+                      : []),
                     { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
                     { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: members.length, storeOnly: true },
                     { tab: "plano" as const, label: "Meu Plano & Benefícios", icon: Sparkles },
@@ -1292,7 +1294,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     { tab: "geral" as const, label: "Dados da Loja", icon: Store },
                     { tab: "precificacao" as const, label: "Precificação & Margens", icon: Calculator },
                     { tab: "catalogo" as const, label: "Cores & Tamanhos", icon: Palette },
-                    { tab: "canais" as const, label: "Canais de Venda", icon: Globe },
+                    ...(!access.isFree
+                      ? [{ tab: "canais" as const, label: "Canais de Venda", icon: Globe }]
+                      : []),
                     { tab: "caixa" as const, label: "Caixa & Pagamentos", icon: CreditCard },
                     { tab: "equipe" as const, label: "Usuários & Equipe", icon: Users, badge: access.isStore ? members.length : null, storeBadge: !access.isStore },
                     { tab: "plano" as const, label: "Meu Plano & Benefícios", icon: Sparkles },

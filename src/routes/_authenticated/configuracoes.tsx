@@ -215,6 +215,13 @@ function Configuracoes() {
     void navigate({ search: (prev) => ({ ...prev, tab: nextTab }) });
   };
 
+  // Se estiver no plano Free e tentar acessar a aba 'canais', redireciona para 'geral'
+  useEffect(() => {
+    if (access.isFree && activeTab === "canais") {
+      void navigate({ search: (prev) => ({ ...prev, tab: "geral" }), replace: true });
+    }
+  }, [access.isFree, activeTab, navigate]);
+
   const [businessModel, setBusinessModelState] = useState<BusinessModel>(() =>
     getBusinessModel(storeId, store?.metadata),
   );
@@ -444,7 +451,7 @@ function Configuracoes() {
             { tab: "geral", label: "Dados da Loja" },
             { tab: "precificacao", label: "Precificação" },
             { tab: "catalogo", label: "Cores & Tamanhos" },
-            { tab: "canais", label: "Canais" },
+            ...(!access.isFree ? [{ tab: "canais", label: "Canais" }] : []),
             { tab: "caixa", label: "Caixa" },
             {
               tab: "equipe",
@@ -572,6 +579,39 @@ function Configuracoes() {
             </div>
           </section>
 
+          {/* Card: Vitrine Digital da Boutique */}
+          <section className="panel p-5 sm:p-7 space-y-4 border border-primary/20 bg-primary/[0.02]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Globe className="size-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                    Vitrine Online no WhatsApp
+                    <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider">
+                      Ativa
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    Personalize o visual, bio, cores e links de atendimento da sua vitrine pública.
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-xl px-4 text-xs font-semibold shrink-0 border-primary/30 hover:bg-primary/10 text-primary gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Link to="/loja/configuracao">
+                  Personalizar Vitrine <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+            </div>
+          </section>
+
           {/* Card: Regime Tributário & Fiscal (DAS / Simples Nacional) */}
           <TaxSettingsCard storeId={storeId} />
 
@@ -596,8 +636,8 @@ function Configuracoes() {
         </div>
       )}
 
-      {/* ════ ABA 2: Canais de Venda ════════════════════════════════════════ */}
-      {activeTab === "canais" && (
+      {/* ════ ABA 2: Canais de Venda (Apenas Pro e Store) ═══════════════════ */}
+      {!access.isFree && activeTab === "canais" && (
         <div className="space-y-6">
           <section className="panel p-5 sm:p-7 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-4 border-b border-border/60">
