@@ -11,6 +11,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Star,
   Trash2,
   UserRound,
