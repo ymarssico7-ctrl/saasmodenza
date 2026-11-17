@@ -812,135 +812,69 @@ function Painel() {
 
       {/* ── COCKPIT MODULADO POR PLANO ─────────────────────────────────────── */}
 
-      {/* ── PLANO FREE: Cockpit de Ativação & Vitrine em Destaque ─────────────── */}
+      {/* ── PLANO FREE: Cockpit de Ativação & Vitrine Simétrica ─────────────── */}
       {access.isFree && (
         <div className="space-y-4 sm:space-y-5">
-          {/* Grid Contínuo Equilibrado 7/5 (Padrão Shopify Polaris — Sem Vazio Inferior) */}
-          <div className="grid gap-4 sm:gap-5 lg:grid-cols-12 items-start">
-            
-            {/* ── Coluna Esquerda (~58% = 7 colunas): Vitrine em Destaque (Peças da Loja) ── */}
-            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-7">
-              {/* Card de Gestão de Estoque & Peças Vivas */}
-              <div className="panel p-5 space-y-4">
+          {/* Nível 1: Bento Grid Simétrico 50% / 50% (Estoque + Vitrine na Bio) */}
+          <div className="grid gap-4 sm:grid-cols-2 items-stretch">
+            {/* Card 1: Estoque & Capacidade de Catálogo */}
+            <div className="panel p-5 flex flex-col justify-between gap-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between pb-1 border-b border-border/50">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <Package className="size-4 text-primary" />
-                      <h3 className="text-sm font-bold text-foreground">Peças no Catálogo</h3>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      {totalCatalogItems === 0
-                        ? "Nenhuma peça cadastrada ainda"
-                        : `${totalCatalogItems} de ${access.limits.maxProducts} peças utilizadas no plano gratuito`}
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <Package className="size-4 text-primary" />
+                    <h3 className="text-sm font-bold text-foreground">Estoque & Catálogo</h3>
                   </div>
-
-                  <Link
-                    to="/estoque"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                  >
-                    <span>Ver Estoque</span>
-                    <ArrowRight className="size-3" />
-                  </Link>
+                  <span className="text-[11px] font-semibold text-muted-foreground font-mono">
+                    {totalCatalogItems} / {access.limits.maxProducts} peças
+                  </span>
                 </div>
 
                 {/* Barra de Progresso de Capacidade */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span>Capacidade do Catálogo</span>
+                    <span>Capacidade do Catálogo Free</span>
                     <span className="font-semibold text-foreground">
-                      {totalCatalogItems} / {access.limits.maxProducts} peças
+                      {Math.round((totalCatalogItems / access.limits.maxProducts) * 100)}%
                     </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-secondary/80 overflow-hidden">
                     <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        totalCatalogItems >= access.limits.maxProducts
-                          ? "bg-amber-500"
-                          : "bg-primary"
-                      )}
-                      style={{ width: `${Math.min(100, (totalCatalogItems / access.limits.maxProducts) * 100)}%` }}
+                      className="h-full rounded-full bg-primary transition-all duration-500"
+                      style={{ width: `${Math.min(100, Math.max(totalCatalogItems > 0 ? 8 : 0, (totalCatalogItems / access.limits.maxProducts) * 100))}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Lista Visual das Peças da Loja (ou Estado Vazio Acolhedor) */}
-                {totalCatalogItems === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-3 bg-secondary/20">
-                    <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                      <Package className="size-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-foreground">Cadastre suas primeiras peças</p>
-                      <p className="text-[11px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                        Coloque fotos, tamanhos e valores para suas clientes verem na vitrine online.
-                      </p>
-                    </div>
-                    <Button asChild size="sm" className="rounded-xl font-bold text-xs">
-                      <Link to="/estoque">
-                        <Plus className="size-3.5 mr-1" /> Cadastrar Primeira Peça
-                      </Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Prévia dos Looks na Vitrine
-                    </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {inventory.slice(0, 4).map((item: any) => {
-                        const sizesObj = item.sizes ?? {};
-                        const sizesList = Object.keys(sizesObj).filter((k) => (Number(sizesObj[k]) || 0) > 0);
-                        const photo = item.photo_url || item.image_url;
-                        const price = Number(item.selling_price ?? item.sale_price ?? 0);
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {totalCatalogItems === 0
+                    ? "Cadastre suas primeiras peças para começar a divulgar e vender online."
+                    : totalCatalogItems >= access.limits.maxProducts
+                    ? "Limite de 10 peças atingido no plano gratuito. Faça upgrade para expandir."
+                    : `Você ainda pode cadastrar ${access.limits.maxProducts - totalCatalogItems} peças com fotos e tamanhos no plano gratuito.`}
+                </p>
+              </div>
 
-                        return (
-                          <div
-                            key={item.id}
-                            className="rounded-xl border border-border/60 bg-secondary/20 p-2.5 flex items-center gap-3 transition-colors hover:bg-secondary/40"
-                          >
-                            <div className="size-12 rounded-lg bg-card border border-border/70 overflow-hidden flex items-center justify-center shrink-0">
-                              {photo ? (
-                                <img
-                                  src={photo}
-                                  alt={item.name}
-                                  className="size-full object-cover"
-                                />
-                              ) : (
-                                <Package className="size-5 text-muted-foreground/40" />
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold text-foreground truncate">{item.name}</p>
-                              <p className="text-xs font-bold text-primary">{brl(price)}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">
-                                {sizesList.length > 0 ? `Tam: ${sizesList.join(", ")}` : "Tamanho único"}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {totalCatalogItems < access.limits.maxProducts && (
-                      <Link
-                        to="/estoque"
-                        className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border/80 py-2.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-foreground transition-all cursor-pointer"
-                      >
-                        <Plus className="size-3.5" />
-                        <span>Adicionar mais peças ({access.limits.maxProducts - totalCatalogItems} restantes)</span>
-                      </Link>
-                    )}
-                  </div>
+              <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                <Link
+                  to="/estoque"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  <Package className="size-3.5" />
+                  <span>Gerenciar Estoque Completo</span>
+                  <ArrowRight className="size-3" />
+                </Link>
+                {totalCatalogItems < access.limits.maxProducts && (
+                  <span className="text-[10px] font-bold text-muted-foreground/80 bg-secondary/60 rounded-full px-2 py-0.5">
+                    {access.limits.maxProducts - totalCatalogItems} vagas restantes
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* ── Coluna Direita (~42% = 5 colunas): Vitrine na Bio & Banner Store ── */}
-            <div className="flex flex-col gap-4 sm:gap-5 lg:col-span-5">
-              {/* Card 1: Vitrine Online no Instagram */}
-              <div className="panel p-5 space-y-3.5">
+            {/* Card 2: Sua Vitrine na Bio */}
+            <div className="panel p-5 flex flex-col justify-between gap-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between pb-1 border-b border-border/50">
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="size-4 text-primary" />
@@ -952,76 +886,116 @@ function Painel() {
                   </span>
                 </div>
 
-                <div className="space-y-1">
-                  <p className="text-xs font-mono text-foreground font-medium truncate bg-secondary/50 rounded-lg p-2 border border-border/60">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-mono text-foreground font-medium truncate bg-secondary/50 rounded-lg p-2.5 border border-border/60">
                     {vitrineDisplay}
                   </p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     Cole este link no perfil do Instagram para suas clientes navegarem pelas peças e enviarem pedidos.
                   </p>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-                  <Button
-                    type="button"
-                    onClick={copiarLinkVitrine}
-                    className="flex-1 h-9 rounded-xl text-xs font-semibold gap-1.5 gradient-primary text-primary-foreground shadow-sm cursor-pointer"
-                  >
-                    <Link2 className="size-3.5" />
-                    Copiar Link da Bio
-                  </Button>
-                  {vitrineUrl && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="h-9 rounded-xl text-xs font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
-                    >
-                      <a href={vitrineUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5">
-                        <span>Ver Loja</span>
-                        <ArrowRight className="size-3" />
-                      </a>
-                    </Button>
-                  )}
-                </div>
               </div>
 
-              {/* Card 2: Teaser do Cockpit Financeiro (Vestui Store) com Design de Luxo */}
-              <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-background p-5 space-y-3.5 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="size-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-                    <Sparkles className="size-4.5" />
-                  </div>
-                  <div className="space-y-1 min-w-0">
-                    <span className="inline-block rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.2 text-[9px] font-bold text-amber-500 uppercase tracking-wider">
-                      ✦ Gestão Completa
-                    </span>
-                    <h4 className="text-sm font-bold text-foreground">
-                      Cockpit Financeiro & DRE Real
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Tenha controle absoluto das finanças da sua loja: DRE contábil, margem real, caderninho de fiado e pró-labore da dona.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-1 border-t border-amber-500/20 flex items-center justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-black text-foreground font-display">R$ 97</span>
-                    <span className="text-[11px] text-muted-foreground">/mês</span>
-                  </div>
-                  <Link
-                    to="/configuracoes"
-                    search={{ tab: "plano" }}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+              <div className="pt-2 border-t border-border/40 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={copiarLinkVitrine}
+                  className="flex-1 h-9 rounded-xl text-xs font-semibold gap-1.5 gradient-primary text-primary-foreground shadow-sm cursor-pointer"
+                >
+                  <Link2 className="size-3.5" />
+                  <span>Copiar Link da Bio</span>
+                </Button>
+                {vitrineUrl && (
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-xl text-xs font-semibold border-border/80 hover:bg-secondary/60 cursor-pointer"
                   >
-                    <span>Conhecer Vestui Store</span>
-                    <ArrowRight className="size-3" />
-                  </Link>
-                </div>
+                    <a href={vitrineUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5">
+                      <span>Ver Loja</span>
+                      <ArrowRight className="size-3" />
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
+          </div>
 
+          {/* Nível 2: Quick Action Hub (Cards Horizontais Robustos 50% / 50%) */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              to="/precificacao"
+              className="panel p-4 flex items-center gap-3.5 hover:bg-secondary/40 transition-all group cursor-pointer border border-border/70 hover:border-border"
+            >
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors shrink-0">
+                <TrendingUp className="size-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Precificar Lote de Roupas</p>
+                <p className="text-[11px] text-muted-foreground">Calcule markup, margem real e preço ideal sem prejuízo</p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+            </Link>
+
+            <Link
+              to="/estoque"
+              className="panel p-4 flex items-center gap-3.5 hover:bg-secondary/40 transition-all group cursor-pointer border border-border/70 hover:border-border"
+            >
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors shrink-0">
+                <Package className="size-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Gerenciar Catálogo & Peças</p>
+                <p className="text-[11px] text-muted-foreground">Organize tamanhos (P, M, G), cores e araras da loja</p>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+            </Link>
+          </div>
+
+          {/* Nível 3: Banner de Expansão Vestui Store (Acabamento Dark Obsidian Sapphire — Zero Amarelo) */}
+          <div className="relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/80 p-5 text-white shadow-soft">
+            <div className="absolute -right-12 -top-12 size-40 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 mt-0.5">
+                  <Sparkles className="size-5 text-indigo-300" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-indigo-300">
+                      ✦ Vestui Store
+                    </span>
+                    <span className="text-[11px] text-slate-400">O Sistema Operacional Completo</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white tracking-tight">
+                    Desbloqueie o Cockpit Financeiro & DRE Real da sua Loja
+                  </h4>
+                  <p className="text-[11px] text-slate-300/80 max-w-xl leading-relaxed">
+                    Tenha controle absoluto de faturamento, margem de lucro líquido, caderninho de fiado digital, pró-labore da dona e vendas no balcão (PDV).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
+                <div className="text-right">
+                  <div className="flex items-baseline gap-1 justify-end">
+                    <span className="text-xl font-black text-white font-display">R$ 97</span>
+                    <span className="text-xs text-slate-400">/mês</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Sem taxa de adesão</p>
+                </div>
+                <Link
+                  to="/configuracoes"
+                  search={{ tab: "plano" }}
+                  className="inline-flex items-center gap-1.5 rounded-xl gradient-primary hover:opacity-95 px-4 py-2 text-xs font-bold text-white shadow-lift transition-all cursor-pointer"
+                >
+                  <span>Conhecer Vestui Store</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}

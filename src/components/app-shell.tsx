@@ -730,7 +730,7 @@ const NavGroupRow = memo(function NavGroupRow({
                         "flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[8px] font-extrabold uppercase tracking-wider",
                         item.tierBadge === "Pro"
                           ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
-                          : "bg-amber-500/20 border border-amber-500/30 text-amber-400",
+                          : "bg-indigo-500/20 border border-indigo-500/35 text-indigo-300",
                       )}
                     >
                       ✦ {item.tierBadge}
@@ -816,7 +816,7 @@ const NavGroupRow = memo(function NavGroupRow({
                   "rounded-full px-1.5 py-0.2 text-[8px] font-extrabold uppercase",
                   item.tierBadge === "Pro"
                     ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
-                    : "bg-amber-500/20 border border-amber-500/30 text-amber-400",
+                    : "bg-indigo-500/20 border border-indigo-500/35 text-indigo-300",
                 )}
               >
                 ✦ {item.tierBadge}
@@ -862,7 +862,7 @@ const NavGroupRow = memo(function NavGroupRow({
                 "ml-auto shrink-0 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider",
                 item.tierBadge === "Pro"
                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
-                  : "bg-amber-500/20 border border-amber-500/30 text-amber-400",
+                  : "bg-indigo-500/20 border border-indigo-500/35 text-indigo-300",
               )}
             >
               ✦ {item.tierBadge}
