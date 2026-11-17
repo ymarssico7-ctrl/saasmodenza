@@ -1112,11 +1112,15 @@ function Estoque() {
                       <p className="numeric text-sm sm:text-base font-bold text-foreground">{brl(Number(i.sale_price))}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         custo {brl(Number(i.cost_price))}
-                        {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 && (
-                          <span className="text-emerald-700/80 dark:text-emerald-400 font-medium">
-                            {" "}· {(((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100).toFixed(0)}% margem
-                          </span>
-                        )}
+                        {Number(i.sale_price) > 0 && Number(i.cost_price) > 0 && (() => {
+                          const margem = ((Number(i.sale_price) - Number(i.cost_price)) / Number(i.sale_price)) * 100;
+                          const isLow = margem < 15;
+                          return (
+                            <span className={isLow ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-emerald-700/80 dark:text-emerald-400 font-medium"}>
+                              {" "}· {isLow && "⚠ "}{margem.toFixed(0)}% margem{isLow && " baixa"}
+                            </span>
+                          );
+                        })()}
                       </p>
                     </div>
 

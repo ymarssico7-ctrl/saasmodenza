@@ -194,9 +194,9 @@ function CaixaGatePresentation({
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground/80 flex items-center gap-1.5 pt-1">
+          <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
             <Check className="size-3.5 text-emerald-500" />
-            <span>Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
           </p>
         </div>
 

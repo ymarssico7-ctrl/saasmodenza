@@ -984,7 +984,7 @@ function PedidosPage() {
       {/* ── Container de Gestão Calmo: Abas + Busca + Tabela de Pedidos ───────── */}
       <div className="overflow-hidden rounded-3xl border border-border/80 bg-card shadow-soft">
         {/* Abas Superiores Segmentadas (Apple / Linear Standard com Micro-Pílulas) */}
-        <div className="flex items-center gap-1 overflow-x-auto p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
+        <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden p-2 sm:p-2.5 border-b border-border/70 bg-secondary/15">
           {ABAS_STATUS.map((tab, idx) => {
             const active = filtroStatus === tab.valor;
             const count =
