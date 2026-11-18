@@ -24,7 +24,7 @@ export function loadTheme(): ThemeConfig {
   } catch {
     // ignore parse errors
   }
-  return TEMPLATE_02_THEME;
+  return CATALOGO_EXPRESS_THEME;
 }
 
 export function saveTheme(theme: ThemeConfig): void {
@@ -431,4 +431,30 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
       },
     },
   ],
+};
+
+// ── Template Catálogo Express (Base Gratuita) ──────────────────────────────────
+export const CATALOGO_EXPRESS_THEME: ThemeConfig = {
+  settings: {
+    templateId: "catalogo-express",
+    storeName: "",
+    tagline: "Vendas Rápidas & WhatsApp",
+    freeShippingBanner: "Compre pelo site ou peça direto no WhatsApp",
+    freeShippingBannerEnabled: true,
+    checkoutMode: "whatsapp",
+    storeWhatsApp: "",
+    storeDescription: "",
+    politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+    mostrarEstoque: false,
+    colorBackground: "#FAFAF8",
+    colorForeground: "#18181b",
+    colorPrimary: "#2563eb",
+    colorCanvas: "#f4f4f5",
+    colorBorder: "#e4e4e7",
+    fontDisplay: "Inter" as never,
+    fontBody: "Inter" as never,
+    borderRadius: "md",
+  },
+  order: [],
+  sections: [],
 };

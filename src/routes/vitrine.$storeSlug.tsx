@@ -280,10 +280,27 @@ function VitrineLayout() {
 
   // ── Tema Ativo da Loja (Top-Level Hook — chamado incondicionalmente em todos os renders) ──
   const storeMetadata = store?.metadata as Record<string, unknown> | null;
-  const activeTemplateId: string =
+  const rawTemplateId: string =
     (storeMetadata?.["templateId"] as string) ||
     ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
     "catalogo-express";
+
+  // Enforcement canônico de templates por plano na vitrine pública:
+  // - Store: liberado para qualquer template cadastrado ("template-01", "template-02", "catalogo-express")
+  // - Pro: "catalogo-express" ou "template-01" (se vier template-02, faz fallback seguro para template-01)
+  // - Free: OBRIGATORIAMENTE "catalogo-express" (blindagem total contra bypass de tier)
+  const activeTemplateId: "catalogo-express" | "template-01" | "template-02" = useMemo(() => {
+    if (isStoreTier) {
+      if (rawTemplateId === "template-01" || rawTemplateId === "template-02" || rawTemplateId === "catalogo-express") {
+        return rawTemplateId;
+      }
+      return "catalogo-express";
+    }
+    if (isProTier) {
+      return rawTemplateId === "template-01" ? "template-01" : "catalogo-express";
+    }
+    return "catalogo-express";
+  }, [isStoreTier, isProTier, rawTemplateId]);
 
   const activeTheme: ThemeConfig = useMemo(() => {
     const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;

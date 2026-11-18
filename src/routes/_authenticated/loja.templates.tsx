@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
@@ -43,23 +43,52 @@ function GaleriaTemplatesPage() {
   const [upgradeProModalOpen, setUpgradeProModalOpen] = useState(false);
   const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
 
-  // Estado reativo do tema ativo com sincronização de eventos
-  const [activeTemplateId, setActiveTemplateId] = useState<string>(
-    () => loadTheme().settings.templateId ?? "template-02"
+  // Sanitizador reativo: garante que activeTemplateId seja sempre compatível com o plano da loja
+  const resolveTemplateId = useCallback(
+    (requestedId?: string | null): string => {
+      const allowed = access.limits.allowedTemplates as string[];
+      if (requestedId && allowed.includes(requestedId)) {
+        return requestedId;
+      }
+      if (access.isStore) return "template-02";
+      if (access.isPro) return "template-01";
+      return "catalogo-express";
+    },
+    [access.limits.allowedTemplates, access.isStore, access.isPro]
+  );
+
+  const storeMetadataTemplateId = (store?.metadata as Record<string, unknown> | null)?.templateId as string | undefined;
+
+  // Estado reativo do tema ativo com sincronização de eventos e limites de plano
+  const [activeTemplateId, setActiveTemplateId] = useState<string>(() =>
+    resolveTemplateId(storeMetadataTemplateId ?? loadTheme().settings.templateId)
   );
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>("todos");
 
   useEffect(() => {
+    setActiveTemplateId(resolveTemplateId(storeMetadataTemplateId ?? loadTheme().settings.templateId));
+  }, [resolveTemplateId, storeMetadataTemplateId]);
+
+  useEffect(() => {
     const onThemeChange = () => {
-      setActiveTemplateId(loadTheme().settings.templateId ?? "template-02");
+      setActiveTemplateId(resolveTemplateId(loadTheme().settings.templateId));
     };
     window.addEventListener("theme-changed", onThemeChange);
     return () => window.removeEventListener("theme-changed", onThemeChange);
-  }, []);
+  }, [resolveTemplateId]);
 
   const templates = useMemo(() => getTemplatesByCategory(activeCategory), [activeCategory]);
 
   function applyTemplate(entry: TemplateEntry) {
+    if (!isTemplateAllowed(entry.id, access.limits)) {
+      if (access.isFree && entry.id === "template-01") {
+        setUpgradeProModalOpen(true);
+      } else {
+        setUpgradeStoreModalOpen(true);
+      }
+      return;
+    }
+
     const current = loadTheme();
     // Prioridade do nome: 1) nome já personalizado no tema, 2) nome real da loja no banco
     const resolvedName =
@@ -264,11 +293,17 @@ function TemplateCard({
             Ativo
           </span>
         )}
-        {!isAllowed && (
+        {!isAllowed ? (
           <span className="flex items-center gap-1 rounded-full bg-amber-500/95 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
             <Crown className="h-3 w-3" />
             {entry.id === "template-01" ? "Vestui Pro" : "Vestui Store"}
           </span>
+        ) : (
+          entry.id === "catalogo-express" && !isActive && (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-500/90 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
+              Incluso no Plano
+            </span>
+          )
         )}
         {entry.isNew && !isActive && isAllowed && (
           <span className="flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
