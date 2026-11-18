@@ -2231,7 +2231,7 @@ function EquipeGatePresentation({
 }) {
   return (
     <div className="space-y-6 pb-6">
-      {/* Hero Gate com Mockup Integrado (Padrão Apple / Shopify) */}
+      {/* Hero Gate com Mockup Integrado */}
       <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-background p-6 sm:p-10 shadow-sm">
         <div className="max-w-2xl space-y-4">
           <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider">
@@ -2239,12 +2239,11 @@ function EquipeGatePresentation({
           </Badge>
 
           <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground tracking-tight leading-tight">
-            Organize Sua Loja com Acessos Individuais para Sua Equipe
+            Organize os Colaboradores da Sua Loja
           </h2>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            Cadastre vendedoras, gerentes e operadores de caixa. Cada venda com responsável identificado,
-            controle de comissões e segurança total para escalar o balcão da sua boutique.
+            Cadastre vendedoras, gerentes e operadores de caixa para organizar as pessoas que atuam no balcão e no atendimento da sua boutique.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -2269,11 +2268,11 @@ function EquipeGatePresentation({
 
           <p className="text-xs text-foreground/70 font-semibold flex items-center gap-1.5 pt-1">
             <Check className="size-3.5 text-emerald-500" />
-            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata • Apenas R$ 0,66 por dia</span>
+            <span className="font-semibold text-foreground/80">Sem fidelidade • Liberação imediata no Vestui Store</span>
           </p>
         </div>
 
-        {/* ── Mockup Janela macOS: Equipe da Boutique · Gestão de Vendedoras ── */}
+        {/* ── Mockup Janela: Equipe da Boutique · Gestão de Colaboradores ── */}
         <div className="mt-8 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xs p-4 sm:p-6 shadow-md">
           <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
             <div className="flex items-center gap-2">
@@ -2283,7 +2282,7 @@ function EquipeGatePresentation({
               <span className="text-xs font-mono text-muted-foreground ml-2">Equipe da Boutique · Gestão de Colaboradores</span>
             </div>
             <Badge variant="outline" className="text-[10px] font-mono text-emerald-600 bg-emerald-500/10 border-emerald-500/30">
-              ● 3 Colaboradoras Ativas
+              ● 3 Colaboradoras Cadastradas
             </Badge>
           </div>
 
@@ -2301,12 +2300,13 @@ function EquipeGatePresentation({
                       Vendedora Balcão
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">julia@boutique.com • 42 atendimentos este mês</p>
+                  <p className="text-[11px] text-muted-foreground">julia@boutique.com • Atendimento e Loja</p>
                 </div>
               </div>
               <div className="sm:text-right">
-                <span className="text-[10px] text-muted-foreground block">Vendas no Mês</span>
-                <span className="font-bold text-foreground numeric text-sm">R$ 8.420,00</span>
+                <span className="rounded-full bg-emerald-500/10 text-emerald-600 px-2.5 py-0.5 text-[10px] font-bold">
+                  Ativa
+                </span>
               </div>
             </div>
 
@@ -2323,12 +2323,13 @@ function EquipeGatePresentation({
                       Gerente
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">amanda@boutique.com • Permissão Total Balcão & Estoque</p>
+                  <p className="text-[11px] text-muted-foreground">amanda@boutique.com • Coordenação de Loja</p>
                 </div>
               </div>
               <div className="sm:text-right">
-                <span className="text-[10px] text-muted-foreground block">Vendas no Mês</span>
-                <span className="font-bold text-foreground numeric text-sm">R$ 14.190,00</span>
+                <span className="rounded-full bg-emerald-500/10 text-emerald-600 px-2.5 py-0.5 text-[10px] font-bold">
+                  Ativa
+                </span>
               </div>
             </div>
 
@@ -2342,15 +2343,16 @@ function EquipeGatePresentation({
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-foreground">Beatriz Lima</span>
                     <span className="rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 px-1.5 py-0.2 text-[10px] font-semibold">
-                      Caixa / Financeiro
+                      Caixa / Balcão
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">beatriz@boutique.com • Abertura e Fechamento com Auditoria</p>
+                  <p className="text-[11px] text-muted-foreground">beatriz@boutique.com • Operação de Balcão</p>
                 </div>
               </div>
               <div className="sm:text-right">
-                <span className="text-[10px] text-muted-foreground block">Vendas no Mês</span>
-                <span className="font-bold text-foreground numeric text-sm">R$ 6.350,00</span>
+                <span className="rounded-full bg-emerald-500/10 text-emerald-600 px-2.5 py-0.5 text-[10px] font-bold">
+                  Ativa
+                </span>
               </div>
             </div>
           </div>
@@ -2361,11 +2363,11 @@ function EquipeGatePresentation({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="panel p-5 space-y-2">
           <div className="size-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
-            <Calculator className="size-4.5" />
+            <Users className="size-4.5" />
           </div>
-          <h3 className="text-sm font-bold text-foreground">Comissões Individuais</h3>
+          <h3 className="text-sm font-bold text-foreground">Cadastro Centralizado</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Cálculo automático de vendas por vendedora para pagar comissões certas e sem disputas.
+            Mantenha o registro de todos os colaboradores, vendedoras e atendentes da sua boutique.
           </p>
         </div>
 
@@ -2373,9 +2375,9 @@ function EquipeGatePresentation({
           <div className="size-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
             <ShieldCheck className="size-4.5" />
           </div>
-          <h3 className="text-sm font-bold text-foreground">Permissões Seguras</h3>
+          <h3 className="text-sm font-bold text-foreground">Definição de Funções</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Defina o que cada funcionária pode ver: limite acesso aos custos, lucros e relatórios confidenciais.
+            Organize a equipe por papéis claros como vendedora de balcão, gerente ou operadora de caixa.
           </p>
         </div>
 
@@ -2383,19 +2385,19 @@ function EquipeGatePresentation({
           <div className="size-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
             <Receipt className="size-4.5" />
           </div>
-          <h3 className="text-sm font-bold text-foreground">Auditoria de Vendas</h3>
+          <h3 className="text-sm font-bold text-foreground">Operação Organizada</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Saiba com precisão quem aplicou cada desconto, concedeu cortesia ou cancelou itens no caixa.
+            Estruture o atendimento e o balcão com clareza sobre quem atua em cada setor da loja.
           </p>
         </div>
 
         <div className="panel p-5 space-y-2">
           <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-            <Users className="size-4.5" />
+            <Sparkles className="size-4.5" />
           </div>
-          <h3 className="text-sm font-bold text-foreground">Multi-Acessos no Balcão</h3>
+          <h3 className="text-sm font-bold text-foreground">Exclusivo Vestui Store</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Várias vendedoras registrando pedidos simultaneamente em celulares, tablets ou PCs da loja.
+            Gerenciamento sem limites de equipe junto com DRE, CMV e Caderninho de Fiado.
           </p>
         </div>
       </div>

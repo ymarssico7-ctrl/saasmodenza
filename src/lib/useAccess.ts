@@ -74,7 +74,10 @@ export interface PlanLimits {
   hasProlabore: boolean;
   /** Permite DRE, CMV e Fluxo de Caixa Avançado */
   hasAdvancedDRE: boolean;
-  /** Sincronização de estoque entre PDV e Vitrine em tempo real */
+  /**
+   * @roadmap Sincronização de estoque entre PDV e Vitrine em tempo real.
+   * Declarada para evolução futura da arquitetura de estoque (planejada para v2.5).
+   */
   hasRealtimeInventorySync: boolean;
   /** Remove a marca Vestui do rodapé da vitrine (White-label) */
   hasWhiteLabel: boolean;

@@ -80,6 +80,9 @@ type StoreData = {
   phone: string | null;
   city: string | null;
   owner_id: string;
+  plan?: string | null;
+  plan_tier?: string | null;
+  store_subscription_active?: boolean | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -117,7 +120,8 @@ function VitrineLayout() {
         .from("stores")
         // SEGURANÇA: metadata contém chavePix (PII da lojista) — NÃO incluir em queries públicas.
         // vitrineSettings (cor, logo, etc.) vêm via campo dedicado sem PII.
-        .select("id, name, phone, city, owner_id, metadata")
+        // plan, plan_tier e store_subscription_active resolvem o entitlement (White-Label e catálogo vs sacola)
+        .select("id, name, phone, city, owner_id, metadata, plan, plan_tier, store_subscription_active")
         .eq("slug", storeSlug)
         .maybeSingle();
       if (error) throw error;
@@ -238,6 +242,37 @@ function VitrineLayout() {
   const storeCity = store?.city ?? "";
   const storeWhatsapp = store?.phone ?? "";
 
+  // ── Entitlements Canônicos da Loja (White-Label e Catálogo vs Sacola) ──
+  const rawStorePlan = (store?.plan || "").toLowerCase();
+  const rawStorePlanTier = (store?.plan_tier || "").toLowerCase();
+  const rawStoreSub =
+    store?.store_subscription_active === true ||
+    (store?.metadata as Record<string, unknown> | null)?.["store_subscription_active"] === true;
+
+  const isStoreTier =
+    rawStoreSub ||
+    rawStorePlanTier === "store" ||
+    rawStorePlan === "store" ||
+    rawStorePlan === "gestao_anual" ||
+    rawStorePlan === "digital" ||
+    rawStorePlan === "completo";
+
+  const isProTier =
+    !isStoreTier &&
+    (rawStorePlanTier === "pro" ||
+      rawStorePlanTier === "lote" ||
+      rawStorePlan === "pro" ||
+      rawStorePlan === "lote" ||
+      rawStorePlan === "vestui_lote" ||
+      rawStorePlan === "vestui_pro");
+
+  // White-Label: Lojas Store ocultam o selo/rodapé "Vestui"
+  const isWhiteLabel = isStoreTier;
+
+  // Sacola multi-itens: Pro e Store possuem sacola com checkout/carrinho acumulativo.
+  // Free possui Catálogo Digital com pedido direto no WhatsApp por item.
+  const hasMultiItemCart = isStoreTier || isProTier;
+
   // ── Tema Ativo da Loja (Top-Level Hook — chamado incondicionalmente em todos os renders) ──
   const storeMetadata = store?.metadata as Record<string, unknown> | null;
   const activeTemplateId: string =
@@ -308,6 +343,8 @@ function VitrineLayout() {
           onOpenCart={() => setCartOpen(true)}
           onSelectProduct={(p) => setSelectedProduct(p)}
           storeCategories={storeCategories}
+          isWhiteLabel={isWhiteLabel}
+          hasMultiItemCart={hasMultiItemCart}
         />
       ) : (
         <ThemeRenderer
@@ -327,25 +364,29 @@ function VitrineLayout() {
           product={selectedProduct}
           cor={cor}
           storeName={storeName}
+          storeWhatsapp={storeWhatsapp}
           storeCategories={storeCategories}
           onClose={() => setSelectedProduct(null)}
           onCartOpen={() => setCartOpen(true)}
+          hasMultiItemCart={hasMultiItemCart}
         />
       )}
 
-      {/* ── DRAWER CARRINHO ───────────────────────────────── */}
-      <CartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        cor={cor}
-        storeName={storeName}
-        whatsapp={storeWhatsapp}
-        storeId={storeId}
-        allProducts={allProducts}
-        vitrineSettings={vitrineSettings}
-        storeMetadata={store?.metadata}
-        urlCupomParam={urlCupomParam}
-      />
+      {/* ── DRAWER CARRINHO (apenas para Pro e Store que possuem sacola multi-itens) ── */}
+      {hasMultiItemCart && (
+        <CartDrawer
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          cor={cor}
+          storeName={storeName}
+          whatsapp={storeWhatsapp}
+          storeId={storeId}
+          allProducts={allProducts}
+          vitrineSettings={vitrineSettings}
+          storeMetadata={store?.metadata}
+          urlCupomParam={urlCupomParam}
+        />
+      )}
     </div>
   );
 }
@@ -370,6 +411,8 @@ function VitrineCatalogExpress({
   onOpenCart,
   onSelectProduct,
   storeCategories,
+  isWhiteLabel = false,
+  hasMultiItemCart = true,
 }: {
   cor: string;
   storeName: string;
@@ -387,6 +430,8 @@ function VitrineCatalogExpress({
   onOpenCart: () => void;
   onSelectProduct: (p: ShowcaseProduct) => void;
   storeCategories: StoreCategory[];
+  isWhiteLabel?: boolean;
+  hasMultiItemCart?: boolean;
 }) {
   return (
     <>
@@ -441,22 +486,24 @@ function VitrineCatalogExpress({
               );
             })()}
 
-            <button
-              id="cart-open-btn"
-              onClick={onOpenCart}
-              className="relative flex h-10 w-10 items-center justify-center rounded-2xl text-gray-700 transition-colors hover:bg-black/5"
-              aria-label="Carrinho"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span
-                  className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                  style={{ backgroundColor: cor }}
-                >
-                  {cartCount}
-                </span>
-              )}
-            </button>
+            {hasMultiItemCart && (
+              <button
+                id="cart-open-btn"
+                onClick={onOpenCart}
+                className="relative flex h-10 w-10 items-center justify-center rounded-2xl text-gray-700 transition-colors hover:bg-black/5"
+                aria-label="Carrinho"
+              >
+                <ShoppingBag className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: cor }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -723,15 +770,17 @@ function VitrineCatalogExpress({
               cor={cor}
             />
           </div>
-          <div className="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-400">
-            <p className="mt-3">
-              Vitrine criada com{" "}
-              <a href="/" className="font-semibold text-gray-600 hover:underline">
-                Vestui
-              </a>{" "}
-              · Gestão e loja online para moda
-            </p>
-          </div>
+          {!isWhiteLabel && (
+            <div className="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-400">
+              <p className="mt-3">
+                Vitrine criada com{" "}
+                <a href="/" className="font-semibold text-gray-600 hover:underline">
+                  Vestui
+                </a>{" "}
+                · Gestão e loja online para moda
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -743,16 +792,20 @@ function ProductModal({
   product,
   cor,
   storeName,
+  storeWhatsapp,
   storeCategories,
   onClose,
   onCartOpen,
+  hasMultiItemCart = true,
 }: {
   product: ShowcaseProduct;
   cor: string;
   storeName: string;
+  storeWhatsapp?: string;
   storeCategories: StoreCategory[];
   onClose: () => void;
   onCartOpen: () => void;
+  hasMultiItemCart?: boolean;
 }) {
   const { add } = useCart();
   const sizesObj = (product.sizes ?? {}) as Record<string, number>;
@@ -774,6 +827,38 @@ function ProductModal({
 
   // Estoque específico do tamanho selecionado
   const estoqueTamanho = (tamanho in sizesObj ? sizesObj[tamanho] : product.totalEstoque) ?? 0;
+
+  function handleDirectWhatsApp() {
+    if (estoqueTamanho <= 0) return;
+    const singleItem: CartItem = {
+      id: product.id,
+      nome: product.name,
+      imagem: foto,
+      preco: precoFinal,
+      tamanho,
+      cor: cor2,
+      quantidade: 1,
+      maxQuantity: estoqueTamanho,
+    };
+    const msg = formatWhatsAppMessage(storeName, [singleItem], precoFinal);
+    const digits = (storeWhatsapp || "").replace(/\D/g, "");
+    if (digits.length >= 8) {
+      const phone = digits.startsWith("55") ? digits : `55${digits}`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+      onClose();
+      toast.success("Pedido pronto!", {
+        description: "Abrindo o WhatsApp da loja para enviar seu pedido.",
+      });
+    } else {
+      try {
+        void navigator.clipboard?.writeText(msg);
+      } catch { /* silencia */ }
+      onClose();
+      toast.info("WhatsApp da loja não configurado", {
+        description: "O resumo do pedido foi copiado! Você pode encaminhar para a loja no WhatsApp.",
+      });
+    }
+  }
 
   function handleAdd() {
     if (estoqueTamanho <= 0) return;
@@ -934,27 +1019,40 @@ function ProductModal({
             </p>
           </div>
 
-          <button
-            id="add-to-cart-btn"
-            type="button"
-            onClick={handleAdd}
-            disabled={product.totalEstoque === 0 || estoqueTamanho === 0 || added}
-            className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-50 hover:opacity-90 cursor-pointer disabled:cursor-not-allowed shadow-sm"
-            style={{ backgroundColor: cor }}
-          >
-            {added ? (
-              <>✓ Adicionado ao carrinho!</>
-            ) : product.totalEstoque === 0 ? (
-              "Produto esgotado"
-            ) : estoqueTamanho === 0 ? (
-              "Tamanho esgotado"
-            ) : (
-              <>
-                <ShoppingBag className="h-4 w-4" />
-                Adicionar ao carrinho
-              </>
-            )}
-          </button>
+          {!hasMultiItemCart ? (
+            <button
+              id="order-whatsapp-btn"
+              type="button"
+              onClick={handleDirectWhatsApp}
+              disabled={product.totalEstoque === 0 || estoqueTamanho === 0}
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold text-white transition-all disabled:opacity-50 hover:opacity-95 cursor-pointer disabled:cursor-not-allowed shadow-md bg-[#25D366] hover:bg-[#20bd5a]"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Pedir pelo WhatsApp
+            </button>
+          ) : (
+            <button
+              id="add-to-cart-btn"
+              type="button"
+              onClick={handleAdd}
+              disabled={product.totalEstoque === 0 || estoqueTamanho === 0 || added}
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-50 hover:opacity-90 cursor-pointer disabled:cursor-not-allowed shadow-sm"
+              style={{ backgroundColor: cor }}
+            >
+              {added ? (
+                <>✓ Adicionado ao carrinho!</>
+              ) : product.totalEstoque === 0 ? (
+                "Produto esgotado"
+              ) : estoqueTamanho === 0 ? (
+                "Tamanho esgotado"
+              ) : (
+                <>
+                  <ShoppingBag className="h-4 w-4" />
+                  Adicionar ao carrinho
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
