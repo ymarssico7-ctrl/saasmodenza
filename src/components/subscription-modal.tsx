@@ -326,18 +326,18 @@ export function SubscriptionModal({
                   "Calculadora com margem real e markup seguro",
                   "1 lote de precificação por mês",
                   "Até 10 peças ativas na vitrine",
-                  "Vitrine Online com pedidos no WhatsApp",
+                  "Catálogo Digital (pedidos pelo WhatsApp)",
                   "Frente de Caixa e Etiquetas: requer Vestui Pro",
                   "DRE e Fiado Digital: requer Vestui Store",
                 ]
               : tier === "lote"
               ? [
-                  "Até 60 peças ativas no catálogo (6x mais)",
+                  "Loja Online com Pix e Cartão automático (Vestui Pay)",
                   "Lotes de precificação ilimitados todo mês",
+                  "Até 60 peças ativas no catálogo (6x mais)",
                   "Frente de Caixa Ágil (PDV de Balcão)",
                   "Etiquetas em folha A4 e bobina térmica",
                   "2 Estilos visuais para a vitrine online",
-                  "Cancele quando quiser sem fidelidade",
                 ]
               : [
                   "Produtos e lotes ILIMITADOS",

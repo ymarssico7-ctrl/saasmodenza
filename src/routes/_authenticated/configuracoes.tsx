@@ -1054,7 +1054,7 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Vitrine Online com pedidos no WhatsApp</span>
+                        <span>Catálogo Digital (cliente vê e pede pelo WhatsApp)</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
@@ -1109,7 +1109,7 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Tudo do Plano Gratuito incluso</strong></span>
+                        <span><strong>Loja Online com Pix e Cartão automático</strong> (Vestui Pay)</span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
