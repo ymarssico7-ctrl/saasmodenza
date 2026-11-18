@@ -23,17 +23,17 @@ function getHeaderInfo(reason: UpgradeLoteModalProps["reason"]) {
   switch (reason) {
     case "labels_locked":
       return {
-        headline: "Desbloqueie Etiquetas e a Gestão Completa da Loja",
-        sub: "Imprima etiquetas com código de barras e leve catálogo de 60 peças, lotes ilimitados e PDV por R$ 0,66/dia.",
+        headline: "Imprima Etiquetas e Libere a Gestão Completa",
+        sub: "Código de barras para suas peças, catálogo de 60 roupas, lotes ilimitados e PDV por R$ 0,66/dia.",
       };
     case "quota_reached":
       return {
         headline: "Precifique Lotes Ilimitados e Venda Mais",
-        sub: "Acabe com a trava de 1 lote/mês do Free e continue precificando coleções sem limites por R$ 0,66/dia.",
+        sub: "Acabe com a trava de 1 lote/mês do Free e precifique coleções completas sem limites por R$ 0,66/dia.",
       };
     case "products_limit":
       return {
-        headline: "Expanda seu Catálogo de 10 para até 60 Peças",
+        headline: "Expanda seu Catálogo para até 60 Peças",
         sub: "Sua loja cresceu! Desbloqueie 6x mais espaço no catálogo, vitrine online, PDV e etiquetas por R$ 0,66/dia.",
       };
     case "pos_locked":
@@ -43,7 +43,7 @@ function getHeaderInfo(reason: UpgradeLoteModalProps["reason"]) {
       };
     default:
       return {
-        headline: "Sua Loja Pronta para Vender Mais no Físico e Online",
+        headline: "Sua Loja Pronta para Vender no Físico e Online",
         sub: "Mais capacidade no catálogo, precificação ilimitada, frente de caixa rápida e etiquetas por apenas R$ 0,66 ao dia.",
       };
   }
@@ -94,7 +94,7 @@ export function UpgradeLoteModal({
                   Catálogo Expandido para até 60 Peças
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  De 10 para 60 roupas com fotos, cores e tamanhos na sua vitrine online aberta 24h para o Instagram.
+                  De 10 para 60 roupas com fotos, cores, tamanhos e pedidos direto na sacola do WhatsApp.
                 </p>
               </div>
             </div>
@@ -171,7 +171,7 @@ export function UpgradeLoteModal({
               className="w-full gradient-primary h-11 rounded-2xl text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-2"
             >
               <Sparkles className="size-4" />
-              Desbloquear Plano Completo Agora →
+              Desbloquear Vestui Pro Agora →
             </Button>
 
             <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">

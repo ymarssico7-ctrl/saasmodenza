@@ -6701,17 +6701,6 @@ function Precificacao() {
                     </span>
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrintLabelsGrade}
-                    disabled={!canSubmitGrade && variants.length === 0}
-                    className="w-full h-9 rounded-xl border-border/80 bg-background hover:bg-secondary text-xs font-semibold text-foreground cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Printer className="size-3.5 text-primary" />
-                    <span>Imprimir Etiquetas do Lote</span>
-                  </Button>
-
                   <div className="min-h-[1rem] flex items-center justify-center text-center">
                     {!canSubmitGrade && validationMsg && (
                       <p className="text-[11px] text-muted-foreground leading-normal">
@@ -6722,22 +6711,37 @@ function Precificacao() {
                 </div>
 
                 {/* 4. Rodapé com Ações Secundárias */}
-                <div className="border-t border-border/50 pt-2 flex items-center justify-between">
+                <div className="border-t border-border/50 pt-2 flex items-center justify-between gap-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={handleSaveWithQuotaCheck}
                     disabled={save.isPending || !name.trim()}
+                    title="Salvar modelo de cálculo sem dar entrada no estoque"
                     className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
                   >
                     <Save className="size-3.5 mr-1.5" /> Salvar modelo
                   </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handlePrintLabelsGrade}
+                    disabled={!canSubmitGrade && variants.length === 0}
+                    title="Gerar etiquetas de código de barras para este lote"
+                    className="h-8 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2"
+                  >
+                    <Printer className="size-3.5 mr-1.5 text-primary" /> Etiquetas
+                  </Button>
+
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={resetPricingModel}
+                    title="Limpar formulário e reiniciar cálculo"
                     className="h-8 text-xs font-semibold text-muted-foreground hover:text-destructive cursor-pointer px-2"
                   >
                     <RotateCcw className="size-3.5 mr-1.5" /> Limpar
