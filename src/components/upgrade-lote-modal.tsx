@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import {
-  Globe,
   Layers,
+  PackageOpen,
   Printer,
+  ShoppingBag,
   Sparkles,
   Star,
   Tag,
@@ -18,18 +19,33 @@ interface UpgradeLoteModalProps {
   reason?: "quota_reached" | "labels_locked" | "products_limit" | "pos_locked" | "general";
 }
 
-function getHeadline(reason: UpgradeLoteModalProps["reason"]) {
+function getHeaderInfo(reason: UpgradeLoteModalProps["reason"]) {
   switch (reason) {
     case "labels_locked":
-      return "Automatize suas Etiquetas e Venda na Loja Online";
+      return {
+        headline: "Desbloqueie Etiquetas e a Gestão Completa da Loja",
+        sub: "Imprima etiquetas com código de barras e leve catálogo de 60 peças, lotes ilimitados e PDV por R$ 0,66/dia.",
+      };
     case "quota_reached":
-      return "Sua Loja Cresceu! Desbloqueie Lotes e Venda Online";
+      return {
+        headline: "Precifique Lotes Ilimitados e Venda Mais",
+        sub: "Acabe com a trava de 1 lote/mês do Free e continue precificando coleções sem limites por R$ 0,66/dia.",
+      };
     case "products_limit":
-      return "Expanda seu Catálogo para 60 Peças e Venda na Vitrine 24h";
+      return {
+        headline: "Expanda seu Catálogo de 10 para até 60 Peças",
+        sub: "Sua loja cresceu! Desbloqueie 6x mais espaço no catálogo, vitrine online, PDV e etiquetas por R$ 0,66/dia.",
+      };
     case "pos_locked":
-      return "PDV Ágil com Código de Barras & Loja Online no WhatsApp";
+      return {
+        headline: "Ative a Frente de Caixa e Venda em 3 Segundos",
+        sub: "Registre vendas com leitor de código de barras no balcão e dê baixa no estoque em tempo real por R$ 0,66/dia.",
+      };
     default:
-      return "Desbloqueie o Sistema Comercial da Sua Loja";
+      return {
+        headline: "Sua Loja Pronta para Vender Mais no Físico e Online",
+        sub: "Mais capacidade no catálogo, precificação ilimitada, frente de caixa rápida e etiquetas por apenas R$ 0,66 ao dia.",
+      };
   }
 }
 
@@ -38,7 +54,7 @@ export function UpgradeLoteModal({
   onOpenChange,
   reason = "general",
 }: UpgradeLoteModalProps) {
-  const headline = getHeadline(reason);
+  const { headline, sub } = getHeaderInfo(reason);
 
   const handleCheckout = () => {
     window.open("https://chk.eduzz.com/vestui-lote?cupom=VIP", "_blank");
@@ -47,13 +63,13 @@ export function UpgradeLoteModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[480px] p-5 sm:p-6 gap-0 rounded-3xl border border-border bg-card text-card-foreground shadow-2xl overflow-hidden max-h-[calc(100vh-2rem)]">
-        <div className="space-y-3 text-center">
-          {/* ── Topo Compacto com Badge e Título ── */}
+        <div className="space-y-3.5 text-center">
+          {/* ── Topo Nobre com Badge de Plano ── */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-center">
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider flex items-center gap-1.5">
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-2xs">
                 <Tag className="size-3.5 text-primary shrink-0" />
-                <span>VESTUI LOTE · R$ 19,90/MÊS</span>
+                <span>PLANO VESTUI PRO · R$ 19,90/MÊS</span>
               </Badge>
             </div>
 
@@ -62,49 +78,43 @@ export function UpgradeLoteModal({
             </h2>
 
             <p className="text-xs text-muted-foreground leading-snug max-w-sm mx-auto">
-              Venda no balcão com leitor de código de barras e na internet com sua vitrine digital — estoque e pedidos 100% integrados por R$ 0,66 ao dia.
+              {sub}
             </p>
           </div>
 
-          {/* ── 4 Benefícios Reais e Detalhados (Checklist Clean) ── */}
-          <div className="space-y-2 py-0.5 text-left">
-            {/* 1. Loja Online */}
+          {/* ── 4 Pilares Comerciais Reais (Checklist Clean & Fluido) ── */}
+          <div className="space-y-2.5 py-0.5 text-left">
+            {/* 1. Catálogo Expandido */}
             <div className="flex items-start gap-2.5">
               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Globe className="size-3.5" />
+                <PackageOpen className="size-3.5" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground leading-tight">
-                  Loja Online & Sacola no WhatsApp
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
-                    Vitrine 24h
-                  </span>
+                  Catálogo Expandido para até 60 Peças
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  Venda pelo Instagram com sacola pronta e frete calculado no WhatsApp.
+                  De 10 para 60 roupas com fotos, cores e tamanhos na sua vitrine online aberta 24h para o Instagram.
                 </p>
               </div>
             </div>
 
-            {/* 2. Etiquetas */}
+            {/* 2. Lotes Ilimitados */}
             <div className="flex items-start gap-2.5">
               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Printer className="size-3.5" />
+                <Layers className="size-3.5" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground leading-tight">
-                  Etiquetas Térmicas & Folha A4 em 3s
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
-                    Zebra & Pimaco
-                  </span>
+                  Lotes de Precificação Ilimitados
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  Código de barras automático para impressoras térmicas e folhas A4.
+                  Acabe com a trava de 1 lote/mês. Precifique quantas coleções e compras de atacado quiser sem limites.
                 </p>
               </div>
             </div>
 
-            {/* 3. PDV */}
+            {/* 3. PDV de Balcão */}
             <div className="flex items-start gap-2.5">
               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                 <Zap className="size-3.5" />
@@ -112,37 +122,31 @@ export function UpgradeLoteModal({
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground leading-tight">
                   Frente de Caixa (PDV de Balcão)
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
-                    Baixa no Estoque
-                  </span>
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  Bipe com leitor de código de barras e conclua a venda em 3 segundos.
+                  Conclua vendas no balcão em 3 segundos com leitor e baixa automática no estoque em tempo real.
                 </p>
               </div>
             </div>
 
-            {/* 4. Lotes */}
+            {/* 4. Etiquetas */}
             <div className="flex items-start gap-2.5">
               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Layers className="size-3.5" />
+                <Printer className="size-3.5" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground leading-tight">
-                  Lotes Ilimitados & 60 Peças no Catálogo
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
-                    Sem Limites
-                  </span>
+                  Etiquetas com Código de Barras
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  Precifique coleções completas no atacado sem travas mensais.
+                  Gere códigos escaneáveis e imprima em qualquer impressora térmica (Zebra/Elgin) ou folha A4 comum.
                 </p>
               </div>
             </div>
           </div>
 
           {/* ── Card de Preço & Ancoragem ── */}
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-1.5 flex items-center justify-between text-left">
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-2 flex items-center justify-between text-left">
             <div>
               <p className="text-[9px] text-muted-foreground line-through">De R$ 49,90/mês</p>
               <div className="flex items-baseline gap-1">
@@ -153,7 +157,7 @@ export function UpgradeLoteModal({
             </div>
             <div className="text-right">
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20 inline-block">
-                R$ 0,66 por dia
+                Apenas R$ 0,66 por dia
               </span>
               <p className="text-[9px] text-muted-foreground mt-0.5">Menos de 1 café por semana</p>
             </div>
@@ -164,10 +168,10 @@ export function UpgradeLoteModal({
             <Button
               onClick={handleCheckout}
               size="default"
-              className="w-full gradient-primary h-10.5 rounded-2xl text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-2"
+              className="w-full gradient-primary h-11 rounded-2xl text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-2"
             >
               <Sparkles className="size-4" />
-              Desbloquear Vestui Lote Agora →
+              Desbloquear Plano Completo Agora →
             </Button>
 
             <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
