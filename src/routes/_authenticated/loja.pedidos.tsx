@@ -37,8 +37,9 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
-import { inventoryQuery } from "@/lib/db";
+import { inventoryQuery, profileQuery } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccess } from "@/lib/useAccess";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { StatusBadge, Tag } from "@/components/loja/badges";
@@ -314,9 +315,65 @@ function mapDbRowToPedido(row: any): Pedido {
   };
 }
 
+// ─── Gate: Plano Gratuito não tem checkout automático ────────────────────────
+function PedidosGatePresentation() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-16 text-center">
+      <div className="flex size-20 items-center justify-center rounded-3xl bg-primary/10 mb-6">
+        <ShoppingBag className="size-10 text-primary" />
+      </div>
+
+      <h1 className="font-display text-2xl font-bold text-foreground mb-3">
+        Pedidos Automatizados
+      </h1>
+      <p className="text-muted-foreground text-sm max-w-sm mb-2 leading-relaxed">
+        No Plano Gratuito, sua vitrine funciona como um <strong>catálogo digital</strong>:
+        seus clientes escolhem as peças e te mandam mensagem direto no WhatsApp.
+      </p>
+      <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
+        No <strong>Vestui Pro</strong>, cada pedido entra automaticamente no painel com
+        status de pagamento via Pix ou Cartão, controle de despacho e rastreio de entrega.
+      </p>
+
+      <div className="w-full max-w-sm rounded-3xl border border-border/70 bg-card shadow-soft p-5 mb-8 text-left space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          O que você ganha no Vestui Pro
+        </p>
+        {[
+          "Status em tempo real: Pendente, Pago, Em Separação, Enviado",
+          "Comprovante automático (Pix e Cartão via Vestui Pay)",
+          "Rastreio de envio com link direto para o cliente",
+          "Cancelamento com restauração de estoque automática",
+          "Histórico completo de pedidos por cliente",
+        ].map((item) => (
+          <div key={item} className="flex items-start gap-2.5">
+            <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
+            <span className="text-sm text-foreground">{item}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+        <a
+          href="/configuracoes/plano"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-full h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground shadow-glow hover:opacity-90 transition-all"
+        >
+          <Sparkles className="size-4" />
+          Conhecer Vestui Pro — R$ 19,90/mês
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function PedidosPage() {
   const { storeId, store } = useStore();
   const queryClient = useQueryClient();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  // Guard: Free tier não tem checkout — rota não produz pedidos reais
+  if (access.isFree) return <PedidosGatePresentation />;
 
   // Estados de Filtros e Busca (Padrão Shopify IndexTable)
   const [filtroStatus, setFiltroStatus] = useState<StatusPedido | "todos">("todos");

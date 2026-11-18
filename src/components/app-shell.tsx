@@ -123,14 +123,6 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
         isMatch: (p) => p.startsWith("/estoque"),
       },
       {
-        id: "pedidos",
-        label: "Pedidos",
-        icon: ShoppingBag,
-        to: "/loja/pedidos",
-        badgeKey: "pedidos",
-        isMatch: (p) => p.startsWith("/loja/pedidos"),
-      },
-      {
         id: "clientes",
         label: "Clientes",
         icon: Users,
@@ -141,11 +133,19 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
 
       // ── Módulos de Expansão (Iscas de Upgrade Nível Shopify) ─────────────────
       {
+        id: "pedidos",
+        label: "Pedidos",
+        icon: ShoppingBag,
+        to: "/loja/pedidos",
+        dividerBefore: true,
+        tierBadge: "Pro",
+        isMatch: (p) => p.startsWith("/loja/pedidos"),
+      },
+      {
         id: "caixa",
         label: "Frente de Caixa",
         icon: Wallet,
         to: "/caixa",
-        dividerBefore: true,
         tierBadge: "Pro",
         isMatch: (p) => p === "/caixa",
       },
