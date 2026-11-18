@@ -46,45 +46,42 @@ export function UpgradeLoteModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px] p-6 sm:p-7 gap-0 rounded-3xl border border-border bg-card text-card-foreground shadow-2xl overflow-hidden">
-        <div className="space-y-4 text-center">
-          {/* ── Ícone com Glow e Badge Oficial ── */}
-          <div className="space-y-2">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-xs">
-              <Tag className="size-6 text-primary" />
-            </div>
-
-            <div className="flex items-center justify-center gap-2">
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-0.5 uppercase tracking-wider">
-                ✦ VESTUI LOTE · R$ 19,90/MÊS
+      <DialogContent className="max-w-[480px] p-5 sm:p-6 gap-0 rounded-3xl border border-border bg-card text-card-foreground shadow-2xl overflow-hidden max-h-[calc(100vh-2rem)]">
+        <div className="space-y-3 text-center">
+          {/* ── Topo Compacto com Badge e Título ── */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-center">
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-3 py-1 uppercase tracking-wider flex items-center gap-1.5">
+                <Tag className="size-3.5 text-primary shrink-0" />
+                <span>VESTUI LOTE · R$ 19,90/MÊS</span>
               </Badge>
             </div>
 
-            <h2 className="text-xl sm:text-[22px] font-display font-extrabold text-foreground tracking-tight leading-tight">
+            <h2 className="text-lg sm:text-xl font-display font-extrabold text-foreground tracking-tight leading-snug">
               {headline}
             </h2>
 
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
+            <p className="text-xs text-muted-foreground leading-snug max-w-sm mx-auto">
               Venda no balcão com leitor de código de barras e na internet com sua vitrine digital — estoque e pedidos 100% integrados por R$ 0,66 ao dia.
             </p>
           </div>
 
           {/* ── 4 Benefícios Reais e Detalhados (Checklist Clean) ── */}
-          <div className="space-y-2.5 py-1 text-left">
+          <div className="space-y-2 py-0.5 text-left">
             {/* 1. Loja Online */}
             <div className="flex items-start gap-2.5">
               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                 <Globe className="size-3.5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground leading-snug">
+                <p className="text-xs font-bold text-foreground leading-tight">
                   Loja Online & Sacola no WhatsApp
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20 ml-1.5">
+                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
                     Vitrine 24h
                   </span>
                 </p>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  Venda pelo Instagram com sacola pronta enviada direto no seu WhatsApp e frete calculado.
+                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                  Venda pelo Instagram com sacola pronta e frete calculado no WhatsApp.
                 </p>
               </div>
             </div>
@@ -95,14 +92,14 @@ export function UpgradeLoteModal({
                 <Printer className="size-3.5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground leading-snug">
+                <p className="text-xs font-bold text-foreground leading-tight">
                   Etiquetas Térmicas & Folha A4 em 3s
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20 ml-1.5">
+                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
                     Zebra & Pimaco
                   </span>
                 </p>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  Gere código de barras automático e imprima em qualquer impressora térmica ou jato/laser.
+                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                  Código de barras automático para impressoras térmicas e folhas A4.
                 </p>
               </div>
             </div>
@@ -113,14 +110,14 @@ export function UpgradeLoteModal({
                 <Zap className="size-3.5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground leading-snug">
+                <p className="text-xs font-bold text-foreground leading-tight">
                   Frente de Caixa (PDV de Balcão)
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20 ml-1.5">
+                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
                     Baixa no Estoque
                   </span>
                 </p>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  Passe as peças no leitor de código de barras e conclua a venda em 3 segundos no caixa.
+                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                  Bipe com leitor de código de barras e conclua a venda em 3 segundos.
                 </p>
               </div>
             </div>
@@ -131,26 +128,26 @@ export function UpgradeLoteModal({
                 <Layers className="size-3.5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground leading-snug">
+                <p className="text-xs font-bold text-foreground leading-tight">
                   Lotes Ilimitados & 60 Peças no Catálogo
-                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20 ml-1.5">
+                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1 py-0.2 rounded border border-primary/20 ml-1.5">
                     Sem Limites
                   </span>
                 </p>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  Precifique coleções completas sem teto mensal e expanda seu catálogo de 10 para até 60 peças.
+                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                  Precifique coleções completas no atacado sem travas mensais.
                 </p>
               </div>
             </div>
           </div>
 
           {/* ── Card de Preço & Ancoragem ── */}
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-2 flex items-center justify-between text-left">
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-1.5 flex items-center justify-between text-left">
             <div>
               <p className="text-[9px] text-muted-foreground line-through">De R$ 49,90/mês</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-xs font-bold text-foreground">Por apenas</span>
-                <span className="text-xl font-display font-black text-foreground">R$ 19,90</span>
+                <span className="text-lg font-display font-black text-foreground">R$ 19,90</span>
                 <span className="text-xs text-muted-foreground">/mês</span>
               </div>
             </div>
@@ -163,38 +160,36 @@ export function UpgradeLoteModal({
           </div>
 
           {/* ── Ações & Garantias ── */}
-          <div className="space-y-2 pt-0.5">
+          <div className="space-y-1.5 pt-0.5">
             <Button
               onClick={handleCheckout}
-              size="lg"
-              className="w-full gradient-primary h-11 rounded-2xl text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-2"
+              size="default"
+              className="w-full gradient-primary h-10.5 rounded-2xl text-sm font-bold text-primary-foreground shadow-glow hover:opacity-95 transition-all cursor-pointer gap-2"
             >
               <Sparkles className="size-4" />
               Desbloquear Vestui Lote Agora →
             </Button>
 
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="w-full h-8 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              <Link to="/configuracoes" search={{ tab: "plano" }} onClick={() => onOpenChange(false)}>
+            <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+              <Link
+                to="/configuracoes"
+                search={{ tab: "plano" }}
+                onClick={() => onOpenChange(false)}
+                className="hover:text-foreground underline underline-offset-2 transition-colors cursor-pointer"
+              >
                 Comparar todos os planos
               </Link>
-            </Button>
 
-            <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground pt-1 border-t border-border/40">
               <div className="flex items-center gap-1">
                 <Star className="size-2.5 fill-amber-400 text-amber-400" />
                 <span className="font-semibold text-foreground">4,9/5</span>
                 <span>(+2.400 lojistas)</span>
               </div>
-              <span>•</span>
-              <span>Sem fidelidade</span>
-              <span>•</span>
-              <span>Liberação imediata em 10s</span>
             </div>
+
+            <p className="text-[10px] text-muted-foreground text-center font-medium pt-0.5">
+              Sem fidelidade • Ativação imediata em 10s • Cancele quando quiser
+            </p>
           </div>
         </div>
       </DialogContent>
