@@ -990,10 +990,10 @@ function Configuracoes() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {access.isStore
-                    ? "Tudo liberado: Produtos Ilimitados, Cockpit Financeiro com DRE, Caderninho de Fiado com WhatsApp, Pró-labore da Dona, Multi-vendedoras e White-label."
+                    ? "Tudo liberado: Produtos e lotes ilimitados, Caderninho de Fiado no WhatsApp, Pró-labore da Dona e DRE Financeiro com CMV."
                     : access.isPro
-                    ? "Até 60 produtos ativos, Frente de Caixa (PDV de Balcão), vitrine com sacola multi-peças, precificação ilimitada e gerador de etiquetas A4 e térmicas."
-                    : "Até 10 peças no catálogo, Vitrine Catálogo Express (1 peça/pedido), Calculadora de Margem Real (1 lote/mês) e Cockpit de Ativação."}
+                    ? "Até 60 peças ativas no catálogo, lotes de precificação ilimitados, Frente de Caixa (PDV) e etiquetas de código de barras."
+                    : "Até 10 peças na vitrine online, controle básico de estoque e calculadora de margem real com 1 lote salvo por mês."}
                 </p>
               </div>
 
@@ -1046,19 +1046,19 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span><strong>Até 10 peças</strong> ativas no catálogo</span>
+                        <span>Calculadora de Margem Real (1 lote/mês)</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Vitrine Catálogo no WhatsApp (Template Express)</span>
+                        <span><strong>Até 10 peças</strong> ativas na vitrine</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Calculadora de Margem Real (1 lote por mês)</span>
+                        <span>Vitrine Online com pedidos no WhatsApp</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Cockpit de Ativação e gestão de peças</span>
+                        <span>Controle básico de estoque e peças</span>
                       </div>
                     </div>
                   </div>
@@ -1109,6 +1109,14 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Tudo do Plano Gratuito incluso</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Lotes de precificação ILIMITADOS</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
                         <span><strong>Até 60 peças ativas</strong> no catálogo (6x mais)</span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
@@ -1117,23 +1125,11 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Lotes e precificação ilimitados</strong></span>
-                      </div>
-                      <div className="flex items-start gap-2 text-foreground font-medium">
-                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
                         <span><strong>Etiquetas em folha A4 e bobina térmica</strong></span>
                       </div>
-                      <div className="flex items-start gap-2 text-foreground font-medium">
-                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Vitrine com Sacola Multipeças no WhatsApp</strong></span>
-                      </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>2 Templates liberados com cores da sua marca</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="size-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Histórico completo das coleções salvo na nuvem</span>
+                        <span>2 Estilos visuais para a vitrine online</span>
                       </div>
                     </div>
                   </div>
@@ -1185,7 +1181,11 @@ function Configuracoes() {
                     <div className="space-y-2 text-xs border-t border-border/50 pt-3 text-muted-foreground">
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Produtos e lotes ILIMITADOS</strong></span>
+                        <span><strong>Tudo do Vestui Pro incluso</strong></span>
+                      </div>
+                      <div className="flex items-start gap-2 text-foreground font-medium">
+                        <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
+                        <span><strong>Produtos e lotes ILIMITADOS</strong> (sem teto)</span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
@@ -1193,23 +1193,15 @@ function Configuracoes() {
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Pró-labore da Dona e Metas Financeiras</strong></span>
+                        <span><strong>Pró-labore da Dona e Metas de Venda</strong></span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground font-medium">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5 stroke-[3]" />
-                        <span><strong>Multi-vendedoras com controle de acesso</strong></span>
+                        <span><strong>DRE Financeiro com CMV e Lucro Real</strong></span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>Todos os Templates VIP de Alta Moda</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>100% White-Label (sua marca própria)</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
-                        <span>DRE Contábil, CMV e fluxo de caixa completo</span>
+                        <span>Todos os 3 temas visuais da vitrine</span>
                       </div>
                     </div>
                   </div>

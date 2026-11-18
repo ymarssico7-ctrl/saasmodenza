@@ -298,12 +298,12 @@ export function SubscriptionModal({
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {tier === "free"
-                  ? "Cálculo de margem real, markup seguro, vitrine catálogo e até 10 peças"
+                  ? "Cálculo de margem real, vitrine no WhatsApp e até 10 peças"
                   : tier === "lote"
-                  ? "Até 60 peças, Frente de Caixa (PDV), etiquetas térmicas e sacola WhatsApp"
+                  ? "Até 60 peças, Frente de Caixa (PDV), etiquetas e lotes ilimitados"
                   : isAnual
                   ? "Faturado anualmente em parcela única (economize mais de R$ 360 no ano)"
-                  : "Loja física e online integradas, PDV e estoque unificado"}
+                  : "Loja física e online integradas, fiado no WhatsApp e finanças completas"}
               </p>
             </div>
             <div className="text-center sm:text-right">
@@ -323,28 +323,28 @@ export function SubscriptionModal({
           <div className="grid sm:grid-cols-2 gap-2.5 text-xs">
             {(tier === "free"
               ? [
-                  "Até 10 peças ativas no catálogo",
                   "Calculadora com margem real e markup seguro",
                   "1 lote de precificação por mês",
-                  "Vitrine Catálogo no WhatsApp (Template Express)",
+                  "Até 10 peças ativas na vitrine",
+                  "Vitrine Online com pedidos no WhatsApp",
                   "Frente de Caixa e Etiquetas: requer Vestui Pro",
-                  "DRE, Fiado e Equipe: requer Vestui Store",
+                  "DRE e Fiado Digital: requer Vestui Store",
                 ]
               : tier === "lote"
               ? [
                   "Até 60 peças ativas no catálogo (6x mais)",
+                  "Lotes de precificação ilimitados todo mês",
                   "Frente de Caixa Ágil (PDV de Balcão)",
-                  "Lotes e precificações ilimitadas todo mês",
                   "Etiquetas em folha A4 e bobina térmica",
-                  "Vitrine com sacola multipeças no WhatsApp",
+                  "2 Estilos visuais para a vitrine online",
                   "Cancele quando quiser sem fidelidade",
                 ]
               : [
                   "Produtos e lotes ILIMITADOS",
-                  "Cockpit Financeiro com DRE em tempo real",
-                  "Caderninho de Fiado Digital com cobrança WhatsApp",
+                  "Caderninho de Fiado Digital com WhatsApp",
                   "Pró-labore da Dona e metas de faturamento",
-                  "Multi-vendedoras com gestão de equipe",
+                  "DRE Financeiro completo com CMV e lucro real",
+                  "Todos os 3 temas visuais da vitrine",
                   "Tudo do Vestui Pro incluso (PDV e etiquetas)",
                 ]
             ).map((beneficio, i) => (

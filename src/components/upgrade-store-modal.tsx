@@ -160,7 +160,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>Multi-vendedoras / Equipe:</strong> Dê acesso ao caixa para suas funcionárias sem expor seus custos de fábrica ou lucros.
+              <strong>DRE Financeiro Completo & CMV:</strong> Acompanhe faturamento, margem real, custos das peças vendidas e saiba o lucro líquido da loja.
             </span>
           </div>
 
@@ -169,7 +169,7 @@ export function UpgradeStoreModal({
               <Check className="size-3 stroke-[3]" />
             </div>
             <span>
-              <strong>Tudo do Vestui Pro Incluso:</strong> Etiquetas com código de barras, vitrine com sacola Whats e precificação ilimitada.
+              <strong>Tudo do Vestui Pro Incluso:</strong> Frente de caixa (PDV), etiquetas com código de barras, vitrine online e precificação ilimitada.
             </span>
           </div>
         </div>
