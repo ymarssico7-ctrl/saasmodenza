@@ -642,16 +642,16 @@ function Estoque() {
               </>
             ) : (
               <>
-                {vitrineAtiva && (
+                {store?.slug && (
                   <Button
                     asChild
                     variant="outline"
                     className="h-10 rounded-xl border-border bg-card px-3.5 text-xs font-semibold text-foreground/80 shadow-2xs hover:bg-secondary hover:text-foreground transition-colors"
                   >
-                    <Link to="/loja/produtos">
-                      <Store className="mr-2 size-3.5 text-primary" />
-                      Catálogo Vitrine
-                    </Link>
+                    <a href={`/vitrine/${store.slug}`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="mr-2 size-3.5 text-primary" />
+                      Ver Catálogo Online
+                    </a>
                   </Button>
                 )}
                 <Button

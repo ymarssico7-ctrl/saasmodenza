@@ -131,6 +131,40 @@ function getShopifyNav(access: AccessInfo, vitrineAtiva: boolean, fiadoAtivo: bo
         isMatch: (p) => p.startsWith("/clientes") && !p.startsWith("/clientes?tab=fiado"),
       },
 
+      // ── Canal de Venda (Catálogo Digital / Vitrine Online) ─────────────────
+      {
+        id: "vitrine",
+        label: "Catálogo Digital",
+        icon: Store,
+        to: "/loja/produtos",
+        section: "Canais de vendas",
+        externalPreview: true,
+        isMatch: (p) =>
+          p.startsWith("/loja") &&
+          !p.startsWith("/loja/pedidos") &&
+          !p.startsWith("/loja/cupons") &&
+          !p.startsWith("/loja/compartilhar"),
+        children: [
+          {
+            to: "/loja/produtos",
+            label: "Peças no Catálogo",
+            isMatch: (p) => p.startsWith("/loja/produtos"),
+          },
+          {
+            to: "/loja/templates",
+            label: "Tema & Aparência",
+            isMatch: (p) => p.startsWith("/loja/templates"),
+          },
+          {
+            to: "/loja/configuracao",
+            label: "Dados & WhatsApp",
+            isMatch: (p) =>
+              p.startsWith("/loja/configuracao") ||
+              p.startsWith("/loja/personalizar"),
+          },
+        ],
+      },
+
       // ── Módulos de Expansão (Iscas de Upgrade Nível Shopify) ─────────────────
       {
         id: "pedidos",
@@ -880,7 +914,7 @@ const NavGroupRow = memo(function NavGroupRow({
         {/* Botão de preview da vitrine */}
         {item.externalPreview && storeSlug && (
           <a
-            href={`https://${storeSlug}.vestui.com.br`}
+            href={`/vitrine/${storeSlug}`}
             target="_blank"
             rel="noreferrer"
             title="Abrir Vitrine Online"

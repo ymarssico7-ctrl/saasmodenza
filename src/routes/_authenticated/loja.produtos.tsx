@@ -42,7 +42,6 @@ import {
   setAutoPublish,
   type ShowcaseProduct,
 } from "@/lib/showcase-store";
-import { PlanGuard } from "@/components/plan-guard";
 
 export const Route = createFileRoute("/_authenticated/loja/produtos")({
   head: () => ({
@@ -251,12 +250,7 @@ function ProdutosPage() {
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <PlanGuard
-      requires="digital"
-      featureName="Vitrine Online"
-      featureDescription="Gerencie quais peças aparecem na sua loja online. Disponível no Plano Digital."
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         <PageHeader
           eyebrow="Vitrine"
           title="Produtos na loja"
@@ -832,6 +826,5 @@ function ProdutosPage() {
           </SheetContent>
         </Sheet>
       </div>
-    </PlanGuard>
   );
 }
