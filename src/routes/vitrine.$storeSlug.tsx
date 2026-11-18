@@ -147,8 +147,13 @@ function VitrineLayout() {
   // ── Mescla inventário com configs de vitrine (localStorage) ──
   const allProducts: ShowcaseProduct[] = useMemo(() => {
     if (!inventoryItems.length) return [];
-    return mergeInventoryWithShowcase(inventoryItems as Parameters<typeof mergeInventoryWithShowcase>[0]);
-  }, [inventoryItems]);
+    const merged = mergeInventoryWithShowcase(inventoryItems as Parameters<typeof mergeInventoryWithShowcase>[0]);
+    // Regra canônica: Plano Free exibe até 10 peças ativas na vitrine digital
+    if (!isStoreTier && !isProTier) {
+      return merged.slice(0, 10);
+    }
+    return merged;
+  }, [inventoryItems, isStoreTier, isProTier]);
 
   // Deep link: ao acessar com ?p=id ou ?produto=id, abre o modal da peça automaticamente
   useEffect(() => {
@@ -278,7 +283,7 @@ function VitrineLayout() {
   const activeTemplateId: string =
     (storeMetadata?.["templateId"] as string) ||
     ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
-    "template-02";
+    "catalogo-express";
 
   const activeTheme: ThemeConfig = useMemo(() => {
     const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;

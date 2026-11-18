@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { MapPin, Package, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { MapPin, Package, Truck, Sparkles, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/loja/page-header";
@@ -12,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { brl, toNumber } from "@/lib/format";
 import { useStore } from "@/lib/store-context";
+import { useAccess } from "@/lib/useAccess";
+import { profileQuery } from "@/lib/db";
 
 function freteKey(storeId: string) {
   return `vestui_frete_config_${storeId}`;
@@ -87,8 +90,62 @@ const opcoesIniciais: OpcaoEntrega[] = [
   },
 ];
 
+// ─── Gate: Plano Gratuito não possui cálculo e regras de frete customizadas ──
+function FreteGatePresentation() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-16 text-center">
+      <div className="flex size-20 items-center justify-center rounded-3xl bg-primary/10 mb-6">
+        <Truck className="size-10 text-primary" />
+      </div>
+
+      <h1 className="font-display text-2xl font-bold text-foreground mb-3">
+        Regras de Frete & Entrega
+      </h1>
+      <p className="text-muted-foreground text-sm max-w-sm mb-2 leading-relaxed">
+        No Plano Gratuito, seu catálogo digital permite que os clientes combinem a entrega ou retirada diretamente no WhatsApp.
+      </p>
+      <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
+        No <strong>Vestui Pro</strong>, você configura taxas de entrega local, retirada na loja, frete grátis por valor mínimo e prazos estimados automáticos na vitrine online.
+      </p>
+
+      <div className="w-full max-w-sm rounded-3xl border border-border/70 bg-card shadow-soft p-5 mb-8 text-left space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          O que você desbloqueia no Vestui Pro
+        </p>
+        {[
+          "Opções customizadas de Retirada no Balcão",
+          "Taxa e raio de Entrega Local (moto/bike)",
+          "Faixa de Frete Grátis com valor mínimo de pedido",
+          "Cálculo e instruções transparentes na sacola online",
+        ].map((item) => (
+          <div key={item} className="flex items-start gap-2.5">
+            <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
+            <span className="text-sm text-foreground">{item}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+        <a
+          href="/configuracoes/plano"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-full h-11 px-6 text-sm font-semibold bg-primary text-primary-foreground shadow-glow hover:opacity-90 transition-all"
+        >
+          <Sparkles className="size-4" />
+          Conhecer Vestui Pro — R$ 19,90/mês
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function FretePage() {
-  const { storeId } = useStore();
+  const { storeId, store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  // Guard: Free tier não configura frete próprio
+  if (access.isFree) return <FreteGatePresentation />;
+
   const [opcoes, setOpcoes] = useState<OpcaoEntrega[]>(opcoesIniciais);
   const [cep, setCep] = useState("");
   const [enderecoLoja, setEnderecoLoja] = useState("");
