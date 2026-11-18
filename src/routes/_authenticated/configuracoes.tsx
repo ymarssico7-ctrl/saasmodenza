@@ -443,7 +443,7 @@ function Configuracoes() {
   }[activeTab];
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       {/* ── Navegador Mobile (visível apenas em telas menores onde a sidebar desktop está oculta) ── */}
       <div className="lg:hidden overflow-x-auto pb-1 scrollbar-none [mask-image:linear-gradient(to_right,black_90%,transparent_100%)]">
         <div className="inline-flex gap-1.5 p-1 rounded-2xl bg-surface-muted border border-border/60">
@@ -993,7 +993,7 @@ function Configuracoes() {
                     ? "Tudo liberado: Produtos e lotes ilimitados, Caderninho de Fiado no WhatsApp, Pró-labore da Dona e DRE Financeiro com CMV."
                     : access.isPro
                     ? "Até 60 peças ativas no catálogo, lotes de precificação ilimitados, Frente de Caixa (PDV) e etiquetas de código de barras."
-                    : "Até 10 peças na vitrine online, controle básico de estoque e calculadora de margem real com 1 lote salvo por mês."}
+                    : "Até 10 peças no catálogo digital, controle básico de estoque e calculadora de margem real com 1 lote salvo por mês."}
                 </p>
               </div>
 
