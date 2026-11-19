@@ -101,7 +101,7 @@ import {
 export const Route = createFileRoute("/_authenticated/loja/pedidos")({
   head: () => ({
     meta: [
-      { title: "Pedidos & Vendas Online — Modaly" },
+      { title: "Pedidos & Vendas Online — Vestui" },
       {
         name: "description",
         content:
@@ -968,7 +968,7 @@ function PedidosPage() {
     });
   };
 
-  const vitrineUrl = store?.slug ? `https://${store.slug}.modaly.com.br` : "/vitrine";
+  const vitrineUrl = store?.slug ? `/vitrine/${store.slug}` : "/vitrine";
 
   return (
     <div className="space-y-4">

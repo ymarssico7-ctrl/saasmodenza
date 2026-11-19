@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { MapPin, Package, Truck, Sparkles, CheckCircle2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { MapPin, Package, Truck, Sparkles, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import { PageHeader } from "@/components/loja/page-header";
 import { SectionCard } from "@/components/loja/section-card";
@@ -139,23 +140,37 @@ function FreteGatePresentation() {
 }
 
 function FretePage() {
+  const queryClient = useQueryClient();
   const { storeId, store } = useStore();
   const { data: profile } = useQuery(profileQuery());
   const access = useAccess(profile, store);
-
-  // Guard: Free tier não configura frete próprio
-  if (access.isFree) return <FreteGatePresentation />;
 
   const [opcoes, setOpcoes] = useState<OpcaoEntrega[]>(opcoesIniciais);
   const [cep, setCep] = useState("");
   const [enderecoLoja, setEnderecoLoja] = useState("");
   const [freteGratisMinimoAtivo, setFreteGratisMinimoAtivo] = useState(false);
   const [freteGratisMinimo, setFreteGratisMinimo] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Carrega configurações salvas isoladas por loja ao montar
+  // Carrega configurações: prioriza o Supabase (nuvem) e faz fallback para o cache local
   useEffect(() => {
     if (!storeId) return;
     try {
+      const cloudFrete = (store?.metadata as Record<string, unknown> | null)?.["frete"] as
+        | Partial<FreteConfig>
+        | undefined;
+
+      if (cloudFrete) {
+        if (cloudFrete.cep) setCep(cloudFrete.cep);
+        if (cloudFrete.endereco) setEnderecoLoja(cloudFrete.endereco);
+        if (cloudFrete.opcoes) setOpcoes(cloudFrete.opcoes);
+        if (cloudFrete.freteGratisMinimoAtivo !== undefined)
+          setFreteGratisMinimoAtivo(cloudFrete.freteGratisMinimoAtivo);
+        if (cloudFrete.freteGratisMinimo) setFreteGratisMinimo(cloudFrete.freteGratisMinimo);
+        localStorage.setItem(freteKey(storeId), JSON.stringify(cloudFrete));
+        return;
+      }
+
       const raw =
         localStorage.getItem(freteKey(storeId)) ||
         localStorage.getItem(legacyFreteKey(storeId));
@@ -170,13 +185,13 @@ function FretePage() {
     } catch {
       // localStorage indisponível ou corrompido — iniciar vazio
     }
-  }, [storeId]);
+  }, [storeId, store?.metadata]);
 
   function toggleOpcao(id: string) {
     setOpcoes((prev) => prev.map((o) => (o.id === id ? { ...o, ativa: !o.ativa } : o)));
   }
 
-  function salvar() {
+  async function salvar() {
     if (!storeId) return;
     if (freteGratisMinimoAtivo) {
       const minVal = toNumber(freteGratisMinimo);
@@ -185,6 +200,7 @@ function FretePage() {
         return;
       }
     }
+    setIsSaving(true);
     try {
       const config: FreteConfig = {
         cep,
@@ -193,12 +209,33 @@ function FretePage() {
         freteGratisMinimoAtivo,
         freteGratisMinimo: freteGratisMinimo.trim(),
       };
+
+      // 1. Salva no cache local
       localStorage.setItem(freteKey(storeId), JSON.stringify(config));
-      toast.success("Configurações de frete salvas!", {
-        description: "As opções de entrega já estão visíveis na vitrine.",
+
+      // 2. Persiste na nuvem do Supabase (stores.metadata.frete)
+      const currentMeta = (store?.metadata as Record<string, unknown> | null) || {};
+      await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...currentMeta,
+            frete: config,
+          } as never,
+        })
+        .eq("id", storeId);
+
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+      void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
+
+      toast.success("Configurações de frete salvas na nuvem!", {
+        description: "As opções de entrega já estão ativas para seus clientes na vitrine.",
       });
-    } catch {
-      toast.error("Falha ao salvar frete. Verifique o espaço do navegador.");
+    } catch (err) {
+      console.error("Erro ao salvar frete no Supabase:", err);
+      toast.error("Erro ao sincronizar com o servidor. Salvo localmente.");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -211,12 +248,25 @@ function FretePage() {
         actions={
           <Button
             onClick={salvar}
-            className="gradient-primary h-10 rounded-full text-sm shadow-glow"
+            disabled={isSaving}
+            className="gradient-primary h-10 rounded-full text-sm shadow-glow cursor-pointer"
           >
-            Salvar alterações
+            {isSaving ? "Salvando..." : "Salvar alterações"}
           </Button>
         }
       />
+
+      {access.isFree && (
+        <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground">
+          <Info className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Modo Demonstração de Frete Ativo</p>
+            <p className="text-muted-foreground mt-0.5">
+              Suas opções configuradas aqui são sincronizadas com sua vitrine. No plano Pro, o cálculo por CEP dos Correios e faixas de frete grátis ficam 100% automatizados.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Endereço da loja */}
       <SectionCard

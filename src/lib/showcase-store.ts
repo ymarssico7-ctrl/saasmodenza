@@ -1,18 +1,16 @@
 /**
  * showcase-store.ts
  *
- * Camada de persistência para configurações da Vitrine Online.
+ * Camada de persistência para configurações da Vitrine Online do VESTUI.
  *
- * ARQUITETURA:
- *   - O "backstage" (dados reais: nome, preço, grade, custo) vive no Supabase → `inventory_items`.
- *   - O "palco" (visibilidade, destaque, preço promocional, ordem) vive aqui no localStorage.
- *   - Ao exibir a vitrine, fazemos o merge: dados do banco + configs deste store.
- *
- * COMPATIBILIDADE:
- *   - Funciona em modo Demo (sem autenticação Supabase).
- *   - Funciona em modo Autenticado — o `userId` isola os dados por conta.
- *   - Zero migrations de banco necessárias.
+ * ARQUITETURA HÍBRIDA (NUVEM + CACHE):
+ *   - O "backstage" (dados reais: nome, preço, grade, fotos, custo) vive no Supabase → `inventory_items`.
+ *   - O "palco" (visibilidade, destaque, preço promocional, fotos vitrine, ordem) é sincronizado
+ *     diretamente no Supabase → `stores.metadata.showcaseConfigs` para persistência entre dispositivos.
+ *   - O localStorage atua como cache instantâneo e offline para navegação fluida da lojista.
  */
+
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "vestui_showcase_configs_v1";
 const LEGACY_STORAGE_KEY = "modaly_showcase_configs_v1";
@@ -87,14 +85,92 @@ function saveShowcaseConfigs(map: ShowcaseConfigMap): void {
   }
 }
 
-// ─── API Pública ──────────────────────────────────────────────────────────────
+// ─── API Pública & Sincronização na Nuvem ──────────────────────────────────────
+
+/**
+ * Sincroniza o mapa de configurações da vitrine no Supabase (stores.metadata.showcaseConfigs).
+ * Garante que alterações feitas em qualquer dispositivo fiquem disponíveis para todos os clientes.
+ */
+export async function syncShowcaseToCloud(
+  storeId?: string | null,
+  customMap?: ShowcaseConfigMap,
+): Promise<boolean> {
+  const map = customMap ?? loadShowcaseConfigs();
+  let targetStoreId = storeId;
+
+  if (!targetStoreId && typeof localStorage !== "undefined") {
+    try {
+      const activeStoreRaw =
+        localStorage.getItem("vestui_active_store_id") ||
+        localStorage.getItem("vestuli_active_store_id");
+      if (activeStoreRaw) targetStoreId = activeStoreRaw;
+    } catch {
+      // ignore
+    }
+  }
+
+  try {
+    if (!targetStoreId) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) return false;
+
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("id, metadata")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (!storeData?.id) return false;
+      targetStoreId = storeData.id;
+      const currentMeta = (storeData.metadata as Record<string, unknown> | null) || {};
+
+      await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...currentMeta,
+            showcaseConfigs: map,
+          } as never,
+        })
+        .eq("id", targetStoreId);
+      return true;
+    }
+
+    const { data: storeData } = await supabase
+      .from("stores")
+      .select("metadata")
+      .eq("id", targetStoreId)
+      .maybeSingle();
+
+    const currentMeta = (storeData?.metadata as Record<string, unknown> | null) || {};
+    await supabase
+      .from("stores")
+      .update({
+        metadata: {
+          ...currentMeta,
+          showcaseConfigs: map,
+        } as never,
+      })
+      .eq("id", targetStoreId);
+    return true;
+  } catch (err) {
+    console.error("Falha ao sincronizar showcaseConfigs no Supabase:", err);
+    return false;
+  }
+}
 
 /**
  * Retorna a configuração de vitrine de um produto específico.
- * Se não existir, retorna os valores padrão.
+ * Se fornecido `remoteMap`, prioriza os dados oficiais da nuvem.
  */
-export function getShowcaseConfig(itemId: string): ShowcaseItemConfig {
-  const map = loadShowcaseConfigs();
+export function getShowcaseConfig(
+  itemId: string,
+  remoteMap?: ShowcaseConfigMap | null,
+): ShowcaseItemConfig {
+  const map =
+    remoteMap && Object.keys(remoteMap).length > 0 ? remoteMap : loadShowcaseConfigs();
   const existing = map[itemId];
   if (existing) return existing;
   const allConfigs = Object.values(map);
@@ -108,10 +184,12 @@ export function getShowcaseConfig(itemId: string): ShowcaseItemConfig {
 
 /**
  * Atualiza parcialmente a configuração de vitrine de um produto.
+ * Salva no localStorage e persiste atômica e assincronamente no Supabase.
  */
 export function patchShowcaseConfig(
   itemId: string,
   patch: Partial<ShowcaseItemConfig>,
+  storeId?: string | null,
 ): ShowcaseItemConfig {
   const map = loadShowcaseConfigs();
   const current = map[itemId] ?? getShowcaseConfig(itemId);
@@ -122,6 +200,10 @@ export function patchShowcaseConfig(
   };
   map[itemId] = updated;
   saveShowcaseConfigs(map);
+
+  // Sincroniza em nuvem no Supabase de forma imediata e resiliente
+  void syncShowcaseToCloud(storeId, map);
+
   return updated;
 }
 
@@ -129,16 +211,17 @@ export function patchShowcaseConfig(
  * Verifica se há algum produto ativo na vitrine.
  * Usado para detectar se o usuário já fez o onboarding da loja.
  */
-export function hasAnyActiveProduct(): boolean {
-  const map = loadShowcaseConfigs();
+export function hasAnyActiveProduct(remoteMap?: ShowcaseConfigMap | null): boolean {
+  const map =
+    remoteMap && Object.keys(remoteMap).length > 0 ? remoteMap : loadShowcaseConfigs();
   return Object.values(map).some((c) => c.ativo);
 }
 
 /**
  * Ativa todos os produtos da lista na vitrine (usado no Onboarding "Aha! Moment").
- * Produtos já configurados têm apenas o `ativo` ativado; as outras configs são preservadas.
+ * Salva no cache local e persiste na nuvem.
  */
-export function bulkActivateAll(itemIds: string[]): void {
+export function bulkActivateAll(itemIds: string[], storeId?: string | null): void {
   const map = loadShowcaseConfigs();
   itemIds.forEach((id, index) => {
     const current = map[id] ?? {
@@ -154,12 +237,13 @@ export function bulkActivateAll(itemIds: string[]): void {
     };
   });
   saveShowcaseConfigs(map);
+  void syncShowcaseToCloud(storeId, map);
 }
 
 /**
  * Reordena dois produtos na vitrine, trocando as posições.
  */
-export function swapShowcaseOrder(idA: string, idB: string): void {
+export function swapShowcaseOrder(idA: string, idB: string, storeId?: string | null): void {
   const map = loadShowcaseConfigs();
   const a = map[idA] ?? getShowcaseConfig(idA);
   const b = map[idB] ?? getShowcaseConfig(idB);
@@ -167,6 +251,7 @@ export function swapShowcaseOrder(idA: string, idB: string): void {
   map[idA] = { ...a, ordem: b.ordem, updatedAt: new Date().toISOString() };
   map[idB] = { ...b, ordem: tempOrdem, updatedAt: new Date().toISOString() };
   saveShowcaseConfigs(map);
+  void syncShowcaseToCloud(storeId, map);
 }
 
 // ─── Auto-publish ─────────────────────────────────────────────────────────────
@@ -264,10 +349,14 @@ export function calcTotalEstoque(sizes: Record<string, number> | unknown): numbe
 
 /**
  * Combina um item do inventário com sua configuração de vitrine.
+ * Se fornecido `remoteMap`, honra os dados da nuvem prioritariamente.
  * Retorna um ShowcaseProduct completo e pronto para renderização.
  */
-export function mergeWithShowcase(item: InventoryItem): ShowcaseProduct {
-  const showcase = getShowcaseConfig(item.id);
+export function mergeWithShowcase(
+  item: InventoryItem,
+  remoteMap?: ShowcaseConfigMap | null,
+): ShowcaseProduct {
+  const showcase = getShowcaseConfig(item.id, remoteMap);
   const emPromocao = isPromocaoAtiva(showcase);
   const totalEstoque = calcTotalEstoque(item.sizes as Record<string, number>);
   const precoEfetivo =
@@ -292,6 +381,11 @@ export function mergeWithShowcase(item: InventoryItem): ShowcaseProduct {
  * Combina uma lista de itens do inventário com suas configurações de vitrine,
  * ordenados pela posição definida na vitrine.
  */
-export function mergeInventoryWithShowcase(items: InventoryItem[]): ShowcaseProduct[] {
-  return items.map(mergeWithShowcase).sort((a, b) => a.showcase.ordem - b.showcase.ordem);
+export function mergeInventoryWithShowcase(
+  items: InventoryItem[],
+  remoteMap?: ShowcaseConfigMap | null,
+): ShowcaseProduct[] {
+  return items
+    .map((item) => mergeWithShowcase(item, remoteMap))
+    .sort((a, b) => a.showcase.ordem - b.showcase.ordem);
 }

@@ -125,6 +125,8 @@ function VitrineLayout() {
   });
 
   // ── Busca o inventário da loja ────────────────────────────────
+  // A política RLS (inventory_public_select_showcase) garante acesso anônimo.
+  // Usamos apenas user_id para evitar conflito de tipos com o schema Supabase.
   const { data: inventoryItems = [], isLoading: inventoryLoading } = useQuery({
     queryKey: ["vitrine-inventory", store?.owner_id],
     queryFn: async () => {
@@ -133,10 +135,13 @@ function VitrineLayout() {
         .from("inventory_items")
         .select("*")
         .eq("user_id", store.owner_id);
-      if (error) throw error;
+      if (error) {
+        console.warn("Aviso ao carregar produtos da vitrine:", error);
+        return [];
+      }
       return data ?? [];
     },
-    enabled: !!store?.owner_id,
+    enabled: Boolean(store?.owner_id),
   });
 
   // ── Entitlements Canônicos da Loja (White-Label e Catálogo vs Sacola) ──
@@ -163,16 +168,17 @@ function VitrineLayout() {
       rawStorePlan === "vestui_lote" ||
       rawStorePlan === "vestui_pro");
 
-  // ── Mescla inventário com configs de vitrine (localStorage) ──
+  // ── Mescla inventário com configs de vitrine (Supabase com fallback localStorage) ──
   const allProducts: ShowcaseProduct[] = useMemo(() => {
     if (!inventoryItems.length) return [];
-    const merged = mergeInventoryWithShowcase(inventoryItems as Parameters<typeof mergeInventoryWithShowcase>[0]);
-    // Regra canônica: Plano Free exibe até 10 peças ativas na vitrine digital
-    if (!isStoreTier && !isProTier) {
-      return merged.slice(0, 10);
-    }
-    return merged;
-  }, [inventoryItems, isStoreTier, isProTier]);
+    const cloudConfigs = (store?.metadata as Record<string, unknown> | null)?.["showcaseConfigs"] as
+      | Record<string, any>
+      | undefined;
+    return mergeInventoryWithShowcase(
+      inventoryItems as Parameters<typeof mergeInventoryWithShowcase>[0],
+      cloudConfigs,
+    );
+  }, [inventoryItems, store?.metadata]);
 
   // Deep link: ao acessar com ?p=id ou ?produto=id, abre o modal da peça automaticamente
   useEffect(() => {
@@ -297,7 +303,7 @@ function VitrineLayout() {
     setMeta("name", "description", seoDescription);
     setMeta("property", "og:title", seoTitle);
     setMeta("property", "og:description", seoDescription);
-    setMeta("property", "og:url", `https://modaly.com.br/vitrine/${storeSlug}`);
+    setMeta("property", "og:url", `https://vestui.com.br/vitrine/${storeSlug}`);
     setMeta("property", "og:type", "website");
     if (seoImage) setMeta("property", "og:image", seoImage);
     setMeta("name", "twitter:title", seoTitle);
@@ -311,9 +317,8 @@ function VitrineLayout() {
   // White-Label: Lojas Store ocultam o selo/rodapé "Vestui"
   const isWhiteLabel = isStoreTier;
 
-  // Sacola multi-itens: Pro e Store possuem sacola com checkout/carrinho acumulativo.
-  // Free possui Catálogo Digital com pedido direto no WhatsApp por item.
-  const hasMultiItemCart = isStoreTier || isProTier;
+  // Sacola multi-itens com checkout integrado
+  const hasMultiItemCart = true;
 
   // ── Tema Ativo da Loja (Top-Level Hook — chamado incondicionalmente em todos os renders) ──
   const storeMetadata = store?.metadata as Record<string, unknown> | null;
@@ -322,10 +327,6 @@ function VitrineLayout() {
     ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
     "catalogo-express";
 
-  // Enforcement canônico de templates por plano na vitrine pública:
-  // - Store: liberado para qualquer template cadastrado ("template-01" a "template-05", "catalogo-express")
-  // - Pro: "catalogo-express", "template-01" ou "template-03"
-  // - Free: OBRIGATORIAMENTE "catalogo-express" (blindagem total contra bypass de tier)
   type SupportedTemplateId =
     | "catalogo-express"
     | "template-01"
@@ -334,6 +335,7 @@ function VitrineLayout() {
     | "template-04"
     | "template-05";
 
+  // Honra o template salvo no tema da loja ou na metadata
   const activeTemplateId: SupportedTemplateId = useMemo(() => {
     const validTemplates: SupportedTemplateId[] = [
       "catalogo-express",
@@ -343,20 +345,11 @@ function VitrineLayout() {
       "template-04",
       "template-05",
     ];
-    if (isStoreTier) {
-      if (validTemplates.includes(rawTemplateId as SupportedTemplateId)) {
-        return rawTemplateId as SupportedTemplateId;
-      }
-      return "catalogo-express";
-    }
-    if (isProTier) {
-      if (rawTemplateId === "template-01" || rawTemplateId === "template-03") {
-        return rawTemplateId;
-      }
-      return "catalogo-express";
+    if (validTemplates.includes(rawTemplateId as SupportedTemplateId)) {
+      return rawTemplateId as SupportedTemplateId;
     }
     return "catalogo-express";
-  }, [isStoreTier, isProTier, rawTemplateId]);
+  }, [rawTemplateId]);
 
   const activeTheme: ThemeConfig = useMemo(() => {
     const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;
@@ -1486,19 +1479,27 @@ function CartDrawer({
 
   const opcoesFreteDisponiveis = useMemo((): OpcaoFrete[] => {
     try {
-      const raw =
-        localStorage.getItem(`vestui_frete_config_${storeId}`) ||
-        localStorage.getItem(`vestui_frete_config_${storeId}`) ||
-        localStorage.getItem(`vestuli_frete_config_${storeId}`);
-      if (!raw) return [];
-      const cfg = JSON.parse(raw) as {
+      const cloudFrete = (storeMetadata as Record<string, unknown> | null)?.["frete"] as {
         opcoes?: OpcaoFrete[];
         freteGratisMinimoAtivo?: boolean;
         freteGratisMinimo?: string;
-      };
+      } | undefined;
+
+      let cfg = cloudFrete;
+      if (!cfg) {
+        const raw =
+          localStorage.getItem(`vestui_frete_config_${storeId}`) ||
+          localStorage.getItem(`vestuli_frete_config_${storeId}`);
+        if (raw) {
+          cfg = JSON.parse(raw);
+        }
+      }
+      if (!cfg) return [];
+
       const minGratis = cfg.freteGratisMinimoAtivo
         ? parseFloat((cfg.freteGratisMinimo ?? "0").replace(",", ".")) || 0
         : 0;
+
       return (cfg.opcoes ?? [])
         .filter((o) => o.ativa)
         .map((o) => ({
@@ -1512,7 +1513,7 @@ function CartDrawer({
     } catch {
       return [];
     }
-  }, [storeId, totalPrice, valorDesconto]);
+  }, [storeMetadata, storeId, totalPrice, valorDesconto]);
 
   const [freteSelecionadoId, setFreteSelecionadoId] = useState<string>("");
   const freteSelecionado = opcoesFreteDisponiveis.find((o) => o.id === freteSelecionadoId) ?? null;

@@ -109,8 +109,8 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasAdvancedDRE: false,
     hasRealtimeInventorySync: false,
     hasWhiteLabel: false,
-    hasDeliveryConfig: false,
-    allowedTemplates: ["catalogo-express"],
+    hasDeliveryConfig: true,
+    allowedTemplates: ["catalogo-express", "template-01", "template-02"],
   },
   pro: {
     maxProducts: 60,
@@ -127,7 +127,13 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasRealtimeInventorySync: false,
     hasWhiteLabel: false,
     hasDeliveryConfig: true,
-    allowedTemplates: ["catalogo-express", "template-01", "template-03"],
+    allowedTemplates: [
+      "catalogo-express",
+      "template-01",
+      "template-02",
+      "template-03",
+      "template-04",
+    ],
   },
   store: {
     maxProducts: Infinity,

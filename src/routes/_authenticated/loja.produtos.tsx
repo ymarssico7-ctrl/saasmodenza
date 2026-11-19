@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { brl, toNumber } from "@/lib/format";
 import { inventoryQuery } from "@/lib/db";
+import { useStore } from "@/lib/store-context";
 import { useStoreCategories, getCategoryLabel } from "@/lib/categories";
 import {
   mergeInventoryWithShowcase,
@@ -65,6 +66,7 @@ const seteDias = (iso: string) => {
 function ProdutosPage() {
   // ── Data ──────────────────────────────────────────────────────────
   const queryClient = useQueryClient();
+  const { storeId, store } = useStore();
   const { data: rawItems = [], isLoading } = useQuery(inventoryQuery());
   const [showcaseVersion, setShowcaseVersion] = useState(0);
 
@@ -75,10 +77,20 @@ function ProdutosPage() {
     return () => window.removeEventListener("showcase-config-changed", handler);
   }, []);
 
+  const cloudConfigs = useMemo(() => {
+    return (store?.metadata as Record<string, unknown> | null)?.["showcaseConfigs"] as
+      | Record<string, any>
+      | undefined;
+  }, [store?.metadata]);
+
   const produtos = useMemo(
-    () => mergeInventoryWithShowcase(rawItems as Parameters<typeof mergeInventoryWithShowcase>[0]),
+    () =>
+      mergeInventoryWithShowcase(
+        rawItems as Parameters<typeof mergeInventoryWithShowcase>[0],
+        cloudConfigs,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rawItems, showcaseVersion],
+    [rawItems, showcaseVersion, cloudConfigs],
   );
 
   // ── Categorias Dinâmicas da Loja ──────────────────────────────────
@@ -126,7 +138,7 @@ function ProdutosPage() {
   const alternar = (id: string, campo: "ativo" | "destaque" | "precoOculto") => {
     const alvo = produtos.find((p) => p.id === id);
     if (!alvo) return;
-    patchShowcaseConfig(id, { [campo]: !alvo.showcase[campo] });
+    patchShowcaseConfig(id, { [campo]: !alvo.showcase[campo] }, storeId);
     setShowcaseVersion((v) => v + 1);
     const mensagens = {
       ativo: alvo.showcase.ativo ? "Peça ocultada da vitrine" : "Peça publicada na vitrine",
@@ -136,18 +148,22 @@ function ProdutosPage() {
         : "Preço oculto — cliente negocia pelo WhatsApp",
     };
     toast.success(mensagens[campo], { description: alvo.name });
-    // Invalida cache do inventário para que a vitrine pública reflita a mudança imediatamente
+    // Invalida cache para que a vitrine pública e a loja reflitam a mudança imediatamente
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
   };
 
   const mover = (id: string, direcao: -1 | 1) => {
     const idx = visiveis.findIndex((p) => p.id === id);
     const destino = idx + direcao;
     if (idx < 0 || destino < 0 || destino >= visiveis.length) return;
-    swapShowcaseOrder(id, visiveis[destino]!.id);
+    swapShowcaseOrder(id, visiveis[destino]!.id, storeId);
     setShowcaseVersion((v) => v + 1);
     toast.success("Ordem da vitrine atualizada");
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
   };
 
   const handleToggleAutoPublicar = (v: boolean) => {
@@ -180,32 +196,44 @@ function ProdutosPage() {
         return;
       }
     }
-    patchShowcaseConfig(promocaoId, {
-      precoPromocional: preco,
-      ...(promocaoInicio ? { promocaoInicio } : { promocaoInicio: undefined }),
-      ...(promocaoFim ? { promocaoFim } : { promocaoFim: undefined }),
-    });
+    patchShowcaseConfig(
+      promocaoId,
+      {
+        precoPromocional: preco,
+        ...(promocaoInicio ? { promocaoInicio } : { promocaoInicio: undefined }),
+        ...(promocaoFim ? { promocaoFim } : { promocaoFim: undefined }),
+      },
+      storeId,
+    );
     setShowcaseVersion((v) => v + 1);
     setPromocaoId(null);
     toast.success("Promoção salva", {
       description: emPromocaoProduto.name,
     });
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
   };
 
   const removerPromocao = () => {
     if (!promocaoId || !emPromocaoProduto) return;
-    patchShowcaseConfig(promocaoId, {
-      precoPromocional: undefined,
-      promocaoInicio: undefined,
-      promocaoFim: undefined,
-    });
+    patchShowcaseConfig(
+      promocaoId,
+      {
+        precoPromocional: undefined,
+        promocaoInicio: undefined,
+        promocaoFim: undefined,
+      },
+      storeId,
+    );
     setShowcaseVersion((v) => v + 1);
     setPromocaoId(null);
     toast.success("Promoção encerrada", {
       description: emPromocaoProduto.name,
     });
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
   };
 
   // Abre o modal de fotos para o produto selecionado
@@ -234,7 +262,7 @@ function ProdutosPage() {
   const salvarFotosVitrine = () => {
     if (!vitrineFotosId) return;
     const produto = produtos.find((p) => p.id === vitrineFotosId);
-    patchShowcaseConfig(vitrineFotosId, { vitrineFotos: vitrineFotosTemp });
+    patchShowcaseConfig(vitrineFotosId, { vitrineFotos: vitrineFotosTemp }, storeId);
     setShowcaseVersion((v) => v + 1);
     setVitrineFotosId(null);
     toast.success("Fotos da vitrine salvas!", {
@@ -244,6 +272,8 @@ function ProdutosPage() {
           : `${vitrineFotosTemp.length} foto${vitrineFotosTemp.length > 1 ? "s" : ""} premium adicionada${vitrineFotosTemp.length > 1 ? "s" : ""} para ${produto?.name ?? "o produto"}.`,
     });
     void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
   };
 
   const emFotosProduto = produtos.find((p) => p.id === vitrineFotosId) ?? null;

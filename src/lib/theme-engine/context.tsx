@@ -384,7 +384,7 @@ export function BuilderProvider({
   // Abre um único canal persistente ao montar — evita criar/destruir instâncias a cada render
   useEffect(() => {
     try {
-      channelRef.current = new BroadcastChannel("modaly_theme_preview");
+      channelRef.current = new BroadcastChannel("vestui_theme_preview");
     } catch {
       // BroadcastChannel não disponível (SSR / Node)
     }
