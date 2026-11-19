@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -41,7 +41,7 @@ import { useBuilder } from "@/lib/theme-engine/context";
 import { SECTION_META } from "@/lib/theme-engine/schema";
 import type { SectionType } from "@/lib/theme-engine/schema";
 
-const SECTION_ICONS: Record<string, React.ReactNode> = {
+export const SECTION_ICONS: Record<string, React.ReactNode> = {
   hero: <ImageIcon className="h-4 w-4" />,
   category_bar: <Tag className="h-4 w-4" />,
   product_grid: <ShoppingBag className="h-4 w-4" />,
@@ -55,7 +55,7 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
   newsletter: <Mail className="h-4 w-4" />,
 };
 
-const SECTION_LABELS: Record<string, string> = {
+export const SECTION_LABELS: Record<string, string> = {
   hero: "Banner Principal",
   category_bar: "Barra de Categorias",
   product_grid: "Grade de Produtos",
@@ -95,7 +95,7 @@ function SortableSectionItem({ id }: { id: string }) {
       className={`group flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer ${
         isSelected ? "bg-primary text-primary-foreground shadow-glow" : "hover:bg-secondary/60"
       } ${!section.visible ? "opacity-50" : ""}`}
-      onClick={() => dispatch({ type: "SELECT_SECTION", id: isSelected ? null : section.id })}
+      onClick={() => dispatch({ type: "SELECT_SECTION", id: section.id })}
     >
       {/* Drag handle */}
       <button
@@ -151,27 +151,60 @@ function SortableSectionItem({ id }: { id: string }) {
 // ── Add Section Panel ─────────────────────────────────────────────────────────
 function AddSectionPanel() {
   const { dispatch } = useBuilder();
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!isOpen) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => setIsOpen(true)}
+        className="mt-3 w-full h-11 gap-2 rounded-2xl border-dashed border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary font-semibold text-xs transition-all shadow-2xs cursor-pointer"
+      >
+        <Plus className="h-4 w-4" />
+        Adicionar Nova Seção
+      </Button>
+    );
+  }
 
   return (
-    <div className="mt-3 rounded-2xl border border-dashed border-border p-3">
-      <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Adicionar Seção
-      </p>
-      <div className="space-y-1">
+    <div className="mt-3 rounded-2xl border border-primary/30 bg-card p-3 shadow-sm transition-all animate-in fade-in zoom-in-95 duration-150">
+      <div className="mb-2.5 flex items-center justify-between px-1">
+        <p className="text-xs font-bold text-foreground">
+          Escolha uma Seção para Adicionar
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsOpen(false)}
+          className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer px-2 py-0.5 rounded-lg hover:bg-secondary"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      <div className="space-y-1 max-h-[380px] overflow-y-auto custom-scrollbar pr-1">
         {SECTION_META.map((meta) => (
           <button
             key={meta.type}
-            onClick={() => dispatch({ type: "ADD_SECTION", sectionType: meta.type as SectionType })}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-secondary/60"
+            type="button"
+            onClick={() => {
+              dispatch({ type: "ADD_SECTION", sectionType: meta.type as SectionType });
+              setIsOpen(false);
+            }}
+            className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left text-sm transition-colors hover:bg-secondary/70 border border-transparent hover:border-border cursor-pointer group"
           >
-            <span className="text-muted-foreground">{SECTION_ICONS[meta.type]}</span>
-            <div className="min-w-0">
-              <p className="font-medium leading-tight">{meta.label}</p>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-secondary text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+              {SECTION_ICONS[meta.type]}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-xs leading-tight text-foreground group-hover:text-primary transition-colors">
+                {meta.label}
+              </p>
               <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                 {meta.description}
               </p>
             </div>
-            <Plus className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Plus className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
           </button>
         ))}
       </div>

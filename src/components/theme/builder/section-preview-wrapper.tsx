@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, MousePointerClick, Trash2 } from "lucide-react";
+import { Eye, EyeOff, MousePointerClick, Trash2, Edit3 } from "lucide-react";
 import type { Section } from "@/lib/theme-engine/schema";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -9,6 +9,11 @@ const SECTION_LABELS: Record<string, string> = {
   image_text_split: "Imagem & Texto",
   features: "Diferenciais",
   announcement: "Faixa de Anúncio",
+  testimonials: "Depoimentos de Clientes",
+  faq: "Perguntas Frequentes",
+  promotional_banner: "Banner Promocional",
+  instagram_feed: "Feed do Instagram",
+  newsletter: "Newsletter & Desconto",
 };
 
 interface SectionPreviewWrapperProps {
@@ -38,9 +43,16 @@ export function SectionPreviewWrapper({
 
   return (
     <div
-      className="relative"
+      className="relative group/section"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClickCapture={(e) => {
+        // Previne navegação acidental em links e botões do template durante a edição
+        const target = e.target as HTMLElement;
+        if (target.closest("a") || target.closest("button:not([data-builder-action])")) {
+          e.preventDefault();
+        }
+      }}
       onClick={onSelect}
       style={{ cursor: "pointer" }}
     >
@@ -73,8 +85,7 @@ export function SectionPreviewWrapper({
             display: "flex",
             alignItems: "center",
             gap: 6,
-            // glassmorphism
-            background: isSelected ? "rgba(99, 102, 241, 0.92)" : "rgba(99, 102, 241, 0.75)",
+            background: isSelected ? "rgba(99, 102, 241, 0.95)" : "rgba(99, 102, 241, 0.8)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
             color: "#fff",
@@ -85,7 +96,7 @@ export function SectionPreviewWrapper({
             userSelect: "none",
             borderRadius: "0 0 8px 0",
             boxShadow: "0 2px 12px rgba(99,102,241,0.35)",
-            pointerEvents: isSelected ? "auto" : "none",
+            pointerEvents: "auto",
           }}
         >
           {/* Ícone */}
@@ -94,81 +105,156 @@ export function SectionPreviewWrapper({
           {/* Label da seção */}
           <span>{label}</span>
 
-          {/* Botões de ação — só quando selecionado */}
-          {isSelected && (
-            <span
-              style={{ display: "flex", gap: 3, marginLeft: 4 }}
-              onClick={(e) => e.stopPropagation()}
+          {/* Botões de ação rápidos */}
+          <span
+            style={{ display: "flex", gap: 3, marginLeft: 4 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botão de edição direta */}
+            <button
+              type="button"
+              data-builder-action="true"
+              title="Editar seção no painel lateral"
+              onClick={onSelect}
+              style={{
+                background: "rgba(255,255,255,0.25)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 5,
+                color: "#fff",
+                padding: "3px 6px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 10,
+                fontWeight: 600,
+                transition: "background 120ms",
+              }}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(255,255,255,0.4)")
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(255,255,255,0.25)")
+              }
             >
-              {/* Toggle visibilidade */}
-              <button
-                type="button"
-                title={section.visible ? "Ocultar seção" : "Mostrar seção"}
-                onClick={onToggleVisible}
-                style={{
-                  background: "rgba(255,255,255,0.2)",
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  borderRadius: 5,
-                  color: "#fff",
-                  padding: "3px 5px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: 10,
-                  fontWeight: 500,
-                  transition: "background 120ms",
-                }}
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,255,255,0.32)")
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,255,255,0.2)")
-                }
-              >
-                {section.visible ? (
-                  <Eye style={{ width: 12, height: 12 }} />
-                ) : (
-                  <EyeOff style={{ width: 12, height: 12 }} />
-                )}
-                <span>{section.visible ? "Ocultar" : "Mostrar"}</span>
-              </button>
+              <Edit3 style={{ width: 11, height: 11 }} />
+              <span>Editar</span>
+            </button>
 
-              {/* Deletar seção */}
-              <button
-                type="button"
-                title="Excluir seção"
-                onClick={onDelete}
-                style={{
-                  background: "rgba(255,255,255,0.15)",
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  borderRadius: 5,
-                  color: "#fff",
-                  padding: "3px 5px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: 10,
-                  fontWeight: 500,
-                  transition: "background 120ms",
-                }}
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(239, 68, 68, 0.5)")
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLButtonElement).style.background =
-                    "rgba(255,255,255,0.15)")
-                }
-              >
-                <Trash2 style={{ width: 12, height: 12 }} />
-                <span>Excluir</span>
-              </button>
-            </span>
-          )}
+            {/* Toggle visibilidade */}
+            <button
+              type="button"
+              data-builder-action="true"
+              title={section.visible ? "Ocultar seção na loja" : "Mostrar seção na loja"}
+              onClick={onToggleVisible}
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                borderRadius: 5,
+                color: "#fff",
+                padding: "3px 5px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 10,
+                fontWeight: 500,
+                transition: "background 120ms",
+              }}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(255,255,255,0.32)")
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(255,255,255,0.2)")
+              }
+            >
+              {section.visible ? (
+                <Eye style={{ width: 12, height: 12 }} />
+              ) : (
+                <EyeOff style={{ width: 12, height: 12 }} />
+              )}
+              <span>{section.visible ? "Ocultar" : "Mostrar"}</span>
+            </button>
+
+            {/* Deletar seção */}
+            <button
+              type="button"
+              data-builder-action="true"
+              title="Excluir seção"
+              onClick={onDelete}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                borderRadius: 5,
+                color: "#fff",
+                padding: "3px 5px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 10,
+                fontWeight: 500,
+                transition: "background 120ms",
+              }}
+              onMouseEnter={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(239, 68, 68, 0.6)")
+              }
+              onMouseLeave={(e) =>
+                ((e.currentTarget as HTMLButtonElement).style.background =
+                  "rgba(255,255,255,0.15)")
+              }
+            >
+              <Trash2 style={{ width: 12, height: 12 }} />
+              <span>Excluir</span>
+            </button>
+          </span>
+        </div>
+      )}
+
+      {/* ── Tarja informativa se a seção estiver oculta ── */}
+      {!section.visible && (
+        <div
+          style={{
+            background: "rgba(245, 158, 11, 0.95)",
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 600,
+            padding: "6px 12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <EyeOff style={{ width: 13, height: 13 }} />
+            <span>Seção Oculta na Loja — Visível apenas no editor</span>
+          </div>
+          <button
+            type="button"
+            data-builder-action="true"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleVisible();
+            }}
+            style={{
+              background: "#fff",
+              color: "#b45309",
+              border: "none",
+              borderRadius: 4,
+              padding: "2px 8px",
+              fontSize: 10,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Reexibir
+          </button>
         </div>
       )}
 

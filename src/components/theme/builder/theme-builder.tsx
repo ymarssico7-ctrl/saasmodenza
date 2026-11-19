@@ -18,6 +18,8 @@ import {
   Wand2,
   History,
   Eye,
+  EyeOff,
+  Trash2,
   Edit3,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -40,7 +42,7 @@ import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { QuickStoreWizard } from "@/components/loja/quick-store-wizard";
 import { cn } from "@/lib/utils";
 import { MobilePreviewFrame } from "./mobile-preview-frame";
-import { SectionList } from "./section-list";
+import { SectionList, SECTION_LABELS, SECTION_ICONS } from "./section-list";
 import { SectionInspector } from "./section-inspector";
 import { GlobalSettings } from "./global-settings";
 
@@ -110,6 +112,21 @@ function BuilderInner() {
   }, [zoomMode, autoScale]);
 
   const resetZoom = useCallback(() => setZoomMode("auto"), []);
+
+  const handleSectionSelect = useCallback(
+    (id: string | null) => {
+      dispatch({ type: "SELECT_SECTION", id });
+      if (id) {
+        if (activeTab !== "sections") {
+          dispatch({ type: "SET_TAB", tab: "sections" });
+        }
+        if (!isSidebarOpen) {
+          dispatch({ type: "TOGGLE_SIDEBAR" });
+        }
+      }
+    },
+    [dispatch, activeTab, isSidebarOpen],
+  );
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
@@ -443,20 +460,75 @@ function BuilderInner() {
           </button>
         </div>
 
-        {/* ── Conteúdo scrollável ────────────────────────────────────────────── */}
+        {/* ── Conteúdo scrollável com navegação Drill-Down em 2 níveis ─────────────────────── */}
         <div className={cn("flex-1 overflow-y-auto custom-scrollbar p-3", isPhysicalMobile && "pb-24")}>
           {activeTab === "sections" && (
-            <div className="space-y-4">
-              <SectionList />
-              {selectedSection && (
-                <div className="rounded-2xl border border-border bg-background p-3">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    Editar Seção
-                  </p>
+            selectedSection ? (
+              <div className="space-y-3 animate-in fade-in duration-150">
+                {/* ── Drill-Down Header ─────────────────────────────────────── */}
+                <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-2.5 shadow-2xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => dispatch({ type: "SELECT_SECTION", id: null })}
+                      className="h-8 gap-1 rounded-xl px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer shrink-0"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      Voltar
+                    </Button>
+                    <div className="h-4 w-px bg-border shrink-0" />
+                    <div className="min-w-0 flex items-center gap-1.5">
+                      <span className="text-primary shrink-0">
+                        {SECTION_ICONS[selectedSection.type]}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground leading-tight truncate">
+                          {SECTION_LABELS[selectedSection.type] ?? selectedSection.type}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">
+                          {selectedSection.visible ? "Seção Visível" : "Seção Oculta"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => dispatch({ type: "TOGGLE_VISIBLE", id: selectedSection.id })}
+                      className="grid h-8 w-8 place-items-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+                      title={selectedSection.visible ? "Ocultar seção na loja" : "Mostrar seção na loja"}
+                    >
+                      {selectedSection.visible ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-amber-500" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Deseja realmente excluir esta seção da sua loja?")) {
+                          dispatch({ type: "DELETE_SECTION", id: selectedSection.id });
+                        }
+                      }}
+                      className="grid h-8 w-8 place-items-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer transition-colors"
+                      title="Excluir seção"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Inspetor Focado (100% no topo) ─────────────────────────── */}
+                <div className="rounded-2xl border border-border bg-background p-3.5 shadow-2xs">
                   <SectionInspector section={selectedSection} />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <SectionList />
+            )
           )}
           {activeTab === "global" && <GlobalSettings />}
         </div>
@@ -475,7 +547,7 @@ function BuilderInner() {
             zoomMode={zoomMode}
             autoScale={autoScale}
             onAutoScaleChange={setAutoScale}
-            onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
+            onSectionClick={handleSectionSelect}
             onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
             onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
             onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
@@ -485,7 +557,7 @@ function BuilderInner() {
             <ThemeRenderer
               theme={theme}
               highlightId={selectedSection?.id ?? null}
-              onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
+              onSectionClick={handleSectionSelect}
               onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
               onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
             />

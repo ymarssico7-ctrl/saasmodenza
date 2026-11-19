@@ -993,7 +993,9 @@ export function Template02Store({
 
   // ── Render de seção pelo tipo ────────────────────────────────────────────────
   function renderSection(section: Section): React.ReactNode {
-    if (section.visible === false) return null;
+    // No modo de edição (editor de temas), mantemos a seção no DOM para permitir
+    // interação visual, highlight e reexibição através do SectionPreviewWrapper.
+    if (section.visible === false && !isEditing) return null;
 
     switch (section.type) {
       case "announcement": {
