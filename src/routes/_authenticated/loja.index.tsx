@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Area,
@@ -39,6 +39,9 @@ import { useStore } from "@/lib/store-context";
 import { usePrivacyMode } from "@/lib/usePrivacyMode";
 import { calculateOrderNet } from "@/lib/fees";
 import { VestuiGuideBanner } from "@/components/vestui-guide-banner";
+import { StoreReadinessCard } from "@/components/loja/store-readiness-card";
+import { QuickStoreWizard } from "@/components/loja/quick-store-wizard";
+import { StoreBuilderChoiceModal } from "@/components/loja/store-builder-choice-modal";
 import { KpiCard } from "@/components/loja/kpi-card";
 import { SectionCard } from "@/components/loja/section-card";
 import { StatusBadge } from "@/components/loja/badges";
@@ -107,6 +110,9 @@ function normalizeStatus(s?: string): StatusPedido {
 function VisaoGeral() {
   const queryClient = useQueryClient();
   const { data: profile } = useQuery(profileQuery());
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
+  const navigate = useNavigate();
   const { store, storeId } = useStore();
   const primeiroNome = (profile?.owner_name || store?.name || "Lojista").split(" ")[0] ?? "Lojista";
 
@@ -507,6 +513,15 @@ function VisaoGeral() {
           </Button>
         </div>
       </div>
+
+      {/* ── Medidor de Prontidão da Loja (Setup Score Vestui) ── */}
+      <StoreReadinessCard
+        store={store}
+        inventoryCount={inventoryItems.length}
+        {...(payAccount?.status ? { payAccountStatus: payAccount.status } : {})}
+        onOpenWizard={() => setWizardOpen(true)}
+        onOpenChoiceModal={() => setChoiceModalOpen(true)}
+      />
 
       {/* ── Guia de Aceleração Comercial da Vitrine (Padrão Apple HIG) ── */}
       <VestuiGuideBanner
@@ -960,6 +975,26 @@ function VisaoGeral() {
         </div>
 
       </div>
+
+      {/* Hub de Escolha: Modo Expresso (3 Cliques) vs Construtor Pro */}
+      <StoreBuilderChoiceModal
+        open={choiceModalOpen}
+        onOpenChange={setChoiceModalOpen}
+        onSelectExpress={() => {
+          setChoiceModalOpen(false);
+          setWizardOpen(true);
+        }}
+        onSelectPro={() => {
+          setChoiceModalOpen(false);
+          void navigate({ to: "/loja/personalizar" });
+        }}
+      />
+
+      {/* Assistente de Criação em 3 Cliques (Diferencial Zero Skill Vestui) */}
+      <QuickStoreWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+      />
     </div>
   );
 }

@@ -125,7 +125,7 @@ type PrecificacaoSearch = {
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
   validateSearch: (search: Record<string, unknown>): PrecificacaoSearch => ({
-    mode: (search.mode as "rapida" | "grade" | "historico") || undefined,
+    mode: (search["mode"] as "rapida" | "grade" | "historico") || undefined,
   }),
   head: () => ({
     meta: [
@@ -4924,7 +4924,7 @@ function Precificacao() {
         const qty = v.qty && v.qty > 0 ? v.qty : 1;
         const vCost = toNumber(v.wholesaleCost) > 0 ? toNumber(v.wholesaleCost) : toNumber(baseWholesaleGrade);
         const pricing = calculateItem(vCost);
-        const price = pricing.salePrice || summaryPrices.avgSuggested || 0;
+        const price = pricing.suggestedPrice || summaryPrices.avgSuggested || 0;
         const cleanName = pieceName.slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, "") || "MOD";
         const cleanColor = v.color.slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "") || "COR";
         const sku = `${cleanName}-${cleanColor}-${v.size}`;

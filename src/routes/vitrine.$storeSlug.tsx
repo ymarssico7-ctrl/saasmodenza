@@ -23,6 +23,11 @@ import {
   Home,
   CreditCard,
   Loader2,
+  ChevronLeft,
+  Share2,
+  Check,
+  Copy,
+  ShieldCheck,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -46,16 +51,11 @@ import type { ThemeConfig } from "@/lib/theme-engine/schema";
 export const Route = createFileRoute("/vitrine/$storeSlug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Vitrine Online — Vestui` },
+      { title: `Loja Online` },
       {
         name: "description",
         content:
           "Conheça as novidades e compre online com atendimento direto no WhatsApp.",
-      },
-      { property: "og:title", content: `Vitrine Online — Vestui` },
-      {
-        property: "og:description",
-        content: "Conheça nossas peças e compre direto pelo WhatsApp.",
       },
       { property: "og:type", content: "website" },
       {
@@ -63,11 +63,6 @@ export const Route = createFileRoute("/vitrine/$storeSlug")({
         content: `https://vestui.com.br/vitrine/${params.storeSlug}`,
       },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: `Vitrine Online — Vestui` },
-      {
-        name: "twitter:description",
-        content: "Conheça nossas peças e compre direto pelo WhatsApp.",
-      },
     ],
   }),
   component: VitrineRoot,
@@ -143,6 +138,30 @@ function VitrineLayout() {
     },
     enabled: !!store?.owner_id,
   });
+
+  // ── Entitlements Canônicos da Loja (White-Label e Catálogo vs Sacola) ──
+  const rawStorePlan = (store?.plan || "").toLowerCase();
+  const rawStorePlanTier = (store?.plan_tier || "").toLowerCase();
+  const rawStoreSub =
+    store?.store_subscription_active === true ||
+    (store?.metadata as Record<string, unknown> | null)?.["store_subscription_active"] === true;
+
+  const isStoreTier =
+    rawStoreSub ||
+    rawStorePlanTier === "store" ||
+    rawStorePlan === "store" ||
+    rawStorePlan === "gestao_anual" ||
+    rawStorePlan === "digital" ||
+    rawStorePlan === "completo";
+
+  const isProTier =
+    !isStoreTier &&
+    (rawStorePlanTier === "pro" ||
+      rawStorePlanTier === "lote" ||
+      rawStorePlan === "pro" ||
+      rawStorePlan === "lote" ||
+      rawStorePlan === "vestui_lote" ||
+      rawStorePlan === "vestui_pro");
 
   // ── Mescla inventário com configs de vitrine (localStorage) ──
   const allProducts: ShowcaseProduct[] = useMemo(() => {
@@ -244,32 +263,50 @@ function VitrineLayout() {
     : getVitrineSettings(storeId);
   const cor = vitrineSettings.corPrincipal || "#3A3AF0";
   const storeName = store?.name ?? storeSlug;
+
+  // ── SEO dinâmico: atualiza title e OG tags com dados reais da loja ──
+  useEffect(() => {
+    if (!store) return;
+    const seoTitle = `${storeName} — Loja Online`;
+    const seoDescription = (() => {
+      const fromMeta = (store.metadata as Record<string, unknown> | null)?.["descricao"] as string | undefined;
+      const fromVitrine = vitrineSettings.descricao;
+      const raw = fromVitrine || fromMeta;
+      if (raw && raw.trim()) return raw.trim().slice(0, 160);
+      return `Conheça as peças de ${storeName} e compre direto pelo WhatsApp.`;
+    })();
+    const seoImage = (() => {
+      const meta = store.metadata as Record<string, unknown> | null;
+      const capa = vitrineSettings.capaUrl || (meta?.["capaUrl"] as string | undefined);
+      if (capa) return capa;
+      // Primeira imagem de produto ativo
+      const first = allProducts.find((p) => p.showcase.ativo !== false && p.fotoEfetiva);
+      return first?.fotoEfetiva ?? "";
+    })();
+
+    document.title = seoTitle;
+    const setMeta = (attr: string, key: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+    setMeta("name", "description", seoDescription);
+    setMeta("property", "og:title", seoTitle);
+    setMeta("property", "og:description", seoDescription);
+    setMeta("property", "og:url", `https://modaly.com.br/vitrine/${storeSlug}`);
+    setMeta("property", "og:type", "website");
+    if (seoImage) setMeta("property", "og:image", seoImage);
+    setMeta("name", "twitter:title", seoTitle);
+    setMeta("name", "twitter:description", seoDescription);
+    if (seoImage) setMeta("name", "twitter:image", seoImage);
+  }, [store, storeName, storeSlug, allProducts]);
+
   const storeCity = store?.city ?? "";
   const storeWhatsapp = store?.phone ?? "";
-
-  // ── Entitlements Canônicos da Loja (White-Label e Catálogo vs Sacola) ──
-  const rawStorePlan = (store?.plan || "").toLowerCase();
-  const rawStorePlanTier = (store?.plan_tier || "").toLowerCase();
-  const rawStoreSub =
-    store?.store_subscription_active === true ||
-    (store?.metadata as Record<string, unknown> | null)?.["store_subscription_active"] === true;
-
-  const isStoreTier =
-    rawStoreSub ||
-    rawStorePlanTier === "store" ||
-    rawStorePlan === "store" ||
-    rawStorePlan === "gestao_anual" ||
-    rawStorePlan === "digital" ||
-    rawStorePlan === "completo";
-
-  const isProTier =
-    !isStoreTier &&
-    (rawStorePlanTier === "pro" ||
-      rawStorePlanTier === "lote" ||
-      rawStorePlan === "pro" ||
-      rawStorePlan === "lote" ||
-      rawStorePlan === "vestui_lote" ||
-      rawStorePlan === "vestui_pro");
 
   // White-Label: Lojas Store ocultam o selo/rodapé "Vestui"
   const isWhiteLabel = isStoreTier;
@@ -286,18 +323,37 @@ function VitrineLayout() {
     "catalogo-express";
 
   // Enforcement canônico de templates por plano na vitrine pública:
-  // - Store: liberado para qualquer template cadastrado ("template-01", "template-02", "catalogo-express")
-  // - Pro: "catalogo-express" ou "template-01" (se vier template-02, faz fallback seguro para template-01)
+  // - Store: liberado para qualquer template cadastrado ("template-01" a "template-05", "catalogo-express")
+  // - Pro: "catalogo-express", "template-01" ou "template-03"
   // - Free: OBRIGATORIAMENTE "catalogo-express" (blindagem total contra bypass de tier)
-  const activeTemplateId: "catalogo-express" | "template-01" | "template-02" = useMemo(() => {
+  type SupportedTemplateId =
+    | "catalogo-express"
+    | "template-01"
+    | "template-02"
+    | "template-03"
+    | "template-04"
+    | "template-05";
+
+  const activeTemplateId: SupportedTemplateId = useMemo(() => {
+    const validTemplates: SupportedTemplateId[] = [
+      "catalogo-express",
+      "template-01",
+      "template-02",
+      "template-03",
+      "template-04",
+      "template-05",
+    ];
     if (isStoreTier) {
-      if (rawTemplateId === "template-01" || rawTemplateId === "template-02" || rawTemplateId === "catalogo-express") {
-        return rawTemplateId;
+      if (validTemplates.includes(rawTemplateId as SupportedTemplateId)) {
+        return rawTemplateId as SupportedTemplateId;
       }
       return "catalogo-express";
     }
     if (isProTier) {
-      return rawTemplateId === "template-01" ? "template-01" : "catalogo-express";
+      if (rawTemplateId === "template-01" || rawTemplateId === "template-03") {
+        return rawTemplateId;
+      }
+      return "catalogo-express";
     }
     return "catalogo-express";
   }, [isStoreTier, isProTier, rawTemplateId]);
@@ -310,7 +366,7 @@ function VitrineLayout() {
       ...base,
       settings: {
         ...base.settings,
-        templateId: (activeTemplateId as "template-01" | "template-02" | "catalogo-express"),
+        templateId: activeTemplateId,
         storeName: storeName || base.settings.storeName,
         ...(storeWhatsapp || base.settings.storeWhatsApp
           ? { storeWhatsApp: storeWhatsapp || base.settings.storeWhatsApp }
@@ -377,6 +433,7 @@ function VitrineLayout() {
           onOpenCart={() => setCartOpen(true)}
           onSelectProduct={(p) => setSelectedProduct(p)}
           cartCount={cart.totalItems}
+          storeCategories={storeCategories.map((c) => ({ label: c.name, slug: c.slug }))}
         />
       )}
 
@@ -386,6 +443,7 @@ function VitrineLayout() {
           product={selectedProduct}
           cor={cor}
           storeName={storeName}
+          storeSlug={storeSlug}
           storeWhatsapp={storeWhatsapp}
           storeCategories={storeCategories}
           onClose={() => setSelectedProduct(null)}
@@ -814,6 +872,7 @@ function ProductModal({
   product,
   cor,
   storeName,
+  storeSlug,
   storeWhatsapp,
   storeCategories,
   onClose,
@@ -823,6 +882,7 @@ function ProductModal({
   product: ShowcaseProduct;
   cor: string;
   storeName: string;
+  storeSlug?: string;
   storeWhatsapp?: string;
   storeCategories: StoreCategory[];
   onClose: () => void;
@@ -840,15 +900,63 @@ function ProductModal({
   const [tamanho, setTamanho] = useState(defaultSize);
   const [cor2, setCor2] = useState(product.color ?? "");
   const [added, setAdded] = useState(false);
+  const [showSizeChart, setShowSizeChart] = useState(false);
+  const [showInstallments, setShowInstallments] = useState(false);
+
+  // Galeria de Múltiplas Fotos & Carrossel
+  const photos = useMemo(() => {
+    const list: string[] = [];
+    if (product.vitrineFotos && Array.isArray(product.vitrineFotos) && product.vitrineFotos.length > 0) {
+      list.push(...product.vitrineFotos.filter(Boolean));
+    }
+    if (product.photo_url && !list.includes(product.photo_url)) {
+      list.push(product.photo_url);
+    }
+    if (list.length === 0) {
+      const fallback =
+        product.fotoEfetiva ||
+        `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(product.name)}`;
+      list.push(fallback);
+    }
+    return list;
+  }, [product]);
+
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const foto = photos[activePhotoIdx] || photos[0]!;
 
   const precoFinal = product.precoEfetivo;
   const temPromocao = product.emPromocao;
-  const foto =
-    product.fotoEfetiva ??
-    `https://placehold.co/600x800/f5f5f5/999?text=${encodeURIComponent(product.name)}`;
 
   // Estoque específico do tamanho selecionado
   const estoqueTamanho = (tamanho in sizesObj ? sizesObj[tamanho] : product.totalEstoque) ?? 0;
+
+  function handleShareProduct() {
+    const origin =
+      typeof window !== "undefined" && window.location.origin
+        ? window.location.origin
+        : "https://vestui.com.br";
+    const productUrl = `${origin}/vitrine/${storeSlug || ""}?p=${product.id}`;
+    const shareText = `Olha que linda essa peça na loja ${storeName}: ${product.name} por ${brl(precoFinal)}! Dá uma olhada: ${productUrl}`;
+
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      navigator
+        .share({
+          title: `${product.name} — ${storeName}`,
+          text: shareText,
+          url: productUrl,
+        })
+        .catch(() => {});
+    } else {
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        void navigator.clipboard.writeText(productUrl);
+      }
+      toast.success("Link da peça copiado!", {
+        description: "Pronto para compartilhar no WhatsApp ou Instagram.",
+      });
+    }
+  }
 
   function handleDirectWhatsApp() {
     if (estoqueTamanho <= 0) return;
@@ -911,27 +1019,99 @@ function ProductModal({
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300"
+        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 duration-300 scrollbar-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-gray-800 hover:bg-black/20 transition-colors cursor-pointer"
-          aria-label="Fechar"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {/* Top Floating Actions: Compartilhar & Fechar */}
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShareProduct}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-sm backdrop-blur-md hover:bg-white hover:scale-105 transition-all cursor-pointer"
+            title="Compartilhar peça no WhatsApp"
+            aria-label="Compartilhar peça"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-sm backdrop-blur-md hover:bg-white hover:scale-105 transition-all cursor-pointer"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        {/* Imagem */}
-        <div className="relative h-72 w-full overflow-hidden bg-gray-100 sm:h-80">
-          <img src={foto} alt={product.name} className="h-full w-full object-cover" />
+        {/* Galeria de Fotos / Carrossel */}
+        <div className="relative h-72 w-full overflow-hidden bg-gray-100 sm:h-80 select-none group">
+          <img
+            src={foto}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
           {temPromocao && (
-            <span className="absolute left-4 top-4 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
+            <span className="absolute left-4 top-4 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
               PROMOÇÃO
             </span>
           )}
+
+          {photos.length > 1 && (
+            <>
+              {/* Seta Esquerda */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
+                }}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-xs opacity-80 hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+                aria-label="Foto anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {/* Seta Direita */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-xs opacity-80 hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+                aria-label="Próxima foto"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+
+              {/* Badge Contador de Fotos */}
+              <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs">
+                {activePhotoIdx + 1} / {photos.length}
+              </span>
+            </>
+          )}
         </div>
+
+        {/* Miniaturas de Fotos Selecionáveis */}
+        {photos.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto px-6 pt-3 pb-1 scrollbar-none bg-gray-50/60 border-b border-gray-100">
+            {photos.map((p, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setActivePhotoIdx(idx)}
+                className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                  idx === activePhotoIdx
+                    ? "scale-105 shadow-sm"
+                    : "border-transparent opacity-60 hover:opacity-100"
+                }`}
+                style={idx === activePhotoIdx ? { borderColor: cor } : undefined}
+              >
+                <img src={p} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
@@ -949,6 +1129,16 @@ function ProductModal({
                   <p className="text-2xl font-bold" style={{ color: cor }}>
                     {brl(precoFinal)}
                   </p>
+                  {precoFinal >= 30 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowInstallments(!showInstallments)}
+                      className="mt-0.5 text-[11px] font-medium text-gray-500 hover:text-gray-800 underline underline-offset-2 cursor-pointer flex items-center justify-end gap-0.5"
+                    >
+                      <span>ou até 6x de {brl(precoFinal / 6)} sem juros</span>
+                      <ChevronRight className={`h-3 w-3 transition-transform ${showInstallments ? "rotate-90" : ""}`} />
+                    </button>
+                  )}
                   {temPromocao && product.showcase.precoPromocional && (
                     <p className="text-sm text-gray-400 line-through">{brl(product.sale_price)}</p>
                   )}
@@ -957,13 +1147,47 @@ function ProductModal({
             </div>
           </div>
 
+          {/* Simulação de Parcelamento Detalhada (Estilo Nuvemshop/Shopify) */}
+          {showInstallments && precoFinal >= 30 && (
+            <div className="mt-3.5 rounded-2xl bg-gray-50 p-3.5 text-xs text-gray-700 border border-gray-100 animate-in fade-in duration-200">
+              <p className="font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                <CreditCard className="h-3.5 w-3.5 text-gray-600" />
+                Opções de Parcelamento no Cartão
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                <div>1x de {brl(precoFinal)} <span className="text-emerald-600 font-medium">sem juros</span></div>
+                <div>2x de {brl(precoFinal / 2)} <span className="text-emerald-600 font-medium">sem juros</span></div>
+                <div>3x de {brl(precoFinal / 3)} <span className="text-emerald-600 font-medium">sem juros</span></div>
+                <div>4x de {brl(precoFinal / 4)} <span className="text-emerald-600 font-medium">sem juros</span></div>
+                <div>5x de {brl(precoFinal / 5)} <span className="text-emerald-600 font-medium">sem juros</span></div>
+                <div>6x de {brl(precoFinal / 6)} <span className="text-emerald-600 font-medium">sem juros</span></div>
+              </div>
+              <div className="mt-2.5 pt-2 border-t border-gray-200/60 flex items-center justify-between text-[11px]">
+                <span className="font-medium text-gray-900 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-amber-500" /> Pagamento com Pix:
+                </span>
+                <span className="text-emerald-600 font-semibold">Aprovação imediata</span>
+              </div>
+            </div>
+          )}
+
           {/* Tamanhos — UI Apple: todos visíveis; zerados riscados com feedback tátil */}
           {hasMultipleSizes && (
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Tamanho
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Tamanho
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowSizeChart(true)}
+                    className="text-[11px] font-medium underline underline-offset-2 hover:opacity-80 cursor-pointer"
+                    style={{ color: cor }}
+                  >
+                    📏 Guia de Medidas
+                  </button>
+                </div>
                 {estoqueTamanho > 0 && (
                   <span className="text-[11px] text-gray-500">
                     {estoqueTamanho === 1 ? (
@@ -1075,7 +1299,91 @@ function ProductModal({
               )}
             </button>
           )}
+
+          {/* Trust Badges de Alta Conversão (Shopify / Nuvemshop Style) */}
+          <div className="mt-5 grid grid-cols-3 gap-2 border-t border-gray-100 pt-4 text-center">
+            <div className="flex flex-col items-center gap-1">
+              <Truck className="h-4 w-4 text-gray-500" />
+              <span className="text-[10px] font-medium text-gray-600 leading-tight">Envio Rápido</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <RefreshCw className="h-4 w-4 text-gray-500" />
+              <span className="text-[10px] font-medium text-gray-600 leading-tight">1ª Troca Grátis</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Shield className="h-4 w-4 text-gray-500" />
+              <span className="text-[10px] font-medium text-gray-600 leading-tight">Compra Segura</span>
+            </div>
+          </div>
         </div>
+
+        {/* Size Guide Modal Overlay */}
+        {showSizeChart && (
+          <div
+            className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSizeChart(false);
+            }}
+          >
+            <div
+              className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl text-gray-900 border border-gray-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h4 className="font-bold text-sm">📏 Tabela de Medidas (cm)</h4>
+                <button
+                  type="button"
+                  onClick={() => setShowSizeChart(false)}
+                  className="rounded-full p-1 text-gray-400 hover:text-gray-700 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-3 overflow-x-auto text-xs">
+                <table className="w-full text-center">
+                  <thead>
+                    <tr className="border-b text-gray-400 text-[11px]">
+                      <th className="py-2">Tamanho</th>
+                      <th className="py-2">Busto</th>
+                      <th className="py-2">Cintura</th>
+                      <th className="py-2">Quadril</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-gray-700">
+                    <tr>
+                      <td className="py-2 font-bold">P (36-38)</td>
+                      <td>84-88</td>
+                      <td>66-70</td>
+                      <td>94-98</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-bold">M (40)</td>
+                      <td>90-94</td>
+                      <td>72-76</td>
+                      <td>100-104</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-bold">G (42)</td>
+                      <td>96-102</td>
+                      <td>78-84</td>
+                      <td>106-112</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-bold">GG (44-46)</td>
+                      <td>104-110</td>
+                      <td>86-92</td>
+                      <td>114-120</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-[10px] text-gray-400 text-center">
+                Medidas de referência. Em caso de dúvidas, chame no WhatsApp!
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

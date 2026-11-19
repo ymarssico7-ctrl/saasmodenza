@@ -23,6 +23,11 @@ import type {
   ImageTextSplitSection,
   FeaturesSection,
   AnnouncementSection,
+  TestimonialsSection,
+  FaqSection,
+  PromotionalBannerSection,
+  InstagramFeedSection,
+  NewsletterSection,
 } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
@@ -285,23 +290,25 @@ function Navbar({
   isStoreLoading,
   onOpenCart,
   cartCount,
+  navLinks,
 }: {
   storeName: string;
   logoUrl?: string;
   isStoreLoading?: boolean;
-  onOpenCart?: () => void;
-  cartCount?: number;
+  onOpenCart?: (() => void) | undefined;
+  cartCount?: number | undefined;
+  navLinks?: { label: string; href?: string }[];
 }) {
   const { count, open } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const links = [
-    { label: "Loja" },
-    { label: "Feminino" },
-    { label: "Masculino" },
-    { label: "Acessórios" },
-    { label: "Lookbook" },
-  ];
+  const links =
+    navLinks && navLinks.length > 0
+      ? navLinks
+      : [
+          { label: "Loja", href: "#vitrine" },
+          { label: "Novidades", href: "#vitrine" },
+        ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
@@ -319,7 +326,7 @@ function Navbar({
           {links.map((link) => (
             <a
               key={link.label}
-              href="#vitrine"
+              href={link.href ?? "#vitrine"}
               className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
@@ -377,7 +384,7 @@ function Navbar({
             {links.map((link) => (
               <a
                 key={link.label}
-                href="#vitrine"
+                href={link.href ?? "#vitrine"}
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-between border-b border-border py-4 font-display text-sm uppercase tracking-[0.16em] text-foreground last:border-b-0"
               >
@@ -812,6 +819,7 @@ interface Template02StoreProps {
   onOpenCart?: () => void;
   onSelectProduct?: (product: ShowcaseProduct) => void;
   cartCount?: number;
+  storeCategories?: { label: string; slug: string }[];
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -827,6 +835,7 @@ export function Template02Store({
   onOpenCart,
   onSelectProduct,
   cartCount,
+  storeCategories,
 }: Template02StoreProps = {}) {
   const settings = theme?.settings;
 
@@ -850,6 +859,20 @@ export function Template02Store({
       ),
     [allShowcaseProducts],
   );
+
+  // ── Navegação dinâmica baseada nas categorias reais da loja ──────────────────
+  const navLinks: { label: string; href: string }[] = useMemo(() => {
+    if (storeCategories && storeCategories.length > 0) {
+      return storeCategories.map((cat) => ({ label: cat.label, href: `#vitrine` }));
+    }
+    if (PRODUCT_CATEGORIES.length > 0) {
+      return PRODUCT_CATEGORIES.map((cat) => ({ label: cat, href: `#vitrine` }));
+    }
+    return [
+      { label: "Loja", href: "#vitrine" },
+      { label: "Novidades", href: "#vitrine" },
+    ];
+  }, [storeCategories, PRODUCT_CATEGORIES]);
 
   // Injeta fonte Outfit + Figtree (fontes originais do template)
   useEffect(() => {
@@ -1229,6 +1252,190 @@ export function Template02Store({
           </SectionWrap>
         );
       }
+      case "testimonials": {
+        const s = section as TestimonialsSection;
+        const items = s.settings.items ?? [];
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="mx-auto max-w-[1500px] px-5 py-16 lg:px-10 lg:py-24 border-y border-border">
+              <div className="mb-12 text-center">
+                {s.settings.kicker && (
+                  <p className="font-display text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                    {s.settings.kicker}
+                  </p>
+                )}
+                <h2 className="mt-2 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+                  {s.settings.title}
+                </h2>
+              </div>
+              <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3">
+                {items.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col justify-between rounded-2xl border border-border/80 bg-background/50 p-6 shadow-xs"
+                  >
+                    <div>
+                      <div className="text-amber-500 text-sm tracking-widest">
+                        {"★".repeat(item.rating || 5)}
+                      </div>
+                      <blockquote className="mt-4 text-sm leading-relaxed text-foreground/80 italic">
+                        &ldquo;{item.comment}&rdquo;
+                      </blockquote>
+                    </div>
+                    <div className="mt-6 border-t border-border/60 pt-4">
+                      <p className="font-display text-xs font-semibold uppercase tracking-wider text-foreground">
+                        {item.name}
+                      </p>
+                      {item.city && (
+                        <p className="text-[11px] text-muted-foreground">{item.city}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "faq": {
+        const s = section as FaqSection;
+        const items = s.settings.items ?? [];
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="mx-auto max-w-3xl px-5 py-16 lg:px-8 lg:py-24">
+              <div className="mb-10 text-center">
+                {s.settings.kicker && (
+                  <p className="font-display text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                    {s.settings.kicker}
+                  </p>
+                )}
+                <h2 className="mt-2 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+                  {s.settings.title}
+                </h2>
+              </div>
+              <div className="space-y-4">
+                {items.map((item, i) => (
+                  <details
+                    key={i}
+                    className="group rounded-2xl border border-border bg-card/60 p-5 [&_summary::-webkit-details-marker]:hidden transition-all duration-200 open:border-primary/40 open:bg-card"
+                  >
+                    <summary className="flex cursor-pointer items-center justify-between font-display text-sm font-semibold tracking-wide text-foreground">
+                      <span>{item.question}</span>
+                      <span className="ml-4 shrink-0 transition-transform duration-200 group-open:rotate-180">
+                        ↓
+                      </span>
+                    </summary>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground border-t border-border/40 pt-3">
+                      {item.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "promotional_banner": {
+        const s = section as PromotionalBannerSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="bg-primary text-primary-foreground py-14 px-5">
+              <div className="mx-auto max-w-4xl text-center space-y-4">
+                {s.settings.badge && (
+                  <span className="inline-block rounded-full bg-primary-foreground/15 px-3.5 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                    {s.settings.badge}
+                  </span>
+                )}
+                <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                  {s.settings.heading}
+                </h2>
+                <p className="text-xs text-primary-foreground/80 max-w-xl mx-auto leading-relaxed">
+                  {s.settings.subheading}
+                </p>
+                <div className="pt-2">
+                  <a
+                    href="#vitrine"
+                    className="inline-flex items-center gap-2 rounded-xl bg-background px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-transform hover:scale-105 shadow-sm"
+                  >
+                    {s.settings.buttonText}
+                  </a>
+                </div>
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "instagram_feed": {
+        const s = section as InstagramFeedSection;
+        const imgs = s.settings.images ?? [];
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="mx-auto max-w-[1500px] px-5 py-16 lg:px-10 lg:py-24">
+              <div className="mb-10 text-center">
+                {s.settings.handle && (
+                  <p className="font-display text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                    {s.settings.handle}
+                  </p>
+                )}
+                <h2 className="mt-2 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl">
+                  {s.settings.title}
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {imgs.map((img, i) => (
+                  <div key={i} className="group relative aspect-square overflow-hidden rounded-xl bg-muted">
+                    <img
+                      src={img}
+                      alt={`Foto da comunidade ${i + 1}`}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold uppercase tracking-wider">
+                      Ver no Insta
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "newsletter": {
+        const s = section as NewsletterSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="border-t border-border bg-card py-16 px-5">
+              <div className="mx-auto max-w-xl text-center space-y-4">
+                {s.settings.couponBadge && (
+                  <span className="inline-block rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+                    Cupom: {s.settings.couponBadge}
+                  </span>
+                )}
+                <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  {s.settings.heading}
+                </h2>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {s.settings.subheading}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto pt-2">
+                  <input
+                    type="email"
+                    placeholder="Seu melhor e-mail"
+                    className="h-10 flex-1 rounded-xl border border-input bg-background px-4 text-xs outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toast.success(`Cupom ${s.settings.couponBadge} ativado!`)}
+                    className="h-10 px-5 rounded-xl bg-primary text-primary-foreground font-display text-xs font-bold uppercase tracking-wider transition-opacity hover:opacity-90"
+                  >
+                    {s.settings.buttonText}
+                  </button>
+                </div>
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
       default:
         return null;
     }
@@ -1253,11 +1460,16 @@ export function Template02Store({
         <Navbar
           storeName={storeName}
           isStoreLoading={isStoreLoading}
+          navLinks={navLinks}
           {...(logoUrl ? { logoUrl } : {})}
+          {...(onOpenCart ? { onOpenCart } : {})}
+          {...(cartCount !== undefined ? { cartCount } : {})}
         />
-        <CartDrawer
-          storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? "" }}
-        />
+        {!onOpenCart && (
+          <CartDrawer
+            storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? "" }}
+          />
+        )}
         {quickAdd && <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />}
 
         <main>

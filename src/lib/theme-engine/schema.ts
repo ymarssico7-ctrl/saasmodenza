@@ -19,7 +19,13 @@ export type BackgroundVariant = "background" | "canvas" | "foreground";
 // ── Global Settings ───────────────────────────────────────────────────────────
 export interface ThemeSettings {
   /** Qual template de loja renderizar. Padrão: "template-02" */
-  templateId?: "template-01" | "template-02" | "catalogo-express";
+  templateId?:
+    | "template-01"
+    | "template-02"
+    | "template-03"
+    | "template-04"
+    | "template-05"
+    | "catalogo-express";
   storeName: string;
   tagline: string;
   /** URL do logotipo da loja. Se vazio, exibe storeName como texto. */
@@ -110,6 +116,52 @@ export interface AnnouncementSettings {
   backgroundColor: string;
 }
 
+export interface TestimonialItem {
+  name: string;
+  city: string;
+  rating: number;
+  comment: string;
+}
+
+export interface TestimonialsSettings {
+  kicker: string;
+  title: string;
+  items: TestimonialItem[];
+}
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+export interface FaqSettings {
+  kicker: string;
+  title: string;
+  items: FaqItem[];
+}
+
+export interface PromotionalBannerSettings {
+  badge: string;
+  heading: string;
+  subheading: string;
+  buttonText: string;
+  endDateHours: number; // Horas restantes para sensação de urgência
+}
+
+export interface InstagramFeedSettings {
+  kicker: string;
+  title: string;
+  handle: string; // Ex: @sualoja
+  images: string[];
+}
+
+export interface NewsletterSettings {
+  heading: string;
+  subheading: string;
+  buttonText: string;
+  couponBadge: string;
+}
+
 // ── Section Union ─────────────────────────────────────────────────────────────
 
 export interface SectionBase {
@@ -141,6 +193,26 @@ export type AnnouncementSection = SectionBase & {
   type: "announcement";
   settings: AnnouncementSettings;
 };
+export type TestimonialsSection = SectionBase & {
+  type: "testimonials";
+  settings: TestimonialsSettings;
+};
+export type FaqSection = SectionBase & {
+  type: "faq";
+  settings: FaqSettings;
+};
+export type PromotionalBannerSection = SectionBase & {
+  type: "promotional_banner";
+  settings: PromotionalBannerSettings;
+};
+export type InstagramFeedSection = SectionBase & {
+  type: "instagram_feed";
+  settings: InstagramFeedSettings;
+};
+export type NewsletterSection = SectionBase & {
+  type: "newsletter";
+  settings: NewsletterSettings;
+};
 
 export type Section =
   | HeroSection
@@ -148,7 +220,12 @@ export type Section =
   | ProductGridSection
   | ImageTextSplitSection
   | FeaturesSection
-  | AnnouncementSection;
+  | AnnouncementSection
+  | TestimonialsSection
+  | FaqSection
+  | PromotionalBannerSection
+  | InstagramFeedSection
+  | NewsletterSection;
 
 export type SectionType = Section["type"];
 
@@ -198,14 +275,44 @@ export const SECTION_META: SectionMeta[] = [
   },
   {
     type: "features",
-    label: "Diferenciais",
+    label: "Diferenciais & Vantagens",
     icon: "Star",
-    description: "Destaque os benefícios da sua loja (frete, troca, etc).",
+    description: "Destaque frete grátis, trocas, segurança e parcelamento.",
   },
   {
     type: "announcement",
     label: "Faixa de Anúncio",
     icon: "Megaphone",
     description: "Barra superior com uma mensagem de destaque.",
+  },
+  {
+    type: "testimonials",
+    label: "Depoimentos de Clientes",
+    icon: "MessageSquareQuote",
+    description: "Provas sociais reais com estrelas, nome e relato da cliente.",
+  },
+  {
+    type: "faq",
+    label: "Perguntas Frequentes (FAQ)",
+    icon: "HelpCircle",
+    description: "Acordeão de dúvidas comuns para aumentar a conversão.",
+  },
+  {
+    type: "promotional_banner",
+    label: "Banner Promocional / Urgência",
+    icon: "Timer",
+    description: "Destaque ofertas com contador regressivo e escassez.",
+  },
+  {
+    type: "instagram_feed",
+    label: "Feed do Instagram",
+    icon: "Instagram",
+    description: "Mosaico de looks e conexão com seu perfil social.",
+  },
+  {
+    type: "newsletter",
+    label: "Newsletter & Desconto",
+    icon: "Mail",
+    description: "Captura de e-mails em troca de cupom de 1ª compra.",
   },
 ];

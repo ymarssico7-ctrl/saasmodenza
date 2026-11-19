@@ -15,6 +15,7 @@ interface Props {
   onOpenCart?: () => void;
   onSelectProduct?: (product: ShowcaseProduct) => void;
   cartCount?: number;
+  storeCategories?: { label: string; slug: string }[];
 }
 
 /**
@@ -22,8 +23,12 @@ interface Props {
  * theme.settings.templateId. Padrão: "template-02" (Atelie Minimalist).
  *
  * Templates disponíveis:
- *   - "template-01" → Atelier Nove   (Cormorant Garamond + Jost, paleta off-white)
- *   - "template-02" → Atelie Minimalist (Outfit + Figtree, editorial ultralimpo)
+ *   - "template-01"      → Atelier Nove   (Cormorant Garamond + Jost, paleta off-white)
+ *   - "template-02"      → Atelie Minimalist (Outfit + Figtree, editorial ultralimpo)
+ *   - "template-03"      → Bold Streetwear (Sora + Inter, Dark Mode urbano)
+ *   - "template-04"      → Praia & Resort (Outfit + Figtree, solar e terracota)
+ *   - "template-05"      → Boutique Chic  (Playfair Display + Jost, luxo clássico)
+ *   - "catalogo-express" → Catálogo Express (Layout modular ágil)
  */
 export function ThemeRenderer({
   theme,
@@ -37,6 +42,7 @@ export function ThemeRenderer({
   onOpenCart,
   onSelectProduct,
   cartCount,
+  storeCategories,
 }: Props) {
   const templateId = theme.settings.templateId ?? "template-02";
 
@@ -50,6 +56,7 @@ export function ThemeRenderer({
     ...(onOpenCart ? { onOpenCart } : {}),
     ...(onSelectProduct ? { onSelectProduct } : {}),
     ...(cartCount !== undefined ? { cartCount } : {}),
+    ...(storeCategories !== undefined ? { storeCategories } : {}),
   };
 
   if (templateId === "template-01") {

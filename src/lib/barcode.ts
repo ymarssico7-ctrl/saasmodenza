@@ -28,9 +28,9 @@ export function generateCode128Svg(text: string, height = 30): string {
   }
 
   // Checksum
-  let checksum = codes[0];
+  let checksum = codes[0] ?? 0;
   for (let i = 1; i < codes.length; i++) {
-    checksum += codes[i] * i;
+    checksum += (codes[i] ?? 0) * i;
   }
   codes.push(checksum % 103);
   codes.push(STOP);
@@ -45,7 +45,7 @@ export function generateCode128Svg(text: string, height = 30): string {
     if (pattern === undefined) continue;
     const digits = pattern.toString().split("").map(Number);
     for (let i = 0; i < digits.length; i++) {
-      const width = digits[i] * barWidth;
+      const width = (digits[i] ?? 0) * barWidth;
       if (i % 2 === 0) {
         // Barra preta
         barsHtml += `<rect x="${x.toFixed(1)}" y="0" width="${width.toFixed(1)}" height="${height}" fill="#000000" />`;

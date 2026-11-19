@@ -84,7 +84,14 @@ export interface PlanLimits {
   /** Permite configurar entrega/frete personalizado na vitrine */
   hasDeliveryConfig: boolean;
   /** Lista de IDs de templates liberados na galeria */
-  allowedTemplates: Array<"template-01" | "template-02" | "catalogo-express">;
+  allowedTemplates: Array<
+    | "template-01"
+    | "template-02"
+    | "template-03"
+    | "template-04"
+    | "template-05"
+    | "catalogo-express"
+  >;
 }
 
 export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
@@ -120,7 +127,7 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasRealtimeInventorySync: false,
     hasWhiteLabel: false,
     hasDeliveryConfig: true,
-    allowedTemplates: ["catalogo-express", "template-01"],
+    allowedTemplates: ["catalogo-express", "template-01", "template-03"],
   },
   store: {
     maxProducts: Infinity,
@@ -137,7 +144,14 @@ export const PLAN_LIMITS: Record<"free" | "pro" | "store", PlanLimits> = {
     hasRealtimeInventorySync: true,
     hasWhiteLabel: true,
     hasDeliveryConfig: true,
-    allowedTemplates: ["catalogo-express", "template-01", "template-02"],
+    allowedTemplates: [
+      "catalogo-express",
+      "template-01",
+      "template-02",
+      "template-03",
+      "template-04",
+      "template-05",
+    ],
   },
 };
 
@@ -223,6 +237,7 @@ export function useAccess(
     canSimulateDiscounts: false,
     canAccessStorefront: false,
     canAccessPOS: false,
+    canAccessFiado: false,
     canAccessConditional: false,
     freeBatchesLimit: PLAN_LIMITS.free.maxMonthlyBatches,
     canUsePOS: false,

@@ -36,6 +36,7 @@ type Action =
   | { type: "REDO" }
   | { type: "SAVE" }
   | { type: "RESET" }
+  | { type: "LOAD_THEME"; theme: ThemeConfig }
   | { type: "TOGGLE_SIDEBAR" };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -153,6 +154,9 @@ function reducer(state: BuilderState, action: Action): BuilderState {
     case "SAVE":
       return { ...state, isDirty: false };
 
+    case "LOAD_THEME":
+      return { ...state, theme: action.theme, isDirty: false, past: [], future: [] };
+
     case "RESET":
       return { ...initialState, theme: ATELIER_MOD_THEME };
 
@@ -231,6 +235,108 @@ function createDefaultSection(type: SectionType): Section {
         visible: true,
         settings: { text: "Novidade! Confira nossa nova coleção.", backgroundColor: "#1C1C1A" },
       };
+    case "testimonials":
+      return {
+        id,
+        type: "testimonials",
+        visible: true,
+        settings: {
+          kicker: "Quem comprou, amou",
+          title: "O que nossas clientes dizem",
+          items: [
+            {
+              name: "Marina L.",
+              city: "São Paulo, SP",
+              rating: 5,
+              comment: "O caimento das peças é impecável! Tecido nobre, acabamento de alfaiataria fina. Com certeza comprarei mais vezes.",
+            },
+            {
+              name: "Juliana R.",
+              city: "Belo Horizonte, MG",
+              rating: 5,
+              comment: "Atendimento excepcional no WhatsApp e a entrega chegou antes do prazo com uma embalagem muito cheirosa!",
+            },
+            {
+              name: "Carla S.",
+              city: "Curitiba, PR",
+              rating: 5,
+              comment: "Modelagem perfeita que valoriza o corpo com elegância e conforto. Recomendo de olhos fechados!",
+            },
+          ],
+        },
+      };
+    case "faq":
+      return {
+        id,
+        type: "faq",
+        visible: true,
+        settings: {
+          kicker: "Tire suas dúvidas",
+          title: "Perguntas Frequentes",
+          items: [
+            {
+              question: "Qual o prazo de envio e entrega?",
+              answer: "Enviamos todos os pedidos em até 24 horas úteis após a confirmação. O prazo final varia conforme o seu CEP e método de envio escolhido.",
+            },
+            {
+              question: "Como funciona a política de trocas?",
+              answer: "A primeira troca é totalmente gratuita em até 7 dias corridos após o recebimento, mantendo etiquetas e a peça intacta.",
+            },
+            {
+              question: "Como escolher o tamanho ideal?",
+              answer: "Disponibilizamos nossa tabela de medidas detalhada em cada produto. Se preferir, nossa equipe auxilia diretamente pelo WhatsApp.",
+            },
+            {
+              question: "Quais são as formas de pagamento?",
+              answer: "Aceitamos Pix com aprovação imediata e cartões de crédito em até 6x sem juros.",
+            },
+          ],
+        },
+      };
+    case "promotional_banner":
+      return {
+        id,
+        type: "promotional_banner",
+        visible: true,
+        settings: {
+          badge: "OFERTA RELÂMPAGO",
+          heading: "Coleção Cápsula com até 30% OFF",
+          subheading: "Condição exclusiva por tempo limitado para peças selecionadas.",
+          buttonText: "Aproveitar Descontos",
+          endDateHours: 48,
+        },
+      };
+    case "instagram_feed":
+      return {
+        id,
+        type: "instagram_feed",
+        visible: true,
+        settings: {
+          kicker: "Siga nosso universo",
+          title: "No dia a dia com você",
+          handle: "@sualoja",
+          images: [
+            "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80",
+            "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80",
+            "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80",
+            "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80",
+            "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80",
+            "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600&q=80",
+          ],
+        },
+      };
+    case "newsletter":
+      return {
+        id,
+        type: "newsletter",
+        visible: true,
+        settings: {
+          heading: "Ganhe 10% OFF na primeira compra",
+          subheading: "Cadastre-se para receber novidades exclusivas, lançamentos antecipados e cupons especiais.",
+          buttonText: "Quero meu desconto",
+          couponBadge: "PRIMEIRACOMPRA",
+        },
+      };
   }
 }
 
@@ -255,9 +361,25 @@ type ContextValue = BuilderState & {
 
 const BuilderContext = createContext<ContextValue | null>(null);
 
-export function BuilderProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+export function BuilderProvider({
+  children,
+  initialTheme,
+}: {
+  children: ReactNode;
+  initialTheme?: ThemeConfig | undefined;
+}) {
+  const [state, dispatch] = useReducer(
+    reducer,
+    initialTheme ? { ...initialState, theme: initialTheme } : initialState,
+  );
   const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // Se initialTheme carregar posteriormente (ex: busca assíncrona do Supabase), sincroniza se não houver edição não salva
+  useEffect(() => {
+    if (initialTheme && !state.isDirty) {
+      dispatch({ type: "LOAD_THEME", theme: initialTheme });
+    }
+  }, [initialTheme]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Abre um único canal persistente ao montar — evita criar/destruir instâncias a cada render
   useEffect(() => {

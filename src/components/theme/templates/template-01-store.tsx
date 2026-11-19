@@ -21,6 +21,11 @@ import type {
   ImageTextSplitSection,
   FeaturesSection,
   AnnouncementSection,
+  TestimonialsSection,
+  FaqSection,
+  PromotionalBannerSection,
+  InstagramFeedSection,
+  NewsletterSection,
 } from "@/lib/theme-engine/schema";
 import { FONT_URLS } from "@/lib/theme-engine/defaults";
 import { SectionPreviewWrapper } from "@/components/theme/builder/section-preview-wrapper";
@@ -40,14 +45,6 @@ import catAccessoriesImg from "@/assets/template-01/cat-accessories.jpg";
 import editorialImg from "@/assets/template-01/editorial.jpg";
 import look1Img from "@/assets/template-01/look-1.jpg";
 import look2Img from "@/assets/template-01/look-2.jpg";
-import p1 from "@/assets/template-01/p1.jpg";
-import p2 from "@/assets/template-01/p2.jpg";
-import p3 from "@/assets/template-01/p3.jpg";
-import p4 from "@/assets/template-01/p4.jpg";
-import p5 from "@/assets/template-01/p5.jpg";
-import p6 from "@/assets/template-01/p6.jpg";
-import d1 from "@/assets/template-01/detail-1.jpg";
-import d2 from "@/assets/template-01/detail-2.jpg";
 
 // ── Tipos de produto (adaptado para o catálogo real) ─────────────────────────
 type Product = {
@@ -105,37 +102,6 @@ function adaptShowcaseProduct(p: ShowcaseProduct): Product {
     estoque: p.totalEstoque,
   };
 }
-
-// ── Navegação original ─────────────────────────────────────────────────────────
-const NAV = [
-  {
-    label: "Feminino",
-    colunas: [
-      {
-        titulo: "Vestuário",
-        itens: ["Casacos", "Alfaiataria", "Vestidos", "Camisaria", "Malharia"],
-      },
-      {
-        titulo: "Coleções",
-        itens: ["Inverno 26", "Essenciais", "Edição Limitada", "Últimas peças"],
-      },
-    ],
-  },
-  {
-    label: "Masculino",
-    colunas: [
-      { titulo: "Vestuário", itens: ["Blazers", "Calças", "Camisas", "Tricôs", "Sobretudos"] },
-      { titulo: "Coleções", itens: ["Sob medida", "Essenciais", "Viagem"] },
-    ],
-  },
-  {
-    label: "Acessórios",
-    colunas: [
-      { titulo: "Couro", itens: ["Bolsas", "Cintos", "Carteiras"] },
-      { titulo: "Detalhes", itens: ["Lenços", "Joias", "Óculos"] },
-    ],
-  },
-];
 
 // ── ProductCard (idêntico ao original ProductCard.tsx) ────────────────────────
 function ProductCard({
@@ -281,6 +247,7 @@ interface Template01StoreProps {
   onOpenCart?: () => void;
   onSelectProduct?: (product: ShowcaseProduct) => void;
   cartCount?: number;
+  storeCategories?: { label: string; slug: string }[];
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -296,6 +263,7 @@ export function Template01Store({
   onOpenCart,
   onSelectProduct,
   cartCount,
+  storeCategories,
 }: Template01StoreProps = {}) {
   const settings = theme?.settings;
 
@@ -318,6 +286,21 @@ export function Template01Store({
       ),
     [allShowcaseProducts],
   );
+
+  // ── Navegação dinâmica baseada nas categorias reais da loja ──────────────────
+  const navLinks: { label: string; href: string }[] = useMemo(() => {
+    if (storeCategories && storeCategories.length > 0) {
+      return storeCategories.map((cat) => ({ label: cat.label, href: `#vitrine` }));
+    }
+    if (PRODUCT_CATEGORIES.length > 0) {
+      return PRODUCT_CATEGORIES.map((cat) => ({ label: cat, href: `#vitrine` }));
+    }
+    return [
+      { label: "Loja", href: "#vitrine" },
+      { label: "Novidades", href: "#vitrine" },
+      { label: "Sobre", href: "#vitrine" },
+    ];
+  }, [storeCategories, PRODUCT_CATEGORIES]);
 
   // Injeta as fontes originais (Cormorant Garamond + Jost) uma única vez
   useEffect(() => {
@@ -717,6 +700,174 @@ export function Template01Store({
           </SectionWrap>
         );
       }
+      case "testimonials": {
+        const s = section as TestimonialsSection;
+        const items = s.settings.items ?? [];
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="border-y border-border py-20">
+              <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+                <div className="mb-12 text-center">
+                  {s.settings.kicker && (
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                      {s.settings.kicker}
+                    </p>
+                  )}
+                  <h2 className="mt-3 font-serif text-3xl sm:text-4xl">{s.settings.title}</h2>
+                </div>
+                <div className="grid gap-12 md:grid-cols-3">
+                  {items.map((item, idx) => (
+                    <figure key={idx} className="flex flex-col justify-between">
+                      <div>
+                        <div className="text-xs tracking-[0.3em] text-accent-foreground">
+                          {"★".repeat(item.rating || 5)}
+                        </div>
+                        <blockquote className="mt-5 font-serif text-xl leading-relaxed">
+                          &ldquo;{item.comment}&rdquo;
+                        </blockquote>
+                      </div>
+                      <figcaption className="mt-6 border-t border-border/60 pt-4 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                        {item.name} {item.city ? `· ${item.city}` : ""}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "faq": {
+        const s = section as FaqSection;
+        const items = s.settings.items ?? [];
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
+              <div className="mb-10 text-center">
+                {s.settings.kicker && (
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                    {s.settings.kicker}
+                  </p>
+                )}
+                <h2 className="mt-3 font-serif text-3xl sm:text-4xl">{s.settings.title}</h2>
+              </div>
+              <div className="space-y-4">
+                {items.map((item, i) => (
+                  <details
+                    key={i}
+                    className="group border-b border-border pb-4 [&_summary::-webkit-details-marker]:hidden"
+                  >
+                    <summary className="flex cursor-pointer items-center justify-between font-serif text-lg text-foreground hover:text-foreground/80">
+                      <span>{item.question}</span>
+                      <span className="ml-4 text-xs transition-transform duration-300 group-open:rotate-180">
+                        ↓
+                      </span>
+                    </summary>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      {item.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "promotional_banner": {
+        const s = section as PromotionalBannerSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="bg-foreground text-background py-16 px-6 text-center">
+              <div className="mx-auto max-w-2xl space-y-4">
+                {s.settings.badge && (
+                  <span className="inline-block border border-background/30 px-3.5 py-1 text-[9px] uppercase tracking-[0.28em] text-background">
+                    {s.settings.badge}
+                  </span>
+                )}
+                <h2 className="font-serif text-3xl sm:text-4xl text-background">{s.settings.heading}</h2>
+                <p className="text-sm leading-relaxed text-background/70 max-w-md mx-auto">
+                  {s.settings.subheading}
+                </p>
+                <div className="pt-2">
+                  <a
+                    href="#vitrine"
+                    className="inline-flex items-center border border-background px-8 py-3.5 text-[11px] uppercase tracking-[0.24em] text-background transition-all hover:bg-background hover:text-foreground"
+                  >
+                    {s.settings.buttonText}
+                  </a>
+                </div>
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "instagram_feed": {
+        const s = section as InstagramFeedSection;
+        const imgs = s.settings.images ?? [];
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
+              <div className="mb-10 text-center">
+                {s.settings.handle && (
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                    {s.settings.handle}
+                  </p>
+                )}
+                <h2 className="mt-3 font-serif text-3xl sm:text-4xl">{s.settings.title}</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+                {imgs.map((img, i) => (
+                  <div key={i} className="group relative block aspect-square overflow-hidden bg-muted">
+                    <img
+                      src={img}
+                      alt={`Foto da comunidade ${i + 1}`}
+                      className="h-full w-full object-cover transition-transform duration-[800ms] group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-foreground/40 text-[10px] uppercase tracking-[0.24em] text-background opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      Ver no Instagram
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
+      case "newsletter": {
+        const s = section as NewsletterSection;
+        return (
+          <SectionWrap key={section.id} section={section}>
+            <section className="bg-foreground text-background py-20 px-6 text-center">
+              <div className="mx-auto max-w-xl space-y-4">
+                {s.settings.couponBadge && (
+                  <span className="inline-block border border-background/20 bg-background/10 px-3 py-1 text-[9px] uppercase tracking-[0.24em] text-background">
+                    CUPOM: {s.settings.couponBadge}
+                  </span>
+                )}
+                <h2 className="font-serif text-3xl sm:text-4xl text-background">{s.settings.heading}</h2>
+                <p className="text-sm leading-relaxed text-background/65">
+                  {s.settings.subheading}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto pt-4">
+                  <input
+                    type="email"
+                    placeholder="Seu melhor e-mail"
+                    className="h-11 flex-1 border border-background/30 bg-transparent px-4 text-xs text-background placeholder:text-background/40 outline-none focus:border-background"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toast.success(`Cupom ${s.settings.couponBadge} liberado com sucesso!`)}
+                    className="h-11 px-6 border border-background bg-background text-foreground text-[11px] uppercase tracking-[0.22em] transition-all hover:bg-transparent hover:text-background"
+                  >
+                    {s.settings.buttonText}
+                  </button>
+                </div>
+              </div>
+            </section>
+          </SectionWrap>
+        );
+      }
       default:
         return null;
     }
@@ -757,49 +908,15 @@ export function Template01Store({
       >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-6 px-6 lg:px-10">
           <nav aria-label="Principal" className="hidden flex-1 items-center gap-8 lg:flex">
-            {NAV.map((item) => (
+            {navLinks.map((item) => (
               <div key={item.label} className="group static">
                 <a
-                  href="#vitrine"
+                  href={item.href}
                   className="relative py-2 text-[11px] uppercase tracking-[0.24em] text-foreground/80 transition-colors duration-300 hover:text-foreground"
                 >
                   {item.label}
                   <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-foreground transition-all duration-500 group-hover:w-full" />
                 </a>
-                <div className="invisible absolute inset-x-0 top-full z-30 border-b border-border bg-background opacity-0 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.35)] transition-all duration-300 group-hover:visible group-hover:opacity-100">
-                  <div className="mx-auto grid max-w-[1400px] grid-cols-4 gap-10 px-10 py-12">
-                    {item.colunas.map((col) => (
-                      <div key={col.titulo}>
-                        <p className="mb-4 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-                          {col.titulo}
-                        </p>
-                        <ul className="space-y-2.5">
-                          {col.itens.map((sub) => (
-                            <li key={sub}>
-                              <a
-                                href="#vitrine"
-                                className="text-sm text-foreground/75 transition-colors duration-300 hover:text-foreground"
-                              >
-                                {sub}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                    <div className="col-span-2">
-                      <img
-                        src={look2Img}
-                        alt="Peças da coleção Inverno 26"
-                        width={1000}
-                        height={1000}
-                        loading="lazy"
-                        className="h-56 w-full object-cover"
-                      />
-                      <p className="mt-3 font-serif text-lg">Coleção Inverno 26</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             ))}
           </nav>
@@ -853,168 +970,6 @@ export function Template01Store({
       <main>
         {/* ── SEÇÕES DINÂMICAS ── */}
         {dynamicSections}
-
-        {/* ── CARROSSEL (idêntico ao original lines 370-404) ── */}
-        <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
-          <div className="mb-10 flex items-end justify-between gap-6">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Preferidos da casa
-              </p>
-              <h2 className="mt-3 font-serif text-4xl">Mais desejados</h2>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                aria-label="Anterior"
-                onClick={() => mover(-1)}
-                className="flex h-11 w-11 items-center justify-center border border-border transition-all duration-300 hover:border-foreground hover:bg-foreground hover:text-background"
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                aria-label="Próximo"
-                onClick={() => mover(1)}
-                className="flex h-11 w-11 items-center justify-center border border-border transition-all duration-300 hover:border-foreground hover:bg-foreground hover:text-background"
-              >
-                →
-              </button>
-            </div>
-          </div>
-
-          <div
-            ref={trilha}
-            className="no-scrollbar flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2"
-          >
-            {[...PRODUCTS].reverse().map((p) => {
-              const originalShowcase = allShowcaseProducts.find((sp) => sp.id === p.id);
-              return (
-                <div key={p.id} className="w-[280px] shrink-0 snap-start sm:w-[320px]">
-                  <ProductCard
-                    product={p}
-                    onQuickAdd={abrirQuickAdd}
-                    onClickProduct={() => {
-                      if (onSelectProduct && originalShowcase) {
-                        onSelectProduct(originalShowcase);
-                      } else {
-                        abrirQuickAdd(p);
-                      }
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── DEPOIMENTOS (idêntico ao original lines 406-421) ── */}
-        <section className="border-y border-border">
-          <div className="mx-auto grid max-w-[1400px] gap-12 px-6 py-20 md:grid-cols-3 lg:px-10">
-            <figure>
-              <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
-              <blockquote className="mt-5 font-serif text-xl leading-relaxed">
-                &ldquo;O caimento é de outro nível. Comprei o casaco no inverno passado e continua
-                impecável.&rdquo;
-              </blockquote>
-              <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                Marina L., São Paulo
-              </figcaption>
-            </figure>
-            <figure>
-              <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
-              <blockquote className="mt-5 font-serif text-xl leading-relaxed">
-                &ldquo;Atendimento impecável, embalagem linda e entrega antes do prazo.&rdquo;
-              </blockquote>
-              <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                Rafael T., Curitiba
-              </figcaption>
-            </figure>
-            <figure>
-              <div className="text-xs tracking-[0.3em] text-accent-foreground">★★★★★</div>
-              <blockquote className="mt-5 font-serif text-xl leading-relaxed">
-                &ldquo;Poucas peças, todas certas. Meu guarda-roupa ficou mais leve e mais
-                bonito.&rdquo;
-              </blockquote>
-              <figcaption className="mt-5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                Ana P., Belo Horizonte
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        {/* ── LOOKBOOK (idêntico ao original lines 423-446) ── */}
-        <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
-          <div className="mb-10 text-center">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-              @ateliernove
-            </p>
-            <h2 className="mt-3 font-serif text-4xl">No dia a dia</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-            {[look1Img, look2Img, catWomenImg, catAccessoriesImg, catMenImg, editorialImg].map(
-              (img, i) => (
-                <a key={i} href="#vitrine" className="group relative block overflow-hidden">
-                  <img
-                    src={img}
-                    alt={`Look da comunidade ${i + 1}`}
-                    width={1000}
-                    height={1000}
-                    loading="lazy"
-                    className="aspect-square w-full object-cover transition-transform duration-[1000ms] ease-out group-hover:scale-105"
-                  />
-                  <span className="absolute inset-0 flex items-center justify-center bg-foreground/40 text-[10px] uppercase tracking-[0.24em] text-background opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-                    Ver look
-                  </span>
-                </a>
-              ),
-            )}
-          </div>
-        </section>
-
-        {/* ── NEWSLETTER (idêntico ao original lines 448-489) ── */}
-        <section className="bg-foreground">
-          <div className="mx-auto max-w-2xl px-6 py-24 text-center">
-            <h2 className="font-serif text-4xl text-background">Cartas do atelier</h2>
-            <p className="mt-4 text-sm leading-relaxed text-background/65">
-              Novos lançamentos, bastidores e acesso antecipado às edições limitadas. Uma carta por
-              mês, no máximo.
-            </p>
-            {inscrito ? (
-              <p className="mt-10 text-[11px] uppercase tracking-[0.24em] text-background">
-                Obrigado — confira sua caixa de entrada.
-              </p>
-            ) : (
-              <form
-                className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!email.includes("@")) return;
-                  setInscrito(true);
-                }}
-              >
-                <label htmlFor="t01-email" className="sr-only">
-                  Seu e-mail
-                </label>
-                <input
-                  id="t01-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  className="flex-1 border-b border-background/30 bg-transparent px-1 py-3 text-sm text-background placeholder:text-background/40 transition-colors duration-300 focus:border-background focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="bg-background px-8 py-3 text-[11px] uppercase tracking-[0.24em] text-foreground transition-opacity duration-300 hover:opacity-85"
-                >
-                  Inscrever
-                </button>
-              </form>
-            )}
-          </div>
-        </section>
       </main>
 
       {/* ── FOOTER (idêntico ao original lines 492-544) ── */}
@@ -1105,10 +1060,10 @@ export function Template01Store({
         </div>
         <nav className="px-6 py-10">
           <ul className="space-y-6">
-            {NAV.map((item) => (
+            {navLinks.map((item) => (
               <li key={item.label}>
                 <a
-                  href="#vitrine"
+                  href={item.href}
                   onClick={() => setMenuAberto(false)}
                   className="font-serif text-3xl transition-opacity duration-300 hover:opacity-60"
                 >

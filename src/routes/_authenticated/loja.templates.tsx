@@ -1,17 +1,39 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, ExternalLink, Paintbrush, Palette, Sparkles, Crown } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  Paintbrush,
+  Palette,
+  Sparkles,
+  Crown,
+  Eye,
+  Monitor,
+  Smartphone,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
 import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
-import { profileQuery } from "@/lib/db";
+import { profileQuery, inventoryQuery } from "@/lib/db";
 import { useAccess, isTemplateAllowed } from "@/lib/useAccess";
 import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
 import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
 import { supabase } from "@/integrations/supabase/client";
+import { QuickStoreWizard } from "@/components/loja/quick-store-wizard";
+import { ThemeRenderer } from "@/components/theme/theme-renderer";
+import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
+import type { ThemeConfig } from "@/lib/theme-engine/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   TEMPLATES_REGISTRY,
   CATEGORY_LABELS,
@@ -34,7 +56,14 @@ export const Route = createFileRoute("/_authenticated/loja/templates")({
   component: GaleriaTemplatesPage,
 });
 
-const CATEGORIES: TemplateCategory[] = ["todos", "minimalista", "editorial", "luxo", "boutique"];
+const CATEGORIES: TemplateCategory[] = [
+  "todos",
+  "minimalista",
+  "editorial",
+  "luxo",
+  "streetwear",
+  "boutique",
+];
 
 function GaleriaTemplatesPage() {
   const { store } = useStore();
@@ -42,6 +71,16 @@ function GaleriaTemplatesPage() {
   const access = useAccess(profile, store);
   const [upgradeProModalOpen, setUpgradeProModalOpen] = useState(false);
   const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [previewEntry, setPreviewEntry] = useState<TemplateEntry | null>(null);
+
+  // Produtos reais da loja para Live Preview e Thumbnails
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const allShowcaseProducts = useMemo(() => {
+    return mergeInventoryWithShowcase(
+      rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0],
+    );
+  }, [rawInventory]);
 
   // Sanitizador reativo: garante que activeTemplateId seja sempre compatível com o plano da loja
   const resolveTemplateId = useCallback(
@@ -57,7 +96,7 @@ function GaleriaTemplatesPage() {
     [access.limits.allowedTemplates, access.isStore, access.isPro]
   );
 
-  const storeMetadataTemplateId = (store?.metadata as Record<string, unknown> | null)?.templateId as string | undefined;
+  const storeMetadataTemplateId = (store?.metadata as Record<string, unknown> | null)?.["templateId"] as string | undefined;
 
   // Estado reativo do tema ativo com sincronização de eventos e limites de plano
   const [activeTemplateId, setActiveTemplateId] = useState<string>(() =>
@@ -158,20 +197,56 @@ function GaleriaTemplatesPage() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 shrink-0 gap-1.5 rounded-xl text-xs"
-          asChild
-        >
-          <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="h-3.5 w-3.5" />
-            Ver loja ao vivo
-          </a>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setWizardOpen(true)}
+            className="h-9 shrink-0 gap-1.5 rounded-xl text-xs font-semibold shadow-glow bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Criar em 3 Cliques
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0 gap-1.5 rounded-xl text-xs"
+            asChild
+          >
+            <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5" />
+              Ver loja ao vivo
+            </a>
+          </Button>
+        </div>
       </div>
 
       <VitrineConfigNav />
+
+      {/* ── Banner Modo Expresso (Zero Skill) ─────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-card p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Diferencial Modaly · Zero Habilidade
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-foreground">
+              Construa sua Loja Online em 3 Cliques
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
+              Sem precisar mexer em códigos ou configurações complexas. Escolha o seu nicho, confirme suas cores e o nosso assistente inteligente monta toda a estrutura de alta conversão para você na hora.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setWizardOpen(true)}
+            className="h-10 shrink-0 gap-2 rounded-2xl px-5 text-xs font-bold shadow-glow bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Sparkles className="h-4 w-4" />
+            Criar Loja em 3 Cliques
+          </Button>
+        </div>
+      </div>
 
       {/* ── Tema Ativo Banner ─────────────────────────────────────────────── */}
       {(() => {
@@ -232,7 +307,9 @@ function GaleriaTemplatesPage() {
               entry={entry}
               isActive={entry.id === activeTemplateId}
               isAllowed={isAllowed}
+              inventory={rawInventory as any[]}
               onApply={() => applyTemplate(entry)}
+              onPreview={() => setPreviewEntry(entry)}
               onUnlock={() => {
                 if (access.isFree && entry.id === "template-01") {
                   setUpgradeProModalOpen(true);
@@ -257,6 +334,35 @@ function GaleriaTemplatesPage() {
         open={upgradeStoreModalOpen}
         onOpenChange={setUpgradeStoreModalOpen}
       />
+      <QuickStoreWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onSuccess={() => {
+          setActiveTemplateId("template-02");
+          window.dispatchEvent(new CustomEvent("wizard-completed"));
+          window.dispatchEvent(new Event("theme-changed"));
+        }}
+      />
+
+      {/* ── Modal de Live Preview Real ───────────────────────────────────────── */}
+      <TemplatePreviewModal
+        entry={previewEntry}
+        onClose={() => setPreviewEntry(null)}
+        onApply={applyTemplate}
+        isAllowed={previewEntry ? isTemplateAllowed(previewEntry.id, access.limits) : false}
+        onUnlock={() => {
+          if (previewEntry) {
+            if (access.isFree && previewEntry.id === "template-01") {
+              setUpgradeProModalOpen(true);
+            } else {
+              setUpgradeStoreModalOpen(true);
+            }
+          }
+        }}
+        showcaseProducts={allShowcaseProducts}
+        storeName={store?.name || "Sua Loja"}
+        storePhone={store?.phone || ""}
+      />
     </div>
   );
 }
@@ -267,17 +373,35 @@ function TemplateCard({
   entry,
   isActive,
   isAllowed,
+  inventory = [],
   onApply,
+  onPreview,
   onUnlock,
 }: {
   entry: TemplateEntry;
   isActive: boolean;
   isAllowed: boolean;
+  inventory?: any[];
   onApply: () => void;
+  onPreview: () => void;
   onUnlock: () => void;
 }) {
   const { store } = useStore();
   const { palette, typography } = entry;
+
+  // Extrai até 4 produtos reais com fotos para humanizar a miniatura
+  const sampleProducts = useMemo(() => {
+    return inventory
+      .filter((p: any) => p.photo_url || p.photos?.[0] || p.image_url)
+      .slice(0, 4)
+      .map((p: any, idx: number) => ({
+        name: p.name || `Peça ${idx + 1}`,
+        photo: p.photo_url || p.photos?.[0] || p.image_url,
+        price: p.sale_price ?? p.price ?? 89,
+      }));
+  }, [inventory]);
+
+  const displayStoreName = store?.name || entry.defaults.storeName || "Sua Loja";
 
   return (
     <article
@@ -313,14 +437,16 @@ function TemplateCard({
         )}
       </div>
 
-      {/* ── Preview Mockup ─────────────────────────────────────── */}
+      {/* ── Preview Mockup Personalizado ───────────────────────── */}
       <div
-        className="relative select-none overflow-hidden p-4"
+        className="relative select-none overflow-hidden p-4 cursor-pointer"
         style={{ backgroundColor: palette.canvas }}
+        onClick={onPreview}
+        title="Clique para ver o preview interativo"
       >
         {/* Browser chrome */}
         <div
-          className="overflow-hidden rounded-xl border shadow-lift"
+          className="overflow-hidden rounded-xl border shadow-lift transition-transform duration-300 group-hover:scale-[1.01]"
           style={{ borderColor: palette.border, backgroundColor: palette.background }}
         >
           {/* Browser bar */}
@@ -347,14 +473,14 @@ function TemplateCard({
           <div style={{ backgroundColor: palette.background }}>
             {/* Announcement bar */}
             <div
-              className="px-3 py-1 text-center text-[7px] tracking-widest"
+              className="px-3 py-1 text-center text-[7px] tracking-widest truncate"
               style={{
                 backgroundColor: palette.foreground,
                 color: palette.background,
                 fontFamily: typography.display,
               }}
             >
-              Frete grátis acima de R$ 500
+              {entry.defaults.freeShippingBanner || "Frete grátis acima de R$ 500"}
             </div>
 
             {/* Nav */}
@@ -363,10 +489,10 @@ function TemplateCard({
               style={{ borderColor: palette.border }}
             >
               <span
-                className="text-[11px] font-semibold uppercase tracking-widest"
+                className="text-[11px] font-semibold uppercase tracking-widest truncate max-w-[140px]"
                 style={{ color: palette.foreground, fontFamily: typography.display }}
               >
-                {entry.defaults.storeName}
+                {displayStoreName}
               </span>
               <div className="flex gap-3">
                 {["Loja", "Sobre"].map((l) => (
@@ -406,27 +532,47 @@ function TemplateCard({
               </div>
             </div>
 
-            {/* Product grid */}
+            {/* Product grid com fotos reais da loja quando disponíveis */}
             <div className="grid grid-cols-4 gap-2 p-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="overflow-hidden"
-                  style={{ backgroundColor: palette.canvas }}
-                >
-                  <div className="h-10 w-full" style={{ backgroundColor: palette.border }} />
-                  <div className="p-1">
-                    <div
-                      className="mb-1 h-1 w-8 rounded-full"
-                      style={{ backgroundColor: palette.foreground + "50" }}
-                    />
-                    <div
-                      className="h-1 w-5 rounded-full"
-                      style={{ backgroundColor: palette.primary + "80" }}
-                    />
+              {[0, 1, 2, 3].map((i) => {
+                const prod = sampleProducts[i];
+                return (
+                  <div
+                    key={i}
+                    className="overflow-hidden rounded border"
+                    style={{ borderColor: palette.border, backgroundColor: palette.canvas }}
+                  >
+                    {prod?.photo ? (
+                      <img
+                        src={prod.photo}
+                        alt={prod.name}
+                        className="h-12 w-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-12 w-full items-center justify-center text-[7px] font-semibold uppercase"
+                        style={{ backgroundColor: palette.border, color: palette.foreground + "70" }}
+                      >
+                        Peça {i + 1}
+                      </div>
+                    )}
+                    <div className="p-1">
+                      <p
+                        className="truncate text-[7px] font-medium"
+                        style={{ color: palette.foreground }}
+                      >
+                        {prod?.name || `Produto ${i + 1}`}
+                      </p>
+                      <p
+                        className="text-[6.5px] font-bold"
+                        style={{ color: palette.primary }}
+                      >
+                        {prod ? `R$ ${prod.price}` : "R$ 89"}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -483,13 +629,11 @@ function TemplateCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 flex-1 gap-1.5 rounded-xl text-xs"
-                asChild
+                className="h-9 flex-1 gap-1.5 rounded-xl text-xs cursor-pointer"
+                onClick={onPreview}
               >
-                <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Ver ao vivo
-                </a>
+                <Eye className="h-3.5 w-3.5" />
+                Visualizar
               </Button>
               <Button
                 size="sm"
@@ -507,13 +651,11 @@ function TemplateCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 flex-1 gap-1.5 rounded-xl text-xs"
-                asChild
+                className="h-9 flex-1 gap-1.5 rounded-xl text-xs cursor-pointer"
+                onClick={onPreview}
               >
-                <a href="/loja/preview" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Preview
-                </a>
+                <Eye className="h-3.5 w-3.5" />
+                Visualizar
               </Button>
               {isAllowed ? (
                 <Button
@@ -540,6 +682,248 @@ function TemplateCard({
         </div>
       </div>
     </article>
+  );
+}
+
+// ── Live Preview Modal (Shopify / Nuvemshop Style) ───────────────────────────
+
+function TemplatePreviewModal({
+  entry,
+  onClose,
+  onApply,
+  isAllowed,
+  onUnlock,
+  showcaseProducts,
+  storeName,
+  storePhone,
+}: {
+  entry: TemplateEntry | null;
+  onClose: () => void;
+  onApply: (entry: TemplateEntry) => void;
+  isAllowed: boolean;
+  onUnlock: () => void;
+  showcaseProducts: ShowcaseProduct[];
+  storeName: string;
+  storePhone?: string;
+}) {
+  const [deviceMode, setDeviceMode] = useState<"desktop" | "mobile">("desktop");
+
+  if (!entry) return null;
+
+  // Monta o tema dinâmico aplicando as cores, fontes e seções padrão do template
+  const previewTheme: ThemeConfig = {
+    settings: {
+      templateId: entry.id,
+      storeName: storeName || entry.defaults.storeName,
+      tagline: entry.tagline,
+      freeShippingBanner: entry.defaults.freeShippingBanner,
+      freeShippingBannerEnabled: true,
+      checkoutMode: "whatsapp",
+      storeWhatsApp: storePhone || "",
+      storeDescription: entry.description,
+      politicaTroca: "Trocas em até 7 dias corridos após o recebimento, com etiqueta e nota fiscal.",
+      mostrarEstoque: true,
+      colorBackground: entry.defaults.colorBackground,
+      colorForeground: entry.defaults.colorForeground,
+      colorPrimary: entry.defaults.colorPrimary,
+      colorCanvas: entry.defaults.colorCanvas,
+      colorBorder: entry.defaults.colorBorder,
+      fontDisplay: entry.defaults.fontDisplay as never,
+      fontBody: entry.defaults.fontBody as never,
+      borderRadius: entry.defaults.borderRadius,
+    },
+    sections: [
+      {
+        id: "hero",
+        type: "hero",
+        visible: true,
+        settings: {
+          subheading: entry.previewHeroSub,
+          heading: entry.previewHeroText,
+          buttonText: "Ver Coleção",
+          imageUrl: "",
+          imageAlt: entry.name,
+          imagePosition: "center",
+          overlayOpacity: 25,
+        },
+      },
+      {
+        id: "features",
+        type: "features",
+        visible: true,
+        settings: {
+          items: [
+            { title: "Envio Rápido", description: "Entrega express para todo o Brasil" },
+            { title: "Qualidade Garantida", description: "Peças selecionadas com acabamento premium" },
+            { title: "Troca Fácil", description: "Primeira troca sem custo em até 7 dias" },
+            { title: "Atendimento Humanizado", description: "Suporte dedicado pelo WhatsApp" },
+          ],
+        },
+      },
+      {
+        id: "product_grid",
+        type: "product_grid",
+        visible: true,
+        settings: {
+          title: "Novidades da Coleção",
+          kicker: "Lançamento",
+          source: "newest",
+          count: 8,
+          columns: 4,
+          showViewAll: true,
+        },
+      },
+      {
+        id: "testimonials",
+        type: "testimonials",
+        visible: true,
+        settings: {
+          title: "O que nossas clientes dizem",
+          kicker: "Depoimentos Reais",
+          items: [
+            {
+              name: "Camila Rocha",
+              city: "São Paulo, SP",
+              comment: "O caimento das peças é impecável! Tecido nobre e atendimento maravilhoso pelo WhatsApp.",
+              rating: 5,
+            },
+            {
+              name: "Mariana Alencar",
+              city: "Belo Horizonte, MG",
+              comment: "Minha loja favorita! As roupas chegam com um carinho ímpar e a entrega foi super rápida.",
+              rating: 5,
+            },
+            {
+              name: "Juliana Mendes",
+              city: "Curitiba, PR",
+              comment: "Acabamento de alta-costura. Dá para sentir o cuidado em cada costura.",
+              rating: 5,
+            },
+          ],
+        },
+      },
+    ],
+    order: ["hero", "features", "product_grid", "testimonials"],
+  };
+
+  return (
+    <Dialog open={!!entry} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-6xl h-[92vh] p-0 overflow-hidden flex flex-col rounded-3xl border-border bg-card shadow-2xl">
+        {/* Header do Preview Modal */}
+        <div className="flex items-center justify-between border-b border-border bg-card px-6 py-3.5 shrink-0">
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <DialogTitle className="font-display text-base font-semibold text-foreground">
+                  {entry.name}
+                </DialogTitle>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {entry.tagline}
+                </span>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Visualização ao vivo com as peças e identidade da sua loja
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Alternador Desktop / Mobile */}
+          <div className="flex items-center rounded-xl border border-border bg-muted/60 p-1">
+            <button
+              type="button"
+              onClick={() => setDeviceMode("desktop")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                deviceMode === "desktop"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Monitor className="h-3.5 w-3.5" />
+              Desktop
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeviceMode("mobile")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                deviceMode === "mobile"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+              Mobile
+            </button>
+          </div>
+
+          {/* Ações */}
+          <div className="flex items-center gap-2">
+            {isAllowed ? (
+              <Button
+                size="sm"
+                className="gradient-primary h-9 gap-1.5 rounded-xl px-4 text-xs font-semibold shadow-glow cursor-pointer"
+                onClick={() => {
+                  onApply(entry);
+                  onClose();
+                }}
+              >
+                <Palette className="h-3.5 w-3.5" />
+                Aplicar Este Tema
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 gap-1.5 rounded-xl px-4 text-xs font-semibold border-amber-500/40 text-amber-600 hover:bg-amber-500/10 cursor-pointer"
+                onClick={() => {
+                  onUnlock();
+                  onClose();
+                }}
+              >
+                <Crown className="h-3.5 w-3.5 text-amber-500" />
+                Desbloquear com Vestui Store
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Viewport de Renderização */}
+        <div className="flex-1 overflow-auto bg-muted/30">
+          {deviceMode === "desktop" ? (
+            <div className="min-h-full w-full bg-background shadow-inner">
+              <ThemeRenderer
+                theme={previewTheme}
+                showcaseProducts={showcaseProducts}
+                storeName={storeName}
+                {...(storePhone ? { storePhone } : {})}
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center py-8">
+              <div
+                className="relative w-[390px] min-h-[844px] overflow-hidden rounded-[44px] border-[10px] border-neutral-900 bg-background shadow-2xl ring-1 ring-black/10"
+                style={{
+                  boxShadow:
+                    "0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08)",
+                }}
+              >
+                {/* Notch / Dynamic Island */}
+                <div className="sticky top-0 z-50 flex h-7 w-full items-center justify-center bg-transparent">
+                  <div className="h-4 w-28 rounded-full bg-neutral-900" />
+                </div>
+                <div className="overflow-y-auto max-h-[800px] custom-scrollbar">
+                  <ThemeRenderer
+                    theme={previewTheme}
+                    showcaseProducts={showcaseProducts}
+                    storeName={storeName}
+                    {...(storePhone ? { storePhone } : {})}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

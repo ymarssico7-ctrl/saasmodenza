@@ -154,12 +154,13 @@ function Configuracoes() {
     if (isAuth) {
       await supabase
         .from("profiles")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .update({
           plan: planSelected,
           plan_tier: targetTier,
           store_subscription_active: isStore,
           store_trial_accepted: false,
-        })
+        } as any)
         .eq("id", uid);
       await supabase
         .from("stores")

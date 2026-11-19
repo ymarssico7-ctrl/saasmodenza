@@ -13,7 +13,13 @@ export type TemplateCategory =
 
 export interface TemplateEntry {
   /** Deve ser idêntico ao `settings.templateId` no ThemeConfig */
-  id: "template-01" | "template-02" | "catalogo-express";
+  id:
+    | "template-01"
+    | "template-02"
+    | "template-03"
+    | "template-04"
+    | "template-05"
+    | "catalogo-express";
   /** Nome de marketing do template */
   name: string;
   /** Tagline curta (até 5 palavras) */
@@ -171,6 +177,117 @@ export const TEMPLATES_REGISTRY: TemplateEntry[] = [
     previewHeroSub: "Coleção Inverno 26",
     isNew: true,
     order: 3,
+  },
+  {
+    id: "template-03",
+    name: "Bold Streetwear",
+    tagline: "Dark Mode & Urbana",
+    description:
+      "Design imersivo com fundo escuro profundo, alto contraste e tipografia bold. Ideal para marcas urbanas, streetwear autoral, drops exclusivos e estética contemporânea.",
+    categories: ["streetwear", "editorial"],
+    tags: ["Dark Mode", "Streetwear", "Drops"],
+    palette: {
+      background: "#09090b",
+      foreground: "#fafafa",
+      primary: "#f43f5e",
+      canvas: "#18181b",
+      border: "#27272a",
+    },
+    typography: {
+      display: "Sora",
+      body: "Inter",
+    },
+    defaults: {
+      storeName: "",
+      freeShippingBanner: "DROP LIMITADO · Envios express para todo o Brasil",
+      colorBackground: "#09090b",
+      colorForeground: "#fafafa",
+      colorPrimary: "#f43f5e",
+      colorCanvas: "#18181b",
+      colorBorder: "#27272a",
+      fontDisplay: "Sora",
+      fontBody: "Inter",
+      borderRadius: "sm",
+    },
+    previewHeroText: "Drop 04\nSem limites,\nsem regras.",
+    previewHeroSub: "Edição Urbana",
+    isNew: true,
+    isPremium: true,
+    order: 4,
+  },
+  {
+    id: "template-04",
+    name: "Praia & Resort",
+    tagline: "Solar, Leve & Tropical",
+    description:
+      "Atmosfera quente e iluminada, inspirada em balneários e dias de sol. Paleta terracota/areia com tipografia arejada, perfeita para moda praia, linho e resortwear.",
+    categories: ["boutique", "minimalista"],
+    tags: ["Tropical", "Moda Praia", "Solar"],
+    palette: {
+      background: "#fdfbf7",
+      foreground: "#292524",
+      primary: "#c2410c",
+      canvas: "#f7f2ea",
+      border: "#e7decb",
+    },
+    typography: {
+      display: "Outfit",
+      body: "Figtree",
+    },
+    defaults: {
+      storeName: "",
+      freeShippingBanner: "Frete grátis em compras acima de R$ 399 · Parcelamento em até 6x",
+      colorBackground: "#fdfbf7",
+      colorForeground: "#292524",
+      colorPrimary: "#c2410c",
+      colorCanvas: "#f7f2ea",
+      colorBorder: "#e7decb",
+      fontDisplay: "Outfit",
+      fontBody: "Figtree",
+      borderRadius: "lg",
+    },
+    previewHeroText: "O sol como\nessência e\ndestino.",
+    previewHeroSub: "Coleção Resort",
+    isNew: true,
+    isPremium: true,
+    order: 5,
+  },
+  {
+    id: "template-05",
+    name: "Boutique Chic",
+    tagline: "Alta-Costura & Joias",
+    description:
+      "Acabamento aristocrático com serifa majestosa Playfair Display e toques de bronze acetinado. Desenhado para ateliês de luxo, vestidos de festa e alfaiataria fina.",
+    categories: ["luxo", "boutique", "editorial"],
+    tags: ["Alta-Costura", "Ouro Nobre", "Sofisticado"],
+    palette: {
+      background: "#faf9f6",
+      foreground: "#1c1917",
+      primary: "#b45309",
+      canvas: "#f3ede2",
+      border: "#e2d7c5",
+    },
+    typography: {
+      display: "Playfair Display",
+      body: "Jost",
+    },
+    defaults: {
+      storeName: "",
+      freeShippingBanner: "Atendimento exclusivo sob medida · Envio cortesia acima de R$ 600",
+      colorBackground: "#faf9f6",
+      colorForeground: "#1c1917",
+      colorPrimary: "#b45309",
+      colorCanvas: "#f3ede2",
+      colorBorder: "#e2d7c5",
+      fontDisplay: "Playfair Display",
+      fontBody: "Jost",
+      borderRadius: "none",
+    },
+    previewHeroText: "Preciosidade\nem cada\nponto.",
+    previewHeroSub: "Ateliê Exclusivo",
+    isNew: true,
+    isPremium: true,
+    order: 6,
   },
 ];
 

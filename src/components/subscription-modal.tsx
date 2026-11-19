@@ -85,11 +85,12 @@ export function SubscriptionModal({
       if (isAuth) {
         const { error: profileError } = await supabase
           .from("profiles")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .update({
             plan: planSelected,
             plan_tier: tier,
             plan_renewal_date: tier === "free" ? null : renewalDate,
-          })
+          } as any)
           .eq("id", uid);
         if (profileError) throw new Error(profileError.message);
 

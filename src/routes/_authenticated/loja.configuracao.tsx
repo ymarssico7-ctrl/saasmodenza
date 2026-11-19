@@ -143,6 +143,9 @@ function AparenciaPage() {
             metadata: {
               ...(currentMeta as Record<string, unknown>),
               vitrineSettings: vitrinePayload,
+              descricao,
+              capaUrl,
+              vitrine_ativa: ativa,
             },
           })
           .eq("id", storeId);

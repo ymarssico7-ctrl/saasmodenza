@@ -77,6 +77,7 @@ type NavSubItem = {
   to: string;
   label: string;
   search?: Record<string, string>;
+  tierBadge?: string | undefined;
   isMatch: (pathname: string, search: Record<string, unknown>) => boolean;
 };
 

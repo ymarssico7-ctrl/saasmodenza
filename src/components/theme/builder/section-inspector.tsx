@@ -11,6 +11,11 @@ import type {
   FeaturesSettings,
   Section,
   AnnouncementSettings,
+  TestimonialsSettings,
+  FaqSettings,
+  PromotionalBannerSettings,
+  InstagramFeedSettings,
+  NewsletterSettings,
 } from "@/lib/theme-engine/schema";
 
 // ── Field helpers ─────────────────────────────────────────────────────────────
@@ -384,6 +389,326 @@ function AnnouncementInspector({
   );
 }
 
+// ── Testimonials Inspector ──────────────────────────────────────────────────
+function TestimonialsInspector({
+  settings,
+  patch,
+}: {
+  settings: TestimonialsSettings;
+  patch: (p: Partial<TestimonialsSettings>) => void;
+}) {
+  const items = settings.items ?? [];
+
+  const updateItem = (index: number, changes: Partial<(typeof items)[number]>) => {
+    const updated = items.map((it, i) => (i === index ? { ...it, ...changes } : it));
+    patch({ items: updated });
+  };
+
+  const addItem = () => {
+    patch({
+      items: [
+        ...items,
+        {
+          name: "Nova Cliente",
+          city: "Cidade, UF",
+          rating: 5,
+          comment: "Adorei as peças e o atendimento!",
+        },
+      ],
+    });
+  };
+
+  const removeItem = (index: number) => {
+    patch({ items: items.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Field label="Kicker / Pré-título">
+        <Input
+          value={settings.kicker}
+          onChange={(e) => patch({ kicker: e.target.value })}
+          className="h-9"
+          placeholder="Ex: QUEM COMPROU, AMOU"
+        />
+      </Field>
+      <Field label="Título Principal">
+        <Input
+          value={settings.title}
+          onChange={(e) => patch({ title: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Depoimentos ({items.length})
+        </p>
+        {items.map((item, idx) => (
+          <div key={idx} className="space-y-2 rounded-xl border border-border bg-card p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground">Depoimento #{idx + 1}</span>
+              <button
+                type="button"
+                onClick={() => removeItem(idx)}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <Input
+              value={item.name}
+              onChange={(e) => updateItem(idx, { name: e.target.value })}
+              placeholder="Nome da cliente"
+              className="h-8 text-xs"
+            />
+            <Input
+              value={item.city}
+              onChange={(e) => updateItem(idx, { city: e.target.value })}
+              placeholder="Cidade, UF"
+              className="h-8 text-xs"
+            />
+            <TextareaField
+              label="Relato"
+              value={item.comment}
+              onChange={(v) => updateItem(idx, { comment: v })}
+              rows={2}
+            />
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addItem}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Adicionar depoimento
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── FAQ Inspector ───────────────────────────────────────────────────────────
+function FaqInspector({
+  settings,
+  patch,
+}: {
+  settings: FaqSettings;
+  patch: (p: Partial<FaqSettings>) => void;
+}) {
+  const items = settings.items ?? [];
+
+  const updateItem = (index: number, changes: Partial<(typeof items)[number]>) => {
+    const updated = items.map((it, i) => (i === index ? { ...it, ...changes } : it));
+    patch({ items: updated });
+  };
+
+  const addItem = () => {
+    patch({
+      items: [
+        ...items,
+        {
+          question: "Nova pergunta frequente",
+          answer: "Resposta detalhada sobre o funcionamento da sua loja.",
+        },
+      ],
+    });
+  };
+
+  const removeItem = (index: number) => {
+    patch({ items: items.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Field label="Kicker / Pré-título">
+        <Input
+          value={settings.kicker}
+          onChange={(e) => patch({ kicker: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Título da FAQ">
+        <Input
+          value={settings.title}
+          onChange={(e) => patch({ title: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Perguntas & Respostas ({items.length})
+        </p>
+        {items.map((item, idx) => (
+          <div key={idx} className="space-y-2 rounded-xl border border-border bg-card p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground">Pergunta #{idx + 1}</span>
+              <button
+                type="button"
+                onClick={() => removeItem(idx)}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <Input
+              value={item.question}
+              onChange={(e) => updateItem(idx, { question: e.target.value })}
+              placeholder="Pergunta..."
+              className="h-8 text-xs font-semibold"
+            />
+            <TextareaField
+              label="Resposta"
+              value={item.answer}
+              onChange={(v) => updateItem(idx, { answer: v })}
+              rows={2}
+            />
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addItem}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Adicionar pergunta
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Promotional Banner Inspector ────────────────────────────────────────────
+function PromotionalBannerInspector({
+  settings,
+  patch,
+}: {
+  settings: PromotionalBannerSettings;
+  patch: (p: Partial<PromotionalBannerSettings>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Field label="Badge / Selo de Urgência">
+        <Input
+          value={settings.badge}
+          onChange={(e) => patch({ badge: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Título da Oferta">
+        <Input
+          value={settings.heading}
+          onChange={(e) => patch({ heading: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Descrição">
+        <Input
+          value={settings.subheading}
+          onChange={(e) => patch({ subheading: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Texto do Botão">
+        <Input
+          value={settings.buttonText}
+          onChange={(e) => patch({ buttonText: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Horas do Cronômetro">
+        <Input
+          type="number"
+          value={settings.endDateHours ?? 48}
+          onChange={(e) => patch({ endDateHours: Number(e.target.value) || 24 })}
+          className="h-9"
+        />
+      </Field>
+    </div>
+  );
+}
+
+// ── Instagram Feed Inspector ────────────────────────────────────────────────
+function InstagramFeedInspector({
+  settings,
+  patch,
+}: {
+  settings: InstagramFeedSettings;
+  patch: (p: Partial<InstagramFeedSettings>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Field label="Kicker / Pré-título">
+        <Input
+          value={settings.kicker}
+          onChange={(e) => patch({ kicker: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Título da Seção">
+        <Input
+          value={settings.title}
+          onChange={(e) => patch({ title: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Perfil do Instagram (@sualoja)">
+        <Input
+          value={settings.handle}
+          onChange={(e) => patch({ handle: e.target.value })}
+          className="h-9 font-mono text-xs"
+        />
+      </Field>
+    </div>
+  );
+}
+
+// ── Newsletter Inspector ────────────────────────────────────────────────────
+function NewsletterInspector({
+  settings,
+  patch,
+}: {
+  settings: NewsletterSettings;
+  patch: (p: Partial<NewsletterSettings>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Field label="Título de Chamada">
+        <Input
+          value={settings.heading}
+          onChange={(e) => patch({ heading: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Subtítulo / Benefício">
+        <Input
+          value={settings.subheading}
+          onChange={(e) => patch({ subheading: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+      <Field label="Cupom de Desconto Revelado">
+        <Input
+          value={settings.couponBadge}
+          onChange={(e) => patch({ couponBadge: e.target.value })}
+          className="h-9 font-mono uppercase"
+        />
+      </Field>
+      <Field label="Texto do Botão">
+        <Input
+          value={settings.buttonText}
+          onChange={(e) => patch({ buttonText: e.target.value })}
+          className="h-9"
+        />
+      </Field>
+    </div>
+  );
+}
+
 // ── Main Export ───────────────────────────────────────────────────────────────
 export function SectionInspector({ section }: { section: Section }) {
   const { dispatch } = useBuilder();
@@ -403,6 +728,16 @@ export function SectionInspector({ section }: { section: Section }) {
         return <FeaturesInspector settings={section.settings} patch={patch} />;
       case "announcement":
         return <AnnouncementInspector settings={section.settings} patch={patch} />;
+      case "testimonials":
+        return <TestimonialsInspector settings={section.settings} patch={patch} />;
+      case "faq":
+        return <FaqInspector settings={section.settings} patch={patch} />;
+      case "promotional_banner":
+        return <PromotionalBannerInspector settings={section.settings} patch={patch} />;
+      case "instagram_feed":
+        return <InstagramFeedInspector settings={section.settings} patch={patch} />;
+      case "newsletter":
+        return <NewsletterInspector settings={section.settings} patch={patch} />;
       case "category_bar":
         return (
           <p className="text-sm text-muted-foreground">

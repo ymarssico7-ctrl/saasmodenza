@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -29,6 +29,12 @@ import {
   Trash2,
   Plus,
   ChevronRight,
+  MessageSquareQuote,
+  HelpCircle,
+  Timer,
+  Instagram,
+  Mail,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBuilder } from "@/lib/theme-engine/context";
@@ -42,6 +48,11 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
   image_text_split: <LayoutTemplate className="h-4 w-4" />,
   features: <Star className="h-4 w-4" />,
   announcement: <Megaphone className="h-4 w-4" />,
+  testimonials: <MessageSquareQuote className="h-4 w-4" />,
+  faq: <HelpCircle className="h-4 w-4" />,
+  promotional_banner: <Timer className="h-4 w-4" />,
+  instagram_feed: <Instagram className="h-4 w-4" />,
+  newsletter: <Mail className="h-4 w-4" />,
 };
 
 const SECTION_LABELS: Record<string, string> = {
@@ -51,6 +62,11 @@ const SECTION_LABELS: Record<string, string> = {
   image_text_split: "Imagem & Texto",
   features: "Diferenciais",
   announcement: "Faixa de Anúncio",
+  testimonials: "Depoimentos de Clientes",
+  faq: "Perguntas Frequentes (FAQ)",
+  promotional_banner: "Banner com Cronômetro",
+  instagram_feed: "Feed do Instagram",
+  newsletter: "Newsletter & Desconto",
 };
 
 // ── Sortable Item ─────────────────────────────────────────────────────────────
@@ -189,6 +205,36 @@ export function SectionList() {
     [theme.order, dispatch],
   );
 
+  // Sugestão contextual inteligente para aumentar a conversão da loja
+  const hasTestimonials = theme.sections.some((s) => s.type === "testimonials");
+  const hasFaq = theme.sections.some((s) => s.type === "faq");
+  const hasPromo = theme.sections.some((s) => s.type === "promotional_banner");
+
+  const suggestion = useMemo(() => {
+    if (!hasTestimonials) {
+      return {
+        type: "testimonials" as SectionType,
+        title: "Adicione Depoimentos de Clientes",
+        desc: "Lojas de moda com avaliações de clientes convertem até 25% mais.",
+      };
+    }
+    if (!hasPromo) {
+      return {
+        type: "promotional_banner" as SectionType,
+        title: "Adicione Banner Promocional",
+        desc: "Destaque promoções, frete grátis ou cupom da semana no topo.",
+      };
+    }
+    if (!hasFaq) {
+      return {
+        type: "faq" as SectionType,
+        title: "Adicione Perguntas Frequentes (FAQ)",
+        desc: "Tire dúvidas sobre prazos e trocas e reduza o suporte no WhatsApp.",
+      };
+    }
+    return null;
+  }, [hasTestimonials, hasPromo, hasFaq]);
+
   return (
     <div className="flex flex-col gap-1 overflow-hidden">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -200,6 +246,28 @@ export function SectionList() {
       </DndContext>
 
       <AddSectionPanel />
+
+      {/* Dica Inteligente de Conversão */}
+      {suggestion && (
+        <div className="mt-3 rounded-2xl border border-primary/20 bg-primary/5 p-3.5 shadow-sm">
+          <div className="flex items-start gap-2.5">
+            <Sparkles className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-foreground">{suggestion.title}</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                {suggestion.desc}
+              </p>
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "ADD_SECTION", sectionType: suggestion.type })}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary hover:underline cursor-pointer"
+              >
+                + Adicionar Seção Sugerida
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

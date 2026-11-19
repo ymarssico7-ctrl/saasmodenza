@@ -88,10 +88,10 @@ export function UpgradeStoreModal({
             ✦ Vestui Store • O Sistema Completo da Loja de Moda
           </Badge>
           <DialogTitle className="text-xl sm:text-2xl font-display font-bold leading-tight">
-            {titles[reason] || titles.general}
+            {titles[reason] || titles["general"]}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
-            {descriptions[reason] || descriptions.general}
+            {descriptions[reason] || descriptions["general"]}
           </DialogDescription>
         </DialogHeader>
 

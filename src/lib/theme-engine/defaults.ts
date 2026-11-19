@@ -303,7 +303,7 @@ export const TEMPLATE_01_THEME: ThemeConfig = {
     // Border radius mínimo — estilo editorial
     borderRadius: "none",
   },
-  order: ["t01-hero", "t01-features"],
+  order: ["t01-hero", "t01-features", "t01-grid", "t01-testimonials", "t01-faq", "t01-newsletter"],
   sections: [
     {
       id: "t01-hero",
@@ -330,6 +330,78 @@ export const TEMPLATE_01_THEME: ThemeConfig = {
           { title: "Pagamento seguro", description: "Até 6x sem juros ou Pix com 5% off" },
           { title: "Atendimento pessoal", description: "Consultoria de estilo por WhatsApp" },
         ],
+      },
+    },
+    {
+      id: "t01-grid",
+      type: "product_grid",
+      visible: true,
+      settings: {
+        kicker: "SELEÇÃO DA CASA",
+        title: "Mais Desejados",
+        source: "featured",
+        count: 4,
+        columns: 4,
+        showViewAll: true,
+      },
+    },
+    {
+      id: "t01-testimonials",
+      type: "testimonials",
+      visible: true,
+      settings: {
+        kicker: "EXPERIÊNCIA REAL",
+        title: "Relatos das nossas clientes",
+        items: [
+          {
+            name: "Marina L.",
+            city: "São Paulo, SP",
+            rating: 5,
+            comment: "O caimento é de outro nível. Comprei o casaco no inverno passado e continua impecável.",
+          },
+          {
+            name: "Rafael T.",
+            city: "Curitiba, PR",
+            rating: 5,
+            comment: "Atendimento impecável, embalagem linda e entrega antes do prazo.",
+          },
+          {
+            name: "Ana P.",
+            city: "Belo Horizonte, MG",
+            rating: 5,
+            comment: "Poucas peças, todas certas. Meu guarda-roupa ficou mais leve e muito mais elegante.",
+          },
+        ],
+      },
+    },
+    {
+      id: "t01-faq",
+      type: "faq",
+      visible: true,
+      settings: {
+        kicker: "ATENDIMENTO",
+        title: "Perguntas Frequentes",
+        items: [
+          {
+            question: "Qual o prazo de envio?",
+            answer: "Despachamos em até 24 horas úteis com rastreio enviado direto no seu WhatsApp.",
+          },
+          {
+            question: "Como funciona a primeira troca?",
+            answer: "A primeira troca é totalmente cortesia em até 7 dias corridos após o recebimento.",
+          },
+        ],
+      },
+    },
+    {
+      id: "t01-newsletter",
+      type: "newsletter",
+      visible: true,
+      settings: {
+        heading: "Cartas do Atelier",
+        subheading: "Lançamentos e acesso antecipado às edições limitadas. Uma carta por mês.",
+        buttonText: "Inscrever-se",
+        couponBadge: "ATELIER10",
       },
     },
   ],
@@ -371,7 +443,16 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
     // Border radius mínimo — estilo editorial
     borderRadius: "none",
   },
-  order: ["t02-hero", "t02-grid", "t02-split", "t02-features"],
+  order: [
+    "t02-hero",
+    "t02-features",
+    "t02-grid",
+    "t02-split",
+    "t02-testimonials",
+    "t02-faq",
+    "t02-instagram",
+    "t02-newsletter",
+  ],
   sections: [
     {
       id: "t02-hero",
@@ -385,6 +466,21 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
         imageAlt: "Modelo com casaco de alfaiataria cru em galeria minimalista",
         imagePosition: "center",
         overlayOpacity: 20,
+      },
+    },
+    {
+      id: "t02-features",
+      type: "features",
+      visible: true,
+      settings: {
+        items: [
+          { title: "Trocas em 30 dias", description: "Primeira troca sem custo em todo o Brasil." },
+          { title: "Envio em 24h", description: "Pedidos até 14h saem no mesmo dia útil." },
+          {
+            title: "Atendimento humano",
+            description: "Consultoria de estilo por WhatsApp, de seg. a sáb.",
+          },
+        ],
       },
     },
     {
@@ -416,18 +512,80 @@ export const TEMPLATE_02_THEME: ThemeConfig = {
       },
     },
     {
-      id: "t02-features",
-      type: "features",
+      id: "t02-testimonials",
+      type: "testimonials",
       visible: true,
       settings: {
+        kicker: "AVALIAÇÕES REAIS",
+        title: "O que nossas clientes dizem",
         items: [
-          { title: "Trocas em 30 dias", description: "Primeira troca sem custo em todo o Brasil." },
-          { title: "Envio em 24h", description: "Pedidos até 14h saem no mesmo dia útil." },
           {
-            title: "Atendimento humano",
-            description: "Consultoria de estilo por WhatsApp, de seg. a sáb.",
+            name: "Camila V.",
+            city: "Rio de Janeiro, RJ",
+            rating: 5,
+            comment: "As peças de linho têm um caimento surreal! Vale cada centavo investido.",
+          },
+          {
+            name: "Leticia M.",
+            city: "São Paulo, SP",
+            rating: 5,
+            comment: "Chegou super rápido, perfumado e com um bilhetinho carinhoso. Amei!",
+          },
+          {
+            name: "Fernanda R.",
+            city: "Porto Alegre, RS",
+            rating: 5,
+            comment: "Costuras perfeitas e caimento impecável. Virei cliente assídua.",
           },
         ],
+      },
+    },
+    {
+      id: "t02-faq",
+      type: "faq",
+      visible: true,
+      settings: {
+        kicker: "TIRE SUAS DÚVIDAS",
+        title: "Perguntas Frequentes",
+        items: [
+          {
+            question: "Como escolher o tamanho correto?",
+            answer: "Consulte a tabela de medidas em cada produto ou tire dúvidas conosco no WhatsApp.",
+          },
+          {
+            question: "Como funciona o frete e entrega?",
+            answer: "Enviamos em até 24 horas úteis com código de rastreamento enviado automaticamente.",
+          },
+        ],
+      },
+    },
+    {
+      id: "t02-instagram",
+      type: "instagram_feed",
+      visible: true,
+      settings: {
+        kicker: "COMUNIDADE",
+        title: "No dia a dia com você",
+        handle: "@atelieminimalist",
+        images: [
+          "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80",
+          "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&q=80",
+          "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80",
+          "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80",
+          "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80",
+          "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600&q=80",
+        ],
+      },
+    },
+    {
+      id: "t02-newsletter",
+      type: "newsletter",
+      visible: true,
+      settings: {
+        heading: "Ganhe 10% OFF no primeiro pedido",
+        subheading: "Cadastre-se para receber convites exclusivos e lançamentos em primeira mão.",
+        buttonText: "Quero Desconto",
+        couponBadge: "MINIMAL10",
       },
     },
   ],

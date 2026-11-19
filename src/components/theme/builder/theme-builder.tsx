@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   ArrowLeft,
   Check,
   ExternalLink,
+  Loader2,
   Maximize2,
   Minus,
   Monitor,
@@ -14,13 +15,30 @@ import {
   RotateCcw,
   Smartphone,
   Undo2,
+  Wand2,
+  History,
+  Eye,
+  Edit3,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { BuilderProvider, useBuilder } from "@/lib/theme-engine/context";
-import { saveTheme } from "@/lib/theme-engine/defaults";
+import { saveTheme, loadTheme } from "@/lib/theme-engine/defaults";
+import { useStore } from "@/lib/store-context";
+import { supabase } from "@/integrations/supabase/client";
+import type { ThemeConfig } from "@/lib/theme-engine/schema";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
+import { QuickStoreWizard } from "@/components/loja/quick-store-wizard";
+import { cn } from "@/lib/utils";
 import { MobilePreviewFrame } from "./mobile-preview-frame";
 import { SectionList } from "./section-list";
 import { SectionInspector } from "./section-inspector";
@@ -39,6 +57,38 @@ function BuilderInner() {
     isSidebarOpen,
     dispatch,
   } = useBuilder();
+
+  const { store } = useStore();
+  const queryClient = useQueryClient();
+  const [isSaving, setIsSaving] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Detecção física de viewport mobile (< 768px) para adaptação real em smartphones
+  const [isPhysicalMobile, setIsPhysicalMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [physicalView, setPhysicalView] = useState<"editor" | "preview">("editor");
+
+  useEffect(() => {
+    const handleResize = () => setIsPhysicalMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Sincroniza o ThemeBuilder caso o wizard ou outra aba altere o tema
+  useEffect(() => {
+    const handleSync = () => {
+      dispatch({ type: "LOAD_THEME", theme: loadTheme() });
+      void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+    };
+    window.addEventListener("wizard-completed", handleSync);
+    window.addEventListener("theme-changed", handleSync);
+    return () => {
+      window.removeEventListener("wizard-completed", handleSync);
+      window.removeEventListener("theme-changed", handleSync);
+    };
+  }, [dispatch, queryClient]);
 
   // ── Zoom state (lifted from MobilePreviewFrame) ───────────────────────────
   // "auto" = ajusta automaticamente ao espaço disponível
@@ -61,13 +111,50 @@ function BuilderInner() {
 
   const resetZoom = useCallback(() => setZoomMode("auto"), []);
 
-  const handleSave = useCallback(() => {
-    saveTheme(theme);
-    dispatch({ type: "SAVE" });
-    toast.success("Loja salva!", {
-      description: "As alterações foram salvas com sucesso.",
-    });
-  }, [theme, dispatch]);
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      saveTheme(theme);
+      if (store?.id) {
+        const currentMeta = (store.metadata as Record<string, unknown> | null) || {};
+        const previousHistory = Array.isArray(currentMeta["themeHistory"])
+          ? (currentMeta["themeHistory"] as Array<{ savedAt: string; theme: ThemeConfig }>)
+          : [];
+        const updatedHistory = [
+          { savedAt: new Date().toISOString(), theme },
+          ...previousHistory.filter(Boolean).slice(0, 4),
+        ];
+
+        await supabase
+          .from("stores")
+          .update({
+            metadata: {
+              ...currentMeta,
+              theme,
+              templateId: theme.settings.templateId,
+              themeHistory: updatedHistory,
+            } as never,
+          })
+          .eq("id", store.id);
+        void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+      }
+      dispatch({ type: "SAVE" });
+      toast.success("Loja publicada com sucesso!", {
+        description: "As alterações já estão ao vivo na sua vitrine.",
+      });
+    } catch (err) {
+      console.error("Erro ao salvar tema:", err);
+      toast.error("Erro ao publicar tema na nuvem. Alterações salvas localmente.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [theme, dispatch, store, queryClient]);
+
+  const storeMetadata = store?.metadata as Record<string, unknown> | null;
+  const themeHistory = (Array.isArray(storeMetadata?.["themeHistory"])
+    ? (storeMetadata?.["themeHistory"] as Array<{ savedAt: string; theme: ThemeConfig }>)
+    : []
+  ).filter((item) => item?.savedAt && item?.theme);
 
   const isMobile = previewMode === "mobile";
 
@@ -77,7 +164,7 @@ function BuilderInner() {
           COLLAPSED STRIP — strip de 40px quando o sidebar está fechado
           Faz parte do layout (não absolute) → nunca sobrepõe o preview.
           ════════════════════════════════════════════════════════════════════ */}
-      {!isSidebarOpen && (
+      {!isSidebarOpen && !isPhysicalMobile && (
         <div
           className="flex shrink-0 flex-col items-center border-r border-border bg-card pt-3 gap-2"
           style={{ width: 40 }}
@@ -94,19 +181,24 @@ function BuilderInner() {
 
       {/* ════════════════════════════════════════════════════════════════════
           FULL SIDEBAR — colapsa para 0 via CSS width transition
-          Mobile: 50% | Desktop: 320px | Fechado: 0px
+          Mobile físico: 100vw na aba editor | Desktop Mobile: 50% | Desktop: 320px | Fechado: 0px
           ════════════════════════════════════════════════════════════════════ */}
       <aside
-        className="flex shrink-0 flex-col border-r border-border bg-card overflow-hidden"
+        className={cn(
+          "flex shrink-0 flex-col border-r border-border bg-card overflow-hidden",
+          isPhysicalMobile && physicalView === "preview" && "hidden"
+        )}
         style={{
-          width: isSidebarOpen ? (isMobile ? "50%" : 320) : 0,
+          width: isPhysicalMobile
+            ? (physicalView === "editor" ? "100vw" : 0)
+            : isSidebarOpen ? (isMobile ? "50%" : 320) : 0,
           transition: "width 300ms cubic-bezier(0.4, 0, 0.2, 1)",
           minHeight: 0,
         }}
       >
         <div
           className="shrink-0 border-b border-border bg-card"
-          style={{ minWidth: isMobile ? 0 : 320 }}
+          style={{ minWidth: isPhysicalMobile ? 0 : (isMobile ? 0 : 320) }}
         >
           {/* ── Linha 1: Voltar + Título + Ver ao vivo (ícone) + Publicar ─────── */}
           <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
@@ -123,6 +215,24 @@ function BuilderInner() {
               </p>
             </div>
 
+            {/* Assistente em 3 Cliques */}
+            <button
+              onClick={() => setWizardOpen(true)}
+              title="Criar Loja em 3 Cliques (Modo Expresso)"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-primary bg-primary/10 transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              <Wand2 className="h-4 w-4" />
+            </button>
+
+            {/* Histórico de Versões */}
+            <button
+              onClick={() => setHistoryOpen(true)}
+              title="Histórico de Publicações"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <History className="h-4 w-4" />
+            </button>
+
             {/* Ver ao vivo — ícone compacto */}
             <a
               href="/loja/preview"
@@ -137,11 +247,20 @@ function BuilderInner() {
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={!isDirty}
+              disabled={!isDirty || isSaving}
               className="h-8 shrink-0 gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-glow"
             >
-              <Check className="h-3.5 w-3.5" />
-              {isDirty ? "Publicar" : "Publicado"}
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  {isDirty ? "Publicar" : "Publicado"}
+                </>
+              )}
             </Button>
           </div>
 
@@ -299,7 +418,7 @@ function BuilderInner() {
         {/* ── Tabs: Seções | Estilo Global ──────────────────────────────────── */}
         <div
           className="flex shrink-0 border-b border-border"
-          style={{ minWidth: isMobile ? 0 : 320 }}
+          style={{ minWidth: isPhysicalMobile ? 0 : (isMobile ? 0 : 320) }}
         >
           <button
             onClick={() => dispatch({ type: "SET_TAB", tab: "sections" })}
@@ -325,7 +444,7 @@ function BuilderInner() {
         </div>
 
         {/* ── Conteúdo scrollável ────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+        <div className={cn("flex-1 overflow-y-auto custom-scrollbar p-3", isPhysicalMobile && "pb-24")}>
           {activeTab === "sections" && (
             <div className="space-y-4">
               <SectionList />
@@ -345,30 +464,177 @@ function BuilderInner() {
 
       {/* ════════════════════════════════════════════════════════════════════
           CANVAS DE PREVIEW — 100% altura livre, zero barras sobrepostas
+          No smartphone físico, exibe quando physicalView === "preview"
           ════════════════════════════════════════════════════════════════════ */}
-      {isMobile ? (
-        <MobilePreviewFrame
-          theme={theme}
-          highlightId={selectedSection?.id ?? null}
-          isSidebarOpen={isSidebarOpen}
-          zoomMode={zoomMode}
-          autoScale={autoScale}
-          onAutoScaleChange={setAutoScale}
-          onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
-          onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
-          onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
-          onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
-        />
-      ) : (
-        <main className="relative flex-1 overflow-auto bg-white">
-          <ThemeRenderer
+      {(!isPhysicalMobile || physicalView === "preview") && (
+        isMobile ? (
+          <MobilePreviewFrame
             theme={theme}
             highlightId={selectedSection?.id ?? null}
+            isSidebarOpen={isSidebarOpen}
+            zoomMode={zoomMode}
+            autoScale={autoScale}
+            onAutoScaleChange={setAutoScale}
             onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
             onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
             onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+            onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
           />
-        </main>
+        ) : (
+          <main className="relative flex-1 overflow-auto bg-white">
+            <ThemeRenderer
+              theme={theme}
+              highlightId={selectedSection?.id ?? null}
+              onSectionClick={(id) => dispatch({ type: "SELECT_SECTION", id })}
+              onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
+              onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+            />
+          </main>
+        )
+      )}
+
+      <QuickStoreWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onSuccess={() => {
+          dispatch({ type: "LOAD_THEME", theme: loadTheme() });
+        }}
+      />
+
+      {/* ── Modal de Histórico de Versões ──────────────────────────────────── */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-md rounded-3xl border-border bg-card p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Histórico de Publicações
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Restaure qualquer versão publicada anteriormente da sua loja com 1 clique.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-2.5">
+            {themeHistory.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-2xl">
+                Nenhuma publicação anterior registrada ainda.
+                <br />
+                As versões salvas aparecerão aqui automaticamente.
+              </div>
+            ) : (
+              themeHistory.map((item, idx) => {
+                const date = new Date(item.savedAt);
+                const formattedDate = date.toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                });
+                const formattedTime = date.toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div
+                    key={item.savedAt}
+                    className="flex items-center justify-between rounded-2xl border border-border bg-background p-3.5 transition-colors hover:border-primary/40"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xs text-foreground">
+                          {idx === 0 ? "Versão Recente" : `Versão ${themeHistory.length - idx}`}
+                        </span>
+                        <span className="text-[10px] rounded-full bg-secondary px-2 py-0.5 text-muted-foreground font-mono">
+                          {item.theme?.settings?.templateId || "template"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {formattedDate} às {formattedTime}
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1 rounded-xl text-xs font-semibold hover:border-primary hover:text-primary cursor-pointer"
+                      onClick={() => {
+                        dispatch({ type: "LOAD_THEME", theme: item.theme });
+                        saveTheme(item.theme);
+                        setHistoryOpen(false);
+                        toast.success("Versão da loja restaurada com sucesso!", {
+                          description: "Clique em 'Publicar' para salvar como a versão oficial ativa.",
+                        });
+                      }}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Restaurar
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Barra Flutuante de Controle Mobile (Apenas Telas Físicas < 768px) ── */}
+      {isPhysicalMobile && (
+        <div className="fixed bottom-3 left-3 right-3 z-50 flex items-center justify-between rounded-2xl border border-border/80 bg-card/95 p-1.5 shadow-2xl backdrop-blur-md">
+          {/* Alternador Editor / Ver Loja */}
+          <div className="flex items-center rounded-xl bg-secondary/80 p-0.5">
+            <button
+              type="button"
+              onClick={() => setPhysicalView("editor")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                physicalView === "editor"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhysicalView("preview")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                physicalView === "preview"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              Ver Loja
+            </button>
+          </div>
+
+          {/* Atalho Modo Expresso + Publicar */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setWizardOpen(true)}
+              title="Criador em 3 Cliques (Modo Expresso)"
+              className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary transition-colors hover:bg-primary hover:text-primary-foreground cursor-pointer"
+            >
+              <Wand2 className="h-4 w-4" />
+            </button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!isDirty || isSaving}
+              className="h-8 gap-1 rounded-xl px-3 text-xs font-semibold shadow-glow cursor-pointer"
+            >
+              {isSaving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              {isDirty ? "Publicar" : "Publicado"}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -376,8 +642,11 @@ function BuilderInner() {
 
 // ── Public Export ─────────────────────────────────────────────────────────────
 export function ThemeBuilder() {
+  const { store } = useStore();
+  const remoteTheme = (store?.metadata as Record<string, unknown> | null)?.["theme"] as ThemeConfig | undefined;
+
   return (
-    <BuilderProvider>
+    <BuilderProvider {...(remoteTheme ? { initialTheme: remoteTheme } : {})}>
       <BuilderInner />
     </BuilderProvider>
   );
