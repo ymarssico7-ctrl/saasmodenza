@@ -353,8 +353,7 @@ function VitrineLayout() {
 
   const activeTheme: ThemeConfig = useMemo(() => {
     const rawTheme = storeMetadata?.["theme"] as ThemeConfig | undefined;
-    if (rawTheme) return rawTheme;
-    const base = loadTheme();
+    const base = rawTheme || loadTheme();
     return {
       ...base,
       settings: {
@@ -1691,7 +1690,7 @@ function CartDrawer({
       ? { label: freteSelecionado.label, valor: valorFrete }
       : undefined;
 
-    // ── 1) Incrementa uso do cupom ──────────────────────────────────
+    // ── 1) Incrementa uso do cupom (localStorage + Supabase) ────────
     if (cupomAplicado) {
       try {
         const chave = `vestui_cupons_${storeId}`;
@@ -1704,7 +1703,21 @@ function CartDrawer({
           const atualizado = lista.map((c) =>
             c.codigo === cupomAplicado.codigo ? { ...c, usos: c.usos + 1 } : c,
           );
+          // 1a. Cache local imediato
           localStorage.setItem(chave, JSON.stringify(atualizado));
+          // 1b. Sync com Supabase para manter painel admin atualizado
+          try {
+            const { data: sd } = await supabase
+              .from("stores")
+              .select("metadata")
+              .eq("id", storeId)
+              .maybeSingle();
+            const cm = (sd?.metadata as Record<string, unknown>) || {};
+            await supabase
+              .from("stores")
+              .update({ metadata: { ...cm, cupons: atualizado } as never })
+              .eq("id", storeId);
+          } catch { /* Falha silenciosa — não bloqueia o checkout */ }
         }
       } catch { /* silencia */ }
     }

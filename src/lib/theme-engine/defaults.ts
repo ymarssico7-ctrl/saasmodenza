@@ -32,7 +32,11 @@ export function loadTheme(): ThemeConfig {
 }
 
 export function saveTheme(theme: ThemeConfig): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(theme));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(theme));
+  } catch (err) {
+    console.warn("Aviso ao salvar tema no localStorage:", err);
+  }
   // Notifica outras abas e componentes que escutam o evento (ex: /loja/preview)
   try {
     window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));

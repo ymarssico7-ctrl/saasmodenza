@@ -6,6 +6,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { ImageUploadField } from "./image-upload-field";
 import type {
   HeroSettings,
+  CategoryBarSettings,
+  CategoryBarItem,
   ProductGridSettings,
   ImageTextSplitSettings,
   FeaturesSettings,
@@ -16,6 +18,7 @@ import type {
   PromotionalBannerSettings,
   InstagramFeedSettings,
   NewsletterSettings,
+  CtaActionType,
 } from "@/lib/theme-engine/schema";
 
 // ── Field helpers ─────────────────────────────────────────────────────────────
@@ -109,6 +112,70 @@ function SelectField({
   );
 }
 
+// ── Campo Reutilizável de Destino e Ação do Botão ─────────────────────────────
+function CtaActionFields({
+  action,
+  link,
+  category,
+  onChangeAction,
+  onChangeLink,
+  onChangeCategory,
+}: {
+  action?: CtaActionType | undefined;
+  link?: string | undefined;
+  category?: string | undefined;
+  onChangeAction: (act: CtaActionType) => void;
+  onChangeLink: (link: string) => void;
+  onChangeCategory: (cat: string) => void;
+}) {
+  const currentAction = action || "vitrine";
+  return (
+    <div className="space-y-2 rounded-xl border border-border/80 bg-muted/20 p-3">
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Ação do Botão (Destino ao Clicar)
+      </Label>
+      <select
+        value={currentAction}
+        onChange={(e) => onChangeAction(e.target.value as CtaActionType)}
+        className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+      >
+        <option value="vitrine">Rolar até a Vitrine / Catálogo (#vitrine)</option>
+        <option value="categoria">Filtrar por Categoria Específica</option>
+        <option value="whatsapp">Chamar no WhatsApp da Loja</option>
+        <option value="link">Abrir Link Externo / Personalizado</option>
+      </select>
+
+      {currentAction === "categoria" && (
+        <Field label="Nome da Categoria a Filtrar">
+          <Input
+            value={category || ""}
+            onChange={(e) => onChangeCategory(e.target.value)}
+            placeholder="Ex: Vestidos, Novidades, Linho..."
+            className="h-9"
+          />
+        </Field>
+      )}
+
+      {currentAction === "link" && (
+        <Field label="URL de Destino">
+          <Input
+            value={link || ""}
+            onChange={(e) => onChangeLink(e.target.value)}
+            placeholder="https://exemplo.com/pagina"
+            className="h-9 font-mono text-xs"
+          />
+        </Field>
+      )}
+
+      {currentAction === "whatsapp" && (
+        <p className="text-[11px] text-muted-foreground">
+          Ao clicar, abre o WhatsApp da loja com mensagem contextual sobre a coleção.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Hero Inspector ─────────────────────────────────────────────────────────────
 function HeroInspector({
   settings,
@@ -120,7 +187,7 @@ function HeroInspector({
   return (
     <div className="space-y-4">
       <TextareaField
-        label="Título"
+        label="Título Principal"
         value={settings.heading}
         onChange={(v) => patch({ heading: v })}
       />
@@ -139,6 +206,38 @@ function HeroInspector({
         />
       </Field>
 
+      <CtaActionFields
+        action={settings.buttonAction}
+        link={settings.buttonLink}
+        category={settings.buttonCategory}
+        onChangeAction={(a) => patch({ buttonAction: a })}
+        onChangeLink={(l) => patch({ buttonLink: l })}
+        onChangeCategory={(c) => patch({ buttonCategory: c })}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <SelectField
+          label="Alinhamento"
+          value={settings.textAlignment || "left"}
+          onChange={(v) => patch({ textAlignment: v as "left" | "center" | "right" })}
+          options={[
+            { value: "left", label: "Esquerda" },
+            { value: "center", label: "Centro" },
+            { value: "right", label: "Direita" },
+          ]}
+        />
+        <SelectField
+          label="Altura do Banner"
+          value={settings.bannerHeight || "medium"}
+          onChange={(v) => patch({ bannerHeight: v as "compact" | "medium" | "full" })}
+          options={[
+            { value: "compact", label: "Compacto (55vh)" },
+            { value: "medium", label: "Médio (78vh)" },
+            { value: "full", label: "Tela Cheia (95vh)" },
+          ]}
+        />
+      </div>
+
       {/* ── Upload de Imagem com compressão automática ─────────────────────── */}
       <ImageUploadField
         label="Imagem do Banner"
@@ -146,7 +245,7 @@ function HeroInspector({
         value={settings.imageUrl}
         onChange={(v) => patch({ imageUrl: v })}
         maxWidth={1920}
-        maxHeight={800}
+        maxHeight={1080}
         previewHeight={112}
       />
 
@@ -255,6 +354,15 @@ function ImageTextSplitInspector({
           className="h-9"
         />
       </Field>
+
+      <CtaActionFields
+        action={settings.buttonAction}
+        link={settings.buttonLink}
+        category={settings.buttonCategory}
+        onChangeAction={(a) => patch({ buttonAction: a })}
+        onChangeLink={(l) => patch({ buttonLink: l })}
+        onChangeCategory={(c) => patch({ buttonCategory: c })}
+      />
 
       {/* ── Upload de Imagem com compressão automática ─────────────────────── */}
       <ImageUploadField
@@ -620,6 +728,15 @@ function PromotionalBannerInspector({
           className="h-9"
         />
       </Field>
+
+      <CtaActionFields
+        action={settings.buttonAction}
+        link={settings.buttonLink}
+        category={settings.buttonCategory}
+        onChangeAction={(a) => patch({ buttonAction: a })}
+        onChangeLink={(l) => patch({ buttonLink: l })}
+        onChangeCategory={(c) => patch({ buttonCategory: c })}
+      />
       <Field label="Horas do Cronômetro">
         <Input
           type="number"
@@ -709,6 +826,165 @@ function NewsletterInspector({
   );
 }
 
+function CategoryBarInspector({
+  settings,
+  patch,
+}: {
+  settings: CategoryBarSettings;
+  patch: (p: Partial<CategoryBarSettings>) => void;
+}) {
+  const mode = settings.mode || "auto";
+  const layout = settings.layout || "grid";
+  const items = settings.items || [];
+
+  const handleAddItem = () => {
+    const newItem: CategoryBarItem = {
+      id: `cat-${Date.now()}`,
+      label: "Nova Categoria",
+      categorySlug: "nova-categoria",
+      visible: true,
+    };
+    patch({ items: [...items, newItem] });
+  };
+
+  const handleUpdateItem = (idx: number, updated: Partial<CategoryBarItem>) => {
+    const current = items[idx];
+    if (!current) return;
+    const next = [...items];
+    next[idx] = { ...current, ...updated };
+    patch({ items: next });
+  };
+
+  const handleRemoveItem = (idx: number) => {
+    patch({ items: items.filter((_, i) => i !== idx) });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3">
+        <div>
+          <p className="text-xs font-semibold text-foreground">Exibir Barra de Categorias</p>
+          <p className="text-[11px] text-muted-foreground">Mostra coleções e atalhos na página inicial</p>
+        </div>
+        <input
+          type="checkbox"
+          checked={settings.enabled !== false}
+          onChange={(e) => patch({ enabled: e.target.checked })}
+          className="h-4 w-4 rounded accent-primary cursor-pointer"
+        />
+      </div>
+
+      <Field label="Título da Seção (Opcional)">
+        <Input
+          value={settings.title || ""}
+          onChange={(e) => patch({ title: e.target.value })}
+          placeholder="Ex: Compre por Categoria, Coleções..."
+          className="h-9"
+        />
+      </Field>
+
+      <SelectField
+        label="Estilo Visual (Layout)"
+        value={layout}
+        onChange={(v) => patch({ layout: v as "grid" | "scroll" | "pills" })}
+        options={[
+          { value: "grid", label: "Grade de Cards (Visual Editorial)" },
+          { value: "scroll", label: "Carrossel Horizontal Deslizável" },
+          { value: "pills", label: "Pílulas / Chips Rápidos" },
+        ]}
+      />
+
+      <SelectField
+        label="Origem dos Dados"
+        value={mode}
+        onChange={(v) => patch({ mode: v as "auto" | "custom" })}
+        options={[
+          { value: "auto", label: "Automático (Sincronizado com os Produtos Reais)" },
+          { value: "custom", label: "Personalizado (Escolher Fotos e Nomes Próprios)" },
+        ]}
+      />
+
+      {mode === "auto" ? (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">Sincronização Automática Ativa ✨</p>
+          <p className="mt-1">
+            As categorias exibidas na sua loja são geradas automaticamente a partir dos produtos cadastrados no seu inventário, usando a foto do produto mais recente de cada categoria.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Categorias Personalizadas ({items.length})
+            </Label>
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 cursor-pointer"
+            >
+              <Plus className="h-3 w-3" />
+              Adicionar
+            </button>
+          </div>
+
+          {items.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+              Nenhuma categoria personalizada criada ainda. Clique em "Adicionar" acima para criar a primeira com foto própria.
+            </p>
+          ) : (
+            items.map((item, idx) => (
+              <div key={item.id || idx} className="space-y-2.5 rounded-xl border border-border bg-card p-3 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">
+                    #{idx + 1} {item.label || "Sem nome"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(idx)}
+                    title="Excluir categoria"
+                    className="grid h-6 w-6 place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Nome da Categoria">
+                    <Input
+                      value={item.label}
+                      onChange={(e) => handleUpdateItem(idx, { label: e.target.value })}
+                      placeholder="Ex: Vestidos"
+                      className="h-8 text-xs"
+                    />
+                  </Field>
+                  <Field label="Identificador / Filtro">
+                    <Input
+                      value={item.categorySlug}
+                      onChange={(e) => handleUpdateItem(idx, { categorySlug: e.target.value.toLowerCase().trim() })}
+                      placeholder="ex: vestidos"
+                      className="h-8 font-mono text-xs"
+                    />
+                  </Field>
+                </div>
+
+                <ImageUploadField
+                  label="Foto de Capa da Categoria"
+                  hint="600×800 px recomendado"
+                  value={item.imageUrl || ""}
+                  onChange={(url) => handleUpdateItem(idx, { imageUrl: url })}
+                  maxWidth={800}
+                  maxHeight={1100}
+                  previewHeight={80}
+                />
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Export ───────────────────────────────────────────────────────────────
 export function SectionInspector({ section }: { section: Section }) {
   const { dispatch } = useBuilder();
@@ -739,11 +1015,7 @@ export function SectionInspector({ section }: { section: Section }) {
       case "newsletter":
         return <NewsletterInspector settings={section.settings} patch={patch} />;
       case "category_bar":
-        return (
-          <p className="text-sm text-muted-foreground">
-            As categorias são geradas automaticamente a partir dos seus produtos cadastrados.
-          </p>
-        );
+        return <CategoryBarInspector settings={section.settings} patch={patch} />;
       default:
         return null;
     }

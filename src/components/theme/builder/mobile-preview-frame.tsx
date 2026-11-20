@@ -29,6 +29,7 @@ const HORIZONTAL_PADDING = 24;
 interface MobilePreviewFrameProps {
   theme: ThemeConfig;
   highlightId?: string | null;
+  interactionMode?: "edit" | "interactive";
   isSidebarOpen?: boolean;
   // Zoom controlado pelo pai (ThemeBuilder / sidebar)
   zoomMode: "auto" | number;
@@ -45,6 +46,7 @@ const PHONE_TOTAL_H = FRAME_H + 48; // moldura completa do iPhone
 export function MobilePreviewFrame({
   theme,
   highlightId,
+  interactionMode,
   zoomMode,
   autoScale,
   onAutoScaleChange,
@@ -110,6 +112,15 @@ export function MobilePreviewFrame({
       payload: highlightId ?? null,
     });
   }, [highlightId]);
+
+  useEffect(() => {
+    if (interactionMode) {
+      channelRef.current?.postMessage({
+        type: "SET_INTERACTION_MODE",
+        payload: interactionMode,
+      });
+    }
+  }, [interactionMode]);
 
   return (
     // Container preenche 100% da área disponível — sem padding extra no topo

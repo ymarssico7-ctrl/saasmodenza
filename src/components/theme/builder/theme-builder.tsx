@@ -21,6 +21,7 @@ import {
   EyeOff,
   Trash2,
   Edit3,
+  Play,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ function BuilderInner() {
     selectedSection,
     activeTab,
     previewMode,
+    interactionMode,
     isDirty,
     canUndo,
     canRedo,
@@ -564,30 +566,69 @@ function BuilderInner() {
           No smartphone físico, exibe quando physicalView === "preview"
           ════════════════════════════════════════════════════════════════════ */}
       {(!isPhysicalMobile || physicalView === "preview") && (
-        isMobile ? (
-          <MobilePreviewFrame
-            theme={theme}
-            highlightId={selectedSection?.id ?? null}
-            isSidebarOpen={isSidebarOpen}
-            zoomMode={zoomMode}
-            autoScale={autoScale}
-            onAutoScaleChange={setAutoScale}
-            onSectionClick={handleSectionSelect}
-            onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
-            onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
-            onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
-          />
-        ) : (
-          <main className="relative flex-1 overflow-auto bg-white">
-            <ThemeRenderer
+        <div className="relative flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* ── Seletor Flutuante de Modo: Personalizar vs Testar Loja ───────── */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-2xl border border-border/80 bg-card/90 px-1.5 py-1 shadow-lg backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "SET_INTERACTION_MODE", mode: "edit" })}
+              className={cn(
+                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                interactionMode === "edit"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              <span>Personalizar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                dispatch({ type: "SET_INTERACTION_MODE", mode: "interactive" });
+                toast.info("Modo de Teste Interativo Ativado", {
+                  description: "Todos os cliques, banners, categorias e botões funcionam como na loja real.",
+                });
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                interactionMode === "interactive"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Play className="h-3.5 w-3.5" />
+              <span>Testar Loja</span>
+            </button>
+          </div>
+
+          {isMobile ? (
+            <MobilePreviewFrame
               theme={theme}
               highlightId={selectedSection?.id ?? null}
+              interactionMode={interactionMode}
+              isSidebarOpen={isSidebarOpen}
+              zoomMode={zoomMode}
+              autoScale={autoScale}
+              onAutoScaleChange={setAutoScale}
               onSectionClick={handleSectionSelect}
               onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
               onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+              onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
             />
-          </main>
-        )
+          ) : (
+            <main className="relative flex-1 overflow-auto bg-white pt-10">
+              <ThemeRenderer
+                theme={theme}
+                highlightId={selectedSection?.id ?? null}
+                interactionMode={interactionMode}
+                onSectionClick={handleSectionSelect}
+                onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
+                onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+              />
+            </main>
+          )}
+        </div>
       )}
 
       <QuickStoreWizard

@@ -17,6 +17,7 @@ export interface BuilderState {
   selectedSectionId: string | null;
   activeTab: "sections" | "global";
   previewMode: "desktop" | "mobile";
+  interactionMode: "edit" | "interactive"; // "edit" = seleção visual; "interactive" = loja 100% navegável
   isDirty: boolean;
   isSidebarOpen: boolean; // controla visibilidade do painel lateral de edição
 }
@@ -25,6 +26,7 @@ export interface BuilderState {
 type Action =
   | { type: "SET_TAB"; tab: BuilderState["activeTab"] }
   | { type: "SET_PREVIEW"; mode: BuilderState["previewMode"] }
+  | { type: "SET_INTERACTION_MODE"; mode: BuilderState["interactionMode"] }
   | { type: "SELECT_SECTION"; id: string | null }
   | { type: "UPDATE_SETTINGS"; patch: Partial<ThemeSettings> }
   | { type: "UPDATE_SECTION"; id: string; patch: Partial<Section["settings"]> }
@@ -61,6 +63,13 @@ function reducer(state: BuilderState, action: Action): BuilderState {
 
     case "SET_PREVIEW":
       return { ...state, previewMode: action.mode };
+
+    case "SET_INTERACTION_MODE":
+      return {
+        ...state,
+        interactionMode: action.mode,
+        selectedSectionId: action.mode === "interactive" ? null : state.selectedSectionId,
+      };
 
     case "TOGGLE_SIDEBAR":
       return { ...state, isSidebarOpen: !state.isSidebarOpen };
@@ -348,6 +357,7 @@ const initialState: BuilderState = {
   selectedSectionId: null,
   activeTab: "sections",
   previewMode: "desktop",
+  interactionMode: "edit",
   isDirty: false,
   isSidebarOpen: true,
 };
@@ -403,6 +413,14 @@ export function BuilderProvider({
   useEffect(() => {
     channelRef.current?.postMessage({ type: "SELECT_SECTION", payload: state.selectedSectionId });
   }, [state.selectedSectionId]);
+
+  // Transmite modo de interação ("edit" vs "interactive") para o iframe
+  useEffect(() => {
+    channelRef.current?.postMessage({
+      type: "SET_INTERACTION_MODE",
+      payload: state.interactionMode,
+    });
+  }, [state.interactionMode]);
 
   const selectedSection =
     state.theme.sections.find((s) => s.id === state.selectedSectionId) ?? null;

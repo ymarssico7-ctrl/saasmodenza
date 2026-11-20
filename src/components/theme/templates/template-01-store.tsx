@@ -17,6 +17,7 @@ import type {
   ThemeConfig,
   Section,
   HeroSection,
+  CategoryBarSection,
   ProductGridSection,
   ImageTextSplitSection,
   FeaturesSection,
@@ -238,6 +239,7 @@ type CartItem = { product: Product; tamanho: string; qtd: number };
 interface Template01StoreProps {
   theme?: ThemeConfig;
   highlightId?: string | null;
+  interactionMode?: "edit" | "interactive";
   onSectionClick?: (id: string) => void;
   onToggleSection?: (id: string) => void;
   onDeleteSection?: (id: string) => void;
@@ -254,6 +256,7 @@ interface Template01StoreProps {
 export function Template01Store({
   theme,
   highlightId,
+  interactionMode,
   onSectionClick,
   onToggleSection,
   onDeleteSection,
@@ -356,6 +359,7 @@ export function Template01Store({
   const [sacolaAberta, setSacolaAberta] = useState(false);
   const [quickAdd, setQuickAdd] = useState<Product | null>(null);
   const [tamanhoSel, setTamanhoSel] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("todos");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [email, setEmail] = useState("");
   const [inscrito, setInscrito] = useState(false);
@@ -422,7 +426,7 @@ export function Template01Store({
     settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";
 
   // ── Helpers de seção ────────────────────────────────────────────────────────
-  const isEditing = typeof onSectionClick === "function";
+  const isEditing = interactionMode !== "interactive" && typeof onSectionClick === "function";
 
   function SectionWrap({ section, children }: { section: Section; children: React.ReactNode }) {
     return (
@@ -438,6 +442,41 @@ export function Template01Store({
       </SectionPreviewWrapper>
     );
   }
+
+  // ── Handler Central de Cliques em Botões e CTAs ──────────────────────────────
+  const handleCtaClick = (
+    e: React.MouseEvent,
+    action?: string,
+    link?: string,
+    category?: string,
+  ) => {
+    const act = action || "vitrine";
+    if (act === "vitrine") {
+      const el = document.getElementById("produtos");
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    } else if (act === "categoria" && category) {
+      e.preventDefault();
+      setActiveCategory(category.toLowerCase().trim());
+      const el = document.getElementById("produtos");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else if (act === "whatsapp") {
+      e.preventDefault();
+      const phone = (propsStorePhone || settings?.storeWhatsApp || "").replace(/\D/g, "");
+      if (phone) {
+        const text = encodeURIComponent(
+          `Olá! Estive no site da ${storeName} e gostaria de saber mais sobre as peças da nova coleção!`,
+        );
+        window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+      } else {
+        toast.info("WhatsApp da loja não configurado.");
+      }
+    } else if (act === "link" && link) {
+      // Deixa a navegação de link ocorrer normalmente
+    }
+  };
 
   // ── Render de seção pelo tipo ────────────────────────────────────────────────
   function renderSection(section: Section): React.ReactNode {
@@ -496,17 +535,35 @@ export function Template01Store({
                         </>
                       )}
                     </h1>
-                    <div className="mt-10 flex flex-wrap gap-4">
-                      <a
-                        href="#vitrine"
-                        className="group inline-flex items-center gap-3 bg-foreground px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-all duration-500 hover:bg-foreground/85"
-                      >
-                        {s.settings.buttonText || "Ver a coleção"}
-                        <span className="transition-transform duration-500 group-hover:translate-x-1">
-                          →
-                        </span>
-                      </a>
-                    </div>
+                    {s.settings.buttonText && (
+                      <div className="mt-10 flex flex-wrap gap-4">
+                        <a
+                          href={
+                            s.settings.buttonAction === "link" && s.settings.buttonLink
+                              ? s.settings.buttonLink
+                              : s.settings.buttonAction === "whatsapp"
+                                ? "#"
+                                : "#produtos"
+                          }
+                          target={s.settings.buttonAction === "link" ? "_blank" : undefined}
+                          rel={s.settings.buttonAction === "link" ? "noopener noreferrer" : undefined}
+                          onClick={(e) =>
+                            handleCtaClick(
+                              e,
+                              s.settings.buttonAction,
+                              s.settings.buttonLink,
+                              s.settings.buttonCategory,
+                            )
+                          }
+                          className="group inline-flex items-center gap-3 bg-foreground px-9 py-4 text-[11px] uppercase tracking-[0.24em] text-background transition-all duration-500 hover:bg-foreground/85 cursor-pointer"
+                        >
+                          {s.settings.buttonText}
+                          <span className="transition-transform duration-500 group-hover:translate-x-1">
+                            →
+                          </span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -536,37 +593,123 @@ export function Template01Store({
         );
       }
       case "category_bar": {
+        const s = section as CategoryBarSection;
+        if (s.settings.enabled === false && !isEditing) return null;
+
+        const resolvedCategories: Array<{
+          id: string;
+          label: string;
+          cat: string;
+          image: string;
+          subtitle?: string;
+        }> = (() => {
+          const fallbacks = [catWomenImg, catMenImg, catAccessoriesImg];
+          if (s.settings.mode === "custom" && s.settings.items && s.settings.items.length > 0) {
+            return s.settings.items
+              .filter((it) => it.visible !== false)
+              .map((it, idx) => {
+                const productWithCat = PRODUCTS.find(
+                  (p) => (p.categoria || "").toLowerCase() === it.categorySlug.toLowerCase(),
+                );
+                return {
+                  id: it.id || `t01-cat-${idx}`,
+                  label: it.label,
+                  cat: it.categorySlug,
+                  image: it.imageUrl || productWithCat?.imagem || fallbacks[idx % fallbacks.length] || catWomenImg,
+                  subtitle: "Coleção Exclusiva",
+                };
+              });
+          }
+
+          const distinctCategorySlugs: string[] = [];
+          if (storeCategories && storeCategories.length > 0) {
+            for (const sc of storeCategories) {
+              if (!distinctCategorySlugs.includes(sc.slug.toLowerCase())) {
+                distinctCategorySlugs.push(sc.slug.toLowerCase());
+              }
+            }
+          } else if (PRODUCT_CATEGORIES.length > 0) {
+            for (const c of PRODUCT_CATEGORIES) {
+              if (c && !distinctCategorySlugs.includes(c.toLowerCase())) {
+                distinctCategorySlugs.push(c.toLowerCase());
+              }
+            }
+          }
+
+          if (distinctCategorySlugs.length === 0) {
+            return [
+              { id: "c1", label: "Feminino", cat: "feminino", image: catWomenImg, subtitle: "Silhuetas fluidas" },
+              { id: "c2", label: "Masculino", cat: "masculino", image: catMenImg, subtitle: "Alfaiataria suave" },
+              { id: "c3", label: "Acessórios", cat: "acessorios", image: catAccessoriesImg, subtitle: "Couro e ouro" },
+            ];
+          }
+
+          return distinctCategorySlugs.slice(0, 6).map((slug, idx) => {
+            const productWithCat = PRODUCTS.find(
+              (p) => (p.categoria || "").toLowerCase() === slug,
+            );
+            const label =
+              storeCategories?.find((sc) => sc.slug.toLowerCase() === slug)?.label ||
+              slug.charAt(0).toUpperCase() + slug.slice(1);
+
+            return {
+              id: `t01-cat-${slug}-${idx}`,
+              label,
+              cat: slug,
+              image: productWithCat?.imagem || fallbacks[idx % fallbacks.length] || catWomenImg,
+              subtitle: "Coleção Autoral",
+            };
+          });
+        })();
+
+        const sectionTitle = s.settings.title;
+
         return (
           <SectionWrap key={section.id} section={section}>
-            <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
-              <div className="grid gap-6 md:grid-cols-3">
-                {[
-                  { img: catWomenImg, nome: "Feminino", texto: "Silhuetas fluidas" },
-                  { img: catMenImg, nome: "Masculino", texto: "Alfaiataria suave" },
-                  { img: catAccessoriesImg, nome: "Acessórios", texto: "Couro e ouro" },
-                ].map((cat) => (
-                  <a
-                    key={cat.nome}
-                    href="#vitrine"
-                    className="group relative block overflow-hidden"
+            <section className="mx-auto max-w-[1400px] px-6 py-20 lg:px-10">
+              {sectionTitle && (
+                <div className="mb-10 text-center">
+                  <h2 className="font-serif text-3xl tracking-tight text-foreground lg:text-4xl">
+                    {sectionTitle}
+                  </h2>
+                </div>
+              )}
+              <div className={`grid gap-6 ${
+                resolvedCategories.length <= 2
+                  ? "grid-cols-1 md:grid-cols-2 max-w-3xl mx-auto"
+                  : resolvedCategories.length === 3
+                    ? "grid-cols-1 md:grid-cols-3"
+                    : "grid-cols-2 md:grid-cols-4"
+              }`}>
+                {resolvedCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveCategory(cat.cat);
+                      const el = document.getElementById("vitrine") || document.getElementById("produtos");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="group relative block overflow-hidden text-left cursor-pointer"
                   >
                     <img
-                      src={cat.img}
-                      alt={`Categoria ${cat.nome}`}
+                      src={cat.image}
+                      alt={`Categoria ${cat.label}`}
                       width={900}
                       height={1200}
                       loading="lazy"
-                      className="h-[460px] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.05]"
+                      className="h-[420px] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.05]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/45 to-transparent opacity-70 transition-opacity duration-500 group-hover:opacity-90" />
-                    <div className="absolute bottom-0 left-0 p-8">
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent opacity-70 transition-opacity duration-500 group-hover:opacity-90" />
+                    <div className="absolute bottom-0 left-0 p-6 lg:p-8">
                       <p className="text-[10px] uppercase tracking-[0.28em] text-background/80">
-                        {cat.texto}
+                        {cat.subtitle}
                       </p>
-                      <h2 className="mt-2 font-serif text-3xl text-background">{cat.nome}</h2>
+                      <h2 className="mt-2 font-serif text-2xl lg:text-3xl text-background">{cat.label}</h2>
                       <span className="mt-3 block h-px w-0 bg-background transition-all duration-700 group-hover:w-20" />
                     </div>
-                  </a>
+                  </button>
                 ))}
               </div>
             </section>
@@ -632,6 +775,33 @@ export function Template01Store({
       case "image_text_split": {
         const s = section as ImageTextSplitSection;
         const isLeft = s.settings.imagePosition === "left";
+        const buttonHref =
+          s.settings.buttonAction === "link" && s.settings.buttonLink
+            ? s.settings.buttonLink
+            : s.settings.buttonAction === "whatsapp"
+              ? "#"
+              : "#produtos";
+        const renderCtaBtn = () => {
+          if (!s.settings.buttonText) return null;
+          return (
+            <a
+              href={buttonHref}
+              target={s.settings.buttonAction === "link" ? "_blank" : undefined}
+              rel={s.settings.buttonAction === "link" ? "noopener noreferrer" : undefined}
+              onClick={(e) =>
+                handleCtaClick(
+                  e,
+                  s.settings.buttonAction,
+                  s.settings.buttonLink,
+                  s.settings.buttonCategory,
+                )
+              }
+              className="mt-10 inline-flex items-center border border-foreground/25 px-9 py-4 text-[11px] uppercase tracking-[0.24em] transition-all duration-500 hover:border-foreground hover:bg-foreground hover:text-background cursor-pointer"
+            >
+              {s.settings.buttonText}
+            </a>
+          );
+        };
         return (
           <SectionWrap key={section.id} section={section}>
             <section id="editorial" className="border-y border-border bg-secondary">
@@ -658,12 +828,7 @@ export function Template01Store({
                       <p className="mt-6 text-sm leading-loose text-muted-foreground">
                         {s.settings.body}
                       </p>
-                      <a
-                        href="#vitrine"
-                        className="mt-10 inline-flex items-center border border-foreground/25 px-9 py-4 text-[11px] uppercase tracking-[0.24em] transition-all duration-500 hover:border-foreground hover:bg-foreground hover:text-background"
-                      >
-                        {s.settings.buttonText}
-                      </a>
+                      {renderCtaBtn()}
                     </div>
                   </>
                 ) : (
@@ -680,12 +845,7 @@ export function Template01Store({
                       <p className="mt-6 text-sm leading-loose text-muted-foreground">
                         {s.settings.body}
                       </p>
-                      <a
-                        href="#vitrine"
-                        className="mt-10 inline-flex items-center border border-foreground/25 px-9 py-4 text-[11px] uppercase tracking-[0.24em] transition-all duration-500 hover:border-foreground hover:bg-foreground hover:text-background"
-                      >
-                        {s.settings.buttonText}
-                      </a>
+                      {renderCtaBtn()}
                     </div>
                     <img
                       src={s.settings.imageUrl || editorialImg}
@@ -777,6 +937,12 @@ export function Template01Store({
       }
       case "promotional_banner": {
         const s = section as PromotionalBannerSection;
+        const buttonHref =
+          s.settings.buttonAction === "link" && s.settings.buttonLink
+            ? s.settings.buttonLink
+            : s.settings.buttonAction === "whatsapp"
+              ? "#"
+              : "#produtos";
         return (
           <SectionWrap key={section.id} section={section}>
             <section className="bg-foreground text-background py-16 px-6 text-center">
@@ -790,14 +956,26 @@ export function Template01Store({
                 <p className="text-sm leading-relaxed text-background/70 max-w-md mx-auto">
                   {s.settings.subheading}
                 </p>
-                <div className="pt-2">
-                  <a
-                    href="#vitrine"
-                    className="inline-flex items-center border border-background px-8 py-3.5 text-[11px] uppercase tracking-[0.24em] text-background transition-all hover:bg-background hover:text-foreground"
-                  >
-                    {s.settings.buttonText}
-                  </a>
-                </div>
+                {s.settings.buttonText && (
+                  <div className="pt-2">
+                    <a
+                      href={buttonHref}
+                      target={s.settings.buttonAction === "link" ? "_blank" : undefined}
+                      rel={s.settings.buttonAction === "link" ? "noopener noreferrer" : undefined}
+                      onClick={(e) =>
+                        handleCtaClick(
+                          e,
+                          s.settings.buttonAction,
+                          s.settings.buttonLink,
+                          s.settings.buttonCategory,
+                        )
+                      }
+                      className="inline-flex items-center border border-background px-8 py-3.5 text-[11px] uppercase tracking-[0.24em] text-background transition-all hover:bg-background hover:text-foreground cursor-pointer"
+                    >
+                      {s.settings.buttonText}
+                    </a>
+                  </div>
+                )}
               </div>
             </section>
           </SectionWrap>
@@ -806,20 +984,33 @@ export function Template01Store({
       case "instagram_feed": {
         const s = section as InstagramFeedSection;
         const imgs = s.settings.images ?? [];
+        const cleanHandle = (s.settings.handle || "").replace(/^@/, "").trim();
+        const instaUrl = cleanHandle ? `https://instagram.com/${cleanHandle}` : "https://instagram.com";
         return (
           <SectionWrap key={section.id} section={section}>
             <section className="mx-auto max-w-[1400px] px-6 py-24 lg:px-10">
               <div className="mb-10 text-center">
                 {s.settings.handle && (
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                  <a
+                    href={instaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
                     {s.settings.handle}
-                  </p>
+                  </a>
                 )}
                 <h2 className="mt-3 font-serif text-3xl sm:text-4xl">{s.settings.title}</h2>
               </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
                 {imgs.map((img, i) => (
-                  <div key={i} className="group relative block aspect-square overflow-hidden bg-muted">
+                  <a
+                    key={i}
+                    href={instaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative block aspect-square overflow-hidden bg-muted cursor-pointer"
+                  >
                     <img
                       src={img}
                       alt={`Foto da comunidade ${i + 1}`}
@@ -829,7 +1020,7 @@ export function Template01Store({
                     <div className="absolute inset-0 flex items-center justify-center bg-foreground/40 text-[10px] uppercase tracking-[0.24em] text-background opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                       Ver no Instagram
                     </div>
-                  </div>
+                  </a>
                 ))}
               </div>
             </section>

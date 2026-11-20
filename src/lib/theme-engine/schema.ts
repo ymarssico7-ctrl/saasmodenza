@@ -73,18 +73,37 @@ export interface ThemeSettings {
 
 // ── Section Settings ──────────────────────────────────────────────────────────
 
+export type CtaActionType = "vitrine" | "categoria" | "whatsapp" | "link";
+
 export interface HeroSettings {
   heading: string;
   subheading: string;
   buttonText: string;
+  buttonAction?: CtaActionType;
+  buttonLink?: string;
+  buttonCategory?: string;
+  textAlignment?: "left" | "center" | "right";
+  bannerHeight?: "compact" | "medium" | "full";
   imageUrl: string;
   imageAlt: string;
   imagePosition: string; // CSS object-position value, e.g. "center"
   overlayOpacity: number; // 0–100
 }
 
+export interface CategoryBarItem {
+  id: string;
+  label: string;
+  categorySlug: string;
+  imageUrl?: string;
+  visible?: boolean;
+}
+
 export interface CategoryBarSettings {
   enabled: boolean;
+  title?: string;
+  layout?: "grid" | "scroll" | "pills";
+  mode?: "auto" | "custom";
+  items?: CategoryBarItem[];
 }
 
 export interface ProductGridSettings {
@@ -101,6 +120,9 @@ export interface ImageTextSplitSettings {
   heading: string;
   body: string;
   buttonText: string;
+  buttonAction?: CtaActionType;
+  buttonLink?: string;
+  buttonCategory?: string;
   imageUrl: string;
   imageAlt: string;
   imagePosition: ImagePosition;
@@ -145,6 +167,9 @@ export interface PromotionalBannerSettings {
   heading: string;
   subheading: string;
   buttonText: string;
+  buttonAction?: CtaActionType;
+  buttonLink?: string;
+  buttonCategory?: string;
   endDateHours: number; // Horas restantes para sensação de urgência
 }
 

@@ -74,6 +74,7 @@ function GaleriaTemplatesPage() {
   const [upgradeStoreModalOpen, setUpgradeStoreModalOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [previewEntry, setPreviewEntry] = useState<TemplateEntry | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
 
   // Produtos reais da loja para Live Preview e Thumbnails
   const { data: rawInventory = [] } = useQuery(inventoryQuery());
@@ -114,6 +115,7 @@ function GaleriaTemplatesPage() {
   const templates = useMemo(() => getTemplatesByCategory(activeCategory), [activeCategory]);
 
   async function applyTemplate(entry: TemplateEntry) {
+    if (isApplying) return;
     if (!isTemplateAllowed(entry.id, access.limits)) {
       if (access.isFree && entry.id === "template-01") {
         setUpgradeProModalOpen(true);
@@ -123,6 +125,8 @@ function GaleriaTemplatesPage() {
       return;
     }
 
+    setIsApplying(true);
+    try {
     const current = loadTheme();
     // Prioridade do nome: 1) nome já personalizado no tema, 2) nome real da loja no banco
     const resolvedName =
@@ -187,6 +191,9 @@ function GaleriaTemplatesPage() {
     });
     // Notifica outros componentes e abas
     window.dispatchEvent(new CustomEvent("theme-changed", { detail: updated }));
+    } finally {
+      setIsApplying(false);
+    }
   }
 
   const totalTemplates = TEMPLATES_REGISTRY.length;
@@ -322,6 +329,7 @@ function GaleriaTemplatesPage() {
               entry={entry}
               isActive={entry.id === activeTemplateId}
               isAllowed={isAllowed}
+              isApplying={isApplying}
               inventory={rawInventory as any[]}
               onApply={() => applyTemplate(entry)}
               onPreview={() => setPreviewEntry(entry)}
@@ -388,6 +396,7 @@ function TemplateCard({
   entry,
   isActive,
   isAllowed,
+  isApplying = false,
   inventory = [],
   onApply,
   onPreview,
@@ -396,6 +405,7 @@ function TemplateCard({
   entry: TemplateEntry;
   isActive: boolean;
   isAllowed: boolean;
+  isApplying?: boolean;
   inventory?: any[];
   onApply: () => void;
   onPreview: () => void;
@@ -677,9 +687,10 @@ function TemplateCard({
                   size="sm"
                   className="h-9 flex-1 gap-1.5 rounded-xl text-xs font-semibold cursor-pointer"
                   onClick={onApply}
+                  disabled={isApplying}
                 >
                   <Palette className="h-3.5 w-3.5" />
-                  Aplicar Tema
+                  {isApplying ? "Aplicando..." : "Aplicar Tema"}
                 </Button>
               ) : (
                 <Button

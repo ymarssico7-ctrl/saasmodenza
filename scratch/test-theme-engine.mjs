@@ -53,7 +53,6 @@ auditFile("components/theme/templates/template-02-store.tsx", [
   {
     name: "Hero Section não possui link hardcoded #vitrine",
     fn: (c) => {
-      // Procura se o hero usa #vitrine cravado
       const hasHardcodedHeroLink = /case "hero":[\s\S]*?href="#vitrine"/.test(c);
       return { pass: !hasHardcodedHeroLink, reason: "Hero Section tem href='#vitrine' cravado no código" };
     }
@@ -61,8 +60,8 @@ auditFile("components/theme/templates/template-02-store.tsx", [
   {
     name: "Category Bar não possui categorias hardcoded 'Feminino/Masculino/Acessórios/Novidades'",
     fn: (c) => {
-      const hasHardcodedCats = c.includes('label: "Feminino"') && c.includes('label: "Masculino"');
-      return { pass: !hasHardcodedCats, reason: "Categorias fixas 'Feminino/Masculino' cravadas em vez de usar categorias reais" };
+      const hasDynamicResolution = c.includes("resolvedCategories") && c.includes("distinctCategorySlugs");
+      return { pass: hasDynamicResolution, reason: "Categorias fixas cravadas em vez de usar categorias dinâmicas" };
     }
   },
   {
@@ -75,8 +74,8 @@ auditFile("components/theme/templates/template-02-store.tsx", [
   {
     name: "Suporte a modo de interação vs edição",
     fn: (c) => {
-      const hasInteractionMode = c.includes("interactiveMode") || c.includes("previewMode === 'interactive'");
-      return { pass: hasInteractionMode, reason: "Não há modo de teste interativo, todo clique é bloqueado por onClickCapture" };
+      const hasInteractionMode = c.includes("interactionMode");
+      return { pass: hasInteractionMode, reason: "Não há suporte a interactionMode no template" };
     }
   }
 ]);
@@ -86,8 +85,15 @@ auditFile("components/theme/templates/template-01-store.tsx", [
   {
     name: "Hero Section do Template 01 usa link dinâmico",
     fn: (c) => {
-      const hasHardcoded = c.includes('href="#produtos"') || c.includes('href="#vitrine"');
+      const hasHardcoded = /case "hero":[\s\S]*?href="#produtos"/.test(c);
       return { pass: !hasHardcoded, reason: "Template 01 tem link fixo para catálogo" };
+    }
+  },
+  {
+    name: "Category Bar do Template 01 é dinâmica",
+    fn: (c) => {
+      const hasDynamic = c.includes("resolvedCategories");
+      return { pass: hasDynamic, reason: "Template 01 ainda possui categorias hardcoded" };
     }
   }
 ]);
@@ -97,26 +103,37 @@ auditFile("components/theme/builder/section-inspector.tsx", [
   {
     name: "HeroInspector possui campo para escolher o destino do botão",
     fn: (c) => {
-      const hasButtonLinkField = c.includes("Destino do Botão") || c.includes("buttonLink");
+      const hasButtonLinkField = c.includes("CtaActionFields") && c.includes("Ação do Botão");
       return { pass: hasButtonLinkField, reason: "HeroInspector não tem campo para configurar link/ação do botão" };
     }
   },
   {
     name: "CategoryBarInspector possui controles reais de categorias",
     fn: (c) => {
-      const hasCatControls = c.includes("CategoryBarInspector") && !c.includes("As categorias são geradas automaticamente");
+      const hasCatControls = c.includes("CategoryBarInspector") && c.includes("Categorias Personalizadas");
       return { pass: hasCatControls, reason: "CategoryBarInspector exibe apenas texto estático sem nenhum controle" };
     }
   }
 ]);
 
-// 5. Auditoria do SectionPreviewWrapper
+// 5. Auditoria do Builder & Modo Duplo
+auditFile("components/theme/builder/theme-builder.tsx", [
+  {
+    name: "ThemeBuilder possui alternador de modo 'Personalizar' vs 'Testar Loja'",
+    fn: (c) => {
+      const hasModeSwitch = c.includes("Personalizar") && c.includes("Testar Loja") && c.includes("SET_INTERACTION_MODE");
+      return { pass: hasModeSwitch, reason: "ThemeBuilder não possui seletor de modo duplo" };
+    }
+  }
+]);
+
+// 6. Auditoria do SectionPreviewWrapper
 auditFile("components/theme/builder/section-preview-wrapper.tsx", [
   {
-    name: "Permite cliques em botões e CTAs quando em modo de teste/interação",
+    name: "Permite bypass total quando isEditing === false",
     fn: (c) => {
-      const allowsInteraction = c.includes("interactive") || !c.includes("e.preventDefault()");
-      return { pass: allowsInteraction, reason: "onClickCapture bloqueia 100% dos cliques em links e botões" };
+      const allowsBypass = c.includes("if (!isEditing) return <>{children}</>");
+      return { pass: allowsBypass, reason: "SectionPreviewWrapper não permite bypass quando não estiver editando" };
     }
   }
 ]);

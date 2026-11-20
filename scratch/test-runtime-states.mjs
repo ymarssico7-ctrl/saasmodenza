@@ -51,7 +51,7 @@ checkCode(
 // Verifica se o vitrine.$storeSlug sincroniza templateId do tema com o banco
 checkCode(
   "routes/vitrine.$storeSlug.tsx",
-  "activeTheme.settings.templateId = activeTemplateId",
+  "templateId: activeTemplateId",
   true,
   "Vitrine pública garante sincronização estrita de templateId"
 );

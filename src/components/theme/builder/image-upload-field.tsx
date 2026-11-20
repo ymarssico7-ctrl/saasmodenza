@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Trash2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 // ── Utility: Compressão local via Canvas ──────────────────────────────────────
 /**
@@ -81,8 +82,31 @@ export function ImageUploadField({
     if (!file) return;
     setIsCompressing(true);
     try {
-      const compressed = await compressImage(file, maxWidth, maxHeight);
-      onChange(compressed);
+      // 1. Tenta upload no bucket Supabase Storage se disponível
+      let uploadedUrl: string | null = null;
+      try {
+        const fileExt = file.name.split(".").pop() || "webp";
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const { data, error } = await supabase.storage.from("store-assets").upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (!error && data?.path) {
+          const { data: pubData } = supabase.storage.from("store-assets").getPublicUrl(data.path);
+          if (pubData?.publicUrl) {
+            uploadedUrl = pubData.publicUrl;
+          }
+        }
+      } catch {
+        // Fallback transparente para compressão via Canvas local
+      }
+
+      if (uploadedUrl) {
+        onChange(uploadedUrl);
+      } else {
+        const compressed = await compressImage(file, maxWidth, maxHeight, 0.78);
+        onChange(compressed);
+      }
       setTab("upload");
     } catch (err) {
       console.error("Erro ao comprimir imagem:", err);

@@ -150,12 +150,41 @@ function ModalConfiguracaoMercadoPago({
   const [publicKey, setPublicKey] = useState<string>(saved["publicKey"] ?? "");
   const [accessToken, setAccessToken] = useState<string>(saved["accessToken"] ?? "");
   const [parcelas, setParcelas] = useState<string>(saved["parcelas"] ?? "12");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const salvar = () => {
+  const salvar = async () => {
+    setIsSaving(true);
     const config = { publicKey: publicKey.trim(), accessToken: accessToken.trim(), parcelas: parcelas.trim() };
+    // 1. Salva no cache local imediatamente
     localStorage.setItem(LS_KEY_MP(storeId), JSON.stringify(config));
-    toast.success("Mercado Pago configurado!", { description: "As credenciais foram salvas localmente." });
-    onClose();
+    // 2. Persiste na nuvem (stores.metadata.integrations.mercadopago)
+    try {
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("metadata")
+        .eq("id", storeId)
+        .maybeSingle();
+      const currentMeta = (storeData?.metadata as Record<string, unknown> | null) || {};
+      const currentIntegrations = (currentMeta["integrations"] as Record<string, unknown>) || {};
+      await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...currentMeta,
+            integrations: {
+              ...currentIntegrations,
+              mercadopago: config,
+            },
+          } as never,
+        })
+        .eq("id", storeId);
+      toast.success("Mercado Pago configurado!", { description: "Credenciais salvas na nuvem com segurança." });
+    } catch {
+      toast.success("Mercado Pago configurado!", { description: "Salvo localmente (sem conexão com servidor)." });
+    } finally {
+      setIsSaving(false);
+      onClose();
+    }
   };
 
   return (
@@ -219,12 +248,12 @@ function ModalConfiguracaoMercadoPago({
         </div>
 
         <div className="mt-6 flex gap-3">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={isSaving}>
             Cancelar
           </Button>
-          <Button className="flex-1 gap-1.5" onClick={salvar}>
+          <Button className="flex-1 gap-1.5" onClick={() => { void salvar(); }} disabled={isSaving}>
             <Save className="h-3.5 w-3.5" />
-            Salvar
+            {isSaving ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       </div>
@@ -247,12 +276,41 @@ function ModalConfiguracaoAssistido({
   const [instrucao, setInstrucao] = useState<string>(
     saved["instrucao"] ?? "A loja entrará em contato via WhatsApp para combinar o pagamento.",
   );
+  const [isSaving, setIsSaving] = useState(false);
 
-  const salvar = () => {
+  const salvar = async () => {
+    setIsSaving(true);
     const config = { linkPagamento: linkPagamento.trim(), instrucao: instrucao.trim() };
+    // 1. Salva no cache local imediatamente
     localStorage.setItem(LS_KEY_ASSISTIDO(storeId), JSON.stringify(config));
-    toast.success("Modo Assistido configurado!", { description: "Link e instrução salvos." });
-    onClose();
+    // 2. Persiste na nuvem
+    try {
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("metadata")
+        .eq("id", storeId)
+        .maybeSingle();
+      const currentMeta = (storeData?.metadata as Record<string, unknown> | null) || {};
+      const currentIntegrations = (currentMeta["integrations"] as Record<string, unknown>) || {};
+      await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...currentMeta,
+            integrations: {
+              ...currentIntegrations,
+              cartao_assistido: config,
+            },
+          } as never,
+        })
+        .eq("id", storeId);
+      toast.success("Modo Assistido configurado!", { description: "Link e instrução salvos na nuvem." });
+    } catch {
+      toast.success("Modo Assistido configurado!", { description: "Link e instrução salvos localmente." });
+    } finally {
+      setIsSaving(false);
+      onClose();
+    }
   };
 
   return (
@@ -301,9 +359,9 @@ function ModalConfiguracaoAssistido({
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
-          <Button className="flex-1 gap-1.5" onClick={salvar}>
+          <Button className="flex-1 gap-1.5" onClick={() => { void salvar(); }} disabled={isSaving}>
             <Save className="h-3.5 w-3.5" />
-            Salvar
+            {isSaving ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       </div>
@@ -654,10 +712,11 @@ function IntegracoesPage() {
     }
   }, [storeId]);
 
-  const toggleIntegracao = (integ: Integracao) => {
+  const toggleIntegracao = async (integ: Integracao) => {
     const nextVal = !(statusMap[integ.id] ?? integ.conectado);
     const updated = { ...statusMap, [integ.id]: nextVal };
     setStatusMap(updated);
+    // 1. Cache local imediato (UX sem latência)
     try {
       localStorage.setItem(`vestui_integrations_${storeId}`, JSON.stringify(updated));
       window.dispatchEvent(
@@ -665,6 +724,23 @@ function IntegracoesPage() {
       );
     } catch {
       // ignore
+    }
+    // 2. Persiste toggle na nuvem (stores.metadata.integracoes)
+    if (storeId) {
+      try {
+        const { data: sd } = await supabase
+          .from("stores")
+          .select("metadata")
+          .eq("id", storeId)
+          .maybeSingle();
+        const cm = (sd?.metadata as Record<string, unknown>) || {};
+        await supabase
+          .from("stores")
+          .update({ metadata: { ...cm, integracoes: updated } as never })
+          .eq("id", storeId);
+      } catch {
+        // Falha silenciosa — não bloqueia a UI
+      }
     }
     toast.success(
       nextVal ? `Integração "${integ.nome}" ativada!` : `Integração "${integ.nome}" desativada.`,

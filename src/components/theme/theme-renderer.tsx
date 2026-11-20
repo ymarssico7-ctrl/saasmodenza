@@ -11,6 +11,7 @@ import { Template05Store } from "./templates/template-05-store";
 interface Props {
   theme: ThemeConfig;
   highlightId?: string | null;
+  interactionMode?: "edit" | "interactive";
   onSectionClick?: (id: string) => void;
   onToggleSection?: (id: string) => void;
   onDeleteSection?: (id: string) => void;
@@ -38,6 +39,7 @@ interface Props {
 export function ThemeRenderer({
   theme,
   highlightId,
+  interactionMode,
   onSectionClick,
   onToggleSection,
   onDeleteSection,
@@ -73,6 +75,7 @@ export function ThemeRenderer({
   }, [theme, templateId]);
 
   const forwardedProps = {
+    ...(interactionMode ? { interactionMode } : {}),
     ...(onSectionClick ? { onSectionClick } : {}),
     ...(onToggleSection ? { onToggleSection } : {}),
     ...(onDeleteSection ? { onDeleteSection } : {}),

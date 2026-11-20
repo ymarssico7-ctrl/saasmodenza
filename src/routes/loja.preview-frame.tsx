@@ -16,6 +16,7 @@ export const Route = createFileRoute("/loja/preview-frame")({
 function PreviewFramePage() {
   const [theme, setTheme] = useState<ThemeConfig>(() => loadTheme());
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [interactionMode, setInteractionMode] = useState<"edit" | "interactive">("edit");
   // Canal reutilizável — evita criar/destruir uma instância a cada clique do usuário
   const channelRef = useRef<BroadcastChannel | null>(null);
 
@@ -30,6 +31,8 @@ function PreviewFramePage() {
           setTheme(payload as ThemeConfig);
         } else if (type === "SELECT_SECTION") {
           setHighlightId(payload as string | null);
+        } else if (type === "SET_INTERACTION_MODE") {
+          setInteractionMode((payload as "edit" | "interactive") || "edit");
         }
       };
     } catch {
@@ -69,6 +72,7 @@ function PreviewFramePage() {
       <ThemeRenderer
         theme={theme}
         highlightId={highlightId}
+        interactionMode={interactionMode}
         onSectionClick={(id) => postToBuilder("SECTION_CLICK", id)}
         onToggleSection={(id) => postToBuilder("TOGGLE_SECTION", id)}
         onDeleteSection={(id) => postToBuilder("DELETE_SECTION", id)}
