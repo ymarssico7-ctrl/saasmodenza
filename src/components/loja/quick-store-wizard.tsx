@@ -300,11 +300,11 @@ export function QuickStoreWizard({ open, onOpenChange, onSuccess }: QuickStoreWi
       // Preserva o templateId já escolhido pela lojista; usa template-02 como fallback do wizard
       const currentTheme = loadTheme();
       const storeMetadata = store?.metadata as Record<string, unknown> | null;
-      const resolvedTemplateId = (
-        (storeMetadata?.["templateId"] as string | undefined) ||
+      const fallbackTemplate = "template-02" as const;
+      const resolvedTemplateId: "template-01" | "template-02" | "template-03" | "template-04" | "template-05" | "catalogo-express" =
+        (storeMetadata?.["templateId"] as "template-01" | "template-02" | "template-03" | "template-04" | "template-05" | "catalogo-express" | undefined) ||
         currentTheme.settings.templateId ||
-        "template-02"
-      ) as ThemeSettings["templateId"];
+        fallbackTemplate;
 
       // Paleta: usa a do nicho ou adapta com base na cor customizada escolhida
       const basePalette = { ...activeNiche.palette };

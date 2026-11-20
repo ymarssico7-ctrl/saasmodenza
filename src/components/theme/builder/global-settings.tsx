@@ -182,11 +182,14 @@ export function GlobalSettings() {
 
   // Troca de template direto do builder — aplica preset completo preservando nome/whatsapp
   const handleTemplateChange = (templateId: string) => {
-    const preset = getPresetThemeForTemplate(templateId, {
+    const overrides: { storeName?: string; storeWhatsApp?: string; logoUrl?: string } = {
       storeName: s.storeName,
       storeWhatsApp: s.storeWhatsApp || "",
-      logoUrl: s.logoUrl ?? undefined,
-    });
+    };
+    if (s.logoUrl) {
+      overrides.logoUrl = s.logoUrl;
+    }
+    const preset = getPresetThemeForTemplate(templateId, overrides);
     dispatch({ type: "LOAD_THEME", theme: preset });
     toast.success("Template atualizado!", {
       description: "Suas cores e tipografia foram ajustadas. Publique para salvar.",
