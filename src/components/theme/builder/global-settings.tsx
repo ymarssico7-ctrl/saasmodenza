@@ -1,5 +1,5 @@
 import { useBuilder } from "@/lib/theme-engine/context";
-import { ensureFontLoaded } from "@/lib/theme-engine/defaults";
+import { ensureFontLoaded, getPresetThemeForTemplate } from "@/lib/theme-engine/defaults";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageUploadField } from "./image-upload-field";
@@ -180,8 +180,55 @@ export function GlobalSettings() {
     patch({ fontBody: v as FontBody });
   };
 
+  // Troca de template direto do builder — aplica preset completo preservando nome/whatsapp
+  const handleTemplateChange = (templateId: string) => {
+    const preset = getPresetThemeForTemplate(templateId, {
+      storeName: s.storeName,
+      storeWhatsApp: s.storeWhatsApp || "",
+      logoUrl: s.logoUrl ?? undefined,
+    });
+    dispatch({ type: "LOAD_THEME", theme: preset });
+    toast.success("Template atualizado!", {
+      description: "Suas cores e tipografia foram ajustadas. Publique para salvar.",
+    });
+  };
+
+  const TEMPLATE_OPTIONS = [
+    { value: "catalogo-express", label: "Catálogo Express — Simples e direto" },
+    { value: "template-01", label: "Atelier Nove — Elegante editorial" },
+    { value: "template-02", label: "Atelie Minimalist — Limpo e moderno" },
+    { value: "template-03", label: "Bold Streetwear — Urban e impactante" },
+    { value: "template-04", label: "Praia & Resort — Leve e tropical" },
+    { value: "template-05", label: "Boutique Chic — Luxo e sofisticação" },
+  ];
+
   return (
     <div className="space-y-7">
+      {/* ── Template da Loja ──────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Template da Loja
+        </p>
+        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Layout Ativo
+          </Label>
+          <select
+            value={s.templateId || "catalogo-express"}
+            onChange={(e) => handleTemplateChange(e.target.value)}
+            className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          >
+            {TEMPLATE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Trocar o template aplica cores e tipografia do layout escolhido. Seus textos e nome da loja são preservados.
+          </p>
+        </div>
+      </div>
       {/* ── Identidade ────────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">

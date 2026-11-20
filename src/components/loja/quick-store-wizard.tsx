@@ -31,8 +31,8 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
-import { saveTheme } from "@/lib/theme-engine/defaults";
-import type { ThemeConfig, Section } from "@/lib/theme-engine/schema";
+import { saveTheme, loadTheme } from "@/lib/theme-engine/defaults";
+import type { ThemeConfig, Section, ThemeSettings } from "@/lib/theme-engine/schema";
 import { nanoid } from "@/lib/theme-engine/nanoid";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { inventoryQuery } from "@/lib/db";
@@ -297,6 +297,15 @@ export function QuickStoreWizard({ open, onOpenChange, onSuccess }: QuickStoreWi
       const resolvedStoreName = customStoreName.trim() || store?.name || "Minha Loja";
       const resolvedWhatsApp = sanitizeWhatsApp(customWhatsApp.trim() || store?.phone || "");
 
+      // Preserva o templateId já escolhido pela lojista; usa template-02 como fallback do wizard
+      const currentTheme = loadTheme();
+      const storeMetadata = store?.metadata as Record<string, unknown> | null;
+      const resolvedTemplateId = (
+        (storeMetadata?.["templateId"] as string | undefined) ||
+        currentTheme.settings.templateId ||
+        "template-02"
+      ) as ThemeSettings["templateId"];
+
       // Paleta: usa a do nicho ou adapta com base na cor customizada escolhida
       const basePalette = { ...activeNiche.palette };
       if (customColor) {
@@ -412,7 +421,7 @@ export function QuickStoreWizard({ open, onOpenChange, onSuccess }: QuickStoreWi
 
       const newTheme: ThemeConfig = {
         settings: {
-          templateId: "template-02",
+          templateId: resolvedTemplateId,
           storeName: resolvedStoreName,
           tagline: activeNiche.tagline,
           freeShippingBanner: "Frete Grátis nas compras acima de R$ 399 · Trocas em até 30 dias",
@@ -449,7 +458,7 @@ export function QuickStoreWizard({ open, onOpenChange, onSuccess }: QuickStoreWi
             metadata: {
               ...currentMeta,
               theme: newTheme,
-              templateId: "template-02",
+              templateId: resolvedTemplateId,
               vitrine_ativa: true,
             } as never,
           })

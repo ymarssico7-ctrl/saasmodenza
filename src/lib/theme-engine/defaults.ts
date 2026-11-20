@@ -620,3 +620,163 @@ export const CATALOGO_EXPRESS_THEME: ThemeConfig = {
   order: [],
   sections: [],
 };
+
+/**
+ * Retorna a configuração de tema canônica e completa para um templateId específico,
+ * preservando dados vitais do lojista (nome da loja, whatsapp, logo) caso existam.
+ */
+export function getPresetThemeForTemplate(
+  templateId: string,
+  overrides?: {
+    storeName?: string;
+    storeWhatsApp?: string;
+    logoUrl?: string;
+  }
+): ThemeConfig {
+  const storeName = overrides?.storeName || "";
+  const storeWhatsApp = overrides?.storeWhatsApp ?? "";
+  const logoUrl = overrides?.logoUrl;
+
+  if (templateId === "template-01") {
+    return {
+      ...TEMPLATE_01_THEME,
+      settings: {
+        ...TEMPLATE_01_THEME.settings,
+        templateId: "template-01",
+        storeName: storeName || TEMPLATE_01_THEME.settings.storeName,
+        storeWhatsApp: storeWhatsApp || TEMPLATE_01_THEME.settings.storeWhatsApp || "",
+        ...(logoUrl ? { logoUrl } : {}),
+      },
+    };
+  }
+
+  if (templateId === "catalogo-express") {
+    return {
+      ...CATALOGO_EXPRESS_THEME,
+      settings: {
+        ...CATALOGO_EXPRESS_THEME.settings,
+        templateId: "catalogo-express",
+        storeName: storeName || CATALOGO_EXPRESS_THEME.settings.storeName,
+        storeWhatsApp: storeWhatsApp || CATALOGO_EXPRESS_THEME.settings.storeWhatsApp || "",
+        ...(logoUrl ? { logoUrl } : {}),
+      },
+    };
+  }
+
+  if (templateId === "template-03") {
+    return {
+      ...TEMPLATE_02_THEME,
+      settings: {
+        ...TEMPLATE_02_THEME.settings,
+        templateId: "template-03",
+        storeName: storeName || TEMPLATE_02_THEME.settings.storeName,
+        storeWhatsApp: storeWhatsApp || TEMPLATE_02_THEME.settings.storeWhatsApp || "",
+        colorBackground: "#09090b",
+        colorForeground: "#fafafa",
+        colorPrimary: "#f43f5e",
+        colorCanvas: "#18181b",
+        colorBorder: "#27272a",
+        fontDisplay: "Sora",
+        fontBody: "Inter",
+        borderRadius: "sm",
+        freeShippingBanner: "DROP LIMITADO · Envios express para todo o Brasil",
+        ...(logoUrl ? { logoUrl } : {}),
+      },
+      sections: TEMPLATE_02_THEME.sections.map((s) =>
+        s.type === "hero"
+          ? {
+              ...s,
+              settings: {
+                ...s.settings,
+                heading: "Drop 04\nSem limites, sem regras.",
+                subheading: "Edição Urbana",
+                buttonText: "Ver Drop",
+              },
+            }
+          : s
+      ),
+    };
+  }
+
+  if (templateId === "template-04") {
+    return {
+      ...TEMPLATE_02_THEME,
+      settings: {
+        ...TEMPLATE_02_THEME.settings,
+        templateId: "template-04",
+        storeName: storeName || TEMPLATE_02_THEME.settings.storeName,
+        storeWhatsApp: storeWhatsApp || TEMPLATE_02_THEME.settings.storeWhatsApp || "",
+        colorBackground: "#fdfbf7",
+        colorForeground: "#292524",
+        colorPrimary: "#c2410c",
+        colorCanvas: "#f7f2ea",
+        colorBorder: "#e7decb",
+        fontDisplay: "Outfit",
+        fontBody: "Figtree",
+        borderRadius: "lg",
+        freeShippingBanner: "Frete grátis em compras acima de R$ 399 · Parcelamento em até 6x",
+        ...(logoUrl ? { logoUrl } : {}),
+      },
+      sections: TEMPLATE_02_THEME.sections.map((s) =>
+        s.type === "hero"
+          ? {
+              ...s,
+              settings: {
+                ...s.settings,
+                heading: "O sol como\nessência e destino.",
+                subheading: "Coleção Resort",
+                buttonText: "Ver Coleção",
+              },
+            }
+          : s
+      ),
+    };
+  }
+
+  if (templateId === "template-05") {
+    return {
+      ...TEMPLATE_02_THEME,
+      settings: {
+        ...TEMPLATE_02_THEME.settings,
+        templateId: "template-05",
+        storeName: storeName || TEMPLATE_02_THEME.settings.storeName,
+        storeWhatsApp: storeWhatsApp || TEMPLATE_02_THEME.settings.storeWhatsApp || "",
+        colorBackground: "#faf9f6",
+        colorForeground: "#1c1917",
+        colorPrimary: "#b45309",
+        colorCanvas: "#f3ede2",
+        colorBorder: "#e2d7c5",
+        fontDisplay: "Playfair Display",
+        fontBody: "Manrope",
+        borderRadius: "none",
+        freeShippingBanner: "Atendimento exclusivo sob medida · Envio cortesia acima de R$ 600",
+        ...(logoUrl ? { logoUrl } : {}),
+      },
+      sections: TEMPLATE_02_THEME.sections.map((s) =>
+        s.type === "hero"
+          ? {
+              ...s,
+              settings: {
+                ...s.settings,
+                heading: "Preciosidade\nem cada ponto.",
+                subheading: "Ateliê Exclusivo",
+                buttonText: "Explorar Ateliê",
+              },
+            }
+          : s
+      ),
+    };
+  }
+
+  // Padrão: Template 02 (Atelie Minimalist)
+  return {
+    ...TEMPLATE_02_THEME,
+    settings: {
+      ...TEMPLATE_02_THEME.settings,
+      templateId: "template-02",
+      storeName: storeName || TEMPLATE_02_THEME.settings.storeName,
+      storeWhatsApp: storeWhatsApp || TEMPLATE_02_THEME.settings.storeWhatsApp || "",
+      ...(logoUrl ? { logoUrl } : {}),
+    },
+  };
+}

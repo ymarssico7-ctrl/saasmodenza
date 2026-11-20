@@ -92,6 +92,31 @@ function BuilderInner() {
     };
   }, [dispatch, queryClient]);
 
+  // Auto-save com debounce: salva localmente 500ms após qualquer alteração
+  // Evita perda de dados ao clicar em "Voltar" sem publicar
+  useEffect(() => {
+    if (!isDirty) return;
+    const timer = setTimeout(() => {
+      // Salva sempre no localStorage (instantâneo, sem latência de rede)
+      saveTheme(theme);
+      // Background draft para o Supabase (sem bloquear UI)
+      if (store?.id) {
+        const currentMeta = (store.metadata as Record<string, unknown> | null) || {};
+        void supabase
+          .from("stores")
+          .update({
+            metadata: {
+              ...currentMeta,
+              theme,
+              templateId: theme.settings.templateId,
+            } as never,
+          })
+          .eq("id", store.id);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [theme, isDirty, store?.id, store?.metadata]);
+
   // ── Zoom state (lifted from MobilePreviewFrame) ───────────────────────────
   // "auto" = ajusta automaticamente ao espaço disponível
   // number  = escala manual entre 0.3 e 1.0

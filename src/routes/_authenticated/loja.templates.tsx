@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ExternalLink,
@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VitrineConfigNav } from "@/components/loja/vitrine-config-nav";
-import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
+import { loadTheme, saveTheme, getPresetThemeForTemplate } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
 import { profileQuery, inventoryQuery } from "@/lib/db";
 import { useAccess, isTemplateAllowed } from "@/lib/useAccess";
@@ -67,6 +67,7 @@ const CATEGORIES: TemplateCategory[] = [
 
 function GaleriaTemplatesPage() {
   const { store } = useStore();
+  const queryClient = useQueryClient();
   const { data: profile } = useQuery(profileQuery());
   const access = useAccess(profile, store);
   const [upgradeProModalOpen, setUpgradeProModalOpen] = useState(false);
@@ -82,18 +83,12 @@ function GaleriaTemplatesPage() {
     );
   }, [rawInventory]);
 
-  // Sanitizador reativo: garante que activeTemplateId seja sempre compatível com o plano da loja
+  // Sanitizador reativo: retorna o templateId solicitado ou o padrão
   const resolveTemplateId = useCallback(
     (requestedId?: string | null): string => {
-      const allowed = access.limits.allowedTemplates as string[];
-      if (requestedId && allowed.includes(requestedId)) {
-        return requestedId;
-      }
-      if (access.isStore) return "template-02";
-      if (access.isPro) return "template-01";
-      return "catalogo-express";
+      return requestedId || "catalogo-express";
     },
-    [access.limits.allowedTemplates, access.isStore, access.isPro]
+    []
   );
 
   const storeMetadataTemplateId = (store?.metadata as Record<string, unknown> | null)?.["templateId"] as string | undefined;
@@ -118,7 +113,7 @@ function GaleriaTemplatesPage() {
 
   const templates = useMemo(() => getTemplatesByCategory(activeCategory), [activeCategory]);
 
-  function applyTemplate(entry: TemplateEntry) {
+  async function applyTemplate(entry: TemplateEntry) {
     if (!isTemplateAllowed(entry.id, access.limits)) {
       if (access.isFree && entry.id === "template-01") {
         setUpgradeProModalOpen(true);
@@ -134,44 +129,64 @@ function GaleriaTemplatesPage() {
       (current.settings.storeName && current.settings.storeName.trim())
         ? current.settings.storeName
         : store.name || "";
-    const updated = {
-      ...current,
-      settings: {
-        ...current.settings,
-        templateId: entry.id,
-        storeName: resolvedName,
-        colorBackground: entry.defaults.colorBackground,
-        colorForeground: entry.defaults.colorForeground,
-        colorPrimary: entry.defaults.colorPrimary,
-        colorCanvas: entry.defaults.colorCanvas,
-        colorBorder: entry.defaults.colorBorder,
-        fontDisplay: entry.defaults.fontDisplay as never,
-        fontBody: entry.defaults.fontBody as never,
-        borderRadius: entry.defaults.borderRadius,
-      },
-    };
+
+    // Usa o preset completo do template, preservando nome e WhatsApp da loja
+    const updated = getPresetThemeForTemplate(entry.id, {
+      storeName: resolvedName,
+      storeWhatsApp: store?.phone || current.settings.storeWhatsApp || "",
+    });
+
     saveTheme(updated);
     setActiveTemplateId(entry.id);
 
-    // Persiste no Supabase para que a vitrine pública reflita o tema escolhido pela lojista
+    // Persiste no Supabase e aguarda para evitar race condition com React Query
     if (store?.id) {
-      void supabase
+      const currentMeta = (store.metadata as Record<string, unknown> | null) || {};
+      const { error } = await supabase
         .from("stores")
         .update({
           metadata: {
-            ...((store.metadata as Record<string, unknown> | null) || {}),
+            ...currentMeta,
             theme: updated,
             templateId: entry.id,
           } as never,
         })
         .eq("id", store.id);
+
+      if (error) {
+        toast.error("Erro ao salvar template no servidor.");
+        console.error("[applyTemplate] Supabase error:", error);
+      } else {
+        // Invalida cache para forçar re-fetch com o novo templateId
+        await queryClient.invalidateQueries({ queryKey: ["active_store"] });
+        await queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
+      }
+    }
+
+    // Fallback para demo store (localStorage)
+    if (typeof window !== "undefined") {
+      try {
+        const rawDemo = localStorage.getItem("demo_active_store");
+        if (rawDemo) {
+          const parsed = JSON.parse(rawDemo) as Record<string, unknown>;
+          const parsedMeta = (parsed["metadata"] as Record<string, unknown>) || {};
+          parsed["metadata"] = {
+            ...parsedMeta,
+            theme: updated,
+            templateId: entry.id,
+          };
+          localStorage.setItem("demo_active_store", JSON.stringify(parsed));
+        }
+      } catch {
+        // Ignora erros de parse
+      }
     }
 
     toast.success(`Tema "${entry.name}" aplicado com sucesso!`, {
       description: "Abra o Preview para ver ao vivo ou personalize as cores.",
     });
     // Notifica outros componentes e abas
-    window.dispatchEvent(new Event("theme-changed"));
+    window.dispatchEvent(new CustomEvent("theme-changed", { detail: updated }));
   }
 
   const totalTemplates = TEMPLATES_REGISTRY.length;
