@@ -35,6 +35,8 @@ import {
   Globe,
   AlertTriangle,
   MoreHorizontal,
+  Loader2,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inventoryQuery, profileQuery } from "@/lib/db";
@@ -109,8 +111,17 @@ export const Route = createFileRoute("/_authenticated/loja/pedidos")({
       },
     ],
   }),
-  component: PedidosPage,
+  component: PedidosRouteWrapper,
 });
+
+function PedidosRouteWrapper() {
+  const { store } = useStore();
+  const { data: profile } = useQuery(profileQuery());
+  const access = useAccess(profile, store);
+
+  if (access.isFree) return <PedidosGatePresentation />;
+  return <PedidosPage />;
+}
 
 function mapPedidoPaymentMethod(pagamento: string): string {
   const p = (pagamento || "").toLowerCase();
@@ -124,6 +135,8 @@ function mapPedidoPaymentMethod(pagamento: string): string {
 // Chaves gerenciadas centralizadamente por @/lib/sim-orders
 
 type CustomerAddressObj = {
+  modalidade?: string;
+  descricao?: string;
   rua?: string;
   numero?: string;
   bairro?: string;
@@ -258,17 +271,24 @@ function mapDbRowToPedido(row: any): Pedido {
     typeof row.customer_address === "object" && row.customer_address
       ? (row.customer_address as CustomerAddressObj)
       : {};
-  const enderecoFormatado =
-    [
-      addr.rua,
-      addr.numero && `nº ${addr.numero}`,
-      addr.bairro,
-      addr.cep && `CEP ${addr.cep}`,
-      addr.complemento,
-    ]
-      .filter(Boolean)
-      .join(", ") ||
-    (typeof row.customer_address === "string" ? row.customer_address : "");
+
+  const isRetiradaModalidade =
+    addr.modalidade === "retirada" ||
+    /retira|balc[aã]o/i.test(row.frete_tipo || "") ||
+    /retira/i.test(row.payment_method || "");
+
+  const enderecoFormatado = isRetiradaModalidade
+    ? (addr.descricao || "Retirada presencial na loja / balcão")
+    : [
+        addr.rua,
+        addr.numero && `nº ${addr.numero}`,
+        addr.bairro,
+        addr.cep && `CEP ${addr.cep}`,
+        addr.complemento,
+      ]
+        .filter(Boolean)
+        .join(", ") ||
+      (typeof row.customer_address === "string" ? row.customer_address : "");
 
   const itens = Array.isArray(row.items)
     ? (row.items as Array<{
@@ -286,6 +306,8 @@ function mapDbRowToPedido(row: any): Pedido {
       ? "Pix"
       : row.payment_method === "cartao"
       ? "Cartão de crédito"
+      : isRetiradaModalidade
+      ? "Pagar na retirada"
       : "Dinheiro na entrega";
 
   return {
@@ -294,12 +316,12 @@ function mapDbRowToPedido(row: any): Pedido {
     cliente: row.customer_name || "Cliente",
     telefone: row.customer_phone || "",
     email: row.customer_email || undefined,
-    cidade: addr.bairro || "",
+    cidade: addr.bairro || (isRetiradaModalidade ? "Retirada no balcão" : ""),
     criadoEm: row.created_at || new Date().toISOString(),
     status: (row.status || "novo") as StatusPedido,
     origem: "Checkout" as const,
     pagamento: metodoPagamento,
-    entrega: row.frete_tipo || "Entrega",
+    entrega: row.frete_tipo || (isRetiradaModalidade ? "Retirada no balcão" : "Entrega"),
     endereco: enderecoFormatado,
     rastreio: row.tracking_code || undefined,
     frete: Number(row.frete_valor || 0),
@@ -372,9 +394,6 @@ function PedidosPage() {
   const { data: profile } = useQuery(profileQuery());
   const access = useAccess(profile, store);
 
-  // Guard: Free tier não tem checkout — rota não produz pedidos reais
-  if (access.isFree) return <PedidosGatePresentation />;
-
   // Estados de Filtros e Busca (Padrão Shopify IndexTable)
   const [filtroStatus, setFiltroStatus] = useState<StatusPedido | "todos">("todos");
   const [busca, setBusca] = useState("");
@@ -386,6 +405,7 @@ function PedidosPage() {
   const [aberto, setAberto] = useState<string | null>(null);
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [sincronizando, setSincronizando] = useState(false);
+  const [processandoId, setProcessandoId] = useState<string | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const POR_PAGINA = 10;
 
@@ -529,24 +549,18 @@ function PedidosPage() {
     const dbMapped = (dbOrders || []).map(mapDbRowToPedido);
     const stored = loadStoredOrders<Pedido>(storeId);
 
-    if (stored.length > 0) {
-      // Map dos pedidos locais com alterações e status mais recentes (0ms)
-      const storedMap = new Map(stored.map((p) => [p.id, p]));
-      // Pedidos do banco que ainda não existem no local (novas compras na vitrine)
-      const novosDoBanco = dbMapped.filter(
-        (p) => !storedMap.has(p.id) && !deletedIdsRef.current.has(p.id)
-      );
+    // Pedidos reais do Supabase não deletados nesta sessão (autoridade de dados)
+    const reaisValidos = dbMapped.filter((p) => !deletedIdsRef.current.has(p.id));
+    const reaisIds = new Set(reaisValidos.map((p) => p.id));
 
-      // Preserva pedidos armazenados locais que não foram deletados
-      const locaisValidos = stored.filter((p) => !deletedIdsRef.current.has(p.id));
-      const mesclados = [...novosDoBanco, ...locaisValidos];
-      setLista(mesclados);
-      saveStoredOrders(storeId, mesclados);
-    } else if (dbMapped.length > 0) {
-      const filtrados = dbMapped.filter((p) => !deletedIdsRef.current.has(p.id));
-      setLista(filtrados);
-      saveStoredOrders(storeId, filtrados);
-    }
+    // Preserva apenas pedidos estritamente de simulação/treino locais
+    const simuladosValidos = stored.filter(
+      (p) => !reaisIds.has(p.id) && isPedidoSimulado(p) && !deletedIdsRef.current.has(p.id),
+    );
+
+    const mesclados = [...reaisValidos, ...simuladosValidos];
+    setLista(mesclados);
+    saveStoredOrders(storeId, mesclados);
   }, [dbOrders, storeId]);
 
   // ── Escuta Sincronização em Tempo Real (Eventos de outras abas / intra-aba) ─
@@ -639,97 +653,119 @@ function PedidosPage() {
 
   const pedidoAberto = lista.find((p) => p.id === aberto) ?? null;
 
-  // Ações de fluxo e avanço de status
+  // Ações de fluxo e avanço de status protegidas contra duplo clique
   const executarAvancoStatus = async (pedido: Pedido) => {
+    if (processandoId) return;
     const atual = fluxoStatus.indexOf(pedido.status as (typeof fluxoStatus)[number]);
     if (atual < 0 || atual >= fluxoStatus.length - 1) return;
     const proximo = fluxoStatus[atual + 1]!;
 
     const isSimulacao = isPedidoSimulado(pedido);
+    setProcessandoId(pedido.id);
 
-    if (!isSimulacao) {
-      try {
-        const payload: { status: StatusPedido; payment_status?: string } = {
-          status: proximo,
-        };
-        if (proximo === "confirmado") {
-          payload.payment_status = "pago";
-        }
-        await supabase.from("orders").update(payload).eq("id", pedido.id);
-        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-      } catch (err) {
-        console.error("Erro ao atualizar status no Supabase:", err);
-      }
-    }
-
-    const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
-    persistir(novaLista);
-
-    if (pedido.status === "novo" && proximo === "confirmado") {
-      if (isSimulacao) {
-        toast.success("🧪 [Simulação] Pedido aprovado!", {
-          description: "Fluxo simulado: em uma venda real, a peça seria baixada e o valor lançado no Caixa.",
-          duration: 5000,
-        });
-        return;
-      }
-
-      if (pedido.itens?.length) {
-        try {
-          const deducoes = pedido.itens.map((item) =>
-            adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
-          );
-          await Promise.all(deducoes);
-          void queryClient.invalidateQueries({ queryKey: ["inventory"] });
-        } catch (err) {
-          toast.error("Erro ao baixar estoque. Verifique e tente novamente.", {
-            description: String(err),
+    try {
+      if (pedido.status === "novo" && proximo === "confirmado") {
+        if (isSimulacao) {
+          const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
+          persistir(novaLista);
+          toast.success("🧪 [Simulação] Pedido aprovado!", {
+            description: "Fluxo simulado: em uma venda real, a peça seria baixada e o valor lançado no Caixa.",
+            duration: 5000,
           });
           return;
         }
-      }
 
-      const bruto = totalPedido(pedido);
-      const { net: valorLiquido } = calculateOrderNet(
-        bruto,
-        mapPedidoPaymentMethod(pedido.pagamento),
-        pedido.taxaOperadora,
-      );
+        // 1. Deduz estoque físico de cada peça primeiro
+        if (pedido.itens?.length) {
+          try {
+            const deducoes = pedido.itens.map((item) =>
+              adjustInventoryStock(storeId, item.produtoId, -item.qtd, item.tamanho),
+            );
+            await Promise.all(deducoes);
+            void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+          } catch (err) {
+            toast.error("Erro ao baixar estoque. Verifique e tente novamente.", {
+              description: String(err),
+            });
+            return;
+          }
+        }
 
-      try {
-        await insertTransaction({
-          storeId,
-          kind: "entrada",
-          description: [
-            `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
-            pedido.cupom ? `[Cupom: ${pedido.cupom}]` : null,
-            pedido.desconto > 0 ? `[Desconto: ${brl(pedido.desconto)}]` : null,
-          ].filter(Boolean).join(" "),
-          amount: valorLiquido,
-          category: "venda_online",
-          payment_method: mapPedidoPaymentMethod(pedido.pagamento),
-          occurred_on: new Date().toISOString().slice(0, 10),
+        // 2. Atualiza status no Supabase
+        try {
+          await supabase
+            .from("orders")
+            .update({
+              status: proximo,
+              payment_status: "pago",
+            })
+            .eq("id", pedido.id);
+          void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+        } catch (err) {
+          console.error("Erro ao atualizar status no Supabase:", err);
+        }
+
+        // 3. Atualiza estado local de forma otimista (0ms)
+        const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
+        persistir(novaLista);
+
+        // 4. Lança entrada no Livro Caixa (valor líquido)
+        const bruto = totalPedido(pedido);
+        const { net: valorLiquido } = calculateOrderNet(
+          bruto,
+          mapPedidoPaymentMethod(pedido.pagamento),
+          pedido.taxaOperadora,
+        );
+
+        try {
+          await insertTransaction({
+            storeId,
+            kind: "entrada",
+            description: [
+              `Venda online — Pedido ${pedido.numero} (${pedido.cliente})`,
+              pedido.cupom ? `[Cupom: ${pedido.cupom}]` : null,
+              pedido.desconto > 0 ? `[Desconto: ${brl(pedido.desconto)}]` : null,
+            ].filter(Boolean).join(" "),
+            amount: valorLiquido,
+            category: "venda_online",
+            payment_method: mapPedidoPaymentMethod(pedido.pagamento),
+            occurred_on: new Date().toISOString().slice(0, 10),
+          });
+          void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        } catch (err) {
+          toast.error("Estoque baixado, mas falha ao lançar no Caixa. Registre manualmente.", {
+            description: String(err),
+          });
+        }
+
+        toast.success("Pedido confirmado! ✅", {
+          description: `Estoque baixado e R$ ${valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa (líquido).`,
+          duration: 5000,
         });
-        void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      } catch (err) {
-        toast.error("Estoque baixado, mas falha ao lançar no Caixa. Registre manualmente.", {
-          description: String(err),
-        });
-      }
+      } else {
+        if (!isSimulacao) {
+          try {
+            await supabase.from("orders").update({ status: proximo }).eq("id", pedido.id);
+            void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+          } catch (err) {
+            console.error("Erro ao atualizar status no Supabase:", err);
+          }
+        }
 
-      toast.success("Pedido confirmado! ✅", {
-        description: `Estoque baixado e R$ ${valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lançado no Caixa (líquido).`,
-        duration: 5000,
-      });
-    } else {
-      toast.success(
-        isSimulacao
-          ? `🧪 [Simulação] Status avançado para "${statusPedidoLabel[proximo]}"`
-          : `Status atualizado para "${statusPedidoLabel[proximo]}"`,
-        {
-          description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
-        },
-      );
+        const novaLista = lista.map((p) => (p.id === pedido.id ? { ...p, status: proximo as StatusPedido } : p));
+        persistir(novaLista);
+
+        toast.success(
+          isSimulacao
+            ? `🧪 [Simulação] Status avançado para "${statusPedidoLabel[proximo]}"`
+            : `Status atualizado para "${statusPedidoLabel[proximo]}"`,
+          {
+            description: `Pedido ${pedido.numero} — ${pedido.cliente}`,
+          },
+        );
+      }
+    } finally {
+      setProcessandoId(null);
     }
   };
 
@@ -766,96 +802,108 @@ function PedidosPage() {
   };
 
   const cancelar = async (id: string) => {
+    if (processandoId) return;
     const pedido = lista.find((p) => p.id === id);
     if (!pedido) return;
     const statusAnterior = pedido.status;
     const isSimulacao = isPedidoSimulado(pedido);
+    setProcessandoId(id);
 
-    if (!isSimulacao) {
-      try {
-        await supabase
-          .from("orders")
-          .update({
-            status: "cancelado",
-            payment_status: "cancelado",
-          })
-          .eq("id", id);
-        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-      } catch (err) {
-        console.error("Erro ao cancelar no Supabase:", err);
-      }
-    }
-
-    const novaLista = lista.map((p) => (p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p));
-    persistir(novaLista);
-    setAberto(null);
-
-    if (isSimulacao) {
-      toast.info(`🧪 [Simulação] Pedido ${pedido.numero} cancelado (sem impacto no banco).`);
-      return;
-    }
-
-    if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
-      if (pedido.itens?.length) {
+    try {
+      if (!isSimulacao) {
         try {
-          await restoreOrderStock(storeId, pedido.itens);
-          void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+          await supabase
+            .from("orders")
+            .update({
+              status: "cancelado",
+              payment_status: "cancelado",
+            })
+            .eq("id", id);
+          void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
         } catch (err) {
-          toast.error("Erro ao devolver estoque. Verifique manualmente.", {
-            description: String(err),
-          });
+          console.error("Erro ao cancelar no Supabase:", err);
         }
       }
-      const bruto = totalPedido(pedido);
-      const { net: valorLiquido } = calculateOrderNet(
-        bruto,
-        mapPedidoPaymentMethod(pedido.pagamento),
-        pedido.taxaOperadora,
-      );
-      if (valorLiquido > 0) {
-        try {
-          await insertTransaction({
-            storeId,
-            kind: "saida",
-            description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
-            amount: valorLiquido,
-            category: "estorno_devolucao",
-            payment_method: mapPedidoPaymentMethod(pedido.pagamento),
-            occurred_on: new Date().toISOString().slice(0, 10),
-          });
-          void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-        } catch (err) {
-          toast.error("Erro ao lançar estorno no Caixa. Registre manualmente.", {
-            description: String(err),
-          });
-        }
+
+      const novaLista = lista.map((p) => (p.id === id ? { ...p, status: "cancelado" as StatusPedido } : p));
+      persistir(novaLista);
+      setAberto(null);
+
+      if (isSimulacao) {
+        toast.info(`🧪 [Simulação] Pedido ${pedido.numero} cancelado (sem impacto no banco).`);
+        return;
       }
-      toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorLiquido)} lançado no Caixa.`);
-    } else {
-      toast.info(`Pedido ${pedido.numero} cancelado sem impacto no caixa.`);
+
+      if (statusAnterior !== "novo" && statusAnterior !== "cancelado") {
+        if (pedido.itens?.length) {
+          try {
+            await restoreOrderStock(storeId, pedido.itens);
+            void queryClient.invalidateQueries({ queryKey: ["inventory"] });
+          } catch (err) {
+            toast.error("Erro ao devolver estoque. Verifique manualmente.", {
+              description: String(err),
+            });
+          }
+        }
+        const bruto = totalPedido(pedido);
+        const { net: valorLiquido } = calculateOrderNet(
+          bruto,
+          mapPedidoPaymentMethod(pedido.pagamento),
+          pedido.taxaOperadora,
+        );
+        if (valorLiquido > 0) {
+          try {
+            await insertTransaction({
+              storeId,
+              kind: "saida",
+              description: `Estorno de pedido online cancelado — Pedido ${pedido.numero} (${pedido.cliente})`,
+              amount: valorLiquido,
+              category: "estorno_devolucao",
+              payment_method: mapPedidoPaymentMethod(pedido.pagamento),
+              occurred_on: new Date().toISOString().slice(0, 10),
+            });
+            void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+          } catch (err) {
+            toast.error("Erro ao lançar estorno no Caixa. Registre manualmente.", {
+              description: String(err),
+            });
+          }
+        }
+        toast.error(`Pedido ${pedido.numero} cancelado: estoque devolvido e estorno de ${brl(valorLiquido)} lançado no Caixa.`);
+      } else {
+        toast.info(`Pedido ${pedido.numero} cancelado sem impacto no caixa.`);
+      }
+    } finally {
+      setProcessandoId(null);
     }
   };
 
   const excluirPedido = async (id: string) => {
+    if (processandoId) return;
     deletedIdsRef.current.add(id);
     const pedido = lista.find((p) => p.id === id);
     const isSimulacao = isPedidoSimulado(pedido);
+    setProcessandoId(id);
 
-    const novaLista = lista.filter((p) => p.id !== id);
-    persistir(novaLista); // 🚀 0ms remoção visual instantânea
-    setAberto(null);
+    try {
+      const novaLista = lista.filter((p) => p.id !== id);
+      persistir(novaLista); // 🚀 0ms remoção visual instantânea
+      setAberto(null);
 
-    toast.success("Pedido excluído do histórico", {
-      description: pedido ? `Pedido ${pedido.numero} removido instantaneamente.` : undefined,
-    });
+      toast.success("Pedido excluído do histórico", {
+        description: pedido ? `Pedido ${pedido.numero} removido instantaneamente.` : undefined,
+      });
 
-    if (!isSimulacao) {
-      try {
-        await supabase.from("orders").delete().eq("id", id);
-        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-      } catch (err) {
-        console.error("Erro ao excluir do Supabase:", err);
+      if (!isSimulacao) {
+        try {
+          await supabase.from("orders").delete().eq("id", id);
+          void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+        } catch (err) {
+          console.error("Erro ao excluir do Supabase:", err);
+        }
       }
+    } finally {
+      setProcessandoId(null);
     }
   };
 
@@ -866,30 +914,52 @@ function PedidosPage() {
     }
     const cod = codigoRastreio.trim().toUpperCase();
     const pedido = lista.find((p) => p.id === pedidoId);
+    if (!pedido) return;
     const isSimulacao = isPedidoSimulado(pedido);
+    setProcessandoId(pedidoId);
 
-    if (!isSimulacao) {
-      try {
-        await supabase.from("orders").update({ tracking_code: cod }).eq("id", pedidoId);
-        void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
-      } catch (err) {
-        console.error("Erro ao salvar rastreio no Supabase:", err);
+    try {
+      if (!isSimulacao) {
+        try {
+          await supabase.from("orders").update({ tracking_code: cod }).eq("id", pedidoId);
+          void queryClient.invalidateQueries({ queryKey: ["orders", storeId] });
+        } catch (err) {
+          console.error("Erro ao salvar rastreio no Supabase:", err);
+        }
       }
-    }
 
-    const novaLista = lista.map((p) => (p.id === pedidoId ? { ...p, rastreio: cod } : p));
-    persistir(novaLista);
-    setCodigoRastreio("");
-    toast.success("Código de rastreio salvo!", { description: `Código: ${cod}` });
+      const novaLista = lista.map((p) => (p.id === pedidoId ? { ...p, rastreio: cod } : p));
+      persistir(novaLista);
+      setCodigoRastreio("");
+      toast.success("Código de rastreio salvo!", { description: `Código: ${cod}` });
+    } finally {
+      setProcessandoId(null);
+    }
   };
 
   const avisarWhatsApp = (pedido: Pedido, tipo?: "padrao" | "rastreio") => {
     const nomeLoja = store?.name ?? "nossa loja";
     const statusTexto = statusPedidoLabel[pedido.status].toLowerCase();
+    const isRetirada =
+      pedido.entrega?.toLowerCase().includes("retira") ||
+      pedido.endereco?.toLowerCase().includes("retirada");
+
     let msg = "";
 
     if (tipo === "rastreio" && pedido.rastreio) {
       msg = `Olá, ${pedido.cliente}! 👋\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* já foi despachado e está a caminho! 📦💨\n\nCódigo de rastreamento: *${pedido.rastreio}*\n\nAcompanhe nos Correios:\nhttps://rastreamento.correios.com.br/app/index.php?codigo=${pedido.rastreio}\n\nQualquer dúvida estamos à disposição! 💜`;
+    } else if (pedido.status === "confirmado") {
+      msg = `Olá, ${pedido.cliente}! 👋\n\nPassando para avisar que seu pedido *${pedido.numero}* na *${nomeLoja}* foi confirmado com sucesso e já está sendo preparado com todo carinho! ✨👗\n\nTotal: ${brl(totalPedido(pedido))}\nQualquer dúvida estamos à disposição! 💜`;
+    } else if (pedido.status === "em_separacao") {
+      msg = `Olá, ${pedido.cliente}! 👋\n\nSuas peças do pedido *${pedido.numero}* na *${nomeLoja}* já estão na bancada de separação e conferência de qualidade! 📦✨\n\nTotal: ${brl(totalPedido(pedido))}\nLogo te avisaremos assim que estiver a caminho ou pronto para retirada! 💜`;
+    } else if (pedido.status === "enviado") {
+      if (isRetirada) {
+        msg = `Olá, ${pedido.cliente}! 👋\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* já está separadinho e prontinho para retirada no balcão da loja! 🏪✨\n\nPode vir nos visitar no horário de funcionamento. Qualquer dúvida nos chame aqui! 💜`;
+      } else {
+        msg = `Olá, ${pedido.cliente}! 👋\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* já foi despachado e está a caminho! 🚚💨\n\n${pedido.rastreio ? `Código de rastreamento: *${pedido.rastreio}*\n` : ""}Acompanhe a sua entrega ou nos chame aqui se precisar! 💜`;
+      }
+    } else if (pedido.status === "entregue") {
+      msg = `Olá, ${pedido.cliente}! 👋\n\nSeu pedido *${pedido.numero}* na *${nomeLoja}* foi entregue! 🎉\n\nEsperamos de coração que você ame cada peça. Depois conta pra gente o que achou! 💜✨`;
     } else {
       msg = `Olá, ${pedido.cliente}! 👋\n\nAqui é da *${nomeLoja}*. Passando para avisar que seu pedido *${pedido.numero}* está *${statusTexto}*! ✨\n\nTotal: ${brl(totalPedido(pedido))}\n${pedido.rastreio ? `Rastreio: ${pedido.rastreio}\n` : ""}Qualquer dúvida estamos à disposição! 💜`;
     }
@@ -897,7 +967,10 @@ function PedidosPage() {
     const phoneDigits = (pedido.telefone || "").replace(/\D/g, "");
     const encoded = encodeURIComponent(msg);
     if (phoneDigits.length >= 8) {
-      const phone = phoneDigits.startsWith("55") ? phoneDigits : `55${phoneDigits}`;
+      // Normalização semântica para números brasileiros:
+      // Números com 10 ou 11 dígitos (DDD + número) SEMPRE precisam do DDI 55
+      // Mesmo com DDD 55 (Santa Maria / RS), não confundir DDD com código de país
+      const phone = phoneDigits.length <= 11 ? `55${phoneDigits}` : phoneDigits;
       window.open(`https://wa.me/${phone}?text=${encoded}`, "_blank", "noopener,noreferrer");
     } else {
       window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank", "noopener,noreferrer");
@@ -905,11 +978,123 @@ function PedidosPage() {
   };
 
   const copiarEnderecoEtiqueta = (p: Pedido) => {
+    const isRetirada =
+      p.entrega?.toLowerCase().includes("retira") ||
+      p.endereco?.toLowerCase().includes("retirada");
+
+    if (isRetirada) {
+      const texto = `RETIRADA NO BALCÃO:\nCliente: ${p.cliente}\nTel: ${p.telefone}\nModalidade: Retirada presencial na loja`;
+      navigator.clipboard.writeText(texto);
+      toast.success("Dados do cliente copiados!", {
+        description: "Pedido marcado para retirada presencial na loja.",
+      });
+      return;
+    }
+
     const texto = `DESTINATÁRIO:\n${p.cliente}\n${p.endereco}\nTel: ${p.telefone}`;
     navigator.clipboard.writeText(texto);
     toast.success("Endereço copiado para etiqueta!", {
       description: "Pronto para colar nos Correios ou Melhor Envio.",
     });
+  };
+
+  const imprimirRomaneio = (p: Pedido) => {
+    const isRetirada =
+      p.entrega?.toLowerCase().includes("retira") ||
+      p.endereco?.toLowerCase().includes("retirada");
+
+    const itensHtml = p.itens
+      .map(
+        (it) => `
+        <tr style="border-bottom: 1px solid #e5e7eb;">
+          <td style="padding: 8px 4px; font-size: 13px;">[ &nbsp; ]</td>
+          <td style="padding: 8px 4px; font-size: 13px;">
+            <strong>${it.nome}</strong><br/>
+            <span style="font-size: 11px; color: #6b7280;">Tam: <strong>${it.tamanho}</strong> &bull; Cor: ${it.cor}</span>
+          </td>
+          <td style="padding: 8px 4px; font-size: 13px; text-align: center;">${it.qtd}</td>
+          <td style="padding: 8px 4px; font-size: 13px; text-align: right;">${brl(it.preco)}</td>
+          <td style="padding: 8px 4px; font-size: 13px; text-align: right; font-weight: 600;">${brl(it.preco * it.qtd)}</td>
+        </tr>
+      `,
+      )
+      .join("");
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Não foi possível abrir a janela de impressão. Verifique o bloqueador de pop-ups.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Romaneio de Separação — Pedido ${p.numero}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #111827; }
+            h1 { font-size: 20px; margin: 0 0 4px 0; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 16px; }
+            .box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12px; line-height: 1.5; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+            th { text-align: left; font-size: 11px; text-transform: uppercase; color: #6b7280; padding: 6px 4px; border-bottom: 1px solid #d1d5db; }
+            .total-box { text-align: right; font-size: 14px; margin-top: 12px; }
+            @media print {
+              body { padding: 0; }
+              @page { margin: 15mm; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1>${store?.name ?? "Vestui Store"}</h1>
+              <div style="font-size: 12px; color: #4b5563;">Romaneio de Separação &bull; Pedido <strong>${p.numero}</strong></div>
+            </div>
+            <div style="text-align: right; font-size: 12px; color: #4b5563;">
+              Data: ${dateBR(p.criadoEm)}<br/>
+              Pagamento: <strong>${p.pagamento}</strong>
+            </div>
+          </div>
+
+          <div class="box">
+            <strong>Destinatário / Cliente:</strong> ${p.cliente}<br/>
+            <strong>Telefone:</strong> ${p.telefone || "Não informado"}<br/>
+            <strong>Modalidade de Entrega:</strong> ${isRetirada ? "🏪 RETIRADA NO BALCÃO" : `📦 ${p.entrega}`}<br/>
+            <strong>Endereço:</strong> ${p.endereco || (isRetirada ? "Retirada presencial na loja" : "—")}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 32px;">Conf.</th>
+                <th>Peça / Detalhes</th>
+                <th style="text-align: center; width: 48px;">Qtd</th>
+                <th style="text-align: right; width: 80px;">Unitário</th>
+                <th style="text-align: right; width: 90px;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itensHtml}
+            </tbody>
+          </table>
+
+          <div class="total-box">
+            ${p.frete ? `<div>Frete: ${brl(p.frete)}</div>` : ""}
+            ${p.desconto ? `<div style="color: #dc2626;">Desconto: -${brl(p.desconto)} ${p.cupom ? `(${p.cupom})` : ""}</div>` : ""}
+            <div style="font-size: 16px; font-weight: bold; margin-top: 4px;">Total do Pedido: ${brl(totalPedido(p))}</div>
+          </div>
+
+          <div style="margin-top: 40px; border-top: 1px dashed #d1d5db; padding-top: 16px; font-size: 11px; color: #9ca3af; text-align: center;">
+            Separado por: ___________________________ &bull; Data da Conferência: ____/____/________
+          </div>
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleSincronizar = async () => {
@@ -1524,22 +1709,40 @@ function PedidosPage() {
                   {pedidoAberto.email && <p className="text-muted-foreground">{pedidoAberto.email}</p>}
                 </div>
 
-                {/* Endereço de Entrega */}
+                {/* Endereço de Entrega / Retirada */}
                 {pedidoAberto.endereco && (
                   <div className="pt-2 border-t border-border/60">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-1.5 min-w-0">
-                        <MapPin className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                        <p className="text-xs text-muted-foreground leading-relaxed">{pedidoAberto.endereco}</p>
+                        {pedidoAberto.entrega?.toLowerCase().includes("retira") || pedidoAberto.endereco.toLowerCase().includes("retirada") ? (
+                          <Store className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        ) : (
+                          <MapPin className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                        )}
+                        <div>
+                          {pedidoAberto.entrega?.toLowerCase().includes("retira") || pedidoAberto.endereco.toLowerCase().includes("retirada") ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 mb-1">
+                              🏪 Retirada no Balcão
+                            </span>
+                          ) : null}
+                          <p className="text-xs text-muted-foreground leading-relaxed">{pedidoAberto.endereco}</p>
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => copiarEnderecoEtiqueta(pedidoAberto)}
-                        className="h-7 px-2 text-[11px] rounded-lg shrink-0 gap-1 text-muted-foreground hover:text-foreground"
-                        title="Copiar endereço formatado para etiqueta dos Correios"
+                        className="h-7 px-2 text-[11px] rounded-lg shrink-0 gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                        title={
+                          pedidoAberto.entrega?.toLowerCase().includes("retira") || pedidoAberto.endereco.toLowerCase().includes("retirada")
+                            ? "Copiar dados da retirada"
+                            : "Copiar endereço formatado para etiqueta dos Correios"
+                        }
                       >
-                        <Copy className="size-3" /> Copiar etiqueta
+                        <Copy className="size-3" />
+                        {pedidoAberto.entrega?.toLowerCase().includes("retira") || pedidoAberto.endereco.toLowerCase().includes("retirada")
+                          ? "Copiar dados"
+                          : "Copiar etiqueta"}
                       </Button>
                     </div>
                   </div>
@@ -1721,10 +1924,15 @@ function PedidosPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        disabled={processandoId === pedidoAberto.id}
                         onClick={() => void salvarRastreio(pedidoAberto.id)}
-                        className="h-9 rounded-xl text-xs font-semibold shrink-0"
+                        className="h-9 rounded-xl text-xs font-semibold shrink-0 cursor-pointer"
                       >
-                        Salvar
+                        {processandoId === pedidoAberto.id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          "Salvar"
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1736,9 +1944,14 @@ function PedidosPage() {
                 {pedidoAberto.status !== "entregue" && pedidoAberto.status !== "cancelado" ? (
                   <Button
                     className="gradient-primary h-11 rounded-full shadow-glow font-semibold cursor-pointer"
+                    disabled={processandoId === pedidoAberto.id}
                     onClick={() => tentarAvancarStatus(pedidoAberto)}
                   >
-                    {pedidoAberto.status === "novo" ? (
+                    {processandoId === pedidoAberto.id ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" /> Processando...
+                      </>
+                    ) : pedidoAberto.status === "novo" ? (
                       <>
                         <CheckCircle2 className="size-4 mr-2" /> Aprovar Pedido & Baixar Estoque
                       </>
@@ -1758,13 +1971,24 @@ function PedidosPage() {
                   </Button>
                 ) : null}
 
-                <Button
-                  variant="outline"
-                  className="h-10 rounded-full text-xs font-semibold"
-                  onClick={() => avisarWhatsApp(pedidoAberto, "padrao")}
-                >
-                  <MessageCircle className="mr-2 size-4 text-emerald-500" /> Notificar status no WhatsApp
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-full text-xs font-semibold cursor-pointer"
+                    onClick={() => avisarWhatsApp(pedidoAberto, "padrao")}
+                  >
+                    <MessageCircle className="mr-1.5 size-4 text-emerald-500" /> WhatsApp da Cliente
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-full text-xs font-semibold cursor-pointer"
+                    onClick={() => imprimirRomaneio(pedidoAberto)}
+                    title="Imprimir romaneio de separação física para conferência"
+                  >
+                    <Printer className="mr-1.5 size-4 text-muted-foreground" /> Imprimir Romaneio
+                  </Button>
+                </div>
 
                 {pedidoAberto.status !== "cancelado" ? (
                   <AlertDialog>
@@ -1794,9 +2018,16 @@ function PedidosPage() {
                         <AlertDialogCancel className="rounded-full">Voltar</AlertDialogCancel>
                         <AlertDialogAction
                           className="rounded-full bg-danger text-danger-foreground hover:bg-danger/90 cursor-pointer"
+                          disabled={processandoId === pedidoAberto.id}
                           onClick={() => cancelar(pedidoAberto.id)}
                         >
-                          Sim, cancelar pedido
+                          {processandoId === pedidoAberto.id ? (
+                            <>
+                              <Loader2 className="size-3.5 mr-1.5 animate-spin" /> Cancelando...
+                            </>
+                          ) : (
+                            "Sim, cancelar pedido"
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -1822,9 +2053,16 @@ function PedidosPage() {
                         <AlertDialogCancel className="rounded-full">Voltar</AlertDialogCancel>
                         <AlertDialogAction
                           className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
+                          disabled={processandoId === pedidoAberto.id}
                           onClick={() => excluirPedido(pedidoAberto.id)}
                         >
-                          Sim, excluir do histórico
+                          {processandoId === pedidoAberto.id ? (
+                            <>
+                              <Loader2 className="size-3.5 mr-1.5 animate-spin" /> Excluindo...
+                            </>
+                          ) : (
+                            "Sim, excluir do histórico"
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -1884,15 +2122,22 @@ function PedidosPage() {
             <AlertDialogCancel className="rounded-full">Voltar e revisar</AlertDialogCancel>
             <AlertDialogAction
               className="rounded-full bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
+              disabled={Boolean(processandoId)}
               onClick={() => {
                 if (pedidoConfirmarSemEstoque) {
-                  executarAvancoStatus(pedidoConfirmarSemEstoque);
+                  void executarAvancoStatus(pedidoConfirmarSemEstoque);
                   setPedidoConfirmarSemEstoque(null);
                   setAberto(null);
                 }
               }}
             >
-              Confirmar mesmo assim
+              {processandoId ? (
+                <>
+                  <Loader2 className="size-3.5 mr-1.5 animate-spin" /> Confirmando...
+                </>
+              ) : (
+                "Confirmar mesmo assim"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1933,15 +2178,22 @@ function PedidosPage() {
             <AlertDialogCancel className="rounded-full">Voltar e revisar</AlertDialogCancel>
             <AlertDialogAction
               className="rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
+              disabled={Boolean(processandoId)}
               onClick={() => {
                 if (pedidoComPecaExcluida) {
-                  executarAvancoStatus(pedidoComPecaExcluida.pedido);
+                  void executarAvancoStatus(pedidoComPecaExcluida.pedido);
                   setPedidoComPecaExcluida(null);
                   setAberto(null);
                 }
               }}
             >
-              Confirmar mesmo assim
+              {processandoId ? (
+                <>
+                  <Loader2 className="size-3.5 mr-1.5 animate-spin" /> Confirmando...
+                </>
+              ) : (
+                "Confirmar mesmo assim"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

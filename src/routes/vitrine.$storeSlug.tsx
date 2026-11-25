@@ -1518,10 +1518,18 @@ function CartDrawer({
   const freteSelecionado = opcoesFreteDisponiveis.find((o) => o.id === freteSelecionadoId) ?? null;
   const valorFrete = freteSelecionado?.valor ?? 0;
 
+  const isRetirada = Boolean(
+    paymentMethod === "retirada" ||
+    /retira|busca|balc[aã]o/i.test(freteSelecionado?.label ?? "") ||
+    /retira|busca|balc[aã]o/i.test(freteSelecionado?.id ?? "")
+  );
+
   const totalFinal = Math.max(totalPrice - valorDesconto + valorFrete, 0);
 
   const aplicarCupom = (codigoOverride?: string | unknown) => {
-    const codigo = (typeof codigoOverride === "string" ? codigoOverride : codigoCupom).trim().toUpperCase();
+    const rawCodigo = typeof codigoOverride === "string" ? codigoOverride : codigoCupom;
+    // Sanitização profunda: remove espaços comuns, quebras de linha e caracteres invisíveis
+    const codigo = (rawCodigo || "").replace(/[\s\u200B-\u200D\uFEFF]/g, "").toUpperCase();
     if (!codigo) return;
     try {
       // 1. Busca primeiro nos cupons centralizados na nuvem (Supabase store.metadata)
@@ -1679,135 +1687,82 @@ function CartDrawer({
   }, [pixAsaasStatus, pixChargeData?.chargeId]);
 
   async function handleCheckout() {
-
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    const infoCupom = cupomAplicado
-      ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
-      : undefined;
-    const infoFrete = freteSelecionado
-      ? { label: freteSelecionado.label, valor: valorFrete }
-      : undefined;
-
-    // ── 1) Incrementa uso do cupom (localStorage + Supabase) ────────
-    if (cupomAplicado) {
-      try {
-        const chave = `vestui_cupons_${storeId}`;
-        const raw =
-          localStorage.getItem(chave) ||
-          localStorage.getItem(`vestui_cupons_${storeId}`) ||
-          localStorage.getItem(`vestuli_cupons_${storeId}`);
-        if (raw) {
-          const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
-          const atualizado = lista.map((c) =>
-            c.codigo === cupomAplicado.codigo ? { ...c, usos: c.usos + 1 } : c,
-          );
-          // 1a. Cache local imediato
-          localStorage.setItem(chave, JSON.stringify(atualizado));
-          // 1b. Sync com Supabase para manter painel admin atualizado
-          try {
-            const { data: sd } = await supabase
-              .from("stores")
-              .select("metadata")
-              .eq("id", storeId)
-              .maybeSingle();
-            const cm = (sd?.metadata as Record<string, unknown>) || {};
-            await supabase
-              .from("stores")
-              .update({ metadata: { ...cm, cupons: atualizado } as never })
-              .eq("id", storeId);
-          } catch { /* Falha silenciosa — não bloqueia o checkout */ }
-        }
-      } catch { /* silencia */ }
-    }
-
-    // ── 2) Calcula número sequencial do pedido via Supabase RPC ────
-    let numeroPedido = `#${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
     try {
-      const { data: rpcNum, error: rpcErr } = await supabase.rpc("generate_order_number", {
-        p_store_id: storeId,
-      });
-      if (!rpcErr && rpcNum) {
-        numeroPedido = rpcNum;
+      const infoCupom = cupomAplicado
+        ? { codigo: cupomAplicado.codigo, desconto: valorDesconto }
+        : undefined;
+      const infoFrete = freteSelecionado
+        ? { label: freteSelecionado.label, valor: valorFrete }
+        : undefined;
+
+      // ── 1) Incrementa uso do cupom (localStorage + Supabase) ────────
+      if (cupomAplicado) {
+        try {
+          const chave = `vestui_cupons_${storeId}`;
+          const raw =
+            localStorage.getItem(chave) ||
+            localStorage.getItem(`vestui_cupons_${storeId}`) ||
+            localStorage.getItem(`vestuli_cupons_${storeId}`);
+          if (raw) {
+            const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
+            const atualizado = lista.map((c) =>
+              c.codigo === cupomAplicado.codigo ? { ...c, usos: c.usos + 1 } : c,
+            );
+            // 1a. Cache local imediato
+            localStorage.setItem(chave, JSON.stringify(atualizado));
+            // 1b. Sync com Supabase para manter painel admin atualizado
+            try {
+              const { data: sd } = await supabase
+                .from("stores")
+                .select("metadata")
+                .eq("id", storeId)
+                .maybeSingle();
+              const cm = (sd?.metadata as Record<string, unknown>) || {};
+              await supabase
+                .from("stores")
+                .update({ metadata: { ...cm, cupons: atualizado } as never })
+                .eq("id", storeId);
+            } catch { /* Falha silenciosa — não bloqueia o checkout */ }
+          }
+        } catch { /* silencia */ }
       }
-    } catch {
-      /* fallback com código único garantido */
-    }
 
-    // ── 3) Persiste no Supabase (tabela orders) ──────────────────────
-    const { fee: calculatedFee, net: calculatedNet } = calculateOrderNet(totalFinal, paymentMethod);
-
-    try {
-      const { data: insertedOrder, error } = await supabase.from("orders").insert({
-        store_id: storeId,
-        numero: numeroPedido,
-        customer_name: customerName.trim(),
-        customer_phone: customerPhone.trim(),
-        customer_email: customerEmail.trim() || null,
-        customer_address: {
-          cep: customerCep.trim(),
-          rua: customerRua.trim(),
-          numero: customerNumero.trim(),
-          bairro: customerBairro.trim(),
-          complemento: customerComplemento.trim(),
-        },
-        items: items.map((i) => ({
-          produtoId: i.id,
-          nome: i.nome,
-          tamanho: i.tamanho,
-          cor: i.cor,
-          qtd: i.quantidade,
-          preco: i.preco,
-        })),
-        subtotal: totalPrice,
-        frete_valor: valorFrete,
-        frete_tipo: freteSelecionado?.label ?? null,
-        desconto: valorDesconto,
-        cupom: cupomAplicado?.codigo ?? null,
-        total: totalFinal,
-        payment_method: paymentMethod,
-        payment_fee: calculatedFee,
-        net_amount: calculatedNet,
-        payment_status: "pendente",
-        status: "novo",
-        // gateway_provider, gateway_charge_id, escrow_status definidos pela migration
-        // 20260912_vestui_pay_foundation.sql — tipos gerados serão atualizados após apply
-      }).select("id").maybeSingle();
-      if (error) throw error;
-
-      // ── Pix Dinâmico Asaas: tenta criar cobrança automática ────────────────
-      // Se a loja tem Vestui Pay ativo, o Pix dinâmico assume o controle:
-      // exibe QR + timer + polling e NÃO abre WhatsApp automaticamente.
-      if (paymentMethod === "pix" && insertedOrder?.id) {
-        const pixMode = await handlePixDinamico(insertedOrder.id);
-        if (pixMode === "asaas") {
-          // Pix dinâmico ativo: a vitrine exibe QR Code + aguarda confirmação via webhook
-          // NÃO segue para o fluxo WhatsApp
-          setIsSubmitting(false);
-          return;
-        }
-        // pixMode === "manual": Vestui Pay inativo → segue para Pix manual com WhatsApp
-      }
-    } catch (err) {
-      console.error("Erro ao salvar pedido no Supabase:", err);
-      // fallback: salva no localStorage para não bloquear o checkout
+      // ── 2) Calcula número sequencial do pedido via Supabase RPC ────
+      let numeroPedido = `#${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
       try {
-        const chaveOrders = `vestui_orders_${storeId}`;
-        const rawOrders = localStorage.getItem(chaveOrders) || "[]";
-        const existentes = JSON.parse(rawOrders) as unknown[];
-        localStorage.setItem(chaveOrders, JSON.stringify([{
-          id: crypto.randomUUID(),
+        const { data: rpcNum, error: rpcErr } = await supabase.rpc("generate_order_number", {
+          p_store_id: storeId,
+        });
+        if (!rpcErr && rpcNum) {
+          numeroPedido = rpcNum;
+        }
+      } catch {
+        /* fallback com código único garantido */
+      }
+
+      // ── 3) Persiste no Supabase (tabela orders) ──────────────────────
+      const { fee: calculatedFee, net: calculatedNet } = calculateOrderNet(totalFinal, paymentMethod);
+
+      try {
+        const { data: insertedOrder, error } = await supabase.from("orders").insert({
+          store_id: storeId,
           numero: numeroPedido,
-          cliente: customerName,
-          telefone: customerPhone,
-          criadoEm: new Date().toISOString(),
-          status: "novo",
-          pagamento: paymentMethod,
-          frete: valorFrete,
-          desconto: valorDesconto,
-          cupom: cupomAplicado?.codigo,
-          itens: items.map((i) => ({
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          customer_email: customerEmail.trim() || null,
+          customer_address: isRetirada
+            ? { modalidade: "retirada", descricao: "Retirada presencial na loja / balcão" }
+            : {
+                cep: customerCep.trim(),
+                rua: customerRua.trim(),
+                numero: customerNumero.trim(),
+                bairro: customerBairro.trim(),
+                complemento: customerComplemento.trim(),
+              },
+          items: items.map((i) => ({
             produtoId: i.id,
             nome: i.nome,
             tamanho: i.tamanho,
@@ -1815,66 +1770,123 @@ function CartDrawer({
             qtd: i.quantidade,
             preco: i.preco,
           })),
-        }, ...existentes]));
-      } catch { /* silencia */ }
-    }
+          subtotal: totalPrice,
+          frete_valor: valorFrete,
+          frete_tipo: freteSelecionado?.label ?? null,
+          desconto: valorDesconto,
+          cupom: cupomAplicado?.codigo ?? null,
+          total: totalFinal,
+          payment_method: paymentMethod,
+          payment_fee: calculatedFee,
+          net_amount: calculatedNet,
+          payment_status: "pendente",
+          status: "novo",
+        }).select("id").maybeSingle();
+        if (error) throw error;
 
-    // ── 4) Monta mensagem WhatsApp enriquecida com dados da cliente ──
-    const enderecoStr = [
-      customerRua, customerNumero && `nº ${customerNumero}`,
-      customerBairro, customerCep && `CEP ${customerCep}`,
-      customerComplemento,
-    ].filter(Boolean).join(", ");
+        // ── Pix Dinâmico Asaas: tenta criar cobrança automática ────────────────
+        if (paymentMethod === "pix" && insertedOrder?.id) {
+          const pixMode = await handlePixDinamico(insertedOrder.id);
+          if (pixMode === "asaas") {
+            // Pix dinâmico ativo: a vitrine exibe QR Code + aguarda confirmação via webhook
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao salvar pedido no Supabase:", err);
+        // fallback: salva no localStorage para não bloquear o checkout
+        try {
+          const chaveOrders = `vestui_orders_${storeId}`;
+          const rawOrders = localStorage.getItem(chaveOrders) || "[]";
+          const existentes = JSON.parse(rawOrders) as unknown[];
+          localStorage.setItem(chaveOrders, JSON.stringify([{
+            id: crypto.randomUUID(),
+            numero: numeroPedido,
+            cliente: customerName,
+            telefone: customerPhone,
+            criadoEm: new Date().toISOString(),
+            status: "novo",
+            pagamento: paymentMethod,
+            frete: valorFrete,
+            desconto: valorDesconto,
+            cupom: cupomAplicado?.codigo,
+            itens: items.map((i) => ({
+              produtoId: i.id,
+              nome: i.nome,
+              tamanho: i.tamanho,
+              cor: i.cor,
+              qtd: i.quantidade,
+              preco: i.preco,
+            })),
+          }, ...existentes]));
+        } catch { /* silencia */ }
+      }
 
-    const metodoPagamentoLabel = {
-      pix: "💠 Pix",
-      cartao: "💳 Cartão de Crédito",
-      retirada: "🏪 Retirada na Loja",
-    }[paymentMethod];
+      // ── 4) Monta mensagem WhatsApp enriquecida com dados da cliente ──
+      const enderecoStr = [
+        customerRua, customerNumero && `nº ${customerNumero}`,
+        customerBairro, customerCep && `CEP ${customerCep}`,
+        customerComplemento,
+      ].filter(Boolean).join(", ");
 
-    const msgExtra = [
-      `\n👤 Cliente: ${customerName}`,
-      `📱 WhatsApp: ${customerPhone}`,
-      enderecoStr ? `📍 Endereço: ${enderecoStr}` : null,
-      `💳 Pagamento: ${metodoPagamentoLabel}`,
-      `🔖 Pedido: ${numeroPedido}`,
-    ].filter(Boolean).join("\n");
+      const metodoPagamentoLabel = {
+        pix: "💠 Pix",
+        cartao: "💳 Cartão de Crédito",
+        retirada: "🏪 Retirada na Loja",
+      }[paymentMethod];
 
-    const infoCupomWpp = infoCupom;
-    const infoFreteWpp = infoFrete;
+      const entregaStr = isRetirada
+        ? "📍 Entrega: 🏪 Retirada no balcão da loja"
+        : (enderecoStr ? `📍 Endereço de entrega: ${enderecoStr}` : null);
 
-    if (!whatsapp) {
-      try {
-        const msg = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp) + msgExtra;
-        void navigator.clipboard?.writeText(msg);
-      } catch { /* silencia */ }
-      toast.info("WhatsApp da loja não configurado", {
-        description: "O resumo do pedido foi copiado! Você pode encaminhar para a loja no WhatsApp.",
+      const msgExtra = [
+        `\n👤 Cliente: ${customerName}`,
+        `📱 WhatsApp: ${customerPhone}`,
+        entregaStr,
+        `💳 Pagamento: ${metodoPagamentoLabel}`,
+        `🔖 Pedido: ${numeroPedido}`,
+      ].filter(Boolean).join("\n");
+
+      const infoCupomWpp = infoCupom;
+      const infoFreteWpp = infoFrete;
+
+      if (!whatsapp) {
+        try {
+          const msg = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp) + msgExtra;
+          void navigator.clipboard?.writeText(msg);
+        } catch { /* silencia */ }
+        toast.info("WhatsApp da loja não configurado", {
+          description: "O resumo do pedido foi copiado! Você pode encaminhar para a loja no WhatsApp.",
+        });
+      }
+
+      // Monta URL manualmente para incluir dados extras na mensagem
+      const baseMsgWpp = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp);
+      const fullMsg = baseMsgWpp + msgExtra;
+      const digits = (whatsapp || "").replace(/\D/g, "");
+      if (digits.length >= 8) {
+        const phone = digits.startsWith("55") ? digits : `55${digits}`;
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(fullMsg)}`, "_blank", "noopener,noreferrer");
+      } else {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(fullMsg)}`, "_blank", "noopener,noreferrer");
+      }
+
+      // ── 5) Limpa estado ──────────────────────────────────────────────
+      clear();
+      setCupomAplicado(null);
+      setCodigoCupom("");
+      setFreteSelecionadoId("");
+      resetCheckout();
+      onClose();
+      toast.success(`Pedido ${numeroPedido} registrado!`, {
+        description: "Sua mensagem foi aberta no WhatsApp da loja.",
       });
+    } catch (err) {
+      console.error("[handleCheckout] Erro inesperado:", err);
+      toast.error("Ocorreu um erro ao finalizar o pedido. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Monta URL manualmente para incluir dados extras na mensagem
-    const baseMsgWpp = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp);
-    const fullMsg = baseMsgWpp + msgExtra;
-    const digits = (whatsapp || "").replace(/\D/g, "");
-    if (digits.length >= 8) {
-      const phone = digits.startsWith("55") ? digits : `55${digits}`;
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(fullMsg)}`, "_blank", "noopener,noreferrer");
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(fullMsg)}`, "_blank", "noopener,noreferrer");
-    }
-
-    // ── 5) Limpa estado ──────────────────────────────────────────────
-    clear();
-    setCupomAplicado(null);
-    setCodigoCupom("");
-    setFreteSelecionadoId("");
-    resetCheckout();
-    setIsSubmitting(false);
-    onClose();
-    toast.success(`Pedido ${numeroPedido} registrado!`, {
-      description: "Sua mensagem foi aberta no WhatsApp da loja.",
-    });
   }
 
   return (
@@ -2050,16 +2062,27 @@ function CartDrawer({
                 {cupomErro && <p className="mt-1 text-xs text-red-500">{cupomErro}</p>}
               </div>
             ) : (
-              <div className="mb-4 flex items-center justify-between rounded-xl bg-green-50 px-3 py-2">
-                <span className="text-xs font-semibold text-green-700">
-                  Cupom <span className="font-bold">{cupomAplicado.codigo}</span> aplicado
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-green-700">-{brl(valorDesconto)}</span>
-                  <button onClick={removerCupom} className="text-gray-400 hover:text-gray-600">
-                    <X className="h-3 w-3" />
-                  </button>
+              <div className="mb-4 space-y-1">
+                <div className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+                  valorDesconto > 0 ? "bg-green-50" : "bg-amber-50 border border-amber-200"
+                }`}>
+                  <span className={`text-xs font-semibold ${valorDesconto > 0 ? "text-green-700" : "text-amber-800"}`}>
+                    Cupom <span className="font-bold">{cupomAplicado.codigo}</span> {valorDesconto > 0 ? "aplicado" : "pausado"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold ${valorDesconto > 0 ? "text-green-700" : "text-amber-700"}`}>
+                      {valorDesconto > 0 ? `-${brl(valorDesconto)}` : "R$ 0,00"}
+                    </span>
+                    <button onClick={removerCupom} className="text-gray-400 hover:text-gray-600">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
+                {cupomAplicado.valor_minimo && totalPrice < cupomAplicado.valor_minimo && (
+                  <p className="text-[11px] text-amber-700 px-1">
+                    ⚠️ Este cupom exige compra mínima de {brl(cupomAplicado.valor_minimo)}. Adicione mais {brl(cupomAplicado.valor_minimo - totalPrice)} para reativar o desconto!
+                  </p>
+                )}
               </div>
             )}
             {/* Seletor de frete */}
@@ -2094,7 +2117,8 @@ function CartDrawer({
               </div>
               {cupomAplicado && (
                 <div className="flex items-center justify-between text-sm text-green-600">
-                  <span>Desconto</span><span>-{brl(valorDesconto)}</span>
+                  <span>Desconto {valorDesconto === 0 && "(Abaixo do mínimo)"}</span>
+                  <span>{valorDesconto > 0 ? `-${brl(valorDesconto)}` : "R$ 0,00"}</span>
                 </div>
               )}
               {freteSelecionado && (
@@ -2116,7 +2140,13 @@ function CartDrawer({
               </div>
             )}
             <button
-              onClick={() => setCheckoutStep("dados")}
+              onClick={() => {
+                if (opcoesFreteDisponiveis.length > 0 && !freteSelecionadoId) {
+                  toast.error("Por favor, selecione uma opção de entrega ou retirada para continuar.");
+                  return;
+                }
+                setCheckoutStep("dados");
+              }}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: cor }}
             >
@@ -2155,7 +2185,7 @@ function CartDrawer({
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600">WhatsApp *</label>
+                <label className="mb-1 block text-xs font-semibold text-gray-600">WhatsApp (com DDD) *</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input type="tel" placeholder="(99) 99999-9999" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
@@ -2169,36 +2199,67 @@ function CartDrawer({
                   className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
                   style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
               </div>
-              <p className="pt-1 text-xs font-semibold text-gray-500 flex items-center gap-1.5">
-                <Home className="h-3.5 w-3.5" /> Endereco de entrega
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-2">
-                  <input type="text" placeholder="Rua / Av." value={customerRua} onChange={(e) => setCustomerRua(e.target.value)}
+
+              {isRetirada ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs text-emerald-800 flex items-start gap-2">
+                  <span className="text-base mt-0.5">🏪</span>
+                  <div>
+                    <p className="font-semibold">Retirada na Loja selecionada</p>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">
+                      Você combinará a retirada diretamente no balcão. Não é necessário preencher endereço de entrega.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="pt-1 text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                    <Home className="h-3.5 w-3.5" /> Endereço de entrega *
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <input type="text" placeholder="Rua / Av. *" value={customerRua} onChange={(e) => setCustomerRua(e.target.value)}
+                        className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                        style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                    </div>
+                    <input type="text" placeholder="Nº *" value={customerNumero} onChange={(e) => setCustomerNumero(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Bairro" value={customerBairro} onChange={(e) => setCustomerBairro(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                    <input type="text" placeholder="CEP" value={customerCep} onChange={(e) => setCustomerCep(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                  </div>
+                  <input type="text" placeholder="Complemento (apto, bloco...)" value={customerComplemento} onChange={(e) => setCustomerComplemento(e.target.value)}
                     className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
                     style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
-                </div>
-                <input type="text" placeholder="No" value={customerNumero} onChange={(e) => setCustomerNumero(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <input type="text" placeholder="Bairro" value={customerBairro} onChange={(e) => setCustomerBairro(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
-                <input type="text" placeholder="CEP" value={customerCep} onChange={(e) => setCustomerCep(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                  style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
-              </div>
-              <input type="text" placeholder="Complemento (apto, bloco...)" value={customerComplemento} onChange={(e) => setCustomerComplemento(e.target.value)}
-                className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                </>
+              )}
             </div>
             <div className="px-5 pb-6">
               <button
                 onClick={() => {
-                  if (!customerName.trim() || !customerPhone.trim()) {
-                    toast.error("Preencha nome e WhatsApp para continuar.");
+                  if (!customerName.trim()) {
+                    toast.error("Informe seu nome completo para continuar.");
+                    return;
+                  }
+                  const phoneDigits = customerPhone.replace(/\D/g, "");
+                  if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+                    toast.error("Informe um WhatsApp válido com DDD (ex: 11 99999-9999).");
+                    return;
+                  }
+                  if (customerEmail.trim()) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(customerEmail.trim())) {
+                      toast.error("Informe um e-mail válido ou deixe o campo em branco.");
+                      return;
+                    }
+                  }
+                  if (!isRetirada && (!customerRua.trim() || !customerNumero.trim())) {
+                    toast.error("Informe a rua e o número para a entrega.");
                     return;
                   }
                   setCheckoutStep("pagamento");
@@ -2472,16 +2533,6 @@ function CartDrawer({
                       <strong>Como pagar:</strong> Clique em <em>"Confirmar e abrir WhatsApp"</em> → a loja enviará o link ou combinará o pagamento na maquininha.
                     </p>
                   </div>
-                </div>
-              )}
-
-              {paymentMethod === "cartao" && (
-                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
-                  <p className="font-semibold text-blue-800">Detalhamento financeiro</p>
-                  <div className="flex justify-between text-blue-700"><span>Total pago pela cliente</span><span>{brl(totalFinal)}</span></div>
-                  <div className="flex justify-between text-blue-600"><span>Taxa operadora (3,5%)</span><span>- {brl(totalFinal * 0.035)}</span></div>
-                  <div className="flex justify-between font-bold text-blue-900 border-t border-blue-200 pt-1"><span>Liquido para a loja</span><span>{brl(Math.max(totalFinal - totalFinal * 0.035, 0))}</span></div>
-                  <p className="text-[10px] text-blue-500 pt-0.5">Esta taxa e cobrada pela operadora de cartao, nao pela Vestui.</p>
                 </div>
               )}
             </div>
