@@ -28,6 +28,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_store_created
 CREATE INDEX IF NOT EXISTS idx_orders_numero_store
   ON public.orders USING btree (store_id, numero);
 
+-- 1e. Busca por proprietário da loja (RLS multi-tenant e StoreContext resolver)
+CREATE INDEX IF NOT EXISTS idx_stores_owner_id
+  ON public.stores USING btree (owner_id);
+
 -- ─────────────────────────────────────────────────────────────
 -- 2. RPC ATÔMICA DE BAIXA DE ESTOQUE (Anti-Overselling)
 -- ─────────────────────────────────────────────────────────────

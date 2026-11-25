@@ -98,8 +98,93 @@ function injectCacheHeaders(request: Request, response: Response): Response {
   return new Response(response.body, { status: response.status, headers: newHeaders });
 }
 
+/**
+ * Rate Limiter na Borda (Edge IP Throttling)
+ *
+ * Protege contra:
+ *   1. Ataques de força bruta e spam de checkout / pedidos
+ *   2. Scraping agressivo e sobrecarga de CPU/memória no Worker
+ *   3. Negação de serviço (DoS) em chamadas dinâmicas
+ *
+ * Configuração:
+ *   - Requisições gerais (GET): até 120 requisições por janela de 10s por IP
+ *   - Mutações (POST/PUT/DELETE): até 30 requisições por janela de 60s por IP
+ */
+type RateLimitEntry = {
+  count: number;
+  resetAt: number;
+};
+
+const ipRateLimits = new Map<string, RateLimitEntry>();
+let lastCleanup = Date.now();
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "127.0.0.1"
+  );
+}
+
+function checkRateLimit(request: Request): Response | null {
+  const ip = getClientIp(request);
+  const now = Date.now();
+
+  // Limpeza de memória periódica (a cada 60s ou se mapa crescer muito)
+  if (now - lastCleanup > 60_000 || ipRateLimits.size > 5_000) {
+    for (const [key, entry] of ipRateLimits.entries()) {
+      if (now > entry.resetAt) {
+        ipRateLimits.delete(key);
+      }
+    }
+    lastCleanup = now;
+  }
+
+  const isMutation = ["POST", "PUT", "DELETE", "PATCH"].includes(request.method);
+  const key = `${ip}:${isMutation ? "mut" : "get"}`;
+  const maxRequests = isMutation ? 30 : 120;
+  const windowMs = isMutation ? 60_000 : 10_000;
+
+  const entry = ipRateLimits.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    ipRateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return null;
+  }
+
+  entry.count++;
+
+  if (entry.count > maxRequests) {
+    const retryAfter = Math.max(Math.ceil((entry.resetAt - now) / 1000), 1);
+    return new Response(
+      JSON.stringify({
+        error: "Too Many Requests",
+        message: "Muitas requisições simultâneas. Por favor, aguarde alguns instantes.",
+        retryAfter,
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Retry-After": String(retryAfter),
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      },
+    );
+  }
+
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // 1. Rate Limiting na borda (Edge Protection)
+    const rateLimitResponse = checkRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
