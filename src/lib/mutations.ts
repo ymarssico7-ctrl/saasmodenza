@@ -944,6 +944,35 @@ export async function adjustInventoryStock(
     return;
   }
 
+  // ── ESCALABILIDADE / PESSIMISTIC LOCKING: ──────────────────────────
+  // Se for baixa de estoque (delta < 0), tenta executar via RPC atômica
+  // com FOR UPDATE no PostgreSQL para eliminar race conditions em pico de vendas.
+  if (delta < 0) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rpcOk, error: rpcErr } = await (supabase.rpc as any)(
+        "decrement_stock_atomic",
+        {
+          p_product_id: productId,
+          p_size: (tamanho || "Único").trim(),
+          p_quantity: Math.abs(delta),
+        },
+      );
+      if (!rpcErr && typeof rpcOk === "boolean") {
+        if (!rpcOk) {
+          throw new Error("Estoque insuficiente para este produto.");
+        }
+        return; // Baixa atômica bem-sucedida!
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes("Estoque insuficiente")) {
+        throw err;
+      }
+      // Se a RPC falhar (ex.: migration ainda não aplicada no Supabase),
+      // prossegue com o fallback Read-Modify-Write abaixo.
+    }
+  }
+
   const { data, error } = await supabase
     .from("inventory_items")
     .select("sizes")

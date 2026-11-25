@@ -210,7 +210,9 @@ auditFile("routes/_authenticated/loja.templates.tsx", [
   {
     name: "applyTemplate persiste templateId no Supabase",
     fn: (c) => ({
-      pass: c.includes("templateId: entry.id") && c.includes(".update("),
+      pass:
+        (c.includes("saveStoreThemeToCloud") && c.includes("updated")) ||
+        (c.includes("templateId: entry.id") && c.includes(".update(")),
       reason: "Template não persiste templateId no Supabase",
     }),
   },

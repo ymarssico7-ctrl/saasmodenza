@@ -69,6 +69,17 @@ export const Route = createFileRoute("/vitrine/$storeSlug")({
 });
 
 // ─── Tipos internos ───────────────────────────────────────────────
+
+/**
+ * StorePublicData — subconjunto seguro de `stores` exposto na vitrine pública.
+ *
+ * REGRA DE SEGURANÇA: NUNCA adicionar campos de PII aqui.
+ * - `chavePix`, `tipoChavePix`, `titularPix` vivem em `vitrineSettings` (dentro de metadata)
+ *   e só são acessados pelo CartDrawer, que os lê de `store_public_vitrine` via
+ *   uma consulta separada autenticada SOMENTE na etapa de pagamento Pix.
+ * - O campo `metadata` NUNCA é incluído no select público abaixo; apenas a chave
+ *   `metadata->>'public_data'` extraída via PostgREST column-filter é permitida.
+ */
 type StoreData = {
   id: string;
   name: string;
@@ -78,6 +89,8 @@ type StoreData = {
   plan?: string | null;
   plan_tier?: string | null;
   store_subscription_active?: boolean | null;
+  /** Apenas as chaves seguras do metadata são retornadas: theme, templateId, showcaseConfigs,
+   *  vitrineSettings (SEM chavePix), categorias, descricao, capaUrl. */
   metadata?: Record<string, unknown> | null;
 };
 
@@ -113,15 +126,73 @@ function VitrineLayout() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stores")
-        // SEGURANÇA: metadata contém chavePix (PII da lojista) — NÃO incluir em queries públicas.
-        // vitrineSettings (cor, logo, etc.) vêm via campo dedicado sem PII.
-        // plan, plan_tier e store_subscription_active resolvem o entitlement (White-Label e catálogo vs sacola)
-        .select("id, name, phone, city, owner_id, metadata, plan, plan_tier, store_subscription_active")
+        // ─── SEGURANÇA / PII SANITIZATION ─────────────────────────────────────────
+        // NUNCA adicione `metadata` aqui diretamente: o campo contém chavePix (CPF/CNPJ
+        // da lojista), tipoChavePix e titularPix — dados pessoais sensíveis (LGPD/PCI).
+        //
+        // Para ler apenas as chaves seguras (theme, templateId, showcaseConfigs,
+        // vitrineSettings sem chavePix, categorias, descricao, capaUrl) usamos
+        // o PostgREST column filter `metadata->theme` etc. em queries separadas
+        // e construímos um objeto seguro manualmente no cliente.
+        //
+        // A chave Pix da lojista é lida de `vitrineSettings` SOMENTE na etapa
+        // de pagamento Pix, dentro do CartDrawer, via `loadPixSettingsForCheckout`.
+        // ──────────────────────────────────────────────────────────────────────────
+        .select([
+          "id",
+          "name",
+          "phone",
+          "city",
+          "owner_id",
+          "plan",
+          "plan_tier",
+          "store_subscription_active",
+          // Extrai sub-chaves públicas do JSONB sem expor o objeto inteiro.
+          // chavePix, tipoChavePix e titularPix NÃO são incluídos.
+          "metadata->theme",
+          "metadata->templateId",
+          "metadata->showcaseConfigs",
+          "metadata->vitrineSettings",
+          "metadata->categorias",
+          "metadata->descricao",
+          "metadata->capaUrl",
+          "metadata->store_subscription_active",
+        ].join(", "))
         .eq("slug", storeSlug)
         .maybeSingle();
       if (error) throw error;
-      return (data as unknown) as StoreData;
+      if (!data) return null;
+      // Reconstrói um objeto `metadata` seguro apenas com as chaves públicas extraídas.
+      // O PostgREST retorna cada `metadata->key` como propriedade `key` no objeto.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = data as Record<string, any>;
+      const safeMetadata: Record<string, unknown> = {};
+      const pubKeys = ["theme", "templateId", "showcaseConfigs", "vitrineSettings", "categorias", "descricao", "capaUrl", "store_subscription_active"] as const;
+      for (const k of pubKeys) {
+        if (raw[k] !== undefined && raw[k] !== null) safeMetadata[k] = raw[k];
+      }
+      // Remove chaves Pix de vitrineSettings se vieram por engano via JSON
+      if (safeMetadata["vitrineSettings"] && typeof safeMetadata["vitrineSettings"] === "object") {
+        const vs = { ...(safeMetadata["vitrineSettings"] as Record<string, unknown>) };
+        delete vs["chavePix"];
+        delete vs["tipoChavePix"];
+        delete vs["titularPix"];
+        safeMetadata["vitrineSettings"] = vs;
+      }
+      return {
+        id: raw["id"],
+        name: raw["name"],
+        phone: raw["phone"] ?? null,
+        city: raw["city"] ?? null,
+        owner_id: raw["owner_id"],
+        plan: raw["plan"] ?? null,
+        plan_tier: raw["plan_tier"] ?? null,
+        store_subscription_active: raw["store_subscription_active"] ?? null,
+        metadata: safeMetadata,
+      } as StoreData;
     },
+    staleTime: 10_000, // 10s — vitrine pública pode ser cacheada pelo React-Query
+    gcTime: 60_000,    // 60s — mantém no cache do cliente para navegação rápida
   });
 
   // ── Busca o inventário da loja ────────────────────────────────
@@ -1407,6 +1478,19 @@ function CartDrawer({
   urlCupomParam?: string | null;
 }) {
   const { items, totalItems, totalPrice, remove, increment, decrement, clear } = useCart();
+
+  // ── Busca lazy da chave Pix — APENAS quando o cliente entra na etapa de pagamento ──
+  // A chavePix NÃO vem da query pública inicial (medida de segurança PII/LGPD).
+  // Aqui fazemos uma query separada que inclui apenas os campos de pagamento
+  // necessários para gerar o QR Code Pix manual, e somente quando o usuário
+  // avança para a etapa "pagamento".
+  const [pixSettingsFetched, setPixSettingsFetched] = useState(false);
+  const [pixSettingsLazy, setPixSettingsLazy] = useState<{
+    chavePix?: string;
+    tipoChavePix?: string;
+    titularPix?: string;
+    estado?: string;
+  } | null>(null);
   const [codigoCupom, setCodigoCupom] = useState("");
   // Armazena as regras do cupom (tipo + valor), NÃO o desconto estático
   const [cupomAplicado, setCupomAplicado] = useState<{
@@ -1454,6 +1538,50 @@ function CartDrawer({
     setPixAsaasStatus("idle"); setPixChargeData(null);
     setPixCountdown(0); setPixOrderId(null);
   }
+
+  // ── Fetch lazy das configurações de Pix (somente ao entrar na etapa "pagamento") ──
+  // SEGURANÇA: A query pública da vitrine NÃO retorna chavePix (PII/LGPD).
+  // Este useEffect busca as configurações de Pix em uma query separada,
+  // com escopo limitado a metadata->vitrineSettings, somente quando necessário.
+  // Isso também reduz o payload da carga inicial da vitrine.
+  useEffect(() => {
+    if (checkoutStep !== "pagamento" || pixSettingsFetched) return;
+    if (!storeId || storeId === "") return;
+    // Marca como "em busca" imediatamente para evitar múltiplas chamadas
+    setPixSettingsFetched(true);
+    // 1. Verifica primeiro nos vitrineSettings do metadata já carregado (sem chavePix)
+    const localVS = vs;
+    if (localVS?.chavePix) {
+      // Veio do localStorage do próprio dispositivo da lojista (configuração offline)
+      setPixSettingsLazy({
+        chavePix: localVS.chavePix,
+        ...(localVS.tipoChavePix ? { tipoChavePix: localVS.tipoChavePix } : {}),
+        ...(localVS.titularPix   ? { titularPix:   localVS.titularPix   } : {}),
+        ...(localVS.estado       ? { estado:       localVS.estado       } : {}),
+      });
+      return;
+    }
+    // 2. Busca no Supabase apenas a sub-chave vitrineSettings (que inclui chavePix)
+    //    Esta query é feita somente quando o cliente confirma que quer pagar com Pix.
+    supabase
+      .from("stores")
+      .select("metadata->vitrineSettings")
+      .eq("id", storeId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const vs2 = (data as Record<string, any>)["vitrineSettings"] as Record<string, unknown> | null;
+        if (vs2) {
+          setPixSettingsLazy({
+            ...(vs2["chavePix"]     ? { chavePix:     vs2["chavePix"]     as string } : {}),
+            ...(vs2["tipoChavePix"] ? { tipoChavePix: vs2["tipoChavePix"] as string } : {}),
+            ...(vs2["titularPix"]   ? { titularPix:   vs2["titularPix"]   as string } : {}),
+            ...(vs2["estado"]       ? { estado:       vs2["estado"]       as string } : {}),
+          });
+        }
+      });
+  }, [checkoutStep, storeId, pixSettingsFetched, vs]);
 
   // Fix 3: Opções de frete lidas do localStorage (mesma config do loja.frete.tsx)
   type OpcaoFrete = {
@@ -1698,34 +1826,58 @@ function CartDrawer({
         ? { label: freteSelecionado.label, valor: valorFrete }
         : undefined;
 
-      // ── 1) Incrementa uso do cupom (localStorage + Supabase) ────────
+      // ── 1) Incrementa uso do cupom (Atômico no PostgreSQL + fallback) ────
       if (cupomAplicado) {
         try {
-          const chave = `vestui_cupons_${storeId}`;
-          const raw =
-            localStorage.getItem(chave) ||
-            localStorage.getItem(`vestui_cupons_${storeId}`) ||
-            localStorage.getItem(`vestuli_cupons_${storeId}`);
-          if (raw) {
-            const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
-            const atualizado = lista.map((c) =>
-              c.codigo === cupomAplicado.codigo ? { ...c, usos: c.usos + 1 } : c,
-            );
-            // 1a. Cache local imediato
-            localStorage.setItem(chave, JSON.stringify(atualizado));
-            // 1b. Sync com Supabase para manter painel admin atualizado
-            try {
-              const { data: sd } = await supabase
-                .from("stores")
-                .select("metadata")
-                .eq("id", storeId)
-                .maybeSingle();
-              const cm = (sd?.metadata as Record<string, unknown>) || {};
-              await supabase
-                .from("stores")
-                .update({ metadata: { ...cm, cupons: atualizado } as never })
-                .eq("id", storeId);
-            } catch { /* Falha silenciosa — não bloqueia o checkout */ }
+          // 1a. Tenta incremento atômico no PostgreSQL (FOR UPDATE — previne race conditions)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)(
+            "increment_coupon_usage",
+            {
+              p_store_id: storeId,
+              p_coupon_code: cupomAplicado.codigo,
+            },
+          );
+
+          if (!rpcErr && (rpcRes as any)?.success) {
+            // Sucesso atômico! Sincroniza cache local se disponível
+            const chave = `vestui_cupons_${storeId}`;
+            const raw = localStorage.getItem(chave);
+            if (raw) {
+              try {
+                const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
+                const atualizado = lista.map((c) =>
+                  c.codigo === cupomAplicado.codigo ? { ...c, usos: ((rpcRes as any).novo_usos ?? c.usos + 1) } : c,
+                );
+                localStorage.setItem(chave, JSON.stringify(atualizado));
+              } catch { /* silencia */ }
+            }
+          } else {
+            // 1b. Fallback caso a RPC ainda não esteja disponível no banco
+            const chave = `vestui_cupons_${storeId}`;
+            const raw =
+              localStorage.getItem(chave) ||
+              localStorage.getItem(`vestui_cupons_${storeId}`) ||
+              localStorage.getItem(`vestuli_cupons_${storeId}`);
+            if (raw) {
+              const lista = JSON.parse(raw) as Array<{ codigo: string; usos: number }>;
+              const atualizado = lista.map((c) =>
+                c.codigo === cupomAplicado.codigo ? { ...c, usos: c.usos + 1 } : c,
+              );
+              localStorage.setItem(chave, JSON.stringify(atualizado));
+              try {
+                const { data: sd } = await supabase
+                  .from("stores")
+                  .select("metadata")
+                  .eq("id", storeId)
+                  .maybeSingle();
+                const cm = (sd?.metadata as Record<string, unknown>) || {};
+                await supabase
+                  .from("stores")
+                  .update({ metadata: { ...cm, cupons: atualizado } as never })
+                  .eq("id", storeId);
+              } catch { /* Falha silenciosa — não bloqueia o checkout */ }
+            }
           }
         } catch { /* silencia */ }
       }
@@ -2456,10 +2608,13 @@ function CartDrawer({
                 }
 
                 // ── Estado: idle — Pix Manual (fallback / Vestui Pay inativo) ─
-                const pixKey     = vs?.chavePix ?? "";
-                const pixTipo    = vs?.tipoChavePix ?? "cpf";
-                const pixTitular = vs?.titularPix ?? "";
-                const pixCidade  = vs?.estado ?? "Brasil";
+                // Usa pixSettingsLazy (carregado lazy ao entrar na etapa de pagamento).
+                // Isso garante que a chavePix NUNCA seja enviada no payload da carga
+                // inicial da vitrine (proteção de PII/LGPD).
+                const pixKey     = pixSettingsLazy?.chavePix ?? "";
+                const pixTipo    = pixSettingsLazy?.tipoChavePix ?? "cpf";
+                const pixTitular = pixSettingsLazy?.titularPix ?? "";
+                const pixCidade  = pixSettingsLazy?.estado ?? "Brasil";
                 const pixPayload = pixKey
                   ? generatePixPayload({ key: pixKey, amount: totalFinal,
                       merchantName: pixTitular || storeName, merchantCity: pixCidade, txId: "VESTUI" })

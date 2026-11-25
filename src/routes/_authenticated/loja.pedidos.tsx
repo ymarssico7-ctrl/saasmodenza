@@ -429,7 +429,13 @@ function PedidosPage() {
     sizes: Record<string, number> | null;
   }>;
 
-  // Consulta reativa aos pedidos gravados no Supabase
+  // Consulta reativa aos pedidos gravados no Supabase.
+  // ESCALABILIDADE: Limite de 300 pedidos por consulta para proteger
+  // a memória do navegador e evitar transferência de megabytes.
+  // Pedidos mais antigos ficam disponíveis via exportação CSV.
+  // O Realtime via useEffect abaixo mantém o painel atualizado em tempo real
+  // sem necessidade de recarregar todos os pedidos históricos.
+  const ORDERS_PAGE_LIMIT = 300;
   const { data: dbOrders = [], refetch: recarregarPedidos } = useQuery({
     queryKey: ["orders", storeId],
     queryFn: async () => {
@@ -438,7 +444,8 @@ function PedidosPage() {
         .from("orders")
         .select("*")
         .eq("store_id", storeId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(ORDERS_PAGE_LIMIT);  // ← Proteção: nunca carrega mais de 300 pedidos de uma vez
       if (error) {
         console.error("Erro ao buscar pedidos no Supabase:", error);
         return [];
@@ -446,6 +453,7 @@ function PedidosPage() {
       return data || [];
     },
     enabled: !!storeId,
+    staleTime: 15_000, // 15s — reduz refetches duplicados em tabs múltiplas
   });
 
   // Supabase Realtime: escuta novos pedidos ou atualizações em tempo real

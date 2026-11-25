@@ -558,6 +558,27 @@ export type Database = {
         };
         Returns: string;
       };
+      decrement_stock_atomic: {
+        Args: {
+          p_product_id: string;
+          p_size: string;
+          p_quantity: number;
+        };
+        Returns: boolean;
+      };
+      increment_coupon_usage: {
+        Args: {
+          p_store_id: string;
+          p_coupon_code: string;
+        };
+        Returns: Json;
+      };
+      confirm_order_and_deduct_stock: {
+        Args: {
+          p_order_id: string;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;
