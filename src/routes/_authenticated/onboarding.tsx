@@ -6,7 +6,8 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
 import { toNumber, slugify } from "@/lib/format";
-import { loadTheme, saveTheme } from "@/lib/theme-engine/defaults";
+import { getPresetThemeForTemplate, saveTheme } from "@/lib/theme-engine/defaults";
+import type { ThemeConfig } from "@/lib/theme-engine/schema";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,16 +142,39 @@ function Onboarding() {
         onboarding_done: true,
       };
 
+      const realName = storeName.trim() || "Minha loja";
+      const realPhone = phone.trim();
+
+      const buildInitialTheme = (existingMeta?: Record<string, unknown> | null): ThemeConfig => {
+        const existingTheme = existingMeta?.["theme"] as ThemeConfig | undefined;
+        if (existingTheme && existingTheme.settings) {
+          return {
+            ...existingTheme,
+            settings: {
+              ...existingTheme.settings,
+              storeName: realName,
+              storeWhatsApp: realPhone || existingTheme.settings.storeWhatsApp || "",
+            },
+          };
+        }
+        return getPresetThemeForTemplate("template-02", {
+          storeName: realName,
+          storeWhatsApp: realPhone,
+        });
+      };
+
       const storePatch = {
-        name: storeName.trim() || "Minha loja",
+        name: realName,
         city: city.trim() || null,
-        phone: phone.trim() || null,
+        phone: realPhone || null,
         prolabore_target: toNumber(target),
         slug: uniqueSlug,
         store_trial_offered_at: now.toISOString(),
         store_trial_accepted: true,
         store_trial_expires_at: trialExpires.toISOString(),
       };
+
+      let finalTheme: ThemeConfig = buildInitialTheme();
 
       if (!isAuth) {
         // Modo demo / dev local sem autenticação Supabase
@@ -163,6 +187,10 @@ function Onboarding() {
             id: "demo-store",
             owner_id: uid,
             ...storePatch,
+            metadata: {
+              theme: finalTheme,
+              templateId: finalTheme.settings.templateId,
+            },
             plan: "gestao_anual",
             onboarding_done: true,
             created_at: now.toISOString(),
@@ -193,24 +221,55 @@ function Onboarding() {
           if (error) throw new Error(`Erro ao criar perfil: ${error.message}`);
         }
 
-        // 2. Atualizar ou Criar loja (stores - Upsert seguro)
+        // 2. Atualizar ou Criar loja (stores - Upsert seguro) preservando metadados e inicializando Theme Engine
         const { data: existingStore } = await supabase
           .from("stores")
-          .select("id")
+          .select("id, metadata")
           .eq("owner_id", uid)
           .maybeSingle();
+
+        const existingMeta = (existingStore?.metadata as Record<string, unknown> | null) ?? {};
+        finalTheme = buildInitialTheme(existingMeta);
+        const mergedMetadata = {
+          ...existingMeta,
+          theme: finalTheme,
+          templateId: finalTheme.settings.templateId,
+        };
 
         if (existingStore) {
           const { error } = await supabase
             .from("stores")
-            .update(storePatch)
+            .update({ ...storePatch, metadata: mergedMetadata as never })
             .eq("owner_id", uid);
-          if (error) throw new Error(`Erro ao atualizar loja: ${error.message}`);
+          if (error) {
+            if (error.code === "23505" && error.message?.includes("slug")) {
+              const fallbackSlug = `${uniqueSlug}-${Math.random().toString(36).substring(2, 6)}`;
+              const { error: retryErr } = await supabase
+                .from("stores")
+                .update({ ...storePatch, slug: fallbackSlug, metadata: mergedMetadata as never })
+                .eq("owner_id", uid);
+              if (retryErr) throw new Error(`Erro ao atualizar loja: ${retryErr.message}`);
+              uniqueSlug = fallbackSlug;
+            } else {
+              throw new Error(`Erro ao atualizar loja: ${error.message}`);
+            }
+          }
         } else {
           const { error } = await supabase
             .from("stores")
-            .insert({ ...storePatch, owner_id: uid });
-          if (error) throw new Error(`Erro ao criar loja: ${error.message}`);
+            .insert({ ...storePatch, owner_id: uid, metadata: mergedMetadata as never });
+          if (error) {
+            if (error.code === "23505" && error.message?.includes("slug")) {
+              const fallbackSlug = `${uniqueSlug}-${Math.random().toString(36).substring(2, 6)}`;
+              const { error: retryErr } = await supabase
+                .from("stores")
+                .insert({ ...storePatch, slug: fallbackSlug, owner_id: uid, metadata: mergedMetadata as never });
+              if (retryErr) throw new Error(`Erro ao criar loja: ${retryErr.message}`);
+              uniqueSlug = fallbackSlug;
+            } else {
+              throw new Error(`Erro ao criar loja: ${error.message}`);
+            }
+          }
         }
       }
 
@@ -220,18 +279,8 @@ function Onboarding() {
         queryClient.invalidateQueries({ queryKey: ["active_store"] }),
       ]);
 
-      // Escreve o nome da loja no Theme Engine para que os templates
-      // exibam imediatamente o nome real — sem precisar editar manualmente.
-      const savedTheme = loadTheme();
-      const realName = storeName.trim() || "Minha loja";
-      saveTheme({
-        ...savedTheme,
-        settings: {
-          ...savedTheme.settings,
-          storeName: realName,
-          storeWhatsApp: phone.trim() || savedTheme.settings.storeWhatsApp || "",
-        },
-      });
+      // Espelha o tema oficial no localStorage para abertura imediata no ThemeBuilder
+      saveTheme(finalTheme);
 
       toast.success(
         `Tudo pronto! Sua vitrine já está em vestui.app/vitrine/${uniqueSlug} 🎉`,

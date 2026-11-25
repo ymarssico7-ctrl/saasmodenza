@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { loadTheme } from "@/lib/theme-engine/defaults";
+import { useStore } from "@/lib/store-context";
+import { inventoryQuery } from "@/lib/db";
+import { mergeInventoryWithShowcase } from "@/lib/showcase-store";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
 const CHANNEL_NAME = "vestui_theme_preview";
@@ -14,11 +18,20 @@ export const Route = createFileRoute("/loja/preview-frame")({
 });
 
 function PreviewFramePage() {
+  const { store } = useStore();
   const [theme, setTheme] = useState<ThemeConfig>(() => loadTheme());
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [interactionMode, setInteractionMode] = useState<"edit" | "interactive">("edit");
   // Canal reutilizável — evita criar/destruir uma instância a cada clique do usuário
   const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // Produtos reais da loja para o Preview Mobile
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const allProducts = useMemo(() => {
+    return mergeInventoryWithShowcase(
+      rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0],
+    );
+  }, [rawInventory]);
 
   // Abre o canal uma única vez ao montar e reutiliza para envio e recebimento
   useEffect(() => {
@@ -35,6 +48,9 @@ function PreviewFramePage() {
           setInteractionMode((payload as "edit" | "interactive") || "edit");
         }
       };
+
+      // Handshake: avisa o builder pai que o iframe está pronto para receber o tema atual
+      channel.postMessage({ type: "PREVIEW_FRAME_READY" });
     } catch {
       // BroadcastChannel não suportado — fallback: sem comunicação
     }
@@ -76,6 +92,9 @@ function PreviewFramePage() {
         onSectionClick={(id) => postToBuilder("SECTION_CLICK", id)}
         onToggleSection={(id) => postToBuilder("TOGGLE_SECTION", id)}
         onDeleteSection={(id) => postToBuilder("DELETE_SECTION", id)}
+        showcaseProducts={allProducts}
+        storeName={store?.name}
+        {...(store?.phone ? { storePhone: store.phone } : {})}
       />
     </div>
   );

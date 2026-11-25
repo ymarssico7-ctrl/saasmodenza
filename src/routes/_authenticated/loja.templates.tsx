@@ -22,7 +22,7 @@ import { profileQuery, inventoryQuery } from "@/lib/db";
 import { useAccess, isTemplateAllowed } from "@/lib/useAccess";
 import { UpgradeLoteModal } from "@/components/upgrade-lote-modal";
 import { UpgradeStoreModal } from "@/components/upgrade-store-modal";
-import { supabase } from "@/integrations/supabase/client";
+import { saveStoreThemeToCloud } from "@/lib/store-metadata";
 import { QuickStoreWizard } from "@/components/loja/quick-store-wizard";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
@@ -143,19 +143,11 @@ function GaleriaTemplatesPage() {
     saveTheme(updated);
     setActiveTemplateId(entry.id);
 
-    // Persiste no Supabase e aguarda para evitar race condition com React Query
-    if (store?.id) {
-      const currentMeta = (store.metadata as Record<string, unknown> | null) || {};
-      const { error } = await supabase
-        .from("stores")
-        .update({
-          metadata: {
-            ...currentMeta,
-            theme: updated,
-            templateId: entry.id,
-          } as never,
-        })
-        .eq("id", store.id);
+    // Persiste no Supabase de forma atômica preservando metadados paralelos (cupons, frete, etc.)
+    if (store?.id && store.id !== "00000000-0000-0000-0000-000000000000") {
+      const { error } = await saveStoreThemeToCloud(store.id, updated, {
+        recordHistory: false,
+      });
 
       if (error) {
         toast.error("Erro ao salvar template no servidor.");

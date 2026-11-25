@@ -15,6 +15,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { slugify } from "@/lib/format";
+import { getPresetThemeForTemplate } from "@/lib/theme-engine/defaults";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -129,6 +130,11 @@ export const storeQuery = () =>
         const trialExpires = new Date(now);
         trialExpires.setDate(trialExpires.getDate() + 7);
 
+        const initialTheme = getPresetThemeForTemplate("template-02", {
+          storeName: initialName,
+          storeWhatsApp: profileData?.phone ?? "",
+        });
+
         const { data: created, error: createErr } = await supabase
           .from("stores")
           .insert({
@@ -140,6 +146,10 @@ export const storeQuery = () =>
             store_trial_offered_at: now.toISOString(),
             store_trial_accepted: true,
             store_trial_expires_at: trialExpires.toISOString(),
+            metadata: {
+              theme: initialTheme,
+              templateId: initialTheme.settings.templateId,
+            } as never,
           })
           .select()
           .single();

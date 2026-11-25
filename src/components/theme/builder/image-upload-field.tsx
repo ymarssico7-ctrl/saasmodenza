@@ -104,7 +104,10 @@ export function ImageUploadField({
       if (uploadedUrl) {
         onChange(uploadedUrl);
       } else {
-        const compressed = await compressImage(file, maxWidth, maxHeight, 0.78);
+        // Otimização de escalabilidade: limita base64 para evitar inchaço do JSONB (Cenário F)
+        const safeWidth = Math.min(maxWidth, 1280);
+        const safeHeight = Math.min(maxHeight, 720);
+        const compressed = await compressImage(file, safeWidth, safeHeight, 0.72);
         onChange(compressed);
       }
       setTab("upload");

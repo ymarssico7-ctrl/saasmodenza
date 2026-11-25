@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   Check,
@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,9 @@ import { BuilderProvider, useBuilder } from "@/lib/theme-engine/context";
 import { saveTheme, loadTheme } from "@/lib/theme-engine/defaults";
 import { useStore } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
+import { inventoryQuery } from "@/lib/db";
+import { mergeInventoryWithShowcase } from "@/lib/showcase-store";
+import { saveStoreThemeToCloud } from "@/lib/store-metadata";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { QuickStoreWizard } from "@/components/loja/quick-store-wizard";
@@ -68,6 +71,14 @@ function BuilderInner() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
+  // Produtos reais da loja para o Live Preview no Construtor
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const allProducts = useMemo(() => {
+    return mergeInventoryWithShowcase(
+      rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0],
+    );
+  }, [rawInventory]);
+
   // Detecção física de viewport mobile (< 768px) para adaptação real em smartphones
   const [isPhysicalMobile, setIsPhysicalMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 768 : false
@@ -79,6 +90,18 @@ function BuilderInner() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Proteção contra saída acidental com alterações não salvas (Cenário 04)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
 
   // Sincroniza o ThemeBuilder caso o wizard ou outra aba altere o tema
   useEffect(() => {
@@ -101,23 +124,13 @@ function BuilderInner() {
     const timer = setTimeout(() => {
       // Salva sempre no localStorage (instantâneo, sem latência de rede)
       saveTheme(theme);
-      // Background draft para o Supabase (sem bloquear UI)
-      if (store?.id) {
-        const currentMeta = (store.metadata as Record<string, unknown> | null) || {};
-        void supabase
-          .from("stores")
-          .update({
-            metadata: {
-              ...currentMeta,
-              theme,
-              templateId: theme.settings.templateId,
-            } as never,
-          })
-          .eq("id", store.id);
+      // Background draft atômico para o Supabase (preserva cupons, frete e integrações)
+      if (store?.id && store.id !== "00000000-0000-0000-0000-000000000000") {
+        void saveStoreThemeToCloud(store.id, theme, { recordHistory: false });
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [theme, isDirty, store?.id, store?.metadata]);
+  }, [theme, isDirty, store?.id]);
 
   // ── Zoom state (lifted from MobilePreviewFrame) ───────────────────────────
   // "auto" = ajusta automaticamente ao espaço disponível
@@ -159,28 +172,14 @@ function BuilderInner() {
     setIsSaving(true);
     try {
       saveTheme(theme);
-      if (store?.id) {
-        const currentMeta = (store.metadata as Record<string, unknown> | null) || {};
-        const previousHistory = Array.isArray(currentMeta["themeHistory"])
-          ? (currentMeta["themeHistory"] as Array<{ savedAt: string; theme: ThemeConfig }>)
-          : [];
-        const updatedHistory = [
-          { savedAt: new Date().toISOString(), theme },
-          ...previousHistory.filter(Boolean).slice(0, 4),
-        ];
+      if (store?.id && store.id !== "00000000-0000-0000-0000-000000000000") {
+        const { error } = await saveStoreThemeToCloud(store.id, theme, {
+          recordHistory: true,
+        });
 
-        await supabase
-          .from("stores")
-          .update({
-            metadata: {
-              ...currentMeta,
-              theme,
-              templateId: theme.settings.templateId,
-              themeHistory: updatedHistory,
-            } as never,
-          })
-          .eq("id", store.id);
+        if (error) throw error;
         void queryClient.invalidateQueries({ queryKey: ["active_store"] });
+        void queryClient.invalidateQueries({ queryKey: ["vitrine-store"] });
       }
       dispatch({ type: "SAVE" });
       toast.success("Loja publicada com sucesso!", {
@@ -625,6 +624,9 @@ function BuilderInner() {
                 onSectionClick={handleSectionSelect}
                 onToggleSection={(id) => dispatch({ type: "TOGGLE_VISIBLE", id })}
                 onDeleteSection={(id) => dispatch({ type: "DELETE_SECTION", id })}
+                showcaseProducts={allProducts}
+                storeName={store?.name}
+                {...(store?.phone ? { storePhone: store.phone } : {})}
               />
             </main>
           )}
@@ -780,8 +782,19 @@ function BuilderInner() {
 
 // ── Public Export ─────────────────────────────────────────────────────────────
 export function ThemeBuilder() {
-  const { store } = useStore();
+  const { store, isLoading } = useStore();
   const remoteTheme = (store?.metadata as Record<string, unknown> | null)?.["theme"] as ThemeConfig | undefined;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Carregando construtor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BuilderProvider {...(remoteTheme ? { initialTheme: remoteTheme } : {})}>

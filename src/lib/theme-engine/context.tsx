@@ -6,7 +6,7 @@ import {
   type ThemeSettings,
   type SectionType,
 } from "./schema";
-import { ATELIER_MOD_THEME, loadTheme } from "./defaults";
+import { getPresetThemeForTemplate, loadTheme } from "./defaults";
 import { nanoid } from "./nanoid";
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ type Action =
   | { type: "REDO" }
   | { type: "SAVE" }
   | { type: "RESET" }
-  | { type: "LOAD_THEME"; theme: ThemeConfig }
+  | { type: "LOAD_THEME"; theme: ThemeConfig; markDirty?: boolean }
   | { type: "TOGGLE_SIDEBAR" };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -122,7 +122,8 @@ function reducer(state: BuilderState, action: Action): BuilderState {
     case "ADD_SECTION": {
       const meta = SECTION_META.find((m) => m.type === action.sectionType);
       if (!meta) return state;
-      const newSection = createDefaultSection(action.sectionType);
+      const existingIds = new Set(state.theme.sections.map((s) => s.id));
+      const newSection = createDefaultSection(action.sectionType, existingIds);
       const newTheme: ThemeConfig = {
         ...state.theme,
         sections: [...state.theme.sections, newSection],
@@ -164,18 +165,36 @@ function reducer(state: BuilderState, action: Action): BuilderState {
       return { ...state, isDirty: false };
 
     case "LOAD_THEME":
-      return { ...state, theme: action.theme, isDirty: false, past: [], future: [] };
+      return {
+        ...state,
+        theme: action.theme,
+        isDirty: Boolean(action.markDirty),
+        past: [],
+        future: [],
+      };
 
-    case "RESET":
-      return { ...initialState, theme: ATELIER_MOD_THEME };
+    case "RESET": {
+      const activeTemplateId = state.theme.settings.templateId || "template-02";
+      const resetTheme = getPresetThemeForTemplate(activeTemplateId, {
+        storeName: state.theme.settings.storeName,
+        ...(state.theme.settings.storeWhatsApp
+          ? { storeWhatsApp: state.theme.settings.storeWhatsApp }
+          : {}),
+        ...(state.theme.settings.logoUrl ? { logoUrl: state.theme.settings.logoUrl } : {}),
+      });
+      return withHistory(state, resetTheme);
+    }
 
     default:
       return state;
   }
 }
 
-function createDefaultSection(type: SectionType): Section {
-  const id = `${type}-${nanoid()}`;
+function createDefaultSection(type: SectionType, existingIds?: Set<string>): Section {
+  let id = `${type}-${nanoid()}-${Date.now().toString(36)}`;
+  while (existingIds?.has(id)) {
+    id = `${type}-${nanoid()}-${Date.now().toString(36)}`;
+  }
   switch (type) {
     case "hero":
       return {
@@ -383,6 +402,8 @@ export function BuilderProvider({
     initialTheme ? { ...initialState, theme: initialTheme } : initialState,
   );
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // Se initialTheme carregar posteriormente (ex: busca assíncrona do Supabase), sincroniza se não houver edição não salva
   useEffect(() => {
@@ -391,10 +412,23 @@ export function BuilderProvider({
     }
   }, [initialTheme]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Abre um único canal persistente ao montar — evita criar/destruir instâncias a cada render
+  // Abre um único canal persistente ao montar — responde imediatamente ao handshake do iframe
   useEffect(() => {
     try {
-      channelRef.current = new BroadcastChannel("vestui_theme_preview");
+      const channel = new BroadcastChannel("vestui_theme_preview");
+      channelRef.current = channel;
+      channel.onmessage = (evt) => {
+        const { type } = (evt.data ?? {}) as { type?: string };
+        if (type === "PREVIEW_FRAME_READY") {
+          const latest = stateRef.current;
+          channel.postMessage({ type: "THEME_UPDATE", payload: latest.theme });
+          channel.postMessage({ type: "SELECT_SECTION", payload: latest.selectedSectionId });
+          channel.postMessage({
+            type: "SET_INTERACTION_MODE",
+            payload: latest.interactionMode,
+          });
+        }
+      };
     } catch {
       // BroadcastChannel não disponível (SSR / Node)
     }

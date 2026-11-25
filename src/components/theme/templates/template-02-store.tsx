@@ -39,6 +39,7 @@ import { openWhatsAppCheckout } from "@/lib/whatsapp";
 import { toast } from "sonner";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
+import { useCart as useGlobalCart } from "@/lib/cart";
 
 // ── Assets locais (14 imagens, idênticas ao template original) ────────────────
 import heroImg from "@/assets/template-02/hero.jpg";
@@ -647,8 +648,19 @@ function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: strin
 }
 
 // ── QuickAdd Modal ────────────────────────────────────────────────────────────
-function QuickAddModal({ product, onClose }: { product: Product | null; onClose: () => void }) {
-  const { add } = useCart();
+function QuickAddModal({
+  product,
+  onClose,
+  onOpenCart,
+  allShowcaseProducts = [],
+}: {
+  product: Product | null;
+  onClose: () => void;
+  onOpenCart?: () => void;
+  allShowcaseProducts?: ShowcaseProduct[];
+}) {
+  const { add, open } = useCart();
+  const globalCart = useGlobalCart();
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
 
@@ -727,8 +739,37 @@ function QuickAddModal({ product, onClose }: { product: Product | null; onClose:
           <button
             type="button"
             onClick={() => {
-              add(product, selectedColor, selectedSize);
-              onClose();
+              const originalShowcase = allShowcaseProducts.find((item) => item.id === product.slug);
+              const sizesObj = (originalShowcase?.sizes ?? {}) as Record<string, number>;
+              const estoqueTamanho = originalShowcase
+                ? selectedSize in sizesObj
+                  ? sizesObj[selectedSize]
+                  : originalShowcase.totalEstoque
+                : undefined;
+
+              if (typeof estoqueTamanho === "number" && estoqueTamanho <= 0) {
+                toast.error("Esta grade está esgotada no momento.");
+                return;
+              }
+
+              if (onOpenCart) {
+                globalCart.add({
+                  id: product.slug,
+                  nome: product.name,
+                  imagem: product.image,
+                  preco: product.price,
+                  tamanho: selectedSize || "Único",
+                  cor: selectedColor || "",
+                  quantidade: 1,
+                  ...(typeof estoqueTamanho === "number" ? { maxQuantity: estoqueTamanho } : {}),
+                });
+                onClose();
+                onOpenCart();
+              } else {
+                add(product, selectedColor, selectedSize);
+                onClose();
+                open();
+              }
             }}
             className="flex-1 bg-primary py-4 font-display text-[11px] uppercase tracking-[0.24em] text-primary-foreground transition-opacity hover:opacity-85"
           >
@@ -862,9 +903,12 @@ export function Template02Store({
   const settings = theme?.settings;
 
   // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
-  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const { data: rawInventory = [] } = useQuery({
+    ...inventoryQuery(),
+    enabled: showcaseProducts === undefined,
+  });
   const allShowcaseProducts = useMemo(() => {
-    if (showcaseProducts && showcaseProducts.length > 0) return showcaseProducts;
+    if (showcaseProducts !== undefined) return showcaseProducts;
     return mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]);
   }, [showcaseProducts, rawInventory]);
 
@@ -1779,7 +1823,14 @@ export function Template02Store({
             storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? "" }}
           />
         )}
-        {quickAdd && <QuickAddModal product={quickAdd} onClose={() => setQuickAdd(null)} />}
+        {quickAdd && (
+          <QuickAddModal
+            product={quickAdd}
+            onClose={() => setQuickAdd(null)}
+            allShowcaseProducts={allShowcaseProducts}
+            {...(onOpenCart ? { onOpenCart } : {})}
+          />
+        )}
 
         <main>
           {/* ── SEÇÕES DINÂMICAS — iteradas por theme.order ── */}

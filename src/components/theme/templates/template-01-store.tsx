@@ -37,6 +37,7 @@ import { openWhatsAppCheckout } from "@/lib/whatsapp";
 import { toast } from "sonner";
 import { mergeInventoryWithShowcase, type ShowcaseProduct } from "@/lib/showcase-store";
 import { useStore } from "@/lib/store-context";
+import { useCart as useGlobalCart } from "@/lib/cart";
 
 // ── Assets locais (idênticos ao template original) ────────────────────────────
 import heroImg from "@/assets/template-01/hero.jpg";
@@ -164,18 +165,20 @@ function ProductCard({
           </svg>
         </button>
 
-        <div className="absolute inset-x-3 bottom-3 translate-y-4 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickAdd(product);
-            }}
-            className="w-full bg-foreground/95 py-3 text-[11px] uppercase tracking-[0.24em] text-background backdrop-blur-sm transition-colors duration-300 hover:bg-foreground"
-          >
-            Adição rápida
-          </button>
-        </div>
+        {product.estoque > 0 && (
+          <div className="absolute inset-x-3 bottom-3 translate-y-4 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickAdd(product);
+              }}
+              className="w-full bg-foreground/95 py-3 text-[11px] uppercase tracking-[0.24em] text-background backdrop-blur-sm transition-colors duration-300 hover:bg-foreground"
+            >
+              Adição rápida
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="pt-5">
@@ -269,11 +272,15 @@ export function Template01Store({
   storeCategories,
 }: Template01StoreProps = {}) {
   const settings = theme?.settings;
+  const globalCart = useGlobalCart();
 
   // ── Produtos reais do banco (Single Source of Truth) ──────────────────────
-  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const { data: rawInventory = [] } = useQuery({
+    ...inventoryQuery(),
+    enabled: showcaseProducts === undefined,
+  });
   const allShowcaseProducts = useMemo(() => {
-    if (showcaseProducts && showcaseProducts.length > 0) return showcaseProducts;
+    if (showcaseProducts !== undefined) return showcaseProducts;
     return mergeInventoryWithShowcase(rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0]);
   }, [showcaseProducts, rawInventory]);
   /** Apenas produtos ativos na vitrine */
@@ -394,6 +401,35 @@ export function Template01Store({
 
   const adicionar = () => {
     if (!quickAdd || !tamanhoSel) return;
+    const originalShowcase = allShowcaseProducts.find((item) => item.id === quickAdd.id);
+    const sizesObj = (originalShowcase?.sizes ?? {}) as Record<string, number>;
+    const estoqueTamanho = originalShowcase
+      ? tamanhoSel in sizesObj
+        ? sizesObj[tamanhoSel]
+        : originalShowcase.totalEstoque
+      : undefined;
+
+    if (typeof estoqueTamanho === "number" && estoqueTamanho <= 0) {
+      toast.error("Esta grade está esgotada no momento.");
+      return;
+    }
+
+    if (onOpenCart) {
+      globalCart.add({
+        id: quickAdd.id,
+        nome: quickAdd.nome,
+        imagem: quickAdd.imagem,
+        preco: quickAdd.preco,
+        tamanho: tamanhoSel,
+        cor: quickAdd.cores[0]?.nome ?? "",
+        quantidade: 1,
+        ...(typeof estoqueTamanho === "number" ? { maxQuantity: estoqueTamanho } : {}),
+      });
+      setQuickAdd(null);
+      onOpenCart();
+      return;
+    }
+
     setCart((atual) => {
       const idx = atual.findIndex((i) => i.product.id === quickAdd.id && i.tamanho === tamanhoSel);
       const existente = idx >= 0 ? atual[idx] : undefined;
