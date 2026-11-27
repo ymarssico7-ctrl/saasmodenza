@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ShoppingBag,
@@ -384,16 +384,37 @@ function VitrineLayout() {
   }, [store, storeName, storeSlug, allProducts]);
 
   const storeCity = store?.city ?? "";
-  const storeWhatsapp = store?.phone ?? "";
+
+  // ── Tema Ativo e Metadata da Loja (Top-Level Hook — chamado incondicionalmente em todos os renders) ──
+  const storeMetadata = store?.metadata as Record<string, unknown> | null;
+
+  // Governança de Integrações: respeita toggle do lojista (stores.metadata.integracoes.whatsapp)
+  const isWhatsappEnabled = useMemo(() => {
+    const metaIntegracoes = storeMetadata?.["integracoes"] as Record<string, boolean> | undefined;
+    if (metaIntegracoes && typeof metaIntegracoes["whatsapp"] === "boolean") {
+      return metaIntegracoes["whatsapp"];
+    }
+    try {
+      if (store?.id) {
+        const local = localStorage.getItem(`vestui_integrations_${store.id}`);
+        if (local) {
+          const parsed = JSON.parse(local) as Record<string, boolean>;
+          if (typeof parsed["whatsapp"] === "boolean") return parsed["whatsapp"];
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return true; // padrão ativo para compatibilidade
+  }, [storeMetadata, store?.id]);
+
+  const storeWhatsapp = isWhatsappEnabled ? (store?.phone ?? "") : "";
 
   // White-Label: Lojas Store ocultam o selo/rodapé "Vestui"
   const isWhiteLabel = isStoreTier;
 
   // Sacola multi-itens com checkout integrado
   const hasMultiItemCart = true;
-
-  // ── Tema Ativo da Loja (Top-Level Hook — chamado incondicionalmente em todos os renders) ──
-  const storeMetadata = store?.metadata as Record<string, unknown> | null;
   const rawTemplateId: string =
     (storeMetadata?.["templateId"] as string) ||
     ((storeMetadata?.["theme"] as { settings?: { templateId?: string } } | undefined)?.settings?.templateId) ||
@@ -454,12 +475,23 @@ function VitrineLayout() {
 
   if (!store) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8]">
-        <div className="text-center">
-          <p className="text-lg font-semibold text-gray-700">Vitrine não encontrada</p>
-          <p className="mt-1 text-sm text-gray-400">
-            O link <strong>{storeSlug}</strong> não corresponde a nenhuma loja cadastrada.
+      <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8] p-4">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <ShoppingBag className="h-8 w-8" />
+          </div>
+          <p className="text-xl font-bold text-gray-800">Vitrine não encontrada</p>
+          <p className="mt-2 text-sm text-gray-500">
+            O link <strong className="text-gray-700">"{storeSlug}"</strong> não corresponde a nenhuma vitrine ativa no momento.
           </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/"
+              className="inline-flex items-center justify-center rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-medium text-white shadow-xs transition hover:bg-gray-800"
+            >
+              Voltar ao Início
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -1532,20 +1564,53 @@ function CartDrawer({
   const [pixOrderId, setPixOrderId] = useState<string | null>(null); // UUID do pedido criado
 
   // Auto-preenchimento de endereço via ViaCEP quando CEP tem 8 dígitos
+  const lastFetchedRuaRef = useRef<string>("");
+  const lastFetchedBairroRef = useRef<string>("");
+
   useEffect(() => {
     const digits = customerCep.replace(/\D/g, "");
     if (digits.length !== 8) return;
     let cancelled = false;
-    fetch(`https://viacep.com.br/ws/${digits}/json/`)
-      .then((r) => r.json())
-      .then((d: { erro?: boolean; logradouro?: string; bairro?: string }) => {
-        if (cancelled || d.erro) return;
-        if (d.logradouro) setCustomerRua(d.logradouro);
-        if (d.bairro) setCustomerBairro(d.bairro);
-      })
-      .catch(() => {});
+
+    const timer = setTimeout(() => {
+      fetch(`https://viacep.com.br/ws/${digits}/json/`)
+        .then((r) => r.json())
+        .then((d: { erro?: boolean | string; logradouro?: string; bairro?: string }) => {
+          if (cancelled) return;
+          if (d.erro === true || d.erro === "true") {
+            toast.info("CEP não localizado. Por favor, preencha rua e bairro manualmente.");
+            return;
+          }
+          if (d.logradouro) {
+            setCustomerRua((prev) => {
+              // Só substitui se o campo estiver vazio ou se for o logradouro anteriormente preenchido via CEP (preserva edições manuais)
+              if (prev.trim() === "" || prev === lastFetchedRuaRef.current) {
+                lastFetchedRuaRef.current = d.logradouro!;
+                return d.logradouro!;
+              }
+              return prev;
+            });
+          }
+          if (d.bairro) {
+            setCustomerBairro((prev) => {
+              if (prev.trim() === "" || prev === lastFetchedBairroRef.current) {
+                lastFetchedBairroRef.current = d.bairro!;
+                return d.bairro!;
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            toast.info("Não foi possível consultar o CEP automaticamente. Preencha o endereço manualmente.");
+          }
+        });
+    }, 350);
+
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [customerCep]);
 

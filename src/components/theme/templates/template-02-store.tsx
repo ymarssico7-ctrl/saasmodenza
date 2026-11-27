@@ -499,6 +499,15 @@ function ProductCard({
 // ── CartDrawer (idêntico ao cart-drawer.tsx original) ─────────────────────────
 function CartDrawer({ storeMeta }: { storeMeta: { name: string; whatsApp?: string } }) {
   const { isOpen, close, items, subtotal, remove, setQuantity } = useCart();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, close]);
   return (
     <div
       className={`fixed inset-0 z-50 ${isOpen ? "" : "pointer-events-none"}`}
@@ -1007,7 +1016,7 @@ export function Template02Store({
     ((settings?.storeWhatsApp && settings.storeWhatsApp.trim()) ? settings.storeWhatsApp : (activeStore?.phone || ""));
   const logoUrl = settings?.logoUrl;
   const bannerText =
-    settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · Trocas em 30 dias";
+    settings?.freeShippingBanner || "Frete grátis acima de R$ 500 · 1ª troca grátis em até 7 dias";
   const showBanner = settings?.freeShippingBannerEnabled !== false;
 
   // ── Extrai dados das seções do Engine (mantido para compatibilidade de ref) ──
@@ -1404,6 +1413,12 @@ export function Template02Store({
             : s.settings.source === "featured"
               ? PRODUCTS.filter((p) => p.estoque > 0)
               : PRODUCTS;
+        const colsMap: Record<number, string> = {
+          2: "lg:grid-cols-2",
+          3: "lg:grid-cols-3",
+          4: "lg:grid-cols-4",
+        };
+        const colsClass = colsMap[Math.min(s.settings.columns ?? 4, 4)] ?? "lg:grid-cols-4";
         return (
           <SectionWrap key={section.id} section={section}>
             <section className="mx-auto max-w-[1500px] px-5 pb-16 lg:px-10 lg:pb-24">
@@ -1429,7 +1444,7 @@ export function Template02Store({
                 )}
               </div>
               <div
-                className={`mt-8 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-${Math.min(s.settings.columns, 4)} lg:gap-x-6`}
+                className={`mt-8 grid grid-cols-2 gap-x-4 gap-y-12 ${colsClass} lg:gap-x-6`}
               >
                 {products.slice(0, s.settings.count).map((p) => {
                   const originalShowcase = allShowcaseProducts.find((item) => item.id === p.slug);

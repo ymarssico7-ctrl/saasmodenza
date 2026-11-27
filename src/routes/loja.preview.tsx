@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { loadTheme } from "@/lib/theme-engine/defaults";
+import { useStore } from "@/lib/store-context";
+import { inventoryQuery } from "@/lib/db";
+import { mergeInventoryWithShowcase } from "@/lib/showcase-store";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 
 export const Route = createFileRoute("/loja/preview")({
@@ -15,7 +19,15 @@ export const Route = createFileRoute("/loja/preview")({
 });
 
 function PreviewPage() {
+  const { store } = useStore();
   const [theme, setTheme] = useState<ThemeConfig>(() => loadTheme());
+
+  const { data: rawInventory = [] } = useQuery(inventoryQuery());
+  const allProducts = useMemo(() => {
+    return mergeInventoryWithShowcase(
+      rawInventory as Parameters<typeof mergeInventoryWithShowcase>[0],
+    );
+  }, [rawInventory]);
 
   // Atualiza o preview em tempo real quando o builder envia alterações
   useEffect(() => {
@@ -43,5 +55,12 @@ function PreviewPage() {
     };
   }, []);
 
-  return <ThemeRenderer theme={theme} />;
+  return (
+    <ThemeRenderer
+      theme={theme}
+      showcaseProducts={allProducts}
+      storeName={store?.name}
+      {...(store?.phone ? { storePhone: store.phone } : {})}
+    />
+  );
 }

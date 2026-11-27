@@ -471,7 +471,7 @@ export function Template01Store({
         : (activeStore?.name || ""));
   const logoUrl = settings?.logoUrl;
   const freeShippingText =
-    settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · Troca sem custo em 30 dias";
+    settings?.freeShippingBanner || "Frete cortesia acima de R$ 800 · 1ª troca grátis em até 7 dias";
 
   // ── Helpers de seção ────────────────────────────────────────────────────────
   const isEditing = interactionMode !== "interactive" && typeof onSectionClick === "function";

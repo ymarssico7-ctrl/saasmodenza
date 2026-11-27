@@ -128,9 +128,19 @@ export function slugify(text: string): string {
   );
 }
 
-/** Aplica máscara de telefone brasileiro: (99) 9999-9999 ou (99) 99999-9999. */
+/** Aplica máscara de telefone brasileiro: (99) 9999-9999 ou (99) 99999-9999. Sanitiza DDI +55 e zeros iniciais no DDD. */
 export function formatPhoneBr(value: string): string {
-  const d = value.replace(/\D/g, "").slice(0, 11);
+  let d = value.replace(/\D/g, "");
+  // Remove DDI brasileiro (55) se colado junto com o número (ex: +55 11 98765-4321 -> 5511987654321)
+  // Preserva DDD 55 (RS) legítimo que possui exatamente 10 ou 11 dígitos
+  if (d.startsWith("55") && d.length > 11) {
+    d = d.slice(2);
+  }
+  // Remove zero à esquerda digitado antes do DDD (ex: 011987654321 -> 11987654321)
+  if (d.startsWith("0") && d.length > 10) {
+    d = d.slice(1);
+  }
+  d = d.slice(0, 11);
   if (d.length > 10) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
   if (d.length > 6) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   if (d.length > 2) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
