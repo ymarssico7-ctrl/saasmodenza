@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { currentUserId, isAuthenticated, updateDemoProfile } from "@/lib/db";
-import { toNumber, slugify } from "@/lib/format";
+import { toNumber, slugify, formatPhoneBr } from "@/lib/format";
 import { getPresetThemeForTemplate, saveTheme } from "@/lib/theme-engine/defaults";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
 import { Logo } from "@/components/logo";
@@ -76,8 +76,10 @@ function Onboarding() {
             hint="Essencial para pedidos"
           >
             <Input
+              type="tel"
+              inputMode="numeric"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatPhoneBr(e.target.value))}
               placeholder="(11) 98765-4321"
             />
             <p className="text-[11px] leading-relaxed text-muted-foreground">

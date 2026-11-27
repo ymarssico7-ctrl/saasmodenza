@@ -128,3 +128,18 @@ export function slugify(text: string): string {
   );
 }
 
+/** Aplica máscara de telefone brasileiro: (99) 9999-9999 ou (99) 99999-9999. */
+export function formatPhoneBr(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length > 10) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length > 6) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  if (d.length > 2) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return d;
+}
+
+/** Aplica máscara de CEP brasileiro: 99999-999. */
+export function formatCepBr(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
+

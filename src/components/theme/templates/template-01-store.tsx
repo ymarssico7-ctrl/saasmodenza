@@ -399,8 +399,20 @@ export function Template01Store({
     setTamanhoSel(p.tamanhos[0] ?? null);
   };
 
+  useEffect(() => {
+    if (quickAdd) {
+      setTamanhoSel(quickAdd.tamanhos[0] ?? null);
+    } else {
+      setTamanhoSel(null);
+    }
+  }, [quickAdd]);
+
   const adicionar = () => {
-    if (!quickAdd || !tamanhoSel) return;
+    if (!quickAdd) return;
+    if (!tamanhoSel) {
+      toast.error("Selecione um tamanho antes de adicionar à sacola.");
+      return;
+    }
     const originalShowcase = allShowcaseProducts.find((item) => item.id === quickAdd.id);
     const sizesObj = (originalShowcase?.sizes ?? {}) as Record<string, number>;
     const estoqueTamanho = originalShowcase
@@ -754,10 +766,22 @@ export function Template01Store({
       }
       case "product_grid": {
         const s = section as ProductGridSection;
+        const filteredByCategory =
+          activeCategory && activeCategory !== "todos"
+            ? PRODUCTS.filter(
+                (p) => p.categoria.toLowerCase().trim() === activeCategory.toLowerCase().trim(),
+              )
+            : PRODUCTS;
         const products =
           s.settings.source === "newest"
-            ? PRODUCTS.slice(0, s.settings.count)
-            : PRODUCTS.slice(0, s.settings.count);
+            ? filteredByCategory.slice(0, s.settings.count)
+            : filteredByCategory.slice(0, s.settings.count);
+        const colsMap: Record<number, string> = {
+          2: "lg:grid-cols-2",
+          3: "lg:grid-cols-3",
+          4: "lg:grid-cols-4",
+        };
+        const colsClass = colsMap[Math.min(s.settings.columns ?? 3, 4)] ?? "lg:grid-cols-3";
         return (
           <SectionWrap key={section.id} section={section}>
             <section id="vitrine" className="mx-auto max-w-[1400px] px-6 pb-24 lg:px-10">
@@ -773,6 +797,12 @@ export function Template01Store({
                 {s.settings.showViewAll !== false && (
                   <a
                     href="#vitrine"
+                    onClick={(e) => {
+                      if (activeCategory !== "todos") {
+                        e.preventDefault();
+                        setActiveCategory("todos");
+                      }
+                    }}
                     className="group inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground"
                   >
                     Ver tudo
@@ -783,27 +813,42 @@ export function Template01Store({
                 )}
               </div>
 
-              <div
-                className={`grid grid-cols-2 gap-x-6 gap-y-14 lg:grid-cols-${Math.min(s.settings.columns, 4)}`}
-              >
-                {products.map((p) => {
-                  const originalShowcase = allShowcaseProducts.find((sp) => sp.id === p.id);
-                  return (
-                    <ProductCard
-                      key={p.id}
-                      product={p}
-                      onQuickAdd={abrirQuickAdd}
-                      onClickProduct={() => {
-                        if (onSelectProduct && originalShowcase) {
-                          onSelectProduct(originalShowcase);
-                        } else {
-                          abrirQuickAdd(p);
-                        }
-                      }}
-                    />
-                  );
-                })}
-              </div>
+              {products.length === 0 ? (
+                <div className="py-20 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma peça disponível no momento. Fique de olho nas novidades! 👗
+                  </p>
+                  {activeCategory !== "todos" && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategory("todos")}
+                      className="mt-4 inline-flex items-center border border-border px-5 py-2 text-[11px] uppercase tracking-[0.2em] transition-colors hover:border-foreground"
+                    >
+                      Ver todas as peças
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className={`grid grid-cols-2 gap-x-6 gap-y-14 ${colsClass}`}>
+                  {products.map((p) => {
+                    const originalShowcase = allShowcaseProducts.find((sp) => sp.id === p.id);
+                    return (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        onQuickAdd={abrirQuickAdd}
+                        onClickProduct={() => {
+                          if (onSelectProduct && originalShowcase) {
+                            onSelectProduct(originalShowcase);
+                          } else {
+                            abrirQuickAdd(p);
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </section>
           </SectionWrap>
         );

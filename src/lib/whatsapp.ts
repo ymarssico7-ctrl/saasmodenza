@@ -17,6 +17,7 @@ export function formatWhatsAppMessage(
   total: number,
   cupom?: CupomInfo,
   frete?: FreteInfo,
+  extraLines?: string[],
 ): string {
   const linhas = items.map((item) => {
     const variante = [item.tamanho, item.cor].filter(Boolean).join(" · ");
@@ -38,6 +39,9 @@ export function formatWhatsAppMessage(
     }
   }
 
+  const dadosExtras =
+    extraLines && extraLines.length > 0 ? ["", ...extraLines.filter(Boolean)] : [];
+
   const msg = [
     `Olá, ${storeName}! 👋`,
     ``,
@@ -48,6 +52,7 @@ export function formatWhatsAppMessage(
     ``,
     `━━━━━━━━━━━━━━━`,
     `*Total: ${brl(total)}*`,
+    ...dadosExtras,
     ``,
     `Aguardo o retorno sobre disponibilidade e forma de pagamento 🙏`,
   ].join("\n");

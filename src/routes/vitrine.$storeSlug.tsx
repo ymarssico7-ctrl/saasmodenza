@@ -43,6 +43,7 @@ import { getVitrineSettings, type VitrineSettings } from "@/lib/vitrine-settings
 import { parseStoreCategories, getCategoryLabel, type StoreCategory } from "@/lib/categories";
 import { generatePixPayload, generatePixQrCodeUrl } from "@/lib/pix";
 import { calculateOrderNet } from "@/lib/fees";
+import { formatPhoneBr, formatCepBr } from "@/lib/format";
 import { ThemeRenderer } from "@/components/theme/theme-renderer";
 import { loadTheme } from "@/lib/theme-engine/defaults";
 import type { ThemeConfig } from "@/lib/theme-engine/schema";
@@ -903,7 +904,7 @@ function VitrineCatalogExpress({
             <InfoCard
               icon={<RefreshCw className="h-5 w-5" />}
               title="Política de troca"
-              text="Entre em contato com a loja para verificar a política de trocas."
+              text={vitrineSettings.politicaTroca?.trim() || "Entre em contato com a loja para verificar a política de trocas e devoluções."}
               cor={cor}
             />
             <InfoCard
@@ -1193,14 +1194,17 @@ function ProductModal({
                     {brl(precoFinal)}
                   </p>
                   {precoFinal >= 30 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowInstallments(!showInstallments)}
-                      className="mt-0.5 text-[11px] font-medium text-gray-500 hover:text-gray-800 underline underline-offset-2 cursor-pointer flex items-center justify-end gap-0.5"
-                    >
-                      <span>ou até 6x de {brl(precoFinal / 6)} sem juros</span>
-                      <ChevronRight className={`h-3 w-3 transition-transform ${showInstallments ? "rotate-90" : ""}`} />
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setShowInstallments(!showInstallments)}
+                        className="mt-0.5 text-[11px] font-medium text-gray-500 hover:text-gray-800 underline underline-offset-2 cursor-pointer flex items-center justify-end gap-0.5"
+                      >
+                        <span>ou até 6x de {brl(precoFinal / 6)} sem juros*</span>
+                        <ChevronRight className={`h-3 w-3 transition-transform ${showInstallments ? "rotate-90" : ""}`} />
+                      </button>
+                      <p className="text-[10px] text-gray-400">*sujeito à disponibilidade</p>
+                    </>
                   )}
                   {temPromocao && product.showcase.precoPromocional && (
                     <p className="text-sm text-gray-400 line-through">{brl(product.sale_price)}</p>
@@ -1371,7 +1375,7 @@ function ProductModal({
             </div>
             <div className="flex flex-col items-center gap-1">
               <RefreshCw className="h-4 w-4 text-gray-500" />
-              <span className="text-[10px] font-medium text-gray-600 leading-tight">1ª Troca Grátis</span>
+              <span className="text-[10px] font-medium text-gray-600 leading-tight">Política de Troca</span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <Shield className="h-4 w-4 text-gray-500" />
@@ -1442,7 +1446,7 @@ function ProductModal({
                 </table>
               </div>
               <p className="mt-3 text-[10px] text-gray-400 text-center">
-                Medidas de referência. Em caso de dúvidas, chame no WhatsApp!
+                ⚠️ Tabela de referência geral. Consulte a loja para medidas específicas de cada peça.
               </p>
             </div>
           </div>
@@ -1527,6 +1531,23 @@ function CartDrawer({
   const [pixCountdown, setPixCountdown] = useState(0); // segundos restantes
   const [pixOrderId, setPixOrderId] = useState<string | null>(null); // UUID do pedido criado
 
+  // Auto-preenchimento de endereço via ViaCEP quando CEP tem 8 dígitos
+  useEffect(() => {
+    const digits = customerCep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let cancelled = false;
+    fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      .then((r) => r.json())
+      .then((d: { erro?: boolean; logradouro?: string; bairro?: string }) => {
+        if (cancelled || d.erro) return;
+        if (d.logradouro) setCustomerRua(d.logradouro);
+        if (d.bairro) setCustomerBairro(d.bairro);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [customerCep]);
 
   function resetCheckout() {
     setCheckoutStep("cart");
@@ -1991,21 +2012,28 @@ function CartDrawer({
         ? "📍 Entrega: 🏪 Retirada no balcão da loja"
         : (enderecoStr ? `📍 Endereço de entrega: ${enderecoStr}` : null);
 
-      const msgExtra = [
-        `\n👤 Cliente: ${customerName}`,
+      const extraLines = [
+        `👤 Cliente: ${customerName}`,
         `📱 WhatsApp: ${customerPhone}`,
         entregaStr,
         `💳 Pagamento: ${metodoPagamentoLabel}`,
         `🔖 Pedido: ${numeroPedido}`,
-      ].filter(Boolean).join("\n");
+      ].filter((line): line is string => Boolean(line));
 
       const infoCupomWpp = infoCupom;
       const infoFreteWpp = infoFrete;
+      const fullMsg = formatWhatsAppMessage(
+        storeName,
+        items,
+        totalFinal,
+        infoCupomWpp,
+        infoFreteWpp,
+        extraLines,
+      );
 
       if (!whatsapp) {
         try {
-          const msg = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp) + msgExtra;
-          void navigator.clipboard?.writeText(msg);
+          void navigator.clipboard?.writeText(fullMsg);
         } catch { /* silencia */ }
         toast.info("WhatsApp da loja não configurado", {
           description: "O resumo do pedido foi copiado! Você pode encaminhar para a loja no WhatsApp.",
@@ -2013,8 +2041,6 @@ function CartDrawer({
       }
 
       // Monta URL manualmente para incluir dados extras na mensagem
-      const baseMsgWpp = formatWhatsAppMessage(storeName, items, totalFinal, infoCupomWpp, infoFreteWpp);
-      const fullMsg = baseMsgWpp + msgExtra;
       const digits = (whatsapp || "").replace(/\D/g, "");
       if (digits.length >= 8) {
         const phone = digits.startsWith("55") ? digits : `55${digits}`;
@@ -2255,7 +2281,7 @@ function CartDrawer({
                     >
                       <span className="font-medium">{opcao.label}</span>
                       <span className="font-semibold">
-                        {opcao.valor === 0 ? "Gratis" : brl(opcao.valor ?? 0)}
+                        {opcao.valor === 0 ? "Grátis" : brl(opcao.valor ?? 0)}
                       </span>
                     </button>
                   ))}
@@ -2276,7 +2302,7 @@ function CartDrawer({
               {freteSelecionado && (
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <span>Frete ({freteSelecionado.label})</span>
-                  <span>{valorFrete === 0 ? "Gratis" : `+ ${brl(valorFrete)}`}</span>
+                  <span>{valorFrete === 0 ? "Grátis" : `+ ${brl(valorFrete)}`}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-base font-bold text-gray-900">
@@ -2287,7 +2313,7 @@ function CartDrawer({
               <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                 <p className="text-xs leading-relaxed text-amber-700">
-                  Esta loja nao configurou o WhatsApp. Seu pedido sera copiado.
+                  Esta loja não configurou o WhatsApp. Seu pedido será copiado.
                 </p>
               </div>
             )}
@@ -2340,9 +2366,15 @@ function CartDrawer({
                 <label className="mb-1 block text-xs font-semibold text-gray-600">WhatsApp (com DDD) *</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input type="tel" placeholder="(99) 99999-9999" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="(99) 99999-9999"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(formatPhoneBr(e.target.value))}
                     className="h-10 w-full rounded-xl border border-gray-200 pl-9 pr-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                    style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                    style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties}
+                  />
                 </div>
               </div>
               <div>
@@ -2367,6 +2399,20 @@ function CartDrawer({
                   <p className="pt-1 text-xs font-semibold text-gray-500 flex items-center gap-1.5">
                     <Home className="h-3.5 w-3.5" /> Endereço de entrega *
                   </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="CEP (ex: 01310-100)"
+                      value={customerCep}
+                      onChange={(e) => setCustomerCep(formatCepBr(e.target.value))}
+                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties}
+                    />
+                    <input type="text" placeholder="Bairro" value={customerBairro} onChange={(e) => setCustomerBairro(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
+                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
+                  </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2">
                       <input type="text" placeholder="Rua / Av. *" value={customerRua} onChange={(e) => setCustomerRua(e.target.value)}
@@ -2374,14 +2420,6 @@ function CartDrawer({
                         style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
                     </div>
                     <input type="text" placeholder="Nº *" value={customerNumero} onChange={(e) => setCustomerNumero(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="Bairro" value={customerBairro} onChange={(e) => setCustomerBairro(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
-                      style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
-                    <input type="text" placeholder="CEP" value={customerCep} onChange={(e) => setCustomerCep(e.target.value)}
                       className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2"
                       style={{ "--tw-ring-color": `${cor}33` } as React.CSSProperties} />
                   </div>
@@ -2445,14 +2483,14 @@ function CartDrawer({
               <div className="rounded-xl bg-gray-50 px-4 py-3 space-y-1 text-sm">
                 <div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{brl(totalPrice)}</span></div>
                 {cupomAplicado && <div className="flex justify-between text-green-600"><span>Desconto</span><span>-{brl(valorDesconto)}</span></div>}
-                {freteSelecionado && <div className="flex justify-between text-gray-500"><span>Frete</span><span>{valorFrete === 0 ? "Gratis" : `+ ${brl(valorFrete)}`}</span></div>}
+                {freteSelecionado && <div className="flex justify-between text-gray-500"><span>Frete</span><span>{valorFrete === 0 ? "Grátis" : `+ ${brl(valorFrete)}`}</span></div>}
                 <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-200"><span>Total</span><span>{brl(totalFinal)}</span></div>
               </div>
               <p className="text-xs font-semibold text-gray-500">Como deseja pagar?</p>
               {([
-                { id: "pix" as const, label: "Pix", desc: "Taxa 0% - Direto para a loja", icon: "💠" },
-                { id: "cartao" as const, label: "Cartao de Credito", desc: "Taxa operadora 3,5% aplicada", icon: "💳" },
-                { id: "retirada" as const, label: "Pagar na Retirada", desc: "Pagamento no balcao da loja", icon: "🏪" },
+                { id: "pix" as const, label: "Pix", desc: "Aprovação imediata", icon: "💠" },
+                { id: "cartao" as const, label: "Cartão de Crédito", desc: "Link de pagamento ou maquininha", icon: "💳" },
+                { id: "retirada" as const, label: "Pagar na Retirada", desc: "Pagamento no balcão da loja", icon: "🏪" },
               ] as const).map((opt) => (
                 <button key={opt.id} onClick={() => setPaymentMethod(opt.id)}
                   className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all"
@@ -2677,15 +2715,16 @@ function CartDrawer({
 
 
               {paymentMethod === "cartao" && (
-                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-1 text-xs">
-                  <p className="font-semibold text-blue-800">Detalhamento financeiro</p>
-                  <div className="flex justify-between text-blue-700"><span>Total pago pela cliente</span><span>{brl(totalFinal)}</span></div>
-                  <div className="flex justify-between text-blue-600"><span>Taxa operadora (3,5%)</span><span>- {brl(totalFinal * 0.035)}</span></div>
-                  <div className="flex justify-between font-bold text-blue-900 border-t border-blue-200 pt-1"><span>Líquido para a loja</span><span>{brl(Math.max(totalFinal - totalFinal * 0.035, 0))}</span></div>
-                  <p className="text-[10px] text-blue-500 pt-0.5">Taxa cobrada pela operadora de cartão, não pela Vestui.</p>
-                  <div className="mt-2 rounded-lg border border-blue-200 bg-white/70 px-3 py-2">
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 space-y-2 text-xs">
+                  <p className="font-semibold text-blue-800 flex items-center gap-1.5">
+                    <CreditCard className="h-3.5 w-3.5" /> Pagamento com Cartão de Crédito
+                  </p>
+                  <p className="text-[11px] text-blue-700">
+                    Total do pedido: <strong className="text-blue-900">{brl(totalFinal)}</strong>
+                  </p>
+                  <div className="rounded-lg border border-blue-200 bg-white/70 px-3 py-2">
                     <p className="text-[10px] leading-relaxed text-blue-700">
-                      <strong>Como pagar:</strong> Clique em <em>"Confirmar e abrir WhatsApp"</em> → a loja enviará o link ou combinará o pagamento na maquininha.
+                      <strong>Como pagar:</strong> Clique em <em>"Confirmar e abrir WhatsApp"</em> → a loja enviará um link de pagamento seguro ou combinará o pagamento na maquininha.
                     </p>
                   </div>
                 </div>

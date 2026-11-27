@@ -68,12 +68,13 @@ test("Identifica modalidade de retirada e dispensa endereço de entrega", (c) =>
   reason: "Retirada na loja ainda obriga preenchimento de endereço",
 }));
 
-// 6. Eliminação de Card Duplicado de Cartão
-test("Elimina card duplicado de detalhamento financeiro do cartão de crédito", (c) => {
-  const matches = (c.match(/Detalhamento financeiro/g) || []).length;
+// 6. Eliminação de Card Duplicado e dados internos de Cartão
+test("Exibe exatamente 1 card de cartão para o comprador (sem dados financeiros internos)", (c) => {
+  const cardMatches = (c.match(/Pagamento com Cartão de Crédito/g) || []).length;
+  const leakMatches = (c.match(/Detalhamento financeiro/g) || []).length;
   return {
-    pass: matches === 1,
-    reason: `Esperava exatamente 1 ocorrência de 'Detalhamento financeiro', mas encontrou ${matches}`,
+    pass: cardMatches === 1 && leakMatches === 0,
+    reason: `Esperava 1 'Pagamento com Cartão de Crédito' e 0 'Detalhamento financeiro', encontrou ${cardMatches} e ${leakMatches}`,
   };
 });
 

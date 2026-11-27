@@ -58,10 +58,10 @@ type Integracao = {
 const integracoesData: Integracao[] = [
   {
     id: "whatsapp",
-    nome: "WhatsApp Business",
-    descricao: "Notificações automáticas de pedido, confirmação e rastreamento via WhatsApp.",
+    nome: "WhatsApp (Link Direto)",
+    descricao: "Receba pedidos diretamente pelo seu WhatsApp. Ative para habilitar o botão de contato na vitrine.",
     categoria: "Comunicação",
-    conectado: true,
+    conectado: false,
     plano: "digital",
     icon: MessageCircle,
     cor: "bg-success-soft text-success",
