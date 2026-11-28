@@ -196,6 +196,14 @@ function PlusIcon({ className }: IconProps) {
     </svg>
   );
 }
+function CategoryIcon({ className }: IconProps) {
+  return (
+    <svg {...svgBase} className={className}>
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <circle cx="7" cy="7" r="1.5" />
+    </svg>
+  );
+}
 
 // ── Cart Context (idêntico ao context/cart.tsx original) ──────────────────────
 type CartItemT = {
@@ -323,7 +331,7 @@ function Navbar({
         ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+    <header className="border-b border-border bg-background shadow-2xs">
       <div className="mx-auto grid h-16 max-w-[1500px] grid-cols-[auto_1fr_auto] items-center gap-4 px-5 sm:h-20 lg:px-10">
         <button
           type="button"
@@ -352,12 +360,12 @@ function Navbar({
             e.preventDefault();
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className="justify-self-center font-display text-lg font-semibold uppercase tracking-[0.42em] text-foreground sm:text-xl"
+          className="justify-self-center min-w-0 max-w-[240px] sm:max-w-[380px] lg:max-w-[500px] truncate font-display text-base font-semibold uppercase tracking-[0.25em] sm:tracking-[0.32em] text-foreground sm:text-lg lg:text-xl text-center"
         >
           {logoUrl ? (
-            <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain" />
+            <img src={logoUrl} alt={storeName} className="h-7 sm:h-9 max-h-9 w-auto object-contain mx-auto" />
           ) : isStoreLoading ? (
-            <Skeleton className="h-6 w-32 rounded" />
+            <Skeleton className="h-6 w-32 rounded mx-auto" />
           ) : (
             storeName || "Sua loja"
           )}
@@ -1352,14 +1360,31 @@ export function Template02Store({
                       }}
                       className="group relative block w-[200px] shrink-0 snap-start overflow-hidden bg-secondary text-left transition-all cursor-pointer hover:shadow-lg sm:w-[240px]"
                     >
-                      <img
-                        src={cat.image}
-                        alt={cat.label}
-                        width={600}
-                        height={800}
-                        loading="lazy"
-                        className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-                      />
+                      {cat.image ? (
+                        <img
+                          src={cat.image}
+                          alt={cat.label}
+                          width={600}
+                          height={800}
+                          loading="lazy"
+                          className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = "none";
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        style={{ display: cat.image ? "none" : "flex" }}
+                        className="aspect-[3/4] w-full flex-col items-center justify-center bg-gradient-to-br from-secondary/80 to-muted/80 p-6 text-center transition-all group-hover:scale-[1.02]"
+                      >
+                        <CategoryIcon className="h-8 w-8 text-muted-foreground/60 mb-2 stroke-[1.5]" />
+                        <span className="font-display text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          {cat.label}
+                        </span>
+                      </div>
                       <span className="absolute bottom-3 left-3 bg-background/95 backdrop-blur-xs px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.2em] text-foreground shadow-xs">
                         {cat.label}
                       </span>
@@ -1386,14 +1411,31 @@ export function Template02Store({
                       }}
                       className="group relative block overflow-hidden bg-secondary text-left transition-all cursor-pointer hover:shadow-lg"
                     >
-                      <img
-                        src={cat.image}
-                        alt={cat.label}
-                        width={800}
-                        height={1100}
-                        loading="lazy"
-                        className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-                      />
+                      {cat.image ? (
+                        <img
+                          src={cat.image}
+                          alt={cat.label}
+                          width={800}
+                          height={1100}
+                          loading="lazy"
+                          className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = "none";
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        style={{ display: cat.image ? "none" : "flex" }}
+                        className="aspect-[3/4] w-full flex-col items-center justify-center bg-gradient-to-br from-secondary/80 to-muted/80 p-6 text-center transition-all group-hover:scale-[1.02]"
+                      >
+                        <CategoryIcon className="h-8 w-8 text-muted-foreground/60 mb-2 stroke-[1.5]" />
+                        <span className="font-display text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          {cat.label}
+                        </span>
+                      </div>
                       <span className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-xs px-3 py-1.5 font-display text-[11px] uppercase tracking-[0.2em] text-foreground shadow-xs">
                         {cat.label}
                       </span>
@@ -1820,19 +1862,21 @@ export function Template02Store({
     <CartProvider>
       {/* .t02-theme isola os tokens de cor deste template do painel admin */}
       <div className="t02-theme min-h-screen bg-background text-foreground" style={themeVars}>
-        {/* AnnouncementBar no topo (fora do loop pois é sticky) — apenas se NÃO estiver no order */}
-        {showBanner &&
-          !(theme?.order ?? []).some(
-            (id) => theme?.sections.find((s) => s.id === id)?.type === "announcement",
-          ) && <AnnouncementBar text={bannerText} />}
-        <Navbar
-          storeName={storeName}
-          isStoreLoading={isStoreLoading}
-          navLinks={navLinks}
-          {...(logoUrl ? { logoUrl } : {})}
-          {...(onOpenCart ? { onOpenCart } : {})}
-          {...(cartCount !== undefined ? { cartCount } : {})}
-        />
+        {/* AnnouncementBar + Navbar agrupados em wrapper sticky */}
+        <div className="sticky top-0 z-40">
+          {showBanner &&
+            !(theme?.order ?? []).some(
+              (id) => theme?.sections.find((s) => s.id === id)?.type === "announcement",
+            ) && <AnnouncementBar text={bannerText} />}
+          <Navbar
+            storeName={storeName}
+            isStoreLoading={isStoreLoading}
+            navLinks={navLinks}
+            {...(logoUrl ? { logoUrl } : {})}
+            {...(onOpenCart ? { onOpenCart } : {})}
+            {...(cartCount !== undefined ? { cartCount } : {})}
+          />
+        </div>
         {!onOpenCart && (
           <CartDrawer
             storeMeta={{ name: storeName, whatsApp: settings?.storeWhatsApp ?? "" }}

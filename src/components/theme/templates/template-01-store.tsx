@@ -741,14 +741,45 @@ export function Template01Store({
                     }}
                     className="group relative block overflow-hidden text-left cursor-pointer"
                   >
-                    <img
-                      src={cat.image}
-                      alt={`Categoria ${cat.label}`}
-                      width={900}
-                      height={1200}
-                      loading="lazy"
-                      className="h-[420px] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.05]"
-                    />
+                    {cat.image ? (
+                      <img
+                        src={cat.image}
+                        alt={`Categoria ${cat.label}`}
+                        width={900}
+                        height={1200}
+                        loading="lazy"
+                        className="h-[420px] w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.05]"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = "none";
+                          const fallback = target.nextElementSibling as HTMLElement | null;
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+                    {/* Fallback elegante quando sem imagem */}
+                    <div
+                      className="h-[420px] w-full items-center justify-center bg-gradient-to-br from-foreground/10 via-foreground/5 to-foreground/15 transition-all duration-500 group-hover:from-foreground/20 group-hover:to-foreground/25"
+                      style={{ display: cat.image ? "none" : "flex" }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="48"
+                        height="48"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-foreground/25"
+                        aria-hidden="true"
+                      >
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                      </svg>
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent opacity-70 transition-opacity duration-500 group-hover:opacity-90" />
                     <div className="absolute bottom-0 left-0 p-6 lg:p-8">
                       <p className="text-[10px] uppercase tracking-[0.28em] text-background/80">
@@ -1157,29 +1188,30 @@ export function Template01Store({
   return (
     // .t01-theme isola o design system deste template do painel admin
     <div className="t01-theme min-h-screen bg-background text-foreground" style={themeVars}>
-      {/* ── BARRA DE ANÚNCIO (idêntica ao original line 122-135) ── */}
-      {anuncio && settings?.freeShippingBannerEnabled !== false ? (
-        <div className="relative bg-foreground px-4 py-2.5 text-center text-[11px] uppercase tracking-[0.22em] text-background">
-          {freeShippingText}
-          <button
-            type="button"
-            aria-label="Fechar aviso"
-            onClick={() => setAnuncio(false)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-background/70 transition-colors hover:text-background"
-          >
-            ✕
-          </button>
-        </div>
-      ) : null}
+      {/* ── BARRA DE ANÚNCIO + HEADER agrupados em wrapper sticky ── */}
+      <div className="sticky top-0 z-40">
+        {anuncio && settings?.freeShippingBannerEnabled !== false ? (
+          <div className="relative bg-foreground px-4 py-2.5 text-center text-[11px] uppercase tracking-[0.22em] text-background">
+            {freeShippingText}
+            <button
+              type="button"
+              aria-label="Fechar aviso"
+              onClick={() => setAnuncio(false)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-background/70 transition-colors hover:text-background"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
 
-      {/* ── HEADER (idêntico ao original lines 137-228) ── */}
-      <header
-        className={`sticky top-0 z-40 border-b transition-all duration-500 ${
-          scrolled
-            ? "border-border bg-background/90 py-3 backdrop-blur-md"
-            : "border-transparent bg-background py-6"
-        }`}
-      >
+        {/* ── HEADER (idêntico ao original lines 137-228) ── */}
+        <header
+          className={`border-b transition-all duration-500 ${
+            scrolled
+              ? "border-border bg-background py-3 shadow-2xs"
+              : "border-transparent bg-background py-6"
+          }`}
+        >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-6 px-6 lg:px-10">
           <nav aria-label="Principal" className="hidden flex-1 items-center gap-8 lg:flex">
             {navLinks.map((item) => (
@@ -1205,11 +1237,11 @@ export function Template01Store({
             <span className="block h-px w-6 bg-foreground" />
           </button>
 
-          <a href="#" className="font-serif text-2xl tracking-[0.3em] uppercase lg:text-center">
+          <a href="#" className="font-serif text-xl sm:text-2xl tracking-[0.22em] sm:tracking-[0.3em] uppercase lg:text-center max-w-[240px] sm:max-w-[400px] truncate">
             {logoUrl ? (
-              <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain" />
+              <img src={logoUrl} alt={storeName} className="h-8 max-h-8 w-auto object-contain mx-auto" />
             ) : isStoreLoading ? (
-              <Skeleton className="h-6 w-32 rounded" />
+              <Skeleton className="h-6 w-32 rounded mx-auto" />
             ) : (
               storeName || "Sua loja"
             )}
@@ -1240,6 +1272,7 @@ export function Template01Store({
           </div>
         </div>
       </header>
+      </div>{/* end sticky wrapper (AnnouncementBar + Header) */}
 
       <main>
         {/* ── SEÇÕES DINÂMICAS ── */}

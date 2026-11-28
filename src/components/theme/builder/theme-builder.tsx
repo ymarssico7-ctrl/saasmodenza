@@ -565,41 +565,66 @@ function BuilderInner() {
           No smartphone físico, exibe quando physicalView === "preview"
           ════════════════════════════════════════════════════════════════════ */}
       {(!isPhysicalMobile || physicalView === "preview") && (
-        <div className="relative flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* ── Seletor Flutuante de Modo: Personalizar vs Testar Loja ───────── */}
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-2xl border border-border/80 bg-card/90 px-1.5 py-1 shadow-lg backdrop-blur-md">
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "SET_INTERACTION_MODE", mode: "edit" })}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                interactionMode === "edit"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-              <span>Personalizar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                dispatch({ type: "SET_INTERACTION_MODE", mode: "interactive" });
-                toast.info("Modo de Teste Interativo Ativado", {
-                  description: "Todos os cliques, banners, categorias e botões funcionam como na loja real.",
-                });
-              }}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
-                interactionMode === "interactive"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Play className="h-3.5 w-3.5" />
-              <span>Testar Loja</span>
-            </button>
-          </div>
+        <div className="relative flex-1 flex flex-col min-w-0 overflow-hidden bg-neutral-100/50 dark:bg-neutral-950/50">
+          {/* ── Barra Superior Dedicada do Canvas (Fixa em fluxo normal, nunca sobrepõe a vitrine) ── */}
+          <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-card px-4 z-30 shadow-2xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-semibold text-foreground truncate hidden md:inline">
+                {theme.settings.storeName || store?.name || "Vitrine"}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-md hidden lg:inline">
+                {theme.settings.templateId || "Template Oficial"}
+              </span>
+            </div>
+
+            {/* ── Seletor Centralizado de Modo: Personalizar vs Testar Loja ── */}
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/60 p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "SET_INTERACTION_MODE", mode: "edit" })}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+                  interactionMode === "edit"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Personalizar</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch({ type: "SET_INTERACTION_MODE", mode: "interactive" });
+                  toast.info("Modo de Teste Interativo Ativado", {
+                    description: "Todos os cliques, banners, categorias e botões funcionam como na loja real.",
+                  });
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all cursor-pointer",
+                  interactionMode === "interactive"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Play className="h-3.5 w-3.5" />
+                <span>Testar Loja</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <a
+                href="/loja/preview"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir vitrine em nova aba"
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Ver Loja</span>
+              </a>
+            </div>
+          </header>
 
           {isMobile ? (
             <MobilePreviewFrame
@@ -616,7 +641,7 @@ function BuilderInner() {
               onOpenSidebar={() => dispatch({ type: "TOGGLE_SIDEBAR" })}
             />
           ) : (
-            <main className="relative flex-1 overflow-auto bg-white pt-10">
+            <main className="relative flex-1 overflow-auto bg-white">
               <ThemeRenderer
                 theme={theme}
                 highlightId={selectedSection?.id ?? null}
